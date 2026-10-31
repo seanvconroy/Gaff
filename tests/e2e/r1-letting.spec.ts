@@ -147,3 +147,32 @@ test('R4: an operator records three comparable rents', async ({ page }) => {
   await expect(page.getByText('Comparable 3 is a different type of home (house).')).toBeVisible();
   await expectAccessible(page);
 });
+
+test('Stage 1 and R27: the operator confirms set-up, and the timeline shows every step', async ({
+  page,
+}) => {
+  await signUpOperator(page);
+  await createLettingThroughUi(page);
+  const overview = page.url().replace(/\/viewings.*$/, '');
+  await page.goto(`${overview}/criteria`);
+  await page.getByLabel('Most people who can live there').selectOption('3');
+  await page.getByRole('button', { name: 'Save criteria' }).click();
+  await page.getByRole('link', { name: 'Check the rent' }).click();
+  await page.getByLabel('No, this is its first letting').check();
+  await page.getByRole('button', { name: 'Check the rent' }).click();
+  await expect(page.getByText('Market rent can be set')).toBeVisible();
+
+  await expect(page.getByRole('button', { name: 'Start taking enquiries' })).toBeVisible();
+  await expectAccessible(page);
+  await screenshot(page, '15-ready-to-go-live');
+  await page.getByRole('button', { name: 'Start taking enquiries' }).click();
+  await expect(page.getByText('Gaff is now answering enquiries for this home.')).toBeVisible();
+  await expect(page.getByText('Step 2 of 9 · Enquiries')).toBeVisible();
+
+  await page.getByRole('link', { name: 'Timeline' }).click();
+  await expect(page.getByRole('heading', { name: 'Everything that’s happened' })).toBeVisible();
+  await expect(page.getByText('Set-up confirmed: Gaff started answering enquiries')).toBeVisible();
+  await expect(page.getByText('Up to 3 people')).toBeVisible();
+  await expectAccessible(page);
+  await screenshot(page, '16-timeline');
+});

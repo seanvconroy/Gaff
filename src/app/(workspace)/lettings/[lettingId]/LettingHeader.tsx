@@ -5,10 +5,16 @@ import { PageHeader, Stack } from '@/ui/Layout';
 import { StageTracker } from '@/ui/StageTracker';
 import styles from './letting.module.css';
 
-/** The letting's address as the page title, with where it is in the nine stages. */
+const tabs = [
+  { key: 'overview', label: 'Overview', path: '' },
+  { key: 'timeline', label: 'Timeline', path: '/timeline' },
+] as const;
+
+/** The letting's address as the page title, where it is in the nine stages, and its pages. */
 export function LettingHeader({
   letting,
   section,
+  tab,
 }: {
   letting: {
     id: string;
@@ -19,6 +25,7 @@ export function LettingHeader({
     stage: Stage;
   };
   section?: string;
+  tab?: (typeof tabs)[number]['key'];
 }) {
   return (
     <Stack gap={4}>
@@ -35,6 +42,20 @@ export function LettingHeader({
         lead={`${letting.addressLine1}, ${letting.area} · ${formatRent(letting.monthlyRentCents)} · Available from ${formatDate(letting.availableFrom)}`}
       />
       <StageTracker current={letting.stage} />
+      {tab ? (
+        <nav aria-label="Letting" className={styles.tabs}>
+          {tabs.map((t) => (
+            <Link
+              key={t.key}
+              href={`/lettings/${letting.id}${t.path}`}
+              className={t.key === tab ? styles.tabCurrent : styles.tab}
+              aria-current={t.key === tab ? 'page' : undefined}
+            >
+              {t.label}
+            </Link>
+          ))}
+        </nav>
+      ) : null}
     </Stack>
   );
 }

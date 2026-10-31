@@ -26,8 +26,8 @@ Last updated: 31 October 2026.
 | 2 | R2: criteria from the fixed list | **Done**: strict schema (no free text), questions only for set criteria, locked after invitations |
 | 3 | R3: rent check | **Done**: rule table `ie-2026-03-v1` from public commentary (sources cited in `src/domain/rent/rent-check.ts`; solicitor to confirm); blocks a rent certainly over the 2% ceiling |
 | 4 | R4: three comparables | **Done**: area only (no addresses), similarity warnings, middle rent beside the asking rent |
-| 5 | R27: timeline, part 1 | Next (with the stage 1 confirmation to go live) |
-| 6 | R5: Gaff address and forwarding | To do |
+| 5 | R27: timeline, part 1 | **Done**: read-only timeline from the event log; stage 1 "Start taking enquiries" is a person's `confirm_setup` decision |
+| 6 | R5: Gaff address and forwarding | Next |
 | 7 | R6: parse and merge enquiries | To do (synthetic emails until real samples arrive) |
 | 8 | R7: first reply with AI disclosure | To do |
 | 9 | R29: approve-before-send | To do |

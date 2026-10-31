@@ -11,9 +11,11 @@ import { nextSetupStep, setupChecklist, type SetupStep } from '@/domain/lettings
 import { comparableWarnings, medianRentCents } from '@/domain/rent/comparables';
 import { formatDateTime, formatRent } from '@/lib/format';
 import { ButtonLink } from '@/ui/Button';
+import { SubmitButton } from '@/ui/SubmitButton';
 import { Card, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { StatusPill } from '@/ui/StatusPill';
+import { goLiveAction } from './actions';
 import { loadLetting } from './letting';
 import { RentCheckResult } from './rent-check/RentCheckResult';
 import { LettingHeader } from './LettingHeader';
@@ -58,6 +60,7 @@ const savedCopy: Record<string, string> = {
   criteria: 'Criteria saved. Gaff will ask renters only what these need.',
   'rent-check': 'Rent check saved. It goes in the rent-setting pack.',
   comparables: 'Comparables saved for the rent-setting pack.',
+  live: 'Gaff is now answering enquiries for this home.',
 };
 
 export default async function LettingPage({
@@ -85,7 +88,7 @@ export default async function LettingPage({
 
   return (
     <Stack gap={8}>
-      <LettingHeader letting={letting} />
+      <LettingHeader letting={letting} tab="overview" />
       {saved && savedCopy[saved] && !(saved === 'rent-check' && rentProblem) ? (
         <Notice tone="success" role="status">
           <p>{savedCopy[saved]}</p>
@@ -108,12 +111,31 @@ export default async function LettingPage({
             </li>
           ))}
         </ol>
-        {nextCopy?.path ? (
+        {letting.stage === 'setup' && nextCopy?.path ? (
           <div>
             <ButtonLink href={`/lettings/${letting.id}/${nextCopy.path}`} variant="primary">
               {nextCopy.action}
             </ButtonLink>
           </div>
+        ) : null}
+        {letting.stage === 'setup' && next === 'go_live' ? (
+          <form action={goLiveAction.bind(null, letting.id)}>
+            <Stack gap={4}>
+              <p>
+                Ready when you are. Gaff will reply to every enquiry within minutes, as your AI
+                assistant, and ask only the questions your criteria need. While approve-before-send
+                is on, you check every answer the AI writes before it goes.
+              </p>
+              <div>
+                <SubmitButton pendingLabel="Starting…">Start taking enquiries</SubmitButton>
+              </div>
+            </Stack>
+          </form>
+        ) : null}
+        {letting.stage !== 'setup' ? (
+          <p>
+            <StatusPill tone="success">Live</StatusPill> Gaff is answering enquiries for this home.
+          </p>
         ) : null}
       </Card>
 

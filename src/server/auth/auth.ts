@@ -30,6 +30,9 @@ function createAuth() {
     session: { expiresIn: 60 * 60 * 24 * 14, updateAge: 60 * 60 * 24 },
     emailAndPassword: { enabled: false },
     telemetry: { enabled: false },
+    // Sign-in attempts are rate limited per IP, except in end-to-end tests, which sign in
+    // many times a minute from one address.
+    rateLimit: { enabled: config.GAFF_ENV !== 'test' },
     plugins: [
       magicLink({
         expiresIn: 15 * 60,

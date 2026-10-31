@@ -69,7 +69,8 @@ test('R10, R11, R12, R13, R14: a person decides who views; renters book, move an
   await aoife.page.getByRole('radio').first().check();
   await aoife.page.getByLabel('Mobile number for a text reminder').fill('087 123 4567');
   await aoife.page.getByRole('button', { name: 'Book this time' }).click();
-  await expect(aoife.page.getByRole('heading', { name: 'You’re booked' }).first()).toBeVisible();
+  await expect(aoife.page.getByText('You’re booked')).toBeVisible();
+  await expect(aoife.page.getByRole('heading', { name: 'Your viewing' })).toBeVisible();
   await expectAccessible(aoife.page);
   await screenshot(aoife.page, '28-renter-booked');
 
@@ -102,7 +103,7 @@ test('R10, R11, R12, R13, R14: a person decides who views; renters book, move an
   await screenshot(ciaran.page, '30-renter-place-offered');
   await ciaran.page.getByRole('radio').check();
   await ciaran.page.getByRole('button', { name: 'Book this time' }).click();
-  await expect(ciaran.page.getByRole('heading', { name: 'You’re booked' }).first()).toBeVisible();
+  await expect(ciaran.page.getByText('You’re booked')).toBeVisible();
   await ciaran.context.close();
 
   await page.goto(`${lettingUrl}/shortlist`);

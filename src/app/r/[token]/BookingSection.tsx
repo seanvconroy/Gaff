@@ -41,7 +41,7 @@ export function BookingSection({
       ) : null}
       {booking ? (
         <Card>
-          <h2 className="type-title">You’re booked</h2>
+          <h2 className="type-title">Your viewing</h2>
           <p className={styles.big}>{formatDateTime(booking.slot.startsAt)}</p>
           <p>
             We’ll remind you the day before. If you can’t make it, please change or cancel, so

@@ -152,3 +152,23 @@ export async function linkInEmail(to: string, subject: string): Promise<string> 
   if (!link) throw new Error(`No email "${subject}" has been sent to ${to}`);
   return link;
 }
+
+/** Subjects of every development-outbox email to an address, newest first. */
+export async function subjectsSentTo(to: string): Promise<string[]> {
+  const rows = await query<{ subject: string }>(
+    'select subject from dev_outbox where to_address = $1 order by created_at desc',
+    [to],
+  );
+  return rows.map((row) => row.subject);
+}
+
+/** The first link in the newest development-outbox email whose subject starts with this. */
+export async function linkInEmailStarting(to: string, subjectStart: string): Promise<string> {
+  const rows = await query<{ text: string }>(
+    "select text from dev_outbox where to_address = $1 and subject like $2 || '%' order by created_at desc limit 1",
+    [to, subjectStart],
+  );
+  const link = rows[0]?.text.match(/https?:\/\/\S+/)?.[0];
+  if (!link) throw new Error(`No email "${subjectStart}…" has been sent to ${to}`);
+  return link;
+}

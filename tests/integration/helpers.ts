@@ -145,3 +145,23 @@ export async function aRenterEnquires(
   }
   return outcome.applicationId;
 }
+
+/** The private link token in the newest message of a kind sent to a renter. */
+export async function tokenInMessage(
+  member: Member,
+  applicationId: string,
+  kind: string,
+): Promise<string> {
+  const { and, desc, eq } = await import('drizzle-orm');
+  const { messages } = await import('@/db/schema');
+  const { withOrg } = await import('@/db/client');
+  const [message] = await withOrg(member.organisationId, (tx) =>
+    tx
+      .select({ body: messages.body })
+      .from(messages)
+      .where(and(eq(messages.applicationId, applicationId), eq(messages.kind, kind)))
+      .orderBy(desc(messages.createdAt))
+      .limit(1),
+  );
+  return /\/r\/([A-Za-z0-9_-]{43})/.exec(message!.body)![1]!;
+}

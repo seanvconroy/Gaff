@@ -16,7 +16,7 @@ import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import type { RenterAnswers } from '@/domain/criteria/answers';
 import { users } from './auth';
 import { createdAt, tenantPolicy, updatedAt } from './columns';
-import { lettingFacts, lettings } from './lettings';
+import { lettingFacts, lettings, viewingSlots } from './lettings';
 import { organisations } from './organisations';
 
 const organisationId = () =>
@@ -100,6 +100,8 @@ export const applications = pgTable(
     firstEnquiredAt: timestamp({ withTimezone: true }).notNull(),
     lastEnquiredAt: timestamp({ withTimezone: true }).notNull(),
     status: applicationStatus().notNull().default('enquired'),
+    /** R13 (Q12): the renter gave a mobile number for text reminders when they booked. */
+    smsReminders: boolean().notNull().default(false),
     /** R11, R14: place on the waiting list, in ranked order (1 is next). */
     waitlistPosition: integer(),
     answers: jsonb().$type<RenterAnswers>(),
@@ -155,6 +157,8 @@ export const messages = pgTable(
     sentAt: timestamp({ withTimezone: true }),
     providerMessageId: text(),
     inReplyToId: uuid(),
+    /** R13: the booking a confirmation or reminder belongs to (cancelled with it). */
+    bookingId: uuid(),
     inboundEmailId: uuid().references(() => inboundEmails.id),
     approvedBy: text().references(() => users.id),
     approvedAt: timestamp({ withTimezone: true }),
@@ -244,4 +248,62 @@ export const aiDrafts = pgTable(
     createdAt: createdAt(),
   },
   () => [tenantPolicy()],
+).enableRLS();
+
+/** R12: a renter's booking of a viewing slot. At most one active booking per renter. */
+export const bookings = pgTable(
+  'bookings',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organisationId: organisationId(),
+    lettingId: uuid()
+      .notNull()
+      .references(() => lettings.id),
+    slotId: uuid()
+      .notNull()
+      .references(() => viewingSlots.id),
+    applicationId: uuid()
+      .notNull()
+      .references(() => applications.id),
+    status: text({ enum: ['booked', 'cancelled', 'attended', 'no_show'] })
+      .notNull()
+      .default('booked'),
+    bookedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    cancelledAt: timestamp({ withTimezone: true }),
+    attendanceMarkedBy: text().references(() => users.id),
+    attendanceMarkedAt: timestamp({ withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('bookings_one_active_idx')
+      .on(t.applicationId)
+      .where(sql`status = 'booked'`),
+    index('bookings_slot_idx').on(t.slotId, t.status),
+    tenantPolicy(),
+  ],
+).enableRLS();
+
+/** R14: a freed place offered to someone on the approved waiting list. */
+export const waitlistOffers = pgTable(
+  'waitlist_offers',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organisationId: organisationId(),
+    lettingId: uuid()
+      .notNull()
+      .references(() => lettings.id),
+    slotId: uuid()
+      .notNull()
+      .references(() => viewingSlots.id),
+    applicationId: uuid()
+      .notNull()
+      .references(() => applications.id),
+    mode: text({ enum: ['one_at_a_time', 'everyone'] }).notNull(),
+    status: text({ enum: ['open', 'taken', 'expired', 'closed'] })
+      .notNull()
+      .default('open'),
+    offeredAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [index('waitlist_offers_slot_idx').on(t.slotId, t.status), tenantPolicy()],
 ).enableRLS();

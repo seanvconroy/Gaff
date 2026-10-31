@@ -7,6 +7,7 @@ import { Notice } from '@/ui/Notice';
 import { RenterShell } from '../RenterShell';
 import styles from '../renter.module.css';
 import { AnswersForm } from './AnswersForm';
+import { BookingSection } from './BookingSection';
 
 export const metadata: Metadata = { title: 'A few quick questions' };
 export const dynamic = 'force-dynamic';
@@ -22,10 +23,10 @@ export default async function RenterPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; booked?: string; cancelled?: string; problem?: string }>;
 }) {
   const { token } = await params;
-  const { saved } = await searchParams;
+  const { saved, booked, cancelled, problem } = await searchParams;
   const page = await loadRenterPage(token);
   if (!page) {
     return (
@@ -37,7 +38,10 @@ export default async function RenterPage({
       </RenterShell>
     );
   }
-  const { application, letting, organisation, questions, firstViewing, canChange } = page;
+  const { application, letting, organisation, questions, firstViewing, canChange, offer } = page;
+  const status = application.status;
+  const canBook =
+    status === 'invited' || status === 'booked' || (status === 'waitlisted' && offer !== null);
   const name = firstName(application.fullName);
   const answers = application.answers ?? {};
   const answered = application.answersAt !== null;
@@ -70,7 +74,38 @@ export default async function RenterPage({
           </p>
         </Stack>
 
-        {saved || (answered && !canChange) ? (
+        {booked ? (
+          <Notice
+            tone="success"
+            title={booked === 'moved' ? 'Your viewing has moved' : 'You’re booked'}
+            role="status"
+          >
+            <p>We’ve emailed you the details, and we’ll remind you the day before.</p>
+          </Notice>
+        ) : null}
+        {cancelled ? (
+          <Notice tone="info" title="Your viewing is cancelled" role="status">
+            <p>Thanks for letting us know. Someone else can have the place now.</p>
+          </Notice>
+        ) : null}
+        {canBook ? <BookingSection page={page} token={token} problem={problem} /> : null}
+        {status === 'waitlisted' && !offer ? (
+          <Notice tone="info" title="You’re on the waiting list">
+            <p>
+              If a place opens up, we’ll email you straight away with a link to book it. Either way,
+              you’ll hear back from us.
+            </p>
+          </Notice>
+        ) : null}
+        {status === 'not_invited' ? (
+          <Notice tone="info" title="Thanks for your interest">
+            <p>
+              We’ve had a lot of interest, so we can’t invite everyone to view this time. You’ll
+              hear from us either way once a tenant has been chosen.
+            </p>
+          </Notice>
+        ) : null}
+        {status === 'enquired' && (saved || (answered && !canChange)) ? (
           <Notice tone="success" title={name ? `Thanks, ${name}` : 'Thanks'} role="status">
             <p>
               Your answers are with {organisation.name}. {nextSteps}
@@ -78,7 +113,7 @@ export default async function RenterPage({
           </Notice>
         ) : null}
 
-        {answered && summary.length > 0 && (saved || !canChange) ? (
+        {status === 'enquired' && answered && summary.length > 0 && (saved || !canChange) ? (
           <Card>
             <h2 className="type-title">Your answers</h2>
             <dl className={styles.answers}>
@@ -114,7 +149,7 @@ export default async function RenterPage({
           </Stack>
         ) : null}
 
-        {!canChange && !answered ? (
+        {!canChange && !answered && status === 'enquired' ? (
           <Notice tone="info" title="Viewings are arranged">
             <p>
               {organisation.name} has chosen who to invite to view. You’ll hear from us by email

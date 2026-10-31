@@ -133,6 +133,18 @@ export function describeEvent(
         what: 'Invitations to view decided',
         detail: `${data.invited} invited, ${data.waitlisted} on the waiting list, ${data.notInvited} told we’ll be in touch`,
       };
+    case 'viewing.booked':
+      return { what: data.rescheduled ? 'A renter moved their viewing' : 'Viewing booked' };
+    case 'viewing.cancelled':
+      return { what: 'A renter cancelled their viewing' };
+    case 'waitlist.offered':
+      return {
+        what: 'A freed place was offered to the waiting list',
+        detail:
+          data.mode === 'everyone'
+            ? `To all ${data.offered} left, first to book`
+            : 'To the next person, with a 2-hour hold',
+      };
     case 'letting.went_live':
       return { what: 'Set-up confirmed: Gaff started answering enquiries' };
     default:

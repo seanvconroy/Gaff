@@ -1,0 +1,1 @@
+ALTER TABLE "applications" ADD COLUMN "sms_reminders" boolean DEFAULT false NOT NULL;

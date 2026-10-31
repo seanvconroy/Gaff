@@ -1,5 +1,6 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { emailSender } from '@/adapters/email';
+import { smsSender } from '@/adapters/sms';
 import { withOrg, type Tx } from '@/db/client';
 import { applications, messages, organisations } from '@/db/schema';
 import { env } from '@/lib/env';
@@ -38,6 +39,8 @@ export async function queueMessage(
     inReplyToId?: string;
     sendAt?: Date;
     awaitApproval?: boolean;
+    channel?: 'email' | 'sms';
+    bookingId?: string;
   },
 ): Promise<string> {
   if (input.author === 'ai' && input.kind !== 'answer') {
@@ -53,7 +56,8 @@ export async function queueMessage(
       lettingId: input.lettingId,
       applicationId: input.applicationId,
       direction: 'outbound',
-      channel: 'email',
+      channel: input.channel ?? 'email',
+      bookingId: input.bookingId ?? null,
       kind: input.kind,
       templateKey: input.templateKey ?? null,
       author: input.author,
@@ -114,13 +118,19 @@ export async function sendMessage(input: {
   const { message, ref, operatorName, slug } = claimed;
   const config = env();
   try {
-    const { providerMessageId } = await emailSender().send({
-      to: message.toAddress!,
-      from: { name: `${operatorName} via Gaff`, address: `${slug}@${config.MAIL_FROM_DOMAIN}` },
-      replyTo: `${slug}+${ref}@${config.INBOUND_DOMAIN}`,
-      subject: message.subject ?? '',
-      text: message.body,
-    });
+    const { providerMessageId } =
+      message.channel === 'sms'
+        ? await smsSender().send({ to: message.toAddress!, body: message.body })
+        : await emailSender().send({
+            to: message.toAddress!,
+            from: {
+              name: `${operatorName} via Gaff`,
+              address: `${slug}@${config.MAIL_FROM_DOMAIN}`,
+            },
+            replyTo: `${slug}+${ref}@${config.INBOUND_DOMAIN}`,
+            subject: message.subject ?? '',
+            text: message.body,
+          });
     await withOrg(input.organisationId, async (tx) => {
       await tx
         .update(messages)
@@ -169,4 +179,17 @@ export async function sendMessage(input: {
     });
     throw error;
   }
+}
+
+/** Cancels a booking's confirmation and reminders that haven't gone yet (R13). */
+export async function cancelBookingMessages(tx: Tx, bookingId: string): Promise<void> {
+  await tx
+    .update(messages)
+    .set({ status: 'cancelled' })
+    .where(
+      and(
+        eq(messages.bookingId, bookingId),
+        inArray(messages.status, ['scheduled', 'awaiting_approval']),
+      ),
+    );
 }

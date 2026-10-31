@@ -52,3 +52,52 @@
   margin: 0;
   font-weight: var(--type-title-weight);
 }
+
+.big {
+  font-family: var(--type-title-family);
+  font-size: var(--type-title-size);
+  line-height: var(--type-title-line);
+  font-weight: var(--type-title-weight);
+}
+
+.day {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.day legend {
+  padding: 0;
+}
+
+.slots {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.slot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 48px;
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.slot:has(input:checked) {
+  background-color: var(--color-surface-2);
+  border-color: var(--color-ink);
+}
+
+.slot input {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--color-primary);
+}

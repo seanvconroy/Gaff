@@ -86,6 +86,14 @@ export const eventCatalogue = {
   'message.discarded': z.object({ messageId: z.uuid() }),
   'question.answered': z.object({ questionId: z.uuid(), remembered: z.boolean() }),
   'settings.approve_before_send': z.object({ on: z.boolean() }),
+  'viewing.booked': z.object({ bookingId: z.uuid(), slotId: z.uuid(), rescheduled: z.boolean() }),
+  'viewing.cancelled': z.object({ bookingId: z.uuid(), slotId: z.uuid() }),
+  /** R14: a freed place offered to the approved waiting list. */
+  'waitlist.offered': z.object({
+    slotId: z.uuid(),
+    mode: z.enum(['one_at_a_time', 'everyone']),
+    offered: z.number().int(),
+  }),
   /** R11: a person decided who views (an 'invite_to_view' decision with the ranking used). */
   'shortlist.decided': z.object({
     decisionId: z.uuid(),

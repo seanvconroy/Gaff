@@ -1,10 +1,12 @@
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { withOrg } from '@/db/client';
-import { applications, lettings, organisations, viewingSlots } from '@/db/schema';
+import { applications, lettings, organisations, viewingSlots, waitlistOffers } from '@/db/schema';
 import { renterAnswersSchema, type RenterAnswers } from '@/domain/criteria/answers';
 import { questionsFor } from '@/domain/criteria/criteria';
+import { bookableSlots } from '@/domain/viewings/booking';
 import { resolveAccessLink } from '@/server/access/links';
 import { recordEvent } from '@/server/record/events';
+import { currentBooking, slotAvailability } from '@/server/viewings/booking';
 
 /** R9: what a renter's private link shows: their application, the home and the questions. */
 export async function loadRenterPage(token: string) {
@@ -25,7 +27,29 @@ export async function loadRenterPage(token: string) {
       .orderBy(asc(viewingSlots.startsAt))
       .limit(1);
     const criteria = row.letting.criteria ?? { noPets: false };
+    const allSlots = await slotAvailability(tx, row.letting.id, row.application.id);
+    const booking = await currentBooking(tx, row.application.id);
+    const offers = await tx
+      .select()
+      .from(waitlistOffers)
+      .where(
+        and(
+          eq(waitlistOffers.applicationId, row.application.id),
+          eq(waitlistOffers.status, 'open'),
+        ),
+      );
+    // Someone on the waiting list sees only a place they've been offered that's still free
+    // to book (R14).
+    const bookable = bookableSlots(allSlots, new Date());
+    const offer = offers.find((o) => bookable.some((slot) => slot.id === o.slotId)) ?? null;
+    const slots =
+      row.application.status === 'waitlisted'
+        ? allSlots.filter((slot) => slot.id === offer?.slotId)
+        : allSlots;
     return {
+      offer,
+      slots,
+      booking,
       ...row,
       criteria,
       questions: questionsFor(criteria),

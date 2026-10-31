@@ -104,7 +104,7 @@ The pre-viewing page asks only the questions for criteria the operator has set. 
 
 ### Q12. Reminders (R13)
 
-**Proposal:** a confirmation email straight away, an email reminder 24 hours before the viewing, and an email plus SMS 2 hours before. SMS goes only to renters who give a mobile number on the questions page; the number is optional. Reminders that would fall in the past are skipped.
+**Proposal:** a confirmation email straight away, an email reminder 24 hours before the viewing, and an email plus SMS 2 hours before. SMS goes only to renters who give a mobile number for it when they book; the number is optional and never pre-filled from the enquiry. Reminders that would fall in the past are skipped.
 
 **Decision:** Adopted (CTO, 31 October 2026).
 

@@ -78,6 +78,27 @@
       "when": 1793471488193,
       "tag": "0010_r11_waitlist",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793471675353,
+      "tag": "0011_r12_bookings",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793471805521,
+      "tag": "0012_r14_waitlist_offers",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793471946406,
+      "tag": "0013_r13_sms_opt_in",
+      "breakpoints": true
     }
   ]
 }

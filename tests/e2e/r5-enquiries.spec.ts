@@ -47,17 +47,19 @@ test('R6: enquiries are read, matched to the home and merged; anything else wait
   await expectAccessible(page);
   await screenshot(page, '18-enquiries');
 
-  // R7: the worker has already sent the first reply, as the AI assistant.
+  // R7: the worker has already sent the first reply, as the AI assistant. Other journeys share
+  // the development outbox, so look only at mail from this operator.
+  const slug = to.split('@')[0]!;
+  const firstReply = page
+    .locator('article')
+    .filter({ hasText: `<${slug}@` })
+    .filter({ has: page.getByRole('heading', { name: 'Your enquiry about 12 Ranelagh Road' }) });
   await expect(async () => {
     await page.goto('/dev/outbox');
-    await expect(
-      page.getByRole('heading', { name: 'Your enquiry about 12 Ranelagh Road' }),
-    ).toBeVisible({
-      timeout: 1000,
-    });
+    await expect(firstReply).toBeVisible({ timeout: 1000 });
   }).toPass({ timeout: 20_000 });
-  await expect(page.getByText('To aoife.byrne@example.ie')).toBeVisible();
-  await expect(page.getByText(/I’m Halcyon Lettings’ AI assistant/)).toBeVisible();
+  await expect(firstReply.getByText('To aoife.byrne@example.ie')).toBeVisible();
+  await expect(firstReply.getByText(/I’m Halcyon Lettings’ AI assistant/)).toBeVisible();
   await screenshot(page, '20-first-reply');
 
   await page.goto('/');

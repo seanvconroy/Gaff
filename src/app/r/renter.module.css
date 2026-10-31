@@ -1,0 +1,35 @@
+/* Renter pages: phone first, surface-1, a space-4 gutter, never below body size (design system). */
+.page {
+  min-height: 100vh;
+  background-color: var(--color-surface-1);
+}
+
+.header {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.headerInner,
+.main {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.main {
+  padding: var(--space-6) var(--space-4) var(--space-12);
+}
+
+.operator {
+  font-weight: var(--type-title-weight);
+}
+
+.muted {
+  color: var(--color-ink-muted);
+}
+
+.footer {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 var(--space-4) var(--space-12);
+  color: var(--color-ink-muted);
+}

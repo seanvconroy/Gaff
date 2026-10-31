@@ -7,6 +7,7 @@ import { stripQuotedReply } from '@/domain/enquiries/reply';
 import { env } from '@/lib/env';
 import { parseGaffAddress } from '@/ports/inbound-email';
 import { recordEvent } from '@/server/record/events';
+import { queueFirstReply } from './first-reply';
 
 export type ProcessOutcome =
   | { kind: 'enquiry'; applicationId: string; lettingId: string }
@@ -230,4 +231,11 @@ export interface ProcessHooks {
   ): Promise<void>;
 }
 
-const defaultHooks: ProcessHooks = { afterMessage: async () => {} };
+/** R7: a new enquiry for a live home gets its first reply in the same transaction. */
+const defaultHooks: ProcessHooks = {
+  afterMessage: async (tx, organisationId, outcome) => {
+    if (outcome.kind === 'enquiry') {
+      await queueFirstReply(tx, organisationId, outcome.applicationId);
+    }
+  },
+};

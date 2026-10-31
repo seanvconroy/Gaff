@@ -15,6 +15,18 @@ export interface TimelineEntry {
 
 type EventRow = typeof events.$inferSelect;
 
+const messageTitles: Record<string, string> = {
+  first_reply: 'First reply sent',
+  answer: 'Answer sent',
+  operator_answer: 'Your answer sent',
+  holding: 'Holding message sent',
+  invitation: 'Invitation to view sent',
+  waitlisted: 'Waitlist message sent',
+  booking_confirmation: 'Booking confirmed',
+  reminder: 'Viewing reminder sent',
+  place_offered: 'A freed place offered',
+};
+
 const rentCheckTitles: Record<string, string> = {
   market: 'Rent check: market rent can be set',
   capped: 'Rent check: the rent cap applies',
@@ -78,6 +90,18 @@ export function describeEvent(
       };
     case 'reply.received':
       return { what: 'Reply received' };
+    case 'message.sent':
+      return {
+        what: messageTitles[String(data.kind)] ?? 'Message sent',
+        detail:
+          data.author === 'ai'
+            ? 'Written by the AI assistant'
+            : data.author === 'person'
+              ? 'Written by a person'
+              : 'Fixed wording',
+      };
+    case 'message.failed':
+      return { what: 'A message couldn’t be sent', detail: `After ${data.attempts} tries` };
     case 'letting.went_live':
       return { what: 'Set-up confirmed: Gaff started answering enquiries' };
     default:

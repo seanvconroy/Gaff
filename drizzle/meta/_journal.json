@@ -57,6 +57,13 @@
       "when": 1793469804340,
       "tag": "0007_r6_applications_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793470198651,
+      "tag": "0008_r7_access_links_outbox",
+      "breakpoints": true
     }
   ]
 }

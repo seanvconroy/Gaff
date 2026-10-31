@@ -6,6 +6,7 @@ import { readyToTakeEnquiries } from '@/domain/lettings/setup';
 import type { Member } from '@/server/auth/member';
 import { recordDecision } from '@/server/decisions/record-decision';
 import { UserFacingError } from '@/server/errors';
+import { queueWaitingFirstReplies } from '@/server/enquiries/first-reply';
 import { recordEvent } from '@/server/record/events';
 import { getLetting } from './queries';
 
@@ -48,5 +49,7 @@ export async function startTakingEnquiries(member: Member, lettingId: string): P
       subject: { type: 'decision', id: decision.id },
       data: { decisionId: decision.id },
     });
+    // R7: anyone who enquired during set-up gets their first reply now.
+    await queueWaitingFirstReplies(tx, member.organisationId, lettingId);
   });
 }

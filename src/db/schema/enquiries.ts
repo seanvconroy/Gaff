@@ -136,6 +136,8 @@ export const messages = pgTable(
     templateKey: text(),
     author: text({ enum: ['renter', 'template', 'ai', 'person'] }).notNull(),
     authorUserId: text().references(() => users.id),
+    /** The email address or phone number it was sent to or came from. */
+    toAddress: text(),
     subject: text(),
     body: text().notNull(),
     status: text({
@@ -167,4 +169,24 @@ export const messages = pgTable(
     index('messages_outbox_idx').on(t.status, t.sendAt),
     tenantPolicy(),
   ],
+).enableRLS();
+
+/**
+ * Private links for renters and landlords, who never have accounts (ADR-0013). Only a hash of
+ * the 256-bit token is stored. Each link is scoped to one application or one letting.
+ */
+export const accessLinks = pgTable(
+  'access_links',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organisationId: organisationId(),
+    purpose: text({ enum: ['renter', 'landlord'] }).notNull(),
+    subjectId: uuid().notNull(),
+    tokenHash: text().notNull().unique(),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    revokedAt: timestamp({ withTimezone: true }),
+    lastUsedAt: timestamp({ withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('access_links_subject_idx').on(t.organisationId, t.subjectId), tenantPolicy()],
 ).enableRLS();

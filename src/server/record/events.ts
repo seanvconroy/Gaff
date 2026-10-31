@@ -50,6 +50,24 @@ export const eventCatalogue = {
   /** R6: the same renter enquired again (maybe on the other portal): merged, not duplicated. */
   'enquiry.repeated': z.object({ applicationId: z.uuid(), portal: z.enum(['daft', 'myhome']) }),
   'reply.received': z.object({ applicationId: z.uuid(), messageId: z.uuid() }),
+  /** Every outbound message, once the provider has accepted it (R7: first reply time). */
+  'message.sent': z.object({
+    messageId: z.uuid(),
+    kind: z.enum([
+      'first_reply',
+      'answer',
+      'operator_answer',
+      'holding',
+      'invitation',
+      'waitlisted',
+      'booking_confirmation',
+      'reminder',
+      'place_offered',
+    ]),
+    channel: z.enum(['email', 'sms']),
+    author: z.enum(['template', 'ai', 'person']),
+  }),
+  'message.failed': z.object({ messageId: z.uuid(), attempts: z.number().int() }),
   /** Stage 1: a person confirmed the facts, rent and criteria (a 'confirm_setup' decision). */
   'letting.went_live': z.object({ decisionId: z.uuid() }),
   'comparables.recorded': z.object({

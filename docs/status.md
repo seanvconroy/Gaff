@@ -29,8 +29,8 @@ Last updated: 31 October 2026.
 | 5 | R27: timeline, part 1 | **Done**: read-only timeline from the event log; stage 1 "Start taking enquiries" is a person's `confirm_setup` decision |
 | 6 | R5: Gaff address and forwarding | **Done**: signed Mailgun EU webhook (5-minute replay window), store-then-queue, idempotent; settings page; dev inbox at `/dev/inbound` |
 | 7 | R6: parse and merge enquiries | **Done** (synthetic emails until real samples arrive): match by advert ID then address; merge by email or phone; replies thread by address; "Needs attention" for anything else |
-| 8 | R7: first reply with AI disclosure | Next |
-| 9 | R29: approve-before-send | To do |
+| 8 | R7: first reply with AI disclosure | **Done**: fixed template (AI disclosure, a person decides, private link, what's next, privacy notice); outbox + dispatcher with retries; held until the home is live. Sends as "<operator> via Gaff" until operator domains are verified |
+| 9 | R29: approve-before-send | Next |
 | 10 | R8: answers from facts | To do |
 | 11 | R9: renter's pre-viewing questions | To do |
 | 12 | R10: ranking with reasons | To do |

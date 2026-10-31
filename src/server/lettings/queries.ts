@@ -1,8 +1,16 @@
 import { and, asc, count, desc, eq, isNull, sum } from 'drizzle-orm';
 import { withOrg } from '@/db/client';
-import { landlords, lettingFacts, lettings, viewingSessions, viewingSlots } from '@/db/schema';
+import {
+  landlords,
+  lettingFacts,
+  lettings,
+  rentChecks,
+  viewingSessions,
+  viewingSlots,
+} from '@/db/schema';
 import type { SetupState } from '@/domain/lettings/setup';
 import type { Member } from '@/server/auth/member';
+import { rentCheckProblem } from './rent-check';
 
 export type LettingRow = typeof lettings.$inferSelect;
 
@@ -48,10 +56,16 @@ export async function getLetting(member: Member, lettingId: string) {
       .from(viewingSlots)
       .where(eq(viewingSlots.lettingId, lettingId));
 
+    const [rentCheck] = await tx
+      .select()
+      .from(rentChecks)
+      .where(eq(rentChecks.lettingId, lettingId));
+    const rentProblem = rentCheckProblem(rentCheck ?? null, letting.monthlyRentCents);
+
     const setup: SetupState = {
       viewingSlots: slotTotals?.slots ?? 0,
       criteriaSet: letting.criteriaSetAt !== null,
-      rentCheckDone: false,
+      rentCheckDone: Boolean(rentCheck) && rentProblem === null,
       comparables: 0,
     };
     return {
@@ -60,6 +74,8 @@ export async function getLetting(member: Member, lettingId: string) {
       facts,
       sessions,
       places: Number(slotTotals?.places ?? 0),
+      rentCheck: rentCheck ?? null,
+      rentProblem,
       setup,
     };
   });

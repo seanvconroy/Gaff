@@ -94,3 +94,31 @@ test('R2: an operator sets criteria from the fixed list', async ({ page }) => {
   await expectAccessible(page);
   await screenshot(page, '11-overview-with-criteria');
 });
+
+test('R3: an operator checks the rent, and Gaff catches a rent over the cap', async ({ page }) => {
+  await signUpOperator(page);
+  await createLettingThroughUi(page);
+  await page.goto(page.url().replace(/\/viewings.*$/, '/rent-check'));
+  await expect(page.getByRole('heading', { name: 'Rent check', level: 1 })).toBeVisible();
+  await expectAccessible(page);
+
+  await page.getByLabel('Yes, and the last tenancy began before 1 March 2026').check();
+  await page.getByLabel('The tenant chose to leave').check();
+  await page.getByRole('radio', { name: 'No', exact: true }).check();
+  await page.getByLabel('Last rent a month').fill('1,700');
+  await page.getByLabel('Date that rent was set').fill('2025-10-31');
+  await screenshot(page, '12-rent-check');
+  await page.getByRole('button', { name: 'Check the rent' }).click();
+
+  await expect(page.getByText('The rent cap applies')).toBeVisible();
+  await expect(page.getByText('The rent is more than the cap allows')).toBeVisible();
+  await expectAccessible(page);
+  await screenshot(page, '13-rent-over-cap');
+
+  await page.getByRole('link', { name: 'Check again' }).click();
+  await page.getByLabel('Rent you’re asking a month').fill('1,720');
+  await page.getByRole('button', { name: 'Check the rent' }).click();
+  await expect(page.getByText('Rent check saved.')).toBeVisible();
+  await expect(page.getByText('The rent is more than the cap allows')).toHaveCount(0);
+  await expect(page.getByText('€1,720 a month').first()).toBeVisible();
+});

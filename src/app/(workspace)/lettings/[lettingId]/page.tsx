@@ -14,6 +14,7 @@ import { Card, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { StatusPill } from '@/ui/StatusPill';
 import { loadLetting } from './letting';
+import { RentCheckResult } from './rent-check/RentCheckResult';
 import { LettingHeader } from './LettingHeader';
 import styles from './letting.module.css';
 
@@ -42,6 +43,7 @@ const stepCopy: Record<SetupStep, { title: string; todo: string; action: string;
       title: 'Rent check',
       todo: 'Whether the rent can be reset to market under the 2026 rules',
       action: 'Check the rent',
+      path: 'rent-check',
     },
     comparables: {
       title: 'Three comparable rents',
@@ -52,6 +54,7 @@ const stepCopy: Record<SetupStep, { title: string; todo: string; action: string;
 
 const savedCopy: Record<string, string> = {
   criteria: 'Criteria saved. Gaff will ask renters only what these need.',
+  'rent-check': 'Rent check saved. It goes in the rent-setting pack.',
 };
 
 export default async function LettingPage({
@@ -61,7 +64,8 @@ export default async function LettingPage({
   params: Promise<{ lettingId: string }>;
   searchParams: Promise<{ saved?: string }>;
 }) {
-  const { letting, facts, sessions, places, setup } = await loadLetting(params);
+  const { letting, facts, sessions, places, setup, rentCheck, rentProblem } =
+    await loadLetting(params);
   const { saved } = await searchParams;
   const checklist = setupChecklist(setup);
   const next = nextSetupStep(setup);
@@ -79,7 +83,7 @@ export default async function LettingPage({
   return (
     <Stack gap={8}>
       <LettingHeader letting={letting} />
-      {saved && savedCopy[saved] ? (
+      {saved && savedCopy[saved] && !(saved === 'rent-check' && rentProblem) ? (
         <Notice tone="success" role="status">
           <p>{savedCopy[saved]}</p>
         </Notice>
@@ -109,6 +113,26 @@ export default async function LettingPage({
           </div>
         ) : null}
       </Card>
+
+      {rentCheck ? (
+        <Card labelledBy="rent-heading">
+          <h2 id="rent-heading" className="type-title">
+            Rent check
+          </h2>
+          <RentCheckResult
+            check={rentCheck}
+            askingRentCents={letting.monthlyRentCents}
+            ceilingCents={rentProblem?.ceilingCents ?? null}
+          />
+          <p className={styles.checkHint}>
+            Based on the rules from 1 March 2026 (version {rentCheck.rulesVersion}). Not legal
+            advice.
+          </p>
+          <div>
+            <ButtonLink href={`/lettings/${letting.id}/rent-check`}>Check again</ButtonLink>
+          </div>
+        </Card>
+      ) : null}
 
       <div className={styles.twoUp}>
         <Card labelledBy="facts-heading">

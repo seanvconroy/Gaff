@@ -18,6 +18,22 @@ export const eventCatalogue = {
     places: z.number().int().min(1),
   }),
   'viewings.session_removed': z.object({ sessionId: z.uuid() }),
+  'rent_check.recorded': z.object({
+    result: z.enum(['market', 'capped', 'get_advice']),
+    reason: z.enum([
+      'first_letting',
+      'tenant_ended',
+      'tenancy_before_new_rules',
+      'landlord_ended',
+      'substantial_change',
+    ]),
+    rulesVersion: z.enum(['ie-2026-03-v1']),
+    lastLet: z.enum(['never', 'before_new_rules', 'under_new_rules']),
+    ending: z.enum(['tenant_left', 'tenant_breach', 'unsuitable', 'landlord_other']).optional(),
+    previousRentCents: z.number().int().optional(),
+    previousRentSetOn: z.iso.date().optional(),
+  }),
+  'letting.rent_changed': z.object({ fromCents: z.number().int(), toCents: z.number().int() }),
   /** The full criteria are kept, so the record shows what everyone was ranked against. */
   'criteria.set': z.object({
     moveInBy: z.iso.date().optional(),

@@ -1,4 +1,5 @@
 import {
+  boolean,
   date,
   index,
   integer,
@@ -136,4 +137,28 @@ export const viewingSlots = pgTable(
     capacity: integer().notNull(),
   },
   (t) => [index('viewing_slots_letting_idx').on(t.lettingId, t.startsAt), tenantPolicy()],
+).enableRLS();
+
+/** R3: the rent check for a letting (one per letting; re-checking replaces it). */
+export const rentChecks = pgTable(
+  'rent_checks',
+  {
+    lettingId: uuid()
+      .primaryKey()
+      .references(() => lettings.id),
+    organisationId: organisationId(),
+    lastLet: text({ enum: ['never', 'before_new_rules', 'under_new_rules'] }).notNull(),
+    ending: text(),
+    substantialChange: boolean().notNull().default(false),
+    previousRentCents: integer(),
+    previousRentSetOn: date({ mode: 'string' }),
+    result: text({ enum: ['market', 'capped', 'get_advice'] }).notNull(),
+    reason: text().notNull(),
+    rulesVersion: text().notNull(),
+    checkedBy: text()
+      .notNull()
+      .references(() => users.id),
+    checkedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  () => [tenantPolicy()],
 ).enableRLS();

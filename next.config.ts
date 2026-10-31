@@ -27,7 +27,8 @@ const contentSecurityPolicy = [
 ].join('; ');
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  // The Docker image runs the standalone server; `next start` (tests, local) doesn't need it.
+  output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
   poweredByHeader: false,
   reactStrictMode: true,
   serverExternalPackages: ['graphile-worker', 'pg'],

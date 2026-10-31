@@ -1,0 +1,31 @@
+.tracker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stage {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.done {
+  color: var(--color-success);
+}
+
+.current {
+  border-color: var(--color-brick);
+  background-color: var(--color-brick);
+  color: var(--color-ink-inverse);
+  font-weight: var(--type-title-weight);
+}

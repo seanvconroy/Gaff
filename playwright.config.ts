@@ -1,0 +1,41 @@
+import { defineConfig, devices } from '@playwright/test';
+
+const port = Number(process.env.E2E_PORT ?? 3100);
+export const E2E_DATABASE_URL =
+  process.env.E2E_DATABASE_URL ?? 'postgres://gaff:gaff@localhost:5432/gaff_e2e';
+
+/**
+ * End-to-end tests run against a production build (`pnpm build` first) with a fresh
+ * database and local stand-ins for every provider (GAFF_ENV=test).
+ */
+export default defineConfig({
+  testDir: 'tests/e2e',
+  outputDir: 'test-results',
+  fullyParallel: false,
+  workers: 1,
+  retries: process.env.CI ? 1 : 0,
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
+  use: {
+    baseURL: `http://localhost:${port}`,
+    locale: 'en-IE',
+    timezoneId: 'Europe/Dublin',
+    trace: 'retain-on-failure',
+  },
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  webServer: {
+    command: `pnpm exec tsx tests/e2e/reset-db.ts && pnpm start --port ${port}`,
+    url: `http://localhost:${port}/api/health`,
+    reuseExistingServer: false,
+    timeout: 120_000,
+    env: {
+      GAFF_ENV: 'test',
+      DATABASE_URL: E2E_DATABASE_URL,
+      APP_URL: `http://localhost:${port}`,
+      AUTH_SECRET: 'e2e-secret-that-is-at-least-32-characters',
+      EMAIL_PROVIDER: 'dev',
+      SMS_PROVIDER: 'fake',
+      AI_PROVIDER: 'fake',
+      DEV_TOOLS: '1',
+    },
+  },
+});

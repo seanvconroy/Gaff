@@ -7,6 +7,8 @@ import { z } from 'zod';
 const schema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    /** Where this deployment runs. Production refuses stand-in providers and dev tools. */
+    GAFF_ENV: z.enum(['development', 'test', 'staging', 'production']).default('development'),
     DATABASE_URL: z.string().url(),
     APP_URL: z.string().url(),
     AUTH_SECRET: z.string().min(32, 'AUTH_SECRET must be at least 32 characters'),
@@ -31,12 +33,28 @@ const schema = z
       .transform((v) => v === '1'),
   })
   .superRefine((env, ctx) => {
-    if (env.NODE_ENV === 'production' && env.DEV_TOOLS) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['DEV_TOOLS'],
-        message: 'Dev tools must be off in production',
-      });
+    if (env.GAFF_ENV === 'production') {
+      if (env.DEV_TOOLS) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['DEV_TOOLS'],
+          message: 'Dev tools must be off in production',
+        });
+      }
+      const standIns = [
+        ['EMAIL_PROVIDER', env.EMAIL_PROVIDER, 'dev'],
+        ['SMS_PROVIDER', env.SMS_PROVIDER, 'fake'],
+        ['AI_PROVIDER', env.AI_PROVIDER, 'fake'],
+      ] as const;
+      for (const [key, value, standIn] of standIns) {
+        if (value === standIn) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} can't be a stand-in in production`,
+          });
+        }
+      }
     }
     if (env.EMAIL_PROVIDER === 'mailgun') {
       for (const key of [

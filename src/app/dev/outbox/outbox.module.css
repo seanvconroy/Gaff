@@ -1,0 +1,18 @@
+.main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4);
+}
+
+.meta {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font-sans);
+}

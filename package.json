@@ -14,7 +14,7 @@
     "worker": "tsx src/jobs/worker.ts",
     "tokens": "tsx scripts/build-tokens.ts",
     "tokens:check": "tsx scripts/build-tokens.ts --check",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint . --max-warnings=0 && stylelint \"src/**/*.css\" && prettier --check .",
     "format": "prettier --write . && stylelint \"src/**/*.css\" --fix",
     "test": "vitest run --project unit",

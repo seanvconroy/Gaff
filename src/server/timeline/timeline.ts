@@ -128,6 +128,11 @@ export function describeEvent(
       return {
         what: data.changed ? 'A renter changed their answers' : 'A renter answered the questions',
       };
+    case 'shortlist.decided':
+      return {
+        what: 'Invitations to view decided',
+        detail: `${data.invited} invited, ${data.waitlisted} on the waiting list, ${data.notInvited} told we’ll be in touch`,
+      };
     case 'letting.went_live':
       return { what: 'Set-up confirmed: Gaff started answering enquiries' };
     default:

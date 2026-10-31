@@ -86,6 +86,13 @@ export const eventCatalogue = {
   'message.discarded': z.object({ messageId: z.uuid() }),
   'question.answered': z.object({ questionId: z.uuid(), remembered: z.boolean() }),
   'settings.approve_before_send': z.object({ on: z.boolean() }),
+  /** R11: a person decided who views (an 'invite_to_view' decision with the ranking used). */
+  'shortlist.decided': z.object({
+    decisionId: z.uuid(),
+    invited: z.number().int(),
+    waitlisted: z.number().int(),
+    notInvited: z.number().int(),
+  }),
   /** Stage 1: a person confirmed the facts, rent and criteria (a 'confirm_setup' decision). */
   'letting.went_live': z.object({ decisionId: z.uuid() }),
   'comparables.recorded': z.object({

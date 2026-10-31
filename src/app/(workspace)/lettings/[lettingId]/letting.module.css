@@ -159,3 +159,13 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.tick {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--color-primary);
+}
+
+.narrow {
+  max-width: 280px;
+}

@@ -100,6 +100,8 @@ export const applications = pgTable(
     firstEnquiredAt: timestamp({ withTimezone: true }).notNull(),
     lastEnquiredAt: timestamp({ withTimezone: true }).notNull(),
     status: applicationStatus().notNull().default('enquired'),
+    /** R11, R14: place on the waiting list, in ranked order (1 is next). */
+    waitlistPosition: integer(),
     answers: jsonb().$type<RenterAnswers>(),
     answersAt: timestamp({ withTimezone: true }),
     deleteAfter: date({ mode: 'string' }),

@@ -63,7 +63,10 @@ const patterns: Array<[ProtectedGround, RegExp]> = [
   ],
   ['traveller_community', /\btravell?ers?\b/i],
   ['disability', /\b(disab(led|ility|ilities)|handicapped|mental health)\b/i],
-  ['sexual_orientation', /\b(gay|lesbian|straight|heterosexual|homosexual|lgbt\w*|queer)\b/i],
+  [
+    'sexual_orientation',
+    /\b(gay|lesbian|heterosexual|homosexual|lgbt\w*|queer)\b|\bstraight (only|people|couples?|tenants?)\b/i,
+  ],
 ];
 
 export interface ProtectedGroundMatch {

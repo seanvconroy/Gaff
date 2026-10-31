@@ -34,8 +34,8 @@ Last updated: 31 October 2026.
 | 10 | R8: answers from facts | **Done**: Claude on Bedrock EU (fake locally); cites fact IDs, checked by guardrails; fixed lawful answers for protected grounds; names and contact details redacted; requests for a person and anything uncovered go to Questions; operator answers remembered as facts |
 | 11 | R9: renter's pre-viewing questions | **Done**: private link, no account, phone-first; only the questions the criteria need, only those answers kept; locked once invitations are decided |
 | 12 | R10: ranking with reasons | **Done**: pure ranking (answered first, criteria met, enquiry time, stable); reasons in words; reads only answers and enquiry times |
-| 13 | R11: approve invitations and waitlist | Next |
-| 14 | R12: self-book, reschedule, cancel | To do |
+| 13 | R11: approve invitations and waitlist | **Done**: one action (ticked by default up to the places available); waiting list = next in rank (Q2); holding message for everyone else (Q6); `invite_to_view` decision records criteria and ranking (IDs only) |
+| 14 | R12: self-book, reschedule, cancel | Next |
 | 15 | R13: confirmation and reminders | To do |
 | 16 | R14: waitlist offers | To do |
 | 17 | R15: attendance on a phone | To do |

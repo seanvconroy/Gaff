@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { firstReply } from '@/copy/templates/first-reply';
+import { holdingEmail, invitationEmail, waitlistedEmail } from '@/copy/templates/invitations';
 import { findProtectedGrounds } from '@/domain/compliance/protected-grounds';
 
 const now = new Date('2026-10-31T12:00:00Z');
@@ -65,6 +66,49 @@ describe('Compliance: the first reply (R7)', () => {
   it('asks nothing when the criteria need no answers', () => {
     expect(firstReply({ ...input, questionsUrl: null }, now).body).toContain(
       'You don’t need to do anything else for now.',
+    );
+  });
+});
+
+describe('Compliance: invitation, waiting list and holding messages (R11, Q6)', () => {
+  const base = {
+    renterName: 'Aoife Byrne',
+    operatorName: 'Halcyon Lettings',
+    address: '12 Ranelagh Road',
+    area: 'Ranelagh, Dublin 6',
+  };
+  const sessions = [
+    { startsAt: new Date('2026-11-07T18:00:00Z'), endsAt: new Date('2026-11-07T19:00:00Z') },
+    { startsAt: new Date('2026-11-09T11:00:00Z'), endsAt: new Date('2026-11-09T11:30:00Z') },
+  ];
+  const emails = {
+    invitation: invitationEmail({ ...base, bookingUrl: 'https://app.gaff.test/r/x', sessions }),
+    waitlisted: waitlistedEmail(base),
+    holding: holdingEmail({ ...base, viewingDays: sessions.map((s) => s.startsAt) }),
+  };
+
+  for (const [name, { body }] of Object.entries(emails)) {
+    it(`${name}: says what happens next, kindly, with no protected ground or exclamation`, () => {
+      expect(body).toMatch(/book|waiting list|hear from us/i);
+      expect(findProtectedGrounds(body)).toEqual([]);
+      expect(body).not.toContain('!');
+      expect(body).not.toMatch(/unsuccessful|rejected|declined/i);
+    });
+  }
+
+  it('the invitation lists the times and the booking link, with no account needed', () => {
+    expect(emails.invitation.body).toContain('- Saturday 7 November, 6pm to 7pm');
+    expect(emails.invitation.body).toContain(
+      'You don’t need an account:\nhttps://app.gaff.test/r/x',
+    );
+  });
+
+  it('the holding message says when viewings happen and promises an answer either way', () => {
+    expect(emails.holding.body).toContain(
+      'Viewings take place on Saturday 7 November and Monday 9 November.',
+    );
+    expect(emails.holding.body).toContain(
+      'You’ll hear from us either way once a tenant has been chosen.',
     );
   });
 });

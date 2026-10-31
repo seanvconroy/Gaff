@@ -19,6 +19,7 @@ describe('Q7: wording that touches the protected grounds is caught', () => {
     ['No travellers', 'traveller_community'],
     ['Not suitable for disabled people', 'disability'],
     ['Gay-friendly', 'sexual_orientation'],
+    ['Straight couples only', 'sexual_orientation'],
   ])('flags "%s" (%s)', (text, ground) => {
     expect(findProtectedGrounds(text).map((m) => m.ground)).toContain(ground);
   });
@@ -33,6 +34,8 @@ describe('Q7: wording that touches the protected grounds is caught', () => {
     'Single bed in the box room',
     'Professionally cleaned before you move in',
     'Professional cleaning between tenancies',
+    'We’ll email you straight away',
+    'Straight down the road from the Luas',
   ])('allows "%s"', (text) => {
     expect(findProtectedGrounds(text)).toEqual([]);
   });

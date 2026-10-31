@@ -32,8 +32,8 @@ Last updated: 31 October 2026.
 | 8 | R7: first reply with AI disclosure | **Done**: fixed template (AI disclosure, a person decides, private link, what's next, privacy notice); outbox + dispatcher with retries; held until the home is live. Sends as "<operator> via Gaff" until operator domains are verified |
 | 9 | R29: approve-before-send | **Done**: on by default; AI answers wait in Approvals; approve (as is or edited) is a person's decision; "don't send" moves the questions to the operator; admin toggle in Settings |
 | 10 | R8: answers from facts | **Done**: Claude on Bedrock EU (fake locally); cites fact IDs, checked by guardrails; fixed lawful answers for protected grounds; names and contact details redacted; requests for a person and anything uncovered go to Questions; operator answers remembered as facts |
-| 11 | R9: renter's pre-viewing questions | Next |
-| 12 | R10: ranking with reasons | To do |
+| 11 | R9: renter's pre-viewing questions | **Done**: private link, no account, phone-first; only the questions the criteria need, only those answers kept; locked once invitations are decided |
+| 12 | R10: ranking with reasons | Next |
 | 13 | R11: approve invitations and waitlist | To do |
 | 14 | R12: self-book, reschedule, cancel | To do |
 | 15 | R13: confirmation and reminders | To do |

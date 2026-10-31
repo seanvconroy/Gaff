@@ -124,6 +124,10 @@ export function describeEvent(
         what: 'Question answered by your team',
         detail: data.remembered ? 'Remembered for everyone who asks' : undefined,
       };
+    case 'application.answered':
+      return {
+        what: data.changed ? 'A renter changed their answers' : 'A renter answered the questions',
+      };
     case 'letting.went_live':
       return { what: 'Set-up confirmed: Gaff started answering enquiries' };
     default:

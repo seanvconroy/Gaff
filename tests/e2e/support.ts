@@ -141,3 +141,14 @@ export async function sendTestEmail(
   await page.getByRole('button', { name: 'Send to Gaff' }).click();
   await expect(page.getByText('Result: stored')).toBeVisible();
 }
+
+/** The first link in the newest development-outbox email to an address with a subject. */
+export async function linkInEmail(to: string, subject: string): Promise<string> {
+  const rows = await query<{ text: string }>(
+    'select text from dev_outbox where to_address = $1 and subject = $2 order by created_at desc limit 1',
+    [to, subject],
+  );
+  const link = rows[0]?.text.match(/https?:\/\/\S+/)?.[0];
+  if (!link) throw new Error(`No email "${subject}" has been sent to ${to}`);
+  return link;
+}

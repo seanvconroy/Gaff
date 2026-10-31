@@ -50,6 +50,12 @@ export const eventCatalogue = {
   /** R6: the same renter enquired again (maybe on the other portal): merged, not duplicated. */
   'enquiry.repeated': z.object({ applicationId: z.uuid(), portal: z.enum(['daft', 'myhome']) }),
   'reply.received': z.object({ applicationId: z.uuid(), messageId: z.uuid() }),
+  /** R9: the renter answered the pre-viewing questions (which ones isn't personal; the answers are). */
+  'application.answered': z.object({
+    applicationId: z.uuid(),
+    questions: z.number().int(),
+    changed: z.boolean(),
+  }),
   /** Every outbound message, once the provider has accepted it (R7: first reply time). */
   'message.sent': z.object({
     messageId: z.uuid(),

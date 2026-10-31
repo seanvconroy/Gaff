@@ -10,6 +10,14 @@ import { assertNoPersonalData } from '@/domain/record/personal-data';
 export const eventCatalogue = {
   'organisation.created': z.object({ kind: z.enum(['agency', 'landlord']) }),
   'member.joined': z.object({ role: z.enum(['admin', 'negotiator']) }),
+  'letting.created': z.object({ setupFacts: z.number().int().min(0), withLandlord: z.boolean() }),
+  'viewings.session_added': z.object({
+    sessionId: z.uuid(),
+    kind: z.enum(['slots', 'group']),
+    slots: z.number().int().min(1),
+    places: z.number().int().min(1),
+  }),
+  'viewings.session_removed': z.object({ sessionId: z.uuid() }),
 } satisfies Record<string, z.ZodObject>;
 
 export type EventType = keyof typeof eventCatalogue;

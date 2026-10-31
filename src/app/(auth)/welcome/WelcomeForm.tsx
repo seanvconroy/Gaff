@@ -11,7 +11,7 @@ export function WelcomeForm({ defaultName }: { defaultName: string }) {
   const [state, action] = useActionState(setUpOrganisation, emptyFormState);
   const values = state.values ?? {};
   return (
-    <form action={action} noValidate>
+    <form key={state.attempt ?? 'first'} action={action} noValidate>
       <Stack gap={6}>
         <TextField
           name="yourName"

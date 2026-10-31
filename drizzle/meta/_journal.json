@@ -15,6 +15,13 @@
       "when": 1793466995264,
       "tag": "0001_events_append_only",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793467934252,
+      "tag": "0002_r1_lettings",
+      "breakpoints": true
     }
   ]
 }

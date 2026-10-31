@@ -2,7 +2,7 @@
 
 import { headers } from 'next/headers';
 import { z } from 'zod';
-import type { FormState } from '@/lib/forms';
+import { invalid, type FormState } from '@/lib/forms';
 import { auth } from '@/server/auth/auth';
 
 const signInSchema = z.object({
@@ -12,10 +12,10 @@ const signInSchema = z.object({
 export async function requestSignInLink(_state: FormState, formData: FormData): Promise<FormState> {
   const parsed = signInSchema.safeParse({ email: String(formData.get('email') ?? '').trim() });
   if (!parsed.success) {
-    return {
-      errors: { email: parsed.error.issues[0]!.message },
-      values: { email: String(formData.get('email') ?? '') },
-    };
+    return invalid(
+      { email: parsed.error.issues[0]!.message },
+      { email: String(formData.get('email') ?? '') },
+    );
   }
   try {
     await auth().api.signInMagicLink({
@@ -23,10 +23,7 @@ export async function requestSignInLink(_state: FormState, formData: FormData): 
       headers: await headers(),
     });
   } catch {
-    return {
-      values: parsed.data,
-      message: "That didn't send. Wait a minute and try again.",
-    };
+    return invalid({}, parsed.data, "That didn't send. Wait a minute and try again.");
   }
   return { values: parsed.data, message: 'sent' };
 }

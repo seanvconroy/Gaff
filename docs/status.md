@@ -22,8 +22,8 @@ Last updated: 31 October 2026.
 
 | # | Requirement | Status |
 | --- | --- | --- |
-| 1 | R1: create a letting, with viewing times | Next |
-| 2 | R2: criteria from the fixed list | To do |
+| 1 | R1: create a letting, with viewing times | **Done**: rules, use cases, screens, E2E (`tests/e2e/r1-letting.spec.ts`) |
+| 2 | R2: criteria from the fixed list | Next |
 | 3 | R3: rent check | To do (rule table from public sources; solicitor to confirm) |
 | 4 | R4: three comparables | To do |
 | 5 | R27: timeline, part 1 | To do |

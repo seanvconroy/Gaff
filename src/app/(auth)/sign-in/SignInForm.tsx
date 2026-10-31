@@ -30,7 +30,7 @@ export function SignInForm({ devOutbox }: { devOutbox: boolean }) {
   }
 
   return (
-    <form action={action} noValidate>
+    <form key={state.attempt ?? 'first'} action={action} noValidate>
       <Stack gap={6}>
         {state.message ? (
           <Notice tone="danger" role="alert">

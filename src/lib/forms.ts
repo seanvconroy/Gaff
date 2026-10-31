@@ -5,6 +5,28 @@ export interface FormState {
   errors?: Record<string, string>;
   values?: Record<string, string>;
   message?: string;
+  /**
+   * Changes on every response. Forms use it as their React key, so after React resets a
+   * submitted form it remounts with what the person typed (selects included).
+   */
+  attempt?: number;
+}
+
+let attempts = 0;
+
+/** A failed submission: the errors to show and the values to put back. */
+export function invalid(
+  errors: Record<string, string>,
+  values: Record<string, string>,
+  message?: string,
+): FormState {
+  attempts += 1;
+  return {
+    errors,
+    values,
+    attempt: Date.now() * 1000 + (attempts % 1000),
+    ...(message ? { message } : {}),
+  };
 }
 
 export const emptyFormState: FormState = {};

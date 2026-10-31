@@ -5,6 +5,7 @@ import { FIRST_REPLY_TEMPLATE, firstReply } from '@/copy/templates/first-reply';
 import { questionsFor } from '@/domain/criteria/criteria';
 import { env } from '@/lib/env';
 import { createAccessLink } from '@/server/access/links';
+import { needsAnswers, queueDraft } from '@/server/answers/draft';
 import { queueMessage } from '@/server/messages/outbox';
 
 /**
@@ -83,6 +84,14 @@ export async function queueWaitingFirstReplies(
   let queued = 0;
   for (const application of waiting) {
     if (await queueFirstReply(tx, organisationId, application.id)) queued += 1;
+  }
+  // R8: questions asked during set-up are answered now too.
+  const asked = await tx
+    .select({ id: messages.id, body: messages.body })
+    .from(messages)
+    .where(and(eq(messages.lettingId, lettingId), eq(messages.direction, 'inbound')));
+  for (const message of asked) {
+    if (needsAnswers(message.body)) await queueDraft(tx, organisationId, message.id);
   }
   return queued;
 }

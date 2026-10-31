@@ -7,6 +7,7 @@ import { stripQuotedReply } from '@/domain/enquiries/reply';
 import { env } from '@/lib/env';
 import { parseGaffAddress } from '@/ports/inbound-email';
 import { recordEvent } from '@/server/record/events';
+import { needsAnswers, queueDraft } from '@/server/answers/draft';
 import { queueFirstReply } from './first-reply';
 
 export type ProcessOutcome =
@@ -231,11 +232,21 @@ export interface ProcessHooks {
   ): Promise<void>;
 }
 
-/** R7: a new enquiry for a live home gets its first reply in the same transaction. */
+/**
+ * R7: a new enquiry for a live home gets its first reply in the same transaction.
+ * R8: any message with questions, or asking for a person, is queued for answers.
+ */
 const defaultHooks: ProcessHooks = {
   afterMessage: async (tx, organisationId, outcome) => {
     if (outcome.kind === 'enquiry') {
       await queueFirstReply(tx, organisationId, outcome.applicationId);
+    }
+    const [message] = await tx
+      .select({ body: messages.body })
+      .from(messages)
+      .where(eq(messages.id, outcome.messageId));
+    if (message && needsAnswers(message.body)) {
+      await queueDraft(tx, organisationId, outcome.messageId);
     }
   },
 };

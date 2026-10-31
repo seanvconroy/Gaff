@@ -1,7 +1,9 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   date,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -13,7 +15,7 @@ import {
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { users } from './auth';
 import { createdAt, tenantPolicy, updatedAt } from './columns';
-import { lettings } from './lettings';
+import { lettingFacts, lettings } from './lettings';
 import { organisations } from './organisations';
 
 const organisationId = () =>
@@ -189,4 +191,60 @@ export const accessLinks = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('access_links_subject_idx').on(t.organisationId, t.subjectId), tenantPolicy()],
+).enableRLS();
+
+/**
+ * R8: a renter's question the AI couldn't answer from the facts, or a request for a person.
+ * The operator answers once; with "remember", the answer becomes a fact Gaff reuses.
+ */
+export const operatorQuestions = pgTable(
+  'operator_questions',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organisationId: organisationId(),
+    lettingId: uuid()
+      .notNull()
+      .references(() => lettings.id),
+    applicationId: uuid()
+      .notNull()
+      .references(() => applications.id),
+    sourceMessageId: uuid()
+      .notNull()
+      .references(() => messages.id),
+    question: text().notNull(),
+    reason: text().notNull(),
+    status: text({ enum: ['open', 'answered', 'closed'] })
+      .notNull()
+      .default('open'),
+    answerFactId: uuid().references(() => lettingFacts.id),
+    answeredBy: text().references(() => users.id),
+    answeredAt: timestamp({ withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('operator_questions_status_idx').on(t.organisationId, t.status), tenantPolicy()],
+).enableRLS();
+
+/** R8: what the AI was given and gave back, for every draft (PRD: every message logged). */
+export const aiDrafts = pgTable(
+  'ai_drafts',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organisationId: organisationId(),
+    sourceMessageId: uuid()
+      .notNull()
+      .unique()
+      .references(() => messages.id),
+    draftMessageId: uuid().references(() => messages.id),
+    model: text().notNull(),
+    promptVersion: text().notNull(),
+    factIds: text()
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    answered: integer().notNull(),
+    toOperator: integer().notNull(),
+    refused: boolean().notNull().default(false),
+    createdAt: createdAt(),
+  },
+  () => [tenantPolicy()],
 ).enableRLS();

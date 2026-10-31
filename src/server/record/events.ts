@@ -68,6 +68,18 @@ export const eventCatalogue = {
     author: z.enum(['template', 'ai', 'person']),
   }),
   'message.failed': z.object({ messageId: z.uuid(), attempts: z.number().int() }),
+  /** R8: answers drafted for a renter's message: how many by the AI, how many for a person. */
+  'answers.drafted': z.object({
+    sourceMessageId: z.uuid(),
+    answered: z.number().int(),
+    toOperator: z.number().int(),
+    author: z.enum(['ai', 'template', 'none']),
+  }),
+  /** R29: a person approved an AI-written message (an 'approve_message' decision). */
+  'message.approved': z.object({ messageId: z.uuid(), decisionId: z.uuid(), edited: z.boolean() }),
+  'message.discarded': z.object({ messageId: z.uuid() }),
+  'question.answered': z.object({ questionId: z.uuid(), remembered: z.boolean() }),
+  'settings.approve_before_send': z.object({ on: z.boolean() }),
   /** Stage 1: a person confirmed the facts, rent and criteria (a 'confirm_setup' decision). */
   'letting.went_live': z.object({ decisionId: z.uuid() }),
   'comparables.recorded': z.object({

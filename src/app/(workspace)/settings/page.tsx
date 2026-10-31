@@ -6,11 +6,19 @@ import { env } from '@/lib/env';
 import { requireMember } from '@/server/auth/member';
 import { Card, PageHeader, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
+import { ChoiceGroup } from '@/ui/Field';
+import { SubmitButton } from '@/ui/SubmitButton';
+import { approveBeforeSendAction } from './actions';
 import styles from './settings.module.css';
 
 export const metadata: Metadata = { title: 'Settings' };
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string; problem?: string }>;
+}) {
+  const { saved, problem } = await searchParams;
   const member = await requireMember();
   const [organisation] = await db()
     .select()
@@ -21,6 +29,45 @@ export default async function SettingsPage() {
   return (
     <Stack gap={8}>
       <PageHeader eyebrow={member.organisationName} title="Settings" />
+      {saved ? (
+        <Notice tone="success" role="status">
+          <p>Saved.</p>
+        </Notice>
+      ) : null}
+      {problem ? (
+        <Notice tone="danger" role="alert">
+          <p>Only an admin can change that.</p>
+        </Notice>
+      ) : null}
+
+      <Card labelledBy="approvals-heading">
+        <h2 id="approvals-heading" className="type-title">
+          Approve before send
+        </h2>
+        <p>
+          While this is on, every answer the AI writes waits for you in Approvals. Fixed messages,
+          like first replies and reminders, always go straight out. Most operators keep it on for
+          their first few lettings.
+        </p>
+        <form action={approveBeforeSendAction}>
+          <Stack gap={4}>
+            <ChoiceGroup
+              name="on"
+              legend="AI-written answers"
+              defaultValue={organisation!.approveBeforeSend ? 'yes' : 'no'}
+              options={[
+                { value: 'yes', label: 'Wait for my approval' },
+                { value: 'no', label: 'Send straight away' },
+              ]}
+            />
+            <div>
+              <SubmitButton variant="secondary" pendingLabel="Saving…">
+                Save
+              </SubmitButton>
+            </div>
+          </Stack>
+        </form>
+      </Card>
 
       <Card labelledBy="address-heading">
         <h2 id="address-heading" className="type-title">

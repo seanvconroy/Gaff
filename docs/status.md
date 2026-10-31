@@ -30,9 +30,9 @@ Last updated: 31 October 2026.
 | 6 | R5: Gaff address and forwarding | **Done**: signed Mailgun EU webhook (5-minute replay window), store-then-queue, idempotent; settings page; dev inbox at `/dev/inbound` |
 | 7 | R6: parse and merge enquiries | **Done** (synthetic emails until real samples arrive): match by advert ID then address; merge by email or phone; replies thread by address; "Needs attention" for anything else |
 | 8 | R7: first reply with AI disclosure | **Done**: fixed template (AI disclosure, a person decides, private link, what's next, privacy notice); outbox + dispatcher with retries; held until the home is live. Sends as "<operator> via Gaff" until operator domains are verified |
-| 9 | R29: approve-before-send | Next |
-| 10 | R8: answers from facts | To do |
-| 11 | R9: renter's pre-viewing questions | To do |
+| 9 | R29: approve-before-send | **Done**: on by default; AI answers wait in Approvals; approve (as is or edited) is a person's decision; "don't send" moves the questions to the operator; admin toggle in Settings |
+| 10 | R8: answers from facts | **Done**: Claude on Bedrock EU (fake locally); cites fact IDs, checked by guardrails; fixed lawful answers for protected grounds; names and contact details redacted; requests for a person and anything uncovered go to Questions; operator answers remembered as facts |
+| 11 | R9: renter's pre-viewing questions | Next |
 | 12 | R10: ranking with reasons | To do |
 | 13 | R11: approve invitations and waitlist | To do |
 | 14 | R12: self-book, reschedule, cancel | To do |

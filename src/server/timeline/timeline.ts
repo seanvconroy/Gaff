@@ -102,6 +102,28 @@ export function describeEvent(
       };
     case 'message.failed':
       return { what: 'A message couldn’t be sent', detail: `After ${data.attempts} tries` };
+    case 'answers.drafted':
+      return {
+        what:
+          Number(data.toOperator) > 0 && Number(data.answered) === 0
+            ? 'Question passed to your team'
+            : 'Answers drafted',
+        detail: [
+          Number(data.answered) > 0 ? `${data.answered} answered from the facts` : null,
+          Number(data.toOperator) > 0 ? `${data.toOperator} for a person` : null,
+        ]
+          .filter(Boolean)
+          .join(', '),
+      };
+    case 'message.approved':
+      return { what: data.edited ? 'Draft edited and approved' : 'Draft approved' };
+    case 'message.discarded':
+      return { what: 'Draft not sent' };
+    case 'question.answered':
+      return {
+        what: 'Question answered by your team',
+        detail: data.remembered ? 'Remembered for everyone who asks' : undefined,
+      };
     case 'letting.went_live':
       return { what: 'Set-up confirmed: Gaff started answering enquiries' };
     default:

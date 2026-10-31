@@ -1,5 +1,6 @@
 import type { TaskList } from 'graphile-worker';
 import { z } from 'zod';
+import { draftAnswersFor } from '@/server/answers/draft';
 import { processInboundEmail } from '@/server/enquiries/process';
 import { sendMessage } from '@/server/messages/outbox';
 
@@ -10,6 +11,9 @@ const messageJob = z.object({ organisationId: z.uuid(), messageId: z.uuid() });
 export const taskList: TaskList = {
   process_inbound_email: async (payload) => {
     await processInboundEmail(inboundEmailJob.parse(payload));
+  },
+  draft_answers: async (payload) => {
+    await draftAnswersFor(messageJob.parse(payload));
   },
   send_message: async (payload, helpers) => {
     await sendMessage({

@@ -5,6 +5,11 @@
   background-color: var(--color-surface-1);
 }
 
+.wrap:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

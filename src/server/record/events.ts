@@ -113,6 +113,9 @@ export const eventCatalogue = {
     waitlisted: z.number().int(),
     notInvited: z.number().int(),
   }),
+  /** R27, Q4: a private read-only link for the landlord (renters pseudonymised). */
+  'letting.shared_with_landlord': z.object({ linkId: z.uuid() }),
+  'letting.landlord_link_revoked': z.object({ links: z.number().int() }),
   /** Stage 1: a person confirmed the facts, rent and criteria (a 'confirm_setup' decision). */
   'letting.went_live': z.object({ decisionId: z.uuid() }),
   'comparables.recorded': z.object({

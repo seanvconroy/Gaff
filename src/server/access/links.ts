@@ -3,8 +3,8 @@ import { and, eq, gt, isNull } from 'drizzle-orm';
 import { withSystem, type Tx } from '@/db/client';
 import { accessLinks } from '@/db/schema';
 
-/** Renter links last long enough for any letting; they're revoked when it closes (R26). */
-const RENTER_LINK_DAYS = 120;
+/** Links last long enough for any letting; they're revoked when it closes (R26). */
+const LINK_DAYS = 120;
 
 export function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -24,7 +24,7 @@ export async function createAccessLink(
     purpose: input.purpose,
     subjectId: input.subjectId,
     tokenHash: hashToken(token),
-    expiresAt: new Date(Date.now() + RENTER_LINK_DAYS * 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + LINK_DAYS * 24 * 60 * 60 * 1000),
   });
   return token;
 }

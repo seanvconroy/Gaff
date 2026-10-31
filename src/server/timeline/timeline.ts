@@ -1,5 +1,5 @@
 import { asc, eq } from 'drizzle-orm';
-import { withOrg } from '@/db/client';
+import { withOrg, type Tx } from '@/db/client';
 import { events, users } from '@/db/schema';
 import { describeCriteria, type Criteria } from '@/domain/criteria/criteria';
 import { formatRent } from '@/lib/format';
@@ -147,6 +147,10 @@ export function describeEvent(
             ? `To all ${data.offered} left, first to book`
             : 'To the next person, with a 2-hour hold',
       };
+    case 'letting.shared_with_landlord':
+      return { what: 'Read-only link shared with the landlord' };
+    case 'letting.landlord_link_revoked':
+      return { what: 'Stopped sharing with the landlord' };
     case 'letting.went_live':
       return { what: 'Set-up confirmed: Gaff started answering enquiries' };
     default:
@@ -154,20 +158,32 @@ export function describeEvent(
   }
 }
 
-/** R27: every message, booking, decision and the criteria used, oldest first. */
-export async function timelineFor(member: Member, lettingId: string): Promise<TimelineEntry[]> {
-  const rows = await withOrg(member.organisationId, (tx) =>
-    tx
-      .select({ event: events, personName: users.name })
-      .from(events)
-      .leftJoin(users, eq(users.id, events.actorId))
-      .where(eq(events.lettingId, lettingId))
-      .orderBy(asc(events.occurredAt), asc(events.id)),
-  );
+type Who = (event: EventRow, personName: string | null) => string;
+
+/** R27: the letting's events in order, in plain words, with "who" decided by the viewer. */
+export async function timelineEntries(
+  tx: Tx,
+  lettingId: string,
+  who: Who,
+): Promise<TimelineEntry[]> {
+  const rows = await tx
+    .select({ event: events, personName: users.name })
+    .from(events)
+    .leftJoin(users, eq(users.id, events.actorId))
+    .where(eq(events.lettingId, lettingId))
+    .orderBy(asc(events.occurredAt), asc(events.id));
   return rows.map(({ event, personName }) => ({
     id: event.id,
     at: event.occurredAt,
-    who:
+    who: who(event, personName),
+    ...describeEvent(event),
+  }));
+}
+
+/** R27: every message, booking, decision and the criteria used, oldest first. */
+export async function timelineFor(member: Member, lettingId: string): Promise<TimelineEntry[]> {
+  return withOrg(member.organisationId, (tx) =>
+    timelineEntries(tx, lettingId, (event, personName) =>
       event.actorType === 'person'
         ? (personName ?? 'Someone on your team')
         : event.actorType === 'ai'
@@ -177,6 +193,6 @@ export async function timelineFor(member: Member, lettingId: string): Promise<Ti
             : event.actorType === 'landlord'
               ? 'The landlord'
               : 'Gaff',
-    ...describeEvent(event),
-  }));
+    ),
+  );
 }

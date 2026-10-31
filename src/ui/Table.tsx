@@ -12,7 +12,8 @@ export function Table({
   children: ReactNode;
 }) {
   return (
-    <div className={styles.wrap}>
+    // Focusable and labelled, so keyboard users can scroll it sideways on a phone (WCAG 2.1.1).
+    <div className={styles.wrap} role="region" aria-label={caption} tabIndex={0}>
       <table className={styles.table}>
         <caption className="visually-hidden">{caption}</caption>
         <thead>

@@ -1,0 +1,87 @@
+/* The landlord's read-only page: phone-friendly, quiet, one column. */
+.page {
+  min-height: 100vh;
+  background-color: var(--color-surface-0);
+}
+
+.header {
+  padding: var(--space-4);
+  background-color: var(--color-surface-1);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.inner {
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4) var(--space-12);
+}
+
+.operator {
+  font-weight: var(--type-title-weight);
+}
+
+.muted {
+  color: var(--color-ink-muted);
+}
+
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.number {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.number dt {
+  color: var(--color-ink-muted);
+}
+
+.number dd {
+  margin: 0;
+  font-family: var(--type-heading-family);
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
+  font-weight: var(--type-heading-weight);
+}
+
+.list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-6);
+}
+
+.timeline {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.entryText {
+  display: grid;
+  gap: var(--space-1);
+}
+
+@media (width <= 640px) {
+  .entry {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

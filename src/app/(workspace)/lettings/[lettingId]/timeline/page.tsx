@@ -1,20 +1,38 @@
 import type { Metadata } from 'next';
 import { formatDateTime } from '@/lib/format';
+import { landlordSharing } from '@/server/landlord/share';
 import { timelineFor } from '@/server/timeline/timeline';
 import { Card, Stack } from '@/ui/Layout';
+import { Notice } from '@/ui/Notice';
 import { loadLetting } from '../letting';
 import { LettingHeader } from '../LettingHeader';
 import styles from '../letting.module.css';
+import { ShareWithLandlord } from './ShareWithLandlord';
 
 export const metadata: Metadata = { title: 'Timeline' };
 
 /** R27: the letting's record, every step in order. Personal details never appear in it. */
-export default async function TimelinePage({ params }: { params: Promise<{ lettingId: string }> }) {
+export default async function TimelinePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ lettingId: string }>;
+  searchParams: Promise<{ stopped?: string }>;
+}) {
   const { member, letting } = await loadLetting(params);
-  const entries = await timelineFor(member, letting.id);
+  const { stopped } = await searchParams;
+  const [entries, sharing] = await Promise.all([
+    timelineFor(member, letting.id),
+    landlordSharing(member, letting.id),
+  ]);
   return (
     <Stack gap={8}>
       <LettingHeader letting={letting} tab="timeline" />
+      {stopped ? (
+        <Notice tone="success" title="Stopped sharing" role="status">
+          <p>The landlord’s link no longer works. You can make a new one at any time.</p>
+        </Notice>
+      ) : null}
       <Card labelledBy="timeline-heading">
         <h2 id="timeline-heading" className="type-title">
           Everything that’s happened
@@ -38,6 +56,11 @@ export default async function TimelinePage({ params }: { params: Promise<{ letti
           ))}
         </ol>
       </Card>
+      <ShareWithLandlord
+        lettingId={letting.id}
+        shared={sharing.shared}
+        lastOpened={sharing.lastOpenedAt ? formatDateTime(sharing.lastOpenedAt) : null}
+      />
     </Stack>
   );
 }

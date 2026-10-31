@@ -73,3 +73,31 @@ export async function signUpOperator(
   await expect(page.getByRole('heading', { name: 'Your lettings' })).toBeVisible();
   return email;
 }
+
+/** Creates a letting with one evening of viewing slots, through the real screens. */
+export async function createLettingThroughUi(
+  page: Page,
+  address = '12 Ranelagh Road',
+): Promise<void> {
+  const inDays = (days: number) => {
+    const date = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    return date.toISOString().slice(0, 10);
+  };
+  await page.goto('/lettings/new');
+  await page.getByLabel('Address', { exact: true }).fill(address);
+  await page.getByLabel('Area').fill('Ranelagh, Dublin 6');
+  await page.getByLabel('Rent a month').fill('1850');
+  await page.getByLabel('Available from').fill(inDays(30));
+  await page.getByLabel('Type of home').selectOption('apartment');
+  await page.getByLabel('Bedrooms').fill('2');
+  await page.getByLabel('Bathrooms').fill('1');
+  await page.getByLabel('Furnishing').selectOption('furnished');
+  await page.getByLabel('BER rating').selectOption('C1');
+  await page.getByRole('button', { name: 'Save and add viewing times' }).click();
+  await expect(page.getByText(`${address} is saved`)).toBeVisible();
+  await page.getByLabel('Date').fill(inDays(7));
+  await page.getByLabel('From').fill('18:00');
+  await page.getByLabel('Until').fill('19:00');
+  await page.getByRole('button', { name: 'Add viewing time' }).click();
+  await expect(page.getByText('Viewing time added')).toBeVisible();
+}

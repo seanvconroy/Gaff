@@ -50,7 +50,7 @@ export async function getLetting(member: Member, lettingId: string) {
 
     const setup: SetupState = {
       viewingSlots: slotTotals?.slots ?? 0,
-      criteriaSet: false,
+      criteriaSet: letting.criteriaSetAt !== null,
       rentCheckDone: false,
       comparables: 0,
     };

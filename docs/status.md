@@ -23,8 +23,8 @@ Last updated: 31 October 2026.
 | # | Requirement | Status |
 | --- | --- | --- |
 | 1 | R1: create a letting, with viewing times | **Done**: rules, use cases, screens, E2E (`tests/e2e/r1-letting.spec.ts`) |
-| 2 | R2: criteria from the fixed list | Next |
-| 3 | R3: rent check | To do (rule table from public sources; solicitor to confirm) |
+| 2 | R2: criteria from the fixed list | **Done**: strict schema (no free text), questions only for set criteria, locked after invitations |
+| 3 | R3: rent check | Next (rule table from public sources; solicitor to confirm) |
 | 4 | R4: three comparables | To do |
 | 5 | R27: timeline, part 1 | To do |
 | 6 | R5: Gaff address and forwarding | To do |

@@ -1,4 +1,15 @@
-import { date, index, integer, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  date,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
+import type { Criteria } from '@/domain/criteria/criteria';
 import { stages } from '@/domain/lettings/stages';
 import { users } from './auth';
 import { createdAt, tenantPolicy, updatedAt } from './columns';
@@ -50,6 +61,9 @@ export const lettings = pgTable(
     photosUrl: text(),
     daftUrl: text(),
     myhomeUrl: text(),
+    /** R2: the operator's criteria, from the fixed list only (null until set). */
+    criteria: jsonb().$type<Criteria>(),
+    criteriaSetAt: timestamp({ withTimezone: true }),
     stage: lettingStage().notNull().default('setup'),
     status: lettingStatus().notNull().default('draft'),
     createdBy: text()

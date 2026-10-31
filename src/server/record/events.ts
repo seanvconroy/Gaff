@@ -18,6 +18,13 @@ export const eventCatalogue = {
     places: z.number().int().min(1),
   }),
   'viewings.session_removed': z.object({ sessionId: z.uuid() }),
+  /** The full criteria are kept, so the record shows what everyone was ranked against. */
+  'criteria.set': z.object({
+    moveInBy: z.iso.date().optional(),
+    minStayMonths: z.number().int().optional(),
+    maxOccupants: z.number().int().optional(),
+    noPets: z.boolean(),
+  }),
 } satisfies Record<string, z.ZodObject>;
 
 export type EventType = keyof typeof eventCatalogue;

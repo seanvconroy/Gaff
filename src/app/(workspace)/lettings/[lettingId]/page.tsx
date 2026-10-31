@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { describeCriteria } from '@/domain/criteria/criteria';
 import {
   describeKeyFacts,
   type berRatings,
@@ -10,6 +11,7 @@ import { nextSetupStep, setupChecklist, type SetupStep } from '@/domain/lettings
 import { formatDateTime } from '@/lib/format';
 import { ButtonLink } from '@/ui/Button';
 import { Card, Stack } from '@/ui/Layout';
+import { Notice } from '@/ui/Notice';
 import { StatusPill } from '@/ui/StatusPill';
 import { loadLetting } from './letting';
 import { LettingHeader } from './LettingHeader';
@@ -34,6 +36,7 @@ const stepCopy: Record<SetupStep, { title: string; todo: string; action: string;
       title: 'Who can view',
       todo: 'Your criteria, from a fixed list that’s fair to everyone',
       action: 'Set your criteria',
+      path: 'criteria',
     },
     rent_check: {
       title: 'Rent check',
@@ -47,11 +50,23 @@ const stepCopy: Record<SetupStep, { title: string; todo: string; action: string;
     },
   };
 
-export default async function LettingPage({ params }: { params: Promise<{ lettingId: string }> }) {
+const savedCopy: Record<string, string> = {
+  criteria: 'Criteria saved. Gaff will ask renters only what these need.',
+};
+
+export default async function LettingPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ lettingId: string }>;
+  searchParams: Promise<{ saved?: string }>;
+}) {
   const { letting, facts, sessions, places, setup } = await loadLetting(params);
+  const { saved } = await searchParams;
   const checklist = setupChecklist(setup);
   const next = nextSetupStep(setup);
   const nextCopy = next === 'go_live' ? null : stepCopy[next];
+  const criteriaLines = letting.criteria ? describeCriteria(letting.criteria) : null;
   const keyFacts = describeKeyFacts({
     propertyType: letting.propertyType as keyof typeof propertyTypes,
     bedrooms: letting.bedrooms,
@@ -64,6 +79,11 @@ export default async function LettingPage({ params }: { params: Promise<{ lettin
   return (
     <Stack gap={8}>
       <LettingHeader letting={letting} />
+      {saved && savedCopy[saved] ? (
+        <Notice tone="success" role="status">
+          <p>{savedCopy[saved]}</p>
+        </Notice>
+      ) : null}
 
       <Card labelledBy="setup-heading">
         <h2 id="setup-heading" className="type-title">
@@ -139,6 +159,26 @@ export default async function LettingPage({ params }: { params: Promise<{ lettin
             <ButtonLink href={`/lettings/${letting.id}/viewings`}>Change viewing times</ButtonLink>
           </div>
         </Card>
+
+        {criteriaLines ? (
+          <Card labelledBy="criteria-heading">
+            <h2 id="criteria-heading" className="type-title">
+              Who can view
+            </h2>
+            {criteriaLines.length === 0 ? (
+              <p>No criteria. Everyone is ranked by when they enquired.</p>
+            ) : (
+              <ul className={styles.factList}>
+                {criteriaLines.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            )}
+            <div>
+              <ButtonLink href={`/lettings/${letting.id}/criteria`}>Change criteria</ButtonLink>
+            </div>
+          </Card>
+        ) : null}
       </div>
     </Stack>
   );

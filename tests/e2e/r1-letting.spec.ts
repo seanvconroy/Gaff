@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { daysFromToday } from '../fixtures/lettings';
-import { expectAccessible, screenshot, signUpOperator } from './support';
+import { createLettingThroughUi, expectAccessible, screenshot, signUpOperator } from './support';
 
 test('R1: an operator creates a letting with viewing times', async ({ page }) => {
   await signUpOperator(page);
@@ -70,4 +70,27 @@ test('R1: an operator creates a letting with viewing times', async ({ page }) =>
   await expect(page.getByRole('link', { name: '12 Ranelagh Road' })).toBeVisible();
   await expectAccessible(page);
   await screenshot(page, '09-dashboard-with-letting');
+});
+
+test('R2: an operator sets criteria from the fixed list', async ({ page }) => {
+  await signUpOperator(page);
+  await createLettingThroughUi(page);
+  await page.goto(page.url().replace(/\/viewings.*$/, ''));
+  await page.getByRole('link', { name: 'Set your criteria' }).click();
+  await expect(page.getByRole('heading', { name: 'Who can view', level: 1 })).toBeVisible();
+  await expect(page.getByText('Why only these four?')).toBeVisible();
+  await expectAccessible(page);
+
+  await page.getByLabel('Most people who can live there').selectOption('3');
+  await page.getByLabel('Plans to stay at least').selectOption('12');
+  await page.getByLabel('No pets').check();
+  await screenshot(page, '10-criteria');
+  await page.getByRole('button', { name: 'Save criteria' }).click();
+
+  await expect(page.getByText('Criteria saved.')).toBeVisible();
+  await expect(page.getByText('Up to 3 people')).toBeVisible();
+  await expect(page.getByText('Plans to stay at least a year')).toBeVisible();
+  await expect(page.getByText('No pets (assistance dogs are always welcome)')).toBeVisible();
+  await expectAccessible(page);
+  await screenshot(page, '11-overview-with-criteria');
 });

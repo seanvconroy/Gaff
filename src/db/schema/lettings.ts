@@ -71,6 +71,8 @@ export const lettings = pgTable(
       .notNull()
       .references(() => users.id),
     liveAt: timestamp({ withTimezone: true }),
+    /** R26: when a person closed it, as let or withdrawn. Deletion dates count from here. */
+    closedAt: timestamp({ withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

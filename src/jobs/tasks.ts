@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { draftAnswersFor } from '@/server/answers/draft';
 import { processInboundEmail } from '@/server/enquiries/process';
 import { sendMessage } from '@/server/messages/outbox';
+import { sweepPersonalData } from '@/server/retention/sweep';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
 
 const inboundEmailJob = z.object({ organisationId: z.uuid(), inboundEmailId: z.uuid() });
@@ -19,6 +20,13 @@ export const taskList: TaskList = {
   },
   expire_offer: async (payload) => {
     await expireOffer(z.object({ organisationId: z.uuid(), offerId: z.uuid() }).parse(payload));
+  },
+  retention_sweep: async () => {
+    const swept = await sweepPersonalData();
+    // Counts only: never personal data in logs.
+    console.log(
+      `Retention: ${swept.applications} applications and ${swept.inboundEmails} emails cleared.`,
+    );
   },
   draft_answers: async (payload) => {
     await draftAnswersFor(messageJob.parse(payload));

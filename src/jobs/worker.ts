@@ -13,6 +13,8 @@ async function main(): Promise<void> {
     concurrency: 5,
     noHandleSignals: false,
     pollInterval: 2000,
+    // R26 (ADR-0005): the retention job, daily at 02:30 UTC, catching up if the worker was down.
+    crontab: '30 2 * * * retention_sweep ?fill=2d',
   });
   console.log('Gaff worker started.');
   await runner.promise;

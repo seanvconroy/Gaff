@@ -40,8 +40,34 @@ export default async function RenterPage({
   }
   const { application, letting, organisation, questions, firstViewing, canChange, offer } = page;
   const status = application.status;
+  const closed = letting.status === 'let' || letting.status === 'withdrawn';
   const canBook =
     status === 'invited' || status === 'booked' || (status === 'waitlisted' && offer !== null);
+  if (closed) {
+    return (
+      <RenterShell operatorName={organisation.name}>
+        <Stack gap={6}>
+          <Stack gap={2}>
+            <h1 className="type-heading">{letting.addressLine1}</h1>
+            <p className={styles.muted}>{letting.area}</p>
+          </Stack>
+          <Notice
+            tone="info"
+            title={
+              letting.status === 'let' ? 'This home has been let' : 'This home isn’t available now'
+            }
+          >
+            <p>
+              Enquiries are closed. Thank you for your interest.
+              {application.deleteAfter
+                ? ` We’ll delete your details from Gaff by ${formatDate(application.deleteAfter)}.`
+                : ''}
+            </p>
+          </Notice>
+        </Stack>
+      </RenterShell>
+    );
+  }
   const name = firstName(application.fullName);
   const answers = application.answers ?? {};
   const answered = application.answersAt !== null;

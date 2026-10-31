@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { lettingClosedEmail } from '@/copy/templates/closing';
 import { firstReply } from '@/copy/templates/first-reply';
 import { holdingEmail, invitationEmail, waitlistedEmail } from '@/copy/templates/invitations';
 import { findProtectedGrounds } from '@/domain/compliance/protected-grounds';
@@ -110,5 +111,28 @@ describe('Compliance: invitation, waiting list and holding messages (R11, Q6)', 
     expect(emails.holding.body).toContain(
       'You’ll hear from us either way once a tenant has been chosen.',
     );
+  });
+});
+
+describe('Compliance: the closing message (R26)', () => {
+  const base = { ...input, deleteOn: '2026-12-05' };
+  const sent = (['let', 'withdrawn'] as const).map((outcome) =>
+    lettingClosedEmail({ ...base, outcome }),
+  );
+
+  it('tells everyone it’s closed, and when their details will be deleted', () => {
+    expect(sent[0]!.subject).toBe('12 Ranelagh Road has been let');
+    expect(sent[1]!.subject).toBe('12 Ranelagh Road is no longer available');
+    for (const { body } of sent) {
+      expect(body).toContain('We’ll delete your details from Gaff by Saturday 5 December.');
+    }
+  });
+
+  it('blames no one, asks for nothing, and touches no protected ground', () => {
+    for (const { body } of sent) {
+      expect(body).not.toMatch(/unsuccessful|rejected|sorry|payslip|deposit|fee|pay /i);
+      expect(body).not.toContain('!');
+      expect(findProtectedGrounds(body)).toEqual([]);
+    }
   });
 });

@@ -23,10 +23,10 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] Data protection roles (processor for operators; controller for opt-in renter profiles) and the DPIA
 - [ ] Article 22: ranking with a person approving
 - [ ] Retention periods: 30 days for personal details after the letting closes, 12 months for the anonymous decision record (open question Q3)
-- [ ] Rent-check rule table (Q8): `src/domain/rent/rules.ts` cites its sources
+- [ ] Rent-check rule table (Q8): `src/domain/rent/rent-check.ts` cites its sources
 - [ ] Criteria list, pets wording and assistance-dog rule (Q9)
 - [ ] Fixed answers on protected grounds (Q7)
-- [ ] Message templates: first reply (with AI disclosure), holding message, invitations, reminders, and later offer and outcome
+- [ ] Message templates in `src/copy/templates/`: first reply (with AI disclosure), holding message, invitation, waiting list, booking confirmation, reminders (email and SMS), place offered, letting closed, and later offer and outcome
 - [ ] Privacy notice for renters (GDPR Article 14)
 - [ ] Collecting the PPSN for RTB registration, and the registration deadline (Slice 3)
 

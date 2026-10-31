@@ -69,6 +69,7 @@ export const eventCatalogue = {
       'booking_confirmation',
       'reminder',
       'place_offered',
+      'letting_closed',
     ]),
     channel: z.enum(['email', 'sms']),
     author: z.enum(['template', 'ai', 'person']),
@@ -116,6 +117,19 @@ export const eventCatalogue = {
   /** R27, Q4: a private read-only link for the landlord (renters pseudonymised). */
   'letting.shared_with_landlord': z.object({ linkId: z.uuid() }),
   'letting.landlord_link_revoked': z.object({ links: z.number().int() }),
+  /** R26: a person closed the letting (a 'close_letting' decision); everyone was told. */
+  'letting.closed': z.object({
+    decisionId: z.uuid(),
+    outcome: z.enum(['let', 'withdrawn']),
+    told: z.number().int(),
+    deleteAfter: z.iso.date(),
+  }),
+  /** R26: the retention job deleted a renter's personal details, on schedule. */
+  'application.personal_data_deleted': z.object({
+    applicationId: z.uuid(),
+    backstop: z.boolean(),
+  }),
+  'inbound_email.content_deleted': z.object({ inboundEmailId: z.uuid() }),
   /** Stage 1: a person confirmed the facts, rent and criteria (a 'confirm_setup' decision). */
   'letting.went_live': z.object({ decisionId: z.uuid() }),
   'comparables.recorded': z.object({

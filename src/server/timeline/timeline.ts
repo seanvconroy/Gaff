@@ -2,7 +2,7 @@ import { asc, eq } from 'drizzle-orm';
 import { withOrg, type Tx } from '@/db/client';
 import { events, users } from '@/db/schema';
 import { describeCriteria, type Criteria } from '@/domain/criteria/criteria';
-import { formatRent } from '@/lib/format';
+import { formatDate, formatRent } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 
 export interface TimelineEntry {
@@ -25,6 +25,7 @@ const messageTitles: Record<string, string> = {
   booking_confirmation: 'Booking confirmed',
   reminder: 'Viewing reminder sent',
   place_offered: 'A freed place offered',
+  letting_closed: 'Closing message sent',
 };
 
 const rentCheckTitles: Record<string, string> = {
@@ -151,6 +152,14 @@ export function describeEvent(
       return { what: 'Read-only link shared with the landlord' };
     case 'letting.landlord_link_revoked':
       return { what: 'Stopped sharing with the landlord' };
+    case 'letting.closed':
+      return {
+        what:
+          data.outcome === 'let' ? 'Letting closed: the home is let' : 'Letting closed: withdrawn',
+        detail: `${data.told} told; personal details deleted on ${formatDate(String(data.deleteAfter))}`,
+      };
+    case 'application.personal_data_deleted':
+      return { what: 'A renter’s personal details deleted on schedule' };
     case 'letting.went_live':
       return { what: 'Set-up confirmed: Gaff started answering enquiries' };
     default:

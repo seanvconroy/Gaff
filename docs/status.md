@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 31 October 2026.
+Last updated: 31 October 2026 (Slice 1 complete, with basic R26).
 
 ## Done
 
@@ -41,6 +41,18 @@ Last updated: 31 October 2026.
 | 17 | R15: attendance on a phone | **Done**: Attendance tab, one tap per person (Came / Didn’t come, changeable); opens 15 minutes before each viewing; each mark is a person’s `mark_attendance` decision, logged with IDs only; the renter’s page moves on; workspace pages no longer scroll sideways on phones (reflow checked in E2E) |
 | 18 | R28: dashboard | **Done**: “Needs you today” (answers to approve, emails needing attention, questions, who came to mark, who views, set-up to finish), each linking to where it’s done; each letting’s stage; active minutes per letting (a minute counts only with input in the last 2 minutes and the tab in view) against the usual time and days set in Settings (Q15) |
 | 19 | R27: read-only landlord link | **Done**: operator makes a private link on the Timeline tab (shown once, only its hash kept), sees when the landlord last opened it, and can stop sharing at once; the landlord’s page shows the stage, numbers, criteria, ranking with reasons and the timeline, with renters only as “Applicant N” (Q4); tables scroll inside a keyboard-focusable region on phones |
+
+## Built early, before real renters
+
+| Item | What | Status |
+| --- | --- | --- |
+| R26 (basic) | Retention, as ADR-0005 and Q3 require before the first real renter | **Done**: a person closes a letting as let or withdrawn (a `close_letting` decision); everyone who enquired gets a fixed closing message with the date their details go; viewings still to come and their reminders are cancelled; a daily job (02:30 UTC, catches up if missed) deletes names, contact details, answers and message text on the date, revokes renters’ links and logs each deletion by ID; backstops: 180 days after the last enquiry for lettings nobody closed, 30 days for emails Gaff couldn’t place |
+
+## Next
+
+- **Slice 2 (stages 5 to 7):** R16 apply link for people marked as came, R17 side-by-side applicants, R18 checks for the preferred applicant and backup only (providers need founders’ approval, rule 10), R19 landlord approval by link, R20 offer with a deadline and backup, R21 outcome messages.
+- **Slice 3 (stages 8 and 9):** R22 tenancy agreement and e-signature, R23 payment request (deposit and first month, capped, paid to the operator’s own account), R24 rent-setting and RTB packs, R25 move-in checklist, and the full R26 (references deleted once the tenancy starts; the anonymous record deleted after 12 months).
+- **Tidy-ups:** move the renter pages’ words into `src/copy/` with the templates, for one-place voice review; a dashboard nudge to close lettings whose viewings ended a while ago; a purge path for events and decisions older than `RETENTION_RECORD_MONTHS` (the event log is append-only, so this needs a privileged job), due before the first record is 12 months old; retention for `activity_minutes`.
 
 ## Known issues
 

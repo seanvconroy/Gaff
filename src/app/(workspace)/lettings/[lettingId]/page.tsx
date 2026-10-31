@@ -9,13 +9,15 @@ import {
 } from '@/domain/lettings/new-letting';
 import { nextSetupStep, setupChecklist, type SetupStep } from '@/domain/lettings/setup';
 import { comparableWarnings, medianRentCents } from '@/domain/rent/comparables';
-import { formatDateTime, formatRent } from '@/lib/format';
+import { formatDate, formatDateTime, formatRent } from '@/lib/format';
+import { env } from '@/lib/env';
 import { ButtonLink } from '@/ui/Button';
+import { ChoiceGroup } from '@/ui/Field';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { Card, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { StatusPill } from '@/ui/StatusPill';
-import { goLiveAction } from './actions';
+import { closeAction, goLiveAction } from './actions';
 import { loadLetting } from './letting';
 import { RentCheckResult } from './rent-check/RentCheckResult';
 import { LettingHeader } from './LettingHeader';
@@ -61,6 +63,8 @@ const savedCopy: Record<string, string> = {
   'rent-check': 'Rent check saved. It goes in the rent-setting pack.',
   comparables: 'Comparables saved for the rent-setting pack.',
   live: 'Gaff is now answering enquiries for this home.',
+  closed:
+    'Closed. Everyone who enquired has been told, and Gaff deletes their details on schedule.',
 };
 
 export default async function LettingPage({
@@ -68,11 +72,12 @@ export default async function LettingPage({
   searchParams,
 }: {
   params: Promise<{ lettingId: string }>;
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; problem?: string }>;
 }) {
   const { letting, facts, sessions, places, setup, rentCheck, rentProblem, comparables } =
     await loadLetting(params);
-  const { saved } = await searchParams;
+  const { saved, problem } = await searchParams;
+  const closed = letting.status === 'let' || letting.status === 'withdrawn';
   const checklist = setupChecklist(setup);
   const next = nextSetupStep(setup);
   const nextCopy = next === 'go_live' ? null : stepCopy[next];
@@ -92,6 +97,12 @@ export default async function LettingPage({
       {saved && savedCopy[saved] && !(saved === 'rent-check' && rentProblem) ? (
         <Notice tone="success" role="status">
           <p>{savedCopy[saved]}</p>
+        </Notice>
+      ) : null}
+
+      {problem === 'close' ? (
+        <Notice tone="warning" role="alert">
+          <p>Choose whether the home is let or withdrawn, then close it.</p>
         </Notice>
       ) : null}
 
@@ -132,9 +143,16 @@ export default async function LettingPage({
             </Stack>
           </form>
         ) : null}
-        {letting.stage !== 'setup' ? (
+        {letting.stage !== 'setup' && !closed ? (
           <p>
             <StatusPill tone="success">Live</StatusPill> Gaff is answering enquiries for this home.
+          </p>
+        ) : null}
+        {closed && letting.closedAt ? (
+          <p>
+            <StatusPill>Closed</StatusPill> {letting.status === 'let' ? 'Let' : 'Withdrawn'} on{' '}
+            {formatDate(letting.closedAt)}. Gaff deletes renters’ details{' '}
+            {env().RETENTION_PERSONAL_DAYS} days after closing.
           </p>
         ) : null}
       </Card>
@@ -258,6 +276,37 @@ export default async function LettingPage({
           </Card>
         ) : null}
       </div>
+
+      {letting.status === 'live' ? (
+        <Card labelledBy="close-heading">
+          <h2 id="close-heading" className="type-title">
+            Close this letting
+          </h2>
+          <p>
+            When the home is let, or you’re not letting it now, close it here. Gaff tells everyone
+            who enquired, cancels any viewings still to come, and deletes renters’ details{' '}
+            {env().RETENTION_PERSONAL_DAYS} days later. The record of what happened stays, with no
+            personal details in it.
+          </p>
+          <form action={closeAction.bind(null, letting.id)}>
+            <Stack gap={4}>
+              <ChoiceGroup
+                name="outcome"
+                legend="How did it end?"
+                options={[
+                  { value: 'let', label: 'It’s let' },
+                  { value: 'withdrawn', label: 'We’re not letting it now' },
+                ]}
+              />
+              <div>
+                <SubmitButton variant="secondary" pendingLabel="Closing…">
+                  Close the letting
+                </SubmitButton>
+              </div>
+            </Stack>
+          </form>
+        </Card>
+      ) : null}
     </Stack>
   );
 }

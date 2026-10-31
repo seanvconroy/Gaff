@@ -88,6 +88,13 @@ export const eventCatalogue = {
   'settings.approve_before_send': z.object({ on: z.boolean() }),
   'viewing.booked': z.object({ bookingId: z.uuid(), slotId: z.uuid(), rescheduled: z.boolean() }),
   'viewing.cancelled': z.object({ bookingId: z.uuid(), slotId: z.uuid() }),
+  /** R15: a person marked whether someone came (a 'mark_attendance' decision). */
+  'viewing.attendance_marked': z.object({
+    decisionId: z.uuid(),
+    bookingId: z.uuid(),
+    slotId: z.uuid(),
+    attended: z.boolean(),
+  }),
   /** R14: a freed place offered to the approved waiting list. */
   'waitlist.offered': z.object({
     slotId: z.uuid(),

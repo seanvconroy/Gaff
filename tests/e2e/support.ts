@@ -15,6 +15,14 @@ export async function expectAccessible(page: Page): Promise<void> {
   expect(summary, 'accessibility violations').toEqual([]);
 }
 
+/** WCAG 1.4.10 reflow: nothing makes the page scroll sideways at this width. */
+export async function expectNoSidewaysScroll(page: Page): Promise<void> {
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow, 'page is wider than the screen').toBeLessThanOrEqual(0);
+}
+
 /** Saves a full-page screenshot to screenshots/ for review. */
 export async function screenshot(page: Page, name: string): Promise<void> {
   mkdirSync('screenshots', { recursive: true });
@@ -171,4 +179,36 @@ export async function linkInEmailStarting(to: string, subjectStart: string): Pro
   const link = rows[0]?.text.match(/https?:\/\/\S+/)?.[0];
   if (!link) throw new Error(`No email "${subjectStart}…" has been sent to ${to}`);
   return link;
+}
+
+/**
+ * Test-only time travel: moves every viewing slot of the letting at this address so the first
+ * started five minutes ago. The web app has no way to do this, on purpose.
+ */
+export async function startViewingsNow(addressLine1: string, operatorEmail: string): Promise<void> {
+  const client = new pg.Client({ connectionString: E2E_DATABASE_URL });
+  await client.connect();
+  try {
+    await client.query('begin');
+    await client.query("select set_config('app.rls_bypass', 'on', true)");
+    await client.query(
+      `with letting as (
+         select l.id from lettings l
+         join memberships m on m.organisation_id = l.organisation_id
+         join users u on u.id = m.user_id
+         where l.address_line1 = $1 and u.email = $2
+       ), first_slot as (
+         select min(starts_at) as starts_at from viewing_slots where letting_id in (select id from letting)
+       )
+       update viewing_slots
+         set starts_at = now() - interval '5 minutes' + (viewing_slots.starts_at - first_slot.starts_at),
+             ends_at = now() + interval '10 minutes' + (viewing_slots.starts_at - first_slot.starts_at)
+         from first_slot
+         where letting_id in (select id from letting)`,
+      [addressLine1, operatorEmail],
+    );
+    await client.query('commit');
+  } finally {
+    await client.end();
+  }
 }

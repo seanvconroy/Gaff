@@ -3,6 +3,7 @@ import { daftEnquiry, myhomeEnquiry } from '../fixtures/emails';
 import {
   createLettingThroughUi,
   expectAccessible,
+  expectNoSidewaysScroll,
   gaffAddress,
   goLiveThroughUi,
   linkInEmail,
@@ -63,6 +64,7 @@ test('R10, R11, R12, R13, R14: a person decides who views; renters book, move an
   const aoife = await onPhone(browser, invitation);
   await expect(aoife.page.getByRole('heading', { name: 'Choose a time to view' })).toBeVisible();
   await expectAccessible(aoife.page);
+  await expectNoSidewaysScroll(aoife.page);
   await screenshot(aoife.page, '27-renter-choose-time');
   await aoife.page.getByRole('button', { name: 'Book this time' }).click();
   await expect(aoife.page.getByText('Choose a time first.')).toBeVisible();

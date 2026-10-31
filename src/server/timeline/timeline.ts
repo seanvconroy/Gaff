@@ -137,6 +137,8 @@ export function describeEvent(
       return { what: data.rescheduled ? 'A renter moved their viewing' : 'Viewing booked' };
     case 'viewing.cancelled':
       return { what: 'A renter cancelled their viewing' };
+    case 'viewing.attendance_marked':
+      return { what: data.attended ? 'Marked as came to the viewing' : 'Marked as didn’t come' };
     case 'waitlist.offered':
       return {
         what: 'A freed place was offered to the waiting list',

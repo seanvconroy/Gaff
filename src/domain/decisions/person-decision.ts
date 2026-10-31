@@ -13,6 +13,8 @@ export const decisionKinds = [
   'approve_message',
   /** R11: the operator approves who is invited to view, and the waitlist. */
   'invite_to_view',
+  /** R15: the operator marks whether someone came to their viewing. It decides who may apply. */
+  'mark_attendance',
 ] as const;
 
 export type DecisionKind = (typeof decisionKinds)[number];

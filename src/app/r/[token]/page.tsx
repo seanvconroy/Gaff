@@ -97,6 +97,22 @@ export default async function RenterPage({
             </p>
           </Notice>
         ) : null}
+        {status === 'attended' ? (
+          <Notice tone="success" title="Thanks for coming to view">
+            <p>
+              {organisation.name} will email you about next steps. Either way, you’ll hear back from
+              us.
+            </p>
+          </Notice>
+        ) : null}
+        {status === 'no_show' ? (
+          <Notice tone="info" title="Your viewing time has passed">
+            <p>
+              If you’d still like to see the home, reply to any of our emails and we’ll see what we
+              can do. Either way, you’ll hear back from us.
+            </p>
+          </Notice>
+        ) : null}
         {status === 'not_invited' ? (
           <Notice tone="info" title="Thanks for your interest">
             <p>

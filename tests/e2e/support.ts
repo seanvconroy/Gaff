@@ -78,6 +78,7 @@ export async function signUpOperator(
 export async function createLettingThroughUi(
   page: Page,
   address = '12 Ranelagh Road',
+  daftUrl = '',
 ): Promise<void> {
   const inDays = (days: number) => {
     const date = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
@@ -93,6 +94,7 @@ export async function createLettingThroughUi(
   await page.getByLabel('Bathrooms').fill('1');
   await page.getByLabel('Furnishing').selectOption('furnished');
   await page.getByLabel('BER rating').selectOption('C1');
+  if (daftUrl) await page.getByLabel('Daft advert').fill(daftUrl);
   await page.getByRole('button', { name: 'Save and add viewing times' }).click();
   await expect(page.getByText(`${address} is saved`)).toBeVisible();
   await page.getByLabel('Date').fill(inDays(7));
@@ -100,4 +102,42 @@ export async function createLettingThroughUi(
   await page.getByLabel('Until').fill('19:00');
   await page.getByRole('button', { name: 'Add viewing time' }).click();
   await expect(page.getByText('Viewing time added')).toBeVisible();
+}
+
+/** From a letting's overview: sets criteria, checks the rent and starts taking enquiries. */
+export async function goLiveThroughUi(page: Page): Promise<void> {
+  const overview = page
+    .url()
+    .replace(/\/(viewings|criteria|rent-check|comparables).*$/, '')
+    .replace(/\?.*$/, '');
+  await page.goto(`${overview}/criteria`);
+  await page.getByLabel('Most people who can live there').selectOption('3');
+  await page.getByLabel('No pets').check();
+  await page.getByRole('button', { name: 'Save criteria' }).click();
+  await page.getByRole('link', { name: 'Check the rent' }).click();
+  await page.getByLabel('No, this is its first letting').check();
+  await page.getByRole('button', { name: 'Check the rent' }).click();
+  await page.getByRole('button', { name: 'Start taking enquiries' }).click();
+  await expect(page.getByText('Gaff is now answering enquiries for this home.')).toBeVisible();
+}
+
+/** The signed-in operator's Gaff address, from the settings page. */
+export async function gaffAddress(page: Page): Promise<string> {
+  await page.goto('/settings');
+  return (await page.locator('code').first().innerText()).trim();
+}
+
+/** Sends an email to a Gaff address through the development inbox (as Mailgun would). */
+export async function sendTestEmail(
+  page: Page,
+  email: { to: string; from: string; replyTo?: string; subject: string; text: string },
+): Promise<void> {
+  await page.goto('/dev/inbound');
+  await page.getByLabel('To (a Gaff address)').fill(email.to);
+  await page.getByLabel('From', { exact: true }).fill(email.from);
+  await page.getByLabel('Reply-To').fill(email.replyTo ?? '');
+  await page.getByLabel('Subject').fill(email.subject);
+  await page.getByLabel('Body').fill(email.text);
+  await page.getByRole('button', { name: 'Send to Gaff' }).click();
+  await expect(page.getByText('Result: stored')).toBeVisible();
 }

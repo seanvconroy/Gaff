@@ -28,8 +28,8 @@ Last updated: 31 October 2026.
 | 4 | R4: three comparables | **Done**: area only (no addresses), similarity warnings, middle rent beside the asking rent |
 | 5 | R27: timeline, part 1 | **Done**: read-only timeline from the event log; stage 1 "Start taking enquiries" is a person's `confirm_setup` decision |
 | 6 | R5: Gaff address and forwarding | **Done**: signed Mailgun EU webhook (5-minute replay window), store-then-queue, idempotent; settings page; dev inbox at `/dev/inbound` |
-| 7 | R6: parse and merge enquiries | Next (synthetic emails until real samples arrive) |
-| 8 | R7: first reply with AI disclosure | To do |
+| 7 | R6: parse and merge enquiries | **Done** (synthetic emails until real samples arrive): match by advert ID then address; merge by email or phone; replies thread by address; "Needs attention" for anything else |
+| 8 | R7: first reply with AI disclosure | Next |
 | 9 | R29: approve-before-send | To do |
 | 10 | R8: answers from facts | To do |
 | 11 | R9: renter's pre-viewing questions | To do |

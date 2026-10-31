@@ -50,6 +50,13 @@
       "when": 1793469532193,
       "tag": "0006_r5_inbound_emails",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793469804340,
+      "tag": "0007_r6_applications_messages",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,8 @@ import { stageLabels } from '@/domain/lettings/stages';
 import { formatDate, formatRent } from '@/lib/format';
 import { requireMember } from '@/server/auth/member';
 import { listLettings } from '@/server/lettings/queries';
+import { countNeedsAttention } from '@/server/enquiries/queries';
+import { Notice } from '@/ui/Notice';
 import { ButtonLink } from '@/ui/Button';
 import { Card, PageHeader, Stack } from '@/ui/Layout';
 import { StatusPill } from '@/ui/StatusPill';
@@ -13,7 +15,10 @@ export const metadata: Metadata = { title: 'Lettings' };
 
 export default async function DashboardPage() {
   const member = await requireMember();
-  const lettings = await listLettings(member);
+  const [lettings, waiting] = await Promise.all([
+    listLettings(member),
+    countNeedsAttention(member),
+  ]);
   return (
     <Stack gap={8}>
       <PageHeader
@@ -25,6 +30,17 @@ export default async function DashboardPage() {
           </ButtonLink>
         }
       />
+      {waiting > 0 ? (
+        <Notice
+          tone="warning"
+          title={`${waiting} ${waiting === 1 ? 'email needs' : 'emails need'} your attention`}
+        >
+          <p>
+            Gaff couldn’t place {waiting === 1 ? 'it' : 'them'} on its own.{' '}
+            <Link href="/attention">See what needs you</Link>
+          </p>
+        </Notice>
+      ) : null}
       {lettings.length === 0 ? (
         <Card>
           <h2 className="type-title">No lettings yet</h2>

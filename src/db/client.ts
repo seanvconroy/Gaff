@@ -15,6 +15,9 @@ export function pool(): pg.Pool {
     cache.gaffPool = new pg.Pool({ connectionString: env().DATABASE_URL, max: 10 });
     // An idle client can lose its connection; log it rather than crash the process.
     cache.gaffPool.on('error', (error) => console.error('Postgres pool error', error));
+    cache.gaffPool.on('connect', (client) =>
+      client.on('error', (error) => console.error('Postgres client error', error)),
+    );
   }
   return cache.gaffPool;
 }

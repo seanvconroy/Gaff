@@ -19,6 +19,7 @@ export default async function WorkspaceLayout({ children }: { children: ReactNod
           <Wordmark />
           <nav aria-label="Workspace" className={styles.nav}>
             <Link href="/">Lettings</Link>
+            <Link href="/attention">Needs attention</Link>
             <Link href="/settings">Settings</Link>
           </nav>
           <div className={styles.account}>

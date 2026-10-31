@@ -66,6 +66,18 @@ export function describeEvent(
         what: 'Three comparable rents recorded',
         detail: `Middle rent ${formatRent(Number(data.medianRentCents))}`,
       };
+    case 'enquiry.received':
+      return {
+        what: 'Enquiry received',
+        detail: `Via ${data.portal === 'daft' ? 'Daft' : 'MyHome'}`,
+      };
+    case 'enquiry.repeated':
+      return {
+        what: 'The same renter enquired again',
+        detail: `Via ${data.portal === 'daft' ? 'Daft' : 'MyHome'}. Kept as one enquiry.`,
+      };
+    case 'reply.received':
+      return { what: 'Reply received' };
     case 'letting.went_live':
       return { what: 'Set-up confirmed: Gaff started answering enquiries' };
     default:

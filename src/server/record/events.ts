@@ -35,6 +35,21 @@ export const eventCatalogue = {
   }),
   'letting.rent_changed': z.object({ fromCents: z.number().int(), toCents: z.number().int() }),
   'email.received': z.object({ inboundEmailId: z.uuid() }),
+  'email.needs_attention': z.object({
+    inboundEmailId: z.uuid(),
+    problem: z.enum([
+      'not_from_a_portal',
+      'no_contact_email',
+      'no_matching_letting',
+      'unknown_thread',
+    ]),
+  }),
+  'email.dismissed': z.object({ inboundEmailId: z.uuid() }),
+  /** R6: a new renter enquired. */
+  'enquiry.received': z.object({ applicationId: z.uuid(), portal: z.enum(['daft', 'myhome']) }),
+  /** R6: the same renter enquired again (maybe on the other portal): merged, not duplicated. */
+  'enquiry.repeated': z.object({ applicationId: z.uuid(), portal: z.enum(['daft', 'myhome']) }),
+  'reply.received': z.object({ applicationId: z.uuid(), messageId: z.uuid() }),
   /** Stage 1: a person confirmed the facts, rent and criteria (a 'confirm_setup' decision). */
   'letting.went_live': z.object({ decisionId: z.uuid() }),
   'comparables.recorded': z.object({

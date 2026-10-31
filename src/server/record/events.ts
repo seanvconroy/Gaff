@@ -34,6 +34,7 @@ export const eventCatalogue = {
     previousRentSetOn: z.iso.date().optional(),
   }),
   'letting.rent_changed': z.object({ fromCents: z.number().int(), toCents: z.number().int() }),
+  'email.received': z.object({ inboundEmailId: z.uuid() }),
   /** Stage 1: a person confirmed the facts, rent and criteria (a 'confirm_setup' decision). */
   'letting.went_live': z.object({ decisionId: z.uuid() }),
   'comparables.recorded': z.object({

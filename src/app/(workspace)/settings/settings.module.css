@@ -1,0 +1,17 @@
+.address {
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+  overflow-wrap: anywhere;
+  font-weight: var(--type-title-weight);
+}
+
+.steps {
+  display: grid;
+  gap: var(--space-3);
+  padding-left: var(--space-6);
+}
+
+.hint {
+  color: var(--color-ink-muted);
+}

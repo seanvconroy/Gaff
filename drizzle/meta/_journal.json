@@ -43,6 +43,13 @@
       "when": 1793468968383,
       "tag": "0005_r4_comparables",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793469532193,
+      "tag": "0006_r5_inbound_emails",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,6 @@
 # ADR-0013: Operators sign in by email link; renters and landlords use private links
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-31
 
 ## Context

@@ -1,6 +1,6 @@
 # ADR-0001: A TypeScript modular monolith on Next.js, with a separate worker process
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-31
 
 ## Context

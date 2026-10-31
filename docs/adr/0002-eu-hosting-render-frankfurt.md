@@ -1,6 +1,6 @@
 # ADR-0002: EU hosting on Render, Frankfurt
 
-- Status: Proposed, **needs approval** (stores personal data)
+- Status: Accepted (CTO decision, 31 October 2026). Sign up and check the DPA before launch.
 - Date: 2026-10-31
 
 ## Context

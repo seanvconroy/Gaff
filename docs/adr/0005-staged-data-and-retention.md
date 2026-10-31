@@ -1,6 +1,6 @@
 # ADR-0005: Staged data and retention, built into the schema and jobs
 
-- Status: Proposed (retention periods wait on open question Q3 and the solicitor)
+- Status: Accepted. Retention periods are configuration; the solicitor confirms them before launch.
 - Date: 2026-10-31
 
 ## Context

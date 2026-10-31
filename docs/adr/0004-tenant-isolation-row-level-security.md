@@ -1,6 +1,6 @@
 # ADR-0004: Tenant isolation with organisation_id and row-level security
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-31
 
 ## Context

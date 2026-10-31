@@ -1,6 +1,6 @@
 # ADR-0010: Email and SMS through adapters and an outbox
 
-- Status: Proposed. The adapters and outbox can start now; the providers **need approval**.
+- Status: Accepted (CTO decision, 31 October 2026): Mailgun EU for email, Sinch EU for SMS.
 - Date: 2026-10-31
 
 ## Context
@@ -14,7 +14,7 @@ Enquiries arrive by email (R5). Replies, confirmations and reminders go out by e
 - **Outbox:** every outbound message is a row in `messages`. Its status moves from draft to awaiting approval, scheduled, sending, then sent or failed. Each row has a `send_at` time, which is how reminders are scheduled. A dispatcher job sends due messages with retries. Failures show on the operator's screen.
 - **Addresses:** each organisation gets an inbound address (`<slug>@<inbound domain>`) for its forwarding rule. Each letting gets a reply address, so renters' replies come back to Gaff and stay in the right thread.
 - **Sender:** mail goes from the operator's own domain once it's verified. Until then it goes from "Name at Agency via Gaff" at a Gaff address.
-- **Providers, once approved:** email from Mailgun's EU region or Amazon SES in Ireland, both of which store data in the EU (Postmark reportedly stores data only in the US). SMS from Bird or Twilio, to compare on EU data handling, Irish sender ID rules and price.
+- **Providers:** email through **Mailgun's EU region**, which receives (inbound routes), sends and stores message data in the EU (Postmark reportedly stores data only in the US). SMS through **Sinch's EU region**. Sinch is a Swedish company and owns Mailgun, so one vendor group covers both. Amazon SES in Ireland and Twilio are the fallbacks; switching means writing one adapter.
 
 ## Consequences
 

@@ -1,6 +1,6 @@
 # ADR-0009: AI drafts answers only, from letting facts, processed in the EU
 
-- Status: Proposed, **needs approval** (the AI provider processes renters' messages)
+- Status: Accepted (CTO decision, 31 October 2026). Confirm EU model availability and the DPA before launch.
 - Date: 2026-10-31
 
 ## Context

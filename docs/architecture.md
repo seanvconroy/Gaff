@@ -1,6 +1,6 @@
 # Gaff architecture
 
-Status: **proposed**, 31 October 2026. Waiting on Sean and Ann's approval. Key decisions are recorded as ADRs in [adr/](adr/README.md). Open product questions are in [open-questions.md](open-questions.md).
+Status: **accepted**, 31 October 2026 (CTO decision). Key decisions are recorded as ADRs in [adr/](adr/README.md). Product questions and their decisions are in [open-questions.md](open-questions.md). What has to happen before the first pilot is in [launch-checklist.md](launch-checklist.md).
 
 ## What shapes it
 
@@ -56,7 +56,7 @@ The web framework, the email provider and the AI provider can each be swapped wi
 | --- | --- | --- |
 | Language | TypeScript (strict), Node.js LTS | [0001](adr/0001-modular-monolith-typescript-nextjs.md) |
 | Web | Next.js (App Router), React, server-rendered; forms work without JavaScript | [0001](adr/0001-modular-monolith-typescript-nextjs.md) |
-| Hosting | Render, Frankfurt: web service, worker, managed Postgres (**needs approval**) | [0002](adr/0002-eu-hosting-render-frankfurt.md) |
+| Hosting | Render, Frankfurt: web service, worker, managed Postgres | [0002](adr/0002-eu-hosting-render-frankfurt.md) |
 | Database | PostgreSQL 16+, Drizzle ORM, SQL migrations in the repo | [0003](adr/0003-postgres-only-data-store.md) |
 | Jobs | graphile-worker (queue in Postgres), outbox table for every message | [0003](adr/0003-postgres-only-data-store.md) |
 | Tenant isolation | `organisation_id` on every row, plus Postgres row-level security | [0004](adr/0004-tenant-isolation-row-level-security.md) |
@@ -64,8 +64,8 @@ The web framework, the email provider and the AI provider can each be swapped wi
 | Record | Append-only event log with no personal data | [0006](adr/0006-event-log-without-personal-data.md) |
 | Decisions | Renter-affecting changes need a person's decision record | [0007](adr/0007-people-decide.md) |
 | Ranking | Deterministic code with reasons in words; no AI | [0008](adr/0008-deterministic-ranking.md) |
-| AI | Claude, drafting answers from letting facts only, processed in the EU (**needs approval**) | [0009](adr/0009-ai-drafting-with-claude-in-the-eu.md) |
-| Email and SMS | Behind adapters; dev outbox until a provider is approved (**needs approval**) | [0010](adr/0010-messaging-adapters-and-outbox.md) |
+| AI | Claude on Amazon Bedrock (EU routing), drafting answers from letting facts only | [0009](adr/0009-ai-drafting-with-claude-in-the-eu.md) |
+| Email and SMS | Mailgun EU and Sinch EU, behind adapters; dev outbox and fakes locally | [0010](adr/0010-messaging-adapters-and-outbox.md) |
 | Styling | Design tokens to CSS variables; CSS Modules; lint blocks raw values | [0011](adr/0011-design-tokens-drive-styling.md) |
 | Validation and dates | Zod for every input; date-fns with Europe/Dublin | [0001](adr/0001-modular-monolith-typescript-nextjs.md) |
 | Testing | Vitest, real Postgres, Playwright with axe, compliance suite, AI evals | [0012](adr/0012-testing-and-ci.md) |
@@ -243,17 +243,16 @@ Each requirement is built rule, then code, then screen, and shown to you when it
 | 18 | R28: dashboard | Dashboard |
 | 19 | R27, part 2: read-only landlord link | Landlord timeline |
 
-The alternative order in Q14 moves the enquiry loop (steps 6 to 10) up to second place, if Slice 0 should run on this code.
 
-## Services that need your approval
+## Services and providers
 
-Each of these stores or processes personal data. Nothing is signed up for or added without your yes. Until then, local stand-ins are used.
+Chosen by the CTO on 31 October 2026. Each stores or processes personal data, so each needs an account, a signed DPA and the checks below before launch. Until then, local stand-ins are used.
 
-| Need | Proposal | Why | Check before signing |
+| Need | Choice | Why | Check before launch |
 | --- | --- | --- | --- |
-| Hosting and database | Render, Frankfurt | Simplest managed setup with an EU region: web, worker, Postgres with point-in-time recovery on paid plans | DPA and sub-processors; that backups stay in the EU; encryption at rest |
-| AI | Claude on Amazon Bedrock, EU geographic routing | Keeps prompts and outputs in EU regions; Anthropic's own API currently offers global or US-only processing | That the chosen model is offered in the EU profile; Bedrock's DPA; prompt logging off |
-| Email in and out | Mailgun, EU region, or Amazon SES in Ireland | Both receive and send with EU data storage; Postmark reportedly stores data in the US only | DPA; EU storage of message logs; inbound webhook signing |
-| SMS | Bird or Twilio (to compare) | Viewing reminders (R13) | EU data handling; Irish sender ID rules; price |
-| Operator sign-in | Better Auth (a library, not a service) | Accounts stay in our database; no third-party identity provider | None: it's open source and runs inside Gaff |
+| Hosting and database | Render, Frankfurt | Simplest managed setup with an EU region: web, worker, Postgres with point-in-time recovery on paid plans | DPA and sub-processors; backups stay in the EU; encryption at rest |
+| AI | Claude on Amazon Bedrock, EU geographic routing | Keeps prompts and outputs in EU regions; Anthropic's own API currently offers global or US-only processing | The model is offered in the EU profile; Bedrock DPA; invocation logging off |
+| Email in and out | Mailgun, EU region | Receives, sends and stores message data in the EU; simple signed inbound webhooks | DPA; EU region on the account; DKIM and SPF on our domains |
+| SMS | Sinch, EU region | EU company (it owns Mailgun), EU API region | DPA; Irish sender ID rules; price |
+| Operator sign-in | Better Auth (a library, not a service) | Accounts stay in our database; no third-party identity provider | None: open source, runs inside Gaff |
 | CI | GitHub Actions | Already where the repo lives | Synthetic data only, so no personal data |

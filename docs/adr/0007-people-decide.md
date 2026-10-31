@@ -1,6 +1,6 @@
 # ADR-0007: People decide: renter-affecting changes need a decision record
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-31
 
 ## Context

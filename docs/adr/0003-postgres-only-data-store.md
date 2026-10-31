@@ -1,6 +1,6 @@
 # ADR-0003: Postgres is the only data store
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-31
 
 ## Context

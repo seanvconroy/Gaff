@@ -1,6 +1,6 @@
 # ADR-0008: Ranking is deterministic code, not AI
 
-- Status: Proposed (ordering details wait on open questions Q9 and Q10)
+- Status: Accepted
 - Date: 2026-10-31
 
 ## Context

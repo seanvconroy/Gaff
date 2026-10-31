@@ -1,0 +1,85 @@
+# Render Blueprint (ADR-0002): web, worker and Postgres, all in Frankfurt (EU).
+# Check plan names and fields against Render's dashboard on first deploy.
+databases:
+  - name: gaff-db
+    region: frankfurt
+    plan: basic-1gb # a paid plan, so point-in-time recovery is on
+    postgresMajorVersion: '16'
+    databaseName: gaff
+    user: gaff
+    ipAllowList: [] # private network only
+
+services:
+  - type: web
+    name: gaff-web
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    healthCheckPath: /api/health
+    preDeployCommand: pnpm db:migrate
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gaff-db
+          property: connectionString
+      - fromGroup: gaff
+
+  - type: worker
+    name: gaff-worker
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    dockerCommand: pnpm worker
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gaff-db
+          property: connectionString
+      - fromGroup: gaff
+
+envVarGroups:
+  - name: gaff
+    envVars:
+      - key: GAFF_ENV
+        value: production
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: DEV_TOOLS
+        value: '0'
+      - key: EMAIL_PROVIDER
+        value: mailgun
+      - key: SMS_PROVIDER
+        value: sinch
+      - key: AI_PROVIDER
+        value: bedrock
+      - key: AWS_REGION
+        value: eu-west-1
+      - key: BEDROCK_MODEL_ID
+        value: anthropic.claude-opus-5-5
+      - key: RETENTION_PERSONAL_DAYS
+        value: '30'
+      - key: RETENTION_RECORD_MONTHS
+        value: '12'
+      # Set these in the dashboard: never commit secrets.
+      - key: APP_URL
+        sync: false
+      - key: INBOUND_DOMAIN
+        sync: false
+      - key: MAIL_FROM_DOMAIN
+        sync: false
+      - key: MAILGUN_API_KEY
+        sync: false
+      - key: MAILGUN_DOMAIN
+        sync: false
+      - key: MAILGUN_WEBHOOK_SIGNING_KEY
+        sync: false
+      - key: SINCH_SERVICE_PLAN_ID
+        sync: false
+      - key: SINCH_API_TOKEN
+        sync: false
+      - key: SINCH_FROM
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false

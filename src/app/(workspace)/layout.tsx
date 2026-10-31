@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { requireMember } from '@/server/auth/member';
 import { Wordmark } from '@/ui/Layout';
 import { signOut } from './actions';
+import { ActivityTracker } from './ActivityTracker';
 import styles from './workspace.module.css';
 
 export const dynamic = 'force-dynamic';
@@ -39,6 +40,7 @@ export default async function WorkspaceLayout({ children }: { children: ReactNod
       <main id="main" className={styles.main}>
         {children}
       </main>
+      <ActivityTracker />
     </div>
   );
 }

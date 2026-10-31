@@ -3,6 +3,7 @@ import {
   formatDate,
   formatDateTime,
   formatEuro,
+  formatMinutes,
   formatRent,
   formatShortDate,
   formatTime,
@@ -56,5 +57,14 @@ describe('Irish formats (design system voice)', () => {
   it('turns an Irish wall-clock time into the right instant, either side of the clock change', () => {
     expect(irishInstant('2026-10-24', '18:00').toISOString()).toBe('2026-10-24T17:00:00.000Z');
     expect(irishInstant('2026-10-26', '18:00').toISOString()).toBe('2026-10-26T18:00:00.000Z');
+  });
+
+  it('writes lengths of time in plain words', () => {
+    expect(formatMinutes(0)).toBe('0 minutes');
+    expect(formatMinutes(1)).toBe('1 minute');
+    expect(formatMinutes(45)).toBe('45 minutes');
+    expect(formatMinutes(60)).toBe('1 hour');
+    expect(formatMinutes(61)).toBe('1 hour 1 minute');
+    expect(formatMinutes(390)).toBe('6 hours 30 minutes');
   });
 });

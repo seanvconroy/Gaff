@@ -102,6 +102,11 @@ export const eventCatalogue = {
     offered: z.number().int(),
   }),
   /** R11: a person decided who views (an 'invite_to_view' decision with the ranking used). */
+  /** R28, Q15: the usual time a letting takes this operator, to compare with. */
+  'settings.usual_times': z.object({
+    minutesPerLetting: z.number().int().nullable(),
+    daysToLet: z.number().int().nullable(),
+  }),
   'shortlist.decided': z.object({
     decisionId: z.uuid(),
     invited: z.number().int(),

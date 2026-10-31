@@ -4,3 +4,4 @@ export * from './enquiries';
 export * from './lettings';
 export * from './organisations';
 export * from './record';
+export * from './activity';

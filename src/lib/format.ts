@@ -101,3 +101,14 @@ export function irishInstant(date: string, time: string): Date {
   const [hours, minutes] = time.split(':').map(Number) as [number, number];
   return new Date(new TZDate(year, month - 1, day, hours, minutes, TIME_ZONE).getTime());
 }
+
+/** "45 minutes", "1 hour", "6 hours 30 minutes" (design system: plain words). */
+export function formatMinutes(total: number): string {
+  const minutes = Math.max(0, Math.round(total));
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  const h = hours === 1 ? '1 hour' : `${hours} hours`;
+  const m = rest === 1 ? '1 minute' : `${rest} minutes`;
+  if (hours === 0) return m;
+  return rest === 0 ? h : `${h} ${m}`;
+}

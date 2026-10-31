@@ -6,9 +6,9 @@ import { env } from '@/lib/env';
 import { requireMember } from '@/server/auth/member';
 import { Card, PageHeader, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
-import { ChoiceGroup } from '@/ui/Field';
+import { ChoiceGroup, TextField } from '@/ui/Field';
 import { SubmitButton } from '@/ui/SubmitButton';
-import { approveBeforeSendAction } from './actions';
+import { approveBeforeSendAction, usualTimesAction } from './actions';
 import styles from './settings.module.css';
 
 export const metadata: Metadata = { title: 'Settings' };
@@ -35,8 +35,12 @@ export default async function SettingsPage({
         </Notice>
       ) : null}
       {problem ? (
-        <Notice tone="danger" role="alert">
-          <p>Only an admin can change that.</p>
+        <Notice tone="warning" role="alert">
+          <p>
+            {problem === 'usual'
+              ? 'Enter the hours and days as numbers, like 6.5 and 30, or leave them blank.'
+              : 'Only an admin can change that.'}
+          </p>
         </Notice>
       ) : null}
 
@@ -67,6 +71,55 @@ export default async function SettingsPage({
             </div>
           </Stack>
         </form>
+      </Card>
+
+      <Card labelledBy="usual-heading">
+        <h2 id="usual-heading" className="type-title">
+          Your usual times
+        </h2>
+        <p>
+          How long a letting took you before Gaff, from your pilot interview. Your lettings page
+          compares your time in Gaff with these.
+        </p>
+        <form action={usualTimesAction}>
+          <Stack gap={4}>
+            <div className={styles.narrow}>
+              <TextField
+                name="hoursPerLetting"
+                label="Hours of your time a letting usually takes"
+                inputMode="decimal"
+                optional
+                defaultValue={
+                  organisation!.baselineMinutesPerLetting === null
+                    ? ''
+                    : String(Math.round((organisation!.baselineMinutesPerLetting / 60) * 10) / 10)
+                }
+              />
+            </div>
+            <div className={styles.narrow}>
+              <TextField
+                name="daysToLet"
+                label="Days from advert to signed tenancy, usually"
+                inputMode="numeric"
+                optional
+                defaultValue={
+                  organisation!.baselineDaysToLet === null
+                    ? ''
+                    : String(organisation!.baselineDaysToLet)
+                }
+              />
+            </div>
+            <div>
+              <SubmitButton variant="secondary" pendingLabel="Saving…">
+                Save usual times
+              </SubmitButton>
+            </div>
+          </Stack>
+        </form>
+        <p className={styles.hint}>
+          Gaff counts a minute of your time only while you’re using it, and shows totals for each
+          letting, never for each person.
+        </p>
       </Card>
 
       <Card labelledBy="address-heading">

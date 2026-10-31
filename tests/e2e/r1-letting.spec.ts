@@ -67,7 +67,7 @@ test('R1: an operator creates a letting with viewing times', async ({ page }) =>
   await screenshot(page, '08-letting-overview');
 
   await page.getByRole('link', { name: 'Lettings' }).click();
-  await expect(page.getByRole('link', { name: '12 Ranelagh Road' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '12 Ranelagh Road', exact: true })).toBeVisible();
   await expectAccessible(page);
   await screenshot(page, '09-dashboard-with-letting');
 });

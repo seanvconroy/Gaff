@@ -124,7 +124,7 @@ The pre-viewing page asks only the questions for criteria the operator has set. 
 
 **Proposal:** Gaff counts active minutes per letting while an operator is using Gaff, stopping after 2 idle minutes. It compares that with each pilot's baseline hours and days, which Gaff staff enter from the pilot interviews. Operators are told that their time in Gaff is measured.
 
-**Decision:** Adopted (CTO, 31 October 2026).
+**Decision:** Adopted (CTO, 31 October 2026). The organisation's admin enters the baselines in Settings ("Your usual times"), with Gaff staff during the pilot interview, so no staff back office is needed. Minutes are shown as totals per letting, never per person.
 
 ### Q16. Sending address and domain (R7)
 

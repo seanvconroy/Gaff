@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { stageLabels } from '@/domain/lettings/stages';
-import { formatDate, formatRent } from '@/lib/format';
+import { stageLabels, stageNumber } from '@/domain/lettings/stages';
+import type { TodayItem } from '@/domain/dashboard/today';
+import { formatDate, formatMinutes, formatRent } from '@/lib/format';
 import { requireMember } from '@/server/auth/member';
-import { listLettings } from '@/server/lettings/queries';
-import { countNeedsAttention } from '@/server/enquiries/queries';
-import { Notice } from '@/ui/Notice';
+import { dashboardFor } from '@/server/dashboard/dashboard';
 import { ButtonLink } from '@/ui/Button';
 import { Card, PageHeader, Stack } from '@/ui/Layout';
 import { StatusPill } from '@/ui/StatusPill';
@@ -13,12 +12,46 @@ import styles from './dashboard.module.css';
 
 export const metadata: Metadata = { title: 'Lettings' };
 
+const people = (n: number) => (n === 1 ? '1 person' : `${n} people`);
+const daysAgo = (n: number) => (n === 0 ? 'today' : n === 1 ? 'yesterday' : `${n} days ago`);
+
+/** R28: one line per thing that needs a person, linking to where it's done. */
+function todayLink(item: TodayItem): { href: string; text: string } {
+  switch (item.kind) {
+    case 'approvals':
+      return {
+        href: '/approvals',
+        text: `${item.count} ${item.count === 1 ? 'answer' : 'answers'} to approve`,
+      };
+    case 'attention':
+      return {
+        href: '/attention',
+        text: `${item.count} ${item.count === 1 ? 'email needs' : 'emails need'} your attention`,
+      };
+    case 'questions':
+      return {
+        href: '/questions',
+        text: `${item.count} ${item.count === 1 ? 'question' : 'questions'} only you can answer`,
+      };
+    case 'attendance':
+      return {
+        href: `/lettings/${item.lettingId}/attendance`,
+        text: `${item.address}: mark who came (${people(item.count)})`,
+      };
+    case 'shortlist':
+      return {
+        href: `/lettings/${item.lettingId}/shortlist`,
+        text: `${item.address}: decide who views (${people(item.count)} waiting)`,
+      };
+    case 'setup':
+      return { href: `/lettings/${item.lettingId}`, text: `${item.address}: finish setting up` };
+  }
+}
+
+/** R28: each letting's stage, what needs a person today, and time against the usual. */
 export default async function DashboardPage() {
   const member = await requireMember();
-  const [lettings, waiting] = await Promise.all([
-    listLettings(member),
-    countNeedsAttention(member),
-  ]);
+  const { today, lettings, usualDaysToLet } = await dashboardFor(member);
   return (
     <Stack gap={8}>
       <PageHeader
@@ -30,16 +63,29 @@ export default async function DashboardPage() {
           </ButtonLink>
         }
       />
-      {waiting > 0 ? (
-        <Notice
-          tone="warning"
-          title={`${waiting} ${waiting === 1 ? 'email needs' : 'emails need'} your attention`}
-        >
-          <p>
-            Gaff couldn’t place {waiting === 1 ? 'it' : 'them'} on its own.{' '}
-            <Link href="/attention">See what needs you</Link>
-          </p>
-        </Notice>
+      {lettings.length > 0 ? (
+        <Card labelledBy="today-heading">
+          <h2 id="today-heading" className="type-title">
+            Needs you today
+          </h2>
+          {today.length === 0 ? (
+            <p>
+              Nothing needs you right now. Gaff is answering enquiries and booking viewings, and
+              it’ll list anything that needs you here.
+            </p>
+          ) : (
+            <ul className={styles.today}>
+              {today.map((item) => {
+                const { href, text } = todayLink(item);
+                return (
+                  <li key={`${item.kind}:${'lettingId' in item ? item.lettingId : ''}`}>
+                    <Link href={href}>{text}</Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
       ) : null}
       {lettings.length === 0 ? (
         <Card>
@@ -61,14 +107,29 @@ export default async function DashboardPage() {
                   {letting.area} · {formatRent(letting.monthlyRentCents)} · Available from{' '}
                   {formatDate(letting.availableFrom)}
                 </span>
+                <span className={styles.meta}>
+                  Your time in Gaff: {formatMinutes(letting.time.minutes)}
+                  {letting.time.usual !== null
+                    ? ` · usually ${formatMinutes(letting.time.usual)} a letting`
+                    : ''}
+                  {letting.daysSinceFirstEnquiry !== null
+                    ? ` · first enquiry ${daysAgo(letting.daysSinceFirstEnquiry)}${usualDaysToLet !== null ? `, usually let in ${usualDaysToLet} days` : ''}`
+                    : ''}
+                </span>
               </div>
               <StatusPill tone={letting.status === 'live' ? 'success' : 'neutral'}>
-                {stageLabels[letting.stage]}
+                Step {stageNumber(letting.stage)} of 9 · {stageLabels[letting.stage]}
               </StatusPill>
             </li>
           ))}
         </ul>
       )}
+      {lettings.length > 0 ? (
+        <p className={styles.note}>
+          Gaff counts a minute of your time only while you’re using it, to show the time it saves
+          you. <Link href="/settings">Set your usual times</Link>.
+        </p>
+      ) : null}
     </Stack>
   );
 }

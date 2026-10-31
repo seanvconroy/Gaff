@@ -62,7 +62,7 @@ test('R9: a renter answers the questions on their phone, with no account', async
 
   // The operator sees the answers have arrived.
   await page.goto('/');
-  await page.getByRole('link', { name: '12 Ranelagh Road' }).click();
+  await page.getByRole('link', { name: '12 Ranelagh Road', exact: true }).click();
   await page.getByRole('link', { name: 'Enquiries' }).click();
   await expect(page.getByText('Answered')).toBeVisible();
 });

@@ -1,0 +1,12 @@
+pnpm-lock.yaml
+.next/
+node_modules/
+drizzle/
+playwright-report/
+test-results/
+public/
+# Product documents are kept exactly as supplied.
+docs/
+# Generated from docs/design-tokens.json by `pnpm tokens`.
+src/styles/tokens.css
+src/styles/tokens.ts

@@ -1,0 +1,71 @@
+{
+  "name": "gaff",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "worker": "tsx src/jobs/worker.ts",
+    "tokens": "tsx scripts/build-tokens.ts",
+    "tokens:check": "tsx scripts/build-tokens.ts --check",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings=0 && stylelint \"src/**/*.css\" && prettier --check .",
+    "format": "prettier --write . && stylelint \"src/**/*.css\" --fix",
+    "test": "vitest run --project unit",
+    "test:int": "vitest run --project integration",
+    "test:e2e": "playwright test",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:seed": "tsx src/db/seed.ts",
+    "check": "pnpm tokens:check && pnpm typecheck && pnpm lint && pnpm test && pnpm test:int && pnpm build"
+  },
+  "dependencies": {
+    "@date-fns/tz": "1.5.0",
+    "better-auth": "1.7.14",
+    "date-fns": "4.4.0",
+    "drizzle-orm": "0.45.4",
+    "graphile-worker": "0.18.0",
+    "lucide-react": "1.66.0",
+    "next": "16.4.3",
+    "pg": "8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "tsx": "4.23.15",
+    "zod": "4.6.7"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ]
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@eslint/js": "^9.39.5",
+    "@fontsource-variable/dm-sans": "5.3.0",
+    "@fontsource-variable/fraunces": "5.3.0",
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.20.5",
+    "@types/pg": "8.23.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "drizzle-kit": "0.31.11",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.3",
+    "prettier": "3.9.10",
+    "stylelint": "17.16.0",
+    "stylelint-config-css-modules": "4.6.0",
+    "stylelint-config-standard": "40.0.0",
+    "stylelint-declaration-strict-value": "1.12.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vitest": "5.0.5"
+  }
+}

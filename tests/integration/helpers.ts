@@ -98,3 +98,50 @@ export async function deliverEmail(
   );
   return processInboundEmail({ organisationId: member.organisationId, inboundEmailId: stored!.id });
 }
+
+/** The private link token in a renter's first reply, as they'd click it. */
+export async function renterTokenFor(member: Member, applicationId: string): Promise<string> {
+  const { and, eq } = await import('drizzle-orm');
+  const { messages } = await import('@/db/schema');
+  const { withOrg } = await import('@/db/client');
+  const [reply] = await withOrg(member.organisationId, (tx) =>
+    tx
+      .select({ body: messages.body })
+      .from(messages)
+      .where(and(eq(messages.applicationId, applicationId), eq(messages.kind, 'first_reply'))),
+  );
+  return /\/r\/([A-Za-z0-9_-]{43})/.exec(reply!.body)![1]!;
+}
+
+/** A new renter enquires (unique email and phone) and, optionally, answers the questions. */
+export async function aRenterEnquires(
+  member: Member,
+  n: number,
+  answers?: Record<string, string>,
+): Promise<string> {
+  const { daftEnquiry } = await import('../fixtures/emails');
+  const { saveRenterAnswers } = await import('@/server/renter/answers');
+  const email = `renter${n}.${crypto.randomUUID().slice(0, 6)}@example.ie`;
+  const phone = `087 ${String(1000000 + n * 7919).slice(0, 3)} ${String(1000 + n).slice(-4)}`;
+  const outcome = await deliverEmail(member, {
+    ...daftEnquiry,
+    replyTo: `Renter ${n} <${email}>`,
+    text: daftEnquiry.text
+      .replace('Aoife Byrne', `Renter ${n}`)
+      .replace('aoife.byrne@example.ie', email)
+      .replace('087 123 4567', phone)
+      .replace(
+        'Hi, is the apartment still available? Is there parking?',
+        'I would love to view it.',
+      ),
+  });
+  if (outcome.kind !== 'enquiry') throw new Error(`expected a new enquiry, got ${outcome.kind}`);
+  if (answers) {
+    const result = await saveRenterAnswers(
+      await renterTokenFor(member, outcome.applicationId),
+      answers,
+    );
+    if (!result?.ok) throw new Error(`answers not saved: ${JSON.stringify(result)}`);
+  }
+  return outcome.applicationId;
+}

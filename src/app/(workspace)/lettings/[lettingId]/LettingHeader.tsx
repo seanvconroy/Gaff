@@ -8,6 +8,7 @@ import styles from './letting.module.css';
 const tabs = [
   { key: 'overview', label: 'Overview', path: '' },
   { key: 'enquiries', label: 'Enquiries', path: '/enquiries' },
+  { key: 'shortlist', label: 'Shortlist', path: '/shortlist' },
   { key: 'timeline', label: 'Timeline', path: '/timeline' },
 ] as const;
 

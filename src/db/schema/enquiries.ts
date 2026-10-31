@@ -13,6 +13,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
+import type { RenterAnswers } from '@/domain/criteria/answers';
 import { users } from './auth';
 import { createdAt, tenantPolicy, updatedAt } from './columns';
 import { lettingFacts, lettings } from './lettings';
@@ -71,13 +72,7 @@ export const applicationStatus = pgEnum('application_status', [
   'withdrawn',
 ]);
 
-/** Answers to the pre-viewing questions (R9): only those the criteria need. */
-export interface RenterAnswers {
-  moveInDate?: string;
-  stayMonths?: number;
-  occupants?: number;
-  hasPets?: boolean;
-}
+export type { RenterAnswers };
 
 /**
  * A renter's application to one letting, from their first enquiry (PRD data model). The

@@ -122,3 +122,28 @@ test('R3: an operator checks the rent, and Gaff catches a rent over the cap', as
   await expect(page.getByText('The rent is more than the cap allows')).toHaveCount(0);
   await expect(page.getByText('€1,720 a month').first()).toBeVisible();
 });
+
+test('R4: an operator records three comparable rents', async ({ page }) => {
+  await signUpOperator(page);
+  await createLettingThroughUi(page);
+  await page.goto(page.url().replace(/\/viewings.*$/, '/comparables'));
+  await expect(page.getByRole('heading', { name: 'Comparable rents', level: 1 })).toBeVisible();
+  for (const [n, rent, type] of [
+    [1, '1,800', 'apartment'],
+    [2, '1,950', 'apartment'],
+    [3, '2,100', 'house'],
+  ] as const) {
+    const section = page.getByRole('region', { name: `Comparable ${n}` });
+    await section.getByLabel('Area').fill('Dublin 6');
+    await section.getByLabel('Type of home').selectOption(type);
+    await section.getByLabel('Bedrooms').fill('2');
+    await section.getByLabel('Rent a month').fill(rent);
+  }
+  await expectAccessible(page);
+  await screenshot(page, '14-comparables');
+  await page.getByRole('button', { name: 'Save comparables' }).click();
+  await expect(page.getByText('Comparables saved for the rent-setting pack.')).toBeVisible();
+  await expect(page.getByText('The middle rent is €1,950 a month.')).toBeVisible();
+  await expect(page.getByText('Comparable 3 is a different type of home (house).')).toBeVisible();
+  await expectAccessible(page);
+});

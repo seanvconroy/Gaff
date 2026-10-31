@@ -162,3 +162,26 @@ export const rentChecks = pgTable(
   },
   () => [tenantPolicy()],
 ).enableRLS();
+
+/** R4: three comparable rents from the RTB Rent Register (area only, not addresses). */
+export const rentComparables = pgTable(
+  'rent_comparables',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organisationId: organisationId(),
+    lettingId: uuid()
+      .notNull()
+      .references(() => lettings.id),
+    position: integer().notNull(),
+    area: text().notNull(),
+    propertyType: text().notNull(),
+    bedrooms: integer().notNull(),
+    monthlyRentCents: integer().notNull(),
+    registeredOn: date({ mode: 'string' }),
+    addedBy: text()
+      .notNull()
+      .references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [index('rent_comparables_letting_idx').on(t.lettingId, t.position), tenantPolicy()],
+).enableRLS();

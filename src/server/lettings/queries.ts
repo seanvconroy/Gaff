@@ -5,6 +5,7 @@ import {
   lettingFacts,
   lettings,
   rentChecks,
+  rentComparables,
   viewingSessions,
   viewingSlots,
 } from '@/db/schema';
@@ -61,12 +62,17 @@ export async function getLetting(member: Member, lettingId: string) {
       .from(rentChecks)
       .where(eq(rentChecks.lettingId, lettingId));
     const rentProblem = rentCheckProblem(rentCheck ?? null, letting.monthlyRentCents);
+    const comparables = await tx
+      .select()
+      .from(rentComparables)
+      .where(eq(rentComparables.lettingId, lettingId))
+      .orderBy(asc(rentComparables.position));
 
     const setup: SetupState = {
       viewingSlots: slotTotals?.slots ?? 0,
       criteriaSet: letting.criteriaSetAt !== null,
       rentCheckDone: Boolean(rentCheck) && rentProblem === null,
-      comparables: 0,
+      comparables: comparables.length,
     };
     return {
       letting,
@@ -76,6 +82,7 @@ export async function getLetting(member: Member, lettingId: string) {
       places: Number(slotTotals?.places ?? 0),
       rentCheck: rentCheck ?? null,
       rentProblem,
+      comparables,
       setup,
     };
   });

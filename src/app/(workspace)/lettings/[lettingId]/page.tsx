@@ -8,7 +8,8 @@ import {
   type propertyTypes,
 } from '@/domain/lettings/new-letting';
 import { nextSetupStep, setupChecklist, type SetupStep } from '@/domain/lettings/setup';
-import { formatDateTime } from '@/lib/format';
+import { comparableWarnings, medianRentCents } from '@/domain/rent/comparables';
+import { formatDateTime, formatRent } from '@/lib/format';
 import { ButtonLink } from '@/ui/Button';
 import { Card, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
@@ -49,12 +50,14 @@ const stepCopy: Record<SetupStep, { title: string; todo: string; action: string;
       title: 'Three comparable rents',
       todo: 'From the RTB Rent Register, for the rent-setting pack. You can add these later.',
       action: 'Add comparables',
+      path: 'comparables',
     },
   };
 
 const savedCopy: Record<string, string> = {
   criteria: 'Criteria saved. Gaff will ask renters only what these need.',
   'rent-check': 'Rent check saved. It goes in the rent-setting pack.',
+  comparables: 'Comparables saved for the rent-setting pack.',
 };
 
 export default async function LettingPage({
@@ -64,7 +67,7 @@ export default async function LettingPage({
   params: Promise<{ lettingId: string }>;
   searchParams: Promise<{ saved?: string }>;
 }) {
-  const { letting, facts, sessions, places, setup, rentCheck, rentProblem } =
+  const { letting, facts, sessions, places, setup, rentCheck, rentProblem, comparables } =
     await loadLetting(params);
   const { saved } = await searchParams;
   const checklist = setupChecklist(setup);
@@ -200,6 +203,35 @@ export default async function LettingPage({
             )}
             <div>
               <ButtonLink href={`/lettings/${letting.id}/criteria`}>Change criteria</ButtonLink>
+            </div>
+          </Card>
+        ) : null}
+
+        {comparables.length > 0 ? (
+          <Card labelledBy="comparables-heading">
+            <h2 id="comparables-heading" className="type-title">
+              Comparable rents
+            </h2>
+            <ul className={styles.factList}>
+              {comparables.map((c) => (
+                <li key={c.id}>
+                  {c.area}: {c.bedrooms}-bed {c.propertyType}, {formatRent(c.monthlyRentCents)}
+                </li>
+              ))}
+            </ul>
+            <p>
+              The middle rent is {formatRent(medianRentCents(comparables))}. You’re asking{' '}
+              {formatRent(letting.monthlyRentCents)}.
+            </p>
+            {comparableWarnings(letting, comparables).map((warning) => (
+              <Notice key={warning} tone="warning">
+                <p>{warning} Comparables should be similar homes in the same area.</p>
+              </Notice>
+            ))}
+            <div>
+              <ButtonLink href={`/lettings/${letting.id}/comparables`}>
+                Change comparables
+              </ButtonLink>
             </div>
           </Card>
         ) : null}

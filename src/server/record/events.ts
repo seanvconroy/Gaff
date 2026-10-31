@@ -34,6 +34,10 @@ export const eventCatalogue = {
     previousRentSetOn: z.iso.date().optional(),
   }),
   'letting.rent_changed': z.object({ fromCents: z.number().int(), toCents: z.number().int() }),
+  'comparables.recorded': z.object({
+    count: z.number().int(),
+    medianRentCents: z.number().int(),
+  }),
   /** The full criteria are kept, so the record shows what everyone was ranked against. */
   'criteria.set': z.object({
     moveInBy: z.iso.date().optional(),

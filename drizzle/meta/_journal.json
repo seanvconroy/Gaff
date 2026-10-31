@@ -36,6 +36,13 @@
       "when": 1793468719964,
       "tag": "0004_r3_rent_check",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793468968383,
+      "tag": "0005_r4_comparables",
+      "breakpoints": true
     }
   ]
 }

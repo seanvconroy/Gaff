@@ -59,7 +59,7 @@ export async function draftAnswersFor(input: { organisationId: string; messageId
       .innerJoin(lettings, eq(lettings.id, messages.lettingId))
       .innerJoin(organisations, eq(organisations.id, messages.organisationId))
       .where(and(eq(messages.id, input.messageId), eq(messages.direction, 'inbound')));
-    if (!row || row.letting.status !== 'live') return null;
+    if (!row || row.letting.status === 'draft') return null;
     const [done] = await tx
       .select({ id: aiDrafts.id })
       .from(aiDrafts)
@@ -74,6 +74,20 @@ export async function draftAnswersFor(input: { organisationId: string; messageId
   });
   if (!context) return;
   const { message, application, organisation, facts } = context;
+
+  // Once the letting is closed, the AI answers nothing more: a person reads it (R26, rule 6).
+  if (context.letting.status !== 'live') {
+    await withOrg(input.organisationId, (tx) =>
+      saveOutcome(
+        tx,
+        context,
+        [],
+        [{ question: message.body.slice(0, 1000), reason: 'letting_closed' }],
+        null,
+      ),
+    );
+    return;
+  }
 
   // A request for a person goes straight to a person.
   if (asksForAPerson(message.body)) {

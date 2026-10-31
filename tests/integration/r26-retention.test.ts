@@ -17,7 +17,16 @@ import { sweepPersonalData } from '@/server/retention/sweep';
 import { inviteToView } from '@/server/shortlist/invite';
 import { bookViewing } from '@/server/viewings/booking';
 import { loadRenterPage } from '@/server/renter/answers';
-import { aLiveLetting, aRenterEnquires, createTestMember, tokenInMessage } from './helpers';
+import {
+  aLiveLetting,
+  aRenterEnquires,
+  createTestMember,
+  deliverEmail,
+  tokenInMessage,
+} from './helpers';
+import { draftAnswersFor } from '@/server/answers/draft';
+import { operatorQuestions, organisations } from '@/db/schema';
+import { db } from '@/db/client';
 
 const day = 86_400_000;
 
@@ -152,5 +161,62 @@ describe('R26 (basic): the retention job', () => {
     expect(swept.applications).toBeGreaterThanOrEqual(0);
     const [person] = (await read(member, lettingId)).people;
     expect(person!.personalDataDeletedAt).toBeNull();
+  });
+});
+
+/** A renter replies in their thread, at <slug>+<ref>@, as their email app would. */
+async function replyFrom(
+  member: Awaited<ReturnType<typeof createTestMember>>,
+  applicationId: string,
+  text: string,
+) {
+  const [org] = await db()
+    .select({ slug: organisations.inboundSlug })
+    .from(organisations)
+    .where(eq(organisations.id, member.organisationId));
+  const [person] = await withOrg(member.organisationId, (tx) =>
+    tx
+      .select({ ref: applications.ref })
+      .from(applications)
+      .where(eq(applications.id, applicationId)),
+  );
+  return deliverEmail(
+    member,
+    { from: 'someone@example.ie', subject: 'Re: 12 Ranelagh Road', text },
+    `${org!.slug}+${person!.ref}@in.gaff.test`,
+  );
+}
+
+describe('R26 (basic): after closing and after deletion', () => {
+  it('passes a renter’s message on a closed letting to a person, not the AI', async () => {
+    const { member, lettingId, other } = await aClosedLetting();
+    await closeLetting(member, lettingId, 'let');
+    const reply = await replyFrom(member, other, 'Is it still available? Can I talk to someone?');
+    expect(reply).toMatchObject({ kind: 'reply' });
+    await draftAnswersFor({
+      organisationId: member.organisationId,
+      messageId: (reply as { messageId: string }).messageId,
+    });
+    const questions = await withOrg(member.organisationId, (tx) =>
+      tx.select().from(operatorQuestions).where(eq(operatorQuestions.applicationId, other)),
+    );
+    expect(questions.map((q) => q.reason)).toEqual(['letting_closed']);
+    const answers = (await read(member, lettingId)).sent.filter((m) => m.kind === 'answer');
+    expect(answers).toEqual([]);
+  });
+
+  it('never re-attaches a reply to someone whose details were deleted', async () => {
+    const { member, lettingId, other } = await aClosedLetting();
+    const { deleteAfter } = await closeLetting(member, lettingId, 'withdrawn');
+    await sweepPersonalData(new Date(`${deleteAfter}T12:00:00Z`), member.organisationId);
+    const reply = await replyFrom(member, other, 'Hi again, my new number is 087 000 0000');
+    expect(reply).toEqual({ kind: 'needs_attention' });
+    const [person] = (await read(member, lettingId)).people.filter((p) => p.id === other);
+    expect(person).toMatchObject({ fullName: 'Deleted', phone: null });
+    const setAside = await withOrg(member.organisationId, (tx) =>
+      tx.select().from(inboundEmails).where(eq(inboundEmails.problem, 'details_deleted')),
+    );
+    expect(setAside).toHaveLength(1);
+    expect(setAside[0]!.applicationId).toBeNull();
   });
 });

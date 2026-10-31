@@ -42,6 +42,7 @@ export const eventCatalogue = {
       'no_contact_email',
       'no_matching_letting',
       'unknown_thread',
+      'details_deleted',
     ]),
   }),
   'email.dismissed': z.object({ inboundEmailId: z.uuid() }),

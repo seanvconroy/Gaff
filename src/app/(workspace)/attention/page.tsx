@@ -16,6 +16,8 @@ const problems: Record<string, string> = {
     'This didn’t come from Daft or MyHome. It might be a forwarding confirmation: the code is in the email below.',
   no_contact_email: 'This came from a portal, but there’s no way to reach the person in it.',
   no_matching_letting: 'Gaff couldn’t tell which home this enquiry is about.',
+  details_deleted:
+    'A reply from someone whose details Gaff has already deleted, so it isn’t attached to them. Reply from your own email if you need to. Gaff clears this email 30 days after it arrived.',
   unknown_thread: 'This is a reply, but Gaff couldn’t find the conversation it belongs to.',
 };
 

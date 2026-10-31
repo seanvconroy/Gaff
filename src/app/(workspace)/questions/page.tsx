@@ -13,6 +13,7 @@ export const metadata: Metadata = { title: 'Questions' };
 
 const reasons: Record<string, string> = {
   asked_for_person: 'They asked to talk to a person.',
+  letting_closed: 'They wrote after you closed this letting, so the AI didn’t answer.',
   no_facts: 'Gaff doesn’t have this in the home’s facts.',
   unknown_facts: 'The AI’s answer didn’t match the facts, so Gaff held it back.',
   protected_ground:

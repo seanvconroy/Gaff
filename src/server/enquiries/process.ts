@@ -17,7 +17,12 @@ export type ProcessOutcome =
   | { kind: 'needs_attention' }
   | { kind: 'already_processed' };
 
-type Problem = 'not_from_a_portal' | 'no_contact_email' | 'no_matching_letting' | 'unknown_thread';
+type Problem =
+  | 'not_from_a_portal'
+  | 'no_contact_email'
+  | 'no_matching_letting'
+  | 'unknown_thread'
+  | 'details_deleted';
 
 const REF_ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789';
 
@@ -72,10 +77,17 @@ export async function processInboundEmail(
     const address = parseGaffAddress(email.recipient, env().INBOUND_DOMAIN);
     if (address?.ref) {
       const [application] = await tx
-        .select({ id: applications.id, lettingId: applications.lettingId })
+        .select({
+          id: applications.id,
+          lettingId: applications.lettingId,
+          deletedAt: applications.personalDataDeletedAt,
+        })
         .from(applications)
         .where(eq(applications.ref, address.ref));
       if (!application) return setAside('unknown_thread');
+      // R26: never re-attach new details to someone whose details were deleted. A person sees
+      // it under "Needs attention", and it's cleared on the same schedule as other unplaced mail.
+      if (application.deletedAt) return setAside('details_deleted');
       const [message] = await tx
         .insert(messages)
         .values({

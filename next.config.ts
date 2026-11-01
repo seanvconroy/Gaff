@@ -30,8 +30,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   serverExternalPackages: ['graphile-worker', 'pg'],
-  // R25: inventory photos are uploaded through a server action (each under 5 MB).
-  experimental: { serverActions: { bodySizeLimit: '6mb' } },
+  // R25: inventory photos are uploaded through a server action, each under 4 MB, inside
+  // Vercel's 4.5 MB limit for a whole request (ADR-0014).
+  experimental: { serverActions: { bodySizeLimit: '4.5mb' } },
   async headers() {
     const headers = isProduction
       ? [

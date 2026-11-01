@@ -1,7 +1,11 @@
 'use client';
 
 import type { ChangeEvent, ReactNode } from 'react';
+import { MAX_PHOTO_BYTES } from '@/domain/tenancy/photos';
 import { TextField } from './Field';
+
+/** Said by the browser before upload, so a big photo never meets the server's size limit. */
+const TOO_BIG = 'That photo is too big. Try one under 4 MB.';
 
 /**
  * A photo, taken or chosen on a phone. Before upload, the browser re-draws it the right way up,
@@ -10,6 +14,13 @@ import { TextField } from './Field';
  */
 async function redraw(event: ChangeEvent<HTMLInputElement>) {
   const input = event.currentTarget;
+  await shrink(input);
+  const size = input.files?.[0]?.size ?? 0;
+  input.setCustomValidity(size > MAX_PHOTO_BYTES ? TOO_BIG : '');
+  if (size > MAX_PHOTO_BYTES) input.reportValidity();
+}
+
+async function shrink(input: HTMLInputElement) {
   const file = input.files?.[0];
   if (!file || !file.type.startsWith('image/') || typeof createImageBitmap !== 'function') return;
   try {

@@ -53,7 +53,7 @@ export const inventoryItemSchema = z.object({
     .transform((v) => (v ? v : null)),
 });
 
-export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+export { MAX_PHOTO_BYTES } from './photos';
 
 /** The real type of a photo, from its first bytes, never from what the browser claims. */
 export function photoKind(bytes: Buffer): 'image/jpeg' | 'image/png' | 'image/webp' | null {

@@ -42,7 +42,7 @@ describe('R25: the inventory', () => {
     expect(photoKind(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]))).toBe('image/png');
     expect(photoKind(Buffer.from('RIFF0000WEBPVP8 '))).toBe('image/webp');
     expect(photoKind(Buffer.from('<svg></svg>'))).toBeNull();
-    expect(MAX_PHOTO_BYTES).toBe(5 * 1024 * 1024);
+    expect(MAX_PHOTO_BYTES).toBe(4 * 1024 * 1024);
   });
 
   it('strips location and camera details from a JPEG, keeping the picture', () => {

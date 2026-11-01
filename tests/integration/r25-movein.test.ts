@@ -39,7 +39,7 @@ describe('R25: moving in', () => {
     expect(tenancy!.moveInCompletedAt).toBeInstanceOf(Date);
   });
 
-  it('keeps only real photos, under 5 MB, with location and camera details removed', async () => {
+  it('keeps only real photos, under 4 MB, with location and camera details removed', async () => {
     const member = await createTestMember();
     const { lettingId } = await aLetHome(member);
     expect(await addInventoryItem(member, lettingId, { ...item, room: '' }, null)).toMatchObject({
@@ -53,8 +53,8 @@ describe('R25: moving in', () => {
       errors: { photo: 'That isn’t a photo Gaff can use. Try a JPEG, PNG or WebP.' },
     });
     expect(
-      await addInventoryItem(member, lettingId, item, Buffer.alloc(5 * 1024 * 1024 + 1, 0xff)),
-    ).toMatchObject({ ok: false, errors: { photo: 'That photo is too big. Try one under 5 MB.' } });
+      await addInventoryItem(member, lettingId, item, Buffer.alloc(4 * 1024 * 1024 + 1, 0xff)),
+    ).toMatchObject({ ok: false, errors: { photo: 'That photo is too big. Try one under 4 MB.' } });
     expect(await addInventoryItem(member, lettingId, item, jpegWithLocation)).toEqual({ ok: true });
     const [stored] = await withOrg(member.organisationId, (tx) => tx.select().from(inventoryItems));
     expect(stored!.photoType).toBe('image/jpeg');

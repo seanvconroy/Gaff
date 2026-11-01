@@ -55,7 +55,7 @@ export type AddItemResult = { ok: true } | { ok: false; errors: Record<string, s
 
 /**
  * R25: one inventory item, with a photo if there is one. Photos are checked by their real type,
- * kept under 5 MB, and stripped of location and camera details.
+ * kept under 4 MB, and stripped of location and camera details.
  */
 export async function addInventoryItem(
   member: Member,
@@ -71,7 +71,7 @@ export async function addInventoryItem(
   let stored: { bytes: Buffer; type: string } | null = null;
   if (photo && photo.length > 0) {
     const kind = photoKind(photo);
-    if (photo.length > MAX_PHOTO_BYTES) errors.photo = 'That photo is too big. Try one under 5 MB.';
+    if (photo.length > MAX_PHOTO_BYTES) errors.photo = 'That photo is too big. Try one under 4 MB.';
     else if (!kind) errors.photo = 'That isn’t a photo Gaff can use. Try a JPEG, PNG or WebP.';
     else if (kind === 'image/jpeg') {
       const clean = stripJpegMetadata(photo);

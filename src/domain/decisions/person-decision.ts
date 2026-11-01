@@ -19,6 +19,8 @@ export const decisionKinds = [
   'choose_applicants',
   /** R20: the operator makes the offer, and may pre-approve offering it to the backup (Q20). */
   'make_offer',
+  /** R22: the operator signs the tenancy agreement for the landlord (the third decision). */
+  'sign_agreement',
   /** R26: the operator closes a letting as let or withdrawn, which ends everyone's chances. */
   'close_letting',
 ] as const;

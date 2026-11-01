@@ -7,6 +7,8 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+/** A SHA-256 fingerprint of a document (R22): it identifies text, not a person. */
+const SHA256 = /^[0-9a-f]{64}$/;
 /** Machine codes: lowercase, starting with a letter, no spaces, no @, no +. */
 const CODE = /^[a-z][a-z0-9_.:-]{0,63}$/;
 
@@ -14,7 +16,11 @@ export function isSafeEventValue(value: unknown): boolean {
   if (value === null || typeof value === 'number' || typeof value === 'boolean') return true;
   if (typeof value === 'string') {
     return (
-      UUID.test(value) || ISO_DATE.test(value) || ISO_DATE_TIME.test(value) || CODE.test(value)
+      UUID.test(value) ||
+      ISO_DATE.test(value) ||
+      ISO_DATE_TIME.test(value) ||
+      SHA256.test(value) ||
+      CODE.test(value)
     );
   }
   if (Array.isArray(value)) return value.every(isSafeEventValue);

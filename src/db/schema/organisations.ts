@@ -29,6 +29,9 @@ export const organisations = pgTable('organisations', {
   sendingDomainVerifiedAt: timestamp({ withTimezone: true }),
   /** R16, R17: take-home income at least this many tenths of the rent (25 = 2.5 times). */
   incomeRuleTenths: integer().notNull().default(25),
+  /** R23: where the deposit and first month's rent are paid: the operator's own account. */
+  paymentAccountName: text(),
+  paymentIban: text(),
   /** Pilot baselines from the interviews, for time and days saved (R28). */
   baselineMinutesPerLetting: integer(),
   baselineDaysToLet: integer(),

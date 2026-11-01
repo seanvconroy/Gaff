@@ -34,6 +34,8 @@ const messageTitles: Record<string, string> = {
   offer: 'Offer sent',
   offer_expired: 'Offer closed message sent',
   outcome: 'Outcome message sent',
+  agreement_ready: 'Agreement sent to the tenant to sign',
+  agreement_signed: 'Signed agreement sent to the tenant',
 };
 
 const rentCheckTitles: Record<string, string> = {
@@ -214,6 +216,19 @@ export function describeEvent(
       return {
         what: 'Everyone else told',
         detail: `${data.told} told; personal details deleted on ${formatDate(String(data.deleteAfter))}`,
+      };
+    case 'tenancy.created':
+      return { what: 'Tenancy set up from the accepted offer' };
+    case 'agreement.sent':
+      return { what: 'Tenancy agreement sent to sign' };
+    case 'agreement.signed_by_tenant':
+      return { what: 'The tenant signed the agreement' };
+    case 'agreement.signed':
+      return {
+        what:
+          data.mode === 'paper'
+            ? 'Agreement signed on paper by both sides'
+            : 'Agreement signed by both sides',
       };
     case 'letting.closed':
       return {

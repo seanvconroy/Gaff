@@ -11,6 +11,7 @@ const tabs = [
   { key: 'shortlist', label: 'Shortlist', path: '/shortlist' },
   { key: 'attendance', label: 'Attendance', path: '/attendance' },
   { key: 'applications', label: 'Applications', path: '/applications' },
+  { key: 'tenancy', label: 'Tenancy', path: '/tenancy' },
   { key: 'timeline', label: 'Timeline', path: '/timeline' },
 ] as const;
 

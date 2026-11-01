@@ -53,6 +53,16 @@ Last updated: 1 November 2026 (Slices 1 and 2 complete; Slice 3 next).
 | 24 | R20: offer with a deadline; backup | **Done**: a `make_offer` decision with the landlord’s approval (R19, Q22); terms are the rent, a deposit capped at one month’s rent (rule 4), a move-in date and 24 hours, 48 hours or 3 days to answer; the offer says nothing is paid through Gaff and there are no other fees; the renter accepts or declines on their phone; at the deadline the offer closes and the renter is told; if the operator pre-approved it (Q20), a declined or unanswered offer goes to the backup on the same terms; “Needs you today” prompts to make the offer or choose again |
 | 25 | R21: outcome messages | **Done**: when the offer is accepted the letting is let (stage 8), viewings still to come and other scheduled messages are cancelled, and everyone else gets a fixed-wording outcome straight away (applicants are told it went to another applicant; others that it’s let), with the date their details go; their deletion date is set then |
 
+## Slice 3 (stages 8 and 9)
+
+| # | Requirement | Status |
+| --- | --- | --- |
+| 26 | R22: tenancy agreement, signed by all parties | **Done**: the tenancy is set up from the accepted offer; Gaff’s standard agreement (draft wording for the solicitor) names the landlord, agent and PSRA licence, the home, start date, rent day, rent and capped deposit, and points to the Residential Tenancies Acts; the tenant reads and signs on their phone (typed name and consent, against a fingerprint of the exact text); the operator signs for the landlord as a `sign_agreement` decision; or both sign on paper and the operator records it (Q23); both have a printable copy |
+| 27 | R23: payment request to the operator’s own account | Next |
+| 28 | R24: rent-setting and RTB packs | To do |
+| 29 | R25: move-in checklist and inventory | To do |
+| 30 | R26: retention, in full | To do |
+
 ## Built early, before real renters
 
 | Item | What | Status |

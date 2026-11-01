@@ -224,12 +224,23 @@ export default async function RenterPage({
           />
         ) : null}
         {status === 'accepted' ? (
-          <Notice tone="success" title="You’ve accepted the offer" role="status">
-            <p>
-              {organisation.name} will send you the tenancy agreement to sign, and how to pay the
-              deposit and first month’s rent directly to them. We’ll email you when it’s ready.
-            </p>
-          </Notice>
+          <Stack gap={4}>
+            <Notice tone="success" title="You’ve accepted the offer" role="status">
+              <p>
+                {organisation.name} will send you the tenancy agreement to sign, and how to pay the
+                deposit and first month’s rent directly to them. We’ll email you when it’s ready.
+              </p>
+            </Notice>
+            {page.tenancy && page.tenancy.agreementStatus !== 'draft' ? (
+              <p>
+                <a href={`/r/${token}/agreement`}>
+                  {page.tenancy.agreementStatus === 'with_tenant'
+                    ? 'Read and sign your tenancy agreement'
+                    : 'Read your tenancy agreement'}
+                </a>
+              </p>
+            ) : null}
+          </Stack>
         ) : null}
         {status === 'declined' ? (
           <Notice

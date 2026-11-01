@@ -29,6 +29,7 @@ import { UserFacingError } from '@/server/errors';
 import { enqueue } from '@/server/jobs/enqueue';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent, type Actor } from '@/server/record/events';
+import { createTenancy } from '@/server/tenancy/tenancy';
 import { approvalState } from './approval';
 
 type Letting = typeof lettings.$inferSelect;
@@ -395,6 +396,7 @@ export async function respondToOffer(
       .update(waitlistOffers)
       .set({ status: 'closed' })
       .where(and(eq(waitlistOffers.lettingId, offer.lettingId), eq(waitlistOffers.status, 'open')));
+    await createTenancy(tx, offer);
     await recordEvent(tx, {
       organisationId: link.organisationId,
       lettingId: offer.lettingId,

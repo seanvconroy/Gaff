@@ -226,3 +226,44 @@ export async function peopleWhoApplied(
   }
   return { lettingId, ids };
 }
+
+/**
+ * Slice 3 set-up: a let home. Two applied; the first was chosen, the landlord approved by link,
+ * the offer went out and was accepted. Returns the tenant's application ID and a fresh token.
+ */
+export async function aLetHome(member: Member): Promise<{
+  lettingId: string;
+  tenantId: string;
+  otherId: string;
+  tenantToken: string;
+}> {
+  const { and, eq } = await import('drizzle-orm');
+  const { withOrg } = await import('@/db/client');
+  const { messages } = await import('@/db/schema');
+  const { chooseApplicants } = await import('@/server/applications/choose');
+  const { answerApproval, askLandlord } = await import('@/server/offers/approval');
+  const { makeOffer, respondToOffer } = await import('@/server/offers/offer');
+  const { lettingId, ids } = await peopleWhoApplied(member, [5200, 4800]);
+  await chooseApplicants(member, lettingId, { preferredId: ids[0]!, backupId: ids[1]! });
+  await askLandlord(member, lettingId);
+  const [ask] = await withOrg(member.organisationId, (tx) =>
+    tx
+      .select()
+      .from(messages)
+      .where(and(eq(messages.lettingId, lettingId), eq(messages.kind, 'landlord_approval'))),
+  );
+  await answerApproval(/\/approve\/([A-Za-z0-9_-]{43})/.exec(ask!.body)![1]!, {
+    preferred: 'approve',
+    backup: 'approve',
+  });
+  const made = await makeOffer(member, lettingId, {
+    deposit: '1,850',
+    startDate: '2026-12-01',
+    deadlineHours: '48',
+  });
+  if (!made.ok) throw new Error(`offer failed: ${JSON.stringify(made)}`);
+  const tenantToken = await tokenInMessage(member, ids[0]!, 'offer');
+  const accepted = await respondToOffer(tenantToken, 'accept');
+  if (!accepted.ok) throw new Error(`accept failed: ${JSON.stringify(accepted)}`);
+  return { lettingId, tenantId: ids[0]!, otherId: ids[1]!, tenantToken };
+}

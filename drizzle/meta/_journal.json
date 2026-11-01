@@ -141,6 +141,13 @@
       "when": 1793526589298,
       "tag": "0019_r20_offers",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793531288153,
+      "tag": "0020_slice3_tenancy",
+      "breakpoints": true
     }
   ]
 }

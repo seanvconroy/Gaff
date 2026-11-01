@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { lettingClosedEmail } from '@/copy/templates/closing';
 import { offerEmail, offerExpiredEmail, outcomeEmail } from '@/copy/templates/offers';
 import { firstReply } from '@/copy/templates/first-reply';
+import { tenancyAgreement } from '@/copy/templates/tenancy-agreement';
 import { holdingEmail, invitationEmail, waitlistedEmail } from '@/copy/templates/invitations';
 import { findProtectedGrounds } from '@/domain/compliance/protected-grounds';
 
@@ -179,5 +180,35 @@ describe('Compliance: the offer and outcomes (R20, R21)', () => {
       expect(message.body).not.toMatch(/unsuccessful|rejected|failed|unfortunately|!/i);
       expect(findProtectedGrounds(message.body)).toEqual([]);
     }
+  });
+});
+
+describe('Compliance: the tenancy agreement (R22)', () => {
+  const agreement = tenancyAgreement({
+    landlordName: 'Mary Byrne',
+    agentName: 'Halcyon Lettings',
+    psraLicenceNumber: '001234',
+    tenantName: 'Aoife Byrne',
+    address: '12 Ranelagh Road',
+    area: 'Ranelagh, Dublin 6',
+    description: 'a furnished 2-bedroom apartment',
+    startDate: '2026-12-01',
+    rentCents: 185_000,
+    rentDueDay: 1,
+    depositCents: 185_000,
+  });
+  const text = agreement.sections.flatMap((s) => [s.heading, ...s.paragraphs]).join(' ');
+
+  it('asks for nothing beyond the deposit and rent (rule 4)', () => {
+    expect(text).toContain('nothing else is paid to get or keep this tenancy');
+    expect(text).not.toMatch(/fee|charge|penalt|fine of|administration/i);
+  });
+
+  it('touches no protected ground, and names the home and the parties', () => {
+    expect(findProtectedGrounds(text)).toEqual([]);
+    expect(text).toContain(
+      'Mary Byrne (the landlord), acting through their letting agent Halcyon Lettings, PSRA licence 001234',
+    );
+    expect(text).toContain('€1,850 a month, paid in advance on the 1st day of each month');
   });
 });

@@ -79,6 +79,8 @@ export const eventCatalogue = {
       'offer',
       'offer_expired',
       'outcome',
+      'agreement_ready',
+      'agreement_signed',
     ]),
     channel: z.enum(['email', 'sms']),
     author: z.enum(['template', 'ai', 'person']),
@@ -172,6 +174,16 @@ export const eventCatalogue = {
   'offer.expired': z.object({ offerId: z.uuid() }),
   /** R21: everyone else was told, with the date their details go. */
   'outcomes.sent': z.object({ told: z.number().int(), deleteAfter: z.iso.date() }),
+  /** R22: the tenancy, set up when the offer was accepted. */
+  'tenancy.created': z.object({ tenancyId: z.uuid() }),
+  'agreement.sent': z.object({ tenancyId: z.uuid() }),
+  'agreement.signed_by_tenant': z.object({ tenancyId: z.uuid() }),
+  /** R22: both sides signed (a 'sign_agreement' decision), electronically or on paper. */
+  'agreement.signed': z.object({
+    tenancyId: z.uuid(),
+    decisionId: z.uuid(),
+    mode: z.enum(['electronic', 'paper']),
+  }),
   /** R16, R17: the operator's income rule, in tenths of the rent. */
   'settings.income_rule': z.object({ ruleTenths: z.number().int() }),
   /** R26: a person closed the letting (a 'close_letting' decision); everyone was told. */

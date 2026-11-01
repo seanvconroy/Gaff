@@ -88,3 +88,15 @@
     display: none;
   }
 }
+
+/* Printing an agreement or a pack: just the document. */
+@media print {
+  .bar,
+  .skip {
+    display: none;
+  }
+
+  .main {
+    padding: 0;
+  }
+}

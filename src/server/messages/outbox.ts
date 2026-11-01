@@ -25,7 +25,9 @@ export type OutboundKind =
   | 'landlord_approval'
   | 'offer'
   | 'offer_expired'
-  | 'outcome';
+  | 'outcome'
+  | 'agreement_ready'
+  | 'agreement_signed';
 
 /**
  * Puts a message in the outbox (ADR-0010), in the caller's transaction. AI-written answers

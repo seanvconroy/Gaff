@@ -1,0 +1,28 @@
+/* A legal document on screen and on paper: a readable measure, plain headings. */
+.document {
+  display: grid;
+  gap: var(--space-6);
+  max-width: 68ch;
+}
+
+.section {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.section p {
+  margin: 0;
+}
+
+.signatures {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-strong);
+}
+
+@media print {
+  .document {
+    max-width: none;
+  }
+}

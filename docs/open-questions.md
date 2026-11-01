@@ -176,3 +176,23 @@ A date of birth is an age, which the Equal Status Acts protect, and Gaff never s
 ### Q22. Lettings without the landlord's email (R19)
 
 **Decision:** if the operator is the landlord (a portfolio landlord letting their own homes), their own offer decision is the approval. If an agency has no email for the landlord, the operator confirms in Gaff that the landlord approved, and that confirmation is recorded with the offer decision.
+
+## D. Slice 3 (stages 8 and 9)
+
+Raised and decided by the CTO on 1 November 2026, while building Slice 3.
+
+### Q23. Signing the tenancy agreement electronically (R22) vs the Electronic Commerce Act 2000
+
+R22 asks for the agreement to be "signed electronically by all parties". Section 10(1)(b) of the Electronic Commerce Act 2000 excludes the law on creating interests in real property, including leasehold interests, other than contracts. Practitioners still advise wet-ink signatures for documents that create an interest in land. Whether a residential tenancy agreement is caught is a question for the solicitor.
+
+**Decision:** Gaff supports both routes, so either answer works without a rebuild.
+- **Electronically:** the tenant signs on their phone (typed name and consent, against a fingerprint of the exact text they read), and the operator signs after them for the landlord. The operator's signature is a person's decision (`sign_agreement`).
+- **On paper:** the operator prints the same agreement, both sides sign by hand, and the operator records it in Gaff (also a `sign_agreement` decision).
+
+Gaff's own simple electronic signature is used, not an e-signature service, so no new provider handles personal data. A provider (Yousign, Dropbox Sign, DocuSign) can be added behind the same step later if the solicitor wants an advanced signature. **Solicitor:** confirm electronic signing, and review the standard agreement wording.
+
+### Q24. RTB registration details (R24) vs "never store age" (rule 3)
+
+The RTB asks for each adult tenant's name, date of birth and contact details, and their PPS number if the landlord has it. Its guidance says landlords don't have to give the PPSN or date of birth to complete registration.
+
+**Decision:** Gaff never collects a date of birth (rule 3). It asks the tenant for their PPSN as optional ("the RTB recommends it"), seals it, shows it only in the RTB pack, and deletes it once the operator records the registration. The pack shows the registration deadline: one month from the tenancy's start.

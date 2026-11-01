@@ -1,6 +1,13 @@
 import { and, asc, eq } from 'drizzle-orm';
 import { withOrg } from '@/db/client';
-import { applications, lettings, organisations, viewingSlots, waitlistOffers } from '@/db/schema';
+import {
+  applications,
+  lettings,
+  organisations,
+  tenancies,
+  viewingSlots,
+  waitlistOffers,
+} from '@/db/schema';
 import { renterAnswersSchema, type RenterAnswers } from '@/domain/criteria/answers';
 import { questionsFor } from '@/domain/criteria/criteria';
 import { bookableSlots } from '@/domain/viewings/booking';
@@ -54,7 +61,12 @@ export async function loadRenterPage(token: string) {
     const homeOffer = ['offered', 'accepted', 'declined'].includes(row.application.status)
       ? await offerOf(tx, row.application.id)
       : null;
+    const [tenancy] =
+      row.application.status === 'accepted'
+        ? await tx.select().from(tenancies).where(eq(tenancies.applicationId, row.application.id))
+        : [];
     return {
+      tenancy: tenancy ?? null,
       homeOffer,
       checks,
       offer,

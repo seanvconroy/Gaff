@@ -13,6 +13,7 @@ describe('ADR-0006: event payloads hold no personal data', () => {
     ['null', null],
     ['a list of codes', ['pets', 'max_occupants']],
     ['a nested object of safe values', { met: 3, of: 4, reasons: ['pets'] }],
+    ['a document fingerprint (SHA-256)', '0'.repeat(8) + 'a1b2c3d4'.repeat(7)],
   ])('allows %s', (_label, value) => {
     expect(isSafeEventValue(value)).toBe(true);
   });
@@ -23,6 +24,7 @@ describe('ADR-0006: event payloads hold no personal data', () => {
     ['an email address', 'ann@example.ie'],
     ['an Irish mobile number', '+353 87 123 4567'],
     ['a phone number without spaces', '0871234567'],
+    ['a long number that isn’t a fingerprint', '0871234567'.repeat(6)],
     ['an address', '12 Ranelagh Road'],
     ['free text', 'I have two kids and a dog'],
     ['an Eircode', 'D06 F2X3'],

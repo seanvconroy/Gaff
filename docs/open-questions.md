@@ -143,7 +143,7 @@ Many landlords use Gmail or Outlook.com addresses, which no email service can se
 
 ## D. Services that handle personal data
 
-Chosen by the CTO on 31 October 2026: Render (Frankfurt) for hosting and the database, Claude on Amazon Bedrock with EU routing for the AI, Mailgun EU for email and Sinch EU for SMS. Local stand-ins (a development outbox, a fake SMS sender and a fake AI) are used until the accounts exist. The founders create the accounts and sign the DPAs; see [launch-checklist.md](launch-checklist.md).
+First chosen by the CTO on 31 October 2026: Render (Frankfurt), Claude on Amazon Bedrock with EU routing, Mailgun EU and Sinch EU. **Changed on 1 November 2026 (Q26):** Vercel and Supabase replace Render, and Resend replaces Mailgun for email. Local stand-ins (a development outbox, a fake SMS sender and a fake AI) are used until the accounts exist. The founders create the accounts and sign the DPAs; see [launch-checklist.md](launch-checklist.md).
 
 ## C. Slice 2 (stages 5 to 7)
 
@@ -196,3 +196,48 @@ Gaff's own simple electronic signature is used, not an e-signature service, so n
 The RTB asks for each adult tenant's name, date of birth and contact details, and their PPS number if the landlord has it. Its guidance says landlords don't have to give the PPSN or date of birth to complete registration.
 
 **Decision:** Gaff never collects a date of birth (rule 3). It asks the tenant for their PPSN as optional ("the RTB recommends it"), seals it, shows it only in the RTB pack, and deletes it once the operator records the registration. The pack shows the registration deadline: one month from the tenancy's start.
+
+## E. Hosting, vendors and renter profiles
+
+Raised by Sean and decided on 1 November 2026, after a review of which rules the law requires and which were choices.
+
+### Q25. Deleting applicants' data (R26) vs the renter's own profile (PRD Principle 6, stage 9)
+
+The retention job clears an applicant's personal details 30 days after the letting closes. The PRD also wants renters to keep a Gaff profile they can reuse for their next home.
+
+**Decision (Sean and the CTO):** these are two copies, kept for two different reasons.
+
+- **The operator's copy** is an application to one letting. It exists for that letting. It's cleared on schedule, as now, because GDPR's storage limitation requires it. The anonymous decision record is kept for 12 months (Q3).
+- **The renter's profile** exists because the renter asked for it.
+  - It's one tick box, "Keep my details for next time", when they apply and again when a letting ends for them.
+  - It holds their contact details, their answers and any verified results they chose to keep.
+  - It's reused when they apply for their next home through Gaff.
+  - It's deleted when they ask, or after 2 years without use.
+- **Optional:** "Tell me about similar homes" lets a renter opt in to hear from that operator again.
+- **For profiles, Gaff is the controller** (it decides what's kept), so the privacy notice and the DPIA cover them.
+
+Not built yet. Profiles come as their own slice after the founder's end-to-end test, and nothing built so far blocks them.
+
+### Q26. "EU only" (rule 10) vs the founders' preferred tools
+
+The PRD asks for data hosted in the EU, and the build turned that into "EU only". GDPR doesn't require EU hosting. A transfer to a US provider is lawful under the EU–US Data Privacy Framework or standard contractual clauses, with a signed DPA and the provider named in the privacy notice. Sean already uses and trusts Vercel, Supabase, Resend and Stripe.
+
+**Decision (Sean, on the CTO's advice):** approved vendors only.
+- Each uses its EU region wherever it has one, with a signed DPA and a lawful transfer basis.
+- **Approved:**
+  - Vercel (functions in Dublin), on Pro for the per-minute job tick;
+  - Supabase (Ireland);
+  - Resend (email);
+  - Claude on Amazon Bedrock (EU);
+  - Sinch (EU);
+  - Mailgun (EU), as an alternative;
+  - later, Stripe, only to charge operators.
+- Render is dropped. See [ADR-0014](adr/0014-vercel-supabase-approved-vendors.md).
+
+**What stays, because the law requires it:**
+- deletion on schedule (GDPR storage limitation);
+- no protected grounds (Equal Status Acts);
+- a person makes every decision (GDPR Article 22);
+- the AI disclosure (EU AI Act Article 50);
+- the caps on the deposit and advance rent;
+- Gaff never holding money.

@@ -1,6 +1,6 @@
 # ADR-0002: EU hosting on Render, Frankfurt
 
-- Status: Accepted (CTO decision, 31 October 2026). Sign up and check the DPA before launch.
+- Status: Superseded by [ADR-0014](0014-vercel-supabase-approved-vendors.md) on 1 November 2026. Accepted by the CTO on 31 October 2026.
 - Date: 2026-10-31
 
 ## Context

@@ -1,6 +1,6 @@
 # ADR-0001: A TypeScript modular monolith on Next.js, with a separate worker process
 
-- Status: Accepted
+- Status: Accepted. On Vercel, background jobs run from a per-minute cron and straight after requests instead of a separate always-on process: see [ADR-0014](0014-vercel-supabase-approved-vendors.md).
 - Date: 2026-10-31
 
 ## Context

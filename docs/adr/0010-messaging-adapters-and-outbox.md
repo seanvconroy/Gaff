@@ -1,6 +1,6 @@
 # ADR-0010: Email and SMS through adapters and an outbox
 
-- Status: Accepted (CTO decision, 31 October 2026): Mailgun EU for email, Sinch EU for SMS.
+- Status: Accepted (CTO decision, 31 October 2026): Mailgun EU for email, Sinch EU for SMS. Email moved to Resend on 1 November 2026, with Mailgun kept as an alternative adapter: see [ADR-0014](0014-vercel-supabase-approved-vendors.md).
 - Date: 2026-10-31
 
 ## Context

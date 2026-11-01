@@ -203,7 +203,7 @@ The core objects mirror the workflow, and every change to them writes an event t
 
 **Non-functional requirements**
 
-- Data hosted in the EU, encrypted in transit and at rest, with role-based access per organisation.
+- Data hosted in the EU wherever the provider offers an EU region; a provider outside the EU only with a signed DPA and a lawful transfer basis (Q26). Encrypted in transit and at rest, with role-based access per organisation.
 - A data protection impact assessment completed before the first pilot letting.
 - Retention periods enforced by scheduled jobs, not by hand.
 - Renter pages work on a phone with no app and no account, and meet WCAG 2.2 AA.

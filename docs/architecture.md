@@ -1,40 +1,40 @@
 # Gaff architecture
 
-Status: **accepted**, 31 October 2026 (CTO decision). Key decisions are recorded as ADRs in [adr/](adr/README.md). Product questions and their decisions are in [open-questions.md](open-questions.md). What has to happen before the first pilot is in [launch-checklist.md](launch-checklist.md).
+Status: **accepted**, 31 October 2026 (CTO decision). Hosting changed on 1 November 2026 to Vercel and Supabase ([ADR-0014](adr/0014-vercel-supabase-approved-vendors.md)). Key decisions are recorded as ADRs in [adr/](adr/README.md). Product questions and their decisions are in [open-questions.md](open-questions.md). What has to happen before the first pilot is in [launch-checklist.md](launch-checklist.md).
 
 ## What shapes it
 
 - **Two part-time founders.** One codebase, one language, one database, one deployable, few vendors. Boring, well-documented tools over clever ones.
-- **EU data hosting.** All personal data is stored and processed in the EU, including by the AI.
+- **Approved vendors, EU regions where offered.** Each vendor that handles personal data has a signed DPA, uses its EU region where it has one, and has a lawful transfer basis otherwise (Q26). The database is in Ireland and the functions run in Dublin. The AI runs in the EU.
 - **The PRD's compliance rules are built into the code.** Each rule maps to a mechanism in the code and a test (see [Where the rules live](#where-the-prds-rules-live)).
 - **Re-skinnable.** All styling comes from `docs/design-tokens.json`.
 
 ## The shape
 
-A modular monolith: one TypeScript codebase that runs as two processes against one Postgres database.
+A modular monolith: one TypeScript codebase and one Postgres database. On Vercel, the "jobs" box below isn't a separate server: a cron runs due jobs every minute, and requests that queue work run it straight after responding. Locally it's `pnpm worker`.
 
 ```
                  Daft / MyHome enquiry emails
                               │ (operator's forwarding rule)
                               ▼
                  ┌─────────────────────────┐
- renters ──────▶ │  Email provider (EU)    │ ◀── outbound email
+ renters ──────▶ │  Email provider         │ ◀── outbound email
  (email, SMS)    └───────────┬─────────────┘
                              │ webhook
  operators (laptop/phone) ┐  ▼
  renters (phone, links) ──┼▶ ┌─────────────────────────┐        ┌──────────────────┐
- landlords (links) ───────┘  │  Web: Next.js           │        │  Claude (AI),     │
+ landlords (links) ───────┘  │  Web: Next.js (Vercel)  │        │  Claude (AI),     │
                              │  pages, forms, webhooks │        │  EU processing    │
                              └───────────┬─────────────┘        └────────▲─────────┘
                                          │                               │
                              ┌───────────▼─────────────┐                 │
-                             │  Postgres (EU)          │                 │
+                             │  Postgres (Supabase, IE)│                 │
                              │  data + event log +     │                 │
                              │  job queue + outbox     │                 │
                              └───────────▲─────────────┘                 │
                                          │                               │
                              ┌───────────┴─────────────┐                 │
-                             │  Worker                 │─────────────────┘
+                             │  Jobs (cron + after())  │─────────────────┘
                              │  parse enquiries, draft │──▶ SMS provider (EU)
                              │  answers, send, remind, │
                              │  waitlist, retention    │
@@ -56,16 +56,16 @@ The web framework, the email provider and the AI provider can each be swapped wi
 | --- | --- | --- |
 | Language | TypeScript (strict), Node.js LTS | [0001](adr/0001-modular-monolith-typescript-nextjs.md) |
 | Web | Next.js (App Router), React, server-rendered; forms work without JavaScript | [0001](adr/0001-modular-monolith-typescript-nextjs.md) |
-| Hosting | Render, Frankfurt: web service, worker, managed Postgres | [0002](adr/0002-eu-hosting-render-frankfurt.md) |
+| Hosting | Vercel (functions in Dublin) and Supabase Postgres (Ireland); jobs from a per-minute cron | [0014](adr/0014-vercel-supabase-approved-vendors.md) |
 | Database | PostgreSQL 16+, Drizzle ORM, SQL migrations in the repo | [0003](adr/0003-postgres-only-data-store.md) |
-| Jobs | graphile-worker (queue in Postgres), outbox table for every message | [0003](adr/0003-postgres-only-data-store.md) |
+| Jobs | graphile-worker (queue in Postgres), outbox table for every message; run by a cron tick on Vercel | [0003](adr/0003-postgres-only-data-store.md), [0014](adr/0014-vercel-supabase-approved-vendors.md) |
 | Tenant isolation | `organisation_id` on every row, plus Postgres row-level security | [0004](adr/0004-tenant-isolation-row-level-security.md) |
 | Privacy | Staged collection, renter data scoped to one application, retention jobs | [0005](adr/0005-staged-data-and-retention.md) |
 | Record | Append-only event log with no personal data | [0006](adr/0006-event-log-without-personal-data.md) |
 | Decisions | Renter-affecting changes need a person's decision record | [0007](adr/0007-people-decide.md) |
 | Ranking | Deterministic code with reasons in words; no AI | [0008](adr/0008-deterministic-ranking.md) |
 | AI | Claude on Amazon Bedrock (EU routing), drafting answers from letting facts only | [0009](adr/0009-ai-drafting-with-claude-in-the-eu.md) |
-| Email and SMS | Mailgun EU and Sinch EU, behind adapters; dev outbox and fakes locally | [0010](adr/0010-messaging-adapters-and-outbox.md) |
+| Email and SMS | Resend (or Mailgun EU) and Sinch EU, behind adapters; dev outbox and fakes locally | [0010](adr/0010-messaging-adapters-and-outbox.md), [0014](adr/0014-vercel-supabase-approved-vendors.md) |
 | Styling | Design tokens to CSS variables; CSS Modules; lint blocks raw values | [0011](adr/0011-design-tokens-drive-styling.md) |
 | Validation and dates | Zod for every input; date-fns with Europe/Dublin | [0001](adr/0001-modular-monolith-typescript-nextjs.md) |
 | Testing | Vitest, real Postgres, Playwright with axe, compliance suite, AI evals | [0012](adr/0012-testing-and-ci.md) |
@@ -137,13 +137,13 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 │   │   ├── (workspace)/         operator workspace, sign-in required
 │   │   ├── r/[token]/           renter pages: questions, booking (no account)
 │   │   ├── l/[token]/           landlord pages: read-only timeline (no account)
-│   │   └── api/                 inbound email webhook, health check
+│   │   └── api/                 inbound email webhooks, cron tick, health check
 │   ├── domain/                  pure rules, unit-tested first
 │   │   ├── criteria/  ranking/  rent/  viewings/  enquiries/
 │   │   └── messages/  decisions/  compliance/
 │   ├── server/                  use cases: one transaction each, writes its event
 │   ├── db/                      Drizzle schema, migrations, RLS policies, withOrg()
-│   ├── jobs/                    worker entry point, task handlers, crontab
+│   ├── jobs/                    task handlers, local worker, time-boxed runner for the tick
 │   ├── ports/                   interfaces: email, SMS, AI, clock
 │   ├── adapters/                dev outbox, fakes, real providers once approved
 │   ├── ui/                      design-system components with CSS Modules (tokens only)
@@ -211,8 +211,8 @@ All checks run with one command, `pnpm check`, and in CI on every push.
 | --- | --- | --- | --- |
 | Local | Your machine or this container: Postgres 16 and Node | Synthetic seed data | Dev outbox, fake SMS, fake AI |
 | CI | GitHub Actions with a Postgres service | Synthetic | Fakes |
-| Staging | Render, Frankfurt (separate project) | Synthetic and test accounts | Real providers in test mode |
-| Production | Render, Frankfurt | Real | Real |
+| Test copy | Vercel and Supabase, a separate project of each ([deploy.md](deploy.md)) | Synthetic only | Stand-ins: outbox page, fake SMS and AI, test check page |
+| Production | Vercel (Dublin) and Supabase (Ireland) | Real | Real |
 
 Production needs, before the first pilot letting: the DPIA, the solicitor's sign-off, the retention job (R26), backups with tested restores, and error alerts. A provider for error alerts is a later approval.
 
@@ -246,13 +246,14 @@ Each requirement is built rule, then code, then screen, and shown to you when it
 
 ## Services and providers
 
-Chosen by the CTO on 31 October 2026. Each stores or processes personal data, so each needs an account, a signed DPA and the checks below before launch. Until then, local stand-ins are used.
+Chosen by the CTO on 31 October 2026; hosting and email changed on 1 November 2026 (Q26, ADR-0014). Each stores or processes personal data, so each needs an account, a signed DPA and the checks below before launch. Until then, local stand-ins are used.
 
 | Need | Choice | Why | Check before launch |
 | --- | --- | --- | --- |
-| Hosting and database | Render, Frankfurt | Simplest managed setup with an EU region: web, worker, Postgres with point-in-time recovery on paid plans | DPA and sub-processors; backups stay in the EU; encryption at rest |
+| Hosting | Vercel Pro, functions in Dublin | The founders already use it; deploys on push; per-minute cron for the job tick | DPA; Data Privacy Framework for anything stored in the US; region set to `dub1` |
+| Database | Supabase, West EU (Ireland) | The founders already use it; plain Postgres with row-level security | DPA; Data API off; daily backups, and point-in-time recovery before real data |
 | AI | Claude on Amazon Bedrock, EU geographic routing | Keeps prompts and outputs in EU regions; Anthropic's own API currently offers global or US-only processing | The model is offered in the EU profile; Bedrock DPA; invocation logging off |
-| Email in and out | Mailgun, EU region | Receives, sends and stores message data in the EU; simple signed inbound webhooks | DPA; EU region on the account; DKIM and SPF on our domains |
+| Email in and out | Resend (Mailgun EU as an alternative) | The founders already use it; sends and receives with signed webhooks | DPA; Data Privacy Framework (data stored in the US); DKIM and SPF on our domains; open and click tracking off |
 | SMS | Sinch, EU region | EU company (it owns Mailgun), EU API region | DPA; Irish sender ID rules; price |
 | Operator sign-in | Better Auth (a library, not a service) | Accounts stay in our database; no third-party identity provider | None: open source, runs inside Gaff |
 | CI | GitHub Actions | Already where the repo lives | Synthetic data only, so no personal data |

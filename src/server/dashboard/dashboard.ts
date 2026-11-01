@@ -8,10 +8,13 @@ import {
   lettings,
   messages,
   operatorQuestions,
+  offers,
   organisations,
   viewingSlots,
 } from '@/db/schema';
 import { needsYouToday } from '@/domain/dashboard/today';
+import { whoCanBeOffered } from '@/domain/offers/offer';
+import { approvalState } from '@/server/offers/approval';
 import { daysSince, timeAgainstUsual } from '@/domain/dashboard/time';
 import { ATTENDANCE_OPENS_MINUTES } from '@/domain/viewings/attendance';
 import type { Member } from '@/server/auth/member';
@@ -69,6 +72,36 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         chosen ? 0 : (forLetting.find((r) => r.status === 'applied')?.n ?? 0),
       );
     }
+    // R20: where each letting with someone chosen stands on the offer.
+    const offerState = new Map<string, { readyToOffer: boolean; needsNewChoice: boolean }>();
+    const withChoice = new Set(
+      applicantCounts.filter((r) => r.status !== 'applied').map((r) => r.lettingId),
+    );
+    const lapsed = await tx
+      .select({ lettingId: applications.lettingId })
+      .from(applications)
+      .where(eq(applications.status, 'declined'));
+    for (const lettingId of new Set([...withChoice, ...lapsed.map((l) => l.lettingId)])) {
+      const state = await approvalState(tx, lettingId);
+      const out = await tx
+        .select({ status: offers.status })
+        .from(offers)
+        .where(eq(offers.lettingId, lettingId));
+      const live = out.some((o) => o.status === 'open' || o.status === 'accepted');
+      const who = state
+        ? whoCanBeOffered({
+            route: state.route,
+            approval: state.approval,
+            landlordConfirmed: true,
+            hasBackup: state.backupId !== null,
+          })
+        : null;
+      const declinedByLandlord = state?.approval?.preferredAnswer === 'declined';
+      offerState.set(lettingId, {
+        readyToOffer: Boolean(state?.preferredId && !live && who?.preferred && out.length === 0),
+        needsNewChoice: !live && (declinedByLandlord || (out.length > 0 && !state?.preferredId)),
+      });
+    }
     const nextViewing = byLetting(
       await tx
         .select({ lettingId: viewingSlots.lettingId, at: min(viewingSlots.startsAt) })
@@ -115,6 +148,8 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         undecided: undecided.get(letting.id)?.n ?? 0,
         toMark: toMark.get(letting.id)?.n ?? 0,
         toChoose: toChoose.get(letting.id) ?? 0,
+        readyToOffer: offerState.get(letting.id)?.readyToOffer ?? false,
+        needsNewChoice: offerState.get(letting.id)?.needsNewChoice ?? false,
         firstViewingAt: nextViewing.get(letting.id)?.at ?? null,
         time: timeAgainstUsual(minutes.get(letting.id)?.n ?? 0, usual?.minutesPerLetting ?? null),
         daysSinceFirstEnquiry: enquiredAt ? daysSince(enquiredAt, now) : null,

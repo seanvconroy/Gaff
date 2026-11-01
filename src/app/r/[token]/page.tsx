@@ -9,6 +9,7 @@ import { RenterShell } from '../RenterShell';
 import styles from '../renter.module.css';
 import { AnswersForm } from './AnswersForm';
 import { ChecksSection } from './ChecksSection';
+import { OfferSection } from './OfferSection';
 import { env } from '@/lib/env';
 import { ApplyForm } from './ApplyForm';
 import { BookingSection } from './BookingSection';
@@ -36,11 +37,25 @@ export default async function RenterPage({
     change?: string;
     check_problem?: string;
     referees?: string;
+    decline?: string;
+    offer_problem?: string;
+    accepted?: string;
+    declined?: string;
   }>;
 }) {
   const { token } = await params;
-  const { saved, booked, cancelled, problem, applied, change, check_problem, referees } =
-    await searchParams;
+  const {
+    saved,
+    booked,
+    cancelled,
+    problem,
+    applied,
+    change,
+    check_problem,
+    referees,
+    decline,
+    offer_problem,
+  } = await searchParams;
   const page = await loadRenterPage(token);
   if (!page) {
     return (
@@ -57,7 +72,7 @@ export default async function RenterPage({
   const closed = letting.status === 'let' || letting.status === 'withdrawn';
   const canBook =
     status === 'invited' || status === 'booked' || (status === 'waitlisted' && offer !== null);
-  if (closed) {
+  if (closed && !['accepted', 'declined', 'not_chosen'].includes(application.status)) {
     return (
       <RenterShell operatorName={organisation.name}>
         <Stack gap={6}>
@@ -197,6 +212,53 @@ export default async function RenterPage({
               problem={check_problem}
             />
           </>
+        ) : null}
+        {status === 'offered' && page.homeOffer ? (
+          <OfferSection
+            token={token}
+            operatorName={organisation.name}
+            address={letting.addressLine1}
+            offer={page.homeOffer}
+            confirmDecline={Boolean(decline)}
+            problem={offer_problem}
+          />
+        ) : null}
+        {status === 'accepted' ? (
+          <Notice tone="success" title="You’ve accepted the offer" role="status">
+            <p>
+              {organisation.name} will send you the tenancy agreement to sign, and how to pay the
+              deposit and first month’s rent directly to them. We’ll email you when it’s ready.
+            </p>
+          </Notice>
+        ) : null}
+        {status === 'declined' ? (
+          <Notice
+            tone="info"
+            title={
+              page.homeOffer?.status === 'expired'
+                ? 'The offer has closed'
+                : 'You’ve declined the offer'
+            }
+            role="status"
+          >
+            <p>
+              Thank you for letting us know, and for your interest in the home.
+              {application.deleteAfter
+                ? ` We’ll delete your details from Gaff by ${formatDate(application.deleteAfter)}.`
+                : ''}
+            </p>
+          </Notice>
+        ) : null}
+        {status === 'not_chosen' ? (
+          <Notice tone="info" title="The home has been let" role="status">
+            <p>
+              Thank you for applying. {organisation.name} has let the home to another applicant. We
+              wish you well with your search.
+              {application.deleteAfter
+                ? ` We’ll delete your details from Gaff by ${formatDate(application.deleteAfter)}.`
+                : ''}
+            </p>
+          </Notice>
         ) : null}
         {status === 'applied' && !change ? (
           <Notice

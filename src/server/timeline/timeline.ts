@@ -31,6 +31,9 @@ const messageTitles: Record<string, string> = {
   reference_request: 'Reference request sent',
   reference_reminder: 'Reference reminder sent',
   landlord_approval: 'Approval request sent to the landlord',
+  offer: 'Offer sent',
+  offer_expired: 'Offer closed message sent',
+  outcome: 'Outcome message sent',
 };
 
 const rentCheckTitles: Record<string, string> = {
@@ -195,6 +198,22 @@ export function describeEvent(
             : data.backup === 'approved'
               ? 'Backup approved'
               : 'Backup declined',
+      };
+    case 'offer.made':
+      return {
+        what: data.role === 'backup' ? 'Offer sent to the backup' : 'Offer sent',
+        detail: `${data.deadlineHours} hours to answer${data.withBackup ? '; then to the backup, as approved' : ''}`,
+      };
+    case 'offer.accepted':
+      return { what: 'Offer accepted: the home is let' };
+    case 'offer.declined':
+      return { what: 'Offer declined' };
+    case 'offer.expired':
+      return { what: 'Offer not answered in time' };
+    case 'outcomes.sent':
+      return {
+        what: 'Everyone else told',
+        detail: `${data.told} told; personal details deleted on ${formatDate(String(data.deleteAfter))}`,
       };
     case 'letting.closed':
       return {

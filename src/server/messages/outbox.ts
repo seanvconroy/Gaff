@@ -22,7 +22,10 @@ export type OutboundKind =
   | 'checks_invitation'
   | 'reference_request'
   | 'reference_reminder'
-  | 'landlord_approval';
+  | 'landlord_approval'
+  | 'offer'
+  | 'offer_expired'
+  | 'outcome';
 
 /**
  * Puts a message in the outbox (ADR-0010), in the caller's transaction. AI-written answers

@@ -5,7 +5,9 @@ import { redirect } from 'next/navigation';
 import { chooseApplicants } from '@/server/applications/choose';
 import { requireMember } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
+import { formValues, invalid, type FormState } from '@/lib/forms';
 import { askLandlord, saveLandlordContact } from '@/server/offers/approval';
+import { makeOffer } from '@/server/offers/offer';
 
 /** R17: a person chooses the preferred applicant and the backup. */
 export async function chooseAction(lettingId: string, formData: FormData): Promise<void> {
@@ -49,4 +51,24 @@ export async function saveLandlordAction(lettingId: string, formData: FormData):
       email: String(formData.get('landlordEmail') ?? ''),
     }),
   );
+}
+
+/** R20: a person makes the offer. */
+export async function makeOfferAction(
+  lettingId: string,
+  _state: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const member = await requireMember();
+  const values = formValues(formData);
+  let result;
+  try {
+    result = await makeOffer(member, lettingId, values);
+  } catch (error) {
+    if (!(error instanceof UserFacingError)) throw error;
+    return invalid({}, values, error.message);
+  }
+  if (!result.ok) return invalid(result.errors, values, 'One or two things need another look.');
+  revalidatePath(`/lettings/${lettingId}`, 'layout');
+  redirect(`/lettings/${lettingId}/applications?offered=1`);
 }

@@ -76,6 +76,9 @@ export const eventCatalogue = {
       'reference_request',
       'reference_reminder',
       'landlord_approval',
+      'offer',
+      'offer_expired',
+      'outcome',
     ]),
     channel: z.enum(['email', 'sms']),
     author: z.enum(['template', 'ai', 'person']),
@@ -156,6 +159,19 @@ export const eventCatalogue = {
     preferred: z.enum(['approved', 'declined']),
     backup: z.enum(['approved', 'declined']).nullable(),
   }),
+  /** R20: an offer went out (to the backup only as a person pre-approved, Q20). */
+  'offer.made': z.object({
+    offerId: z.uuid(),
+    decisionId: z.uuid(),
+    role: z.enum(['preferred', 'backup']),
+    deadlineHours: z.number().int(),
+    withBackup: z.boolean(),
+  }),
+  'offer.accepted': z.object({ offerId: z.uuid() }),
+  'offer.declined': z.object({ offerId: z.uuid() }),
+  'offer.expired': z.object({ offerId: z.uuid() }),
+  /** R21: everyone else was told, with the date their details go. */
+  'outcomes.sent': z.object({ told: z.number().int(), deleteAfter: z.iso.date() }),
   /** R16, R17: the operator's income rule, in tenths of the rent. */
   'settings.income_rule': z.object({ ruleTenths: z.number().int() }),
   /** R26: a person closed the letting (a 'close_letting' decision); everyone was told. */

@@ -11,6 +11,7 @@ import {
   sendTestEmail,
   signUpOperator,
   startViewingsNow,
+  subjectsSentTo,
 } from './support';
 
 const AOIFE = 'aoife.byrne@example.ie';
@@ -286,4 +287,69 @@ test('R19: the landlord approves the chosen tenant and the backup from a one-pag
   await page.goto(`${lettingUrl}/applications`);
   await expect(page.getByText('Approved Aoife Byrne', { exact: true })).toBeVisible();
   await expect(page.getByText('Approved Ciarán Ó Súilleabháin as backup')).toBeVisible();
+});
+
+test('R20, R21: the offer goes out with a deadline, the renter accepts on their phone, and everyone else hears', async ({
+  browser,
+  page,
+}) => {
+  test.slow();
+  const { lettingUrl, links } = await twoChosen(browser, page);
+  // The operator confirms the landlord's approval themselves (no landlord email, Q22).
+  await page.goto(`${lettingUrl}/applications`);
+  await expect(page.getByRole('heading', { name: 'The offer' })).toBeVisible();
+  await page.getByLabel('Deposit').fill('2,000');
+  await page.getByLabel(/The landlord has approved Aoife Byrne/).check();
+  await page.getByRole('button', { name: 'Send the offer to Aoife' }).click();
+  await expect(
+    page.getByText('The deposit can’t be more than one month’s rent: €1,850.'),
+  ).toBeVisible();
+  await page.getByLabel('Deposit').fill('1,850');
+  await page.getByLabel(/The landlord has approved Aoife Byrne/).check();
+  await expect(page.getByLabel(/Offer it to Ciarán Ó Súilleabháin, my backup/)).toBeChecked();
+  await expectAccessible(page);
+  await screenshot(page, '41-make-offer');
+  await page.getByRole('button', { name: 'Send the offer to Aoife' }).click();
+  await expect(page.getByText('Offer sent.')).toBeVisible();
+  await expect(page.getByText(/it goes to your backup automatically/)).toBeVisible();
+
+  let offerLink = '';
+  await expect(async () => {
+    offerLink = await linkInEmail(AOIFE, 'An offer: 12 Ranelagh Road');
+  }).toPass({ timeout: 20_000 });
+  const aoife = await onPhone(browser, offerLink);
+  await expect(
+    aoife.page.getByRole('heading', { name: 'An offer for 12 Ranelagh Road' }),
+  ).toBeVisible();
+  await expect(aoife.page.getByText(/^Please answer by \w+day \d+ \w+, /)).toBeVisible();
+  await expect(aoife.page.getByText('nothing is paid through Gaff')).toBeVisible();
+  await expectAccessible(aoife.page);
+  await screenshot(aoife.page, '42-renter-offer');
+  await aoife.page.getByRole('button', { name: 'Accept the offer' }).click();
+  await expect(aoife.page.getByText('You’ve accepted the offer')).toBeVisible();
+  await expectAccessible(aoife.page);
+  await aoife.context.close();
+
+  // Ciarán, the backup, hears straight away, with when his details go.
+  await expect(async () => {
+    expect(await subjectsSentTo(CIARAN)).toContain(
+      '12 Ranelagh Road: an update on your application',
+    );
+  }).toPass({ timeout: 20_000 });
+  const ciaran = await onPhone(browser, links[CIARAN]!);
+  await expect(ciaran.page.getByText('The home has been let')).toBeVisible();
+  await expect(
+    ciaran.page.getByText(/We’ll delete your details from Gaff by \w+day \d+ \w+\./),
+  ).toBeVisible();
+  await expectAccessible(ciaran.page);
+  await ciaran.context.close();
+
+  await page.goto(`${lettingUrl}/applications`);
+  await expect(
+    page.getByRole('region', { name: 'The offer' }).getByText('Accepted', { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText('Step 8 of 9 · Tenancy')).toBeVisible();
+  await page.goto(`${lettingUrl}/timeline`);
+  await expect(page.getByText('Offer accepted: the home is let')).toBeVisible();
+  await expect(page.getByText('Everyone else told')).toBeVisible();
 });

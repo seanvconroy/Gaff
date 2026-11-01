@@ -13,11 +13,16 @@ export interface LettingSnapshot {
   toMark: number;
   /** People who applied, while nobody has been chosen yet (R17). */
   toChoose: number;
+  /** R20: chosen and approved, so the offer can go. */
+  readyToOffer?: boolean;
+  /** R19, R20: the landlord declined, or the offer wasn't accepted and nothing else is out. */
+  needsNewChoice?: boolean;
   firstViewingAt: Date | null;
 }
 
 export type TodayItem =
   | { kind: 'approvals' | 'attention' | 'questions'; count: number }
+  | { kind: 'offer' | 'rechoose'; lettingId: string; address: string }
   | {
       kind: 'attendance' | 'choose' | 'shortlist';
       lettingId: string;
@@ -44,6 +49,13 @@ export function needsYouToday(input: {
   for (const l of input.lettings) {
     if (l.status === 'live' && l.toChoose > 0) {
       items.push({ kind: 'choose', lettingId: l.id, address: l.addressLine1, count: l.toChoose });
+    }
+  }
+  for (const l of input.lettings) {
+    if (l.status !== 'live') continue;
+    if (l.readyToOffer) items.push({ kind: 'offer', lettingId: l.id, address: l.addressLine1 });
+    if (l.needsNewChoice) {
+      items.push({ kind: 'rechoose', lettingId: l.id, address: l.addressLine1 });
     }
   }
   const soonest = (l: LettingSnapshot) => l.firstViewingAt?.getTime() ?? Number.MAX_SAFE_INTEGER;

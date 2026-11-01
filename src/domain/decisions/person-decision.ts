@@ -17,6 +17,8 @@ export const decisionKinds = [
   'mark_attendance',
   /** R17: the operator chooses the preferred applicant and the backup. */
   'choose_applicants',
+  /** R20: the operator makes the offer, and may pre-approve offering it to the backup (Q20). */
+  'make_offer',
   /** R26: the operator closes a letting as let or withdrawn, which ends everyone's chances. */
   'close_letting',
 ] as const;

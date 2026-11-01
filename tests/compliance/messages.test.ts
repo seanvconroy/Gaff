@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { lettingClosedEmail } from '@/copy/templates/closing';
+import { offerEmail, offerExpiredEmail, outcomeEmail } from '@/copy/templates/offers';
 import { firstReply } from '@/copy/templates/first-reply';
 import { holdingEmail, invitationEmail, waitlistedEmail } from '@/copy/templates/invitations';
 import { findProtectedGrounds } from '@/domain/compliance/protected-grounds';
@@ -133,6 +134,50 @@ describe('Compliance: the closing message (R26)', () => {
       expect(body).not.toMatch(/unsuccessful|rejected|sorry|payslip|deposit|fee|pay /i);
       expect(body).not.toContain('!');
       expect(findProtectedGrounds(body)).toEqual([]);
+    }
+  });
+});
+
+describe('Compliance: the offer and outcomes (R20, R21)', () => {
+  const offer = offerEmail({
+    renterName: 'Aoife Byrne',
+    operatorName: 'Halcyon Lettings',
+    address: '12 Ranelagh Road',
+    area: 'Ranelagh, Dublin 6',
+    rent: '€1,850',
+    deposit: '€1,850',
+    startDate: 'Tuesday 1 December',
+    deadline: 'Thursday 5 November, 6pm',
+    offerUrl: 'https://app.gaff.test/r/abc',
+  });
+
+  it('names only the deposit and first month’s rent, paid to the operator, and no fees (rules 4, 5)', () => {
+    expect(offer.body).toContain(
+      'you’d pay a deposit of €1,850 and the first month’s rent of €1,850, directly to Halcyon Lettings. There are no other fees, and nothing is paid through Gaff.',
+    );
+    expect(offer.body).not.toMatch(/admin fee|holding fee|booking fee|referencing fee|card/i);
+  });
+
+  it('says what happens next, and when', () => {
+    expect(offer.body).toContain('Please accept or decline by Thursday 5 November, 6pm, here:');
+  });
+
+  it('tells everyone else politely, with no blame, and when their details go', () => {
+    const base = {
+      renterName: 'Ciarán Ó Súilleabháin',
+      operatorName: 'Halcyon Lettings',
+      address: '12 Ranelagh Road',
+      area: 'Ranelagh, Dublin 6',
+      deleteOn: '2026-12-05',
+    };
+    for (const message of [
+      outcomeEmail({ ...base, applied: true }),
+      outcomeEmail({ ...base, applied: false }),
+      offerExpiredEmail({ ...base, deadline: 'Thursday 5 November, 6pm' }),
+    ]) {
+      expect(message.body).toContain('We’ll delete your details from Gaff by Saturday 5 December.');
+      expect(message.body).not.toMatch(/unsuccessful|rejected|failed|unfortunately|!/i);
+      expect(findProtectedGrounds(message.body)).toEqual([]);
     }
   });
 });

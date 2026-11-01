@@ -8,7 +8,8 @@ export type TaskName =
   | 'draft_answers'
   | 'offer_place'
   | 'expire_offer'
-  | 'reference_overdue';
+  | 'reference_overdue'
+  | 'expire_home_offer';
 
 /**
  * Queues a job in the caller's transaction (ADR-0003): the job exists only if the change that

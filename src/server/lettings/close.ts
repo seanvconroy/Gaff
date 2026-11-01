@@ -5,6 +5,7 @@ import {
   bookings,
   lettings,
   messages,
+  offers,
   organisations,
   viewingSlots,
   waitlistOffers,
@@ -106,6 +107,11 @@ export async function closeLetting(
       .update(waitlistOffers)
       .set({ status: 'closed' })
       .where(and(eq(waitlistOffers.lettingId, lettingId), eq(waitlistOffers.status, 'open')));
+    // An offer still open closes with the letting: it can't be accepted any more.
+    await tx
+      .update(offers)
+      .set({ status: 'expired' })
+      .where(and(eq(offers.lettingId, lettingId), eq(offers.status, 'open')));
 
     for (const person of people) {
       await queueMessage(tx, {

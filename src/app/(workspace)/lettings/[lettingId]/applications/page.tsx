@@ -3,6 +3,10 @@ import { earningLabels, formatRatio } from '@/domain/applications/apply';
 import { formatDateTime, formatEuro } from '@/lib/format';
 import { applicantsFor } from '@/server/applications/choose';
 import { approvalFor } from '@/server/offers/approval';
+import { offersFor } from '@/server/offers/offer';
+import { whoCanBeOffered } from '@/domain/offers/offer';
+import { formatDate, irishToday } from '@/lib/format';
+import { OfferForm } from './OfferForm';
 import { TextField } from '@/ui/Field';
 import { Card, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
@@ -31,12 +35,19 @@ export default async function ApplicationsPage({
   searchParams,
 }: {
   params: Promise<{ lettingId: string }>;
-  searchParams: Promise<{ chosen?: string; problem?: string; asked?: string; landlord?: string }>;
+  searchParams: Promise<{
+    chosen?: string;
+    problem?: string;
+    asked?: string;
+    landlord?: string;
+    offered?: string;
+  }>;
 }) {
   const { member, letting } = await loadLetting(params);
-  const [listing, approval] = await Promise.all([
+  const [listing, approval, sent] = await Promise.all([
     applicantsFor(member, letting.id),
     approvalFor(member, letting.id),
+    offersFor(member, letting.id),
   ]);
   const done = await searchParams;
   const rows = listing?.rows ?? [];
@@ -168,7 +179,10 @@ export default async function ApplicationsPage({
                   references, and tells them what each one is for.
                 </p>
                 <div>
-                  <SubmitButton pendingLabel="Saving…">
+                  <SubmitButton
+                    variant={anyChosen ? 'secondary' : 'primary'}
+                    pendingLabel="Saving…"
+                  >
                     {anyChosen ? 'Save my choice' : 'Confirm my choice'}
                   </SubmitButton>
                 </div>
@@ -184,6 +198,59 @@ export default async function ApplicationsPage({
           names={new Map(rows.map((r) => [r.id, r.name]))}
           asked={Boolean(done.asked)}
         />
+      ) : null}
+      {approval?.preferredId || sent.length > 0 ? (
+        <Card labelledBy="offer-heading">
+          <Stack gap={4}>
+            <h2 id="offer-heading" className="type-title">
+              The offer
+            </h2>
+            {done.offered ? (
+              <Notice tone="success" role="status">
+                <p>Offer sent. We’ll email them, and show their answer here.</p>
+              </Notice>
+            ) : null}
+            {sent.length > 0 ? (
+              <ul className={styles.checkList}>
+                {sent.map(({ offer, name }) => (
+                  <li key={offer.id}>
+                    <StatusPill tone={offerTone[offer.status]}>
+                      {offerWords[offer.status]}
+                    </StatusPill>{' '}
+                    {offer.role === 'backup' ? 'To the backup, ' : ''}
+                    {name}, {formatEuro(offer.rentCents)} a month from {formatDate(offer.startDate)}
+                    {offer.status === 'open'
+                      ? `. They have until ${formatDateTime(offer.expiresAt)} to answer.`
+                      : '.'}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {sent.some((s) => s.offer.status === 'accepted') ? (
+              <p>
+                The home is let, and everyone else has been told. Next come the tenancy agreement,
+                the deposit and first month’s rent, and the RTB registration. Gaff will do these in
+                a later update; for now, do them the way you do today.
+              </p>
+            ) : null}
+            {sent.some((s) => s.offer.status === 'open' && s.offer.thenOfferToId) ? (
+              <p>
+                If it isn’t accepted in time, it goes to your backup automatically, as you approved.
+              </p>
+            ) : null}
+            {approval?.preferredId &&
+            !sent.some((s) => s.offer.status === 'open' || s.offer.status === 'accepted') &&
+            rows.some((r) => r.id === approval.preferredId && r.status === 'preferred') ? (
+              <OfferStep
+                lettingId={letting.id}
+                state={approval}
+                names={new Map(rows.map((r) => [r.id, r.name]))}
+                rentCents={letting.monthlyRentCents}
+                availableFrom={letting.availableFrom}
+              />
+            ) : null}
+          </Stack>
+        </Card>
       ) : null}
       {listing && listing.waitingToApply.length > 0 ? (
         <p className={styles.muted}>
@@ -286,5 +353,57 @@ function LandlordApproval({
         ) : null}
       </Stack>
     </Card>
+  );
+}
+
+const offerWords: Record<string, string> = {
+  open: 'Waiting',
+  accepted: 'Accepted',
+  declined: 'Declined',
+  expired: 'Not answered',
+};
+const offerTone: Record<string, 'success' | 'warning' | 'info' | 'neutral'> = {
+  open: 'info',
+  accepted: 'success',
+  declined: 'neutral',
+  expired: 'warning',
+};
+
+function OfferStep({
+  lettingId,
+  state,
+  names,
+  rentCents,
+  availableFrom,
+}: {
+  lettingId: string;
+  state: NonNullable<Awaited<ReturnType<typeof approvalFor>>>;
+  names: Map<string, string>;
+  rentCents: number;
+  availableFrom: string;
+}) {
+  const who = whoCanBeOffered({
+    route: state.route,
+    approval: state.approval,
+    landlordConfirmed: true,
+    hasBackup: state.backupId !== null,
+  });
+  if (!who.preferred) {
+    return <p>{who.problem}</p>;
+  }
+  const today = irishToday();
+  return (
+    <OfferForm
+      lettingId={lettingId}
+      preferredName={names.get(state.preferredId!) ?? ''}
+      backupName={who.backup && state.backupId ? (names.get(state.backupId) ?? null) : null}
+      rent={formatEuro(rentCents)}
+      defaults={{
+        deposit: String(rentCents / 100),
+        startDate: availableFrom > today ? availableFrom : today,
+      }}
+      today={today}
+      askLandlordConfirmation={state.route === 'operator_confirms'}
+    />
   );
 }

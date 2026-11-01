@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 31 October 2026 (Slice 1 complete, with basic R26).
+Last updated: 1 November 2026 (Slices 1 and 2 complete; Slice 3 next).
 
 ## Done
 
@@ -50,8 +50,8 @@ Last updated: 31 October 2026 (Slice 1 complete, with basic R26).
 | 21 | R17: applicants side by side; preferred and backup | **Done**: Applications tab with a card per applicant in shortlist order (criteria met, take-home income against the rule in words and colour, how they earn, when they applied); the operator picks a preferred applicant and an optional backup (a `choose_applicants` decision recording positions and income ratios as numbers only); changeable until an offer is made; the letting moves to stage 6; “Needs you today” prompts when people have applied |
 | 22 | R18: checks for the preferred applicant and backup | **Done** (with stand-in providers): checks are created only for the two people chosen, and explained before each starts; ID and income go through provider ports (a development stand-in page until the founders approve providers; production uses “none”, and the operator arranges those checks); the provider never gets the renter’s private link; only the verified name or confirmed income is kept, sealed with AES-256-GCM (ADR-0005); the identity check keeps no date of birth (Q19); references by email form with fixed choices and no free text, reminded twice, flagged after six days; results on the operator’s cards in words; a check that doesn’t pass is shown in warning with a plain reason and a way to explain; all cleared by the retention job |
 | 23 | R19: landlord approves by link | **Done**: an agency sends the landlord a private link (adding their email on the spot if it’s missing) to a one-page summary of the preferred applicant and the backup: names from this stage only (Q4), criteria met, income against the rule as a ratio (never an amount), check results in words; the landlord approves or declines each, with no account; recorded as the landlord’s, by ID; a landlord letting their own homes approves by making the offer, and an agency without an email confirms the approval at offer time (Q22); changing the choice withdraws the request; landlord and referee replies go to the operator, never into a renter’s thread |
-| 24 | R20: offer with a deadline; backup | Next |
-| 25 | R21: outcome messages | To do |
+| 24 | R20: offer with a deadline; backup | **Done**: a `make_offer` decision with the landlord’s approval (R19, Q22); terms are the rent, a deposit capped at one month’s rent (rule 4), a move-in date and 24 hours, 48 hours or 3 days to answer; the offer says nothing is paid through Gaff and there are no other fees; the renter accepts or declines on their phone; at the deadline the offer closes and the renter is told; if the operator pre-approved it (Q20), a declined or unanswered offer goes to the backup on the same terms; “Needs you today” prompts to make the offer or choose again |
+| 25 | R21: outcome messages | **Done**: when the offer is accepted the letting is let (stage 8), viewings still to come and other scheduled messages are cancelled, and everyone else gets a fixed-wording outcome straight away (applicants are told it went to another applicant; others that it’s let), with the date their details go; their deletion date is set then |
 
 ## Built early, before real renters
 

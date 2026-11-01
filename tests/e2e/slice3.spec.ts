@@ -1,6 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 import { AOIFE, anAcceptedOffer, onPhone } from './journeys';
-import { expectAccessible, expectNoSidewaysScroll, linkInEmail, screenshot } from './support';
+import {
+  createLettingThroughUi,
+  expectAccessible,
+  expectNoSidewaysScroll,
+  linkInEmail,
+  screenshot,
+  signUpOperator,
+} from './support';
 
 test('R22: the tenant reads and signs the agreement on their phone, then the operator signs for the landlord', async ({
   browser,
@@ -237,4 +244,27 @@ test('R26: the operator finishes the let home; the record is archived and the da
   await expect(page.getByText(/let in 0 days/)).toBeVisible();
   await page.goto(`${lettingUrl}/timeline`);
   await expect(page.getByText('Letting finished and archived')).toBeVisible();
+});
+
+test('Testing tool: start the viewings now, only where dev tools are on', async ({ page }) => {
+  await signUpOperator(page);
+  await createLettingThroughUi(page);
+  const lettingUrl = page
+    .url()
+    .replace(/\/viewings.*$/, '')
+    .replace(/\?.*$/, '');
+  await page.goto(`${lettingUrl}/attendance`);
+  await expect(page.getByRole('heading', { name: 'Testing only' })).toBeVisible();
+  await page.getByRole('button', { name: 'Start the viewings now' }).click();
+  // The viewing times are now today's, in Ireland.
+  const today = new Intl.DateTimeFormat('en-IE', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'Europe/Dublin',
+  })
+    .format(new Date())
+    .replace(',', '');
+  await page.goto(lettingUrl);
+  await expect(page.getByRole('region', { name: 'Viewing times' })).toContainText(today);
 });

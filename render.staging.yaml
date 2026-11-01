@@ -1,0 +1,75 @@
+# Render Blueprint for a STAGING copy (Frankfurt, EU), for testing end to end with made-up
+# details only. It uses the stand-ins: emails and texts appear at /dev/outbox instead of being
+# sent, enquiries are posted at /dev/inbound, the AI is a stand-in, and ID and income checks
+# use a test page. Never put real people's details in it. See docs/testing-guide.md.
+# In Render: New, Blueprint, choose this repository, and set the blueprint path to
+# render.staging.yaml.
+databases:
+  - name: gaff-staging-db
+    region: frankfurt
+    plan: basic-256mb
+    postgresMajorVersion: '16'
+    databaseName: gaff
+    user: gaff
+    ipAllowList: []
+
+services:
+  - type: web
+    name: gaff-staging-web
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    healthCheckPath: /api/health
+    preDeployCommand: pnpm db:migrate
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gaff-staging-db
+          property: connectionString
+      - fromGroup: gaff-staging
+
+  - type: worker
+    name: gaff-staging-worker
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    dockerCommand: pnpm worker
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gaff-staging-db
+          property: connectionString
+      - fromGroup: gaff-staging
+
+envVarGroups:
+  - name: gaff-staging
+    envVars:
+      - key: GAFF_ENV
+        value: staging
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: DEV_TOOLS
+        value: '1'
+      - key: EMAIL_PROVIDER
+        value: dev
+      - key: SMS_PROVIDER
+        value: fake
+      - key: AI_PROVIDER
+        value: fake
+      - key: IDENTITY_PROVIDER
+        value: stand_in
+      - key: INCOME_PROVIDER
+        value: stand_in
+      - key: INBOUND_DOMAIN
+        value: in.gaff.test
+      - key: MAIL_FROM_DOMAIN
+        value: mail.gaff.test
+      - key: RETENTION_PERSONAL_DAYS
+        value: '30'
+      - key: RETENTION_RECORD_MONTHS
+        value: '12'
+      - key: NEXT_TELEMETRY_DISABLED
+        value: '1'
+      # The staging web address, e.g. https://gaff-staging-web.onrender.com
+      - key: APP_URL
+        sync: false

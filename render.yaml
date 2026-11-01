@@ -52,6 +52,11 @@ envVarGroups:
         value: sinch
       - key: AI_PROVIDER
         value: bedrock
+      # R18: no ID or open-banking provider is approved yet, so operators arrange those checks.
+      - key: IDENTITY_PROVIDER
+        value: none
+      - key: INCOME_PROVIDER
+        value: none
       - key: AWS_REGION
         value: eu-west-1
       - key: BEDROCK_MODEL_ID
@@ -61,6 +66,9 @@ envVarGroups:
       - key: RETENTION_RECORD_MONTHS
         value: '12'
       # Set these in the dashboard: never commit secrets.
+      # ADR-0005: 32 random bytes, base64 (openssl rand -base64 32). Keep a safe copy.
+      - key: DATA_ENCRYPTION_KEY
+        sync: false
       - key: APP_URL
         sync: false
       - key: INBOUND_DOMAIN

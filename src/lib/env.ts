@@ -96,6 +96,12 @@ const schema = z
 
 export type Env = z.infer<typeof schema>;
 
+/** For tests: what's wrong with an environment, if anything (paths of the problems). */
+export function environmentProblems(source: Record<string, string | undefined>): string[] {
+  const parsed = schema.safeParse(source);
+  return parsed.success ? [] : parsed.error.issues.map((i) => i.path.join('.'));
+}
+
 let cached: Env | undefined;
 
 export function env(): Env {

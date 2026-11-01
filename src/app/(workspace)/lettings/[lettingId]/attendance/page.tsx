@@ -11,6 +11,9 @@ import { Notice } from '@/ui/Notice';
 import { loadLetting } from '../letting';
 import { LettingHeader } from '../LettingHeader';
 import { markAction } from './actions';
+import { startViewingsNowAction } from './dev-actions';
+import { env } from '@/lib/env';
+import { SubmitButton } from '@/ui/SubmitButton';
 import { AttendanceToggle } from './AttendanceToggle';
 import styles from './attendance.module.css';
 
@@ -94,6 +97,24 @@ export default async function AttendancePage({
           ))}
         </Stack>
       )}
+      {env().DEV_TOOLS ? (
+        <Card labelledBy="dev-heading">
+          <Stack gap={3}>
+            <h2 id="dev-heading" className="type-title">
+              Testing only
+            </h2>
+            <p>
+              Move this letting’s viewings so they all finished a minute ago. Book times first, then
+              use this to mark who came without waiting. This never appears in production.
+            </p>
+            <form action={startViewingsNowAction.bind(null, letting.id)}>
+              <SubmitButton variant="secondary" pendingLabel="Moving…">
+                Start the viewings now
+              </SubmitButton>
+            </form>
+          </Stack>
+        </Card>
+      ) : null}
     </Stack>
   );
 }

@@ -1,10 +1,12 @@
-/** Port for sending email (ADR-0010). Adapters: development outbox, Mailgun (EU). */
+/** Port for sending email (ADR-0010). Adapters: development outbox, Resend, Mailgun (EU). */
 export interface OutgoingEmail {
   to: string;
   from: { name: string; address: string };
   replyTo?: string;
   subject: string;
   text: string;
+  /** The same for every retry of one message, so a provider that supports it sends it once. */
+  idempotencyKey?: string;
 }
 
 export interface EmailSender {

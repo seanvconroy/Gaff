@@ -153,6 +153,7 @@ export async function sendMessage(input: {
                 : `${slug}@${config.INBOUND_DOMAIN}`,
             subject: message.subject ?? '',
             text: message.body,
+            idempotencyKey: `message/${message.id}`,
           });
     await withOrg(input.organisationId, async (tx) => {
       await tx

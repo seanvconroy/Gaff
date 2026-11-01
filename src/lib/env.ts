@@ -12,7 +12,7 @@ const schema = z
     DATABASE_URL: z.string().url(),
     APP_URL: z.string().url(),
     AUTH_SECRET: z.string().min(32, 'AUTH_SECRET must be at least 32 characters'),
-    EMAIL_PROVIDER: z.enum(['dev', 'mailgun']).default('dev'),
+    EMAIL_PROVIDER: z.enum(['dev', 'resend', 'mailgun']).default('dev'),
     SMS_PROVIDER: z.enum(['fake', 'sinch']).default('fake'),
     AI_PROVIDER: z.enum(['fake', 'bedrock']).default('fake'),
     /**
@@ -28,6 +28,9 @@ const schema = z
       .optional(),
     INBOUND_DOMAIN: z.string().min(3).default('in.gaff.test'),
     MAIL_FROM_DOMAIN: z.string().min(3).default('mail.gaff.test'),
+    /** Resend (ADR-0014): sending, and the signing secret of the email.received webhook. */
+    RESEND_API_KEY: z.string().optional(),
+    RESEND_WEBHOOK_SECRET: z.string().optional(),
     MAILGUN_API_KEY: z.string().optional(),
     MAILGUN_DOMAIN: z.string().optional(),
     MAILGUN_WEBHOOK_SIGNING_KEY: z.string().optional(),
@@ -74,6 +77,12 @@ const schema = z
             message: `${key} can't be a stand-in in production`,
           });
         }
+      }
+    }
+    if (env.EMAIL_PROVIDER === 'resend') {
+      for (const key of ['RESEND_API_KEY', 'RESEND_WEBHOOK_SECRET'] as const) {
+        if (!env[key])
+          ctx.addIssue({ code: 'custom', path: [key], message: `${key} is required for Resend` });
       }
     }
     if (env.EMAIL_PROVIDER === 'mailgun') {

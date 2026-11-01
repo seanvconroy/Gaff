@@ -1,6 +1,6 @@
 /** An email received at a Gaff address (R5), from any provider, before it's understood. */
 export interface InboundEmail {
-  provider: 'mailgun' | 'dev';
+  provider: 'resend' | 'mailgun' | 'dev';
   providerMessageId: string;
   recipient: string;
   from: string;

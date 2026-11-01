@@ -13,6 +13,13 @@ import styles from './dashboard.module.css';
 export const metadata: Metadata = { title: 'Lettings' };
 
 const people = (n: number) => (n === 1 ? '1 person' : `${n} people`);
+const tenancyStepWords = {
+  send_agreement: 'send the tenancy agreement',
+  sign_agreement: 'sign the tenancy agreement',
+  request_payment: 'ask for the deposit and first month’s rent',
+  confirm_payment: 'check the payment has arrived',
+  finish: 'finish and close the letting',
+} as const;
 const daysAgo = (n: number) => (n === 0 ? 'today' : n === 1 ? 'yesterday' : `${n} days ago`);
 
 /** R28: one line per thing that needs a person, linking to where it's done. */
@@ -42,6 +49,11 @@ function todayLink(item: TodayItem): { href: string; text: string } {
       return {
         href: `/lettings/${item.lettingId}/applications`,
         text: `${item.address}: choose who to offer it to (${item.count} applied)`,
+      };
+    case 'tenancy':
+      return {
+        href: `/lettings/${item.lettingId}/tenancy`,
+        text: `${item.address}: ${tenancyStepWords[item.step]}`,
       };
     case 'rtb':
       return {
@@ -132,9 +144,11 @@ export default async function DashboardPage() {
                   {letting.time.usual !== null
                     ? ` · usually ${formatMinutes(letting.time.usual)} a letting`
                     : ''}
-                  {letting.daysSinceFirstEnquiry !== null
-                    ? ` · first enquiry ${daysAgo(letting.daysSinceFirstEnquiry)}${usualDaysToLet !== null ? `, usually let in ${usualDaysToLet} days` : ''}`
-                    : ''}
+                  {letting.daysToLet !== null
+                    ? ` · let in ${letting.daysToLet} ${letting.daysToLet === 1 ? 'day' : 'days'}${usualDaysToLet !== null ? `, usually ${usualDaysToLet}` : ''}`
+                    : letting.daysSinceFirstEnquiry !== null
+                      ? ` · first enquiry ${daysAgo(letting.daysSinceFirstEnquiry)}${usualDaysToLet !== null ? `, usually let in ${usualDaysToLet} days` : ''}`
+                      : ''}
                 </span>
               </div>
               <StatusPill tone={letting.status === 'live' ? 'success' : 'neutral'}>

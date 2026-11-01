@@ -28,7 +28,7 @@ export const taskList: TaskList = {
     const swept = await sweepPersonalData();
     // Counts only: never personal data in logs.
     console.log(
-      `Retention: ${swept.applications} applications and ${swept.inboundEmails} emails cleared.`,
+      `Retention: ${swept.applications} applications, ${swept.inboundEmails} emails and ${swept.references} references cleared; ${swept.recordEvents} record events and ${swept.recordDecisions} decisions past their period deleted.`,
     );
   },
   reference_overdue: async (payload) => {

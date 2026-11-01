@@ -209,6 +209,14 @@ export const eventCatalogue = {
   }),
   'inventory.shared': z.object({ tenancyId: z.uuid(), items: z.number().int() }),
   'inventory.confirmed': z.object({ tenancyId: z.uuid() }),
+  /** R26, stage 9: the let home is finished; the record stays, personal details go later. */
+  'letting.finished': z.object({
+    tenancyId: z.uuid(),
+    daysToLet: z.number().int().nullable(),
+    deleteAfter: z.iso.date(),
+  }),
+  /** R26: the tenant's references deleted once the tenancy started (PRD checks table). */
+  'tenancy.references_deleted': z.object({ tenancyId: z.uuid(), references: z.number().int() }),
   /** R16, R17: the operator's income rule, in tenths of the rent. */
   'settings.income_rule': z.object({ ruleTenths: z.number().int() }),
   /** R26: a person closed the letting (a 'close_letting' decision); everyone was told. */

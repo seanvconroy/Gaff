@@ -15,6 +15,7 @@ import {
   paperAction,
   requestPaymentAction,
   checklistAction,
+  finishAction,
   removeItemAction,
   rtbRegisteredAction,
   sendAgreementAction,
@@ -26,6 +27,8 @@ import { inventoryFor } from '@/server/tenancy/movein';
 import { ChoiceGroup } from '@/ui/Field';
 import styles from './tenancy.module.css';
 import { rtbDeadline } from '@/domain/tenancy/tenancy';
+import { canFinish } from '@/domain/tenancy/steps';
+import { env } from '@/lib/env';
 import { paymentAmounts } from '@/domain/tenancy/payment';
 import { formatEuro, irishToday } from '@/lib/format';
 import { TextField } from '@/ui/Field';
@@ -177,6 +180,7 @@ export default async function TenancyPage({
         view={view}
         items={await inventoryFor(member, letting.id)}
       />
+      <FinishCard lettingId={letting.id} view={view} />
     </Stack>
   );
 }
@@ -432,6 +436,55 @@ function MoveInCard({
             </form>
           ) : null}
         </Stack>
+      </Stack>
+    </Card>
+  );
+}
+
+function FinishCard({
+  lettingId,
+  view,
+}: {
+  lettingId: string;
+  view: NonNullable<Awaited<ReturnType<typeof tenancyFor>>>;
+}) {
+  const { tenancy } = view;
+  if (tenancy.closedAt) {
+    return (
+      <Notice tone="success" title="Finished" role="status">
+        <p>
+          Closed on {formatDate(tenancy.closedAt)}. The record of this letting stays, with no
+          personal details in it. The tenant’s details in Gaff are deleted{' '}
+          {env().RETENTION_PERSONAL_DAYS} days after closing.
+        </p>
+      </Notice>
+    );
+  }
+  return (
+    <Card labelledBy="finish-heading">
+      <Stack gap={4}>
+        <h2 id="finish-heading" className="type-title">
+          Finish
+        </h2>
+        <p>
+          When the agreement is signed and the money is in, close the letting. Save the signed
+          agreement, the packs and the inventory first: Gaff deletes the tenant’s details{' '}
+          {env().RETENTION_PERSONAL_DAYS} days after you close.
+        </p>
+        {!tenancy.rtbRegisteredAt ? (
+          <Notice tone="warning" title="Not registered with the RTB yet">
+            <p>Register first if you can: the RTB pack goes when the tenant’s details do.</p>
+          </Notice>
+        ) : null}
+        {canFinish(tenancy) ? (
+          <form action={finishAction.bind(null, lettingId)}>
+            <SubmitButton variant="secondary" pendingLabel="Closing…">
+              Finish and close the letting
+            </SubmitButton>
+          </form>
+        ) : (
+          <p>You can finish once the agreement is signed and the payment is in.</p>
+        )}
       </Stack>
     </Card>
   );

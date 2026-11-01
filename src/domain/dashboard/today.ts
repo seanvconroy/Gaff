@@ -1,3 +1,5 @@
+import type { TenancyStep } from '@/domain/tenancy/steps';
+
 /**
  * R28: what needs a person today, most urgent first. Renters waiting on a reply come first,
  * then people to mark at today's viewings, then applicants to choose from (R17), then who to
@@ -19,6 +21,8 @@ export interface LettingSnapshot {
   needsNewChoice?: boolean;
   /** R24: the tenancy has started and isn't registered with the RTB: the deadline. */
   rtbDueBy?: string | null;
+  /** Stage 8: the operator's next step on the tenancy, if it's theirs. */
+  tenancyStep?: TenancyStep | null;
   firstViewingAt: Date | null;
 }
 
@@ -26,6 +30,7 @@ export type TodayItem =
   | { kind: 'approvals' | 'attention' | 'questions'; count: number }
   | { kind: 'offer' | 'rechoose'; lettingId: string; address: string }
   | { kind: 'rtb'; lettingId: string; address: string; dueBy: string }
+  | { kind: 'tenancy'; lettingId: string; address: string; step: TenancyStep }
   | {
       kind: 'attendance' | 'choose' | 'shortlist';
       lettingId: string;
@@ -47,6 +52,16 @@ export function needsYouToday(input: {
   for (const l of input.lettings) {
     if (l.toMark > 0) {
       items.push({ kind: 'attendance', lettingId: l.id, address: l.addressLine1, count: l.toMark });
+    }
+  }
+  for (const l of input.lettings) {
+    if (l.tenancyStep) {
+      items.push({
+        kind: 'tenancy',
+        lettingId: l.id,
+        address: l.addressLine1,
+        step: l.tenancyStep,
+      });
     }
   }
   // R24: a legal deadline, so it comes straight after today's viewings.

@@ -1,14 +1,20 @@
-import { and, eq, inArray, isNull, lte, or, lt, ne } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, lt, lte, ne, or, sql } from 'drizzle-orm';
 import { withSystem } from '@/db/client';
 import {
   accessLinks,
+  activityMinutes,
   applications,
   checks,
+  decisions,
+  events,
   inboundEmails,
   messages,
+  inventoryItems,
   operatorQuestions,
+  tenancies,
 } from '@/db/schema';
 import { BACKSTOP_DAYS, isDue } from '@/domain/retention/retention';
+import { recordCutoff } from '@/domain/tenancy/steps';
 import { env } from '@/lib/env';
 import { irishToday } from '@/lib/format';
 import { recordEvent } from '@/server/record/events';
@@ -28,6 +34,9 @@ export async function sweepPersonalData(
 ): Promise<{
   applications: number;
   inboundEmails: number;
+  references: number;
+  recordEvents: number;
+  recordDecisions: number;
 }> {
   const today = irishToday(now);
   const backstop = new Date(now.getTime() - BACKSTOP_DAYS * 86_400_000);
@@ -94,6 +103,11 @@ export async function sweepPersonalData(
         .update(accessLinks)
         .set({ revokedAt: now })
         .where(and(eq(accessLinks.subjectId, application.id), isNull(accessLinks.revokedAt)));
+      // Stage 8: the typed signature and any PPS number go with the rest.
+      await tx
+        .update(tenancies)
+        .set({ tenantSignedName: null, ppsnSealed: null })
+        .where(eq(tenancies.applicationId, application.id));
       // R18: check results and referees' details go too; their links stop working.
       const theirChecks = await tx
         .update(checks)
@@ -146,6 +160,96 @@ export async function sweepPersonalData(
         data: { inboundEmailId: email.id },
       });
     }
-    return { applications: due.length, inboundEmails: unplaced.length };
+    // R26: a tenant's references are deleted once the tenancy starts (PRD checks table).
+    const started = await tx
+      .select({
+        id: tenancies.id,
+        applicationId: tenancies.applicationId,
+        organisationId: tenancies.organisationId,
+        lettingId: tenancies.lettingId,
+      })
+      .from(tenancies)
+      .where(
+        and(
+          onlyOrganisationId ? eq(tenancies.organisationId, onlyOrganisationId) : undefined,
+          lte(tenancies.startDate, today),
+        ),
+      );
+    let references = 0;
+    for (const tenancy of started) {
+      const cleared = await tx
+        .update(checks)
+        .set({ refereeName: null, refereeEmail: null, resultSealed: null })
+        .where(
+          and(
+            eq(checks.applicationId, tenancy.applicationId),
+            inArray(checks.kind, ['landlord_reference', 'employer_reference']),
+            or(isNotNull(checks.refereeEmail), isNotNull(checks.resultSealed)),
+          ),
+        )
+        .returning({ id: checks.id });
+      if (cleared.length === 0) continue;
+      references += cleared.length;
+      await tx
+        .update(accessLinks)
+        .set({ revokedAt: now })
+        .where(
+          and(
+            inArray(
+              accessLinks.subjectId,
+              cleared.map((c) => c.id),
+            ),
+            isNull(accessLinks.revokedAt),
+          ),
+        );
+      await recordEvent(tx, {
+        organisationId: tenancy.organisationId,
+        lettingId: tenancy.lettingId,
+        actor: { type: 'system' },
+        type: 'tenancy.references_deleted',
+        subject: { type: 'tenancy', id: tenancy.id },
+        data: { tenancyId: tenancy.id, references: cleared.length },
+      });
+    }
+
+    // R26 (Q3): the anonymous record (events and decisions), and operators' active minutes,
+    // are kept for RETENTION_RECORD_MONTHS, then deleted, through the event log's deliberate
+    // purge switch (ADR-0006). Inventory photos go with the record of a closed letting.
+    const cutoff = recordCutoff(now, env().RETENTION_RECORD_MONTHS);
+    const inOrg = <T extends { organisationId: unknown }>(table: T) =>
+      onlyOrganisationId ? eq(table.organisationId as never, onlyOrganisationId) : undefined;
+    await tx.execute(sql`select set_config('app.allow_event_purge', 'on', true)`);
+    const oldEvents = await tx
+      .delete(events)
+      .where(and(inOrg(events), lt(events.occurredAt, cutoff)))
+      .returning({ id: events.id });
+    await tx.execute(sql`select set_config('app.allow_event_purge', 'off', true)`);
+    const oldDecisions = await tx
+      .delete(decisions)
+      .where(and(inOrg(decisions), lt(decisions.decidedAt, cutoff)))
+      .returning({ id: decisions.id });
+    await tx
+      .delete(activityMinutes)
+      .where(and(inOrg(activityMinutes), lt(activityMinutes.minute, cutoff)));
+    const archived = await tx
+      .select({ id: tenancies.id })
+      .from(tenancies)
+      .where(and(inOrg(tenancies), lt(tenancies.closedAt, cutoff)));
+    if (archived.length > 0) {
+      await tx.delete(inventoryItems).where(
+        inArray(
+          inventoryItems.tenancyId,
+          archived.map((t) => t.id),
+        ),
+      );
+    }
+
+    return {
+      applications: due.length,
+      inboundEmails: unplaced.length,
+      references,
+      recordEvents: oldEvents.length,
+      recordDecisions: oldDecisions.length,
+    };
   });
 }

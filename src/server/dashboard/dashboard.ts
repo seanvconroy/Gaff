@@ -16,6 +16,7 @@ import {
 import { needsYouToday } from '@/domain/dashboard/today';
 import { whoCanBeOffered } from '@/domain/offers/offer';
 import { rtbDeadline } from '@/domain/tenancy/tenancy';
+import { nextTenancyStep } from '@/domain/tenancy/steps';
 import { irishToday } from '@/lib/format';
 import { approvalState } from '@/server/offers/approval';
 import { daysSince, timeAgainstUsual } from '@/domain/dashboard/time';
@@ -105,6 +106,9 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         needsNewChoice: !live && (declinedByLandlord || (out.length > 0 && !state?.preferredId)),
       });
     }
+    // Stage 8: the operator's next step on each tenancy, and days to let once signed (R28).
+    const allTenancies = await tx.select().from(tenancies);
+    const tenancyByLetting = new Map(allTenancies.map((t) => [t.lettingId, t]));
     // R24: started tenancies not yet registered with the RTB.
     const unregistered = await tx
       .select({ lettingId: tenancies.lettingId, startDate: tenancies.startDate })
@@ -165,6 +169,14 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         readyToOffer: offerState.get(letting.id)?.readyToOffer ?? false,
         needsNewChoice: offerState.get(letting.id)?.needsNewChoice ?? false,
         rtbDueBy: rtbDue.get(letting.id) ?? null,
+        tenancyStep: tenancyByLetting.has(letting.id)
+          ? nextTenancyStep(tenancyByLetting.get(letting.id)!)
+          : null,
+        daysToLet: (() => {
+          const t = tenancyByLetting.get(letting.id);
+          const signedAt = t?.operatorSignedAt ?? t?.tenantSignedAt;
+          return enquiredAt && signedAt ? daysSince(enquiredAt, signedAt) : null;
+        })(),
         firstViewingAt: nextViewing.get(letting.id)?.at ?? null,
         time: timeAgainstUsual(minutes.get(letting.id)?.n ?? 0, usual?.minutesPerLetting ?? null),
         daysSinceFirstEnquiry: enquiredAt ? daysSince(enquiredAt, now) : null,

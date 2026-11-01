@@ -261,6 +261,13 @@ export function describeEvent(
       return { what: 'Inventory shared with the tenant', detail: `${data.items} items` };
     case 'inventory.confirmed':
       return { what: 'The tenant confirmed the inventory' };
+    case 'letting.finished':
+      return {
+        what: 'Letting finished and archived',
+        detail: `${data.daysToLet === null ? '' : `Let in ${data.daysToLet} days; `}the tenant’s details are deleted on ${formatDate(String(data.deleteAfter))}`,
+      };
+    case 'tenancy.references_deleted':
+      return { what: 'The tenant’s references deleted, as the tenancy has started' };
     case 'letting.closed':
       return {
         what:

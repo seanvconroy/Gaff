@@ -15,6 +15,7 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] **AWS:** account with Amazon Bedrock access to Claude through the EU geographic inference profile; invocation logging off. Sign the DPA.
 - [ ] **Mailgun:** EU region account; sending domain with SPF and DKIM; inbound route to `/api/inbound/mailgun`. Sign the DPA.
 - [ ] **Sinch:** EU region SMS account; check Irish sender ID rules. Sign the DPA.
+- [ ] **ID and income checks:** choose providers (for example Veriff or Onfido for ID; TrueLayer, Tink or Yapily for open banking, checking AIB, Bank of Ireland, PTSB and Revolut coverage), sign DPAs, and add their adapters. Until then production runs with `IDENTITY_PROVIDER=none` and `INCOME_PROVIDER=none`, and operators arrange those checks themselves.
 - [ ] **GitHub:** push access and Actions enabled for CI.
 
 ## Solicitor (before the first pilot letting)
@@ -34,7 +35,8 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 ## Operations
 
 - [ ] DPIA completed
-- [ ] Retention job running in production, with its log checked
+- [ ] Retention job running in production (daily, 02:30 UTC), with its log checked: personal details on their date, references at tenancy start, the anonymous record after 12 months
+- [ ] `DATA_ENCRYPTION_KEY` set in production (32 random bytes, base64), and stored safely: check results and PPS numbers can’t be read without it
 - [ ] Backups: a restore tested from point-in-time recovery
 - [ ] Error alerts going to a founder
 - [ ] Staging environment with test accounts

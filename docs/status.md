@@ -61,9 +61,9 @@ Last updated: 1 November 2026 (Slices 1 and 2 complete; Slice 3 next).
 | 27 | R23: payment request to the operator’s own account | **Done**: an admin sets the account tenants pay into (IBAN checksum checked; changes logged without the IBAN); once signed, the operator asks for the deposit and first month’s rent (capped, rule 4) by a date, with a reference; the bank details appear only on the tenant’s private page, never in email, with a prompt to confirm them by phone; the operator marks it received and the tenant gets a receipt; Gaff never holds money (rule 5); the tenant’s page shows each tenancy step, what’s done and what’s next |
 | 28 | R24: rent-setting and RTB packs | **Done**: printable rent-setting pack (previous rent and date, the rent check and its rules version, three comparables, the new rent) and RTB registration pack (the home, dates, rent, deposit, landlord, agent and PSRA licence, tenant’s contact details); the tenant’s PPS number is optional, checked, sealed, shown only in the pack and deleted once the operator records the registration; no date of birth (Q24); the deadline is one month from the start, with an email to admins a week before and a dashboard prompt once the tenancy has started |
 | 29 | R25: move-in checklist and inventory | **Done**: checklist (keys, alarms, how to report repairs, meter readings; keys handed over is moving in); inventory room by room with a condition, a short note and a photo; photos are re-drawn in the browser (the right way up, at most 1600 px, no location or camera details), checked by their real type and size on the server and stripped again, stored in Postgres and served only to the operator and, once shared, the tenant; the tenant confirms it’s a fair record, after which it can’t change |
-| 30 | R26: retention, in full | Next |
+| 30 | R26: retention, in full | **Done**: the operator finishes a let home once the agreement is signed and the money is in (warned if the RTB registration isn’t recorded); the letting is archived at stage 9 and the tenant’s details get their deletion date; the daily job deletes everyone’s personal details on schedule (now including the typed signature and any PPS number), the tenant’s references once the tenancy starts, and the anonymous record (events, decisions), operators’ active minutes and old inventory photos after `RETENTION_RECORD_MONTHS`, through the event log’s deliberate purge switch; “Needs you today” shows each tenancy’s next step, and lettings show days to let against the usual |
 
-## Built early, before real renters
+## Retention (R26), built early and completed in Slice 3
 
 | Item | What | Status |
 | --- | --- | --- |
@@ -71,9 +71,9 @@ Last updated: 1 November 2026 (Slices 1 and 2 complete; Slice 3 next).
 
 ## Next
 
-- **Slice 2 (stages 5 to 7):** R16 apply link for people marked as came, R17 side-by-side applicants, R18 checks for the preferred applicant and backup only (providers need founders’ approval, rule 10), R19 landlord approval by link, R20 offer with a deadline and backup, R21 outcome messages.
-- **Slice 3 (stages 8 and 9):** R22 tenancy agreement and e-signature, R23 payment request (deposit and first month, capped, paid to the operator’s own account), R24 rent-setting and RTB packs, R25 move-in checklist, and the full R26 (references deleted once the tenancy starts; the anonymous record deleted after 12 months).
-- **Tidy-ups:** move the renter pages’ words into `src/copy/` with the templates, for one-place voice review; a dashboard nudge to close lettings whose viewings ended a while ago; a purge path for events and decisions older than `RETENTION_RECORD_MONTHS` (the event log is append-only, so this needs a privileged job), due before the first record is 12 months old; retention for `activity_minutes`.
+- **Your end-to-end test** (see [testing-guide.md](testing-guide.md)), then feedback and iteration.
+- **Before the first pilot:** everything in [launch-checklist.md](launch-checklist.md), including the providers for ID and income checks (stand-ins today) and the solicitor’s answers on electronic signing (Q23) and the agreement wording.
+- **Later:** joint tenants on one agreement; guarantors when affordability isn’t met (renters can explain or add one by replying, today); an e-signature provider if the solicitor wants an advanced signature; renter profiles they can keep and reuse (after the solicitor’s view on the lawful basis); an export of the signed agreement, packs and inventory as PDFs; moving the renter pages’ words into `src/copy/`.
 
 ## Known issues
 

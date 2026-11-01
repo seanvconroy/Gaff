@@ -206,3 +206,35 @@ test('R25: the move-in checklist, and an inventory with photos that the tenant c
   await page.reload();
   await expect(page.getByText(/Aoife confirmed it’s a fair record/)).toBeVisible();
 });
+
+test('R26: the operator finishes the let home; the record is archived and the dashboard shows days to let', async ({
+  browser,
+  page,
+}) => {
+  test.slow();
+  const { lettingUrl } = await anAcceptedOffer(browser, page);
+  await signedOnPaper(page, lettingUrl);
+  await page.goto('/settings');
+  await page.getByLabel('Name on the account').fill('Halcyon Lettings client account');
+  await page.getByLabel('IBAN').fill('IE29 AIBK 9311 5212 3456 78');
+  await page.getByRole('button', { name: 'Save the account' }).click();
+  await expect(page.getByText('Saved.')).toBeVisible();
+
+  await page.goto('/');
+  await page
+    .getByRole('link', { name: '12 Ranelagh Road: ask for the deposit and first month’s rent' })
+    .click();
+  await page.getByRole('button', { name: 'Ask Aoife to pay' }).click();
+  await page.getByRole('button', { name: 'It’s in our account' }).click();
+  await expect(page.getByText('You can finish once')).toHaveCount(0);
+  await expect(page.getByText('Not registered with the RTB yet')).toBeVisible();
+  await expectAccessible(page);
+  await page.getByRole('button', { name: 'Finish and close the letting' }).click();
+  await expect(page.getByText('Finished', { exact: true })).toBeVisible();
+  await expect(page.getByText('Step 9 of 9 · Close')).toBeVisible();
+
+  await page.goto('/');
+  await expect(page.getByText(/let in 0 days/)).toBeVisible();
+  await page.goto(`${lettingUrl}/timeline`);
+  await expect(page.getByText('Letting finished and archived')).toBeVisible();
+});

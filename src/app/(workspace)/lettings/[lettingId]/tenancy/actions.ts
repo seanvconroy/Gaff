@@ -8,6 +8,7 @@ import { UserFacingError } from '@/server/errors';
 import { saveLandlordContact } from '@/server/offers/approval';
 import { confirmPayment, requestPayment } from '@/server/tenancy/payment';
 import { markRtbRegistered } from '@/server/tenancy/rtb';
+import { finishLetting } from '@/server/tenancy/close';
 import {
   addInventoryItem,
   removeInventoryItem,
@@ -146,4 +147,12 @@ export async function removeItemAction(lettingId: string, itemId: string): Promi
 export async function shareInventoryAction(lettingId: string): Promise<void> {
   const member = await requireMember();
   await run(lettingId, 'shared', () => shareInventory(member, lettingId));
+}
+
+/** R26, stage 9: finish and archive the let home. */
+export async function finishAction(lettingId: string): Promise<void> {
+  const member = await requireMember();
+  await run(lettingId, 'finished', async () => {
+    await finishLetting(member, lettingId);
+  });
 }

@@ -157,3 +157,52 @@ test('R24: the rent-setting and RTB packs; the tenant’s PPS number is optional
   await expect(page.getByText('Deleted after registration')).toBeVisible();
   await expect(page.getByText('1234567T')).toHaveCount(0);
 });
+
+/** A real 8×8 PNG (a red square), so the photo is drawn and uploaded as a phone would. */
+const RED_SQUARE = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEklEQVR4nGP4z8CAFWEXHbQSACj/P8Fu7N9hAAAAAElFTkSuQmCC',
+  'base64',
+);
+
+test('R25: the move-in checklist, and an inventory with photos that the tenant confirms', async ({
+  browser,
+  page,
+}) => {
+  test.slow();
+  const { lettingUrl, offerLink } = await anAcceptedOffer(browser, page);
+  await signedOnPaper(page, lettingUrl);
+  await page.goto(`${lettingUrl}/tenancy`);
+  await page.getByLabel('Keys handed over').check();
+  await page.getByLabel('Electricity meter reading').fill('012345');
+  await page.getByRole('button', { name: 'Save the checklist' }).click();
+  await expect(page.getByText('Moved in', { exact: true })).toBeVisible();
+
+  await page.getByLabel('Room').fill('Kitchen');
+  await page.getByLabel('Item', { exact: true }).fill('Fridge');
+  await page.getByLabel('Condition').selectOption('good');
+  await page.getByLabel(/^Photo/).setInputFiles({
+    name: 'fridge.png',
+    mimeType: 'image/png',
+    buffer: RED_SQUARE,
+  });
+  await page.getByRole('button', { name: 'Add to the inventory' }).click();
+  const photo = page.getByRole('img', { name: 'Fridge, Kitchen' });
+  await expect(photo).toBeVisible();
+  expect(await photo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+  await expectAccessible(page);
+  await page.getByRole('button', { name: 'Share the inventory with Aoife' }).click();
+  await expect(page.getByText('Waiting for them to confirm it.')).toBeVisible();
+
+  const aoife = await onPhone(browser, offerLink);
+  await expect(aoife.page.getByRole('heading', { name: 'Your move-in inventory' })).toBeVisible();
+  await expect(aoife.page.getByRole('img', { name: 'Fridge, Kitchen' })).toBeVisible();
+  await expectAccessible(aoife.page);
+  await expectNoSidewaysScroll(aoife.page);
+  await screenshot(aoife.page, '46-tenant-inventory');
+  await aoife.page.getByRole('button', { name: 'This is a fair record' }).click();
+  await expect(aoife.page.getByText('You’ve confirmed it')).toBeVisible();
+  await aoife.context.close();
+
+  await page.reload();
+  await expect(page.getByText(/Aoife confirmed it’s a fair record/)).toBeVisible();
+});

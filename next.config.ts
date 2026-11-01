@@ -30,6 +30,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   serverExternalPackages: ['graphile-worker', 'pg'],
+  // R25: inventory photos are uploaded through a server action (each under 5 MB).
+  experimental: { serverActions: { bodySizeLimit: '6mb' } },
   async headers() {
     const headers = isProduction
       ? [

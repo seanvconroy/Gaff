@@ -15,6 +15,7 @@ import { resolveAccessLink } from '@/server/access/links';
 import { recordEvent } from '@/server/record/events';
 import { checksOf } from '@/server/checks/checks';
 import { offerOf } from '@/server/offers/offer';
+import { inventoryOf } from '@/server/tenancy/movein';
 import { currentBooking, slotAvailability } from '@/server/viewings/booking';
 
 /** R9: what a renter's private link shows: their application, the home and the questions. */
@@ -73,7 +74,9 @@ export async function loadRenterPage(token: string) {
             iban: row.organisation.paymentIban,
           }
         : null;
+    const inventory = tenancy?.inventorySharedAt ? await inventoryOf(tx, tenancy.id) : [];
     return {
+      inventory,
       payTo,
       tenancy: tenancy ?? null,
       homeOffer,

@@ -13,6 +13,7 @@ import { OfferSection } from './OfferSection';
 import { PaymentDetails } from './PaymentDetails';
 import { TenancySteps } from './TenancySteps';
 import { PpsnForm } from './PpsnForm';
+import { InventoryReview } from './InventoryReview';
 import { env } from '@/lib/env';
 import { ApplyForm } from './ApplyForm';
 import { BookingSection } from './BookingSection';
@@ -234,6 +235,14 @@ export default async function RenterPage({
                 operatorName={organisation.name}
                 tenancy={page.tenancy}
                 payTo={page.payTo}
+              />
+            ) : null}
+            {page.tenancy?.inventorySharedAt && page.inventory.length > 0 ? (
+              <InventoryReview
+                token={token}
+                operatorName={organisation.name}
+                items={page.inventory}
+                confirmedAt={page.tenancy.inventoryConfirmedAt}
               />
             ) : null}
             {page.tenancy && !page.tenancy.rtbRegisteredAt ? (

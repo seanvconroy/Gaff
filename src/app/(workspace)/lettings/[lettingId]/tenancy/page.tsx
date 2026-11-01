@@ -14,9 +14,17 @@ import {
   confirmPaymentAction,
   paperAction,
   requestPaymentAction,
+  checklistAction,
+  removeItemAction,
   rtbRegisteredAction,
   sendAgreementAction,
+  shareInventoryAction,
 } from './actions';
+import { InventoryItemForm } from './InventoryItemForm';
+import { checklistItems, conditions } from '@/domain/tenancy/movein';
+import { inventoryFor } from '@/server/tenancy/movein';
+import { ChoiceGroup } from '@/ui/Field';
+import styles from './tenancy.module.css';
 import { rtbDeadline } from '@/domain/tenancy/tenancy';
 import { paymentAmounts } from '@/domain/tenancy/payment';
 import { formatEuro, irishToday } from '@/lib/format';
@@ -164,6 +172,11 @@ export default async function TenancyPage({
         hasAccount={Boolean(view.organisation.paymentIban)}
       />
       <RtbCard lettingId={letting.id} view={view} />
+      <MoveInCard
+        lettingId={letting.id}
+        view={view}
+        items={await inventoryFor(member, letting.id)}
+      />
     </Stack>
   );
 }
@@ -304,4 +317,122 @@ function addDays(date: string, days: number): string {
   const d = new Date(`${date}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+function MoveInCard({
+  lettingId,
+  view,
+  items,
+}: {
+  lettingId: string;
+  view: NonNullable<Awaited<ReturnType<typeof tenancyFor>>>;
+  items: Awaited<ReturnType<typeof inventoryFor>>;
+}) {
+  const { tenancy, tenant } = view;
+  const first = tenant.fullName.split(/\s+/)[0];
+  const checklist = tenancy.moveInChecklist ?? {};
+  const confirmed = tenancy.inventoryConfirmedAt !== null;
+  return (
+    <Card labelledBy="movein-heading">
+      <Stack gap={6}>
+        <h2 id="movein-heading" className="type-title">
+          Moving in
+        </h2>
+        <form action={checklistAction.bind(null, lettingId)}>
+          <Stack gap={4}>
+            <ChoiceGroup
+              name="checklist"
+              legend="On the day"
+              type="checkbox"
+              defaultValue={checklistItems
+                .filter((c) => checklist[c.name] === 'yes')
+                .map((c) => c.name)}
+              options={checklistItems.map((c) => ({ value: c.name, label: c.label }))}
+            />
+            <TextField
+              name="electricity"
+              label="Electricity meter reading"
+              optional
+              autoComplete="off"
+              defaultValue={checklist.electricity ?? ''}
+            />
+            <TextField
+              name="gas"
+              label="Gas meter reading"
+              optional
+              autoComplete="off"
+              defaultValue={checklist.gas ?? ''}
+            />
+            <div>
+              <SubmitButton variant="secondary" pendingLabel="Saving…">
+                Save the checklist
+              </SubmitButton>
+            </div>
+            {tenancy.moveInCompletedAt ? (
+              <p>
+                <StatusPill tone="success">Moved in</StatusPill> Keys handed over on{' '}
+                {formatDate(tenancy.moveInCompletedAt)}.
+              </p>
+            ) : null}
+          </Stack>
+        </form>
+        <Stack gap={4}>
+          <h3 className="type-title">Inventory</h3>
+          {items.length === 0 ? (
+            <p>Nothing recorded yet. Add each room’s main items below.</p>
+          ) : null}
+          {items.length > 0 ? (
+            <ul className={styles.inventory}>
+              {items.map((item) => (
+                <li key={item.id} className={styles.item}>
+                  {item.hasPhoto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={`/lettings/${lettingId}/tenancy/photos/${item.id}`}
+                      alt={`${item.item}, ${item.room}`}
+                      className={styles.photo}
+                    />
+                  ) : null}
+                  <span>
+                    <strong>
+                      {item.room}: {item.item}
+                    </strong>{' '}
+                    <StatusPill tone={item.condition === 'damaged' ? 'warning' : 'neutral'}>
+                      {conditions[item.condition]}
+                    </StatusPill>
+                    {item.note ? <span className={styles.note}> {item.note}</span> : null}
+                  </span>
+                  {!confirmed ? (
+                    <form action={removeItemAction.bind(null, lettingId, item.id)}>
+                      <SubmitButton variant="quiet" pendingLabel="Removing…">
+                        Remove<span className="visually-hidden">: {item.item}</span>
+                      </SubmitButton>
+                    </form>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {!confirmed ? <InventoryItemForm lettingId={lettingId} /> : null}
+          {confirmed ? (
+            <p>
+              <StatusPill tone="success">Confirmed</StatusPill> {first} confirmed it’s a fair record
+              on {formatDate(tenancy.inventoryConfirmedAt!)}.
+            </p>
+          ) : tenancy.inventorySharedAt ? (
+            <p>
+              <StatusPill tone="info">With {first}</StatusPill> Shared on{' '}
+              {formatDate(tenancy.inventorySharedAt)}. Waiting for them to confirm it.
+            </p>
+          ) : items.length > 0 ? (
+            <form action={shareInventoryAction.bind(null, lettingId)}>
+              <SubmitButton variant="secondary" pendingLabel="Sharing…">
+                Share the inventory with {first}
+              </SubmitButton>
+            </form>
+          ) : null}
+        </Stack>
+      </Stack>
+    </Card>
+  );
 }

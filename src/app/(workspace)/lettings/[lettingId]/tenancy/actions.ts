@@ -8,6 +8,12 @@ import { UserFacingError } from '@/server/errors';
 import { saveLandlordContact } from '@/server/offers/approval';
 import { confirmPayment, requestPayment } from '@/server/tenancy/payment';
 import { markRtbRegistered } from '@/server/tenancy/rtb';
+import {
+  addInventoryItem,
+  removeInventoryItem,
+  saveChecklist,
+  shareInventory,
+} from '@/server/tenancy/movein';
 import { countersign, markSignedOnPaper, sendAgreement } from '@/server/tenancy/tenancy';
 
 async function run(lettingId: string, done: string, work: () => Promise<void>): Promise<void> {
@@ -87,4 +93,57 @@ export async function rtbRegisteredAction(lettingId: string, formData: FormData)
   await run(lettingId, 'registered', () =>
     markRtbRegistered(member, lettingId, { reference: String(formData.get('reference') ?? '') }),
   );
+}
+
+/** R25: the move-in checklist. */
+export async function checklistAction(lettingId: string, formData: FormData): Promise<void> {
+  const member = await requireMember();
+  await run(lettingId, 'checklist', () =>
+    saveChecklist(member, lettingId, {
+      keys: formData.getAll('checklist').includes('keys') ? 'yes' : '',
+      alarms: formData.getAll('checklist').includes('alarms') ? 'yes' : '',
+      repairs: formData.getAll('checklist').includes('repairs') ? 'yes' : '',
+      electricity: String(formData.get('electricity') ?? ''),
+      gas: String(formData.get('gas') ?? ''),
+    }),
+  );
+}
+
+/** R25: one inventory item, with an optional photo. */
+export async function inventoryItemAction(
+  lettingId: string,
+  _state: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const member = await requireMember();
+  const values = {
+    room: String(formData.get('room') ?? ''),
+    item: String(formData.get('item') ?? ''),
+    condition: String(formData.get('condition') ?? ''),
+    note: String(formData.get('note') ?? ''),
+  };
+  const file = formData.get('photo');
+  const photo =
+    file instanceof File && file.size > 0 ? Buffer.from(await file.arrayBuffer()) : null;
+  let result;
+  try {
+    result = await addInventoryItem(member, lettingId, values, photo);
+  } catch (error) {
+    if (!(error instanceof UserFacingError)) throw error;
+    return invalid({}, values, error.message);
+  }
+  if (!result.ok) return invalid(result.errors, values, 'One or two things need another look.');
+  revalidatePath(`/lettings/${lettingId}/tenancy`);
+  redirect(`/lettings/${lettingId}/tenancy?added=1#movein-heading`);
+}
+
+export async function removeItemAction(lettingId: string, itemId: string): Promise<void> {
+  const member = await requireMember();
+  await run(lettingId, 'removed', () => removeInventoryItem(member, lettingId, itemId));
+}
+
+/** R25: send the tenant the inventory to look over and confirm. */
+export async function shareInventoryAction(lettingId: string): Promise<void> {
+  const member = await requireMember();
+  await run(lettingId, 'shared', () => shareInventory(member, lettingId));
 }

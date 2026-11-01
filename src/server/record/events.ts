@@ -83,6 +83,7 @@ export const eventCatalogue = {
       'agreement_signed',
       'payment_request',
       'payment_received',
+      'inventory_shared',
     ]),
     channel: z.enum(['email', 'sms']),
     author: z.enum(['template', 'ai', 'person']),
@@ -199,6 +200,15 @@ export const eventCatalogue = {
   'tenancy.ppsn_given': z.object({ tenancyId: z.uuid(), given: z.boolean() }),
   /** R24: registered with the RTB; the PPS number is deleted then. */
   'tenancy.rtb_registered': z.object({ tenancyId: z.uuid(), ppsnDeleted: z.boolean() }),
+  /** R25: moving in. */
+  'movein.checklist_saved': z.object({ tenancyId: z.uuid(), keysHandedOver: z.boolean() }),
+  'inventory.item_added': z.object({
+    tenancyId: z.uuid(),
+    itemId: z.uuid(),
+    withPhoto: z.boolean(),
+  }),
+  'inventory.shared': z.object({ tenancyId: z.uuid(), items: z.number().int() }),
+  'inventory.confirmed': z.object({ tenancyId: z.uuid() }),
   /** R16, R17: the operator's income rule, in tenths of the rent. */
   'settings.income_rule': z.object({ ruleTenths: z.number().int() }),
   /** R26: a person closed the letting (a 'close_letting' decision); everyone was told. */

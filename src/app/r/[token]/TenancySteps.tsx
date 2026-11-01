@@ -9,6 +9,7 @@ type Tenancy = {
   paymentRequestedAt: Date | null;
   paymentDueDate: string | null;
   paymentReceivedAt: Date | null;
+  moveInCompletedAt: Date | null;
 };
 
 /**
@@ -51,8 +52,22 @@ export function TenancySteps({
           To pay by {tenancy.paymentDueDate ? formatDate(tenancy.paymentDueDate) : 'the date below'}
           . The details are below.
         </>
+      ) : signed ? (
+        <>{operatorName} will send you how to pay them directly.</>
       ) : (
         <>Once the agreement is signed, {operatorName} will send you how to pay them directly.</>
+      ),
+    },
+    {
+      name: 'Moving in',
+      done: Boolean(tenancy?.moveInCompletedAt),
+      text: tenancy?.moveInCompletedAt ? (
+        <>Keys handed over on {formatDate(tenancy.moveInCompletedAt)}. Welcome home.</>
+      ) : (
+        <>
+          {operatorName} will be in touch about the keys for{' '}
+          {tenancy ? formatDate(tenancy.startDate) : 'your start date'}.
+        </>
       ),
     },
   ];

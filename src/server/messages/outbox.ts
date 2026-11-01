@@ -29,7 +29,8 @@ export type OutboundKind =
   | 'agreement_ready'
   | 'agreement_signed'
   | 'payment_request'
-  | 'payment_received';
+  | 'payment_received'
+  | 'inventory_shared';
 
 /**
  * Puts a message in the outbox (ADR-0010), in the caller's transaction. AI-written answers

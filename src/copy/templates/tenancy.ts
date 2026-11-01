@@ -107,3 +107,27 @@ export function paymentReceivedEmail(input: {
     ].join('\n'),
   };
 }
+
+export const INVENTORY_SHARED_TEMPLATE = 'inventory_shared@1';
+
+/** R25: the move-in inventory, for the tenant to look over and confirm. */
+export function inventorySharedEmail(input: {
+  tenantName: string;
+  operatorName: string;
+  address: string;
+  pageUrl: string;
+}) {
+  return {
+    subject: `${input.address}: your move-in inventory`,
+    body: [
+      hello(input.tenantName),
+      '',
+      `${input.operatorName} has recorded what’s in ${input.address}, and its condition, room by room, with photos. Please look over it here, and confirm it’s a fair record:`,
+      input.pageUrl,
+      '',
+      `If anything isn’t right, reply to this email and ${input.operatorName} will sort it out with you. It’s worth doing in the first week, as it helps when your deposit is returned.`,
+      '',
+      input.operatorName,
+    ].join('\n'),
+  };
+}

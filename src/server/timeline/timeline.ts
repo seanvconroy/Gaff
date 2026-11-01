@@ -38,6 +38,7 @@ const messageTitles: Record<string, string> = {
   agreement_signed: 'Signed agreement sent to the tenant',
   payment_request: 'Payment request sent',
   payment_received: 'Payment receipt sent',
+  inventory_shared: 'Inventory sent to the tenant',
 };
 
 const rentCheckTitles: Record<string, string> = {
@@ -250,6 +251,16 @@ export function describeEvent(
         what: 'Registered with the RTB',
         detail: data.ppsnDeleted ? 'The tenant’s PPS number was deleted' : undefined,
       };
+    case 'movein.checklist_saved':
+      return { what: data.keysHandedOver ? 'Keys handed over' : 'Move-in checklist updated' };
+    case 'inventory.item_added':
+      return {
+        what: data.withPhoto ? 'Inventory item added, with a photo' : 'Inventory item added',
+      };
+    case 'inventory.shared':
+      return { what: 'Inventory shared with the tenant', detail: `${data.items} items` };
+    case 'inventory.confirmed':
+      return { what: 'The tenant confirmed the inventory' };
     case 'letting.closed':
       return {
         what:

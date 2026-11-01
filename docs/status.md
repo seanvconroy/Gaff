@@ -17,7 +17,7 @@ Last updated: 1 November 2026 (all three slices built; hosting moved to Vercel a
 | UI kit | Button, fields, choice group, notice, status pill, card, page header, stage tracker | Used on every screen; axe checks in E2E |
 | Email | Port, development outbox, Resend adapter (sending, and receiving with signed webhooks), Mailgun EU adapter; no tracking | Sign-in journey; `src/adapters/email/resend.test.ts`; `tests/integration/r5-resend-inbound.test.ts` |
 | CI and deploy | GitHub Actions with Postgres; Vercel (Dublin) and Supabase (Ireland), migrations in the build ([deploy.md](deploy.md), ADR-0014) | `.github/workflows/ci.yml`, `vercel.json` |
-| Jobs on Vercel | No always-on worker: a per-minute tick (Supabase Cron; Vercel Cron daily as a backstop) and a run straight after each request, time-boxed and stopping cleanly; the nightly retention job from the same schedule | `tests/integration/jobs-run-due.test.ts`, `tests/integration/cron-tick.test.ts` |
+| Jobs on Vercel | No always-on worker: a per-minute tick (Supabase Cron) and a run straight after each request, time-boxed and stopping cleanly, through Supabase's transaction pooler; a daily call queues the retention job | `tests/integration/jobs-run-due.test.ts`, `tests/integration/cron-tick.test.ts` |
 | Rules review | Rule 10 is now "approved vendors" (Q26); renter profiles decided, not built (Q25) | `CLAUDE.md`, `docs/open-questions.md` |
 
 ## Slice 1 (stages 1 to 4)

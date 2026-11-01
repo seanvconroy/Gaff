@@ -1,6 +1,6 @@
 import pg from 'pg';
 import { describe, expect, it } from 'vitest';
-import { poolConfig } from './connection';
+import { migrationUrl, poolConfig } from './connection';
 
 /** What node-postgres will actually use, after it has read the connection string. */
 const effective = (config: pg.PoolConfig) =>
@@ -11,6 +11,17 @@ const supabase =
   'postgresql://gaff.abcdefghijklmnop:secret@aws-1-eu-west-1.pooler.supabase.com:5432/postgres';
 
 describe('ADR-0014: connecting to the database', () => {
+  it('migrates through session mode, on the same host, when the app uses the transaction pooler', () => {
+    const transaction =
+      'postgresql://gaff.abcdefghijklmnop:secret@aws-0-eu-west-1.pooler.supabase.com:6543/postgres';
+    expect(migrationUrl(transaction)).toBe(
+      'postgresql://gaff.abcdefghijklmnop:secret@aws-0-eu-west-1.pooler.supabase.com:5432/postgres',
+    );
+    expect(migrationUrl('postgres://gaff:gaff@localhost:6543/gaff_dev')).toBe(
+      'postgres://gaff:gaff@localhost:6543/gaff_dev',
+    );
+  });
+
   it('connects to a local database without TLS', () => {
     const config = poolConfig('postgres://gaff:gaff@localhost:5432/gaff_dev');
     expect(effective(config).ssl).toBe(false);

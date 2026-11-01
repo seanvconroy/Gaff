@@ -33,6 +33,26 @@ select cron.schedule(
   $$
 );
 
+-- Once a day: queue the retention sweep (R26) and run what's due. Vercel Cron calls the same
+-- address at the same time; whichever comes first queues it, and the other finds it queued.
+select cron.schedule(
+  'gaff-daily',
+  '35 2 * * *',
+  $$
+  select net.http_get(
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'gaff_app_url')
+      || '/api/cron/daily',
+    headers := jsonb_build_object(
+      'authorization',
+      'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'gaff_cron_secret'),
+      'x-vercel-protection-bypass',
+      (select decrypted_secret from vault.decrypted_secrets where name = 'gaff_vercel_bypass')
+    ),
+    timeout_milliseconds := 120000
+  );
+  $$
+);
+
 -- pg_cron keeps a row for every run; keep a week of them.
 select cron.schedule(
   'gaff-tick-history',

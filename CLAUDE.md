@@ -59,7 +59,7 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
 
 ## Architecture
 
-A TypeScript modular monolith: one Next.js app on Vercel (Dublin) and one Postgres database on Supabase (Ireland). Background jobs wait in a Postgres queue (graphile-worker). On Vercel, Supabase Cron calls `/api/cron/tick` every minute to run due jobs (Vercel Cron once a day as a backstop), and a request that queues a job runs it straight after responding. Locally, `pnpm worker` runs them. Deploying is described in `docs/deploy.md`.
+A TypeScript modular monolith: one Next.js app on Vercel (Dublin) and one Postgres database on Supabase (Ireland). Background jobs wait in a Postgres queue (graphile-worker). On Vercel, Supabase Cron calls `/api/cron/tick` every minute to run due jobs, `/api/cron/daily` queues the nightly retention job, and a request that queues a job runs it straight after responding. Locally, `pnpm worker` runs them. Deploying is described in `docs/deploy.md`.
 
 - `src/domain/`: pure business rules. No I/O and no framework imports (enforced by lint). Write these first, with unit tests.
 - `src/server/`: use cases. Each one loads data, applies a domain rule, then writes the change and its event in one transaction, inside `withOrg()`.

@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { runMigrations as runWorkerMigrations } from 'graphile-worker';
 import pg from 'pg';
-import { poolConfig } from './connection';
+import { migrationUrl, poolConfig } from './connection';
 
 /**
  * Forces row-level security on every table that has it enabled, so the table owner
@@ -23,7 +23,7 @@ end $$;`;
 
 export async function runMigrations(databaseUrl: string): Promise<void> {
   const pool = new pg.Pool({
-    ...poolConfig(databaseUrl, process.env.DATABASE_CA_CERT),
+    ...poolConfig(migrationUrl(databaseUrl), process.env.DATABASE_CA_CERT),
     max: 2,
   });
   pool.on('error', (error) => console.error('Postgres pool error during migrations', error));

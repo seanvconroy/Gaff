@@ -24,15 +24,16 @@ It takes about 20 minutes. Production uses the same steps with real providers; s
    - Keep the password for step 4.
 3. **Switch off the Data API.** Go to **Integrations**, then **Data API**, and switch off **Enable Data API**. Gaff never uses it, so this closes a door nobody needs.
 4. **Copy the connection address.**
-   - Press **Connect** at the top of the project page, choose **Session pooler**, and copy the URI. It looks like this:
+   - Press **Connect** at the top of the project page, choose **Transaction pooler** (port 6543), and copy the URI. It looks like this:
      ```text
-     postgresql://postgres.abcdefghijklmnop:[YOUR-PASSWORD]@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
+     postgresql://postgres.abcdefghijklmnop:[YOUR-PASSWORD]@aws-0-eu-west-1.pooler.supabase.com:6543/postgres
      ```
    - Change `postgres.` at the very start to `gaff.`, and `[YOUR-PASSWORD]` to the password from step 2. Keep the host exactly as shown: projects sit on `aws-0-…` or `aws-1-…` and the two aren't interchangeable.
    - For example:
      ```text
-     postgresql://gaff.abcdefghijklmnop:YourLongPassword123@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
+     postgresql://gaff.abcdefghijklmnop:YourLongPassword123@aws-0-eu-west-1.pooler.supabase.com:6543/postgres
      ```
+   - Use the transaction pooler, not the session pooler. Serverless functions hold connections open, and the session pooler allows only 15 at once on the Free plan. The deploy's migrations switch to session mode on their own, for one short connection.
    - That's your `DATABASE_URL`.
 
 ## 2. The app (Vercel)
@@ -66,7 +67,7 @@ Vercel deploys the repository's default branch, `claude/gaff-mvp`, as production
    | `"database": "42P01"` | The tables aren't there. Check the build log for the migration step. |
 
 2. **Sign in.** Open the app and sign in with a made-up email, then open the sign-in link from `/dev/outbox`.
-3. **The daily backstop.** In Vercel, **Settings**, then **Cron Jobs**, shows `/api/cron/tick` once a day.
+3. **The daily job.** In Vercel, **Settings**, then **Cron Jobs**, shows `/api/cron/daily` once a day.
 
 ## 4. The minute tick (Supabase)
 
@@ -83,7 +84,8 @@ Then follow [testing-guide.md](testing-guide.md) from step 1.
 
 There's no always-on worker. Jobs wait in the database and run in two ways:
 - **Straight after the action that queued them.** Sending a reply, reading an enquiry or drafting an answer happens within seconds.
-- **On the minute tick.** Supabase Cron calls `/api/cron/tick` every minute with `CRON_SECRET`, on any Vercel plan. That runs anything due, such as reminders, offer deadlines and chasers, and the nightly retention job at 02:30 UTC. Vercel's own cron calls it once a day as a backstop.
+- **On the minute tick.** Supabase Cron calls `/api/cron/tick` every minute with `CRON_SECRET`, on any Vercel plan. That runs anything due, such as reminders, offer deadlines and chasers.
+- **Once a day.** At 02:30 UTC, Vercel Cron and Supabase Cron both call `/api/cron/daily`, which queues the retention job (R26). Whichever comes first queues it, and the other finds it already queued.
 
 Each run stops once nothing is left, or after 45 seconds, and lets running jobs finish first.
 

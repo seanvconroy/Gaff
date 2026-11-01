@@ -39,7 +39,7 @@ describe('ADR-0014: running due jobs without a long-running worker', () => {
     const run: Task = async (payload) => {
       ran.push((payload as { n: number }).n);
     };
-    const result = await runDueJobs({ withSchedule: false, tasks: { [task]: run } });
+    const result = await runDueJobs({ tasks: { [task]: run } });
 
     expect(ran.sort()).toEqual([1, 2]);
     expect(result).toEqual({ succeeded: 2, failed: 0, stoppedBy: 'queue_empty' });
@@ -53,7 +53,6 @@ describe('ADR-0014: running due jobs without a long-running worker', () => {
     await queue(first, {});
 
     const result = await runDueJobs({
-      withSchedule: false,
       tasks: {
         [first]: async (_payload, helpers) => {
           ran.push('first');
@@ -74,7 +73,6 @@ describe('ADR-0014: running due jobs without a long-running worker', () => {
     for (let n = 1; n <= 5; n++) await queue(task, { n });
 
     const result = await runDueJobs({
-      withSchedule: false,
       budgetMs: 300,
       tasks: {
         [task]: async () => {
@@ -86,7 +84,7 @@ describe('ADR-0014: running due jobs without a long-running worker', () => {
     // Three run at once; none is cut off; the other two wait for the next run.
     expect(result).toEqual({ succeeded: 3, failed: 0, stoppedBy: 'time_budget' });
     expect(await waiting(task)).toHaveLength(2);
-    await runDueJobs({ withSchedule: false, tasks: { [task]: async () => {} } });
+    await runDueJobs({ tasks: { [task]: async () => {} } });
     expect(await waiting(task)).toHaveLength(0);
   });
 
@@ -95,7 +93,6 @@ describe('ADR-0014: running due jobs without a long-running worker', () => {
     await queue(task, {});
 
     const result = await runDueJobs({
-      withSchedule: false,
       tasks: {
         [task]: async () => {
           throw new Error('the provider is down');

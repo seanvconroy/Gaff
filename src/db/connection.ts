@@ -1,5 +1,19 @@
 import type { PoolConfig } from 'pg';
 
+/** Supabase's shared pooler: port 6543 is transaction mode, 5432 is session mode. */
+const SUPABASE_POOLER = /\.pooler\.supabase\.com$/;
+
+/**
+ * ADR-0014: the app connects through Supabase's transaction pooler (port 6543), which serverless
+ * functions need. Migrations create schemas and take a session's worth of statements, so they
+ * use session mode on the same host (port 5432), for one short connection per deploy.
+ */
+export function migrationUrl(databaseUrl: string): string {
+  const url = new URL(databaseUrl);
+  if (SUPABASE_POOLER.test(url.hostname) && url.port === '6543') url.port = '5432';
+  return url.toString();
+}
+
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 const TLS_PARAMS = ['sslmode', 'ssl', 'sslrootcert', 'sslcert', 'sslkey', 'uselibpqcompat'];
 

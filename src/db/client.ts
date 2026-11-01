@@ -11,8 +11,9 @@ export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 // One pool per process, kept across hot reloads in development.
 const cache = globalThis as unknown as { gaffPool?: pg.Pool; gaffDb?: Db };
 
-// On Vercel each function instance has its own pool, so keep it small and let idle
-// connections go quickly: the database's pooler has a limited number to share (ADR-0014).
+// On Vercel each function instance has its own pool. Connections go through Supabase's
+// transaction pooler (ADR-0014), which shares a few database connections among many clients;
+// idle ones are still let go quickly.
 const onVercel = process.env.VERCEL === '1';
 
 export function pool(): pg.Pool {
@@ -20,7 +21,7 @@ export function pool(): pg.Pool {
     const config = env();
     cache.gaffPool = new pg.Pool({
       ...poolConfig(config.DATABASE_URL, config.DATABASE_CA_CERT),
-      max: onVercel ? 5 : 10,
+      max: onVercel ? 8 : 10,
       idleTimeoutMillis: onVercel ? 5_000 : 10_000,
     });
     // An idle client can lose its connection; log it rather than crash the process.

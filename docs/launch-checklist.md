@@ -40,7 +40,7 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] Retention job running in production (daily, 02:30 UTC), with its log checked: personal details on their date, references at tenancy start, the anonymous record after 12 months
 - [ ] `DATA_ENCRYPTION_KEY` set in production (32 random bytes, base64), and stored safely: check results and PPS numbers can’t be read without it
 - [ ] `DATABASE_CA_CERT` set in production, so the database's certificate is checked
-- [ ] The job tick running every minute (Supabase, Integrations, Cron: `gaff-tick`), with `CRON_SECRET` set; Vercel's daily cron as a backstop
+- [ ] The job tick running every minute (Supabase, Integrations, Cron: `gaff-tick`), and the daily call (`gaff-daily`, and Vercel's daily cron), with `CRON_SECRET` set
 - [ ] Backups: a restore tested from point-in-time recovery
 - [ ] Error alerts going to a founder
 - [ ] Test copy on Vercel and Supabase ([deploy.md](deploy.md)), made-up details only

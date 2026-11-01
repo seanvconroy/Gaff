@@ -1,6 +1,15 @@
-import { consoleLogFactory, Logger, parseCrontab, run, type TaskList } from 'graphile-worker';
-import { pool } from '@/db/client';
-import { CRONTAB, taskList } from './tasks';
+import { EventEmitter } from 'node:events';
+import { sql } from 'drizzle-orm';
+import {
+  consoleLogFactory,
+  Logger,
+  runOnce,
+  type TaskList,
+  type WorkerEvents,
+  type WorkerPool,
+} from 'graphile-worker';
+import { db, pool } from '@/db/client';
+import { taskList } from './tasks';
 
 const CONCURRENCY = 3;
 
@@ -20,74 +29,81 @@ export interface DueJobsResult {
 }
 
 /**
- * ADR-0014: runs the jobs that are due, then stops. Vercel has no always-on worker, so the
- * per-minute cron tick and requests that queue work call this instead of `pnpm worker`.
+ * A job whose run was cut off (a function stopped mid-job) stays locked. After 4 hours it's
+ * released to run again, as graphile-worker's own long-running worker would do.
+ */
+async function releaseStaleLocks(): Promise<void> {
+  await db().execute(sql`
+    with jobs as (
+      update graphile_worker._private_jobs
+      set locked_at = null, locked_by = null, run_at = greatest(run_at, now())
+      where locked_at < now() - interval '4 hours'
+    )
+    update graphile_worker._private_job_queues
+    set locked_at = null, locked_by = null
+    where locked_at < now() - interval '4 hours'`);
+}
+
+/**
+ * ADR-0014: runs the jobs that are due, then stops. Vercel has no always-on worker, so the minute
+ * tick and requests that queue work call this instead of `pnpm worker`.
  *
- * It stops once nothing is running and nothing is due, or when the time budget is used up.
- * Either way it stops cleanly, letting running jobs finish: a job cut off mid-way would stay
- * locked for 4 hours before graphile-worker retried it. Keep the budget well inside the
- * function's time limit.
+ * Each worker keeps taking due jobs until none is left (a job queued by a running job is taken
+ * too), so the run ends when the queue is empty. If the time budget runs out first, it stops
+ * taking jobs and lets running ones finish: a job cut off mid-way would stay locked for 4 hours.
+ * Keep the budget well inside the function's time limit.
+ *
+ * It needs no long-lived connection and no prepared statements, so it works through Supabase's
+ * transaction pooler, where LISTEN and session state aren't available.
  */
 export async function runDueJobs(
   options: {
     budgetMs?: number;
-    withSchedule?: boolean;
     /** Tests only: a job is picked up only if its task is in this list. */
     tasks?: TaskList;
   } = {},
 ): Promise<DueJobsResult> {
   const budgetMs = options.budgetMs ?? 45_000;
-  const withSchedule = options.withSchedule ?? true;
+  await releaseStaleLocks();
+
   let succeeded = 0;
   let failed = 0;
-  // Set by stop(), from an event handler, so TypeScript mustn't narrow it to its first value.
+  // Set by the timer, so TypeScript mustn't narrow it to its first value.
   let stoppedBy = 'queue_empty' as DueJobsResult['stoppedBy'];
-  // With the schedule on, wait until missed scheduled jobs (the nightly retention job) are queued.
-  let scheduleChecked = !withSchedule;
-  // Workers that last found nothing to do. When every worker is idle, the run is over.
-  const idle = new Set<unknown>();
-
-  const runner = await run({
-    pgPool: pool(),
-    taskList: options.tasks ?? taskList,
-    concurrency: CONCURRENCY,
-    noHandleSignals: true,
-    pollInterval: 1000,
-    logger: quietLogger,
-    // The daily schedule, filled in if its time passed since the last run ("?fill=2d").
-    parsedCronItems: withSchedule ? parseCrontab(CRONTAB) : [],
-    // Batching with no delay means stopping waits until every finished job is marked done, so a
-    // response never goes out while a completion is still on its way to the database.
-    preset: { worker: { completeJobBatchDelay: 0, failJobBatchDelay: 0 } },
+  let workers: WorkerPool | undefined;
+  const events = new EventEmitter() as unknown as WorkerEvents;
+  events.on('pool:create', ({ workerPool }) => {
+    workers = workerPool;
   });
-
-  let stopping = false;
-  const stop = (reason: DueJobsResult['stoppedBy']) => {
-    if (stopping) return;
-    stopping = true;
-    stoppedBy = reason;
-    runner.stop(reason).catch((error: unknown) => console.error('Jobs: could not stop', error));
-  };
-
-  runner.events.on('cron:started', () => {
-    scheduleChecked = true;
-  });
-  // A worker looking for a job isn't idle, even if it found nothing last time.
-  runner.events.on('worker:getJob:start', ({ worker }) => {
-    idle.delete(worker);
-  });
-  runner.events.on('job:complete', ({ error }) => {
+  events.on('job:complete', ({ error }) => {
     if (error) failed += 1;
     else succeeded += 1;
   });
-  runner.events.on('worker:getJob:empty', ({ worker }) => {
-    idle.add(worker);
-    if (scheduleChecked && idle.size >= CONCURRENCY) stop('queue_empty');
-  });
-  const timer = setTimeout(() => stop('time_budget'), budgetMs);
+  const timer = setTimeout(() => {
+    stoppedBy = 'time_budget';
+    Promise.resolve(workers?.gracefulShutdown('time budget used')).catch((error: unknown) =>
+      console.error('Jobs: could not stop', error),
+    );
+  }, budgetMs);
 
   try {
-    await runner.promise;
+    await runOnce({
+      pgPool: pool(),
+      taskList: options.tasks ?? taskList,
+      concurrency: CONCURRENCY,
+      noHandleSignals: true,
+      logger: quietLogger,
+      events,
+      preset: {
+        worker: {
+          preparedStatements: false,
+          // Batching with no delay means stopping waits until every finished job is marked
+          // done, so a response never goes out while a completion is still on its way.
+          completeJobBatchDelay: 0,
+          failJobBatchDelay: 0,
+        },
+      },
+    });
   } finally {
     clearTimeout(timer);
   }
@@ -95,6 +111,15 @@ export async function runDueJobs(
     console.log(`Jobs: ${succeeded} done, ${failed} failed, stopped by ${stoppedBy}.`);
   }
   return { succeeded, failed, stoppedBy };
+}
+
+/**
+ * R26 (ADR-0005): once a day, queue the retention job. The job key keeps it to one queued at a
+ * time, so the two daily callers (Vercel Cron and Supabase Cron) never pile up sweeps.
+ */
+export async function queueDailyJobs(): Promise<void> {
+  await db().execute(sql`
+    select graphile_worker.add_job('retention_sweep', '{}'::json, job_key => 'retention_sweep')`);
 }
 
 /**
@@ -113,7 +138,7 @@ export function kickJobs(): Promise<void> {
   active = (async () => {
     do {
       again = false;
-      await runDueJobs({ budgetMs: 20_000, withSchedule: false });
+      await runDueJobs({ budgetMs: 20_000 });
     } while (again);
   })()
     .catch((error: unknown) => console.error('Jobs: a run after a request failed', error))

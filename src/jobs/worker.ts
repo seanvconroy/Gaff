@@ -1,10 +1,11 @@
 import { run } from 'graphile-worker';
 import { pool } from '@/db/client';
-import { taskList } from './tasks';
+import { CRONTAB, taskList } from './tasks';
 
 /**
- * The worker process (ADR-0001, ADR-0003): runs background jobs from the Postgres queue.
- * Started with `pnpm worker`; on Render it's the gaff-worker service.
+ * The long-running worker (ADR-0003): runs background jobs from the Postgres queue as they come
+ * in. Started with `pnpm worker` locally and in end-to-end tests. On Vercel there's no
+ * long-running process: the cron tick and requests use runDueJobs() instead (ADR-0014).
  */
 async function main(): Promise<void> {
   const runner = await run({
@@ -13,8 +14,7 @@ async function main(): Promise<void> {
     concurrency: 5,
     noHandleSignals: false,
     pollInterval: 2000,
-    // R26 (ADR-0005): the retention job, daily at 02:30 UTC, catching up if the worker was down.
-    crontab: '30 2 * * * retention_sweep ?fill=2d',
+    crontab: CRONTAB,
   });
   console.log('Gaff worker started.');
   await runner.promise;

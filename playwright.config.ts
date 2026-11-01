@@ -4,6 +4,14 @@ const port = Number(process.env.E2E_PORT ?? 3100);
 export const E2E_DATABASE_URL =
   process.env.E2E_DATABASE_URL ?? 'postgres://gaff:gaff@localhost:5432/gaff_e2e';
 
+/**
+ * E2E_JOBS=vercel runs the journeys the way Vercel runs jobs (ADR-0014): no worker; jobs run
+ * straight after the request that queued them, and a frequent call to the tick stands in for
+ * Vercel's per-minute cron. Otherwise the real worker runs, as locally.
+ */
+export const vercelJobs = process.env.E2E_JOBS === 'vercel';
+export const E2E_CRON_SECRET = 'e2e-cron-secret-at-least-16-characters';
+
 /** Environment for the web server and the worker in end-to-end runs (GAFF_ENV=test). */
 export const e2eEnv = {
   GAFF_ENV: 'test',
@@ -17,6 +25,8 @@ export const e2eEnv = {
   MAIL_FROM_DOMAIN: 'mail.gaff.test',
   DEV_TOOLS: '1',
   NEXT_TELEMETRY_DISABLED: '1',
+  CRON_SECRET: E2E_CRON_SECRET,
+  RUN_JOBS_AFTER_REQUESTS: vercelJobs ? '1' : '0',
 };
 
 /**
@@ -40,7 +50,7 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: `pnpm start --port ${port}`,
-    url: `http://localhost:${port}/api/health`,
+    url: `http://localhost:${port}/api/health/live`,
     reuseExistingServer: false,
     timeout: 120_000,
     env: e2eEnv,

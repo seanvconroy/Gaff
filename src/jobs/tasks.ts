@@ -12,7 +12,13 @@ import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
 const inboundEmailJob = z.object({ organisationId: z.uuid(), inboundEmailId: z.uuid() });
 const messageJob = z.object({ organisationId: z.uuid(), messageId: z.uuid() });
 
-/** Every background task the worker runs. Tasks are thin: they call use cases in src/server. */
+/**
+ * R26 (ADR-0005): the retention job, daily at 02:30 UTC. "?fill=2d" runs a missed one when jobs
+ * next run, so a quiet night or a deploy never skips it.
+ */
+export const CRONTAB = '30 2 * * * retention_sweep ?fill=2d';
+
+/** Every background task. Tasks are thin: they call use cases in src/server. */
 export const taskList: TaskList = {
   process_inbound_email: async (payload) => {
     await processInboundEmail(inboundEmailJob.parse(payload));

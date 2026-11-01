@@ -41,14 +41,37 @@ const schema = z
     BEDROCK_MODEL_ID: z.string().default('anthropic.claude-opus-5-5'),
     RETENTION_PERSONAL_DAYS: z.coerce.number().int().positive().default(30),
     RETENTION_RECORD_MONTHS: z.coerce.number().int().positive().default(12),
-    DEV_TOOLS: z
+    /**
+     * The outbox, test inbox, test check page and "start the viewings now". Off unless set to 1,
+     * except on staging (the test copy), where it's on unless set to 0. Never in production.
+     */
+    DEV_TOOLS: z.enum(['0', '1']).optional(),
+    /**
+     * ADR-0014: run queued jobs straight after the request that queued them, so a reply goes out
+     * in seconds. On by default on Vercel, where there's no long-running worker; off locally,
+     * where `pnpm worker` runs them.
+     */
+    RUN_JOBS_AFTER_REQUESTS: z
       .enum(['0', '1'])
       .default('0')
       .transform((v) => v === '1'),
+    /** ADR-0014: Vercel Cron sends it as a bearer token to /api/cron/tick. */
+    CRON_SECRET: z.string().min(16, 'CRON_SECRET must be at least 16 characters').optional(),
+    /** Supabase's CA certificate (PEM), so the database's certificate is verified. */
+    DATABASE_CA_CERT: z.string().optional(),
   })
   .superRefine((env, ctx) => {
+    if (env.GAFF_ENV === 'production' || env.GAFF_ENV === 'staging') {
+      if (!env.CRON_SECRET) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['CRON_SECRET'],
+          message: 'CRON_SECRET is required, or timed jobs never run',
+        });
+      }
+    }
     if (env.GAFF_ENV === 'production') {
-      if (env.DEV_TOOLS) {
+      if (env.DEV_TOOLS === '1') {
         ctx.addIssue({
           code: 'custom',
           path: ['DEV_TOOLS'],
@@ -101,13 +124,38 @@ const schema = z
           ctx.addIssue({ code: 'custom', path: [key], message: `${key} is required for Sinch` });
       }
     }
-  });
+  })
+  .transform((env) => ({
+    ...env,
+    DEV_TOOLS: env.DEV_TOOLS === undefined ? env.GAFF_ENV === 'staging' : env.DEV_TOOLS === '1',
+  }));
 
 export type Env = z.infer<typeof schema>;
 
-/** For tests: what's wrong with an environment, if anything (paths of the problems). */
-export function environmentProblems(source: Record<string, string | undefined>): string[] {
-  const parsed = schema.safeParse(source);
+type Source = Record<string, string | undefined>;
+
+/**
+ * ADR-0014: on Vercel, APP_URL defaults to the deployment's own address (the production domain
+ * for production deployments), and GAFF_ENV defaults to production, the strictest setting, so a
+ * deployment that forgets it refuses stand-ins rather than quietly using them.
+ */
+export function withPlatformDefaults(source: Source): Source {
+  if (source.VERCEL !== '1') return source;
+  const host =
+    source.VERCEL_ENV === 'production'
+      ? source.VERCEL_PROJECT_PRODUCTION_URL
+      : (source.VERCEL_BRANCH_URL ?? source.VERCEL_URL);
+  return {
+    ...source,
+    APP_URL: source.APP_URL || (host ? `https://${host}` : undefined),
+    GAFF_ENV: source.GAFF_ENV || 'production',
+    RUN_JOBS_AFTER_REQUESTS: source.RUN_JOBS_AFTER_REQUESTS || '1',
+  };
+}
+
+/** What's wrong with an environment, if anything: the names of the problems, never values. */
+export function environmentProblems(source: Source): string[] {
+  const parsed = schema.safeParse(withPlatformDefaults(source));
   return parsed.success ? [] : parsed.error.issues.map((i) => i.path.join('.'));
 }
 
@@ -115,7 +163,7 @@ let cached: Env | undefined;
 
 export function env(): Env {
   if (cached) return cached;
-  const parsed = schema.safeParse(process.env);
+  const parsed = schema.safeParse(withPlatformDefaults(process.env));
   if (!parsed.success) {
     const problems = parsed.error.issues
       .map((i) => `  ${i.path.join('.')}: ${i.message}`)

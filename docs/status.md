@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 1 November 2026 (Slices 1 and 2 complete; Slice 3 next).
+Last updated: 1 November 2026 (all three slices built; hosting moved to Vercel and Supabase; ready for the founder's end-to-end test).
 
 ## Done
 
@@ -15,8 +15,10 @@ Last updated: 1 November 2026 (Slices 1 and 2 complete; Slice 3 next).
 | Record | Append-only event log (trigger); payloads checked for personal data; decisions only by a signed-in person | Unit, compliance and integration tests |
 | Sign-in | One-time email links (Better Auth, hashed tokens, telemetry off), workspace set-up, PSRA licence for agencies | `tests/e2e/onboarding.spec.ts` |
 | UI kit | Button, fields, choice group, notice, status pill, card, page header, stage tracker | Used on every screen; axe checks in E2E |
-| Email | Port, development outbox, Mailgun EU adapter (no tracking) | Sign-in journey |
-| CI and deploy | GitHub Actions with Postgres; Dockerfile; Render blueprint (Frankfurt) | `.github/workflows/ci.yml`, `render.yaml` |
+| Email | Port, development outbox, Resend adapter (sending, and receiving with signed webhooks), Mailgun EU adapter; no tracking | Sign-in journey; `src/adapters/email/resend.test.ts`; `tests/integration/r5-resend-inbound.test.ts` |
+| CI and deploy | GitHub Actions with Postgres; Vercel (Dublin) and Supabase (Ireland), migrations in the build ([deploy.md](deploy.md), ADR-0014) | `.github/workflows/ci.yml`, `vercel.json` |
+| Jobs on Vercel | No always-on worker: a per-minute cron tick and a run straight after each request, time-boxed and stopping cleanly; the nightly retention job from the same schedule | `tests/integration/jobs-run-due.test.ts`, `tests/integration/cron-tick.test.ts` |
+| Rules review | Rule 10 is now "approved vendors" (Q26); renter profiles decided, not built (Q25) | `CLAUDE.md`, `docs/open-questions.md` |
 
 ## Slice 1 (stages 1 to 4)
 
@@ -71,9 +73,10 @@ Last updated: 1 November 2026 (Slices 1 and 2 complete; Slice 3 next).
 
 ## Next
 
+- **Deploy the test copy** on Vercel and Supabase ([deploy.md](deploy.md), about 20 minutes).
 - **Your end-to-end test** (see [testing-guide.md](testing-guide.md)), then feedback and iteration.
 - **Before the first pilot:** everything in [launch-checklist.md](launch-checklist.md), including the providers for ID and income checks (stand-ins today) and the solicitor’s answers on electronic signing (Q23) and the agreement wording.
-- **Later:** joint tenants on one agreement; guarantors when affordability isn’t met (renters can explain or add one by replying, today); an e-signature provider if the solicitor wants an advanced signature; renter profiles they can keep and reuse (after the solicitor’s view on the lawful basis); an export of the signed agreement, packs and inventory as PDFs; moving the renter pages’ words into `src/copy/`.
+- **Later:** joint tenants on one agreement; guarantors when affordability isn’t met (renters can explain or add one by replying, today); an e-signature provider if the solicitor wants an advanced signature; renter profiles they can keep and reuse (decided in Q25; a slice of its own after the end-to-end test); an export of the signed agreement, packs and inventory as PDFs; moving the renter pages’ words into `src/copy/`.
 
 ## Known issues
 

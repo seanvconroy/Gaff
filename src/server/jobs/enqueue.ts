@@ -1,5 +1,7 @@
 import { sql } from 'drizzle-orm';
+import { after } from 'next/server';
 import type { Tx } from '@/db/client';
+import { env } from '@/lib/env';
 
 /** Background tasks the worker knows (src/jobs/tasks.ts). */
 export type TaskName =
@@ -30,4 +32,24 @@ export async function enqueue(
       max_attempts => ${options.maxAttempts ?? 10}::int,
       job_key => ${options.jobKey ?? null}::text
     )`);
+  const dueWithinAMinute = !options.runAt || options.runAt.getTime() - Date.now() < 60_000;
+  if (dueWithinAMinute) runJobsAfterThisRequest();
+}
+
+/**
+ * ADR-0014: on Vercel there's no long-running worker, so a request that queued a job runs the
+ * due jobs once it has responded (by then its transaction has committed). The per-minute tick
+ * catches anything else.
+ */
+function runJobsAfterThisRequest(): void {
+  if (!env().RUN_JOBS_AFTER_REQUESTS) return;
+  try {
+    after(async () => {
+      // Loaded here, not at the top: the task list imports the use cases that import this file.
+      const { kickJobs } = await import('@/jobs/run-due');
+      await kickJobs();
+    });
+  } catch {
+    // Not in a request (a job queued by another job): the runner already going picks it up.
+  }
 }

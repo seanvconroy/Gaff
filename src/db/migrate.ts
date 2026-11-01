@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { runMigrations as runWorkerMigrations } from 'graphile-worker';
 import pg from 'pg';
+import { poolConfig } from './connection';
 
 /**
  * Forces row-level security on every table that has it enabled, so the table owner
@@ -21,7 +22,10 @@ begin
 end $$;`;
 
 export async function runMigrations(databaseUrl: string): Promise<void> {
-  const pool = new pg.Pool({ connectionString: databaseUrl, max: 2 });
+  const pool = new pg.Pool({
+    ...poolConfig(databaseUrl, process.env.DATABASE_CA_CERT),
+    max: 2,
+  });
   pool.on('error', (error) => console.error('Postgres pool error during migrations', error));
   pool.on('connect', (client) =>
     client.on('error', (error) => console.error('Postgres client error', error)),
@@ -35,8 +39,24 @@ export async function runMigrations(databaseUrl: string): Promise<void> {
   }
 }
 
+/**
+ * `--deploy` (the Vercel build, ADR-0014): migrate for production deployments only. Preview
+ * deployments of other branches share the database, so they never change it.
+ */
+function skipForThisDeployment(): boolean {
+  return (
+    process.argv.includes('--deploy') &&
+    process.env.VERCEL === '1' &&
+    process.env.VERCEL_ENV !== 'production'
+  );
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const url = process.env.DATABASE_URL;
+  if (skipForThisDeployment()) {
+    console.log('Preview deployment: migrations skipped.');
+    process.exit(0);
+  }
   if (!url) throw new Error('DATABASE_URL is not set');
   runMigrations(url).then(
     () => console.log('Migrations applied.'),

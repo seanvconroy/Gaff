@@ -50,7 +50,10 @@ jobs:
       - run: pnpm test:int
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
+      # Jobs run as on Vercel (ADR-0014): no worker, runs after requests and a frequent tick.
       - run: pnpm test:e2e
+        env:
+          E2E_JOBS: vercel
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

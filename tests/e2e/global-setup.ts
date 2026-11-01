@@ -1,9 +1,12 @@
 import { spawn } from 'node:child_process';
 import pg from 'pg';
-import { E2E_DATABASE_URL, e2eEnv } from '../../playwright.config';
+import { E2E_CRON_SECRET, E2E_DATABASE_URL, e2eEnv, vercelJobs } from '../../playwright.config';
 import { runMigrations } from '../../src/db/migrate';
 
-/** A fresh, migrated database for each run, and the real background worker. */
+/**
+ * A fresh, migrated database for each run, and the real background worker; or, with
+ * E2E_JOBS=vercel, no worker and a tick every few seconds, as on Vercel (ADR-0014).
+ */
 export default async function globalSetup(): Promise<() => Promise<void>> {
   const url = new URL(E2E_DATABASE_URL);
   const name = url.pathname.slice(1);
@@ -15,6 +18,15 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   await admin.query(`create database "${name}"`);
   await admin.end();
   await runMigrations(url.toString());
+
+  if (vercelJobs) {
+    const tick = () =>
+      fetch(`${e2eEnv.APP_URL}/api/cron/tick`, {
+        headers: { authorization: `Bearer ${E2E_CRON_SECRET}` },
+      }).catch(() => undefined);
+    const timer = setInterval(() => void tick(), 5_000);
+    return async () => clearInterval(timer);
+  }
 
   const worker = spawn('pnpm', ['worker'], {
     env: { ...process.env, ...e2eEnv },

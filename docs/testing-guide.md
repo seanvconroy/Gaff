@@ -6,14 +6,9 @@ This walks one home from the first enquiry to a signed tenancy, and the letting 
 
 ## 1. Get a test copy running
 
-### Option A: a staging copy on Render (recommended)
+### Option A: a test copy on Vercel and Supabase (recommended)
 
-You can test from any laptop or phone. You need a Render account. Render is already approved for EU hosting, and this copy runs in Frankfurt.
-
-1. In Render, choose **New**, then **Blueprint**, and pick the `seanvconroy/Gaff` repository on the `claude/gaff-mvp` branch.
-2. Set the blueprint path to `render.staging.yaml`.
-3. When asked for `APP_URL`, enter the web service's address, for example `https://gaff-staging-web.onrender.com`.
-4. Deploy. The first build takes a few minutes.
+You can test from any laptop or phone. Follow [deploy.md](deploy.md). It takes about 20 minutes and needs four settings. Background jobs run on their own: straight after each action, and every minute for timers.
 
 ### Option B: on your own computer
 
@@ -37,6 +32,7 @@ pnpm worker                      # in a second window: sends the emails and runs
   - **ID and income checks** go to a test page where you choose the result. Real providers need your approval.
   - **Signing** uses Gaff's own typed-name signature. The solicitor confirms whether that's enough (Q23).
 - **Test tool:** the Attendance tab has a **Start the viewings now** button, so you don't wait for a real viewing time. It never appears in production.
+- **Timing:** emails usually appear within a few seconds. Refresh the Outbox if one hasn't shown yet. Timed messages, such as reminders and deadlines, can take up to a minute longer than their time.
 
 ## 3. The walk-through
 

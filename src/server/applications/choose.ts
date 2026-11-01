@@ -6,6 +6,7 @@ import { CHOOSABLE, validateChoice } from '@/domain/applications/choose';
 import type { Member } from '@/server/auth/member';
 import { checkResultsFor, requestChecks } from '@/server/checks/checks';
 import { recordDecision } from '@/server/decisions/record-decision';
+import { withdrawStaleApprovals } from '@/server/offers/approval';
 import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
 import { rankLetting } from '@/server/shortlist/shortlist';
@@ -153,6 +154,12 @@ export async function chooseApplicants(
         .where(eq(applications.id, choice.backupId));
     }
     await tx.update(lettings).set({ stage: 'checks' }).where(eq(lettings.id, lettingId));
+    // R19: an approval the landlord was asked for the old choice no longer counts.
+    await withdrawStaleApprovals(tx, {
+      lettingId,
+      preferredId: choice.preferredId,
+      backupId: choice.backupId,
+    });
     // R18: the people chosen get their checks, explained, and nobody else.
     await requestChecks(tx, {
       organisationId: member.organisationId,

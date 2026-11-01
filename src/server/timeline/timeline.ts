@@ -30,6 +30,7 @@ const messageTitles: Record<string, string> = {
   checks_invitation: 'Checks explained to the renter',
   reference_request: 'Reference request sent',
   reference_reminder: 'Reference reminder sent',
+  landlord_approval: 'Approval request sent to the landlord',
 };
 
 const rentCheckTitles: Record<string, string> = {
@@ -178,6 +179,23 @@ export function describeEvent(
       };
     case 'check.completed':
       return { what: checkOutcomeWords(String(data.kind), String(data.outcome)) };
+    case 'letting.landlord_added':
+      return { what: data.updated ? 'Landlord’s details updated' : 'Landlord’s details added' };
+    case 'landlord.approval_requested':
+      return { what: 'The landlord was asked to approve' };
+    case 'landlord.approval_answered':
+      return {
+        what:
+          data.preferred === 'approved'
+            ? 'The landlord approved the preferred applicant'
+            : 'The landlord declined the preferred applicant',
+        detail:
+          data.backup === null
+            ? undefined
+            : data.backup === 'approved'
+              ? 'Backup approved'
+              : 'Backup declined',
+      };
     case 'letting.closed':
       return {
         what:

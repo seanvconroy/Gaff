@@ -75,6 +75,7 @@ export const eventCatalogue = {
       'checks_invitation',
       'reference_request',
       'reference_reminder',
+      'landlord_approval',
     ]),
     channel: z.enum(['email', 'sms']),
     author: z.enum(['template', 'ai', 'person']),
@@ -144,6 +145,16 @@ export const eventCatalogue = {
     checkId: z.uuid(),
     kind: z.enum(['identity', 'income', 'landlord_reference', 'employer_reference']),
     outcome: z.enum(['passed', 'not_passed', 'answered', 'no_answer', 'not_needed']),
+  }),
+  /** R19: the operator added (or updated) the landlord's contact details. */
+  'letting.landlord_added': z.object({ updated: z.boolean() }),
+  /** R19: the landlord was sent a private link to approve the chosen applicants. */
+  'landlord.approval_requested': z.object({ approvalId: z.uuid(), withBackup: z.boolean() }),
+  /** R19: the landlord's answer for each person. */
+  'landlord.approval_answered': z.object({
+    approvalId: z.uuid(),
+    preferred: z.enum(['approved', 'declined']),
+    backup: z.enum(['approved', 'declined']).nullable(),
   }),
   /** R16, R17: the operator's income rule, in tenths of the rent. */
   'settings.income_rule': z.object({ ruleTenths: z.number().int() }),

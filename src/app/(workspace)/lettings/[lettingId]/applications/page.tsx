@@ -2,13 +2,15 @@ import type { Metadata } from 'next';
 import { earningLabels, formatRatio } from '@/domain/applications/apply';
 import { formatDateTime, formatEuro } from '@/lib/format';
 import { applicantsFor } from '@/server/applications/choose';
+import { approvalFor } from '@/server/offers/approval';
+import { TextField } from '@/ui/Field';
 import { Card, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { StatusPill } from '@/ui/StatusPill';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { loadLetting } from '../letting';
 import { LettingHeader } from '../LettingHeader';
-import { chooseAction } from './actions';
+import { askLandlordAction, chooseAction, saveLandlordAction } from './actions';
 import { CheckList } from './CheckList';
 import styles from './applications.module.css';
 
@@ -29,10 +31,13 @@ export default async function ApplicationsPage({
   searchParams,
 }: {
   params: Promise<{ lettingId: string }>;
-  searchParams: Promise<{ chosen?: string; problem?: string }>;
+  searchParams: Promise<{ chosen?: string; problem?: string; asked?: string; landlord?: string }>;
 }) {
   const { member, letting } = await loadLetting(params);
-  const listing = await applicantsFor(member, letting.id);
+  const [listing, approval] = await Promise.all([
+    applicantsFor(member, letting.id),
+    approvalFor(member, letting.id),
+  ]);
   const done = await searchParams;
   const rows = listing?.rows ?? [];
   const anyChosen = rows.some((r) => r.status === 'preferred' || r.status === 'backup');
@@ -172,11 +177,114 @@ export default async function ApplicationsPage({
           </Stack>
         </form>
       )}
+      {approval?.preferredId ? (
+        <LandlordApproval
+          lettingId={letting.id}
+          state={approval}
+          names={new Map(rows.map((r) => [r.id, r.name]))}
+          asked={Boolean(done.asked)}
+        />
+      ) : null}
       {listing && listing.waitingToApply.length > 0 ? (
         <p className={styles.muted}>
           Came to view but haven’t applied yet: {listing.waitingToApply.join(', ')}.
         </p>
       ) : null}
     </Stack>
+  );
+}
+
+function LandlordApproval({
+  lettingId,
+  state,
+  names,
+  asked,
+}: {
+  lettingId: string;
+  state: NonNullable<Awaited<ReturnType<typeof approvalFor>>>;
+  names: Map<string, string>;
+  asked: boolean;
+}) {
+  const answer = (id: string | null, value: string | null) =>
+    id && value ? `${value === 'approved' ? 'Approved' : 'Declined'} ${names.get(id)}` : null;
+  return (
+    <Card labelledBy="landlord-heading">
+      <Stack gap={4}>
+        <h2 id="landlord-heading" className="type-title">
+          The landlord’s approval
+        </h2>
+        {state.route === 'own_home' ? (
+          <p>You’re letting your own home, so making the offer is your approval.</p>
+        ) : null}
+        {state.route === 'operator_confirms' ? (
+          <>
+            <p>
+              There’s no email for the landlord on this letting. Add it, and Gaff sends them a
+              one-page summary of who you chose to approve, with no account. Or, when you make the
+              offer, confirm they’ve approved.
+            </p>
+            <form action={saveLandlordAction.bind(null, lettingId)}>
+              <Stack gap={4}>
+                <TextField name="landlordName" label="Landlord’s name" autoComplete="off" />
+                <TextField
+                  name="landlordEmail"
+                  label="Landlord’s email"
+                  type="email"
+                  autoComplete="off"
+                />
+                <div>
+                  <SubmitButton variant="secondary" pendingLabel="Saving…">
+                    Save the landlord’s details
+                  </SubmitButton>
+                </div>
+              </Stack>
+            </form>
+          </>
+        ) : null}
+        {state.route === 'link' && state.landlord ? (
+          state.approval?.status === 'answered' ? (
+            <Stack gap={2}>
+              <p>{state.landlord.name} answered:</p>
+              <div>
+                <StatusPill
+                  tone={state.approval.preferredAnswer === 'approved' ? 'success' : 'warning'}
+                >
+                  {answer(state.approval.preferredId, state.approval.preferredAnswer)}
+                </StatusPill>
+              </div>
+              {state.approval.backupId ? (
+                <div>
+                  <StatusPill
+                    tone={state.approval.backupAnswer === 'approved' ? 'success' : 'warning'}
+                  >
+                    {`${answer(state.approval.backupId, state.approval.backupAnswer)} as backup`}
+                  </StatusPill>
+                </div>
+              ) : null}
+            </Stack>
+          ) : state.approval?.status === 'requested' ? (
+            <p>
+              {asked ? 'Sent. ' : ''}
+              {state.landlord.name} has a private link to a one-page summary. Waiting for their
+              answer.
+            </p>
+          ) : (
+            <form action={askLandlordAction.bind(null, lettingId)}>
+              <Stack gap={4}>
+                <p>
+                  {state.landlord.name} gets a private link to a one-page summary of who you chose,
+                  with their check results, to approve or decline. No account needed.
+                </p>
+                <div>
+                  <SubmitButton variant="secondary" pendingLabel="Sending…">
+                    Ask the landlord to approve
+                  </SubmitButton>
+                </div>
+              </Stack>
+            </form>
+          )
+        ) : null}
+      </Stack>
+    </Card>
   );
 }

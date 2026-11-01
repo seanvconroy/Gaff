@@ -127,6 +127,13 @@
       "when": 1793525404566,
       "tag": "0017_r18_checks",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793526104254,
+      "tag": "0018_r19_landlord_approvals",
+      "breakpoints": true
     }
   ]
 }

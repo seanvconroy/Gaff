@@ -237,3 +237,53 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   await expectAccessible(page);
   await screenshot(page, '39-operator-check-results');
 });
+
+test('R19: the landlord approves the chosen tenant and the backup from a one-page summary, with no account', async ({
+  browser,
+  page,
+}) => {
+  test.slow();
+  const { lettingUrl } = await twoChosen(browser, page);
+  await page.goto(`${lettingUrl}/applications`);
+  await expect(page.getByRole('heading', { name: 'The landlord’s approval' })).toBeVisible();
+  await page.getByLabel('Landlord’s name').fill('Tom Walsh');
+  await page.getByLabel('Landlord’s email').fill('tom.walsh@example.ie');
+  await page.getByRole('button', { name: 'Save the landlord’s details' }).click();
+  await page.getByRole('button', { name: 'Ask the landlord to approve' }).click();
+  await expect(page.getByText('Waiting for their answer.')).toBeVisible();
+
+  let approvalLink = '';
+  await expect(async () => {
+    approvalLink = await linkInEmail(
+      'tom.walsh@example.ie',
+      '12 Ranelagh Road: please approve a tenant',
+    );
+  }).toPass({ timeout: 20_000 });
+  const tom = await onPhone(browser, approvalLink);
+  const landlord = tom.page;
+  await expect(landlord.getByRole('heading', { name: 'Aoife Byrne' })).toBeVisible();
+  await expect(landlord.getByRole('heading', { name: 'Ciarán Ó Súilleabháin' })).toBeVisible();
+  await expect(landlord.getByText('2.8 times the rent').first()).toBeVisible();
+  expect(await landlord.content()).not.toMatch(/5,200|4,800|aoife\.byrne@|ciaran\.os@/);
+  await expectAccessible(landlord);
+  await expectNoSidewaysScroll(landlord);
+  await screenshot(landlord, '40-landlord-approval');
+
+  await landlord.getByRole('button', { name: 'Send my answer' }).click();
+  await expect(landlord.getByText('Choose approve or decline for each person.')).toBeVisible();
+  await landlord
+    .getByRole('group', { name: 'Aoife Byrne, the preferred tenant' })
+    .getByLabel('Approve')
+    .check();
+  await landlord
+    .getByRole('group', { name: 'Ciarán Ó Súilleabháin, the backup' })
+    .getByLabel('Approve')
+    .check();
+  await landlord.getByRole('button', { name: 'Send my answer' }).click();
+  await expect(landlord.getByText('Thanks for your answer')).toBeVisible();
+  await tom.context.close();
+
+  await page.goto(`${lettingUrl}/applications`);
+  await expect(page.getByText('Approved Aoife Byrne', { exact: true })).toBeVisible();
+  await expect(page.getByText('Approved Ciarán Ó Súilleabháin as backup')).toBeVisible();
+});

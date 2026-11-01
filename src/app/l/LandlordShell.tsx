@@ -4,9 +4,11 @@ import styles from './landlord.module.css';
 /** The landlord's private, read-only pages (R27): who shared it, and nothing to sign in to. */
 export function LandlordShell({
   organisationName,
+  tagline = 'Shared with you, read-only, using Gaff',
   children,
 }: {
   organisationName: string;
+  tagline?: string;
   children: ReactNode;
 }) {
   return (
@@ -14,7 +16,7 @@ export function LandlordShell({
       <header className={styles.header}>
         <div className={styles.inner}>
           <p className={styles.operator}>{organisationName}</p>
-          <p className={styles.muted}>Shared with you, read-only, using Gaff</p>
+          <p className={styles.muted}>{tagline}</p>
         </div>
       </header>
       <main className={styles.main}>{children}</main>

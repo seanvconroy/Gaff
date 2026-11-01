@@ -1,7 +1,8 @@
 import { asc, and, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
-import { withOrg } from '@/db/client';
-import { accessLinks, applications, checks, events, messages } from '@/db/schema';
+import { db, withOrg } from '@/db/client';
+import { accessLinks, applications, checks, devOutbox, events, messages } from '@/db/schema';
+import { sendMessage } from '@/server/messages/outbox';
 import { chooseApplicants } from '@/server/applications/choose';
 import {
   checkResultsFor,
@@ -149,6 +150,18 @@ describe('R18: references', () => {
     ]);
     const request = sent.find((m) => m.kind === 'reference_request')!;
     expect(request.subject).toBe('Reference for Renter 1');
+    // A referee's reply goes to the operator, never into the renter's thread.
+    await sendMessage({
+      organisationId: member.organisationId,
+      messageId: request.id,
+      attempt: 1,
+      maxAttempts: 10,
+    });
+    const [delivered] = await db()
+      .select()
+      .from(devOutbox)
+      .where(eq(devOutbox.toAddress, 'mary.kelly@example.ie'));
+    expect(delivered!.replyTo).not.toContain('+');
 
     const landlordToken = refereeToken(request.body);
     expect(await loadReferenceRequest(landlordToken)).toMatchObject({

@@ -21,7 +21,8 @@ export type OutboundKind =
   | 'apply_invitation'
   | 'checks_invitation'
   | 'reference_request'
-  | 'reference_reminder';
+  | 'reference_reminder'
+  | 'landlord_approval';
 
 /**
  * Puts a message in the outbox (ADR-0010), in the caller's transaction. AI-written answers
@@ -33,7 +34,8 @@ export async function queueMessage(
   input: {
     organisationId: string;
     lettingId: string;
-    applicationId: string;
+    /** Null for messages to a landlord or referee about the letting as a whole. */
+    applicationId: string | null;
     kind: OutboundKind;
     author: 'template' | 'ai' | 'person';
     authorUserId?: string;
@@ -113,7 +115,7 @@ export async function sendMessage(input: {
         slug: organisations.inboundSlug,
       })
       .from(messages)
-      .innerJoin(applications, eq(applications.id, messages.applicationId))
+      .leftJoin(applications, eq(applications.id, messages.applicationId))
       .innerJoin(organisations, eq(organisations.id, messages.organisationId))
       .where(and(eq(messages.id, input.messageId), eq(messages.status, 'scheduled')))
       .for('update', { of: messages });
@@ -135,7 +137,12 @@ export async function sendMessage(input: {
               name: `${operatorName} via Gaff`,
               address: `${slug}@${config.MAIL_FROM_DOMAIN}`,
             },
-            replyTo: `${slug}+${ref}@${config.INBOUND_DOMAIN}`,
+            // A renter's replies thread to their application. Anyone else's (a referee, a
+            // landlord) go to the operator's own Gaff address, where a person sees them.
+            replyTo:
+              ref && !message.checkId
+                ? `${slug}+${ref}@${config.INBOUND_DOMAIN}`
+                : `${slug}@${config.INBOUND_DOMAIN}`,
             subject: message.subject ?? '',
             text: message.body,
           });

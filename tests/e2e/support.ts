@@ -39,6 +39,14 @@ async function query<T extends pg.QueryResultRow>(sql: string, params: unknown[]
   }
 }
 
+/**
+ * The sending address of the organisation the current test signed up. Tests send to the same
+ * made-up renters, so mail lookups only look at this organisation's mail: never an earlier
+ * test's, which may still be newer when a job hasn't sent this test's yet.
+ */
+let currentSender: string | null = null;
+const fromCurrentSender = "($3::text is null or from_address like '%<' || $3 || '@%')";
+
 /** The newest link in mail the development outbox "sent" to this address. */
 export async function latestLinkFor(email: string): Promise<string> {
   const rows = await query<{ text: string }>(
@@ -79,6 +87,22 @@ export async function signUpOperator(
   await page.getByLabel('PSRA licence number').fill('001234');
   await page.getByRole('button', { name: 'Set up my workspace' }).click();
   await expect(page.getByRole('heading', { name: 'Your lettings' })).toBeVisible();
+  const client = new pg.Client({ connectionString: E2E_DATABASE_URL });
+  await client.connect();
+  try {
+    await client.query('begin');
+    await client.query("select set_config('app.rls_bypass', 'on', true)");
+    const { rows } = await client.query<{ slug: string }>(
+      `select o.inbound_slug as slug from organisations o
+       join memberships m on m.organisation_id = o.id join users u on u.id = m.user_id
+       where u.email = $1`,
+      [email],
+    );
+    await client.query('commit');
+    currentSender = rows[0]?.slug ?? null;
+  } finally {
+    await client.end();
+  }
   return email;
 }
 
@@ -153,8 +177,9 @@ export async function sendTestEmail(
 /** The first link in the newest development-outbox email to an address with a subject. */
 export async function linkInEmail(to: string, subject: string): Promise<string> {
   const rows = await query<{ text: string }>(
-    'select text from dev_outbox where to_address = $1 and subject = $2 order by created_at desc limit 1',
-    [to, subject],
+    `select text from dev_outbox where to_address = $1 and subject = $2 and ${fromCurrentSender}
+     order by created_at desc limit 1`,
+    [to, subject, currentSender],
   );
   const link = rows[0]?.text.match(/https?:\/\/\S+/)?.[0];
   if (!link) throw new Error(`No email "${subject}" has been sent to ${to}`);
@@ -164,8 +189,9 @@ export async function linkInEmail(to: string, subject: string): Promise<string> 
 /** Subjects of every development-outbox email to an address, newest first. */
 export async function subjectsSentTo(to: string): Promise<string[]> {
   const rows = await query<{ subject: string }>(
-    'select subject from dev_outbox where to_address = $1 order by created_at desc',
-    [to],
+    `select subject from dev_outbox where to_address = $1 and ($2::text is null or from_address like '%<' || $2 || '@%')
+     order by created_at desc`,
+    [to, currentSender],
   );
   return rows.map((row) => row.subject);
 }
@@ -173,8 +199,9 @@ export async function subjectsSentTo(to: string): Promise<string[]> {
 /** The first link in the newest development-outbox email whose subject starts with this. */
 export async function linkInEmailStarting(to: string, subjectStart: string): Promise<string> {
   const rows = await query<{ text: string }>(
-    "select text from dev_outbox where to_address = $1 and subject like $2 || '%' order by created_at desc limit 1",
-    [to, subjectStart],
+    `select text from dev_outbox where to_address = $1 and subject like $2 || '%' and ${fromCurrentSender}
+     order by created_at desc limit 1`,
+    [to, subjectStart, currentSender],
   );
   const link = rows[0]?.text.match(/https?:\/\/\S+/)?.[0];
   if (!link) throw new Error(`No email "${subjectStart}…" has been sent to ${to}`);

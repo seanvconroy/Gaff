@@ -6,9 +6,17 @@ This walks one home from the first enquiry to a signed tenancy, and the letting 
 
 ## 1. Get a test copy running
 
-### Option A: a test copy on Vercel and Supabase (recommended)
+### Option A: the test copy on Vercel and Supabase (recommended)
 
-You can test from any laptop or phone. Follow [deploy.md](deploy.md). It takes about 20 minutes and needs four settings. Background jobs run on their own: straight after each action, and every minute for timers.
+It's already running at **https://gaff-test.vercel.app**:
+- the app is on Vercel, in Dublin;
+- the database is on Supabase, in Ireland.
+
+**Vercel's sign-in protects it.** The first time you open it on your laptop and on your phone, sign in with your Vercel account. After that it's just the app.
+
+**Background jobs run on their own:** straight after each action, and every minute for timers.
+
+To set up another copy, follow [deploy.md](deploy.md).
 
 ### Option B: on your own computer
 

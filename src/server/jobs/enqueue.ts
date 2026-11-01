@@ -3,7 +3,12 @@ import type { Tx } from '@/db/client';
 
 /** Background tasks the worker knows (src/jobs/tasks.ts). */
 export type TaskName =
-  'process_inbound_email' | 'send_message' | 'draft_answers' | 'offer_place' | 'expire_offer';
+  | 'process_inbound_email'
+  | 'send_message'
+  | 'draft_answers'
+  | 'offer_place'
+  | 'expire_offer'
+  | 'reference_overdue';
 
 /**
  * Queues a job in the caller's transaction (ADR-0003): the job exists only if the change that

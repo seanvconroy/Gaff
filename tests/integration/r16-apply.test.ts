@@ -99,7 +99,11 @@ describe('R16: applying (stage 5 data, and only then)', () => {
       monthlyIncomeCents: 510_000,
     });
     const logged = await withOrg(member.organisationId, (tx) =>
-      tx.select().from(events).where(eq(events.type, 'application.submitted')),
+      tx
+        .select()
+        .from(events)
+        .where(eq(events.type, 'application.submitted'))
+        .orderBy(asc(events.id)),
     );
     expect(logged.map((e) => e.data)).toEqual([
       { applicationId, changed: false },

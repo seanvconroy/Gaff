@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { asc, and, eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { db, withOrg, withSystem } from '@/db/client';
 import { decisions, events, memberships, organisations } from '@/db/schema';
@@ -127,7 +127,10 @@ describe('onboarding', () => {
     expect(organisation?.inboundSlug).toMatch(/^halcyon-lettings(-\d+)?$/);
     expect(organisation?.approveBeforeSend).toBe(true);
     const types = await withOrg(member.organisationId, (tx) =>
-      tx.select({ type: events.type, actor: events.actorType }).from(events),
+      tx
+        .select({ type: events.type, actor: events.actorType })
+        .from(events)
+        .orderBy(asc(events.id)),
     );
     expect(types).toEqual([
       { type: 'organisation.created', actor: 'person' },

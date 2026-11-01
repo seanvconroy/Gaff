@@ -72,6 +72,9 @@ export const eventCatalogue = {
       'place_offered',
       'letting_closed',
       'apply_invitation',
+      'checks_invitation',
+      'reference_request',
+      'reference_reminder',
     ]),
     channel: z.enum(['email', 'sms']),
     author: z.enum(['template', 'ai', 'person']),
@@ -126,6 +129,21 @@ export const eventCatalogue = {
     decisionId: z.uuid(),
     applied: z.number().int(),
     withBackup: z.boolean(),
+  }),
+  /** R18: checks set up for someone a person chose, and the renter told about them. */
+  'checks.requested': z.object({ applicationId: z.uuid(), checks: z.number().int() }),
+  /** R18: the renter started an ID or income check with the provider. */
+  'check.started': z.object({ checkId: z.uuid(), kind: z.enum(['identity', 'income']) }),
+  /** R18: a referee was asked (then reminded twice, if needed). */
+  'reference.requested': z.object({
+    checkId: z.uuid(),
+    kind: z.enum(['landlord_reference', 'employer_reference']),
+  }),
+  /** R18: how a check ended. Never a refusal: a person decides. */
+  'check.completed': z.object({
+    checkId: z.uuid(),
+    kind: z.enum(['identity', 'income', 'landlord_reference', 'employer_reference']),
+    outcome: z.enum(['passed', 'not_passed', 'answered', 'no_answer', 'not_needed']),
   }),
   /** R16, R17: the operator's income rule, in tenths of the rent. */
   'settings.income_rule': z.object({ ruleTenths: z.number().int() }),

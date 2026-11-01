@@ -9,6 +9,7 @@ import { SubmitButton } from '@/ui/SubmitButton';
 import { loadLetting } from '../letting';
 import { LettingHeader } from '../LettingHeader';
 import { chooseAction } from './actions';
+import { CheckList } from './CheckList';
 import styles from './applications.module.css';
 
 export const metadata: Metadata = { title: 'Applications' };
@@ -112,6 +113,13 @@ export default async function ApplicationsPage({
                       {row.meetsRule ? 'Meets your income rule' : 'Below your income rule'}
                     </StatusPill>
                   </div>
+                  {row.checks.length > 0 ? (
+                    <CheckList
+                      checks={row.checks}
+                      rentCents={listing!.rentCents}
+                      ruleTenths={listing!.incomeRuleTenths}
+                    />
+                  ) : null}
                   {editable ? (
                     <div className={styles.picks}>
                       <label className={styles.pick}>

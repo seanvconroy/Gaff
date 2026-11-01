@@ -27,6 +27,9 @@ const messageTitles: Record<string, string> = {
   place_offered: 'A freed place offered',
   letting_closed: 'Closing message sent',
   apply_invitation: 'Invitation to apply sent',
+  checks_invitation: 'Checks explained to the renter',
+  reference_request: 'Reference request sent',
+  reference_reminder: 'Reference reminder sent',
 };
 
 const rentCheckTitles: Record<string, string> = {
@@ -162,6 +165,19 @@ export function describeEvent(
           : 'Preferred applicant chosen',
         detail: `From ${data.applied} ${data.applied === 1 ? 'application' : 'applications'}`,
       };
+    case 'checks.requested':
+      return { what: 'Checks requested', detail: `${data.checks} to do` };
+    case 'check.started':
+      return { what: data.kind === 'identity' ? 'ID check started' : 'Income check started' };
+    case 'reference.requested':
+      return {
+        what:
+          data.kind === 'landlord_reference'
+            ? 'Previous landlord asked for a reference'
+            : 'Employer asked for a reference',
+      };
+    case 'check.completed':
+      return { what: checkOutcomeWords(String(data.kind), String(data.outcome)) };
     case 'letting.closed':
       return {
         what:
@@ -214,4 +230,21 @@ export async function timelineFor(member: Member, lettingId: string): Promise<Ti
               : 'Gaff',
     ),
   );
+}
+
+function checkOutcomeWords(kind: string, outcome: string): string {
+  const name: Record<string, string> = {
+    identity: 'ID check',
+    income: 'Income check',
+    landlord_reference: 'Landlord reference',
+    employer_reference: 'Employer reference',
+  };
+  const words: Record<string, string> = {
+    passed: kind === 'identity' ? 'verified' : 'income confirmed',
+    not_passed: kind === 'identity' ? 'not verified' : 'income not confirmed',
+    answered: 'answered',
+    no_answer: 'no answer after two reminders',
+    not_needed: 'not needed',
+  };
+  return `${name[kind] ?? 'Check'}: ${words[outcome] ?? outcome}`;
 }

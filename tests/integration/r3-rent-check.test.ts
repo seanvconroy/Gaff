@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { withOrg } from '@/db/client';
 import { events } from '@/db/schema';
@@ -62,7 +62,8 @@ describe('R3: rent check', () => {
       tx
         .select({ type: events.type, data: events.data })
         .from(events)
-        .where(eq(events.lettingId, lettingId)),
+        .where(eq(events.lettingId, lettingId))
+        .orderBy(asc(events.id)),
     );
     expect(recorded.slice(1)).toEqual([
       { type: 'letting.rent_changed', data: { fromCents: 185_000, toCents: 183_000 } },

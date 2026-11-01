@@ -5,3 +5,4 @@ export * from './lettings';
 export * from './organisations';
 export * from './record';
 export * from './activity';
+export * from './checks';

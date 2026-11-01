@@ -61,6 +61,10 @@ export const inboundEmails = pgTable(
   ],
 ).enableRLS();
 
+/** What a private link opens (ADR-0013): a renter's page, a landlord's, a referee's form. */
+export const linkPurposes = ['renter', 'landlord', 'referee', 'landlord_approval'] as const;
+export type LinkPurpose = (typeof linkPurposes)[number];
+
 export const applicationStatus = pgEnum('application_status', [
   'enquired',
   'invited',
@@ -174,6 +178,8 @@ export const messages = pgTable(
     inReplyToId: uuid(),
     /** R13: the booking a confirmation or reminder belongs to (cancelled with it). */
     bookingId: uuid(),
+    /** R18: the check a reference request or reminder belongs to (cancelled when answered). */
+    checkId: uuid(),
     inboundEmailId: uuid().references(() => inboundEmails.id),
     approvedBy: text().references(() => users.id),
     approvedAt: timestamp({ withTimezone: true }),
@@ -198,7 +204,7 @@ export const accessLinks = pgTable(
   {
     id: uuid().primaryKey().defaultRandom(),
     organisationId: organisationId(),
-    purpose: text({ enum: ['renter', 'landlord'] }).notNull(),
+    purpose: text({ enum: linkPurposes }).notNull(),
     subjectId: uuid().notNull(),
     tokenHash: text().notNull().unique(),
     expiresAt: timestamp({ withTimezone: true }).notNull(),

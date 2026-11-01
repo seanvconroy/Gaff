@@ -8,6 +8,8 @@ import { Notice } from '@/ui/Notice';
 import { RenterShell } from '../RenterShell';
 import styles from '../renter.module.css';
 import { AnswersForm } from './AnswersForm';
+import { ChecksSection } from './ChecksSection';
+import { env } from '@/lib/env';
 import { ApplyForm } from './ApplyForm';
 import { BookingSection } from './BookingSection';
 
@@ -32,10 +34,13 @@ export default async function RenterPage({
     problem?: string;
     applied?: string;
     change?: string;
+    check_problem?: string;
+    referees?: string;
   }>;
 }) {
   const { token } = await params;
-  const { saved, booked, cancelled, problem, applied, change } = await searchParams;
+  const { saved, booked, cancelled, problem, applied, change, check_problem, referees } =
+    await searchParams;
   const page = await loadRenterPage(token);
   if (!page) {
     return (
@@ -173,6 +178,25 @@ export default async function RenterPage({
               income and references, and explain each check first.
             </p>
           </Stack>
+        ) : null}
+        {status === 'preferred' || status === 'backup' ? (
+          <>
+            {referees ? (
+              <Notice tone="success" title="Thanks" role="status">
+                <p>We’ve asked for your references. We’ll remind them if they don’t answer.</p>
+              </Notice>
+            ) : null}
+            <ChecksSection
+              token={token}
+              operatorName={organisation.name}
+              checks={page.checks}
+              providers={{
+                identity: env().IDENTITY_PROVIDER !== 'none',
+                income: env().INCOME_PROVIDER !== 'none',
+              }}
+              problem={check_problem}
+            />
+          </>
         ) : null}
         {status === 'applied' && !change ? (
           <Notice

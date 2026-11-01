@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { withOrg } from '@/db/client';
 import { events, viewingSlots } from '@/db/schema';
@@ -93,7 +93,11 @@ describe('R1: viewing times', () => {
     expect(detail?.sessions).toEqual([]);
     expect(detail?.setup.viewingSlots).toBe(0);
     const types = await withOrg(member.organisationId, (tx) =>
-      tx.select({ type: events.type }).from(events).where(eq(events.lettingId, lettingId)),
+      tx
+        .select({ type: events.type })
+        .from(events)
+        .where(eq(events.lettingId, lettingId))
+        .orderBy(asc(events.id)),
     );
     expect(types.map((t) => t.type)).toEqual([
       'letting.created',

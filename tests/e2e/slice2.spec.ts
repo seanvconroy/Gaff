@@ -142,3 +142,98 @@ test('R17: the operator compares applicants side by side and chooses a preferred
   await page.goto(`${lettingUrl}/timeline`);
   await expect(page.getByText('Preferred applicant and backup chosen')).toBeVisible();
 });
+
+/** Both apply; the operator chooses Aoife as preferred and Ciarán as backup. */
+async function twoChosen(browser: Browser, page: Page) {
+  const setup = await twoPeopleWhoCame(browser, page);
+  await applyOnPhone(browser, setup.links[AOIFE]!, '5,200');
+  await applyOnPhone(browser, setup.links[CIARAN]!, '4,800');
+  await page.goto(`${setup.lettingUrl}/applications`);
+  await page.getByLabel('Preferred: Aoife Byrne').check();
+  await page.getByLabel('Backup: Ciarán Ó Súilleabháin').check();
+  await page.getByRole('button', { name: 'Confirm my choice' }).click();
+  await expect(page.getByText('Choice saved')).toBeVisible();
+  return setup;
+}
+
+test('R18: the chosen renters do their checks, a referee answers, and the operator sees the results', async ({
+  browser,
+  page,
+}) => {
+  test.slow();
+  const { lettingUrl } = await twoChosen(browser, page);
+  let checksLink = '';
+  await expect(async () => {
+    checksLink = await linkInEmail(AOIFE, '12 Ranelagh Road: a few checks before an offer');
+  }).toPass({ timeout: 20_000 });
+
+  const aoife = await onPhone(browser, checksLink);
+  const renter = aoife.page;
+  await expect(renter.getByRole('heading', { name: 'A few checks before an offer' })).toBeVisible();
+  await expect(renter.getByText('Gaff keeps only whether it worked')).toBeVisible();
+  await expectAccessible(renter);
+  await screenshot(renter, '37-renter-checks');
+
+  // ID: through the stand-in provider, back to a page that shows nothing private.
+  await renter.getByRole('button', { name: 'Check my ID' }).click();
+  await expect(renter.getByRole('heading', { name: 'Stand-in ID check' })).toBeVisible();
+  await renter.getByRole('button', { name: 'The ID and selfie match' }).click();
+  await expect(
+    renter.getByRole('heading', { name: 'Thanks, that’s your ID check done' }),
+  ).toBeVisible();
+
+  // Income: the first try doesn't work, and that's said kindly, then it's confirmed.
+  await renter.goto(checksLink);
+  await renter.getByRole('button', { name: 'Check my income' }).click();
+  await renter.getByRole('button', { name: 'No regular income found' }).click();
+  await renter.goto(checksLink);
+  await expect(renter.getByText('That didn’t work this time')).toBeVisible();
+  await expectAccessible(renter);
+  await renter.getByRole('button', { name: 'Try again' }).click();
+  await renter.getByRole('button', { name: 'Confirm this income' }).click();
+
+  // References: a previous landlord, and no employer to ask.
+  await renter.goto(checksLink);
+  await renter.getByLabel('Your last landlord’s name').fill('Mary Kelly');
+  await renter.getByLabel('Your last landlord’s email').fill('mary.kelly@example.ie');
+  await renter.getByLabel('I don’t have an employer to ask').check();
+  await renter.getByRole('button', { name: 'Ask for my references' }).click();
+  await expect(renter.getByText('We’ve asked for your references.')).toBeVisible();
+  await expect(renter.getByText(/Your last landlord, Mary Kelly:/)).toBeVisible();
+  await aoife.context.close();
+
+  // The referee answers on their phone, with no account.
+  let referenceLink = '';
+  await expect(async () => {
+    referenceLink = await linkInEmail('mary.kelly@example.ie', 'Reference for Aoife Byrne');
+  }).toPass({ timeout: 20_000 });
+  const mary = await onPhone(browser, referenceLink);
+  await expect(
+    mary.page.getByRole('heading', { name: 'A reference for Aoife Byrne' }),
+  ).toBeVisible();
+  await expectAccessible(mary.page);
+  await screenshot(mary.page, '38-referee-form');
+  const answer = async (question: string, option: string) =>
+    mary.page.getByRole('group', { name: question }).getByLabel(option, { exact: true }).check();
+  await answer('Did they rent a home from you?', 'Yes');
+  await answer('Was the rent paid on time?', 'Always');
+  await answer('Did they look after the home?', 'Yes');
+  await answer('Would you rent to them again?', 'Yes');
+  await mary.page.getByRole('button', { name: 'Send my reference' }).click();
+  await expect(mary.page.getByText('Your reference is with Halcyon Lettings.')).toBeVisible();
+  await mary.context.close();
+
+  // The operator sees each result in words.
+  await page.goto(`${lettingUrl}/applications`);
+  const card = page.getByRole('listitem').filter({ hasText: 'Aoife Byrne' });
+  await expect(card.getByText('Verified: Aoife Byrne.')).toBeVisible();
+  await expect(
+    card.getByText(/Confirmed €5,200 a month, 2\.8 times the rent: meets your rule\./),
+  ).toBeVisible();
+  await expect(
+    card.getByText(/Mary Kelly answered\. Rented from them\. Rent always on time\./),
+  ).toBeVisible();
+  await expect(card.getByText('Not needed: no employer to ask.')).toBeVisible();
+  await expectAccessible(page);
+  await screenshot(page, '39-operator-check-results');
+});

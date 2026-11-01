@@ -18,7 +18,10 @@ export type OutboundKind =
   | 'reminder'
   | 'place_offered'
   | 'letting_closed'
-  | 'apply_invitation';
+  | 'apply_invitation'
+  | 'checks_invitation'
+  | 'reference_request'
+  | 'reference_reminder';
 
 /**
  * Puts a message in the outbox (ADR-0010), in the caller's transaction. AI-written answers
@@ -43,6 +46,8 @@ export async function queueMessage(
     awaitApproval?: boolean;
     channel?: 'email' | 'sms';
     bookingId?: string;
+    /** R18: the check a reference request or reminder belongs to. */
+    checkId?: string;
   },
 ): Promise<string> {
   if (input.author === 'ai' && input.kind !== 'answer') {
@@ -60,6 +65,7 @@ export async function queueMessage(
       direction: 'outbound',
       channel: input.channel ?? 'email',
       bookingId: input.bookingId ?? null,
+      checkId: input.checkId ?? null,
       kind: input.kind,
       templateKey: input.templateKey ?? null,
       author: input.author,

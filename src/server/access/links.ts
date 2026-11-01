@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { and, eq, gt, isNull } from 'drizzle-orm';
 import { withSystem, type Tx } from '@/db/client';
-import { accessLinks } from '@/db/schema';
+import { accessLinks, type LinkPurpose } from '@/db/schema';
 
 /** Links last long enough for any letting; they're revoked when it closes (R26). */
 const LINK_DAYS = 120;
@@ -16,7 +16,7 @@ export function hashToken(token: string): string {
  */
 export async function createAccessLink(
   tx: Tx,
-  input: { organisationId: string; purpose: 'renter' | 'landlord'; subjectId: string },
+  input: { organisationId: string; purpose: LinkPurpose; subjectId: string },
 ): Promise<string> {
   const token = randomBytes(32).toString('base64url');
   await tx.insert(accessLinks).values({
@@ -35,7 +35,7 @@ export async function createAccessLink(
  */
 export async function resolveAccessLink(
   token: string,
-  purpose: 'renter' | 'landlord',
+  purpose: LinkPurpose,
 ): Promise<{ organisationId: string; subjectId: string } | null> {
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return null;
   return withSystem(async (tx) => {

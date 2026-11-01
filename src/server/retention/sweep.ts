@@ -1,6 +1,13 @@
 import { and, eq, inArray, isNull, lte, or, lt, ne } from 'drizzle-orm';
 import { withSystem } from '@/db/client';
-import { accessLinks, applications, inboundEmails, messages, operatorQuestions } from '@/db/schema';
+import {
+  accessLinks,
+  applications,
+  checks,
+  inboundEmails,
+  messages,
+  operatorQuestions,
+} from '@/db/schema';
 import { BACKSTOP_DAYS, isDue } from '@/domain/retention/retention';
 import { env } from '@/lib/env';
 import { irishToday } from '@/lib/format';
@@ -87,6 +94,26 @@ export async function sweepPersonalData(
         .update(accessLinks)
         .set({ revokedAt: now })
         .where(and(eq(accessLinks.subjectId, application.id), isNull(accessLinks.revokedAt)));
+      // R18: check results and referees' details go too; their links stop working.
+      const theirChecks = await tx
+        .update(checks)
+        .set({ refereeName: null, refereeEmail: null, resultSealed: null, providerRef: null })
+        .where(eq(checks.applicationId, application.id))
+        .returning({ id: checks.id });
+      if (theirChecks.length > 0) {
+        await tx
+          .update(accessLinks)
+          .set({ revokedAt: now })
+          .where(
+            and(
+              inArray(
+                accessLinks.subjectId,
+                theirChecks.map((c) => c.id),
+              ),
+              isNull(accessLinks.revokedAt),
+            ),
+          );
+      }
       await recordEvent(tx, {
         organisationId: application.organisationId,
         lettingId: application.lettingId,

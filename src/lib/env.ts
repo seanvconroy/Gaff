@@ -15,6 +15,17 @@ const schema = z
     EMAIL_PROVIDER: z.enum(['dev', 'mailgun']).default('dev'),
     SMS_PROVIDER: z.enum(['fake', 'sinch']).default('fake'),
     AI_PROVIDER: z.enum(['fake', 'bedrock']).default('fake'),
+    /**
+     * R18: ID and income checks. "stand_in" is a development page where a tester picks the
+     * result; "none" means no provider is connected yet, so the operator arranges the check.
+     */
+    IDENTITY_PROVIDER: z.enum(['none', 'stand_in']).default('stand_in'),
+    INCOME_PROVIDER: z.enum(['none', 'stand_in']).default('stand_in'),
+    /** ADR-0005: key for check results, encrypted in the application. 32 bytes, base64. */
+    DATA_ENCRYPTION_KEY: z
+      .string()
+      .refine((v) => Buffer.from(v, 'base64').length === 32, 'Must be 32 bytes, base64-encoded')
+      .optional(),
     INBOUND_DOMAIN: z.string().min(3).default('in.gaff.test'),
     MAIL_FROM_DOMAIN: z.string().min(3).default('mail.gaff.test'),
     MAILGUN_API_KEY: z.string().optional(),
@@ -45,7 +56,16 @@ const schema = z
         ['EMAIL_PROVIDER', env.EMAIL_PROVIDER, 'dev'],
         ['SMS_PROVIDER', env.SMS_PROVIDER, 'fake'],
         ['AI_PROVIDER', env.AI_PROVIDER, 'fake'],
+        ['IDENTITY_PROVIDER', env.IDENTITY_PROVIDER, 'stand_in'],
+        ['INCOME_PROVIDER', env.INCOME_PROVIDER, 'stand_in'],
       ] as const;
+      if (!env.DATA_ENCRYPTION_KEY) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['DATA_ENCRYPTION_KEY'],
+          message: 'DATA_ENCRYPTION_KEY is required in production',
+        });
+      }
       for (const [key, value, standIn] of standIns) {
         if (value === standIn) {
           ctx.addIssue({

@@ -4,6 +4,7 @@ import { applications, lettings, organisations } from '@/db/schema';
 import { incomeAgainstRule } from '@/domain/applications/apply';
 import { CHOOSABLE, validateChoice } from '@/domain/applications/choose';
 import type { Member } from '@/server/auth/member';
+import { checkResultsFor, requestChecks } from '@/server/checks/checks';
 import { recordDecision } from '@/server/decisions/record-decision';
 import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
@@ -58,11 +59,22 @@ export async function applicantsFor(member: Member, lettingId: string) {
         },
       ];
     });
+    const results = await checkResultsFor(
+      tx,
+      rows.map((r) => r.id),
+    );
+    const withChecks = rows.map((r) => ({ ...r, checks: results.get(r.id) ?? [] }));
     const waitingToApply = people
       .filter((p) => p.status === 'attended' && !p.personalDataDeletedAt)
       .map((p) => p.fullName);
     const offerMade = people.some((p) => ['offered', 'accepted'].includes(p.status));
-    return { rows, waitingToApply, offerMade, incomeRuleTenths: organisation.incomeRuleTenths };
+    return {
+      rows: withChecks,
+      waitingToApply,
+      offerMade,
+      incomeRuleTenths: organisation.incomeRuleTenths,
+      rentCents: letting.monthlyRentCents,
+    };
   });
 }
 
@@ -141,6 +153,12 @@ export async function chooseApplicants(
         .where(eq(applications.id, choice.backupId));
     }
     await tx.update(lettings).set({ stage: 'checks' }).where(eq(lettings.id, lettingId));
+    // R18: the people chosen get their checks, explained, and nobody else.
+    await requestChecks(tx, {
+      organisationId: member.organisationId,
+      actorUserId: member.userId,
+      applicationIds: [choice.preferredId, ...(choice.backupId ? [choice.backupId] : [])],
+    });
     await recordEvent(tx, {
       organisationId: member.organisationId,
       lettingId,

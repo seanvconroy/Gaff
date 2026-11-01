@@ -2,6 +2,7 @@ import type { TaskList } from 'graphile-worker';
 import { z } from 'zod';
 import { draftAnswersFor } from '@/server/answers/draft';
 import { processInboundEmail } from '@/server/enquiries/process';
+import { markReferenceOverdue } from '@/server/checks/checks';
 import { sendMessage } from '@/server/messages/outbox';
 import { sweepPersonalData } from '@/server/retention/sweep';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
@@ -26,6 +27,11 @@ export const taskList: TaskList = {
     // Counts only: never personal data in logs.
     console.log(
       `Retention: ${swept.applications} applications and ${swept.inboundEmails} emails cleared.`,
+    );
+  },
+  reference_overdue: async (payload) => {
+    await markReferenceOverdue(
+      z.object({ organisationId: z.uuid(), checkId: z.uuid() }).parse(payload),
     );
   },
   draft_answers: async (payload) => {

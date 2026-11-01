@@ -6,6 +6,7 @@ import { questionsFor } from '@/domain/criteria/criteria';
 import { bookableSlots } from '@/domain/viewings/booking';
 import { resolveAccessLink } from '@/server/access/links';
 import { recordEvent } from '@/server/record/events';
+import { checksOf } from '@/server/checks/checks';
 import { currentBooking, slotAvailability } from '@/server/viewings/booking';
 
 /** R9: what a renter's private link shows: their application, the home and the questions. */
@@ -46,7 +47,11 @@ export async function loadRenterPage(token: string) {
       row.application.status === 'waitlisted'
         ? allSlots.filter((slot) => slot.id === offer?.slotId)
         : allSlots;
+    const checks = ['preferred', 'backup'].includes(row.application.status)
+      ? await checksOf(tx, row.application.id)
+      : [];
     return {
+      checks,
       offer,
       slots,
       booking,

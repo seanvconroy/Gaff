@@ -1,0 +1,28 @@
+CREATE TABLE "checks" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organisation_id" uuid NOT NULL,
+	"letting_id" uuid NOT NULL,
+	"application_id" uuid NOT NULL,
+	"kind" text NOT NULL,
+	"status" text DEFAULT 'to_do' NOT NULL,
+	"provider" text,
+	"provider_ref" text,
+	"referee_name" text,
+	"referee_email" text,
+	"result_sealed" text,
+	"reason" text,
+	"reminders_sent" integer DEFAULT 0 NOT NULL,
+	"requested_at" timestamp with time zone,
+	"completed_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+ALTER TABLE "checks" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+ALTER TABLE "messages" ADD COLUMN "check_id" uuid;--> statement-breakpoint
+ALTER TABLE "checks" ADD CONSTRAINT "checks_organisation_id_organisations_id_fk" FOREIGN KEY ("organisation_id") REFERENCES "public"."organisations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "checks" ADD CONSTRAINT "checks_letting_id_lettings_id_fk" FOREIGN KEY ("letting_id") REFERENCES "public"."lettings"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "checks" ADD CONSTRAINT "checks_application_id_applications_id_fk" FOREIGN KEY ("application_id") REFERENCES "public"."applications"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "checks_application_kind_idx" ON "checks" USING btree ("application_id","kind");--> statement-breakpoint
+CREATE INDEX "checks_letting_idx" ON "checks" USING btree ("organisation_id","letting_id");--> statement-breakpoint
+CREATE POLICY "tenant_isolation" ON "checks" AS PERMISSIVE FOR ALL TO public USING (organisation_id = nullif(current_setting('app.org_id', true), '')::uuid or current_setting('app.rls_bypass', true) = 'on') WITH CHECK (organisation_id = nullif(current_setting('app.org_id', true), '')::uuid or current_setting('app.rls_bypass', true) = 'on');

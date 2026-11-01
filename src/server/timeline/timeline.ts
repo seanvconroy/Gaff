@@ -239,6 +239,17 @@ export function describeEvent(
       };
     case 'payment.received':
       return { what: 'Payment received' };
+    case 'tenancy.ppsn_given':
+      return {
+        what: data.given
+          ? 'The tenant gave their PPS number for the RTB'
+          : 'The tenant removed their PPS number',
+      };
+    case 'tenancy.rtb_registered':
+      return {
+        what: 'Registered with the RTB',
+        detail: data.ppsnDeleted ? 'The tenant’s PPS number was deleted' : undefined,
+      };
     case 'letting.closed':
       return {
         what:

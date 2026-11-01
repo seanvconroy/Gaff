@@ -195,6 +195,10 @@ export const eventCatalogue = {
     dueDate: z.iso.date(),
   }),
   'payment.received': z.object({ tenancyId: z.uuid() }),
+  /** R24 (Q24): the tenant gave (or removed) their optional PPS number; never the number. */
+  'tenancy.ppsn_given': z.object({ tenancyId: z.uuid(), given: z.boolean() }),
+  /** R24: registered with the RTB; the PPS number is deleted then. */
+  'tenancy.rtb_registered': z.object({ tenancyId: z.uuid(), ppsnDeleted: z.boolean() }),
   /** R16, R17: the operator's income rule, in tenths of the rent. */
   'settings.income_rule': z.object({ ruleTenths: z.number().int() }),
   /** R26: a person closed the letting (a 'close_letting' decision); everyone was told. */

@@ -17,12 +17,15 @@ export interface LettingSnapshot {
   readyToOffer?: boolean;
   /** R19, R20: the landlord declined, or the offer wasn't accepted and nothing else is out. */
   needsNewChoice?: boolean;
+  /** R24: the tenancy has started and isn't registered with the RTB: the deadline. */
+  rtbDueBy?: string | null;
   firstViewingAt: Date | null;
 }
 
 export type TodayItem =
   | { kind: 'approvals' | 'attention' | 'questions'; count: number }
   | { kind: 'offer' | 'rechoose'; lettingId: string; address: string }
+  | { kind: 'rtb'; lettingId: string; address: string; dueBy: string }
   | {
       kind: 'attendance' | 'choose' | 'shortlist';
       lettingId: string;
@@ -45,6 +48,11 @@ export function needsYouToday(input: {
     if (l.toMark > 0) {
       items.push({ kind: 'attendance', lettingId: l.id, address: l.addressLine1, count: l.toMark });
     }
+  }
+  // R24: a legal deadline, so it comes straight after today's viewings.
+  for (const l of input.lettings) {
+    if (l.rtbDueBy)
+      items.push({ kind: 'rtb', lettingId: l.id, address: l.addressLine1, dueBy: l.rtbDueBy });
   }
   for (const l of input.lettings) {
     if (l.status === 'live' && l.toChoose > 0) {

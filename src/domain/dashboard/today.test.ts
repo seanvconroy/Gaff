@@ -32,6 +32,7 @@ describe('R28: what needs a decision today', () => {
         letting({ id: 'applied', toChoose: 2 }),
         letting({ id: 'approved', readyToOffer: true }),
         letting({ id: 'declined', needsNewChoice: true }),
+        letting({ id: 'let', status: 'let', rtbDueBy: '2027-01-01' }),
       ],
     });
     expect(items.map((i) => ('lettingId' in i ? `${i.kind}:${i.lettingId}` : i.kind))).toEqual([
@@ -39,6 +40,7 @@ describe('R28: what needs a decision today', () => {
       'attention',
       'questions',
       'attendance:today',
+      'rtb:let',
       'choose:applied',
       'offer:approved',
       'rechoose:declined',

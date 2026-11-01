@@ -43,6 +43,11 @@ function todayLink(item: TodayItem): { href: string; text: string } {
         href: `/lettings/${item.lettingId}/applications`,
         text: `${item.address}: choose who to offer it to (${item.count} applied)`,
       };
+    case 'rtb':
+      return {
+        href: `/lettings/${item.lettingId}/tenancy`,
+        text: `${item.address}: register with the RTB by ${formatDate(item.dueBy)}`,
+      };
     case 'offer':
       return {
         href: `/lettings/${item.lettingId}/applications`,

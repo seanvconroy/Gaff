@@ -30,6 +30,7 @@ import { recordDecision } from '@/server/decisions/record-decision';
 import { UserFacingError } from '@/server/errors';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
+import { scheduleRtbReminder } from './rtb';
 
 type Offer = typeof offers.$inferSelect;
 type Tenancy = typeof tenancies.$inferSelect;
@@ -48,6 +49,11 @@ export async function createTenancy(tx: Tx, offer: Offer): Promise<string> {
       depositCents: offer.depositCents,
     })
     .returning({ id: tenancies.id });
+  await scheduleRtbReminder(tx, {
+    organisationId: offer.organisationId,
+    tenancyId: tenancy!.id,
+    startDate: offer.startDate,
+  });
   await recordEvent(tx, {
     organisationId: offer.organisationId,
     lettingId: offer.lettingId,

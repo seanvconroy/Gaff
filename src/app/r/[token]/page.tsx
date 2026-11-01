@@ -12,6 +12,7 @@ import { ChecksSection } from './ChecksSection';
 import { OfferSection } from './OfferSection';
 import { PaymentDetails } from './PaymentDetails';
 import { TenancySteps } from './TenancySteps';
+import { PpsnForm } from './PpsnForm';
 import { env } from '@/lib/env';
 import { ApplyForm } from './ApplyForm';
 import { BookingSection } from './BookingSection';
@@ -233,6 +234,13 @@ export default async function RenterPage({
                 operatorName={organisation.name}
                 tenancy={page.tenancy}
                 payTo={page.payTo}
+              />
+            ) : null}
+            {page.tenancy && !page.tenancy.rtbRegisteredAt ? (
+              <PpsnForm
+                token={token}
+                operatorName={organisation.name}
+                given={page.tenancy.ppsnGivenAt !== null}
               />
             ) : null}
           </Stack>

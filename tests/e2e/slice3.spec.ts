@@ -111,3 +111,49 @@ test('R23: the tenant is asked for the deposit and first month’s rent, paid to
   await expect(aoife.page.getByText('Payment received')).toBeVisible();
   await aoife.context.close();
 });
+
+test('R24: the rent-setting and RTB packs; the tenant’s PPS number is optional and deleted once registered', async ({
+  browser,
+  page,
+}) => {
+  test.slow();
+  const { lettingUrl, offerLink } = await anAcceptedOffer(browser, page);
+  await signedOnPaper(page, lettingUrl);
+
+  const aoife = await onPhone(browser, offerLink);
+  await expect(
+    aoife.page.getByRole('heading', { name: 'Your PPS number, for the RTB' }),
+  ).toBeVisible();
+  await aoife.page.getByLabel('PPS number').fill('1234567A');
+  await aoife.page.getByRole('button', { name: 'Give my PPS number' }).click();
+  await expect(
+    aoife.page.getByText('That PPS number doesn’t look right. Check it, or leave it blank.'),
+  ).toBeVisible();
+  await aoife.page.getByLabel('PPS number').fill('1234567T');
+  await aoife.page.getByRole('button', { name: 'Give my PPS number' }).click();
+  await expect(aoife.page.getByText('You’ve given your PPS number. Thank you.')).toBeVisible();
+  await expectAccessible(aoife.page);
+  await aoife.context.close();
+
+  await page.goto(`${lettingUrl}/tenancy/rtb-pack`);
+  await expect(
+    page.getByRole('heading', { name: 'RTB registration pack: 12 Ranelagh Road' }),
+  ).toBeVisible();
+  await expect(page.getByText('1234567T')).toBeVisible();
+  await expect(page.getByText(/Register by \w+day 1 January 2027/)).toBeVisible();
+  await expectAccessible(page);
+  await screenshot(page, '45-rtb-pack');
+  await page.goto(`${lettingUrl}/tenancy/rent-pack`);
+  await expect(
+    page.getByRole('heading', { name: 'Rent-setting pack: 12 Ranelagh Road' }),
+  ).toBeVisible();
+  await expectAccessible(page);
+
+  await page.goto(`${lettingUrl}/tenancy`);
+  await page.getByLabel('RTB registration number').fill('RT0012345');
+  await page.getByRole('button', { name: 'It’s registered with the RTB' }).click();
+  await expect(page.getByText(/Registered/).first()).toBeVisible();
+  await page.goto(`${lettingUrl}/tenancy/rtb-pack`);
+  await expect(page.getByText('Deleted after registration')).toBeVisible();
+  await expect(page.getByText('1234567T')).toHaveCount(0);
+});

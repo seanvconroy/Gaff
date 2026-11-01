@@ -10,10 +10,13 @@ import {
   operatorQuestions,
   offers,
   organisations,
+  tenancies,
   viewingSlots,
 } from '@/db/schema';
 import { needsYouToday } from '@/domain/dashboard/today';
 import { whoCanBeOffered } from '@/domain/offers/offer';
+import { rtbDeadline } from '@/domain/tenancy/tenancy';
+import { irishToday } from '@/lib/format';
 import { approvalState } from '@/server/offers/approval';
 import { daysSince, timeAgainstUsual } from '@/domain/dashboard/time';
 import { ATTENDANCE_OPENS_MINUTES } from '@/domain/viewings/attendance';
@@ -102,6 +105,17 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         needsNewChoice: !live && (declinedByLandlord || (out.length > 0 && !state?.preferredId)),
       });
     }
+    // R24: started tenancies not yet registered with the RTB.
+    const unregistered = await tx
+      .select({ lettingId: tenancies.lettingId, startDate: tenancies.startDate })
+      .from(tenancies)
+      .where(and(isNull(tenancies.rtbRegisteredAt), isNull(tenancies.closedAt)));
+    const today = irishToday(now);
+    const rtbDue = new Map(
+      unregistered
+        .filter((t) => t.startDate <= today)
+        .map((t) => [t.lettingId, rtbDeadline(t.startDate)]),
+    );
     const nextViewing = byLetting(
       await tx
         .select({ lettingId: viewingSlots.lettingId, at: min(viewingSlots.startsAt) })
@@ -150,6 +164,7 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         toChoose: toChoose.get(letting.id) ?? 0,
         readyToOffer: offerState.get(letting.id)?.readyToOffer ?? false,
         needsNewChoice: offerState.get(letting.id)?.needsNewChoice ?? false,
+        rtbDueBy: rtbDue.get(letting.id) ?? null,
         firstViewingAt: nextViewing.get(letting.id)?.at ?? null,
         time: timeAgainstUsual(minutes.get(letting.id)?.n ?? 0, usual?.minutesPerLetting ?? null),
         daysSinceFirstEnquiry: enquiredAt ? daysSince(enquiredAt, now) : null,

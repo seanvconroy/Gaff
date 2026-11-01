@@ -14,8 +14,10 @@ import {
   confirmPaymentAction,
   paperAction,
   requestPaymentAction,
+  rtbRegisteredAction,
   sendAgreementAction,
 } from './actions';
+import { rtbDeadline } from '@/domain/tenancy/tenancy';
 import { paymentAmounts } from '@/domain/tenancy/payment';
 import { formatEuro, irishToday } from '@/lib/format';
 import { TextField } from '@/ui/Field';
@@ -161,6 +163,7 @@ export default async function TenancyPage({
         view={view}
         hasAccount={Boolean(view.organisation.paymentIban)}
       />
+      <RtbCard lettingId={letting.id} view={view} />
     </Stack>
   );
 }
@@ -234,4 +237,71 @@ function PaymentCard({
       </Stack>
     </Card>
   );
+}
+
+function RtbCard({
+  lettingId,
+  view,
+}: {
+  lettingId: string;
+  view: NonNullable<Awaited<ReturnType<typeof tenancyFor>>>;
+}) {
+  const { tenancy } = view;
+  const deadline = rtbDeadline(tenancy.startDate);
+  const close = !tenancy.rtbRegisteredAt && deadline <= addDays(irishToday(), 7);
+  return (
+    <Card labelledBy="rtb-heading">
+      <Stack gap={4}>
+        <h2 id="rtb-heading" className="type-title">
+          Rent-setting pack and RTB registration
+        </h2>
+        <p>
+          <Link href={`/lettings/${lettingId}/tenancy/rent-pack`}>Rent-setting pack</Link>
+          {' · '}
+          <Link href={`/lettings/${lettingId}/tenancy/rtb-pack`}>RTB registration pack</Link>
+        </p>
+        {tenancy.rtbRegisteredAt ? (
+          <p>
+            <StatusPill tone="success">Registered</StatusPill> On{' '}
+            {formatDate(tenancy.rtbRegisteredAt)}
+            {tenancy.rtbReference ? `, number ${tenancy.rtbReference}` : ''}.
+          </p>
+        ) : (
+          <>
+            <p>
+              <StatusPill tone={close ? 'warning' : 'info'}>
+                Register by {formatDate(deadline)}
+              </StatusPill>{' '}
+              One month from the tenancy’s start. Gaff reminds you a week before.{' '}
+              {tenancy.ppsnGivenAt
+                ? 'The tenant gave their PPS number; it’s in the pack.'
+                : 'The tenant hasn’t given their PPS number. It’s optional.'}
+            </p>
+            <form action={rtbRegisteredAction.bind(null, lettingId)}>
+              <Stack gap={4}>
+                <TextField
+                  name="reference"
+                  label="RTB registration number"
+                  hint="If you have it. Optional."
+                  optional
+                  autoComplete="off"
+                />
+                <div>
+                  <SubmitButton variant="secondary" pendingLabel="Saving…">
+                    It’s registered with the RTB
+                  </SubmitButton>
+                </div>
+              </Stack>
+            </form>
+          </>
+        )}
+      </Stack>
+    </Card>
+  );
+}
+
+function addDays(date: string, days: number): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
 }

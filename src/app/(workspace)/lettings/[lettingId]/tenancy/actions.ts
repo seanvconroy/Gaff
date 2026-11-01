@@ -7,6 +7,7 @@ import { requireMember } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { saveLandlordContact } from '@/server/offers/approval';
 import { confirmPayment, requestPayment } from '@/server/tenancy/payment';
+import { markRtbRegistered } from '@/server/tenancy/rtb';
 import { countersign, markSignedOnPaper, sendAgreement } from '@/server/tenancy/tenancy';
 
 async function run(lettingId: string, done: string, work: () => Promise<void>): Promise<void> {
@@ -78,4 +79,12 @@ export async function requestPaymentAction(lettingId: string, formData: FormData
 export async function confirmPaymentAction(lettingId: string): Promise<void> {
   const member = await requireMember();
   await run(lettingId, 'paid', () => confirmPayment(member, lettingId));
+}
+
+/** R24: the tenancy is registered with the RTB. */
+export async function rtbRegisteredAction(lettingId: string, formData: FormData): Promise<void> {
+  const member = await requireMember();
+  await run(lettingId, 'registered', () =>
+    markRtbRegistered(member, lettingId, { reference: String(formData.get('reference') ?? '') }),
+  );
 }

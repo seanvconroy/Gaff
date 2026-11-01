@@ -5,6 +5,7 @@ import { processInboundEmail } from '@/server/enquiries/process';
 import { markReferenceOverdue } from '@/server/checks/checks';
 import { sendMessage } from '@/server/messages/outbox';
 import { expireHomeOffer } from '@/server/offers/offer';
+import { sendRtbReminder } from '@/server/tenancy/rtb';
 import { sweepPersonalData } from '@/server/retention/sweep';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
 
@@ -37,6 +38,11 @@ export const taskList: TaskList = {
   },
   expire_home_offer: async (payload) => {
     await expireHomeOffer(z.object({ organisationId: z.uuid(), offerId: z.uuid() }).parse(payload));
+  },
+  rtb_reminder: async (payload) => {
+    await sendRtbReminder(
+      z.object({ organisationId: z.uuid(), tenancyId: z.uuid() }).parse(payload),
+    );
   },
   draft_answers: async (payload) => {
     await draftAnswersFor(messageJob.parse(payload));

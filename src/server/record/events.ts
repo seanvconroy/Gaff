@@ -121,6 +121,12 @@ export const eventCatalogue = {
   'letting.landlord_link_revoked': z.object({ links: z.number().int() }),
   /** R16: someone who came to view applied (stage 5), or changed their application. */
   'application.submitted': z.object({ applicationId: z.uuid(), changed: z.boolean() }),
+  /** R17: a person chose the preferred applicant and maybe a backup (a 'choose_applicants' decision). */
+  'applicants.chosen': z.object({
+    decisionId: z.uuid(),
+    applied: z.number().int(),
+    withBackup: z.boolean(),
+  }),
   /** R16, R17: the operator's income rule, in tenths of the rent. */
   'settings.income_rule': z.object({ ruleTenths: z.number().int() }),
   /** R26: a person closed the letting (a 'close_letting' decision); everyone was told. */

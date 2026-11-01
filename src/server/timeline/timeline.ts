@@ -155,6 +155,13 @@ export function describeEvent(
       return { what: 'Stopped sharing with the landlord' };
     case 'application.submitted':
       return { what: data.changed ? 'A renter changed their application' : 'A renter applied' };
+    case 'applicants.chosen':
+      return {
+        what: data.withBackup
+          ? 'Preferred applicant and backup chosen'
+          : 'Preferred applicant chosen',
+        detail: `From ${data.applied} ${data.applied === 1 ? 'application' : 'applications'}`,
+      };
     case 'letting.closed':
       return {
         what:

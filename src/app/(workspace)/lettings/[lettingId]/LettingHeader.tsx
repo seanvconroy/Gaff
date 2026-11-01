@@ -10,6 +10,7 @@ const tabs = [
   { key: 'enquiries', label: 'Enquiries', path: '/enquiries' },
   { key: 'shortlist', label: 'Shortlist', path: '/shortlist' },
   { key: 'attendance', label: 'Attendance', path: '/attendance' },
+  { key: 'applications', label: 'Applications', path: '/applications' },
   { key: 'timeline', label: 'Timeline', path: '/timeline' },
 ] as const;
 

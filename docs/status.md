@@ -47,8 +47,8 @@ Last updated: 31 October 2026 (Slice 1 complete, with basic R26).
 | # | Requirement | Status |
 | --- | --- | --- |
 | 20 | R16: apply link after the viewing | **Done**: marking someone as “came” schedules a fixed-wording invitation to apply for the end of their viewing (cancelled if the mark changes); the renter’s page reuses their enquiry details and asks only how they mainly earn and their household’s take-home income (Q17); the income rule (default 2.5 times the rent, Q18) is shown before they apply; admins set it in Settings |
-| 21 | R17: applicants side by side; preferred and backup | Next |
-| 22 | R18: checks for the preferred applicant and backup | To do |
+| 21 | R17: applicants side by side; preferred and backup | **Done**: Applications tab with a card per applicant in shortlist order (criteria met, take-home income against the rule in words and colour, how they earn, when they applied); the operator picks a preferred applicant and an optional backup (a `choose_applicants` decision recording positions and income ratios as numbers only); changeable until an offer is made; the letting moves to stage 6; “Needs you today” prompts when people have applied |
+| 22 | R18: checks for the preferred applicant and backup | Next |
 | 23 | R19: landlord approves by link | To do |
 | 24 | R20: offer with a deadline; backup | To do |
 | 25 | R21: outcome messages | To do |

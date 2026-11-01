@@ -100,3 +100,45 @@ test('R16: someone who came applies on their phone, with two questions and no do
   await expectAccessible(aoife.page);
   await aoife.context.close();
 });
+
+async function applyOnPhone(browser: Browser, link: string, income: string) {
+  const renter = await onPhone(browser, link);
+  await renter.page.getByLabel('From a job').check();
+  await renter.page.getByLabel('Your household’s take-home income each month').fill(income);
+  await renter.page.getByRole('button', { name: 'Send my application' }).click();
+  await expect(renter.page.getByText('Your application is with')).toBeVisible();
+  await renter.context.close();
+}
+
+test('R17: the operator compares applicants side by side and chooses a preferred applicant and a backup', async ({
+  browser,
+  page,
+}) => {
+  test.slow();
+  const { lettingUrl, links } = await twoPeopleWhoCame(browser, page);
+  await applyOnPhone(browser, links[AOIFE]!, '5,200');
+  await applyOnPhone(browser, links[CIARAN]!, '4,000');
+
+  await page.goto('/');
+  await page
+    .getByRole('link', { name: '12 Ranelagh Road: choose who to offer it to (2 applied)' })
+    .click();
+  await expect(page.getByRole('heading', { name: 'Aoife Byrne' })).toBeVisible();
+  await expect(page.getByText('€5,200 a month, 2.8 times the rent')).toBeVisible();
+  await expect(page.getByText('Below your income rule')).toBeVisible();
+  await expectAccessible(page);
+  await screenshot(page, '36-applicants-side-by-side');
+
+  await page.getByRole('button', { name: 'Confirm my choice' }).click();
+  await expect(page.getByText('Choose your preferred applicant.')).toBeVisible();
+  await page.getByLabel('Preferred: Aoife Byrne').check();
+  await page.getByLabel('Backup: Ciarán Ó Súilleabháin').check();
+  await page.getByRole('button', { name: 'Confirm my choice' }).click();
+  await expect(page.getByText('Choice saved')).toBeVisible();
+  await expect(page.getByText('Step 6 of 9 · Checks')).toBeVisible();
+
+  await page.setViewportSize({ width: 412, height: 915 });
+  await expectNoSidewaysScroll(page);
+  await page.goto(`${lettingUrl}/timeline`);
+  await expect(page.getByText('Preferred applicant and backup chosen')).toBeVisible();
+});

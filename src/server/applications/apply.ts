@@ -114,6 +114,12 @@ export async function submitApplication(
         status: 'applied',
       })
       .where(eq(applications.id, row.application.id));
+    if (row.letting.stage === 'viewings') {
+      await tx
+        .update(lettings)
+        .set({ stage: 'applications' })
+        .where(eq(lettings.id, row.letting.id));
+    }
     await recordEvent(tx, {
       organisationId: link.organisationId,
       lettingId: row.letting.id,

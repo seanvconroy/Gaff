@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gt, isNull, lte, min } from 'drizzle-orm';
+import { and, count, desc, eq, gt, inArray, isNull, lte, min } from 'drizzle-orm';
 import { withOrg } from '@/db/client';
 import {
   activityMinutes,
@@ -53,6 +53,22 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         .where(and(eq(bookings.status, 'booked'), lte(viewingSlots.startsAt, markFrom)))
         .groupBy(bookings.lettingId),
     );
+    const applicantCounts = await tx
+      .select({ lettingId: applications.lettingId, status: applications.status, n: count() })
+      .from(applications)
+      .where(
+        inArray(applications.status, ['applied', 'preferred', 'backup', 'offered', 'accepted']),
+      )
+      .groupBy(applications.lettingId, applications.status);
+    const toChoose = new Map<string, number>();
+    for (const lettingId of new Set(applicantCounts.map((r) => r.lettingId))) {
+      const forLetting = applicantCounts.filter((r) => r.lettingId === lettingId);
+      const chosen = forLetting.some((r) => r.status !== 'applied');
+      toChoose.set(
+        lettingId,
+        chosen ? 0 : (forLetting.find((r) => r.status === 'applied')?.n ?? 0),
+      );
+    }
     const nextViewing = byLetting(
       await tx
         .select({ lettingId: viewingSlots.lettingId, at: min(viewingSlots.startsAt) })
@@ -98,6 +114,7 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         ...letting,
         undecided: undecided.get(letting.id)?.n ?? 0,
         toMark: toMark.get(letting.id)?.n ?? 0,
+        toChoose: toChoose.get(letting.id) ?? 0,
         firstViewingAt: nextViewing.get(letting.id)?.at ?? null,
         time: timeAgainstUsual(minutes.get(letting.id)?.n ?? 0, usual?.minutesPerLetting ?? null),
         daysSinceFirstEnquiry: enquiredAt ? daysSince(enquiredAt, now) : null,

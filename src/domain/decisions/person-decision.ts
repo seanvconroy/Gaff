@@ -15,6 +15,8 @@ export const decisionKinds = [
   'invite_to_view',
   /** R15: the operator marks whether someone came to their viewing. It decides who may apply. */
   'mark_attendance',
+  /** R17: the operator chooses the preferred applicant and the backup. */
+  'choose_applicants',
   /** R26: the operator closes a letting as let or withdrawn, which ends everyone's chances. */
   'close_letting',
 ] as const;

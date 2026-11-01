@@ -165,3 +165,64 @@ export async function tokenInMessage(
   );
   return /\/r\/([A-Za-z0-9_-]{43})/.exec(message!.body)![1]!;
 }
+
+/**
+ * Slice 2 set-up: a live letting where each renter enquired, was invited, booked their own
+ * slot, came (the viewings are moved to have just started) and applied with the given
+ * take-home income. Returns their application IDs in enquiry order.
+ */
+export async function peopleWhoApplied(
+  member: Member,
+  incomes: number[],
+): Promise<{ lettingId: string; ids: string[] }> {
+  const { and, asc, eq } = await import('drizzle-orm');
+  const { withOrg } = await import('@/db/client');
+  const { bookings, viewingSlots } = await import('@/db/schema');
+  const { inviteToView } = await import('@/server/shortlist/invite');
+  const { bookViewing } = await import('@/server/viewings/booking');
+  const { markAttendance } = await import('@/server/viewings/attendance');
+  const { submitApplication } = await import('@/server/applications/apply');
+  const { lettingId } = await aLiveLetting(member);
+  const ids: string[] = [];
+  for (const [i] of incomes.entries()) {
+    ids.push(await aRenterEnquires(member, i + 1, { occupants: '1', hasPets: 'no' }));
+  }
+  await inviteToView(member, lettingId, { chosenIds: ids, waitlistSize: 0 });
+  const slots = await withOrg(member.organisationId, (tx) =>
+    tx
+      .select()
+      .from(viewingSlots)
+      .where(eq(viewingSlots.lettingId, lettingId))
+      .orderBy(asc(viewingSlots.startsAt)),
+  );
+  for (const [i, id] of ids.entries()) {
+    const token = await tokenInMessage(member, id, 'invitation');
+    const booked = await bookViewing(token, slots[i]!.id);
+    if (!booked.ok) throw new Error(`booking failed: ${JSON.stringify(booked)}`);
+  }
+  await withOrg(member.organisationId, (tx) =>
+    tx
+      .update(viewingSlots)
+      .set({
+        startsAt: new Date(Date.now() - 30 * 60_000),
+        endsAt: new Date(Date.now() - 15 * 60_000),
+      })
+      .where(eq(viewingSlots.lettingId, lettingId)),
+  );
+  for (const [i, id] of ids.entries()) {
+    const [booking] = await withOrg(member.organisationId, (tx) =>
+      tx
+        .select()
+        .from(bookings)
+        .where(and(eq(bookings.applicationId, id), eq(bookings.status, 'booked'))),
+    );
+    await markAttendance(member, { lettingId, bookingId: booking!.id, attended: true });
+    const token = await tokenInMessage(member, id, 'apply_invitation');
+    const applied = await submitApplication(token, {
+      earning: 'employed',
+      monthlyIncome: String(incomes[i]),
+    });
+    if (!applied?.ok) throw new Error(`apply failed: ${JSON.stringify(applied)}`);
+  }
+  return { lettingId, ids };
+}

@@ -1,7 +1,7 @@
 /**
  * R28: what needs a person today, most urgent first. Renters waiting on a reply come first,
- * then people to mark at today's viewings, then who to invite (soonest viewings first), then
- * homes still being set up. Gaff only lists these; a person does each one.
+ * then people to mark at today's viewings, then applicants to choose from (R17), then who to
+ * invite (soonest viewings first), then homes still being set up. Gaff only lists these; a person does each one.
  */
 export interface LettingSnapshot {
   id: string;
@@ -11,12 +11,19 @@ export interface LettingSnapshot {
   undecided: number;
   /** People booked at a viewing that has started and who aren't marked yet. */
   toMark: number;
+  /** People who applied, while nobody has been chosen yet (R17). */
+  toChoose: number;
   firstViewingAt: Date | null;
 }
 
 export type TodayItem =
   | { kind: 'approvals' | 'attention' | 'questions'; count: number }
-  | { kind: 'attendance' | 'shortlist'; lettingId: string; address: string; count: number }
+  | {
+      kind: 'attendance' | 'choose' | 'shortlist';
+      lettingId: string;
+      address: string;
+      count: number;
+    }
   | { kind: 'setup'; lettingId: string; address: string };
 
 export function needsYouToday(input: {
@@ -32,6 +39,11 @@ export function needsYouToday(input: {
   for (const l of input.lettings) {
     if (l.toMark > 0) {
       items.push({ kind: 'attendance', lettingId: l.id, address: l.addressLine1, count: l.toMark });
+    }
+  }
+  for (const l of input.lettings) {
+    if (l.status === 'live' && l.toChoose > 0) {
+      items.push({ kind: 'choose', lettingId: l.id, address: l.addressLine1, count: l.toChoose });
     }
   }
   const soonest = (l: LettingSnapshot) => l.firstViewingAt?.getTime() ?? Number.MAX_SAFE_INTEGER;

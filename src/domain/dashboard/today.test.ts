@@ -7,6 +7,7 @@ const letting = (over: Partial<LettingSnapshot>): LettingSnapshot => ({
   status: 'live',
   undecided: 0,
   toMark: 0,
+  toChoose: 0,
   firstViewingAt: null,
   ...over,
 });
@@ -28,6 +29,7 @@ describe('R28: what needs a decision today', () => {
         letting({ id: 'later', undecided: 4, firstViewingAt: new Date('2026-11-09T18:00:00Z') }),
         letting({ id: 'sooner', undecided: 2, firstViewingAt: new Date('2026-11-07T18:00:00Z') }),
         letting({ id: 'today', toMark: 3 }),
+        letting({ id: 'applied', toChoose: 2 }),
       ],
     });
     expect(items.map((i) => ('lettingId' in i ? `${i.kind}:${i.lettingId}` : i.kind))).toEqual([
@@ -35,6 +37,7 @@ describe('R28: what needs a decision today', () => {
       'attention',
       'questions',
       'attendance:today',
+      'choose:applied',
       'shortlist:sooner',
       'shortlist:later',
       'setup:draft',

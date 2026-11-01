@@ -100,11 +100,13 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   await renter.goto(checksLink);
   await renter.getByRole('button', { name: 'Check my income' }).click();
   await renter.getByRole('button', { name: 'No regular income found' }).click();
+  await renter.waitForURL(/\/checks\/done/);
   await renter.goto(checksLink);
   await expect(renter.getByText('That didn’t work this time')).toBeVisible();
   await expectAccessible(renter);
   await renter.getByRole('button', { name: 'Try again' }).click();
   await renter.getByRole('button', { name: 'Confirm this income' }).click();
+  await renter.waitForURL(/\/checks\/done/);
 
   // References: a previous landlord, and no employer to ask.
   await renter.goto(checksLink);

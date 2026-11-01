@@ -23,7 +23,10 @@ export interface Member {
 }
 
 export async function currentUser() {
-  const session = await auth().api.getSession({ headers: await headers() });
+  // Read the request before anything else: it marks the page as one rendered per request, so
+  // the build never tries to render it ahead of time, without the app's settings.
+  const requestHeaders = await headers();
+  const session = await auth().api.getSession({ headers: requestHeaders });
   return session?.user ?? null;
 }
 

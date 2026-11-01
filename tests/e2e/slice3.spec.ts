@@ -255,7 +255,14 @@ test('Testing tool: start the viewings now, only where dev tools are on', async 
     .replace(/\?.*$/, '');
   await page.goto(`${lettingUrl}/attendance`);
   await expect(page.getByRole('heading', { name: 'Testing only' })).toBeVisible();
-  await page.getByRole('button', { name: 'Start the viewings now' }).click();
+  // Wait for the action itself, not just the click, before looking elsewhere.
+  await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && response.url().includes('/attendance'),
+    ),
+    page.getByRole('button', { name: 'Start the viewings now' }).click(),
+  ]);
   // The viewing times are now today's, in Ireland.
   const today = new Intl.DateTimeFormat('en-IE', {
     weekday: 'long',

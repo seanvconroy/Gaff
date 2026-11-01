@@ -65,7 +65,16 @@ export async function loadRenterPage(token: string) {
       row.application.status === 'accepted'
         ? await tx.select().from(tenancies).where(eq(tenancies.applicationId, row.application.id))
         : [];
+    // R23: the operator's account, shown only here, and only once payment has been asked for.
+    const payTo =
+      tenancy?.paymentRequestedAt && row.organisation.paymentIban
+        ? {
+            accountName: row.organisation.paymentAccountName ?? '',
+            iban: row.organisation.paymentIban,
+          }
+        : null;
     return {
+      payTo,
       tenancy: tenancy ?? null,
       homeOffer,
       checks,

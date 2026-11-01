@@ -10,6 +10,8 @@ import styles from '../renter.module.css';
 import { AnswersForm } from './AnswersForm';
 import { ChecksSection } from './ChecksSection';
 import { OfferSection } from './OfferSection';
+import { PaymentDetails } from './PaymentDetails';
+import { TenancySteps } from './TenancySteps';
 import { env } from '@/lib/env';
 import { ApplyForm } from './ApplyForm';
 import { BookingSection } from './BookingSection';
@@ -224,21 +226,14 @@ export default async function RenterPage({
           />
         ) : null}
         {status === 'accepted' ? (
-          <Stack gap={4}>
-            <Notice tone="success" title="You’ve accepted the offer" role="status">
-              <p>
-                {organisation.name} will send you the tenancy agreement to sign, and how to pay the
-                deposit and first month’s rent directly to them. We’ll email you when it’s ready.
-              </p>
-            </Notice>
-            {page.tenancy && page.tenancy.agreementStatus !== 'draft' ? (
-              <p>
-                <a href={`/r/${token}/agreement`}>
-                  {page.tenancy.agreementStatus === 'with_tenant'
-                    ? 'Read and sign your tenancy agreement'
-                    : 'Read your tenancy agreement'}
-                </a>
-              </p>
+          <Stack gap={6}>
+            <TenancySteps token={token} operatorName={organisation.name} tenancy={page.tenancy} />
+            {page.tenancy?.paymentRequestedAt && page.payTo ? (
+              <PaymentDetails
+                operatorName={organisation.name}
+                tenancy={page.tenancy}
+                payTo={page.payTo}
+              />
             ) : null}
           </Stack>
         ) : null}

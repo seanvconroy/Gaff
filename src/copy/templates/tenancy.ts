@@ -52,3 +52,58 @@ export function agreementSignedEmail(input: {
     ].join('\n'),
   };
 }
+
+export const PAYMENT_REQUEST_TEMPLATE = 'payment_request@1';
+export const PAYMENT_RECEIVED_TEMPLATE = 'payment_received@1';
+
+/**
+ * R23: what to pay and by when. The bank details are on the tenant's private page, never in the
+ * email, and they're asked to confirm them by phone first: payment-diversion scams copy emails.
+ */
+export function paymentRequestEmail(input: {
+  tenantName: string;
+  operatorName: string;
+  address: string;
+  deposit: string;
+  firstRent: string;
+  total: string;
+  dueDate: string;
+  pageUrl: string;
+}) {
+  return {
+    subject: `${input.address}: paying the deposit and first month’s rent`,
+    body: [
+      hello(input.tenantName),
+      '',
+      `To secure ${input.address}, please pay ${input.total} by ${input.dueDate}: the deposit of ${input.deposit} and the first month’s rent of ${input.firstRent}. There are no other fees.`,
+      '',
+      `You pay directly to ${input.operatorName}, not to Gaff. To keep the bank details safe, they’re on your page, not in this email:`,
+      input.pageUrl,
+      '',
+      `Before you pay, please check the bank details with ${input.operatorName} by phone. We’ll never send you different details by email.`,
+      '',
+      input.operatorName,
+    ].join('\n'),
+  };
+}
+
+export function paymentReceivedEmail(input: {
+  tenantName: string;
+  operatorName: string;
+  address: string;
+  total: string;
+  startDate: string;
+}) {
+  return {
+    subject: `${input.address}: payment received`,
+    body: [
+      hello(input.tenantName),
+      '',
+      `${input.operatorName} has received your payment of ${input.total} for ${input.address}. Thank you.`,
+      '',
+      `Your tenancy starts on ${input.startDate}. ${input.operatorName} will be in touch about moving in and the keys.`,
+      '',
+      input.operatorName,
+    ].join('\n'),
+  };
+}

@@ -6,6 +6,7 @@ import { formValues, invalid, type FormState } from '@/lib/forms';
 import { requireMember } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { saveLandlordContact } from '@/server/offers/approval';
+import { confirmPayment, requestPayment } from '@/server/tenancy/payment';
 import { countersign, markSignedOnPaper, sendAgreement } from '@/server/tenancy/tenancy';
 
 async function run(lettingId: string, done: string, work: () => Promise<void>): Promise<void> {
@@ -63,4 +64,18 @@ export async function landlordForAgreementAction(
       email: String(formData.get('landlordEmail') ?? ''),
     }),
   );
+}
+
+/** R23: ask the tenant for the deposit and first month's rent. */
+export async function requestPaymentAction(lettingId: string, formData: FormData): Promise<void> {
+  const member = await requireMember();
+  await run(lettingId, 'requested', () =>
+    requestPayment(member, lettingId, { dueDate: String(formData.get('dueDate') ?? '') }),
+  );
+}
+
+/** R23: the money has arrived in the operator's account. */
+export async function confirmPaymentAction(lettingId: string): Promise<void> {
+  const member = await requireMember();
+  await run(lettingId, 'paid', () => confirmPayment(member, lettingId));
 }

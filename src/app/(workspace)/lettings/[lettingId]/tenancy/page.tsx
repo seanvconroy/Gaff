@@ -11,9 +11,13 @@ import { LettingHeader } from '../LettingHeader';
 import {
   countersignAction,
   landlordForAgreementAction,
+  confirmPaymentAction,
   paperAction,
+  requestPaymentAction,
   sendAgreementAction,
 } from './actions';
+import { paymentAmounts } from '@/domain/tenancy/payment';
+import { formatEuro, irishToday } from '@/lib/format';
 import { TextField } from '@/ui/Field';
 import { SignForm } from '@/ui/SignForm';
 
@@ -152,6 +156,82 @@ export default async function TenancyPage({
           ) : null}
         </Stack>
       </Card>
+      <PaymentCard
+        lettingId={letting.id}
+        view={view}
+        hasAccount={Boolean(view.organisation.paymentIban)}
+      />
     </Stack>
+  );
+}
+
+function PaymentCard({
+  lettingId,
+  view,
+  hasAccount,
+}: {
+  lettingId: string;
+  view: NonNullable<Awaited<ReturnType<typeof tenancyFor>>>;
+  hasAccount: boolean;
+}) {
+  const { tenancy, tenant } = view;
+  const first = tenant.fullName.split(/\s+/)[0];
+  const signed = ['signed', 'signed_on_paper'].includes(tenancy.agreementStatus);
+  const amounts = paymentAmounts(tenancy);
+  const today = irishToday();
+  return (
+    <Card labelledBy="payment-heading">
+      <Stack gap={4}>
+        <h2 id="payment-heading" className="type-title">
+          Deposit and first month’s rent
+        </h2>
+        <p>
+          {formatEuro(amounts.depositCents)} deposit and {formatEuro(amounts.firstRentCents)} first
+          month’s rent: {formatEuro(amounts.totalCents)}, paid straight into your account. Nothing
+          else is ever asked of a tenant.
+        </p>
+        {!signed ? <p>Ask for the payment once the agreement is signed.</p> : null}
+        {signed && !hasAccount ? (
+          <p>
+            Add the account tenants pay into, in <Link href="/settings">Settings</Link>, first.
+          </p>
+        ) : null}
+        {signed && hasAccount && !tenancy.paymentRequestedAt ? (
+          <form action={requestPaymentAction.bind(null, lettingId)}>
+            <Stack gap={4}>
+              <TextField
+                name="dueDate"
+                label="Pay by"
+                type="date"
+                min={today}
+                defaultValue={tenancy.startDate > today ? tenancy.startDate : today}
+              />
+              <div>
+                <SubmitButton pendingLabel="Sending…">Ask {first} to pay</SubmitButton>
+              </div>
+            </Stack>
+          </form>
+        ) : null}
+        {tenancy.paymentRequestedAt && !tenancy.paymentReceivedAt ? (
+          <>
+            <p>
+              <StatusPill tone="info">Waiting</StatusPill> Asked on{' '}
+              {formatDate(tenancy.paymentRequestedAt)}, to pay by{' '}
+              {tenancy.paymentDueDate ? formatDate(tenancy.paymentDueDate) : ''}, with the reference{' '}
+              {tenancy.paymentReference}.
+            </p>
+            <form action={confirmPaymentAction.bind(null, lettingId)}>
+              <SubmitButton pendingLabel="Saving…">It’s in our account</SubmitButton>
+            </form>
+          </>
+        ) : null}
+        {tenancy.paymentReceivedAt ? (
+          <p>
+            <StatusPill tone="success">Received</StatusPill> On{' '}
+            {formatDate(tenancy.paymentReceivedAt)}. {first} has a receipt.
+          </p>
+        ) : null}
+      </Stack>
+    </Card>
   );
 }

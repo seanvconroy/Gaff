@@ -9,6 +9,8 @@ import { Notice } from '@/ui/Notice';
 import { ChoiceGroup, TextField } from '@/ui/Field';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { approveBeforeSendAction, incomeRuleAction, usualTimesAction } from './actions';
+import { formatIban } from '@/domain/tenancy/payment';
+import { PaymentAccountForm } from './PaymentAccountForm';
 import { formatRatio, incomeRuleChoices } from '@/domain/applications/apply';
 import styles from './settings.module.css';
 
@@ -101,6 +103,21 @@ export default async function SettingsPage({
             </div>
           </Stack>
         </form>
+      </Card>
+
+      <Card labelledBy="payment-heading">
+        <h2 id="payment-heading" className="type-title">
+          Where tenants pay
+        </h2>
+        <p>
+          The account a new tenant pays the deposit and first month’s rent into: your own, or your
+          client account. Gaff never handles the money. Tenants see these details only on their
+          private page, and are asked to check them with you by phone.
+        </p>
+        <PaymentAccountForm
+          accountName={organisation!.paymentAccountName ?? ''}
+          iban={organisation!.paymentIban ? formatIban(organisation!.paymentIban) : ''}
+        />
       </Card>
 
       <Card labelledBy="usual-heading">

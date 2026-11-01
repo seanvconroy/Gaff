@@ -58,8 +58,8 @@ Last updated: 1 November 2026 (Slices 1 and 2 complete; Slice 3 next).
 | # | Requirement | Status |
 | --- | --- | --- |
 | 26 | R22: tenancy agreement, signed by all parties | **Done**: the tenancy is set up from the accepted offer; Gaff’s standard agreement (draft wording for the solicitor) names the landlord, agent and PSRA licence, the home, start date, rent day, rent and capped deposit, and points to the Residential Tenancies Acts; the tenant reads and signs on their phone (typed name and consent, against a fingerprint of the exact text); the operator signs for the landlord as a `sign_agreement` decision; or both sign on paper and the operator records it (Q23); both have a printable copy |
-| 27 | R23: payment request to the operator’s own account | Next |
-| 28 | R24: rent-setting and RTB packs | To do |
+| 27 | R23: payment request to the operator’s own account | **Done**: an admin sets the account tenants pay into (IBAN checksum checked; changes logged without the IBAN); once signed, the operator asks for the deposit and first month’s rent (capped, rule 4) by a date, with a reference; the bank details appear only on the tenant’s private page, never in email, with a prompt to confirm them by phone; the operator marks it received and the tenant gets a receipt; Gaff never holds money (rule 5); the tenant’s page shows each tenancy step, what’s done and what’s next |
+| 28 | R24: rent-setting and RTB packs | Next |
 | 29 | R25: move-in checklist and inventory | To do |
 | 30 | R26: retention, in full | To do |
 

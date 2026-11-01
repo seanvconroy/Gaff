@@ -81,6 +81,8 @@ export const eventCatalogue = {
       'outcome',
       'agreement_ready',
       'agreement_signed',
+      'payment_request',
+      'payment_received',
     ]),
     channel: z.enum(['email', 'sms']),
     author: z.enum(['template', 'ai', 'person']),
@@ -184,6 +186,15 @@ export const eventCatalogue = {
     decisionId: z.uuid(),
     mode: z.enum(['electronic', 'paper']),
   }),
+  /** R23: the operator's payment account changed (the IBAN itself is never logged). */
+  'settings.payment_account': z.object({ changed: z.boolean() }),
+  /** R23: the deposit and first month's rent asked for, to the operator's own account. */
+  'payment.requested': z.object({
+    tenancyId: z.uuid(),
+    totalCents: z.number().int(),
+    dueDate: z.iso.date(),
+  }),
+  'payment.received': z.object({ tenancyId: z.uuid() }),
   /** R16, R17: the operator's income rule, in tenths of the rent. */
   'settings.income_rule': z.object({ ruleTenths: z.number().int() }),
   /** R26: a person closed the letting (a 'close_letting' decision); everyone was told. */

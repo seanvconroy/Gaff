@@ -5,8 +5,10 @@ import { redirect } from 'next/navigation';
 import { requireMember } from '@/server/auth/member';
 import { setApproveBeforeSend } from '@/server/answers/review';
 import { UserFacingError } from '@/server/errors';
+import { formValues, invalid, type FormState } from '@/lib/forms';
 import { setIncomeRule } from '@/server/organisations/income-rule';
 import { setUsualTimes } from '@/server/organisations/usual-times';
+import { setPaymentAccount } from '@/server/tenancy/payment';
 
 export async function approveBeforeSendAction(formData: FormData): Promise<void> {
   const member = await requireMember();
@@ -49,4 +51,23 @@ export async function incomeRuleAction(formData: FormData): Promise<void> {
   }
   revalidatePath('/settings');
   redirect('/settings?saved=income');
+}
+
+/** R23: the account tenants pay the deposit and first month's rent into. */
+export async function paymentAccountAction(
+  _state: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const member = await requireMember();
+  const values = formValues(formData);
+  let result;
+  try {
+    result = await setPaymentAccount(member, values);
+  } catch (error) {
+    if (!(error instanceof UserFacingError)) throw error;
+    return invalid({}, values, error.message);
+  }
+  if (!result.ok) return invalid(result.errors, values, 'One or two details need another look.');
+  revalidatePath('/settings');
+  redirect('/settings?saved=payment');
 }

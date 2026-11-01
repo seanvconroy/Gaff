@@ -239,7 +239,9 @@ test('R20, R21: the offer goes out with a deadline, the renter accepts on their 
   await expectAccessible(aoife.page);
   await screenshot(aoife.page, '42-renter-offer');
   await aoife.page.getByRole('button', { name: 'Accept the offer' }).click();
-  await expect(aoife.page.getByText('You’ve accepted the offer')).toBeVisible();
+  await expect(
+    aoife.page.getByText('You’ve accepted the offer, and your tenancy starts on'),
+  ).toBeVisible();
   await expectAccessible(aoife.page);
   await aoife.context.close();
 

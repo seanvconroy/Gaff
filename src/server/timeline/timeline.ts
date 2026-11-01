@@ -2,7 +2,7 @@ import { asc, eq } from 'drizzle-orm';
 import { withOrg, type Tx } from '@/db/client';
 import { events, users } from '@/db/schema';
 import { describeCriteria, type Criteria } from '@/domain/criteria/criteria';
-import { formatDate, formatRent } from '@/lib/format';
+import { formatDate, formatEuro, formatRent } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 
 export interface TimelineEntry {
@@ -36,6 +36,8 @@ const messageTitles: Record<string, string> = {
   outcome: 'Outcome message sent',
   agreement_ready: 'Agreement sent to the tenant to sign',
   agreement_signed: 'Signed agreement sent to the tenant',
+  payment_request: 'Payment request sent',
+  payment_received: 'Payment receipt sent',
 };
 
 const rentCheckTitles: Record<string, string> = {
@@ -230,6 +232,13 @@ export function describeEvent(
             ? 'Agreement signed on paper by both sides'
             : 'Agreement signed by both sides',
       };
+    case 'payment.requested':
+      return {
+        what: 'Deposit and first month’s rent requested',
+        detail: `${formatEuro(Number(data.totalCents))} by ${formatDate(String(data.dueDate))}, to the operator’s own account`,
+      };
+    case 'payment.received':
+      return { what: 'Payment received' };
     case 'letting.closed':
       return {
         what:

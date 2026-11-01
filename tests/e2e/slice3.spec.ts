@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { AOIFE, anAcceptedOffer, onPhone } from './journeys';
 import { expectAccessible, expectNoSidewaysScroll, linkInEmail, screenshot } from './support';
 
@@ -54,5 +54,60 @@ test('R22: the tenant reads and signs the agreement on their phone, then the ope
   await expect(tenant.getByText(/signed electronically by Aoife Byrne on/)).toBeVisible();
   await expect(tenant.getByText(/signed by Ann Power for Halcyon Lettings on/)).toBeVisible();
   await expectAccessible(tenant);
+  await aoife.context.close();
+});
+
+/** Stage 8 by the quick route: the landlord added, and the agreement signed on paper. */
+async function signedOnPaper(page: Page, lettingUrl: string) {
+  await page.goto(`${lettingUrl}/tenancy`);
+  await page.getByLabel('Landlord’s name').fill('Tom Walsh');
+  await page.getByLabel('Landlord’s email').fill('tom.walsh@example.ie');
+  await page.getByRole('button', { name: 'Save the landlord’s details' }).click();
+  await page.getByText('Signing on paper instead?').click();
+  await page.getByRole('button', { name: 'Both sides have signed on paper' }).click();
+  await expect(page.getByText('Signed on paper', { exact: true })).toBeVisible();
+}
+
+test('R23: the tenant is asked for the deposit and first month’s rent, paid to the operator’s own account', async ({
+  browser,
+  page,
+}) => {
+  test.slow();
+  const { lettingUrl, offerLink } = await anAcceptedOffer(browser, page);
+  await signedOnPaper(page, lettingUrl);
+  await expect(page.getByText('Add the account tenants pay into, in')).toBeVisible();
+
+  await page.goto('/settings');
+  await page.getByLabel('Name on the account').fill('Halcyon Lettings client account');
+  await page.getByLabel('IBAN').fill('IE29 AIBK 9311 5212 3456 79');
+  await page.getByRole('button', { name: 'Save the account' }).click();
+  await expect(
+    page.getByText('That IBAN doesn’t look right. Check it against your bank’s details.'),
+  ).toBeVisible();
+  await expect(page.getByLabel('Name on the account')).toHaveValue(
+    'Halcyon Lettings client account',
+  );
+  await page.getByLabel('IBAN').fill('IE29 AIBK 9311 5212 3456 78');
+  await page.getByRole('button', { name: 'Save the account' }).click();
+  await expect(page.getByText('Saved.')).toBeVisible();
+
+  await page.goto(`${lettingUrl}/tenancy`);
+  await page.getByRole('button', { name: 'Ask Aoife to pay' }).click();
+  await expect(page.getByText(/with the reference GAFF-/)).toBeVisible();
+
+  const aoife = await onPhone(browser, offerLink);
+  await expect(
+    aoife.page.getByRole('heading', { name: 'Pay the deposit and first month’s rent' }),
+  ).toBeVisible();
+  await expect(aoife.page.getByText('IE29 AIBK 9311 5212 3456 78')).toBeVisible();
+  await expect(aoife.page.getByText('€3,700')).toBeVisible();
+  await expect(aoife.page.getByText('Check the bank details by phone first')).toBeVisible();
+  await expectAccessible(aoife.page);
+  await screenshot(aoife.page, '44-tenant-payment');
+
+  await page.getByRole('button', { name: 'It’s in our account' }).click();
+  await expect(page.getByText('Aoife has a receipt.')).toBeVisible();
+  await aoife.page.reload();
+  await expect(aoife.page.getByText('Payment received')).toBeVisible();
   await aoife.context.close();
 });

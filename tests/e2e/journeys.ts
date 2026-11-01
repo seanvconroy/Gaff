@@ -108,7 +108,9 @@ export async function anAcceptedOffer(browser: Browser, page: Page) {
   }).toPass({ timeout: 20_000 });
   const aoife = await onPhone(browser, offerLink);
   await aoife.page.getByRole('button', { name: 'Accept the offer' }).click();
-  await expect(aoife.page.getByText('You’ve accepted the offer')).toBeVisible();
+  await expect(
+    aoife.page.getByText('You’ve accepted the offer, and your tenancy starts on'),
+  ).toBeVisible();
   await aoife.context.close();
   return { ...setup, offerLink };
 }

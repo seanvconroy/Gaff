@@ -225,7 +225,7 @@ The PRD asks for data hosted in the EU, and the build turned that into "EU only"
 **Decision (Sean, on the CTO's advice):** approved vendors only.
 - Each uses its EU region wherever it has one, with a signed DPA and a lawful transfer basis.
 - **Approved:**
-  - Vercel (functions in Dublin), on Pro for the per-minute job tick;
+  - Vercel (functions in Dublin), on Pro before real data (Hobby is for non-commercial use);
   - Supabase (Ireland);
   - Resend (email);
   - Claude on Amazon Bedrock (EU);

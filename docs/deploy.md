@@ -11,7 +11,7 @@ It takes about 20 minutes. Production uses the same steps with real providers; s
 
 ## What you need
 
-- **A Vercel account on Pro.** The job timer runs every minute, and Vercel's Hobby plan refuses to deploy that (Hobby is also for non-commercial use only). A Pro trial is fine for testing.
+- **A Vercel account.** Hobby is fine for the test copy. Production needs Pro, because Hobby is for non-commercial use only.
 - **A Supabase account.** The Free plan is fine for the test copy.
 - **Access to the GitHub repository** `seanvconroy/Gaff`.
 
@@ -65,7 +65,11 @@ Vercel deploys the repository's default branch, `claude/gaff-mvp`, as production
    | `"database": "42P01"` | The tables aren't there. Check the build log for the migration step. |
 
 2. **Sign in.** Open the app and sign in with a made-up email, then open the sign-in link from `/dev/outbox`.
-3. **The job timer.** In Vercel, **Settings**, then **Cron Jobs**, should show `/api/cron/tick` running every minute.
+3. **The daily backstop.** In Vercel, **Settings**, then **Cron Jobs**, shows `/api/cron/tick` once a day.
+
+## 4. The minute tick (Supabase)
+
+In Supabase's **SQL Editor**, run [`scripts/db/supabase-tick.sql`](../scripts/db/supabase-tick.sql), with your app's address and the same `CRON_SECRET` as in Vercel. From then on, Supabase calls the app every minute to run anything due. You can see it in **Integrations**, then **Cron**, as `gaff-tick`, with its history.
 
 Then follow [testing-guide.md](testing-guide.md) from step 1.
 
@@ -73,7 +77,7 @@ Then follow [testing-guide.md](testing-guide.md) from step 1.
 
 There's no always-on worker. Jobs wait in the database and run in two ways:
 - **Straight after the action that queued them.** Sending a reply, reading an enquiry or drafting an answer happens within seconds.
-- **On the minute tick.** Vercel calls `/api/cron/tick` every minute with `CRON_SECRET`. That runs anything due, such as reminders, offer deadlines and chasers, and the nightly retention job at 02:30 UTC.
+- **On the minute tick.** Supabase Cron calls `/api/cron/tick` every minute with `CRON_SECRET`, on any Vercel plan. That runs anything due, such as reminders, offer deadlines and chasers, and the nightly retention job at 02:30 UTC. Vercel's own cron calls it once a day as a backstop.
 
 Each run stops once nothing is left, or after 45 seconds, and lets running jobs finish first.
 

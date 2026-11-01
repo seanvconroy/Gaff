@@ -55,7 +55,7 @@ const schema = z
       .enum(['0', '1'])
       .default('0')
       .transform((v) => v === '1'),
-    /** ADR-0014: Vercel Cron sends it as a bearer token to /api/cron/tick. */
+    /** ADR-0014: the minute tick (Supabase Cron) and Vercel Cron send it to /api/cron/tick. */
     CRON_SECRET: z.string().min(16, 'CRON_SECRET must be at least 16 characters').optional(),
     /** Supabase's CA certificate (PEM), so the database's certificate is verified. */
     DATABASE_CA_CERT: z.string().optional(),

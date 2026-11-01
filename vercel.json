@@ -3,5 +3,5 @@
   "framework": "nextjs",
   "regions": ["dub1"],
   "buildCommand": "pnpm db:migrate --deploy && pnpm build",
-  "crons": [{ "path": "/api/cron/tick", "schedule": "* * * * *" }]
+  "crons": [{ "path": "/api/cron/tick", "schedule": "30 2 * * *" }]
 }

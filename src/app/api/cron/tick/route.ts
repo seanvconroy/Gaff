@@ -13,9 +13,10 @@ function sameSecret(given: string, wanted: string): boolean {
 }
 
 /**
- * ADR-0014: Vercel Cron calls this every minute (vercel.json) with CRON_SECRET as a bearer
- * token. It runs the jobs that are due (reminders, deadlines, sends and retries) and, once a day,
- * the retention job. Counts only in the response: never personal data.
+ * ADR-0014: Supabase Cron calls this every minute (scripts/db/supabase-tick.sql), and Vercel Cron
+ * once a day as a backstop (vercel.json), each with CRON_SECRET as a bearer token. It runs the
+ * jobs that are due (reminders, deadlines, sends and retries) and, once a day, the retention job.
+ * Counts only in the response: never personal data.
  */
 export async function GET(request: Request): Promise<Response> {
   const secret = env().CRON_SECRET;

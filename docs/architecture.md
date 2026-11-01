@@ -56,7 +56,7 @@ The web framework, the email provider and the AI provider can each be swapped wi
 | --- | --- | --- |
 | Language | TypeScript (strict), Node.js LTS | [0001](adr/0001-modular-monolith-typescript-nextjs.md) |
 | Web | Next.js (App Router), React, server-rendered; forms work without JavaScript | [0001](adr/0001-modular-monolith-typescript-nextjs.md) |
-| Hosting | Vercel (functions in Dublin) and Supabase Postgres (Ireland); jobs from a per-minute cron | [0014](adr/0014-vercel-supabase-approved-vendors.md) |
+| Hosting | Vercel (functions in Dublin) and Supabase Postgres (Ireland); jobs from a per-minute tick (Supabase Cron) | [0014](adr/0014-vercel-supabase-approved-vendors.md) |
 | Database | PostgreSQL 16+, Drizzle ORM, SQL migrations in the repo | [0003](adr/0003-postgres-only-data-store.md) |
 | Jobs | graphile-worker (queue in Postgres), outbox table for every message; run by a cron tick on Vercel | [0003](adr/0003-postgres-only-data-store.md), [0014](adr/0014-vercel-supabase-approved-vendors.md) |
 | Tenant isolation | `organisation_id` on every row, plus Postgres row-level security | [0004](adr/0004-tenant-isolation-row-level-security.md) |
@@ -250,7 +250,7 @@ Chosen by the CTO on 31 October 2026; hosting and email changed on 1 November 20
 
 | Need | Choice | Why | Check before launch |
 | --- | --- | --- | --- |
-| Hosting | Vercel Pro, functions in Dublin | The founders already use it; deploys on push; per-minute cron for the job tick | DPA; Data Privacy Framework for anything stored in the US; region set to `dub1` |
+| Hosting | Vercel, functions in Dublin (Pro before real data) | The founders already use it; deploys on push | DPA; Data Privacy Framework for anything stored in the US; region set to `dub1` |
 | Database | Supabase, West EU (Ireland) | The founders already use it; plain Postgres with row-level security | DPA; Data API off; daily backups, and point-in-time recovery before real data |
 | AI | Claude on Amazon Bedrock, EU geographic routing | Keeps prompts and outputs in EU regions; Anthropic's own API currently offers global or US-only processing | The model is offered in the EU profile; Bedrock DPA; invocation logging off |
 | Email in and out | Resend (Mailgun EU as an alternative) | The founders already use it; sends and receives with signed webhooks | DPA; Data Privacy Framework (data stored in the US); DKIM and SPF on our domains; open and click tracking off |

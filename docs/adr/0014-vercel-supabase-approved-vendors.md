@@ -17,15 +17,14 @@
 
 ## Decision
 
-- **Web:** Next.js on Vercel, with functions pinned to Dublin (`dub1`). Vercel Pro, because:
-  - the job tick needs a per-minute cron;
-  - Hobby is for non-commercial use only.
+- **Web:** Next.js on Vercel, with functions pinned to Dublin (`dub1`). The test copy can run on Hobby. Production needs Pro, because Hobby is for non-commercial use only.
 - **Database:** Supabase Postgres in West EU (Ireland).
   - The app connects as its own role, `gaff`, through the Supavisor session pooler. `gaff` owns the tables and can't bypass row-level security, so [ADR-0004](0004-tenant-isolation-row-level-security.md) is unchanged.
   - The Data API (PostgREST) is switched off, because Gaff never uses `supabase-js`.
   - Supabase Auth and Storage aren't used. Sign-in stays with Better Auth, in our own tables ([ADR-0013](0013-sign-in-operators-links-for-renters.md)). Photos stay in Postgres.
 - **Background jobs:** still graphile-worker, with the queue in Postgres ([ADR-0003](0003-postgres-only-data-store.md) is unchanged). On Vercel:
-  - Vercel Cron calls `/api/cron/tick` every minute. It runs every job that is due, within a time budget, then stops cleanly.
+  - Supabase Cron (pg_cron and pg_net, with the secret in Vault) calls `/api/cron/tick` every minute. It runs every job that is due, within a time budget, then stops cleanly. This works on any Vercel plan; Vercel's Hobby plan only allows a daily cron.
+  - Vercel Cron calls the same tick once a day as a backstop.
   - A request that queues work starts the same runner straight after its response (`after()`). A reply goes out in seconds, not at the next minute.
   - The 02:30 UTC tick also queues the nightly retention job.
   - Locally, `pnpm worker` still runs jobs continuously.
@@ -45,6 +44,6 @@
 ## Alternatives considered
 
 - **Keep Render.** It works and was configured, but it's another vendor to learn, and EU-only is no longer the rule.
-- **Supabase pg_cron and pg_net calling the tick.** It's free and works on Vercel Hobby. It's kept as the fallback if Pro isn't wanted.
+- **Vercel Cron every minute.** Simpler, but only on Pro, and it would tie the job timer to the plan. Supabase Cron is used instead, on every plan.
 - **A hosted job service (Inngest, Trigger.dev).** It would be one more vendor seeing job payloads, and it isn't needed at this scale.
 - **Supabase Auth.** It would move sign-in out of our tables and rework ADR-0013's flow, for no gain now.

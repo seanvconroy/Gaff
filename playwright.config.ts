@@ -7,7 +7,7 @@ export const E2E_DATABASE_URL =
 /**
  * E2E_JOBS=vercel runs the journeys the way Vercel runs jobs (ADR-0014): no worker; jobs run
  * straight after the request that queued them, and a frequent call to the tick stands in for
- * Vercel's per-minute cron. Otherwise the real worker runs, as locally.
+ * the minute tick. Otherwise the real worker runs, as locally.
  */
 export const vercelJobs = process.env.E2E_JOBS === 'vercel';
 export const E2E_CRON_SECRET = 'e2e-cron-secret-at-least-16-characters';

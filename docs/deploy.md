@@ -28,7 +28,8 @@ It takes about 20 minutes. Production uses the same steps with real providers; s
      ```text
      postgresql://postgres.abcdefghijklmnop:[YOUR-PASSWORD]@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
      ```
-   - Change `postgres.` at the very start to `gaff.`, and `[YOUR-PASSWORD]` to the password from step 2:
+   - Change `postgres.` at the very start to `gaff.`, and `[YOUR-PASSWORD]` to the password from step 2. Keep the host exactly as shown: projects sit on `aws-0-…` or `aws-1-…` and the two aren't interchangeable.
+   - For example:
      ```text
      postgresql://gaff.abcdefghijklmnop:YourLongPassword123@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
      ```
@@ -69,7 +70,12 @@ Vercel deploys the repository's default branch, `claude/gaff-mvp`, as production
 
 ## 4. The minute tick (Supabase)
 
-In Supabase's **SQL Editor**, run [`scripts/db/supabase-tick.sql`](../scripts/db/supabase-tick.sql), with your app's address and the same `CRON_SECRET` as in Vercel. From then on, Supabase calls the app every minute to run anything due. You can see it in **Integrations**, then **Cron**, as `gaff-tick`, with its history.
+In Supabase's **SQL Editor**, run [`scripts/db/supabase-tick.sql`](../scripts/db/supabase-tick.sql). It needs three things:
+- the app's address;
+- the same `CRON_SECRET` as in Vercel;
+- the project's **Protection Bypass for Automation** secret, from Vercel's **Settings**, then **Deployment Protection**.
+
+From then on, Supabase calls the app every minute to run anything due. You can see it in **Integrations**, then **Cron**, as `gaff-tick`, with its history.
 
 Then follow [testing-guide.md](testing-guide.md) from step 1.
 
@@ -85,8 +91,8 @@ Locally, `pnpm worker` does the same job continuously (see `CLAUDE.md`).
 
 ## Good to know
 
-- **Keep the test copy's address to yourself.** Its Outbox shows every email, sign-in links included, to anyone who has the address. That's fine for made-up details, and it's why real details never go in. Production has no Outbox.
-- **Preview deployments** of other branches share the test database but never migrate it. Vercel protects them with a Vercel sign-in by default, so use the production address for testing on a phone.
+- **Vercel's sign-in protects the test copy.** New Vercel projects ask for a Vercel sign-in on every `vercel.app` address, so only you can open the test copy and its Outbox, which shows every email, sign-in links included. Keep it on. Sign in to Vercel once on your phone too. The minute tick passes it with the project's automation bypass secret. Production, on Gaff's own domain, is open to renters and has no Outbox.
+- **Preview deployments** of other branches share the test database but never migrate it.
 - **Logs:** Vercel shows function logs per request. They hold IDs and counts, never personal data.
 - **Seeing the data:** Supabase's **Table Editor** shows Gaff's tables. Remember it's the test copy: made-up details only.
 

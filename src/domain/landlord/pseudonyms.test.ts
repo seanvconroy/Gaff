@@ -23,15 +23,18 @@ describe('R27 and Q4: what the landlord sees about renters', () => {
         { status: 'waitlisted', answered: true },
         { status: 'not_invited', answered: false },
         { status: 'withdrawn', answered: false },
+        { status: 'applied', answered: true },
+        { status: 'preferred', answered: true },
       ]),
     ).toEqual({
-      enquiries: 9,
-      answered: 6,
-      invited: 4,
+      enquiries: 11,
+      answered: 8,
+      invited: 6,
       waitlisted: 1,
-      booked: 3,
-      came: 1,
+      booked: 5,
+      came: 3,
       didNotCome: 1,
+      applied: 2,
     });
   });
 });

@@ -23,6 +23,13 @@ const statusLabels = {
   attended: ['success', 'Viewed'],
   no_show: ['warning', 'Didn’t come'],
   withdrawn: ['neutral', 'Withdrawn'],
+  applied: ['info', 'Applied'],
+  preferred: ['success', 'Preferred'],
+  backup: ['info', 'Backup'],
+  offered: ['success', 'Offered'],
+  accepted: ['success', 'Accepted'],
+  declined: ['neutral', 'Declined'],
+  not_chosen: ['neutral', 'Not chosen'],
 } as const;
 
 /** R10: the ranking, with the reason for every position. A person decides who views (R11). */

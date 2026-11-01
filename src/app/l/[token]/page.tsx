@@ -21,6 +21,13 @@ const now = {
   attended: ['success', 'Came to view'],
   no_show: ['warning', 'Didn’t come'],
   withdrawn: ['neutral', 'Withdrew'],
+  applied: ['info', 'Applied'],
+  preferred: ['success', 'Preferred applicant'],
+  backup: ['info', 'Backup applicant'],
+  offered: ['success', 'Offered the home'],
+  accepted: ['success', 'Accepted'],
+  declined: ['neutral', 'Declined the offer'],
+  not_chosen: ['neutral', 'Not chosen'],
 } as const;
 
 /** R27 (Q4): the landlord's read-only view. Renters appear only as "Applicant N". */
@@ -46,6 +53,7 @@ export default async function LandlordPage({ params }: { params: Promise<{ token
     ['Booked a viewing', numbers.booked],
     ['Came to view', numbers.came],
     ['Didn’t come', numbers.didNotCome],
+    ['Applied', numbers.applied],
   ];
   return (
     <LandlordShell organisationName={organisationName}>

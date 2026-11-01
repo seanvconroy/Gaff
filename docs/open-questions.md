@@ -144,3 +144,35 @@ Many landlords use Gmail or Outlook.com addresses, which no email service can se
 ## D. Services that handle personal data
 
 Chosen by the CTO on 31 October 2026: Render (Frankfurt) for hosting and the database, Claude on Amazon Bedrock with EU routing for the AI, Mailgun EU for email and Sinch EU for SMS. Local stand-ins (a development outbox, a fake SMS sender and a fake AI) are used until the accounts exist. The founders create the accounts and sign the DPAs; see [launch-checklist.md](launch-checklist.md).
+
+## C. Slice 2 (stages 5 to 7)
+
+Raised and decided by the CTO on 1 November 2026, while building Slice 2.
+
+### Q17. What the application asks (R16) vs "no protected grounds" (rule 3, Equal Status Acts)
+
+The PRD's stage 5 collects "self-declared employment and income". Asking for income sources in detail (pension, social welfare, HAP) would record things that point to protected grounds: age, disability, family status, housing assistance.
+
+**Decision:** the application asks two things only: how someone mainly earns ("From a job", "Self-employed", "Something else") and the household's take-home income each month. A hint says to include any housing support, such as HAP, so it always counts towards affordability, but nothing records whether someone receives it. Everything else (name, contact details, pre-viewing answers) is reused from the enquiry. No documents at this stage.
+
+### Q18. The default income rule (PRD open decision for the founders)
+
+**Decision (default, for the founders to confirm):** take-home income of at least 2.5 times the rent. An admin can choose 2, 2.5 or 3 times in Settings. It's the same for everyone, shown to renters before they apply, and a renter below it is never turned away automatically: a person decides.
+
+### Q19. The identity check keeps "the name and date of birth" (PRD checks table) vs "never store age" (rule 3)
+
+A date of birth is an age, which the Equal Status Acts protect, and Gaff never stores it.
+
+**Decision:** the identity check keeps only the verified result and the verified name. If RTB registration needs a date of birth in Slice 3, it's collected then, from the tenant only, encrypted, and never shown in any ranking or decision.
+
+### Q20. "On expiry, the backup is offered" (R20) vs "never offers anyone on its own" (rule 1)
+
+**Decision:** like the waiting list (Q2), a person approves it in advance. When the operator sends the offer, they can also approve offering it to the backup if the preferred applicant declines or doesn't answer in time. The landlord approves both people on the same one-page summary. Without that approval, an expired or declined offer goes back to the operator.
+
+### Q21. Telling the chosen applicants which of them is the backup
+
+**Decision:** the preferred applicant and the backup get the same message: the operator would like to check a few things before making an offer. Neither is told their position, so nobody is promised the home before the landlord approves.
+
+### Q22. Lettings without the landlord's email (R19)
+
+**Decision:** if the operator is the landlord (a portfolio landlord letting their own homes), their own offer decision is the approval. If an agency has no email for the landlord, the operator confirms in Gaff that the landlord approved, and that confirmation is recorded with the offer decision.

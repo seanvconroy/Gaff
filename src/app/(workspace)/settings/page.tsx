@@ -8,7 +8,8 @@ import { Card, PageHeader, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { ChoiceGroup, TextField } from '@/ui/Field';
 import { SubmitButton } from '@/ui/SubmitButton';
-import { approveBeforeSendAction, usualTimesAction } from './actions';
+import { approveBeforeSendAction, incomeRuleAction, usualTimesAction } from './actions';
+import { formatRatio, incomeRuleChoices } from '@/domain/applications/apply';
 import styles from './settings.module.css';
 
 export const metadata: Metadata = { title: 'Settings' };
@@ -67,6 +68,35 @@ export default async function SettingsPage({
             <div>
               <SubmitButton variant="secondary" pendingLabel="Saving…">
                 Save
+              </SubmitButton>
+            </div>
+          </Stack>
+        </form>
+      </Card>
+
+      <Card labelledBy="income-heading">
+        <h2 id="income-heading" className="type-title">
+          Income rule
+        </h2>
+        <p>
+          What take-home income you look for, compared with the rent. It’s the same for everyone,
+          and renters see it before they apply. Housing support, such as HAP, always counts as
+          income. A renter below the rule isn’t turned away: you decide.
+        </p>
+        <form action={incomeRuleAction}>
+          <Stack gap={4}>
+            <ChoiceGroup
+              name="ruleTenths"
+              legend="Take-home income of at least"
+              defaultValue={String(organisation!.incomeRuleTenths)}
+              options={incomeRuleChoices.map((tenths) => ({
+                value: String(tenths),
+                label: `${formatRatio(tenths)} times the rent`,
+              }))}
+            />
+            <div>
+              <SubmitButton variant="secondary" pendingLabel="Saving…">
+                Save income rule
               </SubmitButton>
             </div>
           </Stack>

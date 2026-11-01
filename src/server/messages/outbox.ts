@@ -17,7 +17,8 @@ export type OutboundKind =
   | 'booking_confirmation'
   | 'reminder'
   | 'place_offered'
-  | 'letting_closed';
+  | 'letting_closed'
+  | 'apply_invitation';
 
 /**
  * Puts a message in the outbox (ADR-0010), in the caller's transaction. AI-written answers

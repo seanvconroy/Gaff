@@ -7,7 +7,11 @@ export function applicantLabels(idsInEnquiryOrder: readonly string[]): Map<strin
   return new Map(idsInEnquiryOrder.map((id, index) => [id, `Applicant ${index + 1}`]));
 }
 
-const INVITED = ['invited', 'booked', 'attended', 'no_show'];
+/** Everyone who applied came to a viewing; everyone who came was invited and booked. */
+const APPLIED = ['applied', 'preferred', 'backup', 'offered', 'accepted', 'declined', 'not_chosen'];
+const CAME = ['attended', ...APPLIED];
+const BOOKED = ['booked', 'no_show', ...CAME];
+const INVITED = ['invited', ...BOOKED];
 
 export function landlordNumbers(people: ReadonlyArray<{ status: string; answered: boolean }>) {
   const count = (statuses: readonly string[]) =>
@@ -17,8 +21,9 @@ export function landlordNumbers(people: ReadonlyArray<{ status: string; answered
     answered: people.filter((p) => p.answered).length,
     invited: count(INVITED),
     waitlisted: count(['waitlisted']),
-    booked: count(['booked', 'attended', 'no_show']),
-    came: count(['attended']),
+    booked: count(BOOKED),
+    came: count(CAME),
     didNotCome: count(['no_show']),
+    applied: count(APPLIED),
   };
 }

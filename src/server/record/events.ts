@@ -71,6 +71,7 @@ export const eventCatalogue = {
       'reminder',
       'place_offered',
       'letting_closed',
+      'apply_invitation',
     ]),
     channel: z.enum(['email', 'sms']),
     author: z.enum(['template', 'ai', 'person']),
@@ -118,6 +119,10 @@ export const eventCatalogue = {
   /** R27, Q4: a private read-only link for the landlord (renters pseudonymised). */
   'letting.shared_with_landlord': z.object({ linkId: z.uuid() }),
   'letting.landlord_link_revoked': z.object({ links: z.number().int() }),
+  /** R16: someone who came to view applied (stage 5), or changed their application. */
+  'application.submitted': z.object({ applicationId: z.uuid(), changed: z.boolean() }),
+  /** R16, R17: the operator's income rule, in tenths of the rent. */
+  'settings.income_rule': z.object({ ruleTenths: z.number().int() }),
   /** R26: a person closed the letting (a 'close_letting' decision); everyone was told. */
   'letting.closed': z.object({
     decisionId: z.uuid(),

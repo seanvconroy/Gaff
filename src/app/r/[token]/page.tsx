@@ -1,12 +1,14 @@
 import type { Metadata } from 'next';
 import { stayChoices } from '@/domain/criteria/answers';
-import { formatDate, formatRent, irishToday } from '@/lib/format';
+import { formatDate, formatEuro, formatRent, irishToday } from '@/lib/format';
+import { formatRatio, minimumIncomeCents } from '@/domain/applications/apply';
 import { loadRenterPage } from '@/server/renter/answers';
 import { Card, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { RenterShell } from '../RenterShell';
 import styles from '../renter.module.css';
 import { AnswersForm } from './AnswersForm';
+import { ApplyForm } from './ApplyForm';
 import { BookingSection } from './BookingSection';
 
 export const metadata: Metadata = { title: 'A few quick questions' };
@@ -23,10 +25,17 @@ export default async function RenterPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ saved?: string; booked?: string; cancelled?: string; problem?: string }>;
+  searchParams: Promise<{
+    saved?: string;
+    booked?: string;
+    cancelled?: string;
+    problem?: string;
+    applied?: string;
+    change?: string;
+  }>;
 }) {
   const { token } = await params;
-  const { saved, booked, cancelled, problem } = await searchParams;
+  const { saved, booked, cancelled, problem, applied, change } = await searchParams;
   const page = await loadRenterPage(token);
   if (!page) {
     return (
@@ -123,11 +132,58 @@ export default async function RenterPage({
             </p>
           </Notice>
         ) : null}
-        {status === 'attended' ? (
-          <Notice tone="success" title="Thanks for coming to view">
+        {status === 'attended' || (status === 'applied' && change && !applied) ? (
+          <Stack gap={4}>
+            <h2 className="type-title">
+              {status === 'applied'
+                ? 'Change your application'
+                : `Apply for ${letting.addressLine1}`}
+            </h2>
             <p>
-              {organisation.name} will email you about next steps. Either way, you’ll hear back from
-              us.
+              {status === 'applied'
+                ? 'Change anything that’s not right, then send it again.'
+                : `Thanks for coming to view. To apply, answer two questions. It takes a minute, and you don’t need any documents now.`}
+            </p>
+            <Card>
+              <h3 className="type-title">From your enquiry</h3>
+              <dl className={styles.answers}>
+                {[['Name', application.fullName], ['Email', application.email], ...summary].map(
+                  ([label, value]) => (
+                    <div key={label} className={styles.answer}>
+                      <dt>{label}</dt>
+                      <dd>{value}</dd>
+                    </div>
+                  ),
+                )}
+              </dl>
+            </Card>
+            <ApplyForm
+              token={token}
+              rule={`${organisation.name} looks for at least ${formatRatio(organisation.incomeRuleTenths)} times the rent: ${formatEuro(minimumIncomeCents(letting.monthlyRentCents, organisation.incomeRuleTenths))} a month. Everyone is asked the same.`}
+              current={{
+                earning: application.earning ?? '',
+                monthlyIncome:
+                  application.monthlyIncomeCents === null
+                    ? ''
+                    : String(application.monthlyIncomeCents / 100),
+              }}
+            />
+            <p className={styles.muted}>
+              Only {organisation.name} sees this. If they choose you, they’ll ask to check your ID,
+              income and references, and explain each check first.
+            </p>
+          </Stack>
+        ) : null}
+        {status === 'applied' && !change ? (
+          <Notice
+            tone="success"
+            title={applied ? (name ? `Thanks, ${name}` : 'Thanks') : 'Your application is in'}
+            role="status"
+          >
+            <p>
+              Your application is with {organisation.name}. They’ll choose who to offer the home to
+              after the viewings, and we’ll email you either way.{' '}
+              <a href={`/r/${token}?change=1`}>Change my application</a>
             </p>
           </Notice>
         ) : null}

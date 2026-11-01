@@ -57,6 +57,8 @@ export async function sweepPersonalData(
           phoneE164: null,
           smsReminders: false,
           answers: null,
+          earning: null,
+          monthlyIncomeCents: null,
           personalDataDeletedAt: now,
         })
         .where(eq(applications.id, application.id));

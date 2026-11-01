@@ -70,6 +70,17 @@ export const applicationStatus = pgEnum('application_status', [
   'attended',
   'no_show',
   'withdrawn',
+  /** Stage 5 (R16): applied after viewing. */
+  'applied',
+  /** R17: chosen by a person as the preferred applicant, or the backup. */
+  'preferred',
+  'backup',
+  /** R20: offered the home; accepted or declined it (an offer that runs out counts as declined). */
+  'offered',
+  'accepted',
+  'declined',
+  /** R21: told the home went to someone else. */
+  'not_chosen',
 ]);
 
 export type { RenterAnswers };
@@ -102,6 +113,10 @@ export const applications = pgTable(
     status: applicationStatus().notNull().default('enquired'),
     /** R13 (Q12): the renter gave a mobile number for text reminders when they booked. */
     smsReminders: boolean().notNull().default(false),
+    /** R16, stage 5 only: how they mainly earn, and household take-home income (cents). */
+    earning: text({ enum: ['employed', 'self_employed', 'other'] }),
+    monthlyIncomeCents: integer(),
+    appliedAt: timestamp({ withTimezone: true }),
     /** R11, R14: place on the waiting list, in ranked order (1 is next). */
     waitlistPosition: integer(),
     answers: jsonb().$type<RenterAnswers>(),

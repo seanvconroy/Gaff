@@ -42,6 +42,17 @@ Last updated: 31 October 2026 (Slice 1 complete, with basic R26).
 | 18 | R28: dashboard | **Done**: “Needs you today” (answers to approve, emails needing attention, questions, who came to mark, who views, set-up to finish), each linking to where it’s done; each letting’s stage; active minutes per letting (a minute counts only with input in the last 2 minutes and the tab in view) against the usual time and days set in Settings (Q15) |
 | 19 | R27: read-only landlord link | **Done**: operator makes a private link on the Timeline tab (shown once, only its hash kept), sees when the landlord last opened it, and can stop sharing at once; the landlord’s page shows the stage, numbers, criteria, ranking with reasons and the timeline, with renters only as “Applicant N” (Q4); tables scroll inside a keyboard-focusable region on phones |
 
+## Slice 2 (stages 5 to 7)
+
+| # | Requirement | Status |
+| --- | --- | --- |
+| 20 | R16: apply link after the viewing | **Done**: marking someone as “came” schedules a fixed-wording invitation to apply for the end of their viewing (cancelled if the mark changes); the renter’s page reuses their enquiry details and asks only how they mainly earn and their household’s take-home income (Q17); the income rule (default 2.5 times the rent, Q18) is shown before they apply; admins set it in Settings |
+| 21 | R17: applicants side by side; preferred and backup | Next |
+| 22 | R18: checks for the preferred applicant and backup | To do |
+| 23 | R19: landlord approves by link | To do |
+| 24 | R20: offer with a deadline; backup | To do |
+| 25 | R21: outcome messages | To do |
+
 ## Built early, before real renters
 
 | Item | What | Status |

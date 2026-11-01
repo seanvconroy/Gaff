@@ -26,6 +26,7 @@ const messageTitles: Record<string, string> = {
   reminder: 'Viewing reminder sent',
   place_offered: 'A freed place offered',
   letting_closed: 'Closing message sent',
+  apply_invitation: 'Invitation to apply sent',
 };
 
 const rentCheckTitles: Record<string, string> = {
@@ -152,6 +153,8 @@ export function describeEvent(
       return { what: 'Read-only link shared with the landlord' };
     case 'letting.landlord_link_revoked':
       return { what: 'Stopped sharing with the landlord' };
+    case 'application.submitted':
+      return { what: data.changed ? 'A renter changed their application' : 'A renter applied' };
     case 'letting.closed':
       return {
         what:

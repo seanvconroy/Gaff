@@ -3,6 +3,7 @@ import { withOrg } from '@/db/client';
 import { applications, bookings, viewingSlots } from '@/db/schema';
 import { attendanceOpensAt, canMarkAttendance } from '@/domain/viewings/attendance';
 import { formatTime } from '@/lib/format';
+import { cancelApplyInvitation, queueApplyInvitation } from '@/server/applications/apply';
 import type { Member } from '@/server/auth/member';
 import { recordDecision } from '@/server/decisions/record-decision';
 import { UserFacingError } from '@/server/errors';
@@ -78,6 +79,16 @@ export async function markAttendance(
       .update(applications)
       .set({ status })
       .where(eq(applications.id, row.booking.applicationId));
+    // R16: someone who came is invited to apply once their viewing ends; if not, it doesn't go.
+    if (input.attended) {
+      await queueApplyInvitation(tx, {
+        organisationId: member.organisationId,
+        applicationId: row.booking.applicationId,
+        viewingEndsAt: row.slot.endsAt,
+      });
+    } else {
+      await cancelApplyInvitation(tx, row.booking.applicationId);
+    }
     await recordEvent(tx, {
       organisationId: member.organisationId,
       lettingId: input.lettingId,

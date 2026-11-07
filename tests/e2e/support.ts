@@ -106,21 +106,26 @@ export async function signUpOperator(
   return email;
 }
 
+/** A date this many days from now, as YYYY-MM-DD. */
+export function inDays(days: number): string {
+  const date = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  return date.toISOString().slice(0, 10);
+}
+
+/** The letting's available date, which becomes the tenancy's start date. */
+export const AVAILABLE_IN_DAYS = 30;
+
 /** Creates a letting with one evening of viewing slots, through the real screens. */
 export async function createLettingThroughUi(
   page: Page,
   address = '12 Ranelagh Road',
   daftUrl = '',
 ): Promise<void> {
-  const inDays = (days: number) => {
-    const date = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
-    return date.toISOString().slice(0, 10);
-  };
   await page.goto('/lettings/new');
   await page.getByLabel('Address', { exact: true }).fill(address);
   await page.getByLabel('Area').fill('Ranelagh, Dublin 6');
   await page.getByLabel('Rent a month').fill('1850');
-  await page.getByLabel('Available from').fill(inDays(30));
+  await page.getByLabel('Available from').fill(inDays(AVAILABLE_IN_DAYS));
   await page.getByLabel('Type of home').selectOption('apartment');
   await page.getByLabel('Bedrooms').fill('2');
   await page.getByLabel('Bathrooms').fill('1');

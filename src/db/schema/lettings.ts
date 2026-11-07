@@ -14,6 +14,7 @@ import type { Criteria } from '@/domain/criteria/criteria';
 import { stages } from '@/domain/lettings/stages';
 import { users } from './auth';
 import { createdAt, tenantPolicy, updatedAt } from './columns';
+import { homes } from './homes';
 import { organisations } from './organisations';
 
 export const lettingStage = pgEnum('letting_stage', stages);
@@ -45,6 +46,10 @@ export const lettings = pgTable(
   {
     id: uuid().primaryKey().defaultRandom(),
     organisationId: organisationId(),
+    /** ADR-0018: the home this letting lets. The letting keeps its own copy of the facts below. */
+    homeId: uuid()
+      .notNull()
+      .references(() => homes.id),
     landlordId: uuid().references(() => landlords.id),
     addressLine1: text().notNull(),
     addressLine2: text(),
@@ -62,6 +67,11 @@ export const lettings = pgTable(
     photosUrl: text(),
     daftUrl: text(),
     myhomeUrl: text(),
+    /** M39: the deposit asked for, capped at one month's rent (rule 4). Set when listing. */
+    depositCents: integer(),
+    /** M52: enquiries close at this count or time, set in advance and the same for everyone. */
+    enquiryLimit: integer(),
+    enquiriesCloseAt: timestamp({ withTimezone: true }),
     /** R2: the operator's criteria, from the fixed list only (null until set). */
     criteria: jsonb().$type<Criteria>(),
     criteriaSetAt: timestamp({ withTimezone: true }),

@@ -1,0 +1,132 @@
+import {
+  boolean,
+  date,
+  doublePrecision,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  smallint,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core';
+import { listingStatuses, publicStatuses } from '@/domain/listings/lifecycle';
+import { users } from './auth';
+import { createdAt, publicReadPolicy, tenantPolicy, updatedAt } from './columns';
+import { developments, homes } from './homes';
+import { lettings } from './lettings';
+import { organisations } from './organisations';
+
+const organisationId = () =>
+  uuid()
+    .notNull()
+    .references(() => organisations.id, { onDelete: 'cascade' });
+
+/** A letting's public advert: one per letting (ADR-0018, M48 to M50). */
+export const listings = pgTable(
+  'listings',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organisationId: organisationId(),
+    lettingId: uuid()
+      .notNull()
+      .unique()
+      .references(() => lettings.id),
+    homeId: uuid()
+      .notNull()
+      .references(() => homes.id),
+    status: text({ enum: listingStatuses }).notNull().default('draft'),
+    /** Given at first publish, from the address the letter chose to show. */
+    slug: text().unique(),
+    description: text(),
+    descriptionSource: text({ enum: ['letter', 'ai_draft'] }),
+    /** M16: the agent who handles it. */
+    assignedTo: text().references(() => users.id),
+    publishedAt: timestamp({ withTimezone: true }),
+    /** M49: when the letter last confirmed it's still available. */
+    confirmedAt: timestamp({ withTimezone: true }),
+    pausedAt: timestamp({ withTimezone: true }),
+    pauseReason: text({ enum: ['letter', 'freshness', 'review'] }),
+    closedAt: timestamp({ withTimezone: true }),
+    revision: integer().notNull().default(0),
+    createdBy: text()
+      .notNull()
+      .references(() => users.id),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('listings_organisation_idx').on(t.organisationId, t.status), tenantPolicy()],
+).enableRLS();
+
+/** What was published, and when: a snapshot at each publish or edit (M51, the DSA record). */
+export const listingRevisions = pgTable(
+  'listing_revisions',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organisationId: organisationId(),
+    listingId: uuid()
+      .notNull()
+      .references(() => listings.id, { onDelete: 'cascade' }),
+    revision: integer().notNull(),
+    content: jsonb().$type<Record<string, unknown>>().notNull(),
+    createdBy: text().references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [unique('listing_revisions_listing_revision').on(t.listingId, t.revision), tenantPolicy()],
+).enableRLS();
+
+/**
+ * The public zone (ADR-0017): exactly what renters see of a published listing, written in the
+ * same transaction as the change it reflects. Every column is on the allow-list in
+ * tests/integration/m1-zones.test.ts; personal data never belongs here.
+ */
+export const publicListings = pgTable(
+  'public_listings',
+  {
+    listingId: uuid()
+      .primaryKey()
+      .references(() => listings.id, { onDelete: 'cascade' }),
+    organisationId: organisationId(),
+    slug: text().notNull().unique(),
+    status: text({ enum: publicStatuses }).notNull(),
+    title: text().notNull(),
+    addressShown: text().notNull(),
+    area: text().notNull(),
+    county: text().notNull(),
+    routingKey: text(),
+    latitude: doublePrecision().notNull(),
+    longitude: doublePrecision().notNull(),
+    rentCents: integer().notNull(),
+    depositCents: integer().notNull(),
+    propertyType: text().notNull(),
+    bedrooms: integer().notNull(),
+    bathrooms: integer().notNull(),
+    furnished: text().notNull(),
+    availableFrom: date({ mode: 'string' }).notNull(),
+    berLabel: text().notNull(),
+    berBand: text(),
+    petsConsidered: boolean().notNull(),
+    /** Heating, parking, outdoor space, accessibility and the rest, as the card and page show them. */
+    facts: jsonb().$type<Record<string, unknown>>().notNull(),
+    /** M68: the letter's criteria in plain words. */
+    criteria: jsonb().$type<string[]>().notNull(),
+    photos: jsonb().$type<Array<Record<string, unknown>>>().notNull(),
+    /** M70: the letter card: kind, the names the letter chose to show, badges, licence numbers. */
+    letter: jsonb().$type<Record<string, unknown>>().notNull(),
+    developmentId: uuid().references(() => developments.id),
+    publishedAt: timestamp({ withTimezone: true }).notNull(),
+    confirmedAt: timestamp({ withTimezone: true }).notNull(),
+    enquiriesCloseAt: timestamp({ withTimezone: true }),
+    completeness: smallint().notNull().default(0),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('public_listings_search_idx').on(t.status, t.county, t.rentCents),
+    index('public_listings_location_idx').on(t.latitude, t.longitude),
+    index('public_listings_routing_key_idx').on(t.routingKey),
+    tenantPolicy(),
+    publicReadPolicy(),
+  ],
+).enableRLS();

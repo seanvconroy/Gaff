@@ -148,6 +148,13 @@
       "when": 1793531288153,
       "tag": "0020_slice3_tenancy",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794064899933,
+      "tag": "0021_m1_marketplace_foundations",
+      "breakpoints": true
     }
   ]
 }

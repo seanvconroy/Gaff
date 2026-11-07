@@ -22,3 +22,24 @@ export const tenantPolicy = () =>
     using: tenantCheck,
     withCheck: tenantCheck,
   });
+
+/**
+ * The renter zone (ADR-0017): a renter's own rows, visible only inside withRenter() or
+ * withEnquiry() for that renter, or to cross-organisation jobs.
+ */
+const renterCheck = sql`user_id = nullif(current_setting('app.user_id', true), '') or current_setting('app.rls_bypass', true) = 'on'`;
+
+export const renterPolicy = () =>
+  pgPolicy('renter_isolation', {
+    as: 'permissive',
+    for: 'all',
+    using: renterCheck,
+    withCheck: renterCheck,
+  });
+
+/**
+ * The public zone (ADR-0017): anyone may read. Writes still need the owning organisation,
+ * so public tables also carry tenantPolicy(). Columns are an allow-list (tests/integration).
+ */
+export const publicReadPolicy = () =>
+  pgPolicy('public_read', { as: 'permissive', for: 'select', using: sql`true` });

@@ -26,5 +26,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: listing.updatedAt,
     })),
     { url: `${base}/how-results-are-ordered`, changeFrequency: 'monthly' },
+    { url: `${base}/listing-policy`, changeFrequency: 'monthly' },
   ];
 }

@@ -50,6 +50,20 @@ export const publicReadPolicy = () =>
  */
 const staffCheck = sql`current_setting('app.role', true) = 'staff'`;
 
+/**
+ * The staff zone's own tables (ADR-0017, ADR-0023): only Gaff staff, or a system job acting on a
+ * report or a rule (withSystem). Never an organisation or a renter.
+ */
+const staffZoneCheck = sql`current_setting('app.role', true) = 'staff' or current_setting('app.rls_bypass', true) = 'on'`;
+
+export const staffZonePolicy = () =>
+  pgPolicy('staff_zone', {
+    as: 'permissive',
+    for: 'all',
+    using: staffZoneCheck,
+    withCheck: staffZoneCheck,
+  });
+
 export const staffReviewPolicy = () =>
   pgPolicy('staff_review', {
     as: 'permissive',

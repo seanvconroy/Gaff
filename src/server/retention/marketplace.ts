@@ -1,6 +1,6 @@
 import { and, inArray, lt } from 'drizzle-orm';
 import { withSystem } from '@/db/client';
-import { alertDeliveries, listingVisitors, publicListings } from '@/db/schema';
+import { alertDeliveries, listingVisitors, publicListings, reports } from '@/db/schema';
 import { DELIVERY_KEEP_DAYS } from '@/domain/alerts/alerts';
 import { CLOSED_PAGE_DAYS } from '@/domain/search/pages';
 import { irishToday } from '@/lib/format';
@@ -10,10 +10,14 @@ import { irishToday } from '@/lib/format';
  * - The day's visitor hashes go once the day is over; only the counts stay.
  * - M74: a let or withdrawn home's page goes 90 days after it closed.
  * - M86: alert deliveries go after 90 days.
+ * - M96: reports go 6 months after their case closes.
  */
-export async function sweepMarketplace(
-  now = new Date(),
-): Promise<{ visitorDays: number; closedPages: number; alertDeliveries: number }> {
+export async function sweepMarketplace(now = new Date()): Promise<{
+  visitorDays: number;
+  closedPages: number;
+  alertDeliveries: number;
+  reports: number;
+}> {
   const today = irishToday(now);
   const pageCutoff = new Date(now.getTime() - CLOSED_PAGE_DAYS * 86_400_000);
   return withSystem(async (tx) => {
@@ -37,10 +41,17 @@ export async function sweepMarketplace(
         lt(alertDeliveries.matchedAt, new Date(now.getTime() - DELIVERY_KEEP_DAYS * 86_400_000)),
       )
       .returning({ listingId: alertDeliveries.listingId });
+    // M96 (Q36, proposed): reports, with any email address and details, go 6 months after
+    // their case closes. The case and its decisions stay, with no personal data.
+    const expiredReports = await tx
+      .delete(reports)
+      .where(lt(reports.deleteAfter, today))
+      .returning({ id: reports.id });
     return {
       visitorDays: visitors.length,
       closedPages: pages.length,
       alertDeliveries: deliveries.length,
+      reports: expiredReports.length,
     };
   });
 }

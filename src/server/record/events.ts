@@ -309,7 +309,9 @@ export const eventCatalogue = {
   'listing.hold_resolved': z.object({
     listingId: z.uuid(),
     outcome: z.enum(['released', 'removed']),
-    reason: z.enum(['scam', 'discrimination', 'misleading', 'duplicate', 'other']).optional(),
+    reason: z
+      .enum(['scam', 'discrimination', 'misleading', 'duplicate', 'offensive', 'other'])
+      .optional(),
   }),
   'listing.status_changed': z.object({
     listingId: z.uuid(),

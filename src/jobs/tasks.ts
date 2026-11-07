@@ -64,7 +64,7 @@ export const taskList: TaskList = {
     );
     const marketplace = await sweepMarketplace();
     console.log(
-      `Retention: ${marketplace.visitorDays} visitor hashes and ${marketplace.closedPages} closed listing pages removed.`,
+      `Retention: ${marketplace.visitorDays} visitor hashes, ${marketplace.closedPages} closed listing pages, ${marketplace.alertDeliveries} alert deliveries and ${marketplace.reports} reports removed.`,
     );
   },
   reference_overdue: async (payload) => {

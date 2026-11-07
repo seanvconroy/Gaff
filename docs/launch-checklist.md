@@ -61,7 +61,9 @@ The [marketplace PRD](marketplace/prd.md) was approved for build on 7 November 2
 **Solicitor**
 
 - [ ] The marketplace questions in Q36: Equal Status Acts section 12, the Digital Services Act, data protection roles, badge wording, the HAP statement, the PSRA register, private landlords as consumers, report retention, BER display
-- [ ] Terms for renters and letters, the listing policy and the statement-of-reasons templates (M98, M101)
+- [ ] Terms for renters and letters, the listing policy (`/listing-policy`) and the statement-of-reasons templates in `src/copy/listings.ts` (`listing_removed@2`, `listing_paused_automatically@1`, `account_action@1`, and the appeal outcome) (M98, M101)
+- [ ] `CONTACT_EMAIL` set: the Digital Services Act contact point for users and authorities, shown at `/contact` (M101). Someone reads it every working day
+- [ ] Who at Gaff reviews reports and appeals, with at least two reviewers so an appeal always goes to someone else (M98), and the review targets (4 working hours for scams, 1 working day otherwise) staffed
 
 **Operations**
 

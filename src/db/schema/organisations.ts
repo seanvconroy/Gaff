@@ -41,6 +41,13 @@ export const organisations = pgTable('organisations', {
   website: text(),
   about: text(),
   logoMediaId: uuid(),
+  /**
+   * M107: an account action by a person at Gaff. "paused" and "suspended" both hide the
+   * account's listings and stop new ones; each is recorded with who and why (moderation_actions).
+   */
+  marketplaceStatus: text({ enum: ['active', 'paused', 'suspended'] })
+    .notNull()
+    .default('active'),
   /** Pilot baselines from the interviews, for time and days saved (R28). */
   baselineMinutesPerLetting: integer(),
   baselineDaysToLet: integer(),

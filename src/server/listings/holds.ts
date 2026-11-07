@@ -1,9 +1,18 @@
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import { emailSender, gaffSender } from '@/adapters/email';
-import { listingRemovedEmail, type removalReasonWords } from '@/copy/listings';
+import { listingRemovedEmail, REMOVAL_STATEMENT, type removalReasonWords } from '@/copy/listings';
 import { db, scopeToOrg, withStaff } from '@/db/client';
-import { listingHolds, listings, memberships, organisations, users } from '@/db/schema';
+import {
+  listingHolds,
+  listings,
+  memberships,
+  moderationActions,
+  organisations,
+  users,
+} from '@/db/schema';
 import { listingTitle } from '@/domain/listings/projection';
+import { decisionGrounds } from '@/domain/moderation/reports';
+import { env } from '@/lib/env';
 import { formatDate } from '@/lib/format';
 import type { Staff } from '@/server/auth/staff';
 import { UserFacingError } from '@/server/errors';
@@ -108,11 +117,22 @@ export async function resolveHold(
           ? { listingId: hold.listingId, outcome: 'released' }
           : { listingId: hold.listingId, outcome: 'removed', reason: decision.reason },
     });
+    // M106: the audit trail, with the ground for a removal (M98).
+    await tx.insert(moderationActions).values({
+      listingId: hold.listingId,
+      subjectOrganisationId: hold.organisationId,
+      action: decision.outcome === 'released' ? 'restore_listing' : 'remove_listing',
+      reason: decision.outcome === 'released' ? 'hold_released' : decision.reason,
+      ground: decision.outcome === 'released' ? null : decisionGrounds[decision.reason].ground,
+      statementTemplate: decision.outcome === 'released' ? null : REMOVAL_STATEMENT,
+      decidedBy: staff.userId,
+    });
     return decision.outcome === 'removed'
       ? {
           organisationId: hold.organisationId,
           assignedTo: context.listing.assignedTo,
           address: context.home.addressLine1,
+          listingId: hold.listingId,
         }
       : null;
   });
@@ -136,7 +156,9 @@ export async function resolveHold(
         ...listingRemovedEmail({
           address: removed.address,
           reason: decision.reason,
+          source: decisionGrounds[decision.reason].source,
           decidedOn: formatDate(now),
+          appealUrl: `${env().APP_URL}/listings/appeal/${removed.listingId}`,
         }),
       });
     }

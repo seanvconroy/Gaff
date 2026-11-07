@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { withOrg, type Tx } from '@/db/client';
-import { declarations, listingHolds, listings } from '@/db/schema';
+import { declarations, listingHolds, listings, organisations } from '@/db/schema';
 import { assertMove, type ListingStatus } from '@/domain/listings/lifecycle';
 import { listingTitle, listingSlug } from '@/domain/listings/projection';
 import {
@@ -95,6 +95,19 @@ export async function publishListing(
   });
 }
 
+/** M107: while a person at Gaff has paused or suspended an account, none of its homes go live. */
+async function assertAccountActive(tx: Tx, organisationId: string): Promise<void> {
+  const [organisation] = await tx
+    .select({ status: organisations.marketplaceStatus })
+    .from(organisations)
+    .where(eq(organisations.id, organisationId));
+  if (organisation && organisation.status !== 'active') {
+    throw new UserFacingError(
+      'Gaff has paused your account’s listings while a person looks into a report. We’ve emailed you the reasons and how to appeal.',
+    );
+  }
+}
+
 /** Puts a checked listing live: slug, dates, public copy, revision and event. */
 export async function goLive(
   tx: Tx,
@@ -104,6 +117,7 @@ export async function goLive(
   const { listing, home } = context;
   const slug = listing.slug ?? listingSlug(listingTitle(home), listing.id);
   assertMove(listing.status, 'live');
+  await assertAccountActive(tx, listing.organisationId);
   const [updated] = await tx
     .update(listings)
     .set({
@@ -161,13 +175,18 @@ export async function moveListing(
   const from = context.listing.status;
   if (from === to) return;
   assertMove(from, to);
+  if (to === 'live') await assertAccountActive(tx, context.listing.organisationId);
   const closing = to === 'let' || to === 'withdrawn';
   const [updated] = await tx
     .update(listings)
     .set({
       status: to,
       ...(to === 'paused'
-        ? { pausedAt: now, pauseReason: because === 'freshness' ? 'freshness' : 'letter' }
+        ? {
+            pausedAt: now,
+            pauseReason:
+              because === 'freshness' ? 'freshness' : because === 'review' ? 'review' : 'letter',
+          }
         : {}),
       ...(closing ? { closedAt: now } : {}),
     })

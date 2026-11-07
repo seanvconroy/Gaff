@@ -39,6 +39,8 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
       <footer className={styles.footer}>
         <nav aria-label="About Gaff" className={styles.footerNav}>
           <Link href="/how-results-are-ordered">How we order results</Link>
+          <Link href="/listing-policy">Listing policy</Link>
+          <Link href="/contact">Contact</Link>
           <Link href="/welcome?as=letting">List a home free</Link>
         </nav>
         <p>Renters never pay Gaff. Listing a home is free, and nobody can pay to be shown first.</p>

@@ -27,6 +27,27 @@ export const platformEventCatalogue = {
   /** M86: a saved search with alerts, and changes to how often they come. */
   'alert.created': z.object({ frequency: z.enum(['instant', 'daily', 'off']) }),
   'alert.changed': z.object({ frequency: z.enum(['instant', 'daily', 'off']) }),
+  /** M96: a report about a listing (who reported it is never logged). */
+  'report.received': z.object({
+    caseId: z.uuid(),
+    reason: z.enum(['scam', 'discrimination', 'misleading', 'already_let', 'offensive', 'other']),
+  }),
+  /** M98, M106, M107: a decision on a case, by a person or (only to pause) by the rules. */
+  'moderation.action': z.object({
+    caseId: z.uuid().optional(),
+    action: z.enum([
+      'pause_listing',
+      'restore_listing',
+      'remove_listing',
+      'pause_account',
+      'suspend_account',
+      'restore_account',
+      'no_action',
+    ]),
+    automatic: z.boolean(),
+  }),
+  /** M98: a letter appealed a decision. */
+  'moderation.appealed': z.object({ caseId: z.uuid(), appealOf: z.uuid() }),
   /** M86, M87: an alert email went out, with this many homes in it. */
   'alert.sent': z.object({ homes: z.number().int(), frequency: z.enum(['instant', 'daily']) }),
 } satisfies Record<string, z.ZodObject>;

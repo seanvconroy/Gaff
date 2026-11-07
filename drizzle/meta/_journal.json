@@ -204,6 +204,13 @@
       "when": 1794072619156,
       "tag": "0028_m6_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1794073622831,
+      "tag": "0029_m7_moderation",
+      "breakpoints": true
     }
   ]
 }

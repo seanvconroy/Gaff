@@ -55,14 +55,30 @@ export const removalReasonWords = {
   discrimination: 'it discriminates on a ground the Equal Status Acts protect',
   misleading: 'it’s misleading about the home or its terms',
   duplicate: 'it duplicates another listing',
+  offensive: 'it contains offensive content',
   other: 'it breaks Gaff’s listing policy',
 } as const;
 
-/** M98 (Digital Services Act, Article 17): the statement of reasons for a removal. */
+/**
+ * M98 (Digital Services Act, Article 17): statements of reasons. Each says what was decided,
+ * why, the rule or law it rests on, whether it was automatic, and how to appeal. Versioned: the
+ * solicitor reviews each version (launch checklist).
+ */
+export const REMOVAL_STATEMENT = 'listing_removed@2';
+export const AUTOMATIC_PAUSE_STATEMENT = 'listing_paused_automatically@1';
+export const ACCOUNT_STATEMENT = 'account_action@1';
+
+const appealLines = (appealUrl: string) => [
+  'If you think we got it wrong, you can appeal within 6 months. A different person at Gaff reviews every appeal and tells you the outcome:',
+  appealUrl,
+];
+
 export function listingRemovedEmail(input: {
   address: string;
   reason: keyof typeof removalReasonWords;
+  source: string;
   decidedOn: string;
+  appealUrl: string;
 }): { subject: string; text: string } {
   return {
     subject: `We’ve removed your listing for ${input.address}`,
@@ -71,9 +87,88 @@ export function listingRemovedEmail(input: {
       '',
       `A person at Gaff reviewed your listing for ${input.address} on ${input.decidedOn} and removed it, because ${removalReasonWords[input.reason]}.`,
       '',
-      'What this means: renters can no longer see the listing or enquire through it. Nothing else in your account has changed.',
+      `This rests on ${input.source}.`,
       '',
-      'If you think we got it wrong, reply to this email within 6 months and tell us why. A different person at Gaff will review it and let you know the outcome.',
+      'What this means: renters can no longer see the listing or enquire through it. Renters who already enquired keep hearing from you as before.',
+      '',
+      ...appealLines(input.appealUrl),
+      '',
+      'Gaff',
+    ].join('\n'),
+  };
+}
+
+/** M97: a pause by the rules, before a person looks. It says so, and that it isn't a removal. */
+export function listingPausedForReviewEmail(input: { address: string; reviewBy: string }): {
+  subject: string;
+  text: string;
+} {
+  return {
+    subject: `Your listing for ${input.address} is paused while we check a report`,
+    text: [
+      'Hello,',
+      '',
+      `Renters reported your listing for ${input.address} as a possible scam, and Gaff’s rules paused it automatically while a person checks. A pause isn’t a removal, and nothing else in your account has changed.`,
+      '',
+      `A person at Gaff will look at it by ${input.reviewBy}. If it’s fine, it goes live again straight away, and we’ll tell you either way.`,
+      '',
+      'This rests on Gaff’s listing policy: listings with strong signs of a scam are paused until a person checks them.',
+      '',
+      'Gaff',
+    ].join('\n'),
+  };
+}
+
+export const accountActionWords = {
+  pause_account: 'paused',
+  suspend_account: 'suspended',
+} as const;
+
+/** M107: an account action. */
+export function accountActionEmail(input: {
+  organisationName: string;
+  action: keyof typeof accountActionWords;
+  reason: keyof typeof removalReasonWords;
+  source: string;
+  decidedOn: string;
+  appealUrl: string;
+}): { subject: string; text: string } {
+  const what = accountActionWords[input.action];
+  return {
+    subject: `Gaff has ${what} ${input.organisationName}’s listings`,
+    text: [
+      'Hello,',
+      '',
+      `A person at Gaff reviewed ${input.organisationName}’s listings on ${input.decidedOn} and ${what} the account, because ${removalReasonWords[input.reason]}.`,
+      '',
+      `This rests on ${input.source}.`,
+      '',
+      'What this means: renters can’t see any of your listings, and you can’t publish new ones until it’s restored. Your lettings, and renters who already enquired, carry on as before.',
+      '',
+      ...appealLines(input.appealUrl),
+      '',
+      'Gaff',
+    ].join('\n'),
+  };
+}
+
+/** M98: the outcome of an appeal, decided by a different person at Gaff. */
+export function appealOutcomeEmail(input: { address: string; upheld: boolean }): {
+  subject: string;
+  text: string;
+} {
+  return {
+    subject: input.upheld ? 'Your appeal was successful' : 'The outcome of your appeal',
+    text: [
+      'Hello,',
+      '',
+      input.upheld
+        ? `A different person at Gaff reviewed your appeal about ${input.address} and agreed with you. Anything we paused is live again; if we removed a listing, you can list the home again from Listings straight away.`
+        : `A different person at Gaff reviewed your appeal about ${input.address} and kept the decision, for the reasons we gave before.`,
+      '',
+      input.upheld
+        ? 'We’re sorry for the trouble.'
+        : 'If you disagree, you can take it to an out-of-court dispute settlement body under the Digital Services Act, or to the courts.',
       '',
       'Gaff',
     ].join('\n'),

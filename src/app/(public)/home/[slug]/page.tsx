@@ -426,6 +426,10 @@ export default async function ListingPage({ params }: { params: Params }) {
             />
             <ShareButton title={listing.title} url={url} />
           </div>
+          {/* M73, M96: report a listing, with no account needed. */}
+          <p>
+            <Link href={`/home/${listing.slug}/report`}>Report this listing</Link>
+          </p>
         </aside>
       </div>
 

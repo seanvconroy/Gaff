@@ -17,6 +17,8 @@ const publicPages = [
   'to-rent',
   'home/',
   'how-results-are-ordered',
+  'listing-policy',
+  'contact',
   'sitemap\\.xml',
   'robots\\.txt',
 ];

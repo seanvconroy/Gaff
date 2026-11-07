@@ -20,6 +20,7 @@ export default async function StaffLayout({ children }: { children: ReactNode })
           <nav aria-label="Gaff staff" className={styles.nav}>
             <Link href="/staff/checks">Checks</Link>
             <Link href="/staff/listings">Listings</Link>
+            <Link href="/staff/review">Reports</Link>
           </nav>
           <div className={styles.account}>
             <span className={styles.who}>

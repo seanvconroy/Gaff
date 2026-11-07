@@ -144,7 +144,9 @@ describe('M29, M97, M98: risky listings wait for a person at Gaff', () => {
       .limit(1);
     expect(mail!.subject).toMatch(/We’ve removed your listing/);
     expect(mail!.text).toMatch(/signs of a rental scam/);
-    expect(mail!.text).toMatch(/A different person at Gaff will review it/);
+    // M98: the statement says how to appeal, and that someone else decides the appeal.
+    expect(mail!.text).toMatch(/A different person at Gaff reviews every appeal/);
+    expect(mail!.text).toMatch(/\/listings\/appeal\//);
     const [resolved] = await withOrg(copier.organisationId, (tx) => tx.select().from(listingHolds));
     expect(resolved).toMatchObject({ outcome: 'removed', resolvedBy: staff.userId });
   });

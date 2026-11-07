@@ -1,15 +1,14 @@
 # Daft.ie: place an ad (rental)
 
-Captured November 2026. Desktop, signed in. For a landlord or agent listing a home to rent. Covers the ad type and the first six of nine tabs; Plan, Contact and Review are still to come.
+Captured November 2026. Desktop, signed in. For a landlord or agent listing a home to rent. Covers the whole flow up to payment: the ad type, all nine tabs and the ID check. Payment and publishing weren't captured.
 
 The flow has nine tabs: Location, Price, Property details, Facilities, Description, Media, Plan, Contact, Review.
 
 ## Across every step
 
-- The same frame each time: Daft's site header, the row of nine tabs with the current one underlined in blue, one narrow centred column, then the full site footer.
+- The same frame each time: Daft's site header, the row of nine tabs with the current one underlined in blue, one narrow centred column (wider on Plan and Review), then the full site footer.
 - A banner at the top of every step: "Rental listings may be subject to additional ID verification and monitoring to help protect renters and advertisers."
-- A dismissible notice above the buttons on every step: "We save your information every time you click Save & Continue so you can find it later in your draft ads".
-- "BACK" (outline) and "SAVE & CONTINUE" (filled), both all caps.
+- On every tab but Review: a dismissible notice above the buttons ("We save your information every time you click Save & Continue so you can find it later in your draft ads"), then "BACK" (outline) and "SAVE & CONTINUE" (filled), both all caps.
 - Optional fields say "(Optional)"; required fields aren't marked.
 - No help text on fields, beyond placeholders and the odd info box.
 
@@ -94,10 +93,51 @@ The flow has nine tabs: Location, Price, Property details, Facilities, Descripti
 ![Add media](images/10-place-ad-media.webp)
 
 - "Add media": a dashed drop zone with an upload icon, "Add Photos or drag and drop", "Support .jpg and .png".
-- Info strip: "Ads with photos receive more leads". Photos aren't marked "(Optional)", so it's unclear whether they're required.
+- Info strip: "Ads with photos receive more leads". Photos aren't marked "(Optional)", but the Review summary later shows a placeholder instead of a photo, so they seem to be optional.
 - Nothing on how many photos to add, which comes first, or size limits.
 - "Add video. Upload a video from Youtube and Vimeo", but the field takes a link, not an upload: "URL link (Optional)", placeholder "Add your link here".
 
+## 8. Plan
+
+![Choose your plan](images/11-place-ad-plan.webp)
+
+- "Choose your plan": three cards side by side, dearest first. The page widens to fit them.
+- FEATURED, €399: "3X MORE AD VIEWS", "Listed above all Premium & Standard ads", "Extra large ad format", "Listing on Rent.ie and Property.ie", "90 days live (30 days as Featured then becomes Standard)".
+- PREMIUM, €349: "2X MORE AD VIEWS", "Listed above all Standard ads", "Listing on Rent.ie and Property.ie", "90 days live (30 days as Premium then becomes Standard)".
+- STANDARD, €295: "90 days live". Selected here (blue border, ticked).
+- Each card has a small drawing of how the ad looks in the results, and a checkbox labelled "Select", though you choose one plan.
+- Nothing says whether VAT is included, or where the "3X" and "2X" figures come from.
+
+## 9. Contact
+
+![Contact details, name and email blanked out](images/12-place-ad-contact.webp)
+
+The account holder's name and email are blanked out in our copy.
+
+- "Contact details": "Full Name" and "Email to receive enquiries" (both filled in here); "Phone number" (empty here); "Receive enquiries for this ad through", set to "Both email and phone"; "Call between (Optional)", placeholder "e.g. Mon - Fri: 9am - 5pm".
+- Under the email: "You will receive enquiries on this email address, although it will not be publicly displayed on the ad. You may use a different email to your account email if required."
+- Under the phone: "The phone number on your ad needs to be the same as your account phone number. If you want to change it, you may visit your Account Settings" (a link out of the flow).
+- Enquiries arrive by email at one address and by phone at one number. Nothing here about a team or a shared inbox.
+
+## 10. Review
+
+![Review, with the ID check outstanding](images/13-place-ad-review.webp)
+
+- "Back to My Created Ads" link at the top. Every tab label is now blue, as if all are done.
+- A box at the top, marked "ID Unverified": "We couldn't verify your ID. Please try again. If you think something went wrong please contact Daft support at support@daft.ie for further assistance.", with a "VERIFY YOUR ID" button. (We don't know whether a check had been tried before this.)
+- "Your ad is almost there. Just verify to proceed", then a summary of the ad: a grey camera placeholder, the address, "€2,500 per month", "3 Bed · 1 Bath · Apartment", and an "Edit" button. Nothing else from the earlier steps is shown.
+- The bill: "Standard Residential Rent €295", "Total: €295". No VAT line.
+- "PROCEED TO PAYMENT" is disabled, with "Verify your ID to proceed ↑" under it, pointing back up to the ID box.
+
+## 11. ID check
+
+![Stripe identity check](images/14-place-ad-id-check.webp)
+
+- "VERIFY YOUR ID" opens a Stripe window over the page: the Daft and Stripe logos, then "Daft.ie works with Stripe to verify your identity".
+- Three points: "You'll take a photo of a valid photo ID, then take a selfie to make sure it's yours."; "Daft.ie will only have access to this verification data."; "Stripe uses biometric technology on your images to make sure it's you. You can delete your data at any time."
+- "Stripe Privacy Policy" and a language link ("English (United Kingdom)"), then "Agree and continue" and "Decline". A pale "CLOSE" sits outside the window, above its top-right corner.
+- The check is on the advertiser, not the renter. The banner on every step says ads "may be subject to" ID checks; here, payment is blocked until the check is done.
+
 ## Still to capture
 
-Plan, Contact and Review; what happens after publishing; how enquiries arrive and are managed; the flow on a phone.
+Payment and publishing; the ad as renters see it; how a renter enquires; how enquiries reach the advertiser and are handled; the flow on a phone.

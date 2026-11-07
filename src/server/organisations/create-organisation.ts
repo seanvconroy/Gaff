@@ -3,6 +3,8 @@ import { db, scopeToOrg, type Tx } from '@/db/client';
 import { memberships, organisations, users } from '@/db/schema';
 import { inboundSlugFor, type NewOrganisation } from '@/domain/organisations/new-organisation';
 import { recordEvent } from '@/server/record/events';
+import { requestLicenceCheck } from '@/server/verification/licence';
+import { uniqueOrganisationSlug } from './profile';
 
 /**
  * Self-serve onboarding: the signed-in user creates their organisation and becomes its
@@ -25,6 +27,7 @@ export async function createOrganisation(
       .values({
         name: input.name,
         kind: input.kind,
+        slug: await uniqueOrganisationSlug(input.name),
         psraLicenceNumber: input.psraLicenceNumber ?? null,
         inboundSlug: await uniqueInboundSlug(tx, inboundSlugFor(input.name)),
       })
@@ -48,6 +51,15 @@ export async function createOrganisation(
       type: 'member.joined',
       data: { role: 'admin' },
     });
+    // M23: an agency's licence goes straight into the check queue.
+    if (input.kind === 'agency' && input.psraLicenceNumber) {
+      await requestLicenceCheck(tx, {
+        organisationId,
+        userId: null,
+        licenceNumber: input.psraLicenceNumber,
+        by: userId,
+      });
+    }
     return { organisationId };
   });
 }

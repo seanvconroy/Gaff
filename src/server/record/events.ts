@@ -255,6 +255,30 @@ export const eventCatalogue = {
     outcome: z.enum(['ready', 'rejected']),
     reason: z.enum(['not_an_image', 'too_small', 'unreadable', 'missing']).optional(),
   }),
+  /** M22 to M27: a check on a letter was started, and decided by a provider or a person. */
+  'letter_check.requested': z.object({
+    checkId: z.uuid(),
+    method: z.enum(['mobile', 'id_document', 'psra_register']),
+    ofAgent: z.boolean(),
+  }),
+  'letter_check.decided': z.object({
+    checkId: z.uuid(),
+    method: z.enum(['mobile', 'id_document', 'psra_register']),
+    outcome: z.enum(['passed', 'failed', 'needs_review']),
+    reason: z
+      .enum(['name_differs', 'not_current', 'not_found', 'document', 'face_mismatch', 'gave_up'])
+      .optional(),
+  }),
+  /** M24: the ID-check provider was asked to delete its copy of the documents. */
+  'letter_check.provider_redacted': z.object({ checkId: z.uuid() }),
+  /** M16: an admin invited a colleague; a colleague joined; one was removed. */
+  'member.invited': z.object({
+    invitationId: z.uuid(),
+    role: z.enum(['admin', 'negotiator']),
+  }),
+  'member.removed': z.object({ role: z.enum(['admin', 'negotiator']) }),
+  /** M17, M18: the public profile of the organisation, or a member's own, changed. */
+  'profile.updated': z.object({ whose: z.enum(['organisation', 'member']) }),
 } satisfies Record<string, z.ZodObject>;
 
 export type EventType = keyof typeof eventCatalogue;
@@ -265,7 +289,8 @@ export type Actor =
   | { type: 'ai' }
   | { type: 'system' }
   | { type: 'renter'; applicationId: string }
-  | { type: 'landlord'; landlordId: string };
+  | { type: 'landlord'; landlordId: string }
+  | { type: 'staff'; userId: string };
 
 function actorId(actor: Actor): string | null {
   switch (actor.type) {
@@ -275,6 +300,8 @@ function actorId(actor: Actor): string | null {
       return actor.applicationId;
     case 'landlord':
       return actor.landlordId;
+    case 'staff':
+      return actor.userId;
     default:
       return null;
   }

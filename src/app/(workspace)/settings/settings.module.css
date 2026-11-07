@@ -19,3 +19,9 @@
 .narrow {
   max-width: 320px;
 }
+
+.links {
+  display: grid;
+  gap: var(--space-3);
+  padding-left: var(--space-6);
+}

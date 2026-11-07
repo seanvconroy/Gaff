@@ -70,6 +70,21 @@ const schema = z
     SUPABASE_SERVICE_KEY: z.string().optional(),
     STORAGE_UPLOADS_BUCKET: z.string().default('uploads'),
     STORAGE_MEDIA_BUCKET: z.string().default('listing-photos'),
+    /**
+     * M24 (Q29): the ID check on private landlords. "stand_in" is a development page where a
+     * tester picks the result; production uses Stripe Identity.
+     */
+    LETTER_IDENTITY_PROVIDER: z.enum(['stand_in', 'stripe']).default('stand_in'),
+    STRIPE_SECRET_KEY: z.string().optional(),
+    STRIPE_IDENTITY_WEBHOOK_SECRET: z.string().optional(),
+    /**
+     * The marketplace's public side (ADR-0015): renter sign-up, search and public pages. Off until
+     * launch; on for the letter beta's invited organisations through their own flag.
+     */
+    MARKETPLACE_PUBLIC: z
+      .enum(['0', '1'])
+      .default('0')
+      .transform((v) => v === '1'),
   })
   .superRefine((env, ctx) => {
     if (env.GAFF_ENV === 'production' || env.GAFF_ENV === 'staging') {
@@ -96,6 +111,7 @@ const schema = z
         ['IDENTITY_PROVIDER', env.IDENTITY_PROVIDER, 'stand_in'],
         ['INCOME_PROVIDER', env.INCOME_PROVIDER, 'stand_in'],
         ['STORAGE_PROVIDER', env.STORAGE_PROVIDER, 'local'],
+        ['LETTER_IDENTITY_PROVIDER', env.LETTER_IDENTITY_PROVIDER, 'stand_in'],
       ] as const;
       if (!env.DATA_ENCRYPTION_KEY) {
         ctx.addIssue({
@@ -128,6 +144,16 @@ const schema = z
       ] as const) {
         if (!env[key])
           ctx.addIssue({ code: 'custom', path: [key], message: `${key} is required for Mailgun` });
+      }
+    }
+    if (env.LETTER_IDENTITY_PROVIDER === 'stripe') {
+      for (const key of ['STRIPE_SECRET_KEY', 'STRIPE_IDENTITY_WEBHOOK_SECRET'] as const) {
+        if (!env[key])
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is required for Stripe Identity`,
+          });
       }
     }
     if (env.STORAGE_PROVIDER === 'supabase') {

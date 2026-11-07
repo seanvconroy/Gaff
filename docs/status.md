@@ -87,7 +87,7 @@ The [marketplace PRD](marketplace/prd.md) and [technical specification](marketpl
 | # | Milestone | Status |
 | --- | --- | --- |
 | 1 | Foundations: data zones, homes and listings, places, photos | **Done**: data zones (ADR-0017: renter and public policies, `withRenter()`, `withPublic()`, `withEnquiry()`); homes, developments, unit types and listings (ADR-0018), with every existing letting backfilled; places and Dublin districts as routing keys, Eircode rules, BER on both scales, the deposit cap, listing statuses and freshness; the photo pipeline (M43): signed uploads straight to storage, checked by their bytes, turned upright, metadata removed, fixed WebP sizes, perceptual hashes for copied photos; Supabase Storage adapter and a local stand-in |
-| 2 | Accounts and checks on letters | Not started |
+| 2 | Accounts and checks on letters | **Done**: one account to rent or let (M1), with renting behind `MARKETPLACE_PUBLIC` until launch; mobiles confirmed by text code (M3); agencies, their team and invitations (M15, M16), agency and agent profiles (M17, M18); PSRA licences in a check queue that Gaff staff decide on `/staff/checks` (M23, M105); private landlords' ID check with Stripe Identity, a development stand-in and redaction after 30 days (M24); readiness and badges (M22, M26); the payment account must be in the checked name (M30). ADR-0016, ADR-0022. **Still to do:** automatic matching of the PSRA register's weekly file (needs psr.ie reachable), passkeys for staff (M5) |
 | 3 | Listing a home | Not started |
 | 4 | Search and public pages | Not started |
 | 5 | Enquiry to the workflow | Not started |

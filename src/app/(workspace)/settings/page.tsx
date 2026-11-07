@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { db } from '@/db/client';
 import { organisations } from '@/db/schema';
 import { env } from '@/lib/env';
@@ -46,6 +47,23 @@ export default async function SettingsPage({
           </p>
         </Notice>
       ) : null}
+
+      <Card labelledBy="account-heading">
+        <h2 id="account-heading" className="type-title">
+          Your account
+        </h2>
+        <ul className={styles.links}>
+          <li>
+            <Link href="/settings/checks">Checks: what renters see Gaff has checked</Link>
+          </li>
+          <li>
+            <Link href="/settings/profile">Profile: your name and details on listings</Link>
+          </li>
+          <li>
+            <Link href="/settings/team">Team: your colleagues, and inviting more</Link>
+          </li>
+        </ul>
+      </Card>
 
       <Card labelledBy="approvals-heading">
         <h2 id="approvals-heading" className="type-title">

@@ -244,3 +244,37 @@ export async function startViewingsNow(addressLine1: string, operatorEmail: stri
     await client.end();
   }
 }
+
+/** M3: the newest SMS code texted to a number (the fake SMS sender uses the outbox). */
+export async function latestSmsCode(phone: string): Promise<string> {
+  const rows = await query<{ text: string }>(
+    `select text from dev_outbox where to_address = $1 and subject = 'SMS'
+     order by created_at desc limit 1`,
+    [phone],
+  );
+  const code = rows[0]?.text.match(/\b(\d{6})\b/)?.[1];
+  if (!code) throw new Error(`No code has been texted to ${phone}`);
+  return code;
+}
+
+/** Makes an existing account a Gaff staff member. The app has no way to do this, on purpose. */
+export async function makeStaff(email: string): Promise<void> {
+  await query(
+    `insert into staff_members (user_id, role) select id, 'reviewer' from users where email = $1
+     on conflict do nothing`,
+    [email],
+  );
+}
+
+/** Signs up a private landlord letting their own homes; returns their email. */
+export async function signUpLandlord(page: Page, name = 'Mary Walsh'): Promise<string> {
+  const email = uniqueEmail('mary');
+  await signIn(page, email);
+  await expect(page).toHaveURL(/\/welcome$/);
+  await page.getByLabel('Your name').fill(name);
+  await page.getByLabel('Ourselves: we are landlords letting our own homes').check();
+  await page.getByLabel('Name of your agency or business').fill(name);
+  await page.getByRole('button', { name: 'Set up my workspace' }).click();
+  await expect(page.getByRole('heading', { name: 'Your lettings' })).toBeVisible();
+  return email;
+}

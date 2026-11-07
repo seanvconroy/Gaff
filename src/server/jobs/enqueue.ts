@@ -13,7 +13,8 @@ export type TaskName =
   | 'reference_overdue'
   | 'expire_home_offer'
   | 'rtb_reminder'
-  | 'process_media';
+  | 'process_media'
+  | 'redact_identity';
 
 /**
  * Queues a job in the caller's transaction (ADR-0003): the job exists only if the change that

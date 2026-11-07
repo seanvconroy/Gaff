@@ -16,11 +16,13 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0010](0010-messaging-adapters-and-outbox.md) | Email and SMS through adapters and an outbox | Accepted; email provider changed by 0014 |
 | [0011](0011-design-tokens-drive-styling.md) | Design tokens drive all styling | Accepted |
 | [0012](0012-testing-and-ci.md) | Testing and CI | Accepted |
-| [0013](0013-sign-in-operators-links-for-renters.md) | Operators sign in by email link; renters and landlords use private links | Accepted |
+| [0013](0013-sign-in-operators-links-for-renters.md) | Operators sign in by email link; renters and landlords use private links | Accepted; renter accounts added by 0016 |
 | [0014](0014-vercel-supabase-approved-vendors.md) | Vercel and Supabase, with approved vendors instead of EU-only | Accepted |
 | [0015](0015-marketplace-in-the-monolith.md) | The marketplace lives in the modular monolith | Accepted |
+| [0016](0016-renter-accounts.md) | Renter accounts, alongside private links | Accepted (amends 0013) |
 | [0017](0017-data-zones.md) | Data zones: organisation, renter, public and staff | Accepted |
 | [0018](0018-homes-lettings-listings.md) | Homes, lettings and listings | Accepted |
+| [0022](0022-checking-letters.md) | Checking letters before their homes go live | Accepted |
 
 ## Template
 

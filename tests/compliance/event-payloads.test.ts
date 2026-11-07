@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import { eventCatalogue } from '@/server/record/events';
+import { platformEventCatalogue } from '@/server/record/platform-events';
 
 /**
  * ADR-0006: event payloads hold only IDs, enums, numbers, booleans and dates. A plain
@@ -36,6 +37,14 @@ function freeTextFields(schema: z.ZodType, path: string[] = []): string[] {
 
 describe('Compliance: the event log holds no personal data (ADR-0006, R27)', () => {
   for (const [type, schema] of Object.entries(eventCatalogue)) {
+    it(`"${type}" allows no free-text fields`, () => {
+      expect(freeTextFields(schema)).toEqual([]);
+    });
+  }
+});
+
+describe('Compliance: platform events hold no personal data either (ADR-0006, ADR-0017)', () => {
+  for (const [type, schema] of Object.entries(platformEventCatalogue)) {
     it(`"${type}" allows no free-text fields`, () => {
       expect(freeTextFields(schema)).toEqual([]);
     });

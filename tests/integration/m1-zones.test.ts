@@ -96,8 +96,8 @@ describe('ADR-0017: data zones', () => {
     expect(rows.length).toBeGreaterThan(0);
     for (const row of rows) {
       expect(row.forced, `${row.table} must force row-level security`).toBe(true);
-      const zones = row.policies.filter(
-        (p) => p === 'tenant_isolation' || p === 'renter_isolation',
+      const zones = row.policies.filter((p) =>
+        ['tenant_isolation', 'renter_isolation', 'platform_append'].includes(p),
       );
       expect(zones, `${row.table} needs exactly one zone policy`).toHaveLength(1);
     }

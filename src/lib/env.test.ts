@@ -26,6 +26,9 @@ const production = {
   STORAGE_PROVIDER: 'supabase',
   SUPABASE_URL: 'https://project.supabase.co',
   SUPABASE_SERVICE_KEY: 'service-key',
+  LETTER_IDENTITY_PROVIDER: 'stripe',
+  STRIPE_SECRET_KEY: 'sk_live_test',
+  STRIPE_IDENTITY_WEBHOOK_SECRET: 'whsec_test',
 };
 
 describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)', () => {
@@ -46,6 +49,12 @@ describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)'
     ]);
     expect(environmentProblems({ ...production, SUPABASE_SERVICE_KEY: undefined })).toEqual([
       'SUPABASE_SERVICE_KEY',
+    ]);
+    expect(environmentProblems({ ...production, LETTER_IDENTITY_PROVIDER: 'stand_in' })).toEqual([
+      'LETTER_IDENTITY_PROVIDER',
+    ]);
+    expect(environmentProblems({ ...production, STRIPE_SECRET_KEY: undefined })).toEqual([
+      'STRIPE_SECRET_KEY',
     ]);
     expect(environmentProblems({ ...production, DATA_ENCRYPTION_KEY: undefined })).toEqual([
       'DATA_ENCRYPTION_KEY',

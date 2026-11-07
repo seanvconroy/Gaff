@@ -89,6 +89,18 @@ export function withPublic<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
 }
 
 /**
+ * Runs fn as Gaff staff (ADR-0017): staff policies let them review rows across organisations,
+ * such as letter checks (M105). Pass the id from a signed-in Staff (src/server/auth/staff).
+ */
+export function withStaff<T>(staffUserId: string, fn: (tx: Tx) => Promise<T>): Promise<T> {
+  return db().transaction(async (tx) => {
+    await tx.execute(sql`select set_config('app.role', 'staff', true)`);
+    await tx.execute(sql`select set_config('app.user_id', ${staffUserId}, true)`);
+    return fn(tx);
+  });
+}
+
+/**
  * Runs fn as both one organisation and one renter, so an enquiry's application (organisation
  * zone) and the record of what the renter shared (renter zone) commit together (ADR-0017).
  * Only the enquiry use cases may use it.

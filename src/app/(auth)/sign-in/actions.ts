@@ -9,6 +9,12 @@ const signInSchema = z.object({
   email: z.email('Enter your work email address, like ann@agency.ie').max(254),
 });
 
+/** Where to go after signing in: only a path on Gaff itself, never another site. */
+function safeNext(value: unknown): string {
+  const next = typeof value === 'string' ? value : '';
+  return /^\/(?!\/)[A-Za-z0-9/_.~-]*$/.test(next) ? next : '/';
+}
+
 export async function requestSignInLink(_state: FormState, formData: FormData): Promise<FormState> {
   const parsed = signInSchema.safeParse({ email: String(formData.get('email') ?? '').trim() });
   if (!parsed.success) {
@@ -19,7 +25,7 @@ export async function requestSignInLink(_state: FormState, formData: FormData): 
   }
   try {
     await auth().api.signInMagicLink({
-      body: { email: parsed.data.email.toLowerCase(), callbackURL: '/' },
+      body: { email: parsed.data.email.toLowerCase(), callbackURL: safeNext(formData.get('next')) },
       headers: await headers(),
     });
   } catch {

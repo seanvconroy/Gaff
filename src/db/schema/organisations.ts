@@ -32,6 +32,15 @@ export const organisations = pgTable('organisations', {
   /** R23: where the deposit and first month's rent are paid: the operator's own account. */
   paymentAccountName: text(),
   paymentIban: text(),
+  /** M17: the public profile. The legal name is the one on the PSRA register (agencies). */
+  legalName: text(),
+  /** M17: the agency's public page, /agencies/[slug]. */
+  slug: text().unique(),
+  officeAddress: text(),
+  publicPhone: text(),
+  website: text(),
+  about: text(),
+  logoMediaId: uuid(),
   /** Pilot baselines from the interviews, for time and days saved (R28). */
   baselineMinutesPerLetting: integer(),
   baselineDaysToLet: integer(),
@@ -49,6 +58,12 @@ export const memberships = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     role: memberRole().notNull(),
+    /** M18: the agent's public details, shown on the listings they handle. */
+    displayName: text(),
+    photoMediaId: uuid(),
+    psraLicenceNumber: text(),
+    showPhone: boolean().notNull().default(false),
+    publicPhone: text(),
     createdAt: createdAt(),
   },
   (t) => [

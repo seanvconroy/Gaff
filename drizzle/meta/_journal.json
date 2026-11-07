@@ -162,6 +162,20 @@
       "when": 1794065269317,
       "tag": "0022_m43_media",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794065743256,
+      "tag": "0023_m2_accounts_and_checks",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794065822636,
+      "tag": "0024_m2_platform_events",
+      "breakpoints": true
     }
   ]
 }

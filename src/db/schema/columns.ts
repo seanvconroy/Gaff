@@ -43,3 +43,17 @@ export const renterPolicy = () =>
  */
 export const publicReadPolicy = () =>
   pgPolicy('public_read', { as: 'permissive', for: 'select', using: sql`true` });
+
+/**
+ * Gaff staff (ADR-0017) may read and decide some organisation rows, such as letter checks
+ * (M105), but only inside withStaff(), which needs a signed-in staff member.
+ */
+const staffCheck = sql`current_setting('app.role', true) = 'staff'`;
+
+export const staffReviewPolicy = () =>
+  pgPolicy('staff_review', {
+    as: 'permissive',
+    for: 'all',
+    using: staffCheck,
+    withCheck: staffCheck,
+  });

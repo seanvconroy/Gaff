@@ -59,6 +59,17 @@ const schema = z
     CRON_SECRET: z.string().min(16, 'CRON_SECRET must be at least 16 characters').optional(),
     /** Supabase's CA certificate (PEM), so the database's certificate is verified. */
     DATABASE_CA_CERT: z.string().optional(),
+    /**
+     * M43 (tech spec, decision 7): where listing photos live. "local" is files on disk, served by
+     * /api/dev/storage, for development and tests; production uses Supabase Storage.
+     */
+    STORAGE_PROVIDER: z.enum(['local', 'supabase']).default('local'),
+    LOCAL_STORAGE_DIR: z.string().optional(),
+    SUPABASE_URL: z.string().url().optional(),
+    /** Server only: signs uploads and writes photos. Never sent to a browser. */
+    SUPABASE_SERVICE_KEY: z.string().optional(),
+    STORAGE_UPLOADS_BUCKET: z.string().default('uploads'),
+    STORAGE_MEDIA_BUCKET: z.string().default('listing-photos'),
   })
   .superRefine((env, ctx) => {
     if (env.GAFF_ENV === 'production' || env.GAFF_ENV === 'staging') {
@@ -84,6 +95,7 @@ const schema = z
         ['AI_PROVIDER', env.AI_PROVIDER, 'fake'],
         ['IDENTITY_PROVIDER', env.IDENTITY_PROVIDER, 'stand_in'],
         ['INCOME_PROVIDER', env.INCOME_PROVIDER, 'stand_in'],
+        ['STORAGE_PROVIDER', env.STORAGE_PROVIDER, 'local'],
       ] as const;
       if (!env.DATA_ENCRYPTION_KEY) {
         ctx.addIssue({
@@ -116,6 +128,16 @@ const schema = z
       ] as const) {
         if (!env[key])
           ctx.addIssue({ code: 'custom', path: [key], message: `${key} is required for Mailgun` });
+      }
+    }
+    if (env.STORAGE_PROVIDER === 'supabase') {
+      for (const key of ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY'] as const) {
+        if (!env[key])
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is required for Supabase Storage`,
+          });
       }
     }
     if (env.SMS_PROVIDER === 'sinch') {

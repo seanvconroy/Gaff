@@ -22,3 +22,6 @@ blob-report/
 .DS_Store
 *.log
 *.tsbuildinfo
+
+# local object storage (STORAGE_PROVIDER=local)
+.data/

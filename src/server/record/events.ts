@@ -245,6 +245,16 @@ export const eventCatalogue = {
     maxOccupants: z.number().int().optional(),
     noPets: z.boolean(),
   }),
+  /** M43: a photo was added to a home or development, then checked and resized. */
+  'photo.added': z.object({
+    mediaId: z.uuid(),
+    kind: z.enum(['photo', 'floor_plan', 'logo', 'agent_photo']),
+  }),
+  'photo.processed': z.object({
+    mediaId: z.uuid(),
+    outcome: z.enum(['ready', 'rejected']),
+    reason: z.enum(['not_an_image', 'too_small', 'unreadable', 'missing']).optional(),
+  }),
 } satisfies Record<string, z.ZodObject>;
 
 export type EventType = keyof typeof eventCatalogue;

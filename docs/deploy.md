@@ -91,6 +91,22 @@ Each run stops once nothing is left, or after 45 seconds, and lets running jobs 
 
 Locally, `pnpm worker` does the same job continuously (see `CLAUDE.md`).
 
+## 5. Listing photos (Supabase Storage)
+
+Listing photos (M43) live in Supabase Storage, next to the database. Without this, everything else works, but photos can't be added.
+
+1. In the Supabase project, open **Storage** and create two buckets:
+   - `uploads`, **private**: originals waiting to be checked;
+   - `listing-photos`, **public**: the cleaned, resized copies renters see.
+2. Open **Project Settings**, then **API Keys**, and copy the **service role** key. It's a secret: it only ever goes into Vercel's settings.
+3. In Vercel, add these settings and redeploy:
+
+   | Setting | Value |
+   | --- | --- |
+   | `STORAGE_PROVIDER` | `supabase` |
+   | `SUPABASE_URL` | the project URL, like `https://abcdefghijklmnop.supabase.co` |
+   | `SUPABASE_SERVICE_KEY` | the service role key |
+
 ## Good to know
 
 - **Vercel's sign-in protects the test copy.** New Vercel projects ask for a Vercel sign-in on every `vercel.app` address, so only you can open the test copy and its Outbox, which shows every email, sign-in links included. Keep it on. Sign in to Vercel once on your phone too. The minute tick passes it with the project's automation bypass secret. Production, on Gaff's own domain, is open to renters and has no Outbox.
@@ -119,6 +135,7 @@ Before the first real renter (see [launch-checklist.md](launch-checklist.md)):
   | SMS | the Sinch settings |
   | AI | the Bedrock settings and AWS keys |
   | `IDENTITY_PROVIDER`, `INCOME_PROVIDER` | `none` |
+  | `STORAGE_PROVIDER`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | as in [step 5](#5-listing-photos-supabase-storage) |
 
   Production refuses to start with a stand-in or without the encryption key.
 - **Resend:**

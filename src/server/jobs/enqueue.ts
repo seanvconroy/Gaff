@@ -12,7 +12,8 @@ export type TaskName =
   | 'expire_offer'
   | 'reference_overdue'
   | 'expire_home_offer'
-  | 'rtb_reminder';
+  | 'rtb_reminder'
+  | 'process_media';
 
 /**
  * Queues a job in the caller's transaction (ADR-0003): the job exists only if the change that

@@ -11,3 +11,4 @@ export * from './tenancy';
 export * from './homes';
 export * from './listings';
 export * from './renters';
+export * from './media';

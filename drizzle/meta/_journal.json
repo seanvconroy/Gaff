@@ -155,6 +155,13 @@
       "when": 1794064899933,
       "tag": "0021_m1_marketplace_foundations",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794065269317,
+      "tag": "0022_m43_media",
+      "breakpoints": true
     }
   ]
 }

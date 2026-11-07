@@ -2,6 +2,7 @@ import type { TaskList } from 'graphile-worker';
 import { z } from 'zod';
 import { draftAnswersFor } from '@/server/answers/draft';
 import { processInboundEmail } from '@/server/enquiries/process';
+import { processMedia } from '@/server/media/process';
 import { markReferenceOverdue } from '@/server/checks/checks';
 import { sendMessage } from '@/server/messages/outbox';
 import { expireHomeOffer } from '@/server/offers/offer';
@@ -52,6 +53,9 @@ export const taskList: TaskList = {
   },
   draft_answers: async (payload) => {
     await draftAnswersFor(messageJob.parse(payload));
+  },
+  process_media: async (payload) => {
+    await processMedia(z.object({ organisationId: z.uuid(), mediaId: z.uuid() }).parse(payload));
   },
   send_message: async (payload, helpers) => {
     await sendMessage({

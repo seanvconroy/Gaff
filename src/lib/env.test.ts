@@ -23,6 +23,9 @@ const production = {
   DATA_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
   DEV_TOOLS: '0',
   CRON_SECRET: 'c'.repeat(32),
+  STORAGE_PROVIDER: 'supabase',
+  SUPABASE_URL: 'https://project.supabase.co',
+  SUPABASE_SERVICE_KEY: 'service-key',
 };
 
 describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)', () => {
@@ -38,6 +41,12 @@ describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)'
       'INCOME_PROVIDER',
     ]);
     expect(environmentProblems({ ...production, DEV_TOOLS: '1' })).toEqual(['DEV_TOOLS']);
+    expect(environmentProblems({ ...production, STORAGE_PROVIDER: 'local' })).toEqual([
+      'STORAGE_PROVIDER',
+    ]);
+    expect(environmentProblems({ ...production, SUPABASE_SERVICE_KEY: undefined })).toEqual([
+      'SUPABASE_SERVICE_KEY',
+    ]);
     expect(environmentProblems({ ...production, DATA_ENCRYPTION_KEY: undefined })).toEqual([
       'DATA_ENCRYPTION_KEY',
     ]);

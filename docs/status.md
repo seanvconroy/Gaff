@@ -86,7 +86,7 @@ The [marketplace PRD](marketplace/prd.md) and [technical specification](marketpl
 
 | # | Milestone | Status |
 | --- | --- | --- |
-| 1 | Foundations: data zones, homes and listings, places, photos | In progress |
+| 1 | Foundations: data zones, homes and listings, places, photos | **Done**: data zones (ADR-0017: renter and public policies, `withRenter()`, `withPublic()`, `withEnquiry()`); homes, developments, unit types and listings (ADR-0018), with every existing letting backfilled; places and Dublin districts as routing keys, Eircode rules, BER on both scales, the deposit cap, listing statuses and freshness; the photo pipeline (M43): signed uploads straight to storage, checked by their bytes, turned upright, metadata removed, fixed WebP sizes, perceptual hashes for copied photos; Supabase Storage adapter and a local stand-in |
 | 2 | Accounts and checks on letters | Not started |
 | 3 | Listing a home | Not started |
 | 4 | Search and public pages | Not started |

@@ -9,6 +9,7 @@ Gaff runs the letting of a home for Irish letting agents and portfolio landlords
 - **Progress:** `docs/status.md` (keep it current).
 - **Before the first pilot:** `docs/launch-checklist.md`.
 - **Competitor teardowns:** `docs/competitors/` (reference only).
+- **Marketplace (proposed, not approved yet):** `docs/marketplace/prd.md` and `docs/marketplace/tech-spec.md`. Requirement IDs M1, M2… Don't build from them until the founders approve.
 
 ## Product rules: never break these
 

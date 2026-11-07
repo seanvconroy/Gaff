@@ -215,7 +215,7 @@ The core objects mirror the workflow, and every change to them writes an event t
 These wait until the pilots prove agents will pay:
 
 - Creating or posting adverts on Daft, MyHome or elsewhere
-- A Gaff search site or marketplace for renters
+- A Gaff search site or marketplace for renters (now proposed in the [marketplace PRD](marketplace/prd.md), awaiting approval)
 - Answering phone calls
 - Holding deposits or collecting rent
 - Property management after move-in: maintenance, rent reviews, renewals

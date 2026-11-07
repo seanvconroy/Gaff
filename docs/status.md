@@ -73,6 +73,8 @@ Last updated: 1 November 2026 (all three slices built; hosting moved to Vercel a
 
 ## Next
 
+- **Marketplace:** the [PRD](marketplace/prd.md) and [technical specification](marketplace/tech-spec.md) are drafted for the founders to approve (decisions Q27 to Q30, open questions Q31 to Q36). Nothing is built yet.
+
 - **Deploy the test copy** on Vercel and Supabase ([deploy.md](deploy.md), about 20 minutes).
 - **Your end-to-end test** (see [testing-guide.md](testing-guide.md)), then feedback and iteration.
 - **Before the first pilot:** everything in [launch-checklist.md](launch-checklist.md), including the providers for ID and income checks (stand-ins today) and the solicitor’s answers on electronic signing (Q23) and the agreement wording.

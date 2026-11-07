@@ -241,3 +241,72 @@ The PRD asks for data hosted in the EU, and the build turned that into "EU only"
 - the AI disclosure (EU AI Act Article 50);
 - the caps on the deposit and advance rent;
 - Gaff never holding money.
+
+## F. The marketplace
+
+Raised on 7 November 2026 with the [marketplace PRD](marketplace/prd.md) and [technical specification](marketplace/tech-spec.md). Sean took Q27 to Q30. Q31 to Q36 are open, with proposals.
+
+### Q27. When does the marketplace go live?
+
+The business plan puts the marketplace third (the tool, then renters, then the marketplace), because Irish challenger portals that went after listings first closed, sold to Daft's owner or stayed small.
+
+**Decision (Sean, 7 November 2026):** everything at once. Listings, search and renter profiles open together as soon as they're built, and Gaff competes for renters from day one. The business plan needs updating to match. The CTO recommends a letter beta for 3 to 4 weeks before the public launch, so renters find homes on day one; it doesn't gate the launch.
+
+### Q28. Which kinds of rental?
+
+**Decision (Sean, 7 November 2026):** whole homes let on a tenancy, including homes in developments and build-to-rent. No room shares, student accommodation, short lets, commercial or parking.
+
+### Q29. How are letters checked before their homes go live?
+
+**Decision (Sean, 7 November 2026):** agencies and each of their agents are matched against the PSRA public register. Private landlords pass a document-and-selfie ID check before their first home goes live. The CTO proposes Stripe Identity. Stripe is approved only to charge operators (Q26), so this use needs the founders' sign-off, its DPA terms and the privacy notice before launch. Gaff keeps only the result, the verified name and the date (Q19).
+
+### Q30. Can a letter pay to rank higher?
+
+**Decision (Sean, 7 November 2026):** never. Listings are free, and results are ordered by fit and freshness only. Revenue comes from the letting workflow and partner services. A compliance test fails if ranking ever takes a payment input.
+
+### Q31. The budget to bring renters in
+
+Launching everything at once (Q27) means Gaff has to bring renters in from day one.
+
+**Proposal:** set a launch budget and a target cost per active renter, and review them weekly with the liquidity numbers.
+
+**Decision:** open (founders).
+
+### Q32. Is the workflow free during launch?
+
+Every Gaff enquiry starts the workflow, so a free listing comes with it.
+
+**Proposal:** the workflow is free for every letter until a date the founders set, then priced as in the business plan (per letting, or a monthly plan for landlords with many homes).
+
+**Decision:** open (founders).
+
+### Q33. Listing defaults
+
+**Proposal:** at least 3 photos to publish. Letters confirm a home is still available every 14 days, and the listing is paused if they don't answer within 3 days.
+
+**Decision:** open (founders). The build uses these as configuration.
+
+### Q34. Partner services for renters
+
+**Proposal:** none at launch. Later, only services a renter chooses for themselves, such as utilities or insurance, that never cost anything to secure a home and never change their chances. That needs the solicitor's view.
+
+**Decision:** open (founders).
+
+### Q35. "Ready to move": renters verifying their identity in advance
+
+**Proposal:** later. A renter could verify their identity once, at Gaff's cost, with the result shared only if they become the preferred applicant or backup. It needs the solicitor's view on staged data first.
+
+**Decision:** open (founders, then the solicitor).
+
+### Q36. Questions for the solicitor before launch (**Solicitor**)
+
+- Liability for publishing ads under section 12 of the Equal Status Acts, after the WRC's 2019 Daft decision, and whether blocking checks and review are enough.
+- Which Digital Services Act duties apply while Gaff is a micro or small enterprise, and which apply as it grows.
+- Data protection roles: controller for renter accounts, profiles, alerts and checks on letters; processor for letters' copies. The lawful bases, and the DPIA.
+- The wording of check badges and "No other fees".
+- Saying on every listing that housing supports such as HAP are accepted.
+- Using the PSRA register to check licences, and what to do when it doesn't match.
+- Whether handling enquiries for private landlords' listings changes the PSRA licensing question in the PRD.
+- Terms for private landlords, who may be consumers.
+- Retention for reports: proposed 6 months after a case closes.
+- The BER display against SEAI's current guidelines.

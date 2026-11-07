@@ -210,19 +210,31 @@ Only colours change, on hover, press and focus: nothing slides or bounces. With 
 
 ## Components
 
-- **Primary button:** `primary` fill, `ink-inverse` text, `radius-md`, at least 44px tall, `primary-hover` on hover and press. One per view.
+- **Primary button:** `primary` fill, `ink-inverse` text, `radius-md`, as tall as the fields beside it (44px in the workspace, 48px on the private pages), `primary-hover` on hover and press. One per view.
 - **Secondary button:** `surface-1` fill, 1px `border-strong` edge, `ink` text; `surface-2` on hover.
 - **Quiet button:** no fill or edge, `ink` text; `surface-2` on hover.
 - **Destructive button:** `danger` fill, `ink-inverse` text, only for actions that delete or cancel something. Not built yet.
 - **Links:** `atlantic-text`, turning `ink` on hover. Underlined in running text, so they never rely on colour alone.
-- **Inputs:** `surface-1` fill, 1px `border-strong` edge, `radius-sm`. On error, a 2px `danger` edge and a message with an icon that says what to do.
-- **Choice cards** (radio and checkbox groups, viewing slots, picking applicants): a 1px `border-strong` edge and `radius-md`. The chosen one gets a 2px `primary` edge that grows inwards, so nothing moves. The focus ring goes round the whole card.
+- **Inputs and selects:** `surface-1` fill, 1px `border-strong` edge, `radius-sm`, and one height for every control: 44px in the workspace and 48px on the private pages (their shells set it), with buttons the same height beside them. The label sits directly above its control; the error and then the hint sit below it. A field never stretches to its neighbour's height, and fields in a row (`Columns`) share the row's tracks, so they line up even when a label wraps. Selects draw one chevron in every browser. On error, a 2px `danger` edge and a message with an icon that says what to do. `width` (`number`, `short`, `medium`) hints at an answer's length.
+- **Choice cards** (radio and checkbox groups, viewing slots, picking applicants): a 1px `border-strong` edge and `radius-md`. The chosen one gets a 2px `primary` edge that grows inwards, so nothing moves. The focus ring goes round the whole card. A group's hint sits under its question, so it's read before choosing. Short answers (Yes and No, 24 hours to 3 days) sit side by side (`inline`).
+- **Forms:** in a readable column (`Narrow`, 720px), never across a laptop. One panel per form (`FormPanel`), groups divided by hairlines rather than boxed. A long form becomes short steps with a `StepIndicator` (Add a letting), each step checked before moving on. Questions that don't apply stay hidden until the answer before makes them apply.
 - **Status pills:** the status `-bg` tint, the status colour for the icon and words, and always both. Workspace pills are 13px semibold; renter pages use the body-size pill.
 - **Notices:** the status `-bg` tint, the status icon in the status colour, and `ink` words.
 - **AI drafts:** the "Drafted by AI" pill (`ai` on `ai-bg`, with the sparkle icon). A person approves before anything goes out.
-- **Stage tracker:** nine stages; done in `success`, the current stage as the screen's Atlantic accent (`ink-inverse` on `atlantic`).
+- **Stage tracker:** nine stages as one slim bar: done in `success`, the current stage as the screen's Atlantic accent, the rest in `border`. Their names show under the bar on a laptop; on narrower screens the page's step line ("Step 2 of 9 · Enquiries") names the stage. In a list row, the `StageMeter` fills nine small segments in `primary` instead, so the accent isn't repeated on every row.
+- **A letting's pages:** tabs appear as the letting reaches their stage (set-up shows Overview and Timeline only). Set-up tasks are focused pages with a back link and no tabs.
+- **Disclosure:** detail most people need once ("How Gaff ranks"), or a rare action ("Close this letting"), behind a summary line with a chevron. Native `<details>`; `card` gives it a hairline edge.
+- **Summary list:** label and value rows divided by hairlines, for key facts, an offer's terms and payment details. `split` puts short figures on the right in semibold. A quiet "Change" link can end a row or a card's header, instead of a button.
+- **Action list:** hairline rows, each a whole-row link with an icon tile, its words and a chevron: Needs you today, the lettings list, a letting's set-up checklist. A row named by a title people look for (an address) makes the title the link, stretched over the row. The step to do next carries the page's one primary button.
+- **Step card:** one step of a process done in order (a tenancy, a renter's checks): a number that becomes a tick, the title, the status in words, and what to do. The current step has a stronger edge; steps that can't start yet say why in one line.
+- **Outcome:** the main message of a page with nothing to fill in, such as "You're on the waiting list": a status icon in its tint, a title, the words and what happens next. Never a colour alone, and never `danger` for a renter.
+- **Empty state:** an icon, what will appear here and when, and at most one action.
+- **What happens next:** on the private pages, a quiet `surface-2` panel ends each task with the next step and when.
+- **Tables:** dense on a laptop; on a phone each row becomes a small card with each value's column name beside it. The column names are decorative there (screen readers hear them from the table's header).
+- **Copy button:** beside anything people would otherwise retype: an IBAN, a payment reference, a Gaff address, a landlord's link. It says "Copied", and screen readers hear it.
 - **Workspace navigation:** a `nav-bg` sidebar on screens wider than 900px, with the wordmark, the pages and who is signed in. Items are `nav-ink-muted`; the current page is `nav-ink` on `nav-active` and marked for screen readers. On phones it becomes a navy top bar (wordmark, sign out) and a bottom bar with the same items and tokens. The page keeps whatever has focus clear of the bottom bar.
-- **"Needs you today":** one hairline row per thing to do, with 20px insets: an icon tile, the words, and a chevron. The whole row is the link. AI drafts get the AI tile; deadlines the warning tile.
+- **"Needs you today":** one hairline row per thing to do, with 20px insets: an icon tile, the words, and a chevron. The whole row is the link. AI drafts get the AI tile; deadlines the warning tile. A letting's overview lists that home's rows in the same words.
+- **Private pages** (renters, referees, landlords): the agency's initial in a navy circle and its name, the AI disclosure in words, the home's address as the title (`display-mobile`) with where, how much and when, then one task. The main button spans the screen on a phone.
 - **Focus:** a 2px outline in `focus` at a 2px offset on every interactive element, and `nav-focus` inside the navigation.
 - **Surfaces:** `surface-0` for the page, `surface-1` for cards and inputs, `surface-2` for quiet fills. Hairlines, not shadows.
 
@@ -249,3 +261,6 @@ Light is the default. Dark follows the system setting, and `data-theme="light"` 
 - From the A4 board's dashboard: lettings by stage, and the time saved this week.
 - The destructive button, dialogs, toasts and skeleton loaders (`overlay` and `shadow-overlay` are ready for them).
 - Counts beside the navigation items.
+- Sticky action bars for long workspace forms.
+
+The November 2026 UX review ([ux-review.md](ux-review.md)) explains why the forms, lists and private pages work the way they do.

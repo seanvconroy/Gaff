@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 7 November 2026 (design direction A4, Navy and Atlantic, applied across the app).
+Last updated: 7 November 2026 (UX review and redesign across every flow, on A4, Navy and Atlantic).
 
 ## Done
 
@@ -15,6 +15,12 @@ Last updated: 7 November 2026 (design direction A4, Navy and Atlantic, applied a
 | Record | Append-only event log (trigger); payloads checked for personal data; decisions only by a signed-in person | Unit, compliance and integration tests |
 | Sign-in | One-time email links (Better Auth, hashed tokens, telemetry off), workspace set-up, PSRA licence for agencies | `tests/e2e/onboarding.spec.ts` |
 | UI kit | Button, fields, choice cards, notice and status pill (status tints), "Drafted by AI" pill, card, page header, stage tracker; the workspace's navy sidebar, a top and bottom bar on phones | Used on every screen; axe checks in E2E, in light and dark (`tests/e2e/design.spec.ts`) |
+| UX redesign | Review and redesign of every flow ([ux-review.md](ux-review.md)), summarised in the five rows below | All 27 E2E journeys with axe checks; R1 proves the three steps, errors per step, Back keeping what was typed, and set-up showing two tabs |
+| UX: fields | One control height, rows that align (subgrid), progressive disclosure for questions that don't apply | As above |
+| UX: forms in steps | "Add a letting" in three short steps, each checked with the server's own rules | As above |
+| UX: shared patterns | Disclosure, summary list, action list, step card, outcome, empty state, copy button, stacked tables on phones | As above |
+| UX: letting pages | A slim stage bar, tabs that appear by stage, focused set-up tasks | As above |
+| UX: private pages | Renter, referee and landlord pages with one task each and "what happens next" | As above |
 | Email | Port, development outbox, Resend adapter (sending, and receiving with signed webhooks), Mailgun EU adapter; no tracking | Sign-in journey; `src/adapters/email/resend.test.ts`; `tests/integration/r5-resend-inbound.test.ts` |
 | CI and deploy | GitHub Actions with Postgres; Vercel (Dublin) and Supabase (Ireland), migrations in the build ([deploy.md](deploy.md), ADR-0014) | `.github/workflows/ci.yml`, `vercel.json` |
 | Jobs on Vercel | No always-on worker: a per-minute tick (Supabase Cron) and a run straight after each request, time-boxed and stopping cleanly, through Supabase's transaction pooler; a daily call queues the retention job | `tests/integration/jobs-run-due.test.ts`, `tests/integration/cron-tick.test.ts` |

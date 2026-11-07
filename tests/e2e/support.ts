@@ -15,6 +15,46 @@ export async function expectAccessible(page: Page): Promise<void> {
   expect(summary, 'accessibility violations').toEqual([]);
 }
 
+/**
+ * Tabs through the page from the top (call it straight after loading). Every stop must show a
+ * 2px focus ring: `focus`, or `nav-focus` in the navy navigation, where `focus` is too faint.
+ * A radio or checkbox in a choice card shows the ring on its card (design system).
+ */
+export async function expectFocusRings(page: Page): Promise<void> {
+  const seen = new Set<string>();
+  const problems: string[] = [];
+  for (let i = 0; i < 60; i++) {
+    await page.keyboard.press('Tab');
+    const stop = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || el === document.body) return null;
+      const ringOn = el.matches('label > input') ? el.closest('label')! : el;
+      const style = getComputedStyle(ringOn);
+      const inNav = !!el.closest('header:has([data-bottom-bar])') || el.matches('a[href="#main"]');
+      const token = inNav ? '--color-nav-focus' : '--color-focus';
+      const probe = document.createElement('i');
+      probe.style.color = `var(${token})`;
+      document.body.append(probe);
+      const expected = getComputedStyle(probe).color;
+      probe.remove();
+      return {
+        id: `${el.outerHTML.slice(0, 120)}@${Math.round(el.getBoundingClientRect().top + scrollY)}`,
+        name: (el.getAttribute('aria-label') || el.textContent || el.tagName).trim().slice(0, 40),
+        ok:
+          style.outlineStyle === 'solid' &&
+          parseFloat(style.outlineWidth) >= 2 &&
+          style.outlineColor === expected,
+        ring: `${style.outlineStyle} ${style.outlineWidth} ${style.outlineColor}, want ${expected}`,
+      };
+    });
+    if (!stop || seen.has(stop.id)) break;
+    seen.add(stop.id);
+    if (!stop.ok) problems.push(`${stop.name}: ${stop.ring}`);
+  }
+  expect(seen.size, 'focus stops').toBeGreaterThan(1);
+  expect(problems, 'focus rings').toEqual([]);
+}
+
 /** WCAG 1.4.10 reflow: nothing makes the page scroll sideways at this width. */
 export async function expectNoSidewaysScroll(page: Page): Promise<void> {
   const overflow = await page.evaluate(

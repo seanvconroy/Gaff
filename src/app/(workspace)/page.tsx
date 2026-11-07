@@ -1,3 +1,17 @@
+import {
+  CalendarClock,
+  ChevronRight,
+  ClipboardList,
+  FileSignature,
+  Handshake,
+  Inbox,
+  type LucideIcon,
+  MessageCircleQuestionMark,
+  RotateCcw,
+  Sparkles,
+  UserCheck,
+  Users,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { stageLabels, stageNumber } from '@/domain/lettings/stages';
@@ -21,6 +35,24 @@ const tenancyStepWords = {
   finish: 'finish and close the letting',
 } as const;
 const daysAgo = (n: number) => (n === 0 ? 'today' : n === 1 ? 'yesterday' : `${n} days ago`);
+
+/** Each row's icon tile: AI drafts in the AI colours, deadlines in warning, the rest quiet. */
+const todayIcons: Record<
+  TodayItem['kind'],
+  { Icon: LucideIcon; tone: 'quiet' | 'ai' | 'warning' }
+> = {
+  approvals: { Icon: Sparkles, tone: 'ai' },
+  attention: { Icon: Inbox, tone: 'quiet' },
+  questions: { Icon: MessageCircleQuestionMark, tone: 'quiet' },
+  attendance: { Icon: UserCheck, tone: 'quiet' },
+  choose: { Icon: Users, tone: 'quiet' },
+  tenancy: { Icon: FileSignature, tone: 'quiet' },
+  rtb: { Icon: CalendarClock, tone: 'warning' },
+  offer: { Icon: Handshake, tone: 'quiet' },
+  rechoose: { Icon: RotateCcw, tone: 'warning' },
+  shortlist: { Icon: Users, tone: 'quiet' },
+  setup: { Icon: ClipboardList, tone: 'quiet' },
+};
 
 /** R28: one line per thing that needs a person, linking to where it's done. */
 function todayLink(item: TodayItem): { href: string; text: string } {
@@ -89,6 +121,17 @@ export default async function DashboardPage() {
       <PageHeader
         eyebrow={member.organisationName}
         title="Your lettings"
+        lead={
+          lettings.length > 0 && today.length > 0 ? (
+            // The screen's one accent (A4): how many things need a person today.
+            <>
+              <span className={styles.accent}>
+                {today.length} {today.length === 1 ? 'thing' : 'things'}
+              </span>{' '}
+              {today.length === 1 ? 'needs' : 'need'} you today.
+            </>
+          ) : undefined
+        }
         actions={
           <ButtonLink href="/lettings/new" variant="primary">
             Add a letting
@@ -96,12 +139,12 @@ export default async function DashboardPage() {
         }
       />
       {lettings.length > 0 ? (
-        <Card labelledBy="today-heading">
-          <h2 id="today-heading" className="type-title">
+        <section className={styles.needs} aria-labelledby="today-heading">
+          <h2 id="today-heading" className={`${styles.needsHeading} type-title`}>
             Needs you today
           </h2>
           {today.length === 0 ? (
-            <p>
+            <p className={styles.needsEmpty}>
               Nothing needs you right now. Gaff is answering enquiries and booking viewings, and
               it’ll list anything that needs you here.
             </p>
@@ -109,15 +152,27 @@ export default async function DashboardPage() {
             <ul className={styles.today}>
               {today.map((item) => {
                 const { href, text } = todayLink(item);
+                const { Icon, tone } = todayIcons[item.kind];
                 return (
                   <li key={`${item.kind}:${'lettingId' in item ? item.lettingId : ''}`}>
-                    <Link href={href}>{text}</Link>
+                    <Link href={href} className={styles.todayRow}>
+                      <span className={`${styles.todayIcon} ${styles[tone]}`}>
+                        <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
+                      </span>
+                      <span className={styles.todayText}>{text}</span>
+                      <ChevronRight
+                        className={styles.chevron}
+                        size={18}
+                        strokeWidth={1.75}
+                        aria-hidden="true"
+                      />
+                    </Link>
                   </li>
                 );
               })}
             </ul>
           )}
-        </Card>
+        </section>
       ) : null}
       {lettings.length === 0 ? (
         <Card>

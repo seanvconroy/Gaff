@@ -25,6 +25,9 @@
 }
 
 .address {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--color-ink);
 }
 
@@ -32,18 +35,100 @@
   color: var(--color-ink-muted);
 }
 
-.today {
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-  padding-left: var(--space-6);
+/* The screen's one Atlantic accent. */
+.accent {
+  color: var(--color-atlantic-text);
+  font-weight: var(--type-title-weight);
 }
 
-.today a {
-  display: inline-flex;
+/* R28 "Needs you today", as A4's list: hairline rows with 20px insets, each a whole-row link. */
+.needs {
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.needsHeading {
+  padding: var(--space-4) var(--space-5);
+}
+
+.needsEmpty {
+  padding: 0 var(--space-5) var(--space-5);
+}
+
+.today {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.todayRow {
+  display: flex;
   align-items: center;
+  gap: var(--space-4);
   min-height: 44px;
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-ink);
   font-weight: var(--type-title-weight);
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.todayRow:hover {
+  background-color: var(--color-surface-2);
+}
+
+/* Inside the row: the card's rounded corners would clip a ring drawn outside it. */
+.todayRow:focus-visible {
+  outline-offset: -2px;
+}
+
+.todayIcon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+}
+
+.quiet {
+  background-color: var(--color-surface-2);
+  color: var(--color-ink);
+}
+
+.ai {
+  background-color: var(--color-ai-bg);
+  color: var(--color-ai);
+}
+
+.warning {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.todayText {
+  flex: 1;
+  min-width: 0;
+}
+
+.chevron {
+  flex: none;
+  color: var(--color-ink-muted);
+}
+
+@media (width <= 640px) {
+  .needsHeading,
+  .todayRow {
+    padding-inline: var(--space-4);
+  }
+
+  .needsEmpty {
+    padding: 0 var(--space-4) var(--space-4);
+  }
 }
 
 .note {

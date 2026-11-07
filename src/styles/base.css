@@ -58,6 +58,13 @@ a:not([class]):hover {
   outline-offset: 2px;
 }
 
+/* On a phone the workspace has a bottom bar: keep what has focus above it (WCAG 2.4.11). */
+@media (width <= 900px) {
+  html:has([data-bottom-bar]) {
+    scroll-padding-bottom: calc(var(--space-16) + var(--space-6));
+  }
+}
+
 input,
 select,
 textarea,

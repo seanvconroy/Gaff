@@ -78,28 +78,52 @@
   gap: var(--space-2);
 }
 
+/* Viewing slots (A4): big cards; the chosen one gets a 2px primary edge that grows inwards. */
 .slot {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: 48px;
-  padding: var(--space-2) var(--space-4);
+  min-height: 64px;
+  padding: var(--space-3) var(--space-4);
   background-color: var(--color-surface-1);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-standard);
 }
 
 .slot:has(input:checked) {
-  background-color: var(--color-surface-2);
-  border-color: var(--color-ink);
+  padding: calc(var(--space-3) - 1px) calc(var(--space-4) - 1px);
+  border-width: 2px;
+  border-color: var(--color-primary);
+}
+
+.slot:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Where the card can show the ring, the radio doesn't need its own. */
+@supports selector(:has(*)) {
+  .slot input:focus-visible {
+    outline: none;
+  }
 }
 
 .slot input {
+  flex: none;
   width: 22px;
   height: 22px;
   margin: 0;
   accent-color: var(--color-primary);
+}
+
+.slotText {
+  display: grid;
+}
+
+.slotTime {
+  font-weight: var(--type-title-weight);
 }
 
 .steps {

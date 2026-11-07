@@ -1,13 +1,15 @@
-import Link from 'next/link';
+import { LogOut } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { requireMember } from '@/server/auth/member';
 import { Wordmark } from '@/ui/Layout';
 import { signOut } from './actions';
 import { ActivityTracker } from './ActivityTracker';
+import { WorkspaceNav } from './WorkspaceNav';
 import styles from './workspace.module.css';
 
 export const dynamic = 'force-dynamic';
 
+/** The workspace: a navy sidebar (a top bar and a bottom bar on a phone) beside the page. */
 export default async function WorkspaceLayout({ children }: { children: ReactNode }) {
   const member = await requireMember();
   return (
@@ -15,22 +17,21 @@ export default async function WorkspaceLayout({ children }: { children: ReactNod
       <a href="#main" className={styles.skip}>
         Skip to content
       </a>
-      <header className={styles.bar}>
-        <div className={styles.barInner}>
-          <Wordmark />
-          <nav aria-label="Workspace" className={styles.nav}>
-            <Link href="/">Lettings</Link>
-            <Link href="/approvals">Approvals</Link>
-            <Link href="/questions">Questions</Link>
-            <Link href="/attention">Needs attention</Link>
-            <Link href="/settings">Settings</Link>
-          </nav>
+      <header className={styles.side}>
+        <div className={styles.sideInner}>
+          <div className={styles.brand}>
+            <Wordmark onNavy />
+          </div>
+          <WorkspaceNav />
           <div className={styles.account}>
-            <span className={styles.who}>
-              {member.name} · {member.organisationName}
-            </span>
+            <p className={styles.who}>
+              <span className={styles.name}>{member.name}</span>
+              <span className="visually-hidden"> · </span>
+              <span>{member.organisationName}</span>
+            </p>
             <form action={signOut}>
               <button type="submit" className={styles.signOut}>
+                <LogOut size={18} strokeWidth={1.75} aria-hidden="true" />
                 Sign out
               </button>
             </form>

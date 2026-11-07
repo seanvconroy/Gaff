@@ -91,12 +91,11 @@ export function BookingSection({
                     .map((slot) => (
                       <label key={slot.id} className={styles.slot}>
                         <input type="radio" name="slotId" value={slot.id} />
-                        <span>
-                          {formatTime(slot.startsAt)}
+                        <span className={styles.slotText}>
+                          <span className={styles.slotTime}>{formatTime(slot.startsAt)}</span>
                           {slot.capacity > 1 ? (
                             <span className={styles.muted}>
-                              {' '}
-                              · group viewing, {placesLeft(slot)} places left
+                              Group viewing, {placesLeft(slot)} places left
                             </span>
                           ) : null}
                         </span>

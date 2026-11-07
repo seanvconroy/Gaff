@@ -179,13 +179,13 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 
 ## Design tokens drive all styling
 
-1. `docs/design-tokens.json` is the only place colours, fonts, type sizes, spacing, radii and shadows are defined.
-2. `pnpm tokens` validates the file against a schema, resolves references such as `{brick}`, and generates:
-   - `src/styles/tokens.css`: CSS custom properties (`--color-surface-0`, `--space-4`, `--radius-md`, `--font-display` and so on) for light and dark themes. Dark follows the system setting, and `data-theme` can override it. It also generates one class per type style (`.type-heading`, `.type-body` and so on).
+1. `docs/design-tokens.json` is the only place colours, fonts, type sizes, spacing, radii, shadows and motion are defined. Today it holds design direction A4, Navy and Atlantic.
+2. `pnpm tokens` validates the file against a schema, resolves references such as `{atlantic-text}`, and generates:
+   - `src/styles/tokens.css`: CSS custom properties (`--color-surface-0`, `--space-4`, `--radius-md`, `--font-display`, `--motion-fast` and so on) for light and dark themes. Dark follows the system setting, and `data-theme` can override it either way. Type sizes are in rem, so they follow the reader's browser text size. Under reduced motion every duration is 0ms. It also generates one class per type style (`.type-heading`, `.type-label` and so on).
    - `src/styles/tokens.ts`: typed token names, so components can only ask for tokens that exist.
 3. Components use CSS Modules that reference only `var(--…)`. Stylelint rejects raw colours, font sizes, font families, spacing, radii and shadows. ESLint rejects inline `style` props.
-4. A contrast test checks the pairs the design system promises, in both themes: text on every surface, `brick-text` for links, `border-strong` for controls, `ink-inverse` on `primary` and `forest`, and the focus ring. A new tokens file that breaks WCAG AA fails CI.
-5. Fonts are self-hosted, so renters' phones never call Google.
+4. The tokens file lists every text and background pair the screens use, with its contrast in both themes. A test checks each pair meets WCAG AA for its rule (text 4.5:1; large text and accent fills 3:1; edges, controls and focus rings 3:1), that the recorded ratios are right, and that the list covers the pairs the design system promises. A tokens file that breaks WCAG AA fails CI.
+5. Fonts are self-hosted, with the weight and optical-size axes, so renters' phones never call Google.
 
 **To re-skin:** replace `docs/design-tokens.json` (and the font files, if the families change), run `pnpm tokens`, check the contrast test passes, and commit.
 

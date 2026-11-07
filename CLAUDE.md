@@ -74,10 +74,11 @@ A TypeScript modular monolith: one Next.js app on Vercel (Dublin) and one Postgr
 ## Conventions
 
 - **Styling:**
-  - Use design tokens only: `var(--color-…)`, `var(--space-…)`, `var(--radius-…)`, `var(--type-…)`, or the `.type-*` classes.
+  - Use design tokens only: `var(--color-…)`, `var(--space-…)`, `var(--radius-…)`, `var(--type-…)`, `var(--motion-…)` with `var(--ease-…)`, or the `.type-*` classes.
   - Use CSS Modules with camelCase class names. No inline `style`. Stylelint and ESLint enforce this.
-  - One primary button per view. One brick accent per screen. No text on `forest`: dark-theme contrast fails (see `scripts/tokens/lib.test.ts`).
-  - Status colour always comes with an icon or words.
+  - One primary button per view. One Atlantic accent per screen (`atlantic`, `atlantic-text`). Text on `navy` and in the navigation uses the `nav-ink` tokens, with `nav-focus` rings.
+  - Status colour always comes with an icon or words. Pills and notices put the status colour on its `-bg` tint. Anything the AI drafted carries the "Drafted by AI" pill (`ai`, `ai-bg`).
+  - A text and background pair that isn't in the contrast list in `docs/design-tokens.json` gets added there first; the token tests check it in both themes.
 - **Accessibility:**
   - WCAG 2.2 AA everywhere. Touch targets are at least 44px.
   - Renter pages never go below 16px for anything the renter must read or act on.

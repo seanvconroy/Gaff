@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 1 November 2026 (all three slices built; hosting moved to Vercel and Supabase; ready for the founder's end-to-end test).
+Last updated: 7 November 2026 (design direction A4, Navy and Atlantic, applied across the app).
 
 ## Done
 
@@ -10,11 +10,11 @@ Last updated: 1 November 2026 (all three slices built; hosting moved to Vercel a
 | --- | --- | --- |
 | Plan | Architecture, 13 ADRs (accepted), decisions on 16 PRD questions | `docs/` |
 | Toolchain | Next.js 16, React 19, TypeScript 6 (strict), ESLint, Stylelint, Prettier, Vitest, Playwright | `pnpm check` |
-| Design tokens | Tokens JSON → CSS variables and TS types; contrast tests in both themes; fonts self-hosted | `scripts/tokens/lib.test.ts` |
+| Design tokens | A4, Navy and Atlantic: tokens JSON → CSS variables and TS types; light and dark (system setting or `data-theme`); type in rem; motion that switches off with reduced motion; every text and background pair the screens use checked in both themes; fonts self-hosted with optical sizes | `scripts/tokens/lib.test.ts` |
 | Database | Drizzle schema and migrations; RLS on every tenant table, forced; `withOrg` / `withSystem` | `tests/integration/foundations.test.ts` |
 | Record | Append-only event log (trigger); payloads checked for personal data; decisions only by a signed-in person | Unit, compliance and integration tests |
 | Sign-in | One-time email links (Better Auth, hashed tokens, telemetry off), workspace set-up, PSRA licence for agencies | `tests/e2e/onboarding.spec.ts` |
-| UI kit | Button, fields, choice group, notice, status pill, card, page header, stage tracker | Used on every screen; axe checks in E2E |
+| UI kit | Button, fields, choice cards, notice and status pill (status tints), "Drafted by AI" pill, card, page header, stage tracker; the workspace's navy sidebar, a top and bottom bar on phones | Used on every screen; axe checks in E2E, in light and dark (`tests/e2e/design.spec.ts`) |
 | Email | Port, development outbox, Resend adapter (sending, and receiving with signed webhooks), Mailgun EU adapter; no tracking | Sign-in journey; `src/adapters/email/resend.test.ts`; `tests/integration/r5-resend-inbound.test.ts` |
 | CI and deploy | GitHub Actions with Postgres; Vercel (Dublin) and Supabase (Ireland), migrations in the build ([deploy.md](deploy.md), ADR-0014) | `.github/workflows/ci.yml`, `vercel.json` |
 | Jobs on Vercel | No always-on worker: a per-minute tick (Supabase Cron) and a run straight after each request, time-boxed and stopping cleanly, through Supabase's transaction pooler; a daily call queues the retention job | `tests/integration/jobs-run-due.test.ts`, `tests/integration/cron-tick.test.ts` |
@@ -80,4 +80,4 @@ Last updated: 1 November 2026 (all three slices built; hosting moved to Vercel a
 
 ## Known issues
 
-- **Design tokens, dark theme:** text on `forest` fails WCAG AA (`ink-inverse` 2.94:1, `peach` 2.83:1). Until the tokens are fixed, no screen puts text on `forest`. The token tests track it.
+- **Dark theme:** new in A4. It passes WCAG AA for every pair the screens use, and the dashboard, a letting, Approvals and the booking screen have been checked in it, but the founders haven't reviewed it yet. (A4 fixed the old dark-theme problem with text on `forest`: text on `navy` now uses `nav-ink`, 9.01:1.)

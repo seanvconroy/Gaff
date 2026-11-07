@@ -279,6 +279,52 @@ export const eventCatalogue = {
   'member.removed': z.object({ role: z.enum(['admin', 'negotiator']) }),
   /** M17, M18: the public profile of the organisation, or a member's own, changed. */
   'profile.updated': z.object({ whose: z.enum(['organisation', 'member']) }),
+  /** M48 to M52: a listing was published, held for review, changed status or was confirmed. */
+  'listing.published': z.object({ listingId: z.uuid(), revision: z.number().int() }),
+  'listing.edited': z.object({ listingId: z.uuid(), revision: z.number().int() }),
+  'listing.held': z.object({
+    listingId: z.uuid(),
+    reasons: z.array(
+      z.enum([
+        'photo_reused',
+        'rent_far_below',
+        'scam_wording',
+        'description_copied',
+        'new_account_burst',
+      ]),
+    ),
+  }),
+  'listing.hold_resolved': z.object({
+    listingId: z.uuid(),
+    outcome: z.enum(['released', 'removed']),
+    reason: z.enum(['scam', 'discrimination', 'misleading', 'duplicate', 'other']).optional(),
+  }),
+  'listing.status_changed': z.object({
+    listingId: z.uuid(),
+    from: z.enum([
+      'draft',
+      'in_review',
+      'live',
+      'paused',
+      'enquiries_closed',
+      'let_agreed',
+      'let',
+      'withdrawn',
+    ]),
+    to: z.enum([
+      'draft',
+      'in_review',
+      'live',
+      'paused',
+      'enquiries_closed',
+      'let_agreed',
+      'let',
+      'withdrawn',
+    ]),
+    because: z.enum(['letter', 'letting', 'freshness', 'review', 'enquiry_limit']),
+  }),
+  'listing.confirmed': z.object({ listingId: z.uuid() }),
+  'listing.declared': z.object({ homeId: z.uuid(), wordingVersion: z.enum(['m25-v1']) }),
 } satisfies Record<string, z.ZodObject>;
 
 export type EventType = keyof typeof eventCatalogue;

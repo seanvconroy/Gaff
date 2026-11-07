@@ -22,7 +22,9 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0016](0016-renter-accounts.md) | Renter accounts, alongside private links | Accepted (amends 0013) |
 | [0017](0017-data-zones.md) | Data zones: organisation, renter, public and staff | Accepted |
 | [0018](0018-homes-lettings-listings.md) | Homes, lettings and listings | Accepted |
+| [0021](0021-photo-pipeline.md) | The photo pipeline | Accepted |
 | [0022](0022-checking-letters.md) | Checking letters before their homes go live | Accepted |
+| [0023](0023-moderation.md) | Moderation: rules first, a hold for a person, people decide | Accepted |
 
 ## Template
 

@@ -9,6 +9,7 @@ import { irishToday } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
+import { followLetting } from '@/server/listings/follow';
 
 /**
  * R26, stage 9: the operator finishes a let home. The letting record is archived (it stays,
@@ -32,6 +33,8 @@ export async function finishLetting(
       .update(lettings)
       .set({ stage: 'close', closedAt: now })
       .where(eq(lettings.id, lettingId));
+    // M50: the home is let.
+    await followLetting(tx, lettingId, 'let');
     await tx
       .update(applications)
       .set({ deleteAfter })

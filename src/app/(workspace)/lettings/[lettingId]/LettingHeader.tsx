@@ -7,6 +7,7 @@ import styles from './letting.module.css';
 
 const tabs = [
   { key: 'overview', label: 'Overview', path: '' },
+  { key: 'listing', label: 'Listing', path: '/listing' },
   { key: 'enquiries', label: 'Enquiries', path: '/enquiries' },
   { key: 'shortlist', label: 'Shortlist', path: '/shortlist' },
   { key: 'attendance', label: 'Attendance', path: '/attendance' },

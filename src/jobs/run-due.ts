@@ -120,6 +120,9 @@ export async function runDueJobs(
 export async function queueDailyJobs(): Promise<void> {
   await db().execute(sql`
     select graphile_worker.add_job('retention_sweep', '{}'::json, job_key => 'retention_sweep')`);
+  // M49: listings not confirmed for 14 days get a reminder, and are paused 3 days later.
+  await db().execute(sql`
+    select graphile_worker.add_job('listings_freshness', '{}'::json, job_key => 'listings_freshness')`);
 }
 
 /**

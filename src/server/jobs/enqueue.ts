@@ -14,7 +14,9 @@ export type TaskName =
   | 'expire_home_offer'
   | 'rtb_reminder'
   | 'process_media'
-  | 'redact_identity';
+  | 'redact_identity'
+  | 'close_enquiries'
+  | 'listings_freshness';
 
 /**
  * Queues a job in the caller's transaction (ADR-0003): the job exists only if the change that

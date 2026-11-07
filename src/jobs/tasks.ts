@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { draftAnswersFor } from '@/server/answers/draft';
 import { processInboundEmail } from '@/server/enquiries/process';
 import { processMedia } from '@/server/media/process';
+import { sweepFreshness } from '@/server/listings/freshness';
+import { closeEnquiries } from '@/server/listings/manage';
 import { redactIdentity } from '@/server/verification/identity';
 import { markReferenceOverdue } from '@/server/checks/checks';
 import { sendMessage } from '@/server/messages/outbox';
@@ -18,7 +20,11 @@ const messageJob = z.object({ organisationId: z.uuid(), messageId: z.uuid() });
  * R26 (ADR-0005): the retention job, daily at 02:30 UTC. "?fill=2d" runs a missed one when jobs
  * next run, so a quiet night or a deploy never skips it.
  */
-export const CRONTAB = '30 2 * * * retention_sweep ?fill=2d';
+export const CRONTAB = [
+  '30 2 * * * retention_sweep ?fill=2d',
+  // M49: daily, listings not confirmed for 14 days get a reminder, and are paused 3 days later.
+  '15 8 * * * listings_freshness ?fill=2d',
+].join('\n');
 
 /** Every background task. Tasks are thin: they call use cases in src/server. */
 export const taskList: TaskList = {
@@ -57,6 +63,15 @@ export const taskList: TaskList = {
   },
   redact_identity: async (payload) => {
     await redactIdentity(z.object({ organisationId: z.uuid(), checkId: z.uuid() }).parse(payload));
+  },
+  listings_freshness: async () => {
+    const swept = await sweepFreshness();
+    console.log(`Listings: ${swept.reminded} reminded, ${swept.paused} paused.`);
+  },
+  close_enquiries: async (payload) => {
+    await closeEnquiries(
+      z.object({ organisationId: z.uuid(), lettingId: z.uuid() }).parse(payload),
+    );
   },
   process_media: async (payload) => {
     await processMedia(z.object({ organisationId: z.uuid(), mediaId: z.uuid() }).parse(payload));

@@ -176,6 +176,13 @@
       "when": 1794065822636,
       "tag": "0024_m2_platform_events",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794067032697,
+      "tag": "0025_m3_listing",
+      "breakpoints": true
     }
   ]
 }

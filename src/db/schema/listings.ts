@@ -14,7 +14,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { listingStatuses, publicStatuses } from '@/domain/listings/lifecycle';
 import { users } from './auth';
-import { createdAt, publicReadPolicy, tenantPolicy, updatedAt } from './columns';
+import { createdAt, publicReadPolicy, staffReviewPolicy, tenantPolicy, updatedAt } from './columns';
 import { developments, homes } from './homes';
 import { lettings } from './lettings';
 import { organisations } from './organisations';
@@ -42,6 +42,10 @@ export const listings = pgTable(
     slug: text().unique(),
     description: text(),
     descriptionSource: text({ enum: ['letter', 'ai_draft'] }),
+    /** M44: a video or virtual tour, from an allow-listed host. */
+    tourUrl: text(),
+    /** M49: when the letter was last asked to confirm the home is still available. */
+    reminderSentAt: timestamp({ withTimezone: true }),
     /** M16: the agent who handles it. */
     assignedTo: text().references(() => users.id),
     publishedAt: timestamp({ withTimezone: true }),
@@ -115,6 +119,9 @@ export const publicListings = pgTable(
     photos: jsonb().$type<Array<Record<string, unknown>>>().notNull(),
     /** M70: the letter card: kind, the names the letter chose to show, badges, licence numbers. */
     letter: jsonb().$type<Record<string, unknown>>().notNull(),
+    /** Written by the letter and checked before it goes live (M45, M46). */
+    description: text().notNull().default(''),
+    tourUrl: text(),
     developmentId: uuid().references(() => developments.id),
     publishedAt: timestamp({ withTimezone: true }).notNull(),
     confirmedAt: timestamp({ withTimezone: true }).notNull(),
@@ -128,5 +135,45 @@ export const publicListings = pgTable(
     index('public_listings_routing_key_idx').on(t.routingKey),
     tenantPolicy(),
     publicReadPolicy(),
+  ],
+).enableRLS();
+
+/** M25: what a letter declared about a home before it first went live, and when. */
+export const declarations = pgTable(
+  'declarations',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organisationId: organisationId(),
+    homeId: uuid()
+      .notNull()
+      .references(() => homes.id, { onDelete: 'cascade' }),
+    declaredBy: text()
+      .notNull()
+      .references(() => users.id),
+    wordingVersion: text().notNull(),
+    declaredAt: createdAt(),
+  },
+  (t) => [index('declarations_home_idx').on(t.homeId), tenantPolicy()],
+).enableRLS();
+
+/** M29, M48: a listing held for a person at Gaff, and why (reason codes only). */
+export const listingHolds = pgTable(
+  'listing_holds',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organisationId: organisationId(),
+    listingId: uuid()
+      .notNull()
+      .references(() => listings.id, { onDelete: 'cascade' }),
+    reasons: text().array().notNull(),
+    openedAt: createdAt(),
+    resolvedAt: timestamp({ withTimezone: true }),
+    resolvedBy: text().references(() => users.id),
+    outcome: text({ enum: ['released', 'removed'] }),
+  },
+  (t) => [
+    index('listing_holds_open_idx').on(t.resolvedAt, t.openedAt),
+    tenantPolicy(),
+    staffReviewPolicy(),
   ],
 ).enableRLS();

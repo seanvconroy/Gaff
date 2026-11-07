@@ -1,0 +1,89 @@
+import { eq, sql } from 'drizzle-orm';
+import type { Tx } from '@/db/client';
+import { listingRevisions, listings, publicListings } from '@/db/schema';
+import type { PublicStatus } from '@/domain/listings/lifecycle';
+import { buildPublicListing, type PublicListingValues } from '@/domain/listings/projection';
+import { homeBer, letterCard, readyPhotos, type ListingContext } from './context';
+
+/**
+ * ADR-0017: writes what renters see of a listing, in the same transaction as the change.
+ * The listing must have a slug and dates (it has been published at least once).
+ */
+export async function writePublicListing(
+  tx: Tx,
+  context: ListingContext,
+  status: PublicStatus,
+  now = new Date(),
+): Promise<PublicListingValues> {
+  const { letting, home, listing } = context;
+  if (!listing.slug || !listing.publishedAt || !listing.confirmedAt) {
+    throw new Error('A listing needs a slug and dates before it goes public');
+  }
+  if (home.latitude === null || home.longitude === null) {
+    throw new Error('A listing needs a location before it goes public');
+  }
+  const values = buildPublicListing(
+    {
+      listingId: listing.id,
+      organisationId: listing.organisationId,
+      slug: listing.slug,
+      status,
+      home: {
+        ...home,
+        latitude: home.latitude,
+        longitude: home.longitude,
+        ber: homeBer(home),
+      },
+      rentCents: letting.monthlyRentCents,
+      depositCents: letting.depositCents ?? 0,
+      availableFrom: letting.availableFrom,
+      furnished: letting.furnished,
+      criteria: letting.criteria ?? { noPets: false },
+      enquiriesCloseAt: letting.enquiriesCloseAt,
+      description: listing.description ?? '',
+      tourUrl: listing.tourUrl,
+      photos: readyPhotos(context),
+      letter: await letterCard(
+        tx,
+        listing.organisationId,
+        listing.assignedTo ?? listing.createdBy,
+        now,
+      ),
+      publishedAt: listing.publishedAt,
+      confirmedAt: listing.confirmedAt,
+    },
+    now,
+  );
+  await tx
+    .insert(publicListings)
+    .values(values)
+    .onConflictDoUpdate({ target: publicListings.listingId, set: { ...values, updatedAt: now } });
+  return values;
+}
+
+/** Takes a listing off the public side (paused, or back in review). */
+export async function removePublicListing(tx: Tx, listingId: string): Promise<void> {
+  await tx.delete(publicListings).where(eq(publicListings.listingId, listingId));
+}
+
+/** M51: keeps a copy of what was published at each publish or edit (the DSA record). */
+export async function saveRevision(
+  tx: Tx,
+  context: ListingContext,
+  published: PublicListingValues,
+  by: string | null,
+): Promise<number> {
+  const [row] = await tx
+    .update(listings)
+    .set({ revision: sql`${listings.revision} + 1` })
+    .where(eq(listings.id, context.listing.id))
+    .returning({ revision: listings.revision });
+  await tx.insert(listingRevisions).values({
+    organisationId: context.listing.organisationId,
+    listingId: context.listing.id,
+    revision: row!.revision,
+    content: published as unknown as Record<string, unknown>,
+    createdBy: by,
+  });
+  return row!.revision;
+}

@@ -33,6 +33,8 @@ const PUBLIC_LISTING_COLUMNS = [
   'criteria',
   'photos',
   'letter',
+  'description',
+  'tour_url',
   'development_id',
   'published_at',
   'confirmed_at',

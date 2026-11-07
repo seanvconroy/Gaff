@@ -12,14 +12,16 @@ const securityHeaders = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
 ];
 
-// Fonts are self-hosted and no third-party scripts load, so 'self' covers everything.
+// Fonts are self-hosted and no third-party scripts load, so 'self' covers everything, except
+// listing photos (M43): they upload to, and load from, Supabase Storage when it's set.
+const storageOrigin = process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).origin : '';
 const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data:",
+  `img-src 'self' data: ${storageOrigin}`.trim(),
   "font-src 'self'",
-  "connect-src 'self'",
+  `connect-src 'self' ${storageOrigin}`.trim(),
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

@@ -1,8 +1,8 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import sharp from 'sharp';
 import { objectStorage } from '@/adapters/storage';
 import { withOrg } from '@/db/client';
-import { media } from '@/db/schema';
+import { listings, media } from '@/db/schema';
 import {
   MIN_PHOTO_PIXELS,
   PHOTO_WIDTHS,
@@ -12,6 +12,7 @@ import {
   toSigned64,
 } from '@/domain/media/photos';
 import { recordEvent } from '@/server/record/events';
+import { republishIfPublic } from '@/server/listings/editor';
 
 type Rejection = 'not_an_image' | 'too_small' | 'unreadable' | 'missing';
 
@@ -91,7 +92,10 @@ export async function processMedia(job: {
   mediaId: string;
 }): Promise<'ready' | 'rejected' | 'skipped'> {
   const [row] = await withOrg(job.organisationId, (tx) =>
-    tx.select({ status: media.status }).from(media).where(eq(media.id, job.mediaId)),
+    tx
+      .select({ status: media.status, homeId: media.homeId })
+      .from(media)
+      .where(eq(media.id, job.mediaId)),
   );
   if (!row || row.status !== 'processing') return 'skipped';
 
@@ -118,6 +122,19 @@ export async function processMedia(job: {
           placeholder: result.placeholder,
         })
         .where(eq(media.id, job.mediaId));
+    }
+    // M51: a new photo on a published listing shows straight away.
+    if (typeof result !== 'string' && row.homeId) {
+      const [open] = await tx
+        .select({ lettingId: listings.lettingId })
+        .from(listings)
+        .where(
+          and(
+            eq(listings.homeId, row.homeId),
+            inArray(listings.status, ['live', 'enquiries_closed']),
+          ),
+        );
+      if (open) await republishIfPublic(tx, open.lettingId, null);
     }
     await recordEvent(tx, {
       organisationId: job.organisationId,

@@ -19,6 +19,7 @@ export default async function StaffLayout({ children }: { children: ReactNode })
           <Wordmark href="/staff/checks" />
           <nav aria-label="Gaff staff" className={styles.nav}>
             <Link href="/staff/checks">Checks</Link>
+            <Link href="/staff/listings">Listings</Link>
           </nav>
           <div className={styles.account}>
             <span className={styles.who}>

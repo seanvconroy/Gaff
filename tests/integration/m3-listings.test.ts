@@ -1,4 +1,4 @@
-import { and, desc, eq, like } from 'drizzle-orm';
+import { and, asc, desc, eq, like } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { db, withOrg, withPublic } from '@/db/client';
 import {
@@ -69,7 +69,11 @@ describe('M48: publishing a listing', () => {
     expect(JSON.stringify(row)).not.toMatch(/F2X3|12 Ranelagh/);
 
     const types = await withOrg(member.organisationId, (tx) =>
-      tx.select({ type: events.type }).from(events).where(like(events.type, 'listing.%')),
+      tx
+        .select({ type: events.type })
+        .from(events)
+        .where(like(events.type, 'listing.%'))
+        .orderBy(asc(events.id)),
     );
     expect(types.map((t) => t.type)).toEqual(['listing.declared', 'listing.published']);
     const revisions = await withOrg(member.organisationId, (tx) =>

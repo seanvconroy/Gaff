@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
 import { objectStorage } from '@/adapters/storage';
@@ -88,7 +88,8 @@ describe('M43: the photo pipeline', () => {
       tx
         .select({ type: events.type, data: events.data })
         .from(events)
-        .where(eq(events.subjectId, mediaId)),
+        .where(eq(events.subjectId, mediaId))
+        .orderBy(asc(events.id)),
     );
     expect(logged.map((e) => e.type)).toEqual(['photo.added', 'photo.processed']);
   });

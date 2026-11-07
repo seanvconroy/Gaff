@@ -203,7 +203,8 @@ describe('R8 and R29: answers from the facts, approved by a person', () => {
     await ask(member, 'Hi, Aoife Byrne here (087 123 4567). Is there parking, Aoife?');
     const sent = JSON.stringify(spy.mock.calls[0]?.[0]?.questions);
     spy.mockRestore();
-    expect(sent).not.toMatch(/Aoife|Byrne|087|example\.ie/);
+    // The phone number itself: a bare "087" could be part of a random ID.
+    expect(sent).not.toMatch(/Aoife|Byrne|123 ?4567|example\.ie/);
     expect(sent).toContain('[name]');
   });
 });

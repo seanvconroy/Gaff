@@ -95,7 +95,8 @@ describe('R11: a person approves who views, in one action', () => {
       ids.noAnswer,
     ]);
     expect(basis.invited).toEqual([ids.best]);
-    expect(JSON.stringify(basis)).not.toMatch(/Renter|example\.ie|087/);
+    // The phone number itself: a bare "087" could be part of a random ID.
+    expect(JSON.stringify(basis)).not.toMatch(/Renter|example\.ie|123 ?4567/);
   });
 
   it('won’t decide anyone twice', async () => {

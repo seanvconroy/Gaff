@@ -20,6 +20,7 @@ export default function RenterLayout({ children }: { children: ReactNode }) {
             <Link href="/my/saved">Saved</Link>
             <Link href="/my/alerts">Alerts</Link>
             <Link href="/my/details">Who has my details</Link>
+            <Link href="/my/account">Account</Link>
             <Link href="/to-rent">Homes to rent</Link>
           </nav>
         </div>

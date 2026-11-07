@@ -1,0 +1,1 @@
+ALTER TABLE "listing_daily_stats" ADD COLUMN "saves" integer DEFAULT 0 NOT NULL;

@@ -1,8 +1,9 @@
-import { and, eq, inArray } from 'drizzle-orm';
-import { withPublic, withRenter } from '@/db/client';
-import { publicListings, savedHomes } from '@/db/schema';
+import { and, eq, inArray, sql } from 'drizzle-orm';
+import { withOrg, withPublic, withRenter } from '@/db/client';
+import { listingDailyStats, publicListings, savedHomes } from '@/db/schema';
 import { homeChanges } from '@/domain/alerts/alerts';
 import type { ProjectionPhoto } from '@/domain/listings/projection';
+import { irishToday } from '@/lib/format';
 import { recordPlatformEvent } from '@/server/record/platform-events';
 
 /** M85: saved homes, in the renter's own zone, never shared with letters (M10). */
@@ -10,12 +11,16 @@ import { recordPlatformEvent } from '@/server/record/platform-events';
 export async function saveHome(userId: string, listingId: string): Promise<boolean> {
   const [listing] = await withPublic((tx) =>
     tx
-      .select({ rentCents: publicListings.rentCents, status: publicListings.status })
+      .select({
+        rentCents: publicListings.rentCents,
+        status: publicListings.status,
+        organisationId: publicListings.organisationId,
+      })
       .from(publicListings)
       .where(eq(publicListings.listingId, listingId)),
   );
   if (!listing) return false;
-  await withRenter(userId, async (tx) => {
+  const saved = await withRenter(userId, async (tx) => {
     const added = await tx
       .insert(savedHomes)
       .values({
@@ -33,7 +38,21 @@ export async function saveHome(userId: string, listingId: string): Promise<boole
         data: { listingId },
       });
     }
+    return added.length > 0;
   });
+  // M92: the letter sees how many saved it each day, never who.
+  if (saved) {
+    const day = irishToday();
+    await withOrg(listing.organisationId, (tx) =>
+      tx
+        .insert(listingDailyStats)
+        .values({ organisationId: listing.organisationId, listingId, day, saves: 1 })
+        .onConflictDoUpdate({
+          target: [listingDailyStats.listingId, listingDailyStats.day],
+          set: { saves: sql`${listingDailyStats.saves} + 1` },
+        }),
+    );
+  }
   return true;
 }
 

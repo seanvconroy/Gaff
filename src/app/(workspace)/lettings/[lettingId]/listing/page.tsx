@@ -9,12 +9,14 @@ import { DECLARATION, type Section } from '@/domain/listings/publish-checks';
 import { mediaKeys } from '@/domain/media/photos';
 import { formatDate, formatRent } from '@/lib/format';
 import { requireMember } from '@/server/auth/member';
+import { listingStats } from '@/server/listings/stats';
 import { loadListing } from '@/server/listings/context';
 import { problemsFor } from '@/server/listings/publish';
 import { letterReadiness } from '@/server/verification/readiness';
 import { Card, Row, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { StatusPill } from '@/ui/StatusPill';
+import { Table } from '@/ui/Table';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { LettingHeader } from '../LettingHeader';
 import { finishUploadAction, liveAction, photoAction, startUploadAction } from './actions';
@@ -74,6 +76,7 @@ export default async function ListingPage({
   const problems = problemsFor(context, readiness.missing);
   const storage = objectStorage();
   const status = listing.status;
+  const stats = await listingStats(member, lettingId);
   const editable = status !== 'let' && status !== 'withdrawn';
 
   return (
@@ -168,6 +171,36 @@ export default async function ListingPage({
                 )}
               </Row>
             </form>
+          </Stack>
+        </Card>
+      ) : null}
+
+      {stats && listing.publishedAt ? (
+        // M92: views, saves and enquiries by day, counted without tracking cookies.
+        <Card labelledBy="stats-heading">
+          <Stack gap={4}>
+            <h2 id="stats-heading" className="type-title">
+              The last 14 days
+            </h2>
+            <p>
+              {stats.totals.views} views by {stats.totals.visitors} people, {stats.totals.saves}{' '}
+              {stats.totals.saves === 1 ? 'save' : 'saves'} and {stats.totals.enquiries}{' '}
+              {stats.totals.enquiries === 1 ? 'enquiry' : 'enquiries'}. Counted without tracking
+              cookies; renters never see these numbers.
+            </p>
+            <Table caption="By day" head={['Day', 'Views', 'People', 'Saves', 'Enquiries']}>
+              {stats.rows
+                .filter((r) => r.views || r.saves || r.enquiries)
+                .map((r) => (
+                  <tr key={r.day}>
+                    <td>{formatDate(r.day)}</td>
+                    <td>{r.views}</td>
+                    <td>{r.visitors}</td>
+                    <td>{r.saves}</td>
+                    <td>{r.enquiries}</td>
+                  </tr>
+                ))}
+            </Table>
           </Stack>
         </Card>
       ) : null}

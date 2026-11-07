@@ -21,6 +21,8 @@ export const listingDailyStats = pgTable(
     day: date({ mode: 'string' }).notNull(),
     views: integer().notNull().default(0),
     visitors: integer().notNull().default(0),
+    /** M92: renters who saved the home that day. Who saved it stays in their own zone. */
+    saves: integer().notNull().default(0),
   },
   (t) => [primaryKey({ columns: [t.listingId, t.day] }), tenantPolicy()],
 ).enableRLS();

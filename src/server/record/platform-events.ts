@@ -21,6 +21,8 @@ export const platformEventCatalogue = {
   }),
   /** M9: the renter ticked or unticked "Keep my details for next time". */
   'renter.keep_details': z.object({ keepDetails: z.boolean() }),
+  /** M13: a renter deleted their account (who isn't recorded: they're gone). */
+  'renter.account_deleted': z.object({}),
   /** M85: a renter saved, or stopped saving, a home. */
   'home.saved': z.object({ listingId: z.uuid() }),
   'home.unsaved': z.object({ listingId: z.uuid() }),

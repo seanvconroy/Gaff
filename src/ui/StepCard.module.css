@@ -1,0 +1,87 @@
+.card {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  min-width: 0;
+}
+
+/* The step to do now: a stronger edge, so the eye goes there first. */
+.current {
+  border-color: var(--color-border-strong);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+}
+
+.badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+  font-weight: var(--type-title-weight);
+}
+
+/* On the private pages nothing a renter reads is below 16px. */
+[data-density='comfortable'] .badge {
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.done .badge {
+  background-color: var(--color-success-bg);
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.current .badge {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-ink-inverse);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* The step's content lines up with its title, not its number. */
+.body {
+  display: grid;
+  gap: var(--space-4);
+  padding-inline-start: calc(28px + var(--space-3));
+  min-width: 0;
+}
+
+.todo .body {
+  color: var(--color-ink-muted);
+}
+
+@media (width <= 640px) {
+  .card {
+    padding: var(--space-4);
+  }
+
+  .body {
+    padding-inline-start: 0;
+  }
+}

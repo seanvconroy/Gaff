@@ -2,13 +2,13 @@
 .notice {
   display: flex;
   gap: var(--space-3);
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
 }
 
 .icon {
   flex: none;
-  margin-top: var(--space-1);
+  margin-top: calc(var(--space-1) / 2);
 }
 
 .body {

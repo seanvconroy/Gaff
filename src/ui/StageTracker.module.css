@@ -1,31 +1,81 @@
+.nav {
+  min-width: 0;
+}
+
 .tracker {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: var(--space-1);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .stage {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--color-border);
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.bar {
+  display: block;
+  height: 6px;
   border-radius: var(--radius-pill);
+  background-color: var(--color-border);
+}
+
+.label {
+  overflow: hidden;
   color: var(--color-ink-muted);
   font-size: var(--type-body-sm-size);
   line-height: var(--type-body-sm-line);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.done {
-  color: var(--color-success);
+.done .bar {
+  background-color: var(--color-success);
 }
 
-.current {
-  border-color: var(--color-atlantic);
+/* The screen's one Atlantic accent. */
+.current .bar {
   background-color: var(--color-atlantic);
-  color: var(--color-ink-inverse);
+}
+
+.current .label {
+  color: var(--color-ink);
   font-weight: var(--type-title-weight);
+}
+
+/* Narrow screens: the bar alone. The page's step line names the stage. */
+@media (width <= 1100px) {
+  .label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+.meter {
+  display: inline-grid;
+  grid-template-columns: repeat(9, 10px);
+  gap: var(--space-1);
+}
+
+.meterFilled,
+.meterEmpty {
+  display: block;
+  height: 4px;
+  border-radius: var(--radius-pill);
+}
+
+.meterFilled {
+  background-color: var(--color-primary);
+}
+
+.meterEmpty {
+  background-color: var(--color-border);
 }

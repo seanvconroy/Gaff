@@ -12,7 +12,9 @@ import {
   unique,
   uuid,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { listingStatuses, publicStatuses } from '@/domain/listings/lifecycle';
+import type { PublicViewing } from '@/domain/listings/projection';
 import { users } from './auth';
 import { createdAt, publicReadPolicy, staffReviewPolicy, tenantPolicy, updatedAt } from './columns';
 import { developments, homes } from './homes';
@@ -127,10 +129,17 @@ export const publicListings = pgTable(
     confirmedAt: timestamp({ withTimezone: true }).notNull(),
     enquiriesCloseAt: timestamp({ withTimezone: true }),
     completeness: smallint().notNull().default(0),
+    /** M47, M69: the letting's viewing times, so the page can show the next ones. */
+    viewings: jsonb().$type<PublicViewing[]>().notNull().default([]),
+    /** M74: when the home was let or withdrawn. Its page says so for 90 days, then goes. */
+    closedAt: timestamp({ withTimezone: true }),
     updatedAt: updatedAt(),
   },
   (t) => [
     index('public_listings_search_idx').on(t.status, t.county, t.rentCents),
+    index('public_listings_live_idx')
+      .on(t.county, t.rentCents)
+      .where(sql`status = 'live'`),
     index('public_listings_location_idx').on(t.latitude, t.longitude),
     index('public_listings_routing_key_idx').on(t.routingKey),
     tenantPolicy(),

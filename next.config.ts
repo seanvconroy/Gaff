@@ -8,9 +8,22 @@ const securityHeaders = [
   { key: 'Referrer-Policy', value: 'no-referrer' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
-  { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
 ];
+
+// M111: the marketplace's public pages are for search engines too. Everything else, including
+// every private link, is never indexed.
+const publicPages = [
+  'to-rent',
+  'home/',
+  'how-results-are-ordered',
+  'sitemap\\.xml',
+  'robots\\.txt',
+];
+const noIndex = {
+  source: `/:path((?!${publicPages.join('|')}).*)`,
+  headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+};
 
 // Fonts are self-hosted and no third-party scripts load, so 'self' covers everything, except
 // listing photos (M43): they upload to, and load from, Supabase Storage when it's set.
@@ -43,7 +56,7 @@ const nextConfig: NextConfig = {
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
         ]
       : securityHeaders;
-    return [{ source: '/:path*', headers }];
+    return [{ source: '/:path*', headers }, noIndex];
   },
 };
 

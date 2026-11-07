@@ -56,10 +56,11 @@ export async function aLiveLetting(
   const { setCriteria } = await import('@/server/lettings/set-criteria');
   const { recordRentCheck } = await import('@/server/lettings/rent-check');
   const { startTakingEnquiries } = await import('@/server/lettings/go-live');
-  const { lettingId } = await createLetting(member, aLetting(overrides));
+  const letting = aLetting(overrides);
+  const { lettingId } = await createLetting(member, letting);
   await addViewingSession(member, lettingId, aViewingSession());
   await setCriteria(member, lettingId, { maxOccupants: 3, noPets: true });
-  await recordRentCheck(member, lettingId, { lastLet: 'never' }, 185_000);
+  await recordRentCheck(member, lettingId, { lastLet: 'never' }, letting.rent);
   await startTakingEnquiries(member, lettingId);
   return { lettingId };
 }

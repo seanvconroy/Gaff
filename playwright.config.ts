@@ -27,6 +27,8 @@ export const e2eEnv = {
   NEXT_TELEMETRY_DISABLED: '1',
   CRON_SECRET: E2E_CRON_SECRET,
   RUN_JOBS_AFTER_REQUESTS: vercelJobs ? '1' : '0',
+  // The journeys run as at launch, with the marketplace's public side open (ADR-0015).
+  MARKETPLACE_PUBLIC: '1',
 };
 
 /**

@@ -2,6 +2,7 @@ import { mkdirSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page } from '@playwright/test';
 import pg from 'pg';
+import sharp from 'sharp';
 import { E2E_DATABASE_URL } from '../../playwright.config';
 
 /** WCAG 2.2 AA (PRD non-functional requirements; design system). */
@@ -67,6 +68,13 @@ export async function signIn(page: Page, email: string): Promise<void> {
   await page.goto(await latestLinkFor(email));
 }
 
+/** M1: one account for renting and letting; a new account says which it's for first. */
+export async function chooseLetting(page: Page): Promise<void> {
+  await expect(page).toHaveURL(/\/welcome$/);
+  await page.getByRole('link', { name: 'Set up a letting workspace' }).click();
+  await expect(page.getByRole('heading', { name: 'Set up your workspace' })).toBeVisible();
+}
+
 let counter = 0;
 export function uniqueEmail(prefix = 'ann'): string {
   counter += 1;
@@ -80,7 +88,7 @@ export async function signUpOperator(
 ): Promise<string> {
   const email = uniqueEmail();
   await signIn(page, email);
-  await expect(page).toHaveURL(/\/welcome$/);
+  await chooseLetting(page);
   await page.getByLabel('Your name').fill('Ann Power');
   await page.getByLabel('Other people: we are a letting agency').check();
   await page.getByLabel('Name of your agency or business').fill(organisation);
@@ -120,10 +128,11 @@ export async function createLettingThroughUi(
   page: Page,
   address = '12 Ranelagh Road',
   daftUrl = '',
+  area = 'Ranelagh, Dublin 6',
 ): Promise<void> {
   await page.goto('/lettings/new');
   await page.getByLabel('Address', { exact: true }).fill(address);
-  await page.getByLabel('Area').fill('Ranelagh, Dublin 6');
+  await page.getByLabel('Area').fill(area);
   await page.getByLabel('Rent a month').fill('1850');
   await page.getByLabel('Available from').fill(inDays(AVAILABLE_IN_DAYS));
   await page.getByLabel('Type of home').selectOption('apartment');
@@ -270,11 +279,69 @@ export async function makeStaff(email: string): Promise<void> {
 export async function signUpLandlord(page: Page, name = 'Mary Walsh'): Promise<string> {
   const email = uniqueEmail('mary');
   await signIn(page, email);
-  await expect(page).toHaveURL(/\/welcome$/);
+  await chooseLetting(page);
   await page.getByLabel('Your name').fill(name);
   await page.getByLabel('Ourselves: we are landlords letting our own homes').check();
   await page.getByLabel('Name of your agency or business').fill(name);
   await page.getByRole('button', { name: 'Set up my workspace' }).click();
   await expect(page.getByRole('heading', { name: 'Your lettings' })).toBeVisible();
   return email;
+}
+
+/** Synthetic photos: a coarse random grid each, so no two look copied (M29). */
+export async function photoFiles(count: number): Promise<string[]> {
+  mkdirSync('test-results/photos', { recursive: true });
+  const files: string[] = [];
+  for (let n = 0; n < count; n++) {
+    const grid = Buffer.alloc(12 * 9 * 3);
+    for (let i = 0; i < grid.length; i++) grid[i] = Math.floor(Math.random() * 256);
+    const path = `test-results/photos/home-${Date.now()}-${n}.jpg`;
+    await sharp(grid, { raw: { width: 12, height: 9, channels: 3 } })
+      .resize(1200, 900, { kernel: 'nearest' })
+      .jpeg()
+      .toFile(path);
+    files.push(path);
+  }
+  return files;
+}
+
+/** M3, M22, M24: confirms the landlord's mobile and identity through the real screens. */
+export async function getChecked(page: Page): Promise<void> {
+  await page.goto('/settings/checks');
+  const mobile = `087${String(Date.now()).slice(-7)}`;
+  await page.getByLabel('Your mobile number').fill(mobile);
+  await page.getByRole('button', { name: 'Text me a code' }).click();
+  await expect(page.getByText(/We’ve texted a 6-digit code/)).toBeVisible();
+  await page
+    .getByLabel('The code from the text')
+    .fill(await latestSmsCode(`+353${mobile.slice(1)}`));
+  await page.getByRole('button', { name: 'Confirm my number' }).click();
+  await page.getByRole('button', { name: 'Check my identity' }).click();
+  await page.getByRole('button', { name: 'The ID and selfie match' }).click();
+  await expect(page.getByText('You’re checked')).toBeVisible();
+}
+
+/** Fills in everything a listing needs, through the listing editor. */
+export async function completeListing(page: Page, description: string): Promise<void> {
+  await page.getByRole('link', { name: 'Listing', exact: true }).click();
+  await expect(page.getByText('Draft: renters can’t see it yet')).toBeVisible();
+  await page.getByLabel('Only the street and area').check();
+  await page.getByLabel('Heating').selectOption('gas');
+  await page.getByLabel('Outdoor space').selectOption('balcony');
+  await page.getByLabel('Floor area in square metres').fill('68');
+  await page.getByRole('button', { name: 'Save the home’s details' }).click();
+  await expect(page.getByText('Saved.').first()).toBeVisible();
+
+  await page.getByLabel('Deposit').fill('1850');
+  await page.getByRole('button', { name: 'Save the price and enquiries' }).click();
+
+  await page.getByLabel('Describe the home').fill(description);
+  await page.getByRole('button', { name: 'Save the description' }).click();
+
+  await page.getByLabel('Add photos').setInputFiles(await photoFiles(3));
+  await expect(page.getByText(/3 added/)).toBeVisible({ timeout: 20_000 });
+  await expect(async () => {
+    await page.reload();
+    await expect(page.getByRole('img', { name: 'Photo of the home' })).toHaveCount(3);
+  }).toPass({ timeout: 30_000 });
 }

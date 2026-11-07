@@ -56,6 +56,12 @@ const input: ProjectionInput = {
   },
   publishedAt: new Date('2026-11-07T10:00:00Z'),
   confirmedAt: new Date('2026-11-07T10:00:00Z'),
+  viewings: [
+    { startsAt: '2026-11-01T18:00:00.000Z', endsAt: '2026-11-01T19:00:00.000Z', kind: 'group' },
+    { startsAt: '2026-11-20T18:00:00.000Z', endsAt: '2026-11-20T19:00:00.000Z', kind: 'slots' },
+    { startsAt: '2026-11-13T18:00:00.000Z', endsAt: '2026-11-13T19:00:00.000Z', kind: 'group' },
+  ],
+  closedAt: null,
 };
 
 describe('ADR-0017: the public projection of a listing', () => {
@@ -89,6 +95,20 @@ describe('ADR-0017: the public projection of a listing', () => {
     expect(row.petsConsidered).toBe(false);
     expect(row.berLabel).toBe('BER C1');
     expect(row.berBand).toBe('C');
+  });
+
+  it('M47: shows only the viewing times still to come, soonest first', () => {
+    const row = buildPublicListing(input, new Date('2026-11-07T10:00:00Z'));
+    expect(row.viewings.map((v) => v.startsAt)).toEqual([
+      '2026-11-13T18:00:00.000Z',
+      '2026-11-20T18:00:00.000Z',
+    ]);
+  });
+
+  it('M74: records when a home was let, and only then', () => {
+    const closedAt = new Date('2026-11-06T10:00:00Z');
+    expect(buildPublicListing({ ...input, status: 'let', closedAt }).closedAt).toEqual(closedAt);
+    expect(buildPublicListing({ ...input, status: 'live', closedAt }).closedAt).toBeNull();
   });
 
   it('never carries the Eircode or anyone’s contact details', () => {

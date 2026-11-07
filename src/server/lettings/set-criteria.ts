@@ -4,6 +4,7 @@ import { lettings } from '@/db/schema';
 import { criteriaSchema, type Criteria } from '@/domain/criteria/criteria';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
+import { republishIfPublic } from '@/server/listings/editor';
 import { recordEvent } from '@/server/record/events';
 
 /** Criteria can change until people have been invited to view; after that they're locked. */
@@ -40,5 +41,7 @@ export async function setCriteria(
       subject: { type: 'letting', id: lettingId },
       data: checked,
     });
+    // M68: a live listing shows the criteria in words.
+    await republishIfPublic(tx, lettingId, member.userId);
   });
 }

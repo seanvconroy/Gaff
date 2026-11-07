@@ -40,6 +40,10 @@ const PUBLIC_LISTING_COLUMNS = [
   'confirmed_at',
   'enquiries_close_at',
   'completeness',
+  // M47: viewing times only; never who booked them.
+  'viewings',
+  // M74: when the home was let or withdrawn.
+  'closed_at',
   'updated_at',
 ];
 

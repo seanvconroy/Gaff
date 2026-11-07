@@ -58,6 +58,13 @@ export interface ProjectionLetter {
   badges: string[];
 }
 
+/** A viewing time as the public page shows it: no names, no bookings (M47, M69). */
+export interface PublicViewing {
+  startsAt: string;
+  endsAt: string;
+  kind: 'slots' | 'group';
+}
+
 export interface ProjectionInput {
   listingId: string;
   organisationId: string;
@@ -76,6 +83,10 @@ export interface ProjectionInput {
   letter: ProjectionLetter;
   publishedAt: Date;
   confirmedAt: Date;
+  /** Upcoming viewing times; the page shows only those still to come. */
+  viewings: PublicViewing[];
+  /** M74: when the home was let or withdrawn. */
+  closedAt: Date | null;
 }
 
 /** "2 bed apartment in Ranelagh, Dublin 6"; "Studio in Rathmines, Dublin 6". */
@@ -173,6 +184,10 @@ export function buildPublicListing(input: ProjectionInput, now: Date = new Date(
     confirmedAt: input.confirmedAt,
     enquiriesCloseAt: input.enquiriesCloseAt,
     completeness: completeness(input),
+    viewings: input.viewings
+      .filter((v) => v.endsAt > now.toISOString())
+      .sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
+    closedAt: input.status === 'let' || input.status === 'withdrawn' ? input.closedAt : null,
   };
 }
 

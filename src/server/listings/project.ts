@@ -1,8 +1,12 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import type { Tx } from '@/db/client';
-import { listingRevisions, listings, publicListings } from '@/db/schema';
+import { listingRevisions, listings, publicListings, viewingSessions } from '@/db/schema';
 import type { PublicStatus } from '@/domain/listings/lifecycle';
-import { buildPublicListing, type PublicListingValues } from '@/domain/listings/projection';
+import {
+  buildPublicListing,
+  type PublicListingValues,
+  type PublicViewing,
+} from '@/domain/listings/projection';
 import { homeBer, letterCard, readyPhotos, type ListingContext } from './context';
 
 /**
@@ -51,6 +55,8 @@ export async function writePublicListing(
       ),
       publishedAt: listing.publishedAt,
       confirmedAt: listing.confirmedAt,
+      viewings: await upcomingViewings(tx, letting.id, now),
+      closedAt: listing.closedAt ?? (status === 'let' || status === 'withdrawn' ? now : null),
     },
     now,
   );
@@ -59,6 +65,24 @@ export async function writePublicListing(
     .values(values)
     .onConflictDoUpdate({ target: publicListings.listingId, set: { ...values, updatedAt: now } });
   return values;
+}
+
+/** M47, M69: the letting's viewing times still to come, with no bookings or names. */
+async function upcomingViewings(tx: Tx, lettingId: string, now: Date): Promise<PublicViewing[]> {
+  const rows = await tx
+    .select({
+      startsAt: viewingSessions.startsAt,
+      endsAt: viewingSessions.endsAt,
+      kind: viewingSessions.kind,
+    })
+    .from(viewingSessions)
+    .where(and(eq(viewingSessions.lettingId, lettingId), gt(viewingSessions.endsAt, now)))
+    .orderBy(asc(viewingSessions.startsAt));
+  return rows.map((r) => ({
+    startsAt: r.startsAt.toISOString(),
+    endsAt: r.endsAt.toISOString(),
+    kind: r.kind,
+  }));
 }
 
 /** Takes a listing off the public side (paused, or back in review). */

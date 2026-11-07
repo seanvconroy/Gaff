@@ -37,7 +37,8 @@ async function context(tx: Tx, lettingId: string): Promise<ListingContext> {
  * the edit's own transaction, after the change.
  */
 export async function republishIfPublic(tx: Tx, lettingId: string, by: string | null) {
-  const fresh = await context(tx, lettingId);
+  const fresh = await loadListing(tx, lettingId);
+  if (!fresh) return;
   const status = fresh.listing.status;
   if (!isPublic(status) || status === 'let' || status === 'withdrawn') return;
   const published = await writePublicListing(tx, fresh, status);

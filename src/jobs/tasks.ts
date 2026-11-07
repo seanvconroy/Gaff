@@ -10,6 +10,7 @@ import { markReferenceOverdue } from '@/server/checks/checks';
 import { sendMessage } from '@/server/messages/outbox';
 import { expireHomeOffer } from '@/server/offers/offer';
 import { sendRtbReminder } from '@/server/tenancy/rtb';
+import { sweepMarketplace } from '@/server/retention/marketplace';
 import { sweepPersonalData } from '@/server/retention/sweep';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
 
@@ -43,6 +44,10 @@ export const taskList: TaskList = {
     // Counts only: never personal data in logs.
     console.log(
       `Retention: ${swept.applications} applications, ${swept.inboundEmails} emails and ${swept.references} references cleared; ${swept.recordEvents} record events and ${swept.recordDecisions} decisions past their period deleted.`,
+    );
+    const marketplace = await sweepMarketplace();
+    console.log(
+      `Retention: ${marketplace.visitorDays} visitor hashes and ${marketplace.closedPages} closed listing pages removed.`,
     );
   },
   reference_overdue: async (payload) => {

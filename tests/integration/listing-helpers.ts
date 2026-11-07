@@ -79,7 +79,9 @@ export async function aCheckedLandlord(): Promise<Member> {
 export const A_DESCRIPTION =
   'A bright two-bedroom apartment on a quiet, tree-lined road, a short walk from the Luas and the shops on Ranelagh village. Gas central heating, a south-facing balcony and a fully fitted kitchen.';
 
-let photoSeed = 100 + Math.floor(Math.random() * 1000);
+// Test files run side by side in separate processes, so each starts from its own random point
+// in a wide range: two files never draw the same photo, which would look copied (M29).
+let photoSeed = 1000 + Math.floor(Math.random() * 2 ** 30);
 let listingCount = 0;
 /** Shades no other test uses, so photos never look copied from another listing (M29). */
 const freshShades = () => {
@@ -87,9 +89,22 @@ const freshShades = () => {
   return [photoSeed, photoSeed + 2, photoSeed + 4];
 };
 
+/**
+ * A made-up word, unique to this listing. Letters only: digits from a random ID can look like a
+ * phone number, which blocks publishing (M46).
+ */
+function uniqueWord(): string {
+  const letters = 'bcdfghjklmnpqrstvwxz';
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => letters[b % 20]).join('');
+}
+
 /** A live letting with everything its listing needs, ready to publish. */
-export async function aListableLetting(member: Member, shades = freshShades()) {
-  const { lettingId } = await aLiveLetting(member);
+export async function aListableLetting(
+  member: Member,
+  shades = freshShades(),
+  overrides: Partial<Record<string, string>> = {},
+) {
+  const { lettingId } = await aLiveLetting(member, overrides);
   const [letting] = await withOrg(member.organisationId, (tx) =>
     tx.select({ homeId: lettings.homeId }).from(lettings).where(eq(lettings.id, lettingId)),
   );
@@ -99,10 +114,10 @@ export async function aListableLetting(member: Member, shades = freshShades()) {
     outdoorSpace: 'balcony',
     floorAreaSqm: '68',
   });
-  await saveLettingDetails(member, lettingId, { deposit: '1,850' });
+  await saveLettingDetails(member, lettingId, { deposit: overrides.rent ?? '1,850' });
   // Each listing's words are its own: copied words hold a listing for review (M29).
   listingCount += 1;
-  const description = `${A_DESCRIPTION} Listing ${listingCount}-${crypto.randomUUID()}.`;
+  const description = `${A_DESCRIPTION} Listing ${listingCount} ${uniqueWord()}.`;
   await saveDescription(member, lettingId, description);
   const photos = await addPhotos(member, letting!.homeId, shades);
   return { lettingId, homeId: letting!.homeId, photos, description };

@@ -335,6 +335,8 @@ Two narrow exceptions, each lint-restricted to the use cases that need them, lik
 | ID checks on landlords | Result, verified name and date while the account is active, plus 12 months. Stripe's session is redacted after 30 days | Retention job; Stripe redaction |
 | Reports | 6 months after the case closes (proposed, Q36) | Retention job |
 | Listing revisions | 12 months after the letting closes | Retention job |
+| A let or withdrawn listing's public page | 90 days after it closes (M74) | Retention job |
+| Visitor hashes behind the daily view counts | The end of the day (Irish time); only the counts stay | Retention job |
 | The PSRA register | Replaced each week | Import job |
 | Photos | While the home stays in the letter's account. Public copies go when the listing's page goes | Media job |
 | Letters' copies (applications and the rest) | As now (Q3, Q25) | As now |

@@ -1,8 +1,14 @@
 import { expect, test } from '@playwright/test';
-import { expectAccessible, screenshot, signIn, uniqueEmail } from './support';
+import { chooseLetting, expectAccessible, screenshot, signIn, uniqueEmail } from './support';
 
 test('a new operator signs in by email link and sets up their workspace', async ({ page }) => {
+  // Signed out, Gaff opens on the homes to rent; letters sign in from there.
   await page.goto('/');
+  await expect(page).toHaveURL(/\/to-rent$/);
+  await page
+    .getByRole('navigation', { name: 'Gaff' })
+    .getByRole('link', { name: 'Sign in' })
+    .click();
   await expect(page).toHaveURL(/\/sign-in$/);
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
   await expectAccessible(page);
@@ -15,7 +21,9 @@ test('a new operator signs in by email link and sets up their workspace', async 
   const email = uniqueEmail();
   await signIn(page, email);
   await expect(page).toHaveURL(/\/welcome$/);
-  await expect(page.getByRole('heading', { name: 'Set up your workspace' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'What brings you to Gaff?' })).toBeVisible();
+  await expectAccessible(page);
+  await chooseLetting(page);
   await expectAccessible(page);
   await screenshot(page, '02-welcome');
 

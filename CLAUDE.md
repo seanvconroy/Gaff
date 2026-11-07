@@ -8,6 +8,7 @@ Gaff runs the letting of a home for Irish letting agents and portfolio landlords
 - **Decisions on PRD questions:** `docs/open-questions.md`.
 - **Progress:** `docs/status.md` (keep it current).
 - **Before the first pilot:** `docs/launch-checklist.md`.
+- **Competitor teardowns:** `docs/competitors/` (reference only).
 
 ## Product rules: never break these
 

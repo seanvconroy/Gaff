@@ -76,6 +76,7 @@ export function AnswersForm({
             name="hasPets"
             legend="Do you have any pets?"
             hint="Assistance dogs don’t count as pets."
+            inline
             defaultValue={v.hasPets}
             error={e.hasPets}
             options={[

@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { formatDateTime } from '@/lib/format';
 import { loadTenantAgreement } from '@/server/tenancy/tenancy';
 import { DocumentView } from '@/ui/Document';
-import { Stack } from '@/ui/Layout';
+import { Card, Stack } from '@/ui/Layout';
+import { Outcome } from '@/ui/Outcome';
 import { Notice } from '@/ui/Notice';
 import { SignForm } from '@/ui/SignForm';
 import { RenterShell } from '../../RenterShell';
@@ -25,10 +26,9 @@ export default async function TenantAgreementPage({
   if (!view || view.tenancy.agreementStatus === 'draft') {
     return (
       <RenterShell operatorName={view?.organisation.name ?? 'Gaff'}>
-        <Stack gap={4}>
-          <h1 className="type-display-mobile">Your agreement isn’t ready yet</h1>
+        <Outcome tone="waiting" title="Your agreement isn’t ready yet" headingLevel={1}>
           <p>We’ll email you a link as soon as it is.</p>
-        </Stack>
+        </Outcome>
       </RenterShell>
     );
   }
@@ -63,30 +63,32 @@ export default async function TenantAgreementPage({
             </p>
           </Notice>
         ) : null}
-        <DocumentView
-          title={view.document.title}
-          sections={view.document.sections}
-          signatures={
-            status === 'signed' || status === 'signed_on_paper' || status === 'tenant_signed' ? (
-              <>
-                <p>
-                  <strong>Tenant:</strong>{' '}
-                  {tenancy.tenantSignedAt
-                    ? `signed electronically by ${tenancy.tenantSignedName} on ${formatDateTime(tenancy.tenantSignedAt)}`
-                    : 'signed on paper'}
-                </p>
-                <p>
-                  <strong>For the landlord:</strong>{' '}
-                  {tenancy.operatorSignedAt
-                    ? `signed by ${view.signerName} for ${organisation.name} on ${formatDateTime(tenancy.operatorSignedAt)}`
-                    : 'not signed yet'}
-                </p>
-              </>
-            ) : undefined
-          }
-        />
+        <Card>
+          <DocumentView
+            title={view.document.title}
+            sections={view.document.sections}
+            signatures={
+              status === 'signed' || status === 'signed_on_paper' || status === 'tenant_signed' ? (
+                <>
+                  <p>
+                    <strong>Tenant:</strong>{' '}
+                    {tenancy.tenantSignedAt
+                      ? `signed electronically by ${tenancy.tenantSignedName} on ${formatDateTime(tenancy.tenantSignedAt)}`
+                      : 'signed on paper'}
+                  </p>
+                  <p>
+                    <strong>For the landlord:</strong>{' '}
+                    {tenancy.operatorSignedAt
+                      ? `signed by ${view.signerName} for ${organisation.name} on ${formatDateTime(tenancy.operatorSignedAt)}`
+                      : 'not signed yet'}
+                  </p>
+                </>
+              ) : undefined
+            }
+          />
+        </Card>
         {status === 'with_tenant' && view.unchanged ? (
-          <Stack gap={4}>
+          <Card>
             <h2 className="type-title">Sign your agreement</h2>
             <SignForm
               action={tenantSignAction.bind(null, token)}
@@ -94,9 +96,10 @@ export default async function TenantAgreementPage({
               nameHint={`As it’s written on the agreement: ${view.tenant.fullName}.`}
               consentLabel="I’ve read the agreement, and I agree to sign it electronically"
               button="Sign my tenancy agreement"
+              fullWidth
             />
             <p>Once you’ve signed, {organisation.name} signs too, and you’ll both have a copy.</p>
-          </Stack>
+          </Card>
         ) : null}
       </Stack>
     </RenterShell>

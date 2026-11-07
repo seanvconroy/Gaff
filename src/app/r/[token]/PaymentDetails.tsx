@@ -1,7 +1,10 @@
 import { formatIban, paymentAmounts } from '@/domain/tenancy/payment';
 import { formatDate, formatEuro } from '@/lib/format';
-import { Card, Stack } from '@/ui/Layout';
+import { CopyButton } from '@/ui/CopyButton';
+import { Card } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
+import { Outcome } from '@/ui/Outcome';
+import { SummaryList } from '@/ui/SummaryList';
 import styles from '../renter.module.css';
 
 /**
@@ -26,35 +29,59 @@ export function PaymentDetails({
   const amounts = paymentAmounts(tenancy);
   if (tenancy.paymentReceivedAt) {
     return (
-      <Notice tone="success" title="Payment received" role="status">
+      <Outcome tone="success" title="Payment received" role="status">
         <p>
           {operatorName} received your {formatEuro(amounts.totalCents)} on{' '}
           {formatDate(tenancy.paymentReceivedAt)}. Thank you. They’ll be in touch about moving in.
         </p>
-      </Notice>
+      </Outcome>
     );
   }
-  const rows: Array<[string, string]> = [
-    ['Deposit', formatEuro(amounts.depositCents)],
-    ['First month’s rent', formatEuro(amounts.firstRentCents)],
-    ['To pay', formatEuro(amounts.totalCents)],
-    ['By', tenancy.paymentDueDate ? formatDate(tenancy.paymentDueDate) : ''],
-    ['Name on the account', payTo.accountName],
-    ['IBAN', formatIban(payTo.iban)],
-    ['Reference', tenancy.paymentReference ?? ''],
-  ];
+  const iban = formatIban(payTo.iban);
   return (
-    <Stack gap={4}>
-      <h2 className="type-title">Pay the deposit and first month’s rent</h2>
+    <section className={styles.section} aria-labelledby="pay-heading">
+      <div className={styles.sectionHead}>
+        <h2 id="pay-heading" className="type-title">
+          Pay the deposit and first month’s rent
+        </h2>
+        <p>
+          Paid straight to {operatorName}
+          {tenancy.paymentDueDate ? `, by ${formatDate(tenancy.paymentDueDate)}` : ''}.
+        </p>
+      </div>
       <Card>
-        <dl className={styles.answers}>
-          {rows.map(([label, value]) => (
-            <div key={label} className={styles.answer}>
-              <dt>{label}</dt>
-              <dd>{value}</dd>
-            </div>
-          ))}
-        </dl>
+        <SummaryList
+          layout="split"
+          rows={[
+            { label: 'Deposit', value: formatEuro(amounts.depositCents) },
+            { label: 'First month’s rent', value: formatEuro(amounts.firstRentCents) },
+            { label: 'To pay', value: formatEuro(amounts.totalCents) },
+            {
+              label: 'By',
+              value: tenancy.paymentDueDate ? formatDate(tenancy.paymentDueDate) : '',
+            },
+          ]}
+        />
+      </Card>
+      <Card>
+        <h3 className="type-title">Pay into</h3>
+        <SummaryList
+          rows={[
+            { label: 'Name on the account', value: payTo.accountName },
+            {
+              label: 'IBAN',
+              value: <span className={styles.mono}>{iban}</span>,
+              action: <CopyButton value={iban.replace(/\s+/g, '')} what="the IBAN" />,
+            },
+            {
+              label: 'Reference',
+              value: <span className={styles.mono}>{tenancy.paymentReference ?? ''}</span>,
+              action: tenancy.paymentReference ? (
+                <CopyButton value={tenancy.paymentReference} what="the reference" />
+              ) : null,
+            },
+          ]}
+        />
       </Card>
       <Notice tone="warning" title="Check the bank details by phone first">
         <p>
@@ -63,7 +90,12 @@ export function PaymentDetails({
           other fees.
         </p>
       </Notice>
-      <p>Once the money arrives, {operatorName} confirms it here, and we’ll email you a receipt.</p>
-    </Stack>
+      <div className={styles.next}>
+        <p className={styles.nextTitle}>What happens next</p>
+        <p>
+          Once the money arrives, {operatorName} confirms it here, and we’ll email you a receipt.
+        </p>
+      </div>
+    </section>
   );
 }

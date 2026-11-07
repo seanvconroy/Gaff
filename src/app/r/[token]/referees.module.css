@@ -1,0 +1,27 @@
+/* One referee: their name and email, or "I don't have one", which puts the fields away. */
+.referee {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.legend {
+  padding: 0;
+  margin-bottom: var(--space-4);
+  font-family: var(--type-title-family);
+  font-size: var(--type-title-size);
+  line-height: var(--type-title-line);
+  font-weight: var(--type-title-weight);
+}
+
+.fields {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.referee:has(input[type='checkbox']:checked) .fields {
+  display: none;
+}

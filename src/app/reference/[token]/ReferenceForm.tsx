@@ -34,6 +34,7 @@ export function ReferenceForm({ token, questions }: { token: string; questions: 
             name={question.name}
             legend={question.label}
             hint={index === 0 ? 'If you answer no, you can leave the rest.' : undefined}
+            inline={question.options.every((option) => option.label.length <= 14)}
             defaultValue={v[question.name]}
             error={e[question.name]}
             options={question.options}

@@ -29,14 +29,16 @@ export function InventoryReview({
   confirmedAt: Date | null;
 }) {
   return (
-    <Stack gap={4}>
-      <Stack gap={2}>
-        <h2 className="type-title">Your move-in inventory</h2>
+    <section className={styles.section} aria-labelledby="inventory-heading">
+      <div className={styles.sectionHead}>
+        <h2 id="inventory-heading" className="type-title">
+          Your move-in inventory
+        </h2>
         <p>
           What’s in the home, and its condition, room by room. It helps when your deposit is
           returned, so it’s worth a careful look.
         </p>
-      </Stack>
+      </div>
       <Card>
         <ul className={styles.inventory}>
           {items.map((item) => (
@@ -49,14 +51,14 @@ export function InventoryReview({
                   className={styles.inventoryPhoto}
                 />
               ) : null}
-              <span>
+              <span className={styles.inventoryText}>
                 <strong>
                   {item.room}: {item.item}
-                </strong>{' '}
+                </strong>
                 <StatusPill tone={item.condition === 'damaged' ? 'warning' : 'neutral'} large>
                   {conditions[item.condition]}
                 </StatusPill>
-                {item.note ? <span className={styles.muted}> {item.note}</span> : null}
+                {item.note ? <span className={styles.muted}>{item.note}</span> : null}
               </span>
             </li>
           ))}
@@ -79,6 +81,6 @@ export function InventoryReview({
           </p>
         </Stack>
       )}
-    </Stack>
+    </section>
   );
 }

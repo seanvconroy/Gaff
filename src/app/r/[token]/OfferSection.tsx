@@ -1,7 +1,9 @@
 import { formatDate, formatDateTime, formatEuro } from '@/lib/format';
 import { Card, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
+import { Outcome } from '@/ui/Outcome';
 import { SubmitButton } from '@/ui/SubmitButton';
+import { SummaryList } from '@/ui/SummaryList';
 import styles from '../renter.module.css';
 import { respondAction } from './offer-actions';
 
@@ -37,12 +39,6 @@ export function OfferSection({
   confirmDecline: boolean;
   problem?: string;
 }) {
-  const rows: Array<[string, string]> = [
-    ['Rent', `${formatEuro(offer.rentCents)} a month`],
-    ['From', formatDate(offer.startDate)],
-    ['Deposit', formatEuro(offer.depositCents)],
-    ['First month’s rent', formatEuro(offer.rentCents)],
-  ];
   return (
     <Stack gap={6}>
       {problem && problems[problem] ? (
@@ -50,19 +46,20 @@ export function OfferSection({
           <p>{problems[problem]}</p>
         </Notice>
       ) : null}
-      <Stack gap={2}>
-        <h2 className="type-title">An offer for {address}</h2>
+      <Outcome tone="success" title={`An offer for ${address}`}>
         <p>Good news: {operatorName} would like to offer you the home.</p>
-      </Stack>
+      </Outcome>
       <Card>
-        <dl className={styles.answers}>
-          {rows.map(([label, value]) => (
-            <div key={label} className={styles.answer}>
-              <dt>{label}</dt>
-              <dd>{value}</dd>
-            </div>
-          ))}
-        </dl>
+        <h3 className="type-title">The terms</h3>
+        <SummaryList
+          layout="split"
+          rows={[
+            { label: 'Rent', value: `${formatEuro(offer.rentCents)} a month` },
+            { label: 'From', value: formatDate(offer.startDate) },
+            { label: 'Deposit', value: formatEuro(offer.depositCents) },
+            { label: 'First month’s rent', value: formatEuro(offer.rentCents) },
+          ]}
+        />
       </Card>
       <p>
         To secure the home, you’d pay the deposit and the first month’s rent directly to{' '}
@@ -83,7 +80,7 @@ export function OfferSection({
               </SubmitButton>
             </form>
             <p>
-              <a href={`/r/${token}`}>Go back</a>
+              <a href={`/r/${token}`}>No, go back to the offer</a>
             </p>
           </Stack>
         </Card>
@@ -94,7 +91,7 @@ export function OfferSection({
               Accept the offer
             </SubmitButton>
           </form>
-          <p>
+          <p className={styles.centred}>
             <a href={`/r/${token}?decline=1`}>Decline the offer</a>
           </p>
         </Stack>

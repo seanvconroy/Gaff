@@ -2,10 +2,11 @@ import type { Metadata } from 'next';
 import { stageLabels, stageNumber } from '@/domain/lettings/stages';
 import { formatDate, formatDateTime, formatRent } from '@/lib/format';
 import { landlordView } from '@/server/landlord/view';
-import { Card, PageHeader, Stack } from '@/ui/Layout';
+import { Card, CardHeader, Stack } from '@/ui/Layout';
+import { Outcome } from '@/ui/Outcome';
 import { StageTracker } from '@/ui/StageTracker';
 import { StatusPill } from '@/ui/StatusPill';
-import { Table } from '@/ui/Table';
+import { Cell, Table, tableStyles } from '@/ui/Table';
 import { LandlordShell } from '../LandlordShell';
 import styles from '../landlord.module.css';
 
@@ -37,10 +38,9 @@ export default async function LandlordPage({ params }: { params: Promise<{ token
   if (!view) {
     return (
       <LandlordShell organisationName="Gaff">
-        <Stack gap={4}>
-          <h1 className="type-display-mobile">This link isn’t working</h1>
+        <Outcome tone="info" title="This link isn’t working" headingLevel={1}>
           <p>It may have expired or been switched off. Ask your letting agent for a new one.</p>
-        </Stack>
+        </Outcome>
       </LandlordShell>
     );
   }
@@ -58,17 +58,22 @@ export default async function LandlordPage({ params }: { params: Promise<{ token
   return (
     <LandlordShell organisationName={organisationName}>
       <Stack gap={8}>
-        <PageHeader
-          eyebrow={`Step ${stageNumber(letting.stage)} of 9 · ${stageLabels[letting.stage]}`}
-          title={letting.addressLine1}
-          lead={`${letting.area} · ${formatRent(letting.monthlyRentCents)} · Available from ${formatDate(letting.availableFrom)}`}
-        />
-        <StageTracker current={letting.stage} />
+        <Stack gap={6}>
+          <header className={styles.title}>
+            <p className="type-label">
+              Step {stageNumber(letting.stage)} of 9 · {stageLabels[letting.stage]}
+            </p>
+            <h1 className="type-display-mobile">{letting.addressLine1}</h1>
+            <p className={styles.muted}>
+              {letting.area} · {formatRent(letting.monthlyRentCents)} · Available from{' '}
+              {formatDate(letting.availableFrom)}
+            </p>
+          </header>
+          <StageTracker current={letting.stage} />
+        </Stack>
 
         <Card labelledBy="numbers-heading">
-          <h2 id="numbers-heading" className="type-title">
-            Where things are
-          </h2>
+          <CardHeader id="numbers-heading" title="Where things are" />
           <dl className={styles.numbers}>
             {figures.map(([label, value]) => (
               <div key={label} className={styles.number}>
@@ -80,9 +85,7 @@ export default async function LandlordPage({ params }: { params: Promise<{ token
         </Card>
 
         <Card labelledBy="criteria-heading">
-          <h2 id="criteria-heading" className="type-title">
-            The criteria
-          </h2>
+          <CardHeader id="criteria-heading" title="The criteria" />
           {view.criteria.length > 0 ? (
             <ul className={styles.list}>
               {view.criteria.map((line) => (
@@ -100,9 +103,7 @@ export default async function LandlordPage({ params }: { params: Promise<{ token
         </Card>
 
         <Card labelledBy="ranking-heading">
-          <h2 id="ranking-heading" className="type-title">
-            The ranking, and where each applicant is now
-          </h2>
+          <CardHeader id="ranking-heading" title="The ranking, and where each applicant is now" />
           {view.ranking.length === 0 ? (
             <p>Nobody has enquired yet.</p>
           ) : (
@@ -111,19 +112,23 @@ export default async function LandlordPage({ params }: { params: Promise<{ token
                 const [tone, label] = now[row.status];
                 return (
                   <tr key={row.label}>
-                    <td>{row.position}</td>
-                    <td>{row.label}</td>
-                    <td>
+                    <Cell label="Rank">{row.position}</Cell>
+                    <Cell label="Applicant" className={tableStyles.strong}>
+                      {row.label}
+                    </Cell>
+                    <Cell label="Meets">
                       {row.total === 0
                         ? 'No criteria'
                         : row.answered
                           ? `${row.met} of ${row.total}`
                           : 'Not answered'}
-                    </td>
-                    <td>{row.reason}</td>
-                    <td>
+                    </Cell>
+                    <Cell label="Why here" className={tableStyles.muted}>
+                      {row.reason}
+                    </Cell>
+                    <Cell label="Now">
                       <StatusPill tone={tone}>{label}</StatusPill>
-                    </td>
+                    </Cell>
                   </tr>
                 );
               })}
@@ -132,9 +137,7 @@ export default async function LandlordPage({ params }: { params: Promise<{ token
         </Card>
 
         <Card labelledBy="timeline-heading">
-          <h2 id="timeline-heading" className="type-title">
-            Everything that’s happened
-          </h2>
+          <CardHeader id="timeline-heading" title="Everything that’s happened" />
           <ol className={styles.timeline}>
             {view.timeline.map((entry) => (
               <li key={entry.id} className={styles.entry}>

@@ -26,7 +26,7 @@
   line-height: var(--type-label-line);
   font-weight: var(--type-label-weight);
   letter-spacing: var(--type-label-tracking);
-  text-transform: uppercase;
+  text-transform: var(--type-label-transform);
   white-space: nowrap;
 }
 

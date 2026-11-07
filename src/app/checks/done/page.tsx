@@ -18,7 +18,7 @@ export default async function CheckDonePage({
   return (
     <RenterShell operatorName="Gaff">
       <Stack gap={4}>
-        <h1 className="type-heading">Thanks, that’s your {what} done</h1>
+        <h1 className="type-display-mobile">Thanks, that’s your {what} done</h1>
         <p>
           Go back to the link in our email to see what’s left, and what happens next. You can close
           this page.

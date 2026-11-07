@@ -66,11 +66,20 @@ export function Muted({ children }: { children: ReactNode }) {
   return <span className={styles.muted}>{children}</span>;
 }
 
-/** "Gaff" is a working name with no logo yet: the wordmark is plain Fraunces type. */
-export function Wordmark({ href = '/' }: { href?: string }) {
+/**
+ * "Gaff" is a working name with no logo yet. The A4 wordmark is "gaff." in Fraunces with an
+ * Atlantic full stop (a logotype, so the dot is exempt from contrast rules). Screen readers hear
+ * "gaff".
+ */
+export function Wordmark({ href = '/', onNavy = false }: { href?: string; onNavy?: boolean }) {
   return (
-    <Link href={href} className={`${styles.wordmark} type-heading`}>
-      Gaff
+    <Link href={href} className={`${styles.wordmark} ${onNavy ? styles.onNavy : ''}`}>
+      <span>
+        gaff
+        <span className={styles.wordmarkDot} aria-hidden="true">
+          .
+        </span>
+      </span>
     </Link>
   );
 }

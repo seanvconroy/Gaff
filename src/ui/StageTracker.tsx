@@ -2,7 +2,7 @@ import { CheckCircle2, Circle, CircleDot } from 'lucide-react';
 import { stageLabels, type Stage, stages } from '@/domain/lettings/stages';
 import styles from './StageTracker.module.css';
 
-/** The nine stages of a letting; the current one is the screen's single brick accent. */
+/** The nine stages of a letting; the current one is the screen's single Atlantic accent. */
 export function StageTracker({ current }: { current: Stage }) {
   const currentIndex = stages.indexOf(current);
   return (

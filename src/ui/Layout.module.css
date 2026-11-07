@@ -73,7 +73,6 @@
 
 .eyebrow {
   color: var(--color-ink-muted);
-  text-transform: uppercase;
 }
 
 .lead {
@@ -85,15 +84,40 @@
   color: var(--color-ink-muted);
 }
 
+/* Page titles at phone width use display-mobile. */
 @media (width <= 640px) {
   .title {
-    font-family: var(--type-heading-family);
-    font-size: var(--type-heading-size);
-    line-height: var(--type-heading-line);
+    font-family: var(--type-display-mobile-family);
+    font-size: var(--type-display-mobile-size);
+    line-height: var(--type-display-mobile-line);
+    letter-spacing: var(--type-display-mobile-tracking);
   }
 }
 
+/* The A4 wordmark: lowercase Fraunces at its display optical size, with an Atlantic full stop. */
 .wordmark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--color-ink);
+  font-family: var(--type-heading-family);
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
+  font-weight: var(--type-heading-weight);
+  letter-spacing: var(--type-heading-tracking);
+  font-variation-settings: 'opsz' 144;
   text-decoration: none;
+}
+
+.wordmarkDot {
+  color: var(--color-atlantic);
+}
+
+/* On the navy sidebar and bar. */
+.onNavy {
+  color: var(--color-nav-ink);
+}
+
+.onNavy:focus-visible {
+  outline-color: var(--color-nav-focus);
 }

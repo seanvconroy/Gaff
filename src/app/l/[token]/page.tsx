@@ -38,7 +38,7 @@ export default async function LandlordPage({ params }: { params: Promise<{ token
     return (
       <LandlordShell organisationName="Gaff">
         <Stack gap={4}>
-          <h1 className="type-heading">This link isn’t working</h1>
+          <h1 className="type-display-mobile">This link isn’t working</h1>
           <p>It may have expired or been switched off. Ask your letting agent for a new one.</p>
         </Stack>
       </LandlordShell>

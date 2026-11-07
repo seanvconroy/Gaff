@@ -14,14 +14,19 @@
   text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
+  transition-property: background-color, border-color, color;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease-standard);
 }
 
+/* The one main action on a screen. */
 .primary {
   background-color: var(--color-primary);
   color: var(--color-ink-inverse);
 }
 
-.primary:hover {
+.primary:hover,
+.primary:active {
   background-color: var(--color-primary-hover);
 }
 
@@ -31,16 +36,21 @@
   border-color: var(--color-border-strong);
 }
 
-.secondary:hover {
+.secondary:hover,
+.secondary:active {
   background-color: var(--color-surface-2);
 }
 
+/* No fill or edge until it's hovered. */
 .quiet {
   background-color: transparent;
-  color: var(--color-brick-text);
-  padding-inline: var(--space-1);
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
+  color: var(--color-ink);
+  padding-inline: var(--space-3);
+}
+
+.quiet:hover,
+.quiet:active {
+  background-color: var(--color-surface-2);
 }
 
 .fullWidth {

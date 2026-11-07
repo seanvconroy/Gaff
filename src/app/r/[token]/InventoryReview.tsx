@@ -53,7 +53,7 @@ export function InventoryReview({
                 <strong>
                   {item.room}: {item.item}
                 </strong>{' '}
-                <StatusPill tone={item.condition === 'damaged' ? 'warning' : 'neutral'}>
+                <StatusPill tone={item.condition === 'damaged' ? 'warning' : 'neutral'} large>
                   {conditions[item.condition]}
                 </StatusPill>
                 {item.note ? <span className={styles.muted}> {item.note}</span> : null}

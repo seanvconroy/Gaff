@@ -69,7 +69,9 @@ export function ChecksSection({
           <p>{what}</p>
           {done ? (
             <div>
-              <StatusPill tone="success">Done</StatusPill>
+              <StatusPill tone="success" large>
+                Done
+              </StatusPill>
             </div>
           ) : null}
           {check.status === 'not_passed' ? (

@@ -65,7 +65,7 @@ export default async function RenterPage({
     return (
       <RenterShell operatorName="Gaff">
         <Stack gap={4}>
-          <h1 className="type-heading">This link isn’t working</h1>
+          <h1 className="type-display-mobile">This link isn’t working</h1>
           <p>It may have expired. Reply to any email from us and we’ll help you.</p>
         </Stack>
       </RenterShell>
@@ -81,7 +81,7 @@ export default async function RenterPage({
       <RenterShell operatorName={organisation.name}>
         <Stack gap={6}>
           <Stack gap={2}>
-            <h1 className="type-heading">{letting.addressLine1}</h1>
+            <h1 className="type-display-mobile">{letting.addressLine1}</h1>
             <p className={styles.muted}>{letting.area}</p>
           </Stack>
           <Notice
@@ -126,7 +126,7 @@ export default async function RenterPage({
     <RenterShell operatorName={organisation.name}>
       <Stack gap={6}>
         <Stack gap={2}>
-          <h1 className="type-heading">{letting.addressLine1}</h1>
+          <h1 className="type-display-mobile">{letting.addressLine1}</h1>
           <p className={styles.muted}>
             {letting.area} · {formatRent(letting.monthlyRentCents)} · Available from{' '}
             {formatDate(letting.availableFrom)}

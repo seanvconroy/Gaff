@@ -24,8 +24,8 @@
 }
 
 .current {
-  border-color: var(--color-brick);
-  background-color: var(--color-brick);
+  border-color: var(--color-atlantic);
+  background-color: var(--color-atlantic);
   color: var(--color-ink-inverse);
   font-weight: var(--type-title-weight);
 }

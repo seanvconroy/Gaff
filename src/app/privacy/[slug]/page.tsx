@@ -25,7 +25,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ slug: 
   return (
     <RenterShell operatorName={organisation.name}>
       <Stack gap={6}>
-        <h1 className="type-heading">How we use your details</h1>
+        <h1 className="type-display-mobile">How we use your details</h1>
         <p>
           {organisation.name} is responsible for your details. Gaff is the software{' '}
           {organisation.name} uses to answer enquiries and arrange viewings. Gaff only uses your

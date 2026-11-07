@@ -24,7 +24,7 @@ export default async function ReferencePage({
     return (
       <RenterShell operatorName="Gaff">
         <Stack gap={4}>
-          <h1 className="type-heading">This link isn’t working</h1>
+          <h1 className="type-display-mobile">This link isn’t working</h1>
           <p>It may have expired. There’s nothing else you need to do.</p>
         </Stack>
       </RenterShell>
@@ -35,7 +35,7 @@ export default async function ReferencePage({
     <RenterShell operatorName={request.operatorName}>
       <Stack gap={6}>
         <Stack gap={2}>
-          <h1 className="type-heading">A reference for {request.renterName}</h1>
+          <h1 className="type-display-mobile">A reference for {request.renterName}</h1>
           <p>
             {request.renterName} has applied to rent a home through {request.operatorName}, and gave
             your name as{' '}

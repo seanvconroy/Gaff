@@ -1,11 +1,9 @@
+/* Notices: the status tint behind ink words, with the status colour on the icon (A4). */
 .notice {
   display: flex;
   gap: var(--space-3);
   padding: var(--space-4);
-  background-color: var(--color-surface-1);
-  border: 1px solid var(--color-border);
-  border-left-width: 4px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
 }
 
 .icon {
@@ -24,7 +22,7 @@
 }
 
 .info {
-  border-left-color: var(--color-info);
+  background-color: var(--color-info-bg);
 }
 
 .info .icon {
@@ -32,7 +30,7 @@
 }
 
 .success {
-  border-left-color: var(--color-success);
+  background-color: var(--color-success-bg);
 }
 
 .success .icon {
@@ -40,7 +38,7 @@
 }
 
 .warning {
-  border-left-color: var(--color-warning);
+  background-color: var(--color-warning-bg);
 }
 
 .warning .icon {
@@ -48,7 +46,7 @@
 }
 
 .danger {
-  border-left-color: var(--color-danger);
+  background-color: var(--color-danger-bg);
 }
 
 .danger .icon {

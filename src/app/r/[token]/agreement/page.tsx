@@ -26,7 +26,7 @@ export default async function TenantAgreementPage({
     return (
       <RenterShell operatorName={view?.organisation.name ?? 'Gaff'}>
         <Stack gap={4}>
-          <h1 className="type-heading">Your agreement isn’t ready yet</h1>
+          <h1 className="type-display-mobile">Your agreement isn’t ready yet</h1>
           <p>We’ll email you a link as soon as it is.</p>
         </Stack>
       </RenterShell>
@@ -37,7 +37,7 @@ export default async function TenantAgreementPage({
   return (
     <RenterShell operatorName={organisation.name}>
       <Stack gap={6}>
-        <h1 className="type-heading">Your tenancy agreement</h1>
+        <h1 className="type-display-mobile">Your tenancy agreement</h1>
         {!view.unchanged ? (
           <Notice tone="warning" title="This agreement has changed">
             <p>{organisation.name} will send you the new version to sign.</p>

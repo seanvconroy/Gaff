@@ -6,6 +6,7 @@ import { approveBeforeSendIsOn, listAwaitingApproval } from '@/server/answers/qu
 import { TextArea } from '@/ui/Field';
 import { Card, PageHeader, Row, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
+import { DraftedByAi } from '@/ui/StatusPill';
 import { SubmitButton } from '@/ui/SubmitButton';
 import styles from '../attention/attention.module.css';
 import { approveAction, discardAction } from './actions';
@@ -62,7 +63,10 @@ export default async function ApprovalsPage({
             {draft.renterName} asked about{' '}
             <Link href={`/lettings/${draft.lettingId}`}>{draft.address}</Link>
           </h2>
-          <p className={styles.meta}>Drafted {formatDateTime(draft.createdAt)}</p>
+          <Row>
+            <DraftedByAi />
+            <span className={styles.meta}>{formatDateTime(draft.createdAt)}</span>
+          </Row>
           {draft.asked ? <blockquote className={styles.body}>{draft.asked}</blockquote> : null}
           <form action={approveAction}>
             <Stack gap={4}>

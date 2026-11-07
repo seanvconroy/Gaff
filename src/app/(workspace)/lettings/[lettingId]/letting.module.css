@@ -101,7 +101,7 @@
   padding: 0 var(--space-2);
   background-color: transparent;
   border: 0;
-  color: var(--color-brick-text);
+  color: var(--color-atlantic-text);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -127,6 +127,14 @@
   color: var(--color-ink-muted);
   text-decoration: none;
   border-bottom: 2px solid transparent;
+  transition-property: color, border-color;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease-standard);
+}
+
+.tab:hover {
+  color: var(--color-ink);
+  border-bottom-color: var(--color-border-strong);
 }
 
 .tabCurrent {

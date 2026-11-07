@@ -85,7 +85,7 @@ export function TenancySteps({
         <ul className={styles.steps}>
           {steps.map((step) => (
             <li key={step.name} className={styles.step}>
-              <StatusPill tone={step.done ? 'success' : 'neutral'}>
+              <StatusPill tone={step.done ? 'success' : 'neutral'} large>
                 {step.done ? 'Done' : 'To do'}
               </StatusPill>
               <span>

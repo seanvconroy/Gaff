@@ -62,9 +62,11 @@
   cursor: pointer;
 }
 
+/* Chosen: a 2px primary edge that grows inwards, as on every choice card (A4). */
 .pick:has(input:checked) {
-  background-color: var(--color-surface-2);
-  border-color: var(--color-ink);
+  padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px);
+  border-width: 2px;
+  border-color: var(--color-primary);
 }
 
 .pick input {

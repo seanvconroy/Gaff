@@ -90,6 +90,7 @@ textarea.control {
   gap: var(--space-2);
 }
 
+/* A choice card, like a viewing slot: the chosen one gets a 2px primary edge (A4). */
 .option {
   display: flex;
   gap: var(--space-3);
@@ -98,13 +99,28 @@ textarea.control {
   padding: var(--space-2) var(--space-3);
   background-color: var(--color-surface-1);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-standard);
 }
 
+/* The edge grows inwards, so nothing moves. */
 .option:has(input:checked) {
-  background-color: var(--color-surface-2);
-  border-color: var(--color-ink);
+  padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px);
+  border-width: 2px;
+  border-color: var(--color-primary);
+}
+
+.option:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Where the card can show the ring, the input doesn't need its own. */
+@supports selector(:has(*)) {
+  .option input:focus-visible {
+    outline: none;
+  }
 }
 
 .option input {

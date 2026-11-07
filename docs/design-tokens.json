@@ -1,6 +1,7 @@
 {
  "name": "Gaff",
- "version": 1,
+ "version": 2,
+ "direction": "A4 · Navy and Atlantic",
  "color": {
   "themes": [
    {
@@ -17,7 +18,7 @@
     "name": "surface-0",
     "value": {
      "light": "#f7f3ec",
-     "dark": "#121a19"
+     "dark": "#10151d"
     },
     "usage": "Page background everywhere: the warm cream ground."
    },
@@ -25,22 +26,22 @@
     "name": "surface-1",
     "value": {
      "light": "#fffdf9",
-     "dark": "#1b2726"
+     "dark": "#171d28"
     },
-    "usage": "Cards, panels, inputs and the renter's mobile pages: one step up from the page."
+    "usage": "Cards, panels, inputs and the renter’s pages: one step up from the page."
    },
    {
     "name": "surface-2",
     "value": {
      "light": "#ede6da",
-     "dark": "#24322f"
+     "dark": "#202836"
     },
-    "usage": "Quiet fills: table headers, selected rows, grouped info. Use brick-text, not brick, for text on it."
+    "usage": "Quiet fills: table headers, selected rows, grouped info, the next-step panel."
    },
    {
     "name": "ink",
     "value": {
-     "light": "#1d2b2a",
+     "light": "#18223a",
      "dark": "#f3eee6"
     },
     "usage": "Body text, headings and icons on any surface."
@@ -48,90 +49,102 @@
    {
     "name": "ink-muted",
     "value": {
-     "light": "#4a5553",
-     "dark": "#b3beba"
+     "light": "#4a5262",
+     "dark": "#b3bccb"
     },
-    "usage": "Secondary text: hints, timestamps, helper copy. 6:1 or better on every surface."
+    "usage": "Secondary text: hints, timestamps, helper copy."
    },
    {
     "name": "ink-inverse",
     "value": {
      "light": "#f7f3ec",
-     "dark": "#121a19"
+     "dark": "#10151d"
     },
-    "usage": "Text and icons on primary and forest fills."
+    "usage": "Text and icons on primary fills."
    },
    {
     "name": "border",
     "value": {
      "light": "#d8cfc0",
-     "dark": "#33423f"
+     "dark": "#2c3544"
     },
-    "usage": "Hairlines: card edges, dividers, table rules. Decorative only, never the sole edge of a control."
+    "usage": "Hairlines: card edges, dividers, table rules. Decorative only."
    },
    {
     "name": "border-strong",
     "value": {
      "light": "#847b6f",
-     "dark": "#6f807b"
+     "dark": "#737f93"
     },
-    "usage": "Edges of inputs, checkboxes and other controls (3:1 on every surface)."
+    "usage": "Edges of inputs, checkboxes, radios and secondary buttons (3:1 on every surface)."
    },
    {
     "name": "primary",
     "value": {
-     "light": "#1d2b2a",
+     "light": "#1b2a4a",
      "dark": "#e9e2d6"
     },
-    "usage": "Primary buttons and the one main action on a screen."
+    "usage": "Primary buttons: the one main action on a screen."
    },
    {
     "name": "primary-hover",
     "value": {
-     "light": "#2c3f3d",
+     "light": "#2a3b60",
      "dark": "#f7f3ec"
     },
     "usage": "Hover and pressed state of primary."
    },
    {
-    "name": "forest",
+    "name": "navy",
     "value": {
-     "light": "#1d2b2a",
-     "dark": "#3f6b63"
+     "light": "#1b2a4a",
+     "dark": "#2c3f68"
     },
-    "usage": "Brand block colour: hero bands, the cover, large dark panels. Not for text in dark."
+    "usage": "Brand blocks: the workspace sidebar, hero bands, large panels. Text on it uses nav-ink.",
+    "replaces": "forest"
    },
    {
-    "name": "brick",
+    "name": "atlantic",
     "value": {
-     "light": "#b9482a",
-     "dark": "#e5835f"
+     "light": "#4a6fa5",
+     "dark": "#8eaedb"
     },
-    "usage": "The brand accent: one emphasis per screen (a key number, the active step, a highlight). Fills and large type only."
+    "usage": "The accent: one emphasis per screen (the wordmark full stop, a key number). Fills and large type.",
+    "replaces": "brick"
    },
    {
-    "name": "brick-text",
+    "name": "atlantic-text",
     "value": {
-     "light": "#a63f23",
-     "dark": "#e5835f"
+     "light": "#3e5f90",
+     "dark": "#a3bde3"
     },
-    "usage": "Brick for small text and links (5:1 or better on every surface)."
+    "usage": "Atlantic for small text, links and the focus ring.",
+    "replaces": "brick-text"
    },
    {
-    "name": "peach",
+    "name": "sky",
     "value": {
-     "light": "#e8a27f",
-     "dark": "#e8a27f"
+     "light": "#c9d8ea",
+     "dark": "#24334b"
     },
-    "usage": "Soft accent: labels on forest, illustrations, the cover. Not for text on light surfaces."
+    "usage": "Soft brand fill: selected rows, brand blocks, illustration. Text on it is ink, never atlantic-text.",
+    "replaces": "peach"
    },
    {
     "name": "success",
     "value": {
-     "light": "#2f6f62",
-     "dark": "#7cc4b0"
+     "light": "#2e6b3f",
+     "dark": "#86c79b"
     },
-    "usage": "Done, verified, passed: check results, signed, paid."
+    "usage": "Done, verified, passed: check results, signed, paid. Text and icons."
+   },
+   {
+    "name": "success-bg",
+    "value": {
+     "light": "#eaeee6",
+     "dark": "#29383a"
+    },
+    "usage": "Background tint for success pills and notices."
    },
    {
     "name": "warning",
@@ -139,7 +152,15 @@
      "light": "#8a5a00",
      "dark": "#e2b45c"
     },
-    "usage": "Needs attention: waiting on a referee, an offer about to expire."
+    "usage": "Needs attention, including a renter who did not meet a check. Text and icons."
+   },
+   {
+    "name": "warning-bg",
+    "value": {
+     "light": "#f3ede0",
+     "dark": "#373530"
+    },
+    "usage": "Background tint for warning pills and notices."
    },
    {
     "name": "danger",
@@ -147,31 +168,124 @@
      "light": "#a3261c",
      "dark": "#f08a80"
     },
-    "usage": "Errors and destructive actions only. Never for a renter who failed a check: use warning and words."
+    "usage": "Something went wrong (a send failed) or a destructive action. Never for a renter who failed a check."
+   },
+   {
+    "name": "danger-bg",
+    "value": {
+     "light": "#f6e8e3",
+     "dark": "#3a2e36"
+    },
+    "usage": "Background tint for danger pills and notices."
    },
    {
     "name": "info",
     "value": {
-     "light": "#2d5b7a",
-     "dark": "#8bb8d8"
+     "light": "#1f6672",
+     "dark": "#7cc3cb"
     },
-    "usage": "Neutral notices and links inside notices."
+    "usage": "Neutral notices and viewings booked. Teal, so it never reads as the brand blue."
+   },
+   {
+    "name": "info-bg",
+    "value": {
+     "light": "#e9eeec",
+     "dark": "#273842"
+    },
+    "usage": "Background tint for info pills and notices."
+   },
+   {
+    "name": "ai",
+    "value": {
+     "light": "{info}",
+     "dark": "{info}"
+    },
+    "usage": "Anything the AI wrote or suggested (“Drafted by AI”). Same as info today; its own name so it can change later."
+   },
+   {
+    "name": "ai-bg",
+    "value": {
+     "light": "{info-bg}",
+     "dark": "{info-bg}"
+    },
+    "usage": "Background for the AI label and the AI draft card header."
    },
    {
     "name": "focus",
     "value": {
-     "light": "{brick}",
-     "dark": "{brick}"
+     "light": "{atlantic-text}",
+     "dark": "{atlantic-text}"
     },
     "usage": "Focus ring: 2px outline, 2px offset, on every interactive element."
+   },
+   {
+    "name": "nav-bg",
+    "value": {
+     "light": "{navy}",
+     "dark": "#121a2b"
+    },
+    "usage": "Workspace sidebar and the mobile bottom bar."
+   },
+   {
+    "name": "nav-ink",
+    "value": {
+     "light": "#f7f3ec",
+     "dark": "#f3eee6"
+    },
+    "usage": "Active item and labels on nav-bg and navy."
+   },
+   {
+    "name": "nav-ink-muted",
+    "value": {
+     "light": "#c3cbdb",
+     "dark": "#aab4c4"
+    },
+    "usage": "Inactive items and counts on nav-bg."
+   },
+   {
+    "name": "nav-active",
+    "value": {
+     "light": "#2a3b60",
+     "dark": "#1f2a40"
+    },
+    "usage": "Background of the active nav item."
+   },
+   {
+    "name": "nav-focus",
+    "value": {
+     "light": "{sky}",
+     "dark": "{atlantic-text}"
+    },
+    "usage": "Focus ring inside the navy sidebar and bottom bar, where focus would be too faint (2.2:1)."
+   },
+   {
+    "name": "overlay",
+    "value": {
+     "light": "rgba(24, 34, 58, 0.48)",
+     "dark": "rgba(0, 0, 0, 0.6)"
+    },
+    "usage": "Scrim behind dialogs and the mobile menu."
    }
   ]
  },
  "type": {
-  "fonts": [],
+  "fonts": [
+   {
+    "family": "Fraunces",
+    "weights": "400 to 700",
+    "axes": "opsz 9 to 144",
+    "source": "Self-hosted (public/fonts) from @fontsource-variable/fraunces, opsz files"
+   },
+   {
+    "family": "DM Sans",
+    "weights": "400 to 700",
+    "axes": "opsz 9 to 40",
+    "source": "Self-hosted (public/fonts) from @fontsource-variable/dm-sans, opsz files"
+   }
+  ],
   "families": {
-   "display": "\"Fraunces\", Georgia, serif",
-   "sans": "\"DM Sans\", system-ui, -apple-system, \"Segoe UI\", sans-serif"
+   "display": "'Fraunces', Georgia, 'Times New Roman', serif",
+   "sans": "'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif"
   },
   "groups": [
    {
@@ -192,16 +306,27 @@
       "fontSize": "40px",
       "lineHeight": "44px",
       "fontWeight": 600,
+      "letterSpacing": "-0.01em",
       "sample": "12 Ranelagh Road",
-      "usage": "Page titles: the letting's address, the renter's home."
+      "usage": "Page titles: the letting’s address, the renter’s home."
+     },
+     {
+      "name": "display-mobile",
+      "fontSize": "30px",
+      "lineHeight": "36px",
+      "fontWeight": 600,
+      "letterSpacing": "-0.01em",
+      "sample": "Choose a viewing time",
+      "usage": "Page titles at phone width (390px), on renter pages and the workspace."
      },
      {
       "name": "heading",
       "fontSize": "28px",
       "lineHeight": "34px",
       "fontWeight": 600,
+      "letterSpacing": "-0.01em",
       "sample": "Who should view?",
-      "usage": "Section headings and big numbers (days to let, enquiries)."
+      "usage": "Section headings and big numbers (days to let, time saved)."
      }
     ]
    },
@@ -214,7 +339,7 @@
       "fontSize": "20px",
       "lineHeight": "28px",
       "fontWeight": 600,
-      "sample": "Viewing on Thursday at 6pm",
+      "sample": "Viewing on Thursday 12 November, 6pm",
       "usage": "Card titles and dialog titles."
      },
      {
@@ -222,7 +347,7 @@
       "fontSize": "16px",
       "lineHeight": "24px",
       "fontWeight": 400,
-      "sample": "Thanks for your interest. We'll be in touch by Friday either way.",
+      "sample": "Thanks for your interest. We’ll be in touch by Friday either way.",
       "usage": "Default text. Never smaller on renter pages."
      },
      {
@@ -231,7 +356,7 @@
       "lineHeight": "20px",
       "fontWeight": 400,
       "sample": "Enquired 2 hours ago via Daft",
-      "usage": "Dense operator tables and secondary lines."
+      "usage": "Dense workspace tables and secondary lines. Workspace only."
      },
      {
       "name": "label",
@@ -239,8 +364,9 @@
       "lineHeight": "16px",
       "fontWeight": 600,
       "letterSpacing": "0.06em",
+      "textTransform": "uppercase",
       "sample": "STEP 3 OF 9",
-      "usage": "Uppercase eyebrows, table headers and status labels."
+      "usage": "Uppercase eyebrows and table headers. Status pills use its size and weight, in sentence case."
      },
      {
       "name": "caption",
@@ -248,7 +374,7 @@
       "lineHeight": "16px",
       "fontWeight": 400,
       "sample": "Deleted automatically on 14 December",
-      "usage": "Footnotes and fine print. Not for anything a renter must act on."
+      "usage": "Footnotes and fine print. Never for anything a renter must read or act on."
      }
     ]
    }
@@ -277,6 +403,11 @@
     "usage": "Card padding on mobile; the side gutter on renter pages."
    },
    {
+    "name": "space-5",
+    "value": "20px",
+    "usage": "Row insets in workspace lists."
+   },
+   {
     "name": "space-6",
     "value": "24px",
     "usage": "Card padding on desktop; between fields in a form."
@@ -285,6 +416,11 @@
     "name": "space-8",
     "value": "32px",
     "usage": "Between sections inside a page."
+   },
+   {
+    "name": "space-10",
+    "value": "40px",
+    "usage": "Between page header and content on desktop."
    },
    {
     "name": "space-12",
@@ -308,7 +444,7 @@
    {
     "name": "radius-md",
     "value": "10px",
-    "usage": "Buttons and menus."
+    "usage": "Buttons, menus, list rows, viewing slots."
    },
    {
     "name": "radius-lg",
@@ -327,10 +463,474 @@
    {
     "name": "shadow-overlay",
     "value": {
-     "light": "0 8px 24px rgba(29,43,42,0.14)",
-     "dark": "0 8px 24px rgba(0,0,0,0.5)"
+     "light": "0 8px 24px rgba(24, 34, 58, 0.14)",
+     "dark": "0 8px 24px rgba(0, 0, 0, 0.5)"
     },
-    "usage": "Menus, popovers and dialogs only. Everything else uses borders, not shadows."
+    "usage": "Menus, popovers, dialogs and toasts only. Everything else uses borders, not shadows."
+   }
+  ]
+ },
+ "motion": {
+  "tokens": [
+   {
+    "name": "motion-fast",
+    "value": "120ms",
+    "usage": "Hover, press, focus, small colour changes."
+   },
+   {
+    "name": "motion-base",
+    "value": "200ms",
+    "usage": "Expanding rows, tabs, fades."
+   },
+   {
+    "name": "motion-slow",
+    "value": "320ms",
+    "usage": "Dialogs, sheets and the mobile menu."
+   },
+   {
+    "name": "ease-standard",
+    "value": "cubic-bezier(0.2, 0, 0, 1)",
+    "usage": "Most movement."
+   },
+   {
+    "name": "ease-enter",
+    "value": "cubic-bezier(0, 0, 0, 1)",
+    "usage": "Things arriving on screen."
+   },
+   {
+    "name": "ease-exit",
+    "value": "cubic-bezier(0.3, 0, 1, 1)",
+    "usage": "Things leaving the screen."
+   }
+  ],
+  "reducedMotion": "Under prefers-reduced-motion: reduce, motion-fast, motion-base and motion-slow are 0ms."
+ },
+ "contrast": {
+  "rules": {
+   "text": "Text: 4.5:1 or more",
+   "large": "Large text (24px+, or 19px bold) and fills: 3:1 or more",
+   "ui": "Edges, focus rings and controls: 3:1 or more"
+  },
+  "pairs": [
+   {
+    "fg": "ink",
+    "bg": "surface-0",
+    "rule": "text",
+    "light": 14.29,
+    "dark": 15.85
+   },
+   {
+    "fg": "ink",
+    "bg": "surface-1",
+    "rule": "text",
+    "light": 15.56,
+    "dark": 14.63
+   },
+   {
+    "fg": "ink",
+    "bg": "surface-2",
+    "rule": "text",
+    "light": 12.74,
+    "dark": 12.82
+   },
+   {
+    "fg": "ink",
+    "bg": "sky",
+    "rule": "text",
+    "light": 10.91,
+    "dark": 11.02
+   },
+   {
+    "fg": "ink-muted",
+    "bg": "surface-0",
+    "rule": "text",
+    "light": 7.1,
+    "dark": 9.57
+   },
+   {
+    "fg": "ink-muted",
+    "bg": "surface-1",
+    "rule": "text",
+    "light": 7.73,
+    "dark": 8.83
+   },
+   {
+    "fg": "ink-muted",
+    "bg": "surface-2",
+    "rule": "text",
+    "light": 6.33,
+    "dark": 7.74
+   },
+   {
+    "fg": "atlantic-text",
+    "bg": "surface-0",
+    "rule": "text",
+    "light": 5.85,
+    "dark": 9.54
+   },
+   {
+    "fg": "atlantic-text",
+    "bg": "surface-1",
+    "rule": "text",
+    "light": 6.37,
+    "dark": 8.81
+   },
+   {
+    "fg": "atlantic-text",
+    "bg": "surface-2",
+    "rule": "text",
+    "light": 5.22,
+    "dark": 7.72
+   },
+   {
+    "fg": "ink-inverse",
+    "bg": "primary",
+    "rule": "text",
+    "light": 12.86,
+    "dark": 14.22
+   },
+   {
+    "fg": "ink-inverse",
+    "bg": "primary-hover",
+    "rule": "text",
+    "light": 10.03,
+    "dark": 16.55
+   },
+   {
+    "fg": "nav-ink",
+    "bg": "nav-bg",
+    "rule": "text",
+    "light": 12.86,
+    "dark": 15.05
+   },
+   {
+    "fg": "nav-ink",
+    "bg": "nav-active",
+    "rule": "text",
+    "light": 10.03,
+    "dark": 12.42
+   },
+   {
+    "fg": "nav-ink",
+    "bg": "navy",
+    "rule": "text",
+    "light": 12.86,
+    "dark": 9.01
+   },
+   {
+    "fg": "nav-ink-muted",
+    "bg": "nav-bg",
+    "rule": "text",
+    "light": 8.73,
+    "dark": 8.3
+   },
+   {
+    "fg": "nav-ink-muted",
+    "bg": "nav-active",
+    "rule": "text",
+    "light": 6.81,
+    "dark": 6.86
+   },
+   {
+    "fg": "success",
+    "bg": "success-bg",
+    "rule": "text",
+    "light": 5.43,
+    "dark": 6.19
+   },
+   {
+    "fg": "success",
+    "bg": "surface-0",
+    "rule": "text",
+    "light": 5.77,
+    "dark": 9.29
+   },
+   {
+    "fg": "success",
+    "bg": "surface-1",
+    "rule": "text",
+    "light": 6.28,
+    "dark": 8.57
+   },
+   {
+    "fg": "success",
+    "bg": "surface-2",
+    "rule": "text",
+    "light": 5.14,
+    "dark": 7.51
+   },
+   {
+    "fg": "warning",
+    "bg": "warning-bg",
+    "rule": "text",
+    "light": 5.08,
+    "dark": 6.37
+   },
+   {
+    "fg": "warning",
+    "bg": "surface-0",
+    "rule": "text",
+    "light": 5.36,
+    "dark": 9.52
+   },
+   {
+    "fg": "warning",
+    "bg": "surface-1",
+    "rule": "text",
+    "light": 5.83,
+    "dark": 8.78
+   },
+   {
+    "fg": "warning",
+    "bg": "surface-2",
+    "rule": "text",
+    "light": 4.78,
+    "dark": 7.7
+   },
+   {
+    "fg": "danger",
+    "bg": "danger-bg",
+    "rule": "text",
+    "light": 6.16,
+    "dark": 5.33
+   },
+   {
+    "fg": "danger",
+    "bg": "surface-0",
+    "rule": "text",
+    "light": 6.66,
+    "dark": 7.54
+   },
+   {
+    "fg": "danger",
+    "bg": "surface-1",
+    "rule": "text",
+    "light": 7.25,
+    "dark": 6.96
+   },
+   {
+    "fg": "danger",
+    "bg": "surface-2",
+    "rule": "text",
+    "light": 5.94,
+    "dark": 6.1
+   },
+   {
+    "fg": "info",
+    "bg": "info-bg",
+    "rule": "text",
+    "light": 5.59,
+    "dark": 6.08
+   },
+   {
+    "fg": "info",
+    "bg": "surface-0",
+    "rule": "text",
+    "light": 5.93,
+    "dark": 9.18
+   },
+   {
+    "fg": "info",
+    "bg": "surface-1",
+    "rule": "text",
+    "light": 6.46,
+    "dark": 8.47
+   },
+   {
+    "fg": "info",
+    "bg": "surface-2",
+    "rule": "text",
+    "light": 5.29,
+    "dark": 7.42
+   },
+   {
+    "fg": "ai",
+    "bg": "ai-bg",
+    "rule": "text",
+    "light": 5.59,
+    "dark": 6.08
+   },
+   {
+    "fg": "ink",
+    "bg": "success-bg",
+    "rule": "text",
+    "light": 13.45,
+    "dark": 10.57
+   },
+   {
+    "fg": "ink",
+    "bg": "warning-bg",
+    "rule": "text",
+    "light": 13.55,
+    "dark": 10.61
+   },
+   {
+    "fg": "ink",
+    "bg": "danger-bg",
+    "rule": "text",
+    "light": 13.22,
+    "dark": 11.2
+   },
+   {
+    "fg": "ink",
+    "bg": "info-bg",
+    "rule": "text",
+    "light": 13.48,
+    "dark": 10.51
+   },
+   {
+    "fg": "atlantic-text",
+    "bg": "success-bg",
+    "rule": "text",
+    "light": 5.51,
+    "dark": 6.36
+   },
+   {
+    "fg": "atlantic-text",
+    "bg": "warning-bg",
+    "rule": "text",
+    "light": 5.55,
+    "dark": 6.38
+   },
+   {
+    "fg": "atlantic-text",
+    "bg": "danger-bg",
+    "rule": "text",
+    "light": 5.42,
+    "dark": 6.74
+   },
+   {
+    "fg": "atlantic-text",
+    "bg": "info-bg",
+    "rule": "text",
+    "light": 5.52,
+    "dark": 6.32
+   },
+   {
+    "fg": "atlantic",
+    "bg": "surface-0",
+    "rule": "large",
+    "light": 4.62,
+    "dark": 8.04
+   },
+   {
+    "fg": "atlantic",
+    "bg": "surface-1",
+    "rule": "large",
+    "light": 5.03,
+    "dark": 7.42
+   },
+   {
+    "fg": "border-strong",
+    "bg": "surface-0",
+    "rule": "ui",
+    "light": 3.76,
+    "dark": 4.52
+   },
+   {
+    "fg": "border-strong",
+    "bg": "surface-1",
+    "rule": "ui",
+    "light": 4.1,
+    "dark": 4.17
+   },
+   {
+    "fg": "border-strong",
+    "bg": "surface-2",
+    "rule": "ui",
+    "light": 3.36,
+    "dark": 3.66
+   },
+   {
+    "fg": "focus",
+    "bg": "surface-0",
+    "rule": "ui",
+    "light": 5.85,
+    "dark": 9.54
+   },
+   {
+    "fg": "focus",
+    "bg": "surface-1",
+    "rule": "ui",
+    "light": 6.37,
+    "dark": 8.81
+   },
+   {
+    "fg": "focus",
+    "bg": "surface-2",
+    "rule": "ui",
+    "light": 5.22,
+    "dark": 7.72
+   },
+   {
+    "fg": "focus",
+    "bg": "success-bg",
+    "rule": "ui",
+    "light": 5.51,
+    "dark": 6.36
+   },
+   {
+    "fg": "focus",
+    "bg": "warning-bg",
+    "rule": "ui",
+    "light": 5.55,
+    "dark": 6.38
+   },
+   {
+    "fg": "focus",
+    "bg": "danger-bg",
+    "rule": "ui",
+    "light": 5.42,
+    "dark": 6.74
+   },
+   {
+    "fg": "focus",
+    "bg": "info-bg",
+    "rule": "ui",
+    "light": 5.52,
+    "dark": 6.32
+   },
+   {
+    "fg": "nav-focus",
+    "bg": "nav-bg",
+    "rule": "ui",
+    "light": 9.82,
+    "dark": 9.06
+   },
+   {
+    "fg": "nav-focus",
+    "bg": "nav-active",
+    "rule": "ui",
+    "light": 7.66,
+    "dark": 7.48
+   },
+   {
+    "fg": "ink-inverse",
+    "bg": "danger",
+    "rule": "text",
+    "light": 6.66,
+    "dark": 7.54
+   },
+   {
+    "fg": "ink-inverse",
+    "bg": "atlantic",
+    "rule": "text",
+    "light": 4.62,
+    "dark": 8.04
+   },
+   {
+    "fg": "primary",
+    "bg": "surface-0",
+    "rule": "ui",
+    "light": 12.86,
+    "dark": 14.22
+   },
+   {
+    "fg": "primary",
+    "bg": "surface-1",
+    "rule": "ui",
+    "light": 14,
+    "dark": 13.13
    }
   ]
  }

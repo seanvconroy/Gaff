@@ -70,7 +70,7 @@ export default async function ApprovePage({
     return (
       <LandlordShell organisationName="Gaff" tagline="Using Gaff">
         <Stack gap={4}>
-          <h1 className="type-heading">This link isn’t working</h1>
+          <h1 className="type-display-mobile">This link isn’t working</h1>
           <p>
             It may have expired, or the choice may have changed. Ask your letting agent for a new
             one.

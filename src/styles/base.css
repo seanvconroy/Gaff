@@ -40,9 +40,16 @@ ol {
   padding: 0;
 }
 
+/* Links are atlantic-text and underlined in running text, so colour is never the only cue. */
 a {
-  color: var(--color-brick-text);
+  color: var(--color-atlantic-text);
   text-underline-offset: 0.15em;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+/* Plain links only: button links, tabs and navigation set their own hover. */
+a:not([class]):hover {
+  color: var(--color-ink);
 }
 
 /* Focus ring on every interactive element: 2px outline at a 2px offset (design system). */

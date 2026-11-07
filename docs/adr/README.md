@@ -18,6 +18,9 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0012](0012-testing-and-ci.md) | Testing and CI | Accepted |
 | [0013](0013-sign-in-operators-links-for-renters.md) | Operators sign in by email link; renters and landlords use private links | Accepted |
 | [0014](0014-vercel-supabase-approved-vendors.md) | Vercel and Supabase, with approved vendors instead of EU-only | Accepted |
+| [0015](0015-marketplace-in-the-monolith.md) | The marketplace lives in the modular monolith | Accepted |
+| [0017](0017-data-zones.md) | Data zones: organisation, renter, public and staff | Accepted |
+| [0018](0018-homes-lettings-listings.md) | Homes, lettings and listings | Accepted |
 
 ## Template
 

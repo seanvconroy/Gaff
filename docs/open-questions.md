@@ -250,7 +250,7 @@ Raised on 7 November 2026 with the [marketplace PRD](marketplace/prd.md) and [te
 
 The business plan puts the marketplace third (the tool, then renters, then the marketplace), because Irish challenger portals that went after listings first closed, sold to Daft's owner or stayed small.
 
-**Decision (Sean, 7 November 2026):** everything at once. Listings, search and renter profiles open together as soon as they're built, and Gaff competes for renters from day one. The business plan needs updating to match. The CTO recommends a letter beta for 3 to 4 weeks before the public launch, so renters find homes on day one; it doesn't gate the launch.
+**Decision (Sean, 7 November 2026):** everything at once. Listings, search and renter profiles open together as soon as they're built, and Gaff competes for renters from day one. The business plan needs updating to match. The CTO recommends a letter beta for 3 to 4 weeks before the public launch, so renters find homes on day one; it doesn't gate the launch. Confirmed by Sean on 7 November 2026, when he approved the build.
 
 ### Q28. Which kinds of rental?
 
@@ -258,7 +258,7 @@ The business plan puts the marketplace third (the tool, then renters, then the m
 
 ### Q29. How are letters checked before their homes go live?
 
-**Decision (Sean, 7 November 2026):** agencies and each of their agents are matched against the PSRA public register. Private landlords pass a document-and-selfie ID check before their first home goes live. The CTO proposes Stripe Identity. Stripe is approved only to charge operators (Q26), so this use needs the founders' sign-off, its DPA terms and the privacy notice before launch. Gaff keeps only the result, the verified name and the date (Q19).
+**Decision (Sean, 7 November 2026):** agencies and each of their agents are matched against the PSRA public register. Private landlords pass a document-and-selfie ID check before their first home goes live. Gaff keeps only the result, the verified name and the date (Q19). **Stripe Identity approved by Sean on 7 November 2026** for this use only; its DPA terms and the privacy notice are on the [launch checklist](launch-checklist.md).
 
 ### Q30. Can a letter pay to rank higher?
 

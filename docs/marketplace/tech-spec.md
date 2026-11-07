@@ -1,10 +1,10 @@
 # Gaff marketplace: technical specification
 
-Draft, 7 November 2026 · CTO · proposed, to approve with the [marketplace PRD](prd.md)
+Accepted, 7 November 2026 · CTO · goes with the [marketplace PRD](prd.md), approved for build the same day
 
 ## Summary
 
-The marketplace is built inside the existing modular monolith: the same Next.js app on Vercel (Dublin), the same Postgres on Supabase (Ireland), and the same jobs, ports and adapters. It adds public pages for renters, renter accounts, a model of homes and listings, search, photos, checks on letters and moderation. Search, maps and measurement need no new service. One new use of a vendor needs the founders' approval: ID checks for private landlords (Stripe Identity proposed).
+The marketplace is built inside the existing modular monolith: the same Next.js app on Vercel (Dublin), the same Postgres on Supabase (Ireland), and the same jobs, ports and adapters. It adds public pages for renters, renter accounts, a model of homes and listings, search, photos, checks on letters and moderation. Search, maps and measurement need no new service. One new use of a vendor, ID checks for private landlords with Stripe Identity, was approved by Sean on 7 November 2026.
 
 Everything in [architecture.md](../architecture.md) and the ADRs still holds unless this document says otherwise.
 
@@ -16,7 +16,7 @@ Everything in [architecture.md](../architecture.md) and the ADRs still holds unl
 | 2 | Accounts | Better Auth for everyone. Renter accounts are optional; private links stay | ADR-0013 ruled out renter accounts for the workflow. The marketplace needs saved homes, alerts and profiles | 0016, amends 0013 |
 | 3 | Data zones | Organisation, renter, public and staff zones, each with its own row-level security and helper | Keeps tenant isolation (ADR-0004) and staged data (ADR-0005) provable as the data model grows | 0017 |
 | 4 | Homes, lettings and listings | A home lasts, a letting is one let, and a listing is the letting's public advert | Relisting, developments and a safe public copy all need it | 0018 |
-| 5 | Search and alerts | Postgres with PostGIS, pg_trgm and full-text search | Fewer than 2,400 homes were advertised to rent nationally in August 2026. Postgres is ample, and adds no vendor (ADR-0003) | 0019 |
+| 5 | Search and alerts | Postgres with pg_trgm, unaccent and full-text search. Locations are latitude and longitude with bounding-box indexes, and matching an area or a drawn shape is domain code | Fewer than 2,400 homes were advertised to rent nationally in August 2026. Postgres is ample, and adds no vendor (ADR-0003). PostGIS needs a superuser to install, which our migrations don't have, and this scale doesn't need it | 0019 |
 | 6 | Maps | MapLibre with self-hosted OpenStreetMap tiles, and open data for places, transport and schools | No map vendor sees where renters look. The map re-skins from the design tokens | 0020 |
 | 7 | Photos | Direct uploads to Supabase Storage. A job checks, cleans and resizes them. Fixed sizes are served from the CDN, with perceptual hashes | Predictable cost, no location data, and stolen-photo detection | 0021 |
 | 8 | Checking letters | Weekly PSRA register import; Stripe Identity for private landlords; our own SMS codes through Sinch | Matches Q29, and keeps only results | 0022 |
@@ -40,7 +40,7 @@ Everything in [architecture.md](../architecture.md) and the ADRs still holds unl
        ┌─────────▼──────────────────────┐        ┌───────────▼────────────────┐
        │ Postgres (Supabase, Ireland)   │        │ Supabase Storage + CDN     │
        │ zones: organisation, renter,   │        │ photos (fixed sizes),      │
-       │ public, staff; PostGIS; events;│        │ map tiles (PMTiles)        │
+       │ public, staff; pg_trgm; events;│        │ map tiles (PMTiles)        │
        │ job queue; outbox              │        └────────────────────────────┘
        └─────────▲──────────────────────┘
                  │
@@ -122,11 +122,11 @@ Two narrow exceptions, each lint-restricted to the use cases that need them, lik
 | Table | Holds | Personal data? |
 | --- | --- | --- |
 | `organisations` (changed) | Kind (`agency` or `landlord`), legal and trading names, slug, logo, public phone and website, office address, PSRA licence number, check status | No |
-| `memberships` (changed) | Role (`admin` or `agent`); the agent's public details: display name, photo, licence number, whether the phone is shown; branch (Should) | Agents' details, which they choose to publish |
-| `homes` (new) | Development and unit type, address, Eircode and routing key, location (PostGIS point), whether the exact address is shown, place, type, bedrooms, bathrooms, en-suites, floor area, floor and lift, BER (scale, rating, number, certificate date, exemption reason), heating, parking, outdoor space, accessibility features, appliances, broadband | A landlord's own address can be, so the Eircode is never public |
+| `memberships` (changed) | Role (`admin` or `negotiator`, shown to renters as an agent); the agent's public details: display name, photo, licence number, whether the phone is shown; branch (Should) | Agents' details, which they choose to publish |
+| `homes` (new) | Development and unit type, address, Eircode and routing key, location (latitude and longitude), whether the exact address is shown, place, type, bedrooms, bathrooms, en-suites, floor area, floor and lift, BER (scale, rating, number, certificate date, exemption reason), heating, parking, outdoor space, accessibility features, appliances, broadband | A landlord's own address can be, so the Eircode is never public |
 | `developments` (new) | Name, slug, location, place, description, amenities (a closed list), status | No |
 | `unit_types` (new) | Development, label, bedrooms, bathrooms, size range | No |
-| `lettings` (changed) | Adds `home_id`, deposit in cents (a check constraint keeps it no higher than the rent), furnishing, pets policy, enquiry limit (a number, a closing time, or both) | No |
+| `lettings` (changed) | Keeps its copy of the home's facts as advertised (ADR-0018). Adds `home_id`, deposit in cents (a check constraint keeps it no higher than the rent), furnishing, pets policy, enquiry limit (a number, a closing time, or both) | No |
 | `listings` (new) | Letting (unique), status, slug, description and how it was written (by the letter, or an AI draft they edited), address shown, assigned agent, published, confirmed and closed times, next confirmation due, current revision | No |
 | `listing_revisions` (new) | A snapshot of the public content and its check results at each publish or edit | No |
 | `listing_holds` (new) | Listing, reason codes, opened and resolved times | No |
@@ -134,7 +134,7 @@ Two narrow exceptions, each lint-restricted to the use cases that need them, lik
 | `tour_links` (new) | Listing, provider, URL from an allow-listed host | No |
 | `applications` (changed) | Adds `renter_user_id` (nullable), `source` (`gaff`, `daft` or `myhome`) and `listing_id` | Yes, as now |
 | `messages` (changed) | Adds the `in_app` channel and a read time | Yes, as now |
-| `verifications` (new) | Subject (organisation, membership or user), method (`psra_register`, `id_document` or `sms`), status, verified name, provider reference, checked at, checked by, expiry | The verified name |
+| `letter_checks` (new; Better Auth already has a `verifications` table) | Subject (organisation, membership or user), method (`psra_register`, `id_document` or `sms`), status, verified name, provider reference, checked at, checked by, expiry | The verified name |
 | `declarations` (new) | Who declared what (owner or authorised to let; RTB registration), the wording version and the time | No |
 | `listing_daily_stats` (new) | Listing, day, views, unique visitors, saves, enquiries, alerts sent | No |
 
@@ -147,7 +147,7 @@ Two narrow exceptions, each lint-restricted to the use cases that need them, lik
 | `renter_application_details` | How they mainly earn, and monthly take-home income in cents (the stage 5 group) | Yes |
 | `renter_verified_results` | Kind (identity or affordability), result, verified name, checked and expiry dates (the stage 6 group) | Yes |
 | `saved_homes` | Listing and a private note | Yes (the note) |
-| `saved_searches` | Name, filters (indexable typed columns plus validated JSON), area (PostGIS geometry), alert frequency, last sent | Linked to a person |
+| `saved_searches` | Name, filters (indexable typed columns plus validated JSON), area (a place, or a drawn shape as GeoJSON with its bounding box), alert frequency, last sent | Linked to a person |
 | `alert_deliveries` | Saved search, listing, sent time | No |
 | `profile_shares` | Application, data group, shared time. Behind "Who has my details" | No (IDs only) |
 | `follows` (Should) | Listing followed for viewing or enquiry news | Linked to a person |
@@ -206,7 +206,7 @@ Two narrow exceptions, each lint-restricted to the use cases that need them, lik
 
 1. The route `/to-rent/dublin/rathmines?beds=2&max=2600&pets=1` is parsed with Zod by `domain/search` (a codec between web addresses and filters).
 2. The place resolves to a boundary, or to a routing key ("Dublin 6", "D6" and "D06" all mean routing key D06, so Dublin postal districts need no boundaries).
-3. A query against `public_listings` in `withPublic()`: a partial index on live listings, `ST_Intersects` with the area, the filters, best-match order and keyset pagination.
+3. A query against `public_listings` in `withPublic()`: a partial index on live listings, the area's place or bounding box (a drawn shape is then checked point by point in domain code), the filters, best-match order and keyset pagination.
 4. The map asks a separate endpoint for light points in view (ID, position, rent), at most 2,000, clustered in the browser.
 5. Signed-in extras (saved hearts, "You enquired") load in a small client island after the page, so the page itself stays cacheable.
 
@@ -220,7 +220,7 @@ Two narrow exceptions, each lint-restricted to the use cases that need them, lik
 ### Alerts
 
 1. After a listing goes live, or its rent drops, `alerts.match` runs in `withSystem()`.
-2. It finds saved searches whose typed filter columns match the listing and whose area contains it (`ST_Intersects`, GiST index), and inserts `alert_deliveries` rows. A unique key makes the job safe to repeat.
+2. It finds saved searches whose typed filter columns match the listing and whose area contains it (by place, or by bounding box and then point-in-polygon in domain code), and inserts `alert_deliveries` rows. A unique key makes the job safe to repeat.
 3. **Instant:** an `alerts.send` job per renter, keyed so several new homes within 2 minutes go in one email. **Daily:** one job at 8am Europe/Dublin.
 4. Email goes through the email port (Resend) from the alerts subdomain, with `List-Unsubscribe` and one-click unsubscribe (RFC 8058). Bounces and complaints switch the alert off.
 5. Target: within 5 minutes of a home going live (M87).
@@ -248,7 +248,7 @@ Two narrow exceptions, each lint-restricted to the use cases that need them, lik
 
 ## Search and ranking
 
-- **Indexes on `public_listings`:** a partial index on live listings; GiST on location; B-tree on rent, bedrooms and available-from; GIN on features and search text.
+- **Indexes on `public_listings`:** a partial index on live listings; B-tree on latitude and longitude; B-tree on rent, bedrooms and available-from; GIN on features and search text.
 - **Best match**, in `domain/search/ranking.ts`:
   - score = 100 × fit + 20 × freshness + 10 × completeness;
   - fit, from 0 to 1: how close availability is to the renter's date, headroom within their budget, and distance from a point they searched around;
@@ -265,7 +265,7 @@ Two narrow exceptions, each lint-restricted to the use cases that need them, lik
 - **MapLibre GL JS**, loaded only when the map opens or scrolls into view.
 - **Base map:** an OpenStreetMap extract of the island of Ireland in Protomaps PMTiles format, stored in Supabase Storage and read with range requests. `pnpm tokens` will also generate the map style from the design tokens, so the map re-skins with everything else. Attribution: "© OpenStreetMap contributors".
 - **No Google or Mapbox scripts.** "Open in Google Maps" is a plain link.
-- **Address entry:** the Eircode's format is checked and the Eircode stored. The letter places the pin, and the place is found by point-in-polygon against `places`. An Eircode lookup service (Autoaddress) could fill in the address and pin automatically; it's optional and needs approval (rule 10).
+- **Address entry:** the Eircode's format is checked and the Eircode stored. The letter places the pin, and the place is found by point-in-polygon against `places`, in domain code. An Eircode lookup service (Autoaddress) could fill in the address and pin automatically; it's optional and needs approval (rule 10).
 - **Places:** counties and towns from Tailte Éireann open data (CC BY 4.0). Areas come from OpenStreetMap suburb and neighbourhood boundaries where they exist, otherwise from Electoral Division boundaries grouped by hand for the most-searched areas. Aliases include Irish names, "Dublin 6" and common spellings.
 - **Nearby:** transport stops from the NTA's GTFS feeds and schools from the Department of Education's lists. Walking distance is straight-line distance × 1.3 until a routing engine arrives.
 - **Commute time (Should, M63)** needs a routing engine. OpenTripPlanner with GTFS and OpenStreetMap is self-hostable, but it needs a long-running server that Vercel and Supabase don't provide. That's a hosting decision for when we get there.
@@ -404,7 +404,7 @@ After launch, the Should items follow in this order: M53, M36, M63, M89, M54, M8
 | Email | Resend | Approved |
 | SMS | Sinch (EU) | Approved |
 | AI: description drafts, moderation, photo checks, alt text | Claude on Amazon Bedrock (EU) | Approved |
-| ID checks for private landlords | Stripe Identity | Route chosen by Sean (Q29). Stripe is approved only to charge operators, so this use needs the founders' sign-off, its DPA terms and the privacy notice |
+| ID checks for private landlords | Stripe Identity | Approved by Sean on 7 November 2026 (Q29). Needs its DPA terms and the privacy notice before launch |
 | Address and Eircode lookup | Autoaddress, optional | Needs approval. Launch works without it |
 | Bot detection beyond rate limits | Vercel BotID, to evaluate | Check its sub-processor first |
 | Browser notifications | Web Push through the browsers' push services | DPIA before switching on (Should) |
@@ -428,13 +428,13 @@ After launch, the Should items follow in this order: M53, M36, M63, M89, M54, M8
 | Photo egress cost | Fixed sizes and long caching, monitored; the media port allows a move |
 | Liability for discriminatory ads | Blocking checks from day one; the solicitor (Q36) |
 
-## ADRs to record on approval
+## ADRs
 
 - ADR-0015: The marketplace lives in the modular monolith
 - ADR-0016: Renter accounts alongside private links (amends ADR-0013)
 - ADR-0017: Data zones: organisation, renter, public and staff
 - ADR-0018: Homes, lettings and listings
-- ADR-0019: Search and alerts on Postgres and PostGIS
+- ADR-0019: Search and alerts on Postgres
 - ADR-0020: Self-hosted maps and open data
 - ADR-0021: The photo pipeline
 - ADR-0022: Checking letters

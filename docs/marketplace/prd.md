@@ -1,6 +1,6 @@
 # Gaff marketplace: product requirements
 
-Draft, 7 November 2026 · for Sean and Ann to approve · requirements M1 to M112
+Approved for build by Sean on 7 November 2026 · requirements M1 to M112
 
 ## Summary
 
@@ -11,7 +11,7 @@ Gaff becomes the place where homes in Ireland are let, not just the software beh
 - **Why it's better than Daft:** listing is free and quick, every letter is checked before their home goes live, listings stay fresh, renters see the letter's criteria and the full cost to move in before they enquire, and everyone who enquires hears back.
 - **How it fits:** this document puts the marketplace in front of the workflow in the [workflow PRD](../prd.md), which stays the source of truth for stages 2 to 9. The workflow PRD listed a Gaff search site and listings as out of scope; this document brings them in.
 - **How it's built:** see the [technical specification](tech-spec.md).
-- **Status:** draft. Sean took the four decisions below on 7 November 2026 (Q27 to Q30 in [open-questions.md](../open-questions.md)). The open questions at the end have proposed answers.
+- **Status:** approved for build on 7 November 2026. Sean took the four decisions below the same day (Q27 to Q30 in [open-questions.md](../open-questions.md)). The open questions at the end have proposed answers, which the build uses until they're decided. Progress is in [status.md](../status.md).
 
 ## Decisions that shape this document
 
@@ -19,7 +19,7 @@ Gaff becomes the place where homes in Ireland are let, not just the software beh
 | --- | --- | --- |
 | When does the marketplace go live? | All at once: listings, search and renter profiles open together as soon as they're built | Gaff competes for renters from day one, so launch needs a plan and a budget to bring renters in. This reverses the order in the [business plan](../business-plan.md) (tool, then renters, then marketplace), which needs updating |
 | Which rentals? | Whole homes let on a tenancy, including homes in developments and build-to-rent | No room shares, student beds, short lets, commercial or parking |
-| How are letters checked? | Agencies and agents against the PSRA public register. Private landlords pass a document-and-selfie ID check before their first home goes live | A new use for an ID-check provider (rule 10). Stripe Identity is proposed |
+| How are letters checked? | Agencies and agents against the PSRA public register. Private landlords pass a document-and-selfie ID check before their first home goes live | Stripe Identity, approved by Sean for this on 7 November 2026 (rule 10) |
 | Can a letter pay to rank higher? | Never | Results are ordered by fit and freshness only. Listings are free; revenue comes from the workflow and partner services |
 
 ## The problem

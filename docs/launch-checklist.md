@@ -45,3 +45,26 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] Error alerts going to a founder
 - [ ] Test copy on Vercel and Supabase ([deploy.md](deploy.md)), made-up details only
 - [ ] Approve-before-send on for the pilot operator
+
+## Marketplace (before the public launch)
+
+The [marketplace PRD](marketplace/prd.md) was approved for build on 7 November 2026. On top of everything above:
+
+**Founders**
+
+- [ ] **Stripe Identity:** a Stripe account with Identity enabled; sign the DPA; the privacy notice names it and its transfer basis (Q29)
+- [ ] The budget and target cost per active renter (Q31)
+- [ ] Decide Q32 to Q35 (workflow free during launch; listing defaults; partner services; "Ready to move")
+- [ ] The letter beta: invite pilot agencies, Ann's network and two or three developments, aiming for 300 live homes in Dublin
+
+**Solicitor**
+
+- [ ] The marketplace questions in Q36: Equal Status Acts section 12, the Digital Services Act, data protection roles, badge wording, the HAP statement, the PSRA register, private landlords as consumers, report retention, BER display
+- [ ] Terms for renters and letters, the listing policy and the statement-of-reasons templates (M98, M101)
+
+**Operations**
+
+- [ ] DPIA updated for renter accounts, profiles, alerts and checks on letters
+- [ ] Supabase Storage: a private bucket for uploads and a public bucket for listing photos, behind the CDN
+- [ ] The weekly PSRA register import running, with its log checked
+- [ ] Gaff staff with passkeys, and review cover for the first weeks after launch

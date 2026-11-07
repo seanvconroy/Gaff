@@ -73,12 +73,27 @@ Last updated: 1 November 2026 (all three slices built; hosting moved to Vercel a
 
 ## Next
 
-- **Marketplace:** the [PRD](marketplace/prd.md) and [technical specification](marketplace/tech-spec.md) are drafted for the founders to approve (decisions Q27 to Q30, open questions Q31 to Q36). Nothing is built yet.
+- **Marketplace:** approved for build on 7 November 2026. Progress is in the Marketplace section below.
 
 - **Deploy the test copy** on Vercel and Supabase ([deploy.md](deploy.md), about 20 minutes).
 - **Your end-to-end test** (see [testing-guide.md](testing-guide.md)), then feedback and iteration.
 - **Before the first pilot:** everything in [launch-checklist.md](launch-checklist.md), including the providers for ID and income checks (stand-ins today) and the solicitor’s answers on electronic signing (Q23) and the agreement wording.
 - **Later:** joint tenants on one agreement; guarantors when affordability isn’t met (renters can explain or add one by replying, today); an e-signature provider if the solicitor wants an advanced signature; renter profiles they can keep and reuse (decided in Q25; a slice of its own after the end-to-end test); an export of the signed agreement, packs and inventory as PDFs; moving the renter pages’ words into `src/copy/`.
+
+## Marketplace (approved 7 November 2026)
+
+The [marketplace PRD](marketplace/prd.md) and [technical specification](marketplace/tech-spec.md), built in the specification's milestone order.
+
+| # | Milestone | Status |
+| --- | --- | --- |
+| 1 | Foundations: data zones, homes and listings, places, photos | In progress |
+| 2 | Accounts and checks on letters | Not started |
+| 3 | Listing a home | Not started |
+| 4 | Search and public pages | Not started |
+| 5 | Enquiry to the workflow | Not started |
+| 6 | Saved homes and alerts | Not started |
+| 7 | Reports and review | Not started |
+| 8 | Launch readiness | Not started |
 
 ## Known issues
 

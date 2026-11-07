@@ -1,6 +1,6 @@
 # Gaff
 
-Gaff runs the letting of a home for Irish letting agents and portfolio landlords, from the first Daft or MyHome enquiry to a signed tenancy. The AI does the work. People make three decisions: who views, who is offered the home, and what is signed. Renters use it free.
+Gaff is where homes in Ireland are let. Letters (private landlords, and agents working for agencies) list homes free; renters search and enquire; and Gaff runs each letting from the first enquiry, on Gaff, Daft or MyHome, to a signed tenancy. The AI does the work. People make three decisions: who views, who is offered the home, and what is signed. Renters use it free.
 
 - **What to build:** `docs/prd.md` is the source of truth. Requirement IDs (R1, R2…) come from it.
 - **How it looks and sounds:** `docs/design-system.md` and `docs/design-tokens.json`.
@@ -9,7 +9,7 @@ Gaff runs the letting of a home for Irish letting agents and portfolio landlords
 - **Progress:** `docs/status.md` (keep it current).
 - **Before the first pilot:** `docs/launch-checklist.md`.
 - **Competitor teardowns:** `docs/competitors/` (reference only).
-- **Marketplace (proposed, not approved yet):** `docs/marketplace/prd.md` and `docs/marketplace/tech-spec.md`. Requirement IDs M1, M2… Don't build from them until the founders approve.
+- **Marketplace (approved 7 November 2026):** `docs/marketplace/prd.md` (requirement IDs M1, M2…) and `docs/marketplace/tech-spec.md`. The product rules below apply to it in full.
 
 ## Product rules: never break these
 
@@ -47,7 +47,7 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
     - its EU region, wherever it has one;
     - a lawful basis for anything outside the EU (the EU–US Data Privacy Framework or standard contractual clauses), named in the privacy notice.
 
-    Approved so far (Q26, ADR-0014): Vercel (functions in Dublin), Supabase (Ireland), Resend (email), Claude on Amazon Bedrock (EU), Sinch (EU), Mailgun (EU, as an alternative), and later Stripe, only to charge operators.
+    Approved so far (Q26, Q29, ADR-0014): Vercel (functions in Dublin), Supabase (Ireland), Resend (email), Claude on Amazon Bedrock (EU), Sinch (EU), Mailgun (EU, as an alternative), Stripe Identity, only to check private landlords' identity before their first listing, and later Stripe, only to charge operators.
 
 ## Voice: every word renters see
 

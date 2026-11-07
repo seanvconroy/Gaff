@@ -1,6 +1,7 @@
 import { and, eq, gte, inArray, lte, ne } from 'drizzle-orm';
 import { cache } from 'react';
 import { withPublic } from '@/db/client';
+import type { CriterionQuestion } from '@/domain/criteria/criteria';
 import { publicListings } from '@/db/schema';
 import type { ProjectionLetter, ProjectionPhoto } from '@/domain/listings/projection';
 import { SIMILAR_RENT_RANGE, similarHomes } from '@/domain/search/similar';
@@ -18,6 +19,7 @@ export const publicListingBySlug = cache(async (slug: string) => {
       photos: row.photos as unknown as ProjectionPhoto[],
       letter: row.letter as unknown as ProjectionLetter,
       facts: row.facts as PublicFacts,
+      questions: row.questions as CriterionQuestion[],
     };
   });
 });

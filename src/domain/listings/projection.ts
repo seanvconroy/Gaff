@@ -1,4 +1,4 @@
-import { describeCriteria, type Criteria } from '@/domain/criteria/criteria';
+import { describeCriteria, questionsFor, type Criteria } from '@/domain/criteria/criteria';
 import { berBand, berLabel, type Ber } from '@/domain/homes/ber';
 import { propertyTypes } from '@/domain/homes/facts';
 import { approximate } from '@/domain/places/geo';
@@ -110,11 +110,43 @@ export function addressShown(
   if (home.showExactAddress) {
     return [home.addressLine1, home.addressLine2, home.area].filter(Boolean).join(', ');
   }
-  const street = home.addressLine1
+  return [streetOf(home.addressLine1), home.area].filter(Boolean).join(', ');
+}
+
+/** "Apartment 4, 12 Ranelagh Road" → "Ranelagh Road": the street, without the home's number. */
+export function streetOf(addressLine1: string): string {
+  return addressLine1
     .replace(/^(apartment|apt\.?|flat|unit|no\.?)\s*[\w-]+,?\s*/i, '')
     .replace(/^\d+[a-z]?\s*,?\s*/i, '')
     .trim();
-  return [street, home.area].filter(Boolean).join(', ');
+}
+
+/** Statuses at which a renter has been invited to view, or gone further. */
+const invitedOrLater = new Set([
+  'invited',
+  'booked',
+  'attended',
+  'no_show',
+  'applied',
+  'preferred',
+  'backup',
+  'offered',
+  'accepted',
+  'declined',
+  'not_chosen',
+]);
+
+/**
+ * M38: if the letter chose to show only the street, a renter sees the exact address once
+ * they're invited to view, and not before: not in the first reply, answers, waiting-list or
+ * closing messages, nor on their page.
+ */
+export function addressForRenter(
+  addressLine1: string,
+  showExactAddress: boolean,
+  status: string,
+): string {
+  return showExactAddress || invitedOrLater.has(status) ? addressLine1 : streetOf(addressLine1);
 }
 
 /** A stable web address for the listing, given at first publish. */
@@ -175,6 +207,7 @@ export function buildPublicListing(input: ProjectionInput, now: Date = new Date(
       ensuites: home.ensuites,
     },
     criteria: describeCriteria(input.criteria, now),
+    questions: questionsFor(input.criteria),
     photos: input.photos.map((p) => ({ ...p })),
     letter: { ...input.letter },
     description: input.description.trim(),

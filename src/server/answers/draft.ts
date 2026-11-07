@@ -23,6 +23,7 @@ import { enqueue } from '@/server/jobs/enqueue';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
 import { factsFor } from './facts';
+import { renterAddress } from '@/server/lettings/address';
 
 /** Whether a renter's message needs answers at all (questions, or asking for a person). */
 export function needsAnswers(body: string): boolean {
@@ -188,7 +189,7 @@ async function saveOutcome(
     const { subject, body } = answersEmail({
       renterName: application.fullName,
       operatorName: organisation.name,
-      address: letting.addressLine1,
+      address: await renterAddress(tx, letting, application.status),
       answers,
       passedToPerson: toOperator.length > 0,
     });

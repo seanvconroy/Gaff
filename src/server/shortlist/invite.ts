@@ -18,6 +18,7 @@ import { UserFacingError } from '@/server/errors';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
 import { shortlistFor } from './shortlist';
+import { renterAddress } from '@/server/lettings/address';
 
 /**
  * R11: a person approves who is invited to view, and the waiting list, in one action. The
@@ -85,10 +86,13 @@ export async function inviteToView(
       .from(applications)
       .where(inArray(applications.id, [...plan.invited, ...plan.waitlisted, ...plan.notInvited]));
     const byId = new Map(people.map((p) => [p.id, p]));
-    const base = (id: string) => ({
+    // M38: only the people invited to view get the exact address, if the letter hid it.
+    const exactAddress = await renterAddress(tx, letting, 'invited');
+    const streetAddress = await renterAddress(tx, letting, 'not_invited');
+    const base = (id: string, invited = false) => ({
       renterName: byId.get(id)!.fullName,
       operatorName: organisation!.name,
-      address: letting.addressLine1,
+      address: invited ? exactAddress : streetAddress,
       area: letting.area,
     });
     const send = (
@@ -119,7 +123,11 @@ export async function inviteToView(
         id,
         'invitation',
         INVITATION_TEMPLATE,
-        invitationEmail({ ...base(id), bookingUrl: `${env().APP_URL}/r/${token}`, sessions }),
+        invitationEmail({
+          ...base(id, true),
+          bookingUrl: `${env().APP_URL}/r/${token}`,
+          sessions,
+        }),
       );
     }
     for (const [index, id] of plan.waitlisted.entries()) {

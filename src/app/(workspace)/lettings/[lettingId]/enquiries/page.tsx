@@ -9,7 +9,8 @@ import { LettingHeader } from '../LettingHeader';
 
 export const metadata: Metadata = { title: 'Enquiries' };
 
-const portalNames: Record<string, string> = { daft: 'Daft', myhome: 'MyHome' };
+// M83: one list, labelled by where each enquiry came from.
+const portalNames: Record<string, string> = { daft: 'Daft', myhome: 'MyHome', gaff: 'Gaff' };
 
 /** R6: everyone who has enquired, with duplicates across portals merged. */
 export default async function EnquiriesPage({
@@ -52,7 +53,10 @@ export default async function EnquiriesPage({
                 <td>{application.sources.map((s) => portalNames[s] ?? s).join(' and ')}</td>
                 <td>{formatDateTime(application.firstEnquiredAt)}</td>
                 <td>
-                  {application.answersAt ? (
+                  {application.status === 'withdrawn' ? (
+                    // M81: the renter withdrew; they're no longer considered.
+                    <StatusPill>Withdrew</StatusPill>
+                  ) : application.answersAt ? (
                     <StatusPill tone="success">Answered</StatusPill>
                   ) : (
                     <StatusPill>Not yet</StatusPill>

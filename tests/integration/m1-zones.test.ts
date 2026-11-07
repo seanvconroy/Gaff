@@ -31,6 +31,8 @@ const PUBLIC_LISTING_COLUMNS = [
   'pets_considered',
   'facts',
   'criteria',
+  // M76: the codes of the fixed questions the enquiry sheet asks.
+  'questions',
   'photos',
   'letter',
   'description',

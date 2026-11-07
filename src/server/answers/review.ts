@@ -16,6 +16,7 @@ import { recordDecision } from '@/server/decisions/record-decision';
 import { UserFacingError } from '@/server/errors';
 import { queueMessage, scheduleApproved } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
+import { renterAddress } from '@/server/lettings/address';
 
 /**
  * R29: a person approves an AI-written message before it goes, as it is or edited. Each
@@ -145,7 +146,7 @@ export async function answerQuestion(
       renterName: row.application.fullName,
       operatorName: row.organisation.name,
       personName: member.name,
-      address: row.letting.addressLine1,
+      address: await renterAddress(tx, row.letting, row.application.status),
       question: row.question.question,
       answer: text,
     });

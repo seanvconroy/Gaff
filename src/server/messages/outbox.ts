@@ -174,7 +174,8 @@ export async function sendMessage(input: {
         data: {
           messageId: message.id,
           kind: message.kind as OutboundKind,
-          channel: message.channel,
+          // Outbound messages go by email or text; "app" is only for what renters write in Gaff.
+          channel: message.channel as 'email' | 'sms',
           author: message.author as 'template' | 'ai' | 'person',
         },
       });

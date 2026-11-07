@@ -29,7 +29,7 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] Rent-check rule table (Q8): `src/domain/rent/rent-check.ts` cites its sources
 - [ ] Criteria list, pets wording and assistance-dog rule (Q9)
 - [ ] Fixed answers on protected grounds (Q7)
-- [ ] Message templates in `src/copy/templates/`: first reply (with AI disclosure), holding message, invitation, waiting list, booking confirmation, reminders (email and SMS), place offered, letting closed, and later offer and outcome
+- [ ] Message templates in `src/copy/templates/`: first reply (with AI disclosure; version 2 adds the M28 line that no money is asked for before signing, and thanks renters who answered on Gaff), holding message, invitation, waiting list, booking confirmation, reminders (email and SMS), place offered, letting closed, and later offer and outcome
 - [ ] Privacy notice for renters (GDPR Article 14)
 - [ ] Collecting the PPSN for RTB registration (optional, sealed, deleted once registered; no date of birth, Q24), and the registration deadline
 - [ ] Gaff’s standard tenancy agreement wording (`src/copy/templates/tenancy-agreement.ts`), and whether it can be signed electronically or must be signed on paper (Electronic Commerce Act 2000, s.10(1)(b); Q23)

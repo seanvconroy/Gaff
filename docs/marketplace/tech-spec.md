@@ -337,6 +337,8 @@ Two narrow exceptions, each lint-restricted to the use cases that need them, lik
 | Listing revisions | 12 months after the letting closes | Retention job |
 | A let or withdrawn listing's public page | 90 days after it closes (M74) | Retention job |
 | Visitor hashes behind the daily view counts | The end of the day (Irish time); only the counts stay | Retention job |
+| A renter's list of homes (`renter_enquiries`: the listing's title and address shown, the letter's name) | While the account lasts | Deleted with the account |
+| The mobile number and answers kept with "Keep my details" | The renter unticks it, deletes them, or 2 years after they last used them (Q25) | Renter, or the retention job |
 | The PSRA register | Replaced each week | Import job |
 | Photos | While the home stays in the letter's account. Public copies go when the listing's page goes | Media job |
 | Letters' copies (applications and the rest) | As now (Q3, Q25) | As now |

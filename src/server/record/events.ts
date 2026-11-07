@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Tx } from '@/db/client';
 import { events } from '@/db/schema';
 import { assertNoPersonalData } from '@/domain/record/personal-data';
+import { withdrawableStatuses } from '@/domain/enquiries/marketplace';
 
 /**
  * Every event type and the shape of its payload (ADR-0006). Payload fields must be IDs,
@@ -47,9 +48,20 @@ export const eventCatalogue = {
   }),
   'email.dismissed': z.object({ inboundEmailId: z.uuid() }),
   /** R6: a new renter enquired. */
-  'enquiry.received': z.object({ applicationId: z.uuid(), portal: z.enum(['daft', 'myhome']) }),
+  'enquiry.received': z.object({
+    applicationId: z.uuid(),
+    portal: z.enum(['daft', 'myhome', 'gaff']),
+  }),
   /** R6: the same renter enquired again (maybe on the other portal): merged, not duplicated. */
-  'enquiry.repeated': z.object({ applicationId: z.uuid(), portal: z.enum(['daft', 'myhome']) }),
+  'enquiry.repeated': z.object({
+    applicationId: z.uuid(),
+    portal: z.enum(['daft', 'myhome', 'gaff']),
+  }),
+  /** M81: the renter withdrew their enquiry; their details follow the retention rules. */
+  'enquiry.withdrawn': z.object({
+    applicationId: z.uuid(),
+    from: z.enum(withdrawableStatuses),
+  }),
   'reply.received': z.object({ applicationId: z.uuid(), messageId: z.uuid() }),
   /** R9: the renter answered the pre-viewing questions (which ones isn't personal; the answers are). */
   'application.answered': z.object({

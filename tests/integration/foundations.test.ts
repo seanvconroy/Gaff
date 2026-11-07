@@ -9,6 +9,9 @@ import { createTestMember, databaseError } from './helpers';
 // Identity tables are read before an organisation is known; every other table with an
 // organisation_id column holds tenant data and must be protected by row-level security.
 const IDENTITY_TABLES = new Set(['organisations', 'memberships']);
+// ADR-0017: the renter zone. These name the organisation a renter's details went to, but they
+// belong to the renter: protected by the renter's policy, never the organisation's.
+const RENTER_TABLES = new Set(['profile_shares', 'renter_enquiries']);
 
 describe('ADR-0004: tenant isolation', () => {
   it('every tenant table has row-level security enabled, forced and a tenant policy', async () => {
@@ -17,20 +20,34 @@ describe('ADR-0004: tenant isolation', () => {
       enabled: boolean;
       forced: boolean;
       policies: number;
+      renterPolicies: number;
     }>(sql`
       select c.relname as table, c.relrowsecurity as enabled, c.relforcerowsecurity as forced,
-        (select count(*)::int from pg_policies p where p.tablename = c.relname and p.policyname = 'tenant_isolation') as policies
+        (select count(*)::int from pg_policies p where p.tablename = c.relname and p.policyname = 'tenant_isolation') as policies,
+        (select count(*)::int from pg_policies p where p.tablename = c.relname and p.policyname = 'renter_isolation') as "renterPolicies"
       from pg_class c
       join pg_namespace n on n.oid = c.relnamespace
       join information_schema.columns col on col.table_name = c.relname and col.table_schema = n.nspname
       where n.nspname = 'public' and c.relkind = 'r' and col.column_name = 'organisation_id'`);
-    const tenantTables = rows.filter((row) => !IDENTITY_TABLES.has(row.table));
+    const tenantTables = rows.filter(
+      (row) => !IDENTITY_TABLES.has(row.table) && !RENTER_TABLES.has(row.table),
+    );
     expect(tenantTables.length).toBeGreaterThan(0);
     for (const row of tenantTables) {
       expect(row, `${row.table} must be protected`).toMatchObject({
         enabled: true,
         forced: true,
         policies: 1,
+      });
+    }
+    const renterTables = rows.filter((row) => RENTER_TABLES.has(row.table));
+    expect(renterTables.map((row) => row.table).sort()).toEqual([...RENTER_TABLES].sort());
+    for (const row of renterTables) {
+      expect(row, `${row.table} must belong to the renter`).toMatchObject({
+        enabled: true,
+        forced: true,
+        policies: 0,
+        renterPolicies: 1,
       });
     }
   });

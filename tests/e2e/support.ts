@@ -59,6 +59,17 @@ export async function latestLinkFor(email: string): Promise<string> {
   return link;
 }
 
+/** M76: the 6-digit code last emailed to this address (from the development outbox). */
+export async function latestCodeFor(email: string): Promise<string> {
+  const rows = await query<{ subject: string }>(
+    'select subject from dev_outbox where to_address = $1 order by created_at desc limit 1',
+    [email],
+  );
+  const code = rows[0]?.subject.match(/\b\d{6}\b/)?.[0];
+  if (!code) throw new Error(`No code has been sent to ${email}`);
+  return code;
+}
+
 /** Signs in through the real email-link flow. */
 export async function signIn(page: Page, email: string): Promise<void> {
   await page.goto('/sign-in');

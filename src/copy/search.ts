@@ -50,6 +50,7 @@ export function whatHappensWhenYouEnquire(input: {
       ? `Enquiries close on ${input.enquiriesClose}.`
       : `Enquiries stay open until ${input.letterName} has enough people to view.`,
     'Everyone who enquires hears back, either way.',
+    'Nobody will ask you for money before you sign a tenancy agreement. If anyone does, don’t send any, and tell Gaff.',
   ];
 }
 

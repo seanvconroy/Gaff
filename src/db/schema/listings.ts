@@ -14,6 +14,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { listingStatuses, publicStatuses } from '@/domain/listings/lifecycle';
+import type { CriterionQuestion } from '@/domain/criteria/criteria';
 import type { PublicViewing } from '@/domain/listings/projection';
 import { users } from './auth';
 import { createdAt, publicReadPolicy, staffReviewPolicy, tenantPolicy, updatedAt } from './columns';
@@ -118,6 +119,8 @@ export const publicListings = pgTable(
     facts: jsonb().$type<Record<string, unknown>>().notNull(),
     /** M68: the letter's criteria in plain words. */
     criteria: jsonb().$type<string[]>().notNull(),
+    /** M76: which of the fixed questions the enquiry sheet asks (codes only). */
+    questions: jsonb().$type<CriterionQuestion[]>().notNull().default([]),
     photos: jsonb().$type<Array<Record<string, unknown>>>().notNull(),
     /** M70: the letter card: kind, the names the letter chose to show, badges, licence numbers. */
     letter: jsonb().$type<Record<string, unknown>>().notNull(),

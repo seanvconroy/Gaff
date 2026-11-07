@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { distanceMetres } from '@/domain/places/geo';
 import {
+  addressForRenter,
   addressShown,
   buildPublicListing,
   listingSlug,
@@ -121,5 +122,22 @@ describe('ADR-0017: the public projection of a listing', () => {
     expect(listingSlug('2 bed apartment in Ranelagh, Dublin 6', input.listingId)).toBe(
       '2-bed-apartment-in-ranelagh-dublin-6-1a2b3c4d',
     );
+  });
+});
+
+describe('M38: the exact address reaches a renter only once they’re invited', () => {
+  it('shows the street before an invitation, if the letter chose that', () => {
+    expect(addressForRenter('9 Eaton Square', false, 'enquired')).toBe('Eaton Square');
+    expect(addressForRenter('Apartment 4, 12 Ranelagh Road', false, 'waitlisted')).toBe(
+      'Ranelagh Road',
+    );
+    expect(addressForRenter('9 Eaton Square', false, 'not_invited')).toBe('Eaton Square');
+    expect(addressForRenter('9 Eaton Square', false, 'withdrawn')).toBe('Eaton Square');
+  });
+
+  it('shows the exact address once invited, or when the letter shows it anyway', () => {
+    expect(addressForRenter('9 Eaton Square', false, 'invited')).toBe('9 Eaton Square');
+    expect(addressForRenter('9 Eaton Square', false, 'accepted')).toBe('9 Eaton Square');
+    expect(addressForRenter('9 Eaton Square', true, 'enquired')).toBe('9 Eaton Square');
   });
 });

@@ -20,6 +20,7 @@ import { UserFacingError } from '@/server/errors';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
 import { followLetting } from '@/server/listings/follow';
+import { renterAddress } from '@/server/lettings/address';
 
 /**
  * R26 (basic): a person closes a letting as let or withdrawn. It ends everyone's chances, so
@@ -128,7 +129,7 @@ export async function closeLetting(
         ...lettingClosedEmail({
           renterName: person.fullName,
           operatorName: organisation!.name,
-          address: letting.addressLine1,
+          address: await renterAddress(tx, letting, person.status),
           area: letting.area,
           outcome,
           deleteOn: deleteAfter,

@@ -253,46 +253,55 @@ export async function bookViewing(
 }
 
 /**
- * R12: a renter cancels their viewing. The freed place goes to the waiting list (R14), from a
- * job queued in the same transaction, so it's never lost. Someone who came off the waiting
- * list goes back onto it, in their place.
+ * R12, M81: cancels an application's booking inside the caller's transaction. The freed place
+ * goes to the waiting list (R14), from a job queued in the same transaction, so it's never
+ * lost. Returns where the renter goes back to: the waiting list if they came off it.
  */
+export async function cancelBookingIn(
+  tx: Tx,
+  organisationId: string,
+  applicationId: string,
+): Promise<{ backTo: 'waitlisted' | 'invited' } | null> {
+  const existing = await currentBooking(tx, applicationId);
+  if (!existing) return null;
+  await tx
+    .update(bookings)
+    .set({ status: 'cancelled', cancelledAt: new Date() })
+    .where(eq(bookings.id, existing.booking.id));
+  await cancelBookingMessages(tx, existing.booking.id);
+  const [fromWaitlist] = await tx
+    .select({ id: waitlistOffers.id })
+    .from(waitlistOffers)
+    .where(and(eq(waitlistOffers.applicationId, applicationId), eq(waitlistOffers.status, 'taken')))
+    .limit(1);
+  await enqueue(
+    tx,
+    'offer_place',
+    { organisationId, slotId: existing.slot.id },
+    { jobKey: `offer_place:${existing.slot.id}` },
+  );
+  await recordEvent(tx, {
+    organisationId,
+    lettingId: existing.booking.lettingId,
+    actor: { type: 'renter', applicationId },
+    type: 'viewing.cancelled',
+    subject: { type: 'booking', id: existing.booking.id },
+    data: { bookingId: existing.booking.id, slotId: existing.slot.id },
+  });
+  return { backTo: fromWaitlist ? 'waitlisted' : 'invited' };
+}
+
+/** R12: a renter cancels their viewing, and can book another time. */
 export async function cancelViewing(token: string): Promise<{ ok: boolean }> {
   const link = await resolveAccessLink(token, 'renter');
   if (!link) return { ok: false };
   return withOrg(link.organisationId, async (tx) => {
-    const existing = await currentBooking(tx, link.subjectId);
-    if (!existing) return { ok: false };
-    await tx
-      .update(bookings)
-      .set({ status: 'cancelled', cancelledAt: new Date() })
-      .where(eq(bookings.id, existing.booking.id));
-    await cancelBookingMessages(tx, existing.booking.id);
-    const [fromWaitlist] = await tx
-      .select({ id: waitlistOffers.id })
-      .from(waitlistOffers)
-      .where(
-        and(eq(waitlistOffers.applicationId, link.subjectId), eq(waitlistOffers.status, 'taken')),
-      )
-      .limit(1);
+    const cancelled = await cancelBookingIn(tx, link.organisationId, link.subjectId);
+    if (!cancelled) return { ok: false };
     await tx
       .update(applications)
-      .set({ status: fromWaitlist ? 'waitlisted' : 'invited' })
+      .set({ status: cancelled.backTo })
       .where(eq(applications.id, link.subjectId));
-    await enqueue(
-      tx,
-      'offer_place',
-      { organisationId: link.organisationId, slotId: existing.slot.id },
-      { jobKey: `offer_place:${existing.slot.id}` },
-    );
-    await recordEvent(tx, {
-      organisationId: link.organisationId,
-      lettingId: existing.booking.lettingId,
-      actor: { type: 'renter', applicationId: link.subjectId },
-      type: 'viewing.cancelled',
-      subject: { type: 'booking', id: existing.booking.id },
-      data: { bookingId: existing.booking.id, slotId: existing.slot.id },
-    });
     return { ok: true };
   });
 }

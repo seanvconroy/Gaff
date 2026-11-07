@@ -7,6 +7,7 @@ import { env } from '@/lib/env';
 import { createAccessLink } from '@/server/access/links';
 import { needsAnswers, queueDraft } from '@/server/answers/draft';
 import { queueMessage } from '@/server/messages/outbox';
+import { renterAddress } from '@/server/lettings/address';
 
 /**
  * R7: queues the first reply to a new enquiry, once per application, only for a live letting.
@@ -48,11 +49,12 @@ export async function queueFirstReply(
   const { subject, body } = firstReply({
     renterName: application.fullName,
     operatorName: organisation.name,
-    address: letting.addressLine1,
+    address: await renterAddress(tx, letting, application.status),
     area: letting.area,
     rentCents: letting.monthlyRentCents,
     availableFrom: letting.availableFrom,
     questionsUrl: token ? `${appUrl}/r/${token}` : null,
+    answered: application.answersAt !== null,
     firstViewing: firstSlot?.startsAt ?? null,
     privacyUrl: `${appUrl}/privacy/${organisation.inboundSlug}`,
   });

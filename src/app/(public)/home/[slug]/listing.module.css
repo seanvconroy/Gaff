@@ -279,3 +279,41 @@
 .similarLink {
   font-weight: var(--type-title-weight);
 }
+
+.enquire {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background-color: var(--color-surface-1);
+  border: 2px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  scroll-margin-top: var(--space-4);
+}
+
+.enquire h2,
+.enquire p {
+  margin: 0;
+}
+
+.keep {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.keep input {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+}
+
+.small {
+  color: var(--color-ink-muted);
+}
+
+.jump {
+  justify-self: start;
+}

@@ -14,6 +14,13 @@ export const platformEventCatalogue = {
   'mobile.confirmed': z.object({}),
   /** M1: someone chose to rent with Gaff (their renter profile exists). */
   'renter.profile_created': z.object({ keepDetails: z.boolean() }),
+  /** M11, M12: groups of a renter's details copied to a letter with an application (rule 2). */
+  'profile.shared': z.object({
+    applicationId: z.uuid(),
+    groups: z.array(z.enum(['contact', 'answers', 'employment', 'checks'])),
+  }),
+  /** M9: the renter ticked or unticked "Keep my details for next time". */
+  'renter.keep_details': z.object({ keepDetails: z.boolean() }),
 } satisfies Record<string, z.ZodObject>;
 
 export type PlatformEventType = keyof typeof platformEventCatalogue;

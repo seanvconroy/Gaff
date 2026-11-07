@@ -21,7 +21,11 @@ import { statusWords, type PublicStatus } from '@/domain/listings/lifecycle';
 import { listingPageState } from '@/domain/search/pages';
 import { jsonForScript, listingStructuredData } from '@/domain/search/structured-data';
 import { env } from '@/lib/env';
-import { formatDate, formatDateTime, formatRent, formatTime } from '@/lib/format';
+import { buttonClass } from '@/ui/Button';
+import { currentUser } from '@/server/auth/member';
+import { enquiredAbout } from '@/server/enquiries/marketplace';
+import { renterProfile } from '@/server/renters/profile';
+import { formatDate, formatDateTime, formatRent, formatTime, irishToday } from '@/lib/format';
 import { publicListingBySlug, similarLiveHomes, type PublicListing } from '@/server/search/listing';
 import {
   availableWords,
@@ -31,6 +35,7 @@ import {
   roomsLine,
 } from '../../facts';
 import { photoSources, previewUrl } from '../../photos';
+import { EnquiryForm, EnquirySignIn } from './EnquirySheet';
 import { Gallery } from './Gallery';
 import { ShareButton } from './ShareButton';
 import { ViewBeacon } from './ViewBeacon';
@@ -154,6 +159,23 @@ function SimilarHomes({ homes }: { homes: Awaited<ReturnType<typeof similarLiveH
   );
 }
 
+type Profile = Awaited<ReturnType<typeof renterProfile>>;
+
+/** M8: the sheet is filled in from what the renter chose to keep (M9), or just their name. */
+function sheetDefaults(name: string, profile: Profile): Record<string, string> {
+  const answers = profile?.answers ?? {};
+  const fullName = profile?.familyName ? `${profile.givenName} ${profile.familyName}` : name;
+  return {
+    fullName: fullName.includes('@') ? (profile?.givenName ?? '') : fullName,
+    mobile: profile?.mobile ?? '',
+    keepDetails: profile?.keepDetails ? 'yes' : '',
+    ...(answers.moveInDate ? { moveInDate: answers.moveInDate } : {}),
+    ...(answers.stayMonths ? { stayMonths: String(answers.stayMonths) } : {}),
+    ...(answers.occupants ? { occupants: String(answers.occupants) } : {}),
+    ...(answers.hasPets !== undefined ? { hasPets: answers.hasPets ? 'yes' : 'no' } : {}),
+  };
+}
+
 /** M66 to M74: a home's public page. */
 export default async function ListingPage({ params }: { params: Params }) {
   const { listing, state } = await load(params);
@@ -171,6 +193,11 @@ export default async function ListingPage({ params }: { params: Params }) {
     ? `${formatDate(new Date(viewings[0].startsAt), now)} at ${formatTime(new Date(viewings[0].startsAt))}`
     : null;
   const confirmed = formatDate(listing.confirmedAt, now);
+  const user = state === 'open' ? await currentUser() : null;
+  const profile = user ? await renterProfile(user.id) : null;
+  const enquired = user ? await enquiredAbout(user.id, listing.listingId) : null;
+  const hasEnquired = enquired !== null && enquired.withdrawnAt === null;
+  const taking = listing.status === 'live';
 
   if (state === 'closed') {
     return (
@@ -225,6 +252,11 @@ export default async function ListingPage({ params }: { params: Params }) {
               {moveInCostWords(listing.rentCents, listing.depositCents)}
             </p>
             {closes ? <p>{closes}.</p> : null}
+            {taking && !hasEnquired ? (
+              <a href="#enquire" className={`${buttonClass('secondary')} ${styles.jump}`}>
+                Enquire about this home
+              </a>
+            ) : null}
           </section>
 
           <section aria-labelledby="facts-heading" className={styles.section}>
@@ -313,6 +345,35 @@ export default async function ListingPage({ params }: { params: Params }) {
         </div>
 
         <aside className={styles.aside} aria-label="Enquiring about this home">
+          {/* M76: the enquiry sheet. M60: "You enquired". */}
+          <section id="enquire" aria-labelledby="enquire-heading" className={styles.enquire}>
+            <h2 id="enquire-heading" className="type-title">
+              {hasEnquired ? 'You enquired' : 'Enquire about this home'}
+            </h2>
+            {hasEnquired ? (
+              <>
+                <p>You enquired on {formatDate(enquired!.enquiredAt, now)}.</p>
+                <p>
+                  <Link href={`/my/homes/${enquired!.applicationId}`}>
+                    See the replies and what happens next
+                  </Link>
+                </p>
+              </>
+            ) : !taking ? (
+              <p>This home isn’t taking enquiries now.</p>
+            ) : user ? (
+              <EnquiryForm
+                slug={listing.slug}
+                letterName={letter.name}
+                questions={listing.questions}
+                availableFrom={formatDate(listing.availableFrom, now)}
+                today={irishToday(now)}
+                defaults={sheetDefaults(user.name, profile)}
+              />
+            ) : (
+              <EnquirySignIn slug={listing.slug} />
+            )}
+          </section>
           {/* M70: who lets the home, and what Gaff has checked. */}
           <section aria-labelledby="letter-heading" className={styles.letter}>
             <h2 id="letter-heading" className="type-title">

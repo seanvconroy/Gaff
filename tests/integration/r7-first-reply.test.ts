@@ -31,7 +31,7 @@ describe('R7: the first reply', () => {
     expect(reply).toMatchObject({
       direction: 'outbound',
       author: 'template',
-      templateKey: 'first_reply@1',
+      templateKey: 'first_reply@2',
       status: 'scheduled',
       toAddress: 'aoife.byrne@example.ie',
       subject: 'Your enquiry about 12 Ranelagh Road',

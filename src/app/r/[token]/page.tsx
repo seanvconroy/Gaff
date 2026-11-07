@@ -71,7 +71,8 @@ export default async function RenterPage({
       </RenterShell>
     );
   }
-  const { application, letting, organisation, questions, firstViewing, canChange, offer } = page;
+  const { application, letting, organisation, questions, firstViewing, canChange, offer, address } =
+    page;
   const status = application.status;
   const closed = letting.status === 'let' || letting.status === 'withdrawn';
   const canBook =
@@ -81,7 +82,7 @@ export default async function RenterPage({
       <RenterShell operatorName={organisation.name}>
         <Stack gap={6}>
           <Stack gap={2}>
-            <h1 className="type-heading">{letting.addressLine1}</h1>
+            <h1 className="type-heading">{address}</h1>
             <p className={styles.muted}>{letting.area}</p>
           </Stack>
           <Notice
@@ -126,7 +127,7 @@ export default async function RenterPage({
     <RenterShell operatorName={organisation.name}>
       <Stack gap={6}>
         <Stack gap={2}>
-          <h1 className="type-heading">{letting.addressLine1}</h1>
+          <h1 className="type-heading">{address}</h1>
           <p className={styles.muted}>
             {letting.area} · {formatRent(letting.monthlyRentCents)} · Available from{' '}
             {formatDate(letting.availableFrom)}
@@ -159,9 +160,7 @@ export default async function RenterPage({
         {status === 'attended' || (status === 'applied' && change && !applied) ? (
           <Stack gap={4}>
             <h2 className="type-title">
-              {status === 'applied'
-                ? 'Change your application'
-                : `Apply for ${letting.addressLine1}`}
+              {status === 'applied' ? 'Change your application' : `Apply for ${address}`}
             </h2>
             <p>
               {status === 'applied'

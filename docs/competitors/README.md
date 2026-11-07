@@ -16,4 +16,4 @@ Notes here record what we saw, not what to do about it. Decisions belong in the 
 | Competitor | Flow | Who it's for | Captured | Notes |
 | --- | --- | --- | --- | --- |
 | Daft.ie | [New homes search results](daft/new-homes-search.md) | Renters and buyers | November 2026 | 1 screenshot |
-| Daft.ie | [Place an ad (rental)](daft/place-ad.md) | Landlords and agents | November 2026 | 4 screenshots; steps 1–2 of 9 |
+| Daft.ie | [Place an ad (rental)](daft/place-ad.md) | Landlords and agents | November 2026 | 9 screenshots; tabs 1–6 of 9 |

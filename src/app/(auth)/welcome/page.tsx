@@ -13,7 +13,7 @@ export default async function WelcomePage() {
 
   const suggestedName = user.name && !user.name.includes('@') ? user.name : '';
   return (
-    <Stack gap={8}>
+    <Stack gap={6}>
       <PageHeader
         eyebrow="Welcome to Gaff"
         title="Set up your workspace"

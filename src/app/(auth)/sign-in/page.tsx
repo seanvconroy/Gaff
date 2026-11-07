@@ -8,8 +8,11 @@ export const dynamic = 'force-dynamic';
 
 export default function SignInPage() {
   return (
-    <Stack gap={8}>
-      <PageHeader title="Sign in" lead="We'll email you a link. There's no password to remember." />
+    <Stack gap={6}>
+      <PageHeader
+        title="Sign in"
+        lead="Enter your work email and we'll send you a link. There's no password to remember."
+      />
       <SignInForm devOutbox={env().DEV_TOOLS} />
     </Stack>
   );

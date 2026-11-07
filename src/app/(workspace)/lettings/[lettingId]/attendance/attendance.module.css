@@ -1,6 +1,23 @@
-/* R15: one row per person, big targets, readable outdoors on a phone. */
+/* R15: one row per person, big targets, readable outdoors on a phone. Each day is a card. */
 .summary {
+  font-weight: var(--type-title-weight);
+}
+
+.hint {
   color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.day {
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.dayHeading {
+  padding: var(--space-4) var(--space-5);
 }
 
 .list {
@@ -8,7 +25,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid var(--color-border);
 }
 
 .row {
@@ -16,17 +32,21 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-3) var(--space-4);
   align-items: center;
-  padding: var(--space-4) 0;
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--color-border);
 }
 
 .who {
-  display: grid;
-  gap: var(--space-1);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  align-items: baseline;
 }
 
 .time {
+  min-width: 5rem;
   color: var(--color-ink-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .name {
@@ -56,7 +76,7 @@
   padding: var(--space-2) var(--space-4);
   background-color: var(--color-surface-1);
   color: var(--color-ink);
-  border: 2px solid var(--color-border-strong);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
   font-family: var(--type-body-family);
   font-size: var(--type-body-size);
@@ -64,6 +84,9 @@
   font-weight: var(--type-title-weight);
   white-space: nowrap;
   cursor: pointer;
+  transition-property: background-color, border-color;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease-standard);
 }
 
 .toggle:hover {
@@ -75,9 +98,12 @@
   opacity: 0.7;
 }
 
+/* Pressed: the status tint and a 2px edge in the status colour, with its icon and words. */
 .came[aria-pressed='true'] {
+  padding-inline: calc(var(--space-4) - 1px);
+  border-width: 2px;
   border-color: var(--color-success);
-  background-color: var(--color-surface-2);
+  background-color: var(--color-success-bg);
 }
 
 .came[aria-pressed='true'] svg {
@@ -85,8 +111,10 @@
 }
 
 .missed[aria-pressed='true'] {
+  padding-inline: calc(var(--space-4) - 1px);
+  border-width: 2px;
   border-color: var(--color-warning);
-  background-color: var(--color-surface-2);
+  background-color: var(--color-warning-bg);
 }
 
 .missed[aria-pressed='true'] svg {
@@ -94,6 +122,11 @@
 }
 
 @media (width <= 640px) {
+  .dayHeading,
+  .row {
+    padding-inline: var(--space-4);
+  }
+
   .row {
     grid-template-columns: minmax(0, 1fr);
   }

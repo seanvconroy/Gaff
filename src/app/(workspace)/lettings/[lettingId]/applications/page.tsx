@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { earningLabels, formatRatio } from '@/domain/applications/apply';
 import { formatDateTime, formatEuro } from '@/lib/format';
 import { applicantsFor } from '@/server/applications/choose';
@@ -7,8 +8,11 @@ import { offersFor } from '@/server/offers/offer';
 import { whoCanBeOffered } from '@/domain/offers/offer';
 import { formatDate, irishToday } from '@/lib/format';
 import { OfferForm } from './OfferForm';
+import { UserRound } from 'lucide-react';
+import { EmptyState } from '@/ui/EmptyState';
 import { TextField } from '@/ui/Field';
-import { Card, Stack } from '@/ui/Layout';
+import { Columns } from '@/ui/Form';
+import { Card, CardHeader, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { StatusPill } from '@/ui/StatusPill';
 import { SubmitButton } from '@/ui/SubmitButton';
@@ -66,35 +70,43 @@ export default async function ApplicationsPage({
           <p>{done.problem}</p>
         </Notice>
       ) : null}
-      <Notice tone="info" title="How to choose">
-        <p>
-          Everyone here came to a viewing and applied. They’re in the same order as your shortlist.
-          Gaff never chooses: you do. Pick a preferred applicant and, if you like, a backup.
-        </p>
-      </Notice>
       {rows.length === 0 ? (
-        <Card>
-          <h2 className="type-title">Nobody has applied yet</h2>
-          <p>People you mark as having come to a viewing are invited to apply when it ends.</p>
-        </Card>
+        <EmptyState icon={UserRound} title="Nobody has applied yet">
+          <p>
+            People you mark as having come to a viewing are invited to apply when it ends. They
+            appear here side by side.
+          </p>
+        </EmptyState>
       ) : (
         <form action={chooseAction.bind(null, letting.id)}>
           <Stack gap={6}>
+            <Stack gap={2}>
+              <div className={styles.headerRow}>
+                <h2 className="type-title">
+                  {rows.length} {rows.length === 1 ? 'applicant' : 'applicants'}
+                </h2>
+                <span className={styles.muted}>In the same order as your shortlist</span>
+              </div>
+              <p className={styles.muted}>
+                Everyone here came to a viewing and applied. Gaff never chooses: you do.
+                {editable ? ' Pick a preferred applicant and, if you like, a backup.' : ''}
+              </p>
+            </Stack>
             <ul className={styles.cards}>
               {rows.map((row) => (
                 <li
                   key={row.id}
                   className={`${styles.card} ${chosenLabels[row.status] ? styles.chosen : ''}`}
                 >
-                  <Stack gap={1}>
-                    <h2 className="type-title">{row.name}</h2>
-                    <p className={styles.muted}>Number {row.position} on the shortlist</p>
-                  </Stack>
-                  {chosenLabels[row.status] ? (
-                    <div>
+                  <div className={styles.cardHead}>
+                    <Stack gap={1}>
+                      <h3 className="type-title">{row.name}</h3>
+                      <p className={styles.muted}>Number {row.position} on the shortlist</p>
+                    </Stack>
+                    {chosenLabels[row.status] ? (
                       <StatusPill tone="success">{chosenLabels[row.status]}</StatusPill>
-                    </div>
-                  ) : null}
+                    ) : null}
+                  </div>
                   <dl className={styles.facts}>
                     <div className={styles.fact}>
                       <dt>Criteria</dt>
@@ -162,18 +174,16 @@ export default async function ApplicationsPage({
               ))}
             </ul>
             {editable ? (
-              <Stack gap={4}>
-                <div>
-                  <label className={styles.pick}>
-                    <input
-                      type="radio"
-                      name="backupId"
-                      value=""
-                      defaultChecked={!rows.some((r) => r.status === 'backup')}
-                    />
-                    No backup for now
-                  </label>
-                </div>
+              <div className={styles.chooseBar}>
+                <label className={styles.pick}>
+                  <input
+                    type="radio"
+                    name="backupId"
+                    value=""
+                    defaultChecked={!rows.some((r) => r.status === 'backup')}
+                  />
+                  No backup for now
+                </label>
                 <p className={styles.muted}>
                   Next, Gaff asks the people you choose for an ID check, an income check and
                   references, and tells them what each one is for.
@@ -186,7 +196,7 @@ export default async function ApplicationsPage({
                     {anyChosen ? 'Save my choice' : 'Confirm my choice'}
                   </SubmitButton>
                 </div>
-              </Stack>
+              </div>
             ) : null}
           </Stack>
         </form>
@@ -202,16 +212,18 @@ export default async function ApplicationsPage({
       {approval?.preferredId || sent.length > 0 ? (
         <Card labelledBy="offer-heading">
           <Stack gap={4}>
-            <h2 id="offer-heading" className="type-title">
-              The offer
-            </h2>
+            <CardHeader
+              id="offer-heading"
+              title="The offer"
+              description="The rent, a deposit of no more than a month’s rent, a move-in date, and how long they have to answer."
+            />
             {done.offered ? (
               <Notice tone="success" role="status">
                 <p>Offer sent. We’ll email them, and show their answer here.</p>
               </Notice>
             ) : null}
             {sent.length > 0 ? (
-              <ul className={styles.checkList}>
+              <ul className={styles.offers}>
                 {sent.map(({ offer, name }) => (
                   <li key={offer.id}>
                     <StatusPill tone={offerTone[offer.status]}>
@@ -229,8 +241,8 @@ export default async function ApplicationsPage({
             {sent.some((s) => s.offer.status === 'accepted') ? (
               <p>
                 The home is let, and everyone else has been told. Next come the tenancy agreement,
-                the deposit and first month’s rent, and the RTB registration. Gaff will do these in
-                a later update; for now, do them the way you do today.
+                the deposit and first month’s rent, and the RTB registration, on the{' '}
+                <Link href={`/lettings/${letting.id}/tenancy`}>Tenancy tab</Link>.
               </p>
             ) : null}
             {sent.some((s) => s.offer.status === 'open' && s.offer.thenOfferToId) ? (
@@ -277,9 +289,7 @@ function LandlordApproval({
   return (
     <Card labelledBy="landlord-heading">
       <Stack gap={4}>
-        <h2 id="landlord-heading" className="type-title">
-          The landlord’s approval
-        </h2>
+        <CardHeader id="landlord-heading" title="The landlord’s approval" />
         {state.route === 'own_home' ? (
           <p>You’re letting your own home, so making the offer is your approval.</p>
         ) : null}
@@ -292,13 +302,15 @@ function LandlordApproval({
             </p>
             <form action={saveLandlordAction.bind(null, lettingId)}>
               <Stack gap={4}>
-                <TextField name="landlordName" label="Landlord’s name" autoComplete="off" />
-                <TextField
-                  name="landlordEmail"
-                  label="Landlord’s email"
-                  type="email"
-                  autoComplete="off"
-                />
+                <Columns>
+                  <TextField name="landlordName" label="Landlord’s name" autoComplete="off" />
+                  <TextField
+                    name="landlordEmail"
+                    label="Landlord’s email"
+                    type="email"
+                    autoComplete="off"
+                  />
+                </Columns>
                 <div>
                   <SubmitButton variant="secondary" pendingLabel="Saving…">
                     Save the landlord’s details

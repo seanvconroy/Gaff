@@ -1,7 +1,15 @@
 /* R17: applicants side by side on a laptop, one under another on a phone. */
+.headerRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   gap: var(--space-4);
   margin: 0;
   padding: 0;
@@ -11,15 +19,26 @@
 .card {
   display: grid;
   align-content: start;
-  gap: var(--space-3);
-  padding: var(--space-6);
+  gap: var(--space-4);
+  padding: var(--space-5);
   background-color: var(--color-surface-1);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }
 
+/* Chosen: a 2px primary edge that grows inwards, as on every choice card (A4). */
 .chosen {
-  border-color: var(--color-ink);
+  padding: calc(var(--space-5) - 1px);
+  border-width: 2px;
+  border-color: var(--color-primary);
+}
+
+.cardHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: flex-start;
+  justify-content: space-between;
 }
 
 .muted {
@@ -28,17 +47,25 @@
 
 .facts {
   display: grid;
-  gap: var(--space-2);
   margin: 0;
 }
 
 .fact {
   display: grid;
   gap: var(--space-1);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.fact:first-child {
+  padding-top: 0;
+  border-top: 0;
 }
 
 .fact dt {
   color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
 }
 
 .fact dd {
@@ -46,9 +73,11 @@
 }
 
 .picks {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
 }
 
 .pick {
@@ -57,9 +86,16 @@
   gap: var(--space-2);
   min-height: 44px;
   padding: var(--space-2) var(--space-3);
+  background-color: var(--color-surface-1);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
+  font-weight: var(--type-title-weight);
   cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+
+.pick:hover {
+  border-color: var(--color-ink-muted);
 }
 
 /* Chosen: a 2px primary edge that grows inwards, as on every choice card (A4). */
@@ -69,21 +105,69 @@
   border-color: var(--color-primary);
 }
 
+.pick:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@supports selector(:has(*)) {
+  .pick input:focus-visible {
+    outline: none;
+  }
+}
+
 .pick input {
   width: 20px;
   height: 20px;
   margin: 0;
   accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* Under the cards: no backup, what happens next, and the one button. */
+.chooseBar {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-4);
 }
 
 .checks {
   display: grid;
-  gap: var(--space-2);
-  padding-top: var(--space-3);
+  gap: var(--space-3);
+  padding-top: var(--space-4);
   border-top: 1px solid var(--color-border);
 }
 
+.checksTitle {
+  font-weight: var(--type-title-weight);
+}
+
 .checkList {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.check {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.check > :first-child {
+  justify-self: start;
+}
+
+.checkText {
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+/* The offers sent, one per line, with their status first. */
+.offers {
   display: grid;
   gap: var(--space-2);
   margin: 0;

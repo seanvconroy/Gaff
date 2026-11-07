@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { emptyFormState } from '@/lib/forms';
 import { ChoiceGroup, TextField } from '@/ui/Field';
+import { Columns } from '@/ui/Form';
 import { Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { SubmitButton } from '@/ui/SubmitButton';
@@ -42,26 +43,29 @@ export function OfferForm({
             <p>{state.message}</p>
           </Notice>
         ) : null}
-        <TextField
-          name="deposit"
-          label="Deposit"
-          hint={`No more than one month’s rent: ${rent}. The first month’s rent is ${rent}. There are no other charges.`}
-          prefix="€"
-          inputMode="decimal"
-          defaultValue={v.deposit}
-          error={e.deposit}
-        />
-        <TextField
-          name="startDate"
-          label="Move-in date"
-          type="date"
-          min={today}
-          defaultValue={v.startDate}
-          error={e.startDate}
-        />
+        <Columns>
+          <TextField
+            name="deposit"
+            label="Deposit"
+            hint={`No more than one month’s rent: ${rent}. The first month’s rent is ${rent}. There are no other charges.`}
+            prefix="€"
+            inputMode="decimal"
+            defaultValue={v.deposit}
+            error={e.deposit}
+          />
+          <TextField
+            name="startDate"
+            label="Move-in date"
+            type="date"
+            min={today}
+            defaultValue={v.startDate}
+            error={e.startDate}
+          />
+        </Columns>
         <ChoiceGroup
           name="deadlineHours"
           legend="Time to answer"
+          inline
           defaultValue={v.deadlineHours}
           error={e.deadlineHours}
           options={[

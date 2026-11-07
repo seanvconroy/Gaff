@@ -28,13 +28,14 @@ export function CheckList({
     .filter((c): c is CheckSummary => Boolean(c));
   return (
     <div className={styles.checks}>
-      <h3 className="type-title">Checks</h3>
+      <h4 className={styles.checksTitle}>Checks</h4>
       <ul className={styles.checkList}>
         {ordered.map((check) => {
           const [tone, text] = describe(check, rentCents, ruleTenths);
           return (
-            <li key={check.id}>
-              <StatusPill tone={tone}>{label(check)}</StatusPill> <span>{text}</span>
+            <li key={check.id} className={styles.check}>
+              <StatusPill tone={tone}>{label(check)}</StatusPill>
+              <span className={styles.checkText}>{text}</span>
             </li>
           );
         })}

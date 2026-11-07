@@ -1,0 +1,15 @@
+/* The PSRA licence is asked for only once the workspace is an agency's (progressive disclosure,
+   with no script). Without :has(), it always shows. */
+.form {
+  display: grid;
+}
+
+@supports selector(:has(*)) {
+  .agencyOnly {
+    display: none;
+  }
+
+  .form:has(input[name='kind'][value='agency']:checked) .agencyOnly {
+    display: grid;
+  }
+}

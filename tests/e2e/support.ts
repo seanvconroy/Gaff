@@ -154,7 +154,10 @@ export function isoDateInDays(days: number): string {
 /** A letting made by createLettingThroughUi is available, so its tenancy starts, this far ahead. */
 export const AVAILABLE_IN_DAYS = 30;
 
-/** Creates a letting with one evening of viewing slots, through the real screens. */
+/**
+ * Creates a letting with one evening of viewing slots, through the real screens: the three steps
+ * of "Add a letting" (the home, key facts, adverts), then a viewing time.
+ */
 export async function createLettingThroughUi(
   page: Page,
   address = '12 Ranelagh Road',
@@ -165,11 +168,13 @@ export async function createLettingThroughUi(
   await page.getByLabel('Area').fill('Ranelagh, Dublin 6');
   await page.getByLabel('Rent a month').fill('1850');
   await page.getByLabel('Available from').fill(isoDateInDays(AVAILABLE_IN_DAYS));
+  await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByLabel('Type of home').selectOption('apartment');
   await page.getByLabel('Bedrooms').fill('2');
   await page.getByLabel('Bathrooms').fill('1');
   await page.getByLabel('Furnishing').selectOption('furnished');
   await page.getByLabel('BER rating').selectOption('C1');
+  await page.getByRole('button', { name: 'Continue' }).click();
   if (daftUrl) await page.getByLabel('Daft advert').fill(daftUrl);
   await page.getByRole('button', { name: 'Save and add viewing times' }).click();
   await expect(page.getByText(`${address} is saved`)).toBeVisible();

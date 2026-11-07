@@ -1,8 +1,10 @@
+import { Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { formatDateTime } from '@/lib/format';
 import { requireMember } from '@/server/auth/member';
 import { approveBeforeSendIsOn, listAwaitingApproval } from '@/server/answers/queries';
+import { EmptyState } from '@/ui/EmptyState';
 import { TextArea } from '@/ui/Field';
 import { Card, PageHeader, Row, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
@@ -31,9 +33,14 @@ export default async function ApprovalsPage({
         eyebrow={member.organisationName}
         title="Approvals"
         lead={
-          on
-            ? 'Approve-before-send is on: answers the AI writes wait here for you. Fixed messages, like first replies, go straight out.'
-            : 'Approve-before-send is off, so AI answers go out straight away. Switch it back on in Settings.'
+          on ? (
+            'Answers the AI writes wait here for you. Fixed messages, like first replies, go straight out.'
+          ) : (
+            <>
+              Approve-before-send is off, so AI answers go out straight away. Switch it back on in{' '}
+              <Link href="/settings">Settings</Link>.
+            </>
+          )
         }
       />
       {done === 'sent' ? (
@@ -52,45 +59,46 @@ export default async function ApprovalsPage({
         </Notice>
       ) : null}
       {waiting.length === 0 ? (
-        <Card>
-          <h2 className="type-title">Nothing to approve</h2>
-          <p>When the AI drafts an answer, it waits here for you.</p>
-        </Card>
+        <EmptyState icon={Sparkles} title="Nothing to approve">
+          <p>When the AI drafts an answer to a renter, it waits here for you to check.</p>
+        </EmptyState>
       ) : null}
       {waiting.map((draft) => (
         <Card key={draft.id} as="article" labelledBy={`draft-${draft.id}`}>
-          <h2 id={`draft-${draft.id}`} className="type-title">
-            {draft.renterName} asked about{' '}
-            <Link href={`/lettings/${draft.lettingId}`}>{draft.address}</Link>
-          </h2>
-          <Row>
-            <DraftedByAi />
-            <span className={styles.meta}>{formatDateTime(draft.createdAt)}</span>
-          </Row>
+          <div className={styles.head}>
+            <h2 id={`draft-${draft.id}`} className="type-title">
+              {draft.renterName} asked about{' '}
+              <Link href={`/lettings/${draft.lettingId}`}>{draft.address}</Link>
+            </h2>
+            <Row>
+              <DraftedByAi />
+              <span className={styles.meta}>{formatDateTime(draft.createdAt)}</span>
+            </Row>
+          </div>
           {draft.asked ? <blockquote className={styles.body}>{draft.asked}</blockquote> : null}
-          <form action={approveAction}>
-            <Stack gap={4}>
+          <div className={styles.actions}>
+            <form action={approveAction} className={styles.contents}>
               <input type="hidden" name="messageId" value={draft.id} />
-              <TextArea
-                name="body"
-                label="The AI’s draft"
-                hint="It answers only from this home’s facts. Change anything before you send it."
-                rows={10}
-                defaultValue={draft.body}
-              />
-              <Row>
-                <SubmitButton variant="secondary" pendingLabel="Sending…">
-                  Approve and send
-                </SubmitButton>
-              </Row>
-            </Stack>
-          </form>
-          <form action={discardAction}>
-            <input type="hidden" name="messageId" value={draft.id} />
-            <SubmitButton variant="quiet" pendingLabel="…">
-              Don’t send this
-            </SubmitButton>
-          </form>
+              <div className={styles.full}>
+                <TextArea
+                  name="body"
+                  label="The AI’s draft"
+                  hint="It answers only from this home’s facts. Change anything before you send it."
+                  rows={8}
+                  defaultValue={draft.body}
+                />
+              </div>
+              <SubmitButton variant="secondary" pendingLabel="Sending…">
+                Approve and send
+              </SubmitButton>
+            </form>
+            <form action={discardAction}>
+              <input type="hidden" name="messageId" value={draft.id} />
+              <SubmitButton variant="quiet" pendingLabel="Moving it to Questions…">
+                Don’t send this
+              </SubmitButton>
+            </form>
+          </div>
         </Card>
       ))}
     </Stack>

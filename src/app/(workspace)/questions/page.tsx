@@ -1,7 +1,9 @@
+import { MessageCircleQuestionMark } from 'lucide-react';
 import type { Metadata } from 'next';
 import { formatDateTime } from '@/lib/format';
 import { requireMember } from '@/server/auth/member';
 import { listOpenQuestions } from '@/server/answers/queries';
+import { EmptyState } from '@/ui/EmptyState';
 import { ChoiceGroup, TextArea } from '@/ui/Field';
 import { Card, PageHeader, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
@@ -53,22 +55,23 @@ export default async function QuestionsPage({
         </Notice>
       ) : null}
       {questions.length === 0 ? (
-        <Card>
-          <h2 className="type-title">No questions waiting</h2>
-          <p>Gaff answered everything it could from the facts.</p>
-        </Card>
+        <EmptyState icon={MessageCircleQuestionMark} title="No questions waiting">
+          <p>Gaff answered everything it could from the facts. Anything it can’t comes here.</p>
+        </EmptyState>
       ) : null}
       {questions.map((q) => (
         <Card key={q.id} as="article" labelledBy={`q-${q.id}`}>
-          <h2 id={`q-${q.id}`} className="type-title">
-            {q.renterName} asked about {q.address}
-          </h2>
-          <p className={styles.meta}>
-            {formatDateTime(q.createdAt)} · {reasons[q.reason] ?? 'Gaff couldn’t answer this.'}
-          </p>
+          <div className={styles.head}>
+            <h2 id={`q-${q.id}`} className="type-title">
+              {q.renterName} asked about {q.address}
+            </h2>
+            <p className={styles.meta}>
+              {formatDateTime(q.createdAt)} · {reasons[q.reason] ?? 'Gaff couldn’t answer this.'}
+            </p>
+          </div>
           <blockquote className={styles.body}>{q.question}</blockquote>
           <form action={answerAction}>
-            <Stack gap={4}>
+            <Stack gap={6}>
               <input type="hidden" name="questionId" value={q.id} />
               <TextArea name="answer" label="Your answer" rows={4} />
               <ChoiceGroup

@@ -1,9 +1,11 @@
+import { eq } from 'drizzle-orm';
 import { withOrg } from '@/db/client';
-import { homes, landlords, lettingFacts, lettings, listings } from '@/db/schema';
+import { developments, homes, landlords, lettingFacts, lettings, listings } from '@/db/schema';
 import { berFromLettingRating } from '@/domain/homes/ber';
 import type { NewLetting } from '@/domain/lettings/new-letting';
 import { routingKeyOf } from '@/domain/places/eircode';
 import type { Member } from '@/server/auth/member';
+import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
 
 /**
@@ -13,8 +15,23 @@ import { recordEvent } from '@/server/record/events';
 export async function createLetting(
   member: Member,
   input: NewLetting,
+  options: { developmentId?: string; floor?: number | null; floorAreaSqm?: number | null } = {},
 ): Promise<{ lettingId: string }> {
   return withOrg(member.organisationId, async (tx) => {
+    // M33: a home in a development takes the development's location.
+    const [development] = options.developmentId
+      ? await tx
+          .select({
+            id: developments.id,
+            latitude: developments.latitude,
+            longitude: developments.longitude,
+          })
+          .from(developments)
+          .where(eq(developments.id, options.developmentId))
+      : [];
+    if (options.developmentId && !development) {
+      throw new UserFacingError('That development isn’t in your account.');
+    }
     let landlordId: string | null = null;
     if (input.landlordName && input.landlordEmail) {
       const [landlord] = await tx
@@ -46,6 +63,11 @@ export async function createLetting(
         berRating: input.berRating,
         berExemptReason: ber.kind === 'exempt' ? ber.reason : null,
         parking: input.parking ?? null,
+        developmentId: development?.id ?? null,
+        latitude: development?.latitude ?? null,
+        longitude: development?.longitude ?? null,
+        floor: options.floor ?? null,
+        floorAreaSqm: options.floorAreaSqm ?? null,
         createdBy: member.userId,
       })
       .returning({ id: homes.id });

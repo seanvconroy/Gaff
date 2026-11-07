@@ -10,7 +10,14 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
-      allow: ['/to-rent', '/home/', '/how-results-are-ordered', '/listing-policy', '/contact'],
+      allow: [
+        '/to-rent',
+        '/home/',
+        '/development/',
+        '/how-results-are-ordered',
+        '/listing-policy',
+        '/contact',
+      ],
       disallow: '/',
     },
     sitemap: `${config.APP_URL}/sitemap.xml`,

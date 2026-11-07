@@ -49,7 +49,28 @@ const PUBLIC_LISTING_COLUMNS = [
   'updated_at',
 ];
 
-const PUBLIC_TABLES = { public_listings: PUBLIC_LISTING_COLUMNS };
+/** M75: a published development's page. */
+const PUBLIC_DEVELOPMENT_COLUMNS = [
+  'development_id',
+  'organisation_id',
+  'slug',
+  'name',
+  'area',
+  'county',
+  'routing_key',
+  'latitude',
+  'longitude',
+  'description',
+  'amenities',
+  'photos',
+  'operator',
+  'updated_at',
+];
+
+const PUBLIC_TABLES = {
+  public_listings: PUBLIC_LISTING_COLUMNS,
+  public_developments: PUBLIC_DEVELOPMENT_COLUMNS,
+};
 
 async function aRenter(): Promise<string> {
   const id = crypto.randomUUID();

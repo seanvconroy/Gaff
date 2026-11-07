@@ -1,6 +1,6 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { withOrg } from '@/db/client';
-import { homes, media } from '@/db/schema';
+import { developments, homes, media } from '@/db/schema';
 import {
   MAX_PHOTOS_PER_HOME,
   mediaKeys,
@@ -28,13 +28,41 @@ export async function startHomePhotoUpload(
   homeId: string,
   file: { contentType: string; bytes: number; kind?: Extract<MediaKind, 'photo' | 'floor_plan'> },
 ): Promise<StartedUpload> {
+  return startPhotoUpload(member, { homeId }, file);
+}
+
+/** M32: photos of a development itself, shared by the homes in it (M33). */
+export async function startDevelopmentPhotoUpload(
+  member: Member,
+  developmentId: string,
+  file: { contentType: string; bytes: number },
+): Promise<StartedUpload> {
+  return startPhotoUpload(member, { developmentId }, { ...file, kind: 'photo' });
+}
+
+async function startPhotoUpload(
+  member: Member,
+  owner: { homeId: string } | { developmentId: string },
+  file: { contentType: string; bytes: number; kind?: Extract<MediaKind, 'photo' | 'floor_plan'> },
+): Promise<StartedUpload> {
   const problem = uploadProblem(file);
   if (problem) throw new UserFacingError(problem);
   const kind = file.kind ?? 'photo';
 
   const mediaId = await withOrg(member.organisationId, async (tx) => {
-    const [home] = await tx.select({ id: homes.id }).from(homes).where(eq(homes.id, homeId));
-    if (!home) throw new UserFacingError('That home isn’t in your account');
+    if ('homeId' in owner) {
+      const [home] = await tx
+        .select({ id: homes.id })
+        .from(homes)
+        .where(eq(homes.id, owner.homeId));
+      if (!home) throw new UserFacingError('That home isn’t in your account');
+    } else {
+      const [development] = await tx
+        .select({ id: developments.id })
+        .from(developments)
+        .where(eq(developments.id, owner.developmentId));
+      if (!development) throw new UserFacingError('That development isn’t in your account');
+    }
     const [count] = await tx
       .select({
         n: sql<number>`count(*)::int`,
@@ -42,16 +70,21 @@ export async function startHomePhotoUpload(
       })
       .from(media)
       .where(
-        and(eq(media.homeId, homeId), inArray(media.status, ['uploading', 'processing', 'ready'])),
+        and(
+          'homeId' in owner
+            ? eq(media.homeId, owner.homeId)
+            : eq(media.developmentId, owner.developmentId),
+          inArray(media.status, ['uploading', 'processing', 'ready']),
+        ),
       );
     if (count!.n >= MAX_PHOTOS_PER_HOME) {
-      throw new UserFacingError(`A home can have up to ${MAX_PHOTOS_PER_HOME} photos`);
+      throw new UserFacingError(`You can add up to ${MAX_PHOTOS_PER_HOME} photos`);
     }
     const [row] = await tx
       .insert(media)
       .values({
         organisationId: member.organisationId,
-        homeId,
+        ...owner,
         kind,
         contentType: file.contentType,
         bytes: file.bytes,

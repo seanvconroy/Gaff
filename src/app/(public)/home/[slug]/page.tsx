@@ -17,6 +17,7 @@ import {
   parkingOptions,
   propertyTypes,
 } from '@/domain/homes/facts';
+import { amenities, type Amenity } from '@/domain/developments/development';
 import { statusWords, type PublicStatus } from '@/domain/listings/lifecycle';
 import { listingPageState } from '@/domain/search/pages';
 import { jsonForScript, listingStructuredData } from '@/domain/search/structured-data';
@@ -27,6 +28,7 @@ import { savedAmong } from '@/server/alerts/saved-homes';
 import { enquiredAbout } from '@/server/enquiries/marketplace';
 import { renterProfile } from '@/server/renters/profile';
 import { formatDate, formatDateTime, formatRent, formatTime, irishToday } from '@/lib/format';
+import { developmentOfListing } from '@/server/search/developments';
 import { publicListingBySlug, similarLiveHomes, type PublicListing } from '@/server/search/listing';
 import {
   availableWords,
@@ -188,6 +190,7 @@ export default async function ListingPage({ params }: { params: Params }) {
     ...listing.photos.filter((p) => p.kind === 'floor_plan'),
   ].map((p, i, all) => photoSources(p, `Photo ${i + 1} of ${all.length} of ${listing.title}`));
   const similar = await similarLiveHomes(listing);
+  const development = await developmentOfListing(listing.developmentId);
   const viewings = listing.viewings.filter((v) => new Date(v.endsAt) > now).slice(0, 3);
   const closes = enquiriesCloseWords(listing.enquiriesCloseAt, now);
   const letter = listing.letter;
@@ -241,6 +244,18 @@ export default async function ListingPage({ params }: { params: Params }) {
               <MapPin size={24} strokeWidth={1.5} aria-hidden="true" />
               {listing.addressShown}
             </p>
+            {development ? (
+              // M33: a home in a development links to its page and amenities.
+              <p>
+                In <Link href={`/development/${development.slug}`}>{development.name}</Link>
+                {development.amenities.length
+                  ? `, with ${development.amenities
+                      .slice(0, 4)
+                      .map((a) => (amenities[a as Amenity] ?? a).toLowerCase())
+                      .join(', ')}`
+                  : ''}
+              </p>
+            ) : null}
             <StatusLine status={listing.status} />
             {/* M72: when it was listed and last confirmed. No view counts. */}
             <p className={styles.dates}>

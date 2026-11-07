@@ -6,7 +6,11 @@ import { lettings, staffMembers, users } from '@/db/schema';
 import { findStaff, type Staff } from '@/server/auth/staff';
 import { saveDescription, saveHomeDetails, saveLettingDetails } from '@/server/listings/editor';
 import { processMedia } from '@/server/media/process';
-import { finishPhotoUpload, startHomePhotoUpload } from '@/server/media/upload';
+import {
+  finishPhotoUpload,
+  startDevelopmentPhotoUpload,
+  startHomePhotoUpload,
+} from '@/server/media/upload';
 import { recordIdentityOutcome, startIdentityCheck } from '@/server/verification/identity';
 import { createTestMember, aLiveLetting, type Member } from './helpers';
 import { sendMobileCode } from '@/server/verification/mobile';
@@ -35,14 +39,20 @@ export async function aPhoto(seed = 0, width = 1200, height = 800): Promise<Buff
     .toBuffer();
 }
 
-export async function addPhotos(member: Member, homeId: string, shades: number[]) {
+export async function addPhotos(
+  member: Member,
+  homeId: string,
+  shades: number[],
+  owner: 'home' | 'development' = 'home',
+) {
   const ids: string[] = [];
   for (const shade of shades) {
     const body = await aPhoto(shade);
-    const { mediaId, upload } = await startHomePhotoUpload(member, homeId, {
-      contentType: 'image/jpeg',
-      bytes: body.length,
-    });
+    const file = { contentType: 'image/jpeg', bytes: body.length };
+    const { mediaId, upload } =
+      owner === 'home'
+        ? await startHomePhotoUpload(member, homeId, file)
+        : await startDevelopmentPhotoUpload(member, homeId, file);
     await objectStorage().write(
       'uploads',
       new URL(upload.url).searchParams.get('key')!,
@@ -84,7 +94,7 @@ export const A_DESCRIPTION =
 let photoSeed = 1000 + Math.floor(Math.random() * 2 ** 30);
 let listingCount = 0;
 /** Shades no other test uses, so photos never look copied from another listing (M29). */
-const freshShades = () => {
+export const freshShades = () => {
   photoSeed += 7;
   return [photoSeed, photoSeed + 2, photoSeed + 4];
 };

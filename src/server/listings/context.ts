@@ -41,7 +41,21 @@ export async function loadListing(tx: Tx, lettingId: string) {
     .from(declarations)
     .where(eq(declarations.homeId, row.home.id))
     .limit(1);
-  return { ...row, photos, declared: Boolean(declared) };
+  // M33: a home in a development shows the development's photos after its own.
+  const developmentPhotos = row.home.developmentId
+    ? await tx
+        .select()
+        .from(media)
+        .where(
+          and(
+            eq(media.developmentId, row.home.developmentId),
+            eq(media.kind, 'photo'),
+            eq(media.status, 'ready'),
+          ),
+        )
+        .orderBy(asc(media.position))
+    : [];
+  return { ...row, photos, developmentPhotos, declared: Boolean(declared) };
 }
 
 export type ListingContext = NonNullable<Awaited<ReturnType<typeof loadListing>>>;
@@ -56,7 +70,7 @@ export function homeBer(home: ListingContext['home']): Ber {
 }
 
 export function readyPhotos(context: ListingContext): ProjectionPhoto[] {
-  return context.photos
+  return [...context.photos, ...context.developmentPhotos]
     .filter((p) => p.status === 'ready' && p.widths && p.width && p.height)
     .map((p) => ({
       key: `${p.organisationId}/${p.id}`,

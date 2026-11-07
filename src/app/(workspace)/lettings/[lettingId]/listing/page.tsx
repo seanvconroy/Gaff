@@ -17,9 +17,9 @@ import { Notice } from '@/ui/Notice';
 import { StatusPill } from '@/ui/StatusPill';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { LettingHeader } from '../LettingHeader';
-import { liveAction, photoAction } from './actions';
+import { finishUploadAction, liveAction, photoAction, startUploadAction } from './actions';
 import { DescriptionForm, HomeDetailsForm, LettingDetailsForm, PublishForm } from './ListingForms';
-import { PhotoUploader } from './PhotoUploader';
+import { PhotoUploader } from '../../../PhotoUploader';
 import styles from './listing.module.css';
 
 export const metadata: Metadata = { title: 'Listing' };
@@ -228,12 +228,16 @@ export default async function ListingPage({
         <Stack gap={6}>
           <p>Add at least 3. The first is the cover. Gaff removes location and camera details.</p>
           {editable ? (
-            <PhotoUploader lettingId={lettingId} homeId={home.id} label="Add photos" />
+            <PhotoUploader
+              start={startUploadAction.bind(null, home.id)}
+              finish={finishUploadAction.bind(null, lettingId)}
+              label="Add photos"
+            />
           ) : null}
           {editable ? (
             <PhotoUploader
-              lettingId={lettingId}
-              homeId={home.id}
+              start={startUploadAction.bind(null, home.id)}
+              finish={finishUploadAction.bind(null, lettingId)}
               kind="floor_plan"
               label="Add a floor plan (optional)"
             />

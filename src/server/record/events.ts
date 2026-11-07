@@ -306,6 +306,11 @@ export const eventCatalogue = {
       ]),
     ),
   }),
+  /** M32 to M35: developments and the homes added to them. */
+  'development.created': z.object({ developmentId: z.uuid() }),
+  'development.updated': z.object({ developmentId: z.uuid() }),
+  'development.published': z.object({ developmentId: z.uuid() }),
+  'development.homes_added': z.object({ developmentId: z.uuid(), homes: z.number().int() }),
   'listing.hold_resolved': z.object({
     listingId: z.uuid(),
     outcome: z.enum(['released', 'removed']),

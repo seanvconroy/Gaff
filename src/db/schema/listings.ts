@@ -189,3 +189,31 @@ export const listingHolds = pgTable(
     staffReviewPolicy(),
   ],
 ).enableRLS();
+
+/**
+ * M75 (ADR-0017): what renters see of a published development. An allow-list of columns,
+ * written in the same transaction as the change (tests/integration/m1-zones.test.ts).
+ */
+export const publicDevelopments = pgTable(
+  'public_developments',
+  {
+    developmentId: uuid()
+      .primaryKey()
+      .references(() => developments.id, { onDelete: 'cascade' }),
+    organisationId: organisationId(),
+    slug: text().notNull().unique(),
+    name: text().notNull(),
+    area: text().notNull(),
+    county: text().notNull(),
+    routingKey: text(),
+    latitude: doublePrecision().notNull(),
+    longitude: doublePrecision().notNull(),
+    description: text().notNull(),
+    amenities: text().array().notNull(),
+    photos: jsonb().$type<Array<Record<string, unknown>>>().notNull(),
+    /** The operator: the agency's or landlord's public name and badges (M70). */
+    operator: jsonb().$type<Record<string, unknown>>().notNull(),
+    updatedAt: updatedAt(),
+  },
+  () => [tenantPolicy(), publicReadPolicy()],
+).enableRLS();

@@ -12,6 +12,7 @@ import {
   toSigned64,
 } from '@/domain/media/photos';
 import { recordEvent } from '@/server/record/events';
+import { republishDevelopment } from '@/server/developments/project';
 import { republishIfPublic } from '@/server/listings/editor';
 
 type Rejection = 'not_an_image' | 'too_small' | 'unreadable' | 'missing';
@@ -93,7 +94,7 @@ export async function processMedia(job: {
 }): Promise<'ready' | 'rejected' | 'skipped'> {
   const [row] = await withOrg(job.organisationId, (tx) =>
     tx
-      .select({ status: media.status, homeId: media.homeId })
+      .select({ status: media.status, homeId: media.homeId, developmentId: media.developmentId })
       .from(media)
       .where(eq(media.id, job.mediaId)),
   );
@@ -135,6 +136,10 @@ export async function processMedia(job: {
           ),
         );
       if (open) await republishIfPublic(tx, open.lettingId, null);
+    }
+    // M33, M75: a development's photo shows on its page and its homes' listings.
+    if (typeof result !== 'string' && row.developmentId) {
+      await republishDevelopment(tx, row.developmentId, null);
     }
     await recordEvent(tx, {
       organisationId: job.organisationId,

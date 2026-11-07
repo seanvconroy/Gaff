@@ -3,8 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, type ChangeEvent } from 'react';
 import { Stack } from '@/ui/Layout';
-import { finishUploadAction, startUploadAction } from './actions';
-import styles from './listing.module.css';
+import styles from './photo-uploader.module.css';
 
 const MAX_SIDE = 2560;
 
@@ -31,14 +30,27 @@ async function redraw(file: File): Promise<Blob> {
   }
 }
 
+type Started =
+  | {
+      ok: true;
+      mediaId: string;
+      upload: { url: string; method: string; headers: Record<string, string> };
+    }
+  | { ok: false; problem: string };
+
+/** M43: photos for a home, or for a development (M32); the server actions say which. */
 export function PhotoUploader({
-  lettingId,
-  homeId,
+  start,
+  finish,
   kind = 'photo',
   label,
 }: {
-  lettingId: string;
-  homeId: string;
+  start: (file: {
+    contentType: string;
+    bytes: number;
+    kind: 'photo' | 'floor_plan';
+  }) => Promise<Started>;
+  finish: (mediaId: string) => Promise<void>;
   kind?: 'photo' | 'floor_plan';
   label: string;
 }) {
@@ -54,11 +66,7 @@ export function PhotoUploader({
       setStatus(`Adding ${done + 1} of ${files.length}…`);
       const body = await redraw(file);
       const type = body.type || file.type;
-      const started = await startUploadAction(homeId, {
-        contentType: type,
-        bytes: body.size,
-        kind,
-      });
+      const started = await start({ contentType: type, bytes: body.size, kind });
       if (!started.ok) {
         problems.push(`${file.name}: ${started.problem}`);
         continue;
@@ -72,7 +80,7 @@ export function PhotoUploader({
         problems.push(`${file.name}: that didn’t upload. Try it again.`);
         continue;
       }
-      await finishUploadAction(lettingId, started.mediaId);
+      await finish(started.mediaId);
       done += 1;
     }
     setStatus(

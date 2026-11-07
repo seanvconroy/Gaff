@@ -16,6 +16,7 @@ const securityHeaders = [
 const publicPages = [
   'to-rent',
   'home/',
+  'development/',
   'how-results-are-ordered',
   'listing-policy',
   'contact',

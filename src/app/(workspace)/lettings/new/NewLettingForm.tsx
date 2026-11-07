@@ -20,12 +20,30 @@ const choose = { value: '', label: 'Choose…' };
 const options = (record: Record<string, string>) =>
   Object.entries(record).map(([value, label]) => ({ value, label }));
 
-export function NewLettingForm({ forAgency, today }: { forAgency: boolean; today: string }) {
+export function NewLettingForm({
+  forAgency,
+  today,
+  development,
+}: {
+  forAgency: boolean;
+  today: string;
+  /** M33: a home in a development starts with the development's address. */
+  development?: { id: string; name: string; addressLine1: string; area: string; county: string };
+}) {
   const [state, action] = useActionState(createLettingAction, emptyFormState);
-  const v = state.values ?? {};
+  const v =
+    state.values ??
+    (development
+      ? {
+          addressLine1: `, ${development.addressLine1}`,
+          area: development.area,
+          county: development.county,
+        }
+      : {});
   const e = state.errors ?? {};
   return (
     <form key={state.attempt ?? 'first'} action={action} className={formClass} noValidate>
+      {development ? <input type="hidden" name="developmentId" value={development.id} /> : null}
       {state.message ? (
         <Notice tone="danger" title="That didn’t save yet" role="alert">
           <p>{state.message}</p>

@@ -12,7 +12,7 @@ import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
 import { letterReadiness } from '@/server/verification/readiness';
-import { loadListing, type ListingContext } from './context';
+import { loadListing, readyPhotos, type ListingContext } from './context';
 import { removePublicListing, saveRevision, writePublicListing } from './project';
 import { riskSignals, type RiskReason } from './risk';
 
@@ -22,7 +22,8 @@ export type PublishResult =
   | { outcome: 'problems'; problems: PublishProblem[] };
 
 function readyPhotoCount(context: ListingContext): number {
-  return context.photos.filter((p) => p.status === 'ready' && p.kind === 'photo').length;
+  // M33: a home in a development can use the development's photos.
+  return readyPhotos(context).filter((p) => p.kind === 'photo').length;
 }
 
 /** What still stops this listing going live (M48), for the editor's checklist. */

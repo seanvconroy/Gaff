@@ -20,6 +20,10 @@ export async function createLettingAction(
       'Some details need another look. They’re marked below.',
     );
   }
-  const { lettingId } = await createLetting(member, parsed.data);
+  // M33: a home in one of the account's developments (checked in createLetting).
+  const developmentId = /^[0-9a-f-]{36}$/.test(values.developmentId ?? '')
+    ? values.developmentId
+    : undefined;
+  const { lettingId } = await createLetting(member, parsed.data, { developmentId });
   redirect(`/lettings/${lettingId}/viewings?created=1`);
 }

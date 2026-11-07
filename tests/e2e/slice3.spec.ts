@@ -1,9 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
+import { rentDueDay, rtbDeadline } from '../../src/domain/tenancy/tenancy';
+import { formatDate } from '../../src/lib/format';
 import { AOIFE, anAcceptedOffer, onPhone } from './journeys';
 import {
+  AVAILABLE_IN_DAYS,
   createLettingThroughUi,
   expectAccessible,
   expectNoSidewaysScroll,
+  isoDateInDays,
   linkInEmail,
   screenshot,
   signUpOperator,
@@ -14,6 +18,8 @@ test('R22: the tenant reads and signs the agreement on their phone, then the ope
   page,
 }) => {
   test.slow();
+  // The offer starts the tenancy when the home is available.
+  const startDate = isoDateInDays(AVAILABLE_IN_DAYS);
   const { lettingUrl } = await anAcceptedOffer(browser, page);
   await page.goto(`${lettingUrl}/tenancy`);
   await expect(page.getByRole('heading', { name: 'Tenancy agreement' })).toBeVisible();
@@ -35,7 +41,13 @@ test('R22: the tenant reads and signs the agreement on their phone, then the ope
   await expect(
     tenant.getByRole('heading', { name: 'Tenancy agreement: 12 Ranelagh Road' }),
   ).toBeVisible();
-  await expect(tenant.getByText(/€1,850 a month, paid in advance on the 1st day/)).toBeVisible();
+  // Rent falls due on the start date's day of the month (rentDueDay, unit-tested).
+  const rentDay = rentDueDay(startDate);
+  await expect(
+    tenant.getByText(
+      new RegExp(`€1,850 a month, paid in advance on the ${rentDay}(st|nd|rd|th) day`),
+    ),
+  ).toBeVisible();
   await expectAccessible(tenant);
   await expectNoSidewaysScroll(tenant);
   await screenshot(tenant, '43-tenant-agreement');
@@ -124,6 +136,8 @@ test('R24: the rent-setting and RTB packs; the tenant’s PPS number is optional
   page,
 }) => {
   test.slow();
+  // The offer starts the tenancy when the home is available.
+  const startDate = isoDateInDays(AVAILABLE_IN_DAYS);
   const { lettingUrl, offerLink } = await anAcceptedOffer(browser, page);
   await signedOnPaper(page, lettingUrl);
 
@@ -147,7 +161,7 @@ test('R24: the rent-setting and RTB packs; the tenant’s PPS number is optional
     page.getByRole('heading', { name: 'RTB registration pack: 12 Ranelagh Road' }),
   ).toBeVisible();
   await expect(page.getByText('1234567T')).toBeVisible();
-  await expect(page.getByText(/Register by \w+day 1 January 2027/)).toBeVisible();
+  await expect(page.getByText(`Register by ${formatDate(rtbDeadline(startDate))}`)).toBeVisible();
   await expectAccessible(page);
   await screenshot(page, '45-rtb-pack');
   await page.goto(`${lettingUrl}/tenancy/rent-pack`);

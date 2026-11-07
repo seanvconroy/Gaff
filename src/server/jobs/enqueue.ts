@@ -16,7 +16,10 @@ export type TaskName =
   | 'process_media'
   | 'redact_identity'
   | 'close_enquiries'
-  | 'listings_freshness';
+  | 'listings_freshness'
+  | 'alerts_match'
+  | 'alerts_send'
+  | 'alerts_daily';
 
 /**
  * Queues a job in the caller's transaction (ADR-0003): the job exists only if the change that
@@ -26,7 +29,16 @@ export async function enqueue(
   tx: Tx,
   task: TaskName,
   payload: Record<string, unknown>,
-  options: { runAt?: Date; jobKey?: string; maxAttempts?: number } = {},
+  options: {
+    runAt?: Date;
+    jobKey?: string;
+    maxAttempts?: number;
+    /**
+     * "preserve_run_at" keeps a queued job's time when it's queued again with the same key, so
+     * later additions join it instead of pushing it back (M87: alerts grouped within 2 minutes).
+     */
+    jobKeyMode?: 'replace' | 'preserve_run_at';
+  } = {},
 ): Promise<void> {
   await tx.execute(sql`
     select graphile_worker.add_job(
@@ -34,7 +46,8 @@ export async function enqueue(
       ${JSON.stringify(payload)}::json,
       run_at => ${options.runAt?.toISOString() ?? null}::timestamptz,
       max_attempts => ${options.maxAttempts ?? 10}::int,
-      job_key => ${options.jobKey ?? null}::text
+      job_key => ${options.jobKey ?? null}::text,
+      job_key_mode => ${options.jobKeyMode ?? 'replace'}::text
     )`);
   const dueWithinAMinute = !options.runAt || options.runAt.getTime() - Date.now() < 60_000;
   if (dueWithinAMinute) runJobsAfterThisRequest();

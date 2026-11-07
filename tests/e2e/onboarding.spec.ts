@@ -15,7 +15,7 @@ test('a new operator signs in by email link and sets up their workspace', async 
   await screenshot(page, '01-sign-in');
 
   await page.getByRole('button', { name: 'Email me a sign-in link' }).click();
-  await expect(page.getByText('Enter your work email address')).toBeVisible();
+  await expect(page.getByText('Enter your email address')).toBeVisible();
   await expectAccessible(page);
 
   const email = uniqueEmail();

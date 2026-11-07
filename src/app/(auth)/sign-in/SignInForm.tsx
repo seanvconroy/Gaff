@@ -40,7 +40,7 @@ export function SignInForm({ devOutbox, next }: { devOutbox: boolean; next?: str
         ) : null}
         <TextField
           name="email"
-          label="Work email"
+          label="Your email address"
           type="email"
           autoComplete="email"
           inputMode="email"

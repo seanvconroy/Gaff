@@ -21,6 +21,14 @@ export const platformEventCatalogue = {
   }),
   /** M9: the renter ticked or unticked "Keep my details for next time". */
   'renter.keep_details': z.object({ keepDetails: z.boolean() }),
+  /** M85: a renter saved, or stopped saving, a home. */
+  'home.saved': z.object({ listingId: z.uuid() }),
+  'home.unsaved': z.object({ listingId: z.uuid() }),
+  /** M86: a saved search with alerts, and changes to how often they come. */
+  'alert.created': z.object({ frequency: z.enum(['instant', 'daily', 'off']) }),
+  'alert.changed': z.object({ frequency: z.enum(['instant', 'daily', 'off']) }),
+  /** M86, M87: an alert email went out, with this many homes in it. */
+  'alert.sent': z.object({ homes: z.number().int(), frequency: z.enum(['instant', 'daily']) }),
 } satisfies Record<string, z.ZodObject>;
 
 export type PlatformEventType = keyof typeof platformEventCatalogue;

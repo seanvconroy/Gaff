@@ -7,6 +7,7 @@ import {
   type PublicListingValues,
   type PublicViewing,
 } from '@/domain/listings/projection';
+import { enqueue } from '@/server/jobs/enqueue';
 import { homeBer, letterCard, readyPhotos, type ListingContext } from './context';
 
 /**
@@ -60,10 +61,25 @@ export async function writePublicListing(
     },
     now,
   );
+  const [before] = await tx
+    .select({ rentCents: publicListings.rentCents, status: publicListings.status })
+    .from(publicListings)
+    .where(eq(publicListings.listingId, listing.id));
   await tx
     .insert(publicListings)
     .values(values)
     .onConflictDoUpdate({ target: publicListings.listingId, set: { ...values, updatedAt: now } });
+  // M86, M87: a home that's newly live, or cheaper, is matched to saved searches (once each).
+  const newlyLive = status === 'live' && (!before || before.status !== 'live');
+  const cheaper = status === 'live' && before !== undefined && values.rentCents < before.rentCents;
+  if (newlyLive || cheaper) {
+    await enqueue(
+      tx,
+      'alerts_match',
+      { listingId: listing.id },
+      { jobKey: `alerts_match:${listing.id}` },
+    );
+  }
   return values;
 }
 

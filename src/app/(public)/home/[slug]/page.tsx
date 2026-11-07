@@ -23,6 +23,7 @@ import { jsonForScript, listingStructuredData } from '@/domain/search/structured
 import { env } from '@/lib/env';
 import { buttonClass } from '@/ui/Button';
 import { currentUser } from '@/server/auth/member';
+import { savedAmong } from '@/server/alerts/saved-homes';
 import { enquiredAbout } from '@/server/enquiries/marketplace';
 import { renterProfile } from '@/server/renters/profile';
 import { formatDate, formatDateTime, formatRent, formatTime, irishToday } from '@/lib/format';
@@ -37,6 +38,7 @@ import {
 import { photoSources, previewUrl } from '../../photos';
 import { EnquiryForm, EnquirySignIn } from './EnquirySheet';
 import { Gallery } from './Gallery';
+import { SaveButton } from '../../SaveButton';
 import { ShareButton } from './ShareButton';
 import { ViewBeacon } from './ViewBeacon';
 import styles from './listing.module.css';
@@ -198,6 +200,9 @@ export default async function ListingPage({ params }: { params: Params }) {
   const enquired = user ? await enquiredAbout(user.id, listing.listingId) : null;
   const hasEnquired = enquired !== null && enquired.withdrawnAt === null;
   const taking = listing.status === 'live';
+  const isSaved = user
+    ? (await savedAmong(user.id, [listing.listingId])).has(listing.listingId)
+    : false;
 
   if (state === 'closed') {
     return (
@@ -412,7 +417,15 @@ export default async function ListingPage({ params }: { params: Params }) {
               ))}
             </ol>
           </section>
-          <ShareButton title={listing.title} url={url} />
+          <div className={styles.actions}>
+            <SaveButton
+              listingId={listing.listingId}
+              saved={isSaved}
+              returnTo={`/home/${listing.slug}`}
+              title={listing.title}
+            />
+            <ShareButton title={listing.title} url={url} />
+          </div>
         </aside>
       </div>
 

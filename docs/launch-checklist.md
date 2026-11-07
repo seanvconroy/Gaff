@@ -15,6 +15,7 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] **Supabase:** a production project in West EU (Ireland), on a paid plan with point-in-time recovery; Data API off; Enforce SSL on. Sign the DPA.
 - [ ] **AWS:** account with Amazon Bedrock access to Claude through the EU geographic inference profile; invocation logging off. Sign the DPA.
 - [ ] **Resend:** sending domain in `eu-west-1` with SPF and DKIM, open and click tracking off; receiving on the inbound subdomain (MX record); `email.received` webhook to `/api/inbound/resend`. Sign the DPA (data is stored in the US under the Data Privacy Framework, Q26). Mailgun EU remains an alternative.
+- [ ] **Alerts (M86):** a separate sending subdomain for alerts (`ALERTS_MAIL_FROM_DOMAIN`, for example `alerts.gaff.ie`) with its own SPF and DKIM, so a spike in alerts can't affect sign-in codes. Check one-click unsubscribe (List-Unsubscribe and List-Unsubscribe-Post) in Gmail and Outlook.
 - [ ] **Sinch:** EU region SMS account; check Irish sender ID rules. Sign the DPA.
 - [ ] **ID and income checks:** choose providers (for example Veriff or Onfido for ID; TrueLayer, Tink or Yapily for open banking, checking AIB, Bank of Ireland, PTSB and Revolut coverage), sign DPAs, and add their adapters. Until then production runs with `IDENTITY_PROVIDER=none` and `INCOME_PROVIDER=none`, and operators arrange those checks themselves.
 - [ ] **GitHub:** push access and Actions enabled for CI.

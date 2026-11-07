@@ -1,4 +1,4 @@
-import { pgTable, text, uuid } from 'drizzle-orm/pg-core';
+import { jsonb, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 import { createdAt } from './columns';
 
 /**
@@ -12,5 +12,7 @@ export const devOutbox = pgTable('dev_outbox', {
   replyTo: text(),
   subject: text().notNull(),
   text: text().notNull(),
+  /** M86: List-Unsubscribe headers, so tests can follow them. */
+  headers: jsonb().$type<Record<string, string>>(),
   createdAt: createdAt(),
 });

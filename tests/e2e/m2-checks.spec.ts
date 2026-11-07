@@ -60,7 +60,7 @@ test('M16, M18, M23, M105: an agency invites an agent, and Gaff staff check both
   await agent.goto(await latestLinkFor(agentEmail));
   await expect(agent.getByRole('heading', { name: 'Join Halcyon Lettings on Gaff' })).toBeVisible();
   await expectAccessible(agent);
-  await agent.getByLabel('Work email').fill(agentEmail);
+  await agent.getByLabel('Your email address').fill(agentEmail);
   await agent.getByRole('button', { name: 'Email me a sign-in link' }).click();
   await expect(agent.getByText('Check your email')).toBeVisible();
   await agent.goto(await latestLinkFor(agentEmail));

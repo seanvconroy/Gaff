@@ -10,6 +10,7 @@ import {
 } from 'graphile-worker';
 import { db, pool } from '@/db/client';
 import { taskList } from './tasks';
+import { nextDailySend } from '@/domain/alerts/alerts';
 
 const CONCURRENCY = 3;
 
@@ -123,6 +124,10 @@ export async function queueDailyJobs(): Promise<void> {
   // M49: listings not confirmed for 14 days get a reminder, and are paused 3 days later.
   await db().execute(sql`
     select graphile_worker.add_job('listings_freshness', '{}'::json, job_key => 'listings_freshness')`);
+  // M86: the daily alert emails, at the next 8am in Ireland.
+  await db().execute(sql`
+    select graphile_worker.add_job('alerts_daily', '{}'::json,
+      run_at => ${nextDailySend(new Date()).toISOString()}::timestamptz, job_key => 'alerts_daily')`);
 }
 
 /**

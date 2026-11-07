@@ -28,6 +28,10 @@ const schema = z
       .optional(),
     INBOUND_DOMAIN: z.string().min(3).default('in.gaff.test'),
     MAIL_FROM_DOMAIN: z.string().min(3).default('mail.gaff.test'),
+    /** M86: alerts' own sending subdomain, such as alerts.gaff.ie. Falls back to MAIL_FROM_DOMAIN. */
+    ALERTS_MAIL_FROM_DOMAIN: z.string().min(3).optional(),
+    /** M87: new homes within this many seconds go in one alert email (2 minutes; less in tests). */
+    ALERT_GROUP_SECONDS: z.coerce.number().int().min(0).max(600).default(120),
     /** Resend (ADR-0014): sending, and the signing secret of the email.received webhook. */
     RESEND_API_KEY: z.string().optional(),
     RESEND_WEBHOOK_SECRET: z.string().optional(),

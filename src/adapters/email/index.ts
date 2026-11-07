@@ -20,3 +20,15 @@ export function emailSender(): EmailSender {
 export function gaffSender(): { name: string; address: string } {
   return { name: 'Gaff', address: `no-reply@${env().MAIL_FROM_DOMAIN}` };
 }
+
+/**
+ * M86 (tech spec, Notifications): alerts go from their own subdomain, so a spike in alerts can't
+ * affect the delivery of sign-in codes and messages.
+ */
+export function alertsSender(): { name: string; address: string } {
+  const config = env();
+  return {
+    name: 'Gaff alerts',
+    address: `alerts@${config.ALERTS_MAIL_FROM_DOMAIN ?? config.MAIL_FROM_DOMAIN}`,
+  };
+}

@@ -9,13 +9,24 @@ import {
   roomsLine,
 } from '../facts';
 import { photoSources } from '../photos';
+import { SaveButton } from '../SaveButton';
 import styles from './search.module.css';
 
 /**
  * M60: each result shows the photos (swipe), the rent, the rooms and what renters filter on.
  * The first photo of the first results loads straight away; the rest load as they scroll in.
  */
-export function ResultCard({ card, eager }: { card: Card; eager: boolean }) {
+export function ResultCard({
+  card,
+  eager,
+  saved,
+  returnTo,
+}: {
+  card: Card;
+  eager: boolean;
+  saved: boolean;
+  returnTo: string;
+}) {
   const photos = card.photos
     .filter((p) => p.kind === 'photo')
     .map((p, i, all) => photoSources(p, `Photo ${i + 1} of ${all.length}`));
@@ -56,6 +67,12 @@ export function ResultCard({ card, eager }: { card: Card; eager: boolean }) {
           <li>{petsWords(card.petsConsidered)}</li>
           {closes ? <li>{closes}</li> : null}
         </ul>
+        <SaveButton
+          listingId={card.listingId}
+          saved={saved}
+          returnTo={returnTo}
+          title={card.title}
+        />
       </div>
     </article>
   );

@@ -59,6 +59,15 @@ export async function latestLinkFor(email: string): Promise<string> {
   return link;
 }
 
+/** The newest email to this address, from the development outbox. */
+export async function latestEmailFor(email: string): Promise<{ subject: string; text: string }> {
+  const rows = await query<{ subject: string; text: string }>(
+    'select subject, text from dev_outbox where to_address = $1 order by created_at desc limit 1',
+    [email],
+  );
+  return rows[0] ?? { subject: '', text: '' };
+}
+
 /** M76: the 6-digit code last emailed to this address (from the development outbox). */
 export async function latestCodeFor(email: string): Promise<string> {
   const rows = await query<{ subject: string }>(
@@ -73,7 +82,7 @@ export async function latestCodeFor(email: string): Promise<string> {
 /** Signs in through the real email-link flow. */
 export async function signIn(page: Page, email: string): Promise<void> {
   await page.goto('/sign-in');
-  await page.getByLabel('Work email').fill(email);
+  await page.getByLabel('Your email address').fill(email);
   await page.getByRole('button', { name: 'Email me a sign-in link' }).click();
   await expect(page.getByText('Check your email')).toBeVisible();
   await page.goto(await latestLinkFor(email));

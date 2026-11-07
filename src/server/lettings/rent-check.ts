@@ -8,10 +8,11 @@ import {
   type RentCheckInput,
   type RentCheckOutcome,
 } from '@/domain/rent/rent-check';
-import { irishToday } from '@/lib/format';
+import { formatEuro, irishToday } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
+import { republishIfPublic } from '@/server/listings/editor';
 
 /**
  * R3: records the rent check and the rent the operator is asking. Re-checking replaces the
@@ -26,11 +27,17 @@ export async function recordRentCheck(
   const outcome = checkRent(input);
   await withOrg(member.organisationId, async (tx) => {
     const [letting] = await tx
-      .select({ rent: lettings.monthlyRentCents })
+      .select({ rent: lettings.monthlyRentCents, deposit: lettings.depositCents })
       .from(lettings)
       .where(eq(lettings.id, lettingId))
       .for('update');
     if (!letting) throw new UserFacingError('We couldn’t find that letting.');
+    // Rule 4, M39: the deposit is never more than a month's rent.
+    if (letting.deposit !== null && letting.deposit > askingRentCents) {
+      throw new UserFacingError(
+        `The deposit is ${formatEuro(letting.deposit)}, more than a month’s rent at this rent. Lower the deposit on the listing first.`,
+      );
+    }
 
     const previous = input.lastLet === 'never' ? null : input;
     const values = {
@@ -64,6 +71,8 @@ export async function recordRentCheck(
         type: 'letting.rent_changed',
         data: { fromCents: letting.rent, toCents: askingRentCents },
       });
+      // M51: a live listing shows the new rent at once; a lower one reaches alerts (M86).
+      await republishIfPublic(tx, lettingId, member.userId);
     }
     await recordEvent(tx, {
       organisationId: member.organisationId,

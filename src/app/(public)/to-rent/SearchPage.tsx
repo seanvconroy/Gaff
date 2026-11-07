@@ -12,7 +12,11 @@ import { itemListStructuredData, jsonForScript } from '@/domain/search/structure
 import { homesCount, sortWords, wideningWords } from '@/copy/search';
 import { env } from '@/lib/env';
 import { formatDate } from '@/lib/format';
+import { savedAmong } from '@/server/alerts/saved-homes';
+import { currentUser } from '@/server/auth/member';
 import { searchListings, widerSearchesWithHomes } from '@/server/search/search';
+import { SubmitButton } from '@/ui/SubmitButton';
+import { saveSearchAction } from '../actions';
 import { Button } from '@/ui/Button';
 import { ChoiceGroup, SelectField, TextField } from '@/ui/Field';
 import { Notice } from '@/ui/Notice';
@@ -57,6 +61,16 @@ export async function SearchPage({
 }) {
   const results = await searchListings(area, filters);
   const path = areaPath(area);
+  const user = await currentUser();
+  const saved = user
+    ? await savedAmong(
+        user.id,
+        results.results.map((r) => r.listingId),
+      )
+    : new Set<string>();
+  // M86: an alert is for the place and the filters, not the order or the page.
+  const alertQuery = writeFilters({ ...filters, sort: 'best', page: 1 });
+  const here = `${path}${writeFilters(filters) ? `?${writeFilters(filters)}` : ''}`;
   const heading = areaHeading(area);
   const wider = results.total === 0 ? await widerSearchesWithHomes(area, filters) : [];
   const place = area.kind === 'everywhere' ? null : (area.place ?? null);
@@ -217,11 +231,27 @@ export async function SearchPage({
         </p>
       </form>
 
+      <form action={saveSearchAction.bind(null, path, alertQuery)} className={styles.alert}>
+        <p>
+          {results.total === 0
+            ? 'Hear first when a home like this is listed:'
+            : 'Hear first when another home like these is listed:'}
+        </p>
+        <SubmitButton variant="secondary" pendingLabel="Saving…">
+          Get alerts for this search
+        </SubmitButton>
+      </form>
+
       {results.total > 0 ? (
         <ol className={styles.results} aria-label="Homes">
           {results.results.map((card, i) => (
             <li key={card.listingId}>
-              <ResultCard card={card} eager={i < 2} />
+              <ResultCard
+                card={card}
+                eager={i < 2}
+                saved={saved.has(card.listingId)}
+                returnTo={here}
+              />
             </li>
           ))}
         </ol>

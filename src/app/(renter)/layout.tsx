@@ -17,6 +17,8 @@ export default function RenterLayout({ children }: { children: ReactNode }) {
           <Wordmark href="/my" />
           <nav aria-label="Your account" className={styles.nav}>
             <Link href="/my">Your homes</Link>
+            <Link href="/my/saved">Saved</Link>
+            <Link href="/my/alerts">Alerts</Link>
             <Link href="/my/details">Who has my details</Link>
             <Link href="/to-rent">Homes to rent</Link>
           </nav>

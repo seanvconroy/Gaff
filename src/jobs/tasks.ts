@@ -10,6 +10,7 @@ import { markReferenceOverdue } from '@/server/checks/checks';
 import { sendMessage } from '@/server/messages/outbox';
 import { expireHomeOffer } from '@/server/offers/offer';
 import { sendRtbReminder } from '@/server/tenancy/rtb';
+import { matchListing, sendAlerts, sendDailyAlerts } from '@/server/alerts/match';
 import { sweepMarketplace } from '@/server/retention/marketplace';
 import { sweepPersonalData } from '@/server/retention/sweep';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
@@ -25,6 +26,8 @@ export const CRONTAB = [
   '30 2 * * * retention_sweep ?fill=2d',
   // M49: daily, listings not confirmed for 14 days get a reminder, and are paused 3 days later.
   '15 8 * * * listings_freshness ?fill=2d',
+  // M86: daily alerts at 8am in Ireland, which is 7am or 8am UTC; the task checks the hour.
+  '0 7,8 * * * alerts_daily ?fill=1h',
 ].join('\n');
 
 /** Every background task. Tasks are thin: they call use cases in src/server. */
@@ -38,6 +41,20 @@ export const taskList: TaskList = {
   },
   expire_offer: async (payload) => {
     await expireOffer(z.object({ organisationId: z.uuid(), offerId: z.uuid() }).parse(payload));
+  },
+  // M86, M87: alerts.
+  alerts_match: async (payload) => {
+    await matchListing(z.object({ listingId: z.uuid() }).parse(payload).listingId);
+  },
+  alerts_send: async (payload) => {
+    const job = z
+      .object({ userId: z.string().min(1), frequency: z.enum(['instant', 'daily']) })
+      .parse(payload);
+    await sendAlerts(job.userId, job.frequency);
+  },
+  alerts_daily: async () => {
+    const sent = await sendDailyAlerts();
+    if (sent) console.log(`Alerts: ${sent} homes sent in daily emails.`);
   },
   retention_sweep: async () => {
     const swept = await sweepPersonalData();

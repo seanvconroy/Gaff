@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 1 November 2026 (all three slices built; hosting moved to Vercel and Supabase; ready for the founder's end-to-end test).
+Last updated: 8 November 2026 (marketplace milestones 1 to 7 built; the test copy sends real email and has made-up homes, ready for the founders' end-to-end test).
 
 ## Done
 
@@ -75,10 +75,19 @@ Last updated: 1 November 2026 (all three slices built; hosting moved to Vercel a
 
 - **Marketplace:** approved for build on 7 November 2026. Progress is in the Marketplace section below.
 
-- **Deploy the test copy** on Vercel and Supabase ([deploy.md](deploy.md), about 20 minutes).
-- **Your end-to-end test** (see [testing-guide.md](testing-guide.md)), then feedback and iteration.
+- **Your end-to-end test, together** (see [testing-guide.md](testing-guide.md)), then feedback and iteration. The test copy is at https://gaff-test.vercel.app.
 - **Before the first pilot:** everything in [launch-checklist.md](launch-checklist.md), including the providers for ID and income checks (stand-ins today) and the solicitor’s answers on electronic signing (Q23) and the agreement wording.
 - **Later:** joint tenants on one agreement; guarantors when affordability isn’t met (renters can explain or add one by replying, today); an e-signature provider if the solicitor wants an advanced signature; renter profiles they can keep and reuse (decided in Q25; a slice of its own after the end-to-end test); an export of the signed agreement, packs and inventory as PDFs; moving the renter pages’ words into `src/copy/`.
+
+## The test copy (8 November 2026)
+
+https://gaff-test.vercel.app, for the founders to test as a letter and as a renter ([testing-guide.md](testing-guide.md), [deploy.md](deploy.md)):
+- **Real email** to real addresses, through Resend with a send-only key, from a borrowed verified domain until Gaff has its own (N2). Mail to made-up addresses (`example.com`, `example.ie`, `.test`, `.example`) goes to the outbox. Replies by email can't be received yet, so each email that invites a reply says to use its link instead. `TEST_EMAIL_RECIPIENTS` can limit real email to named people.
+- **Testers** are Gaff staff: the founders in `TEST_STAFF_EMAILS` from their first sign-in, and anyone an admin adds at `/staff/testers` (test copy only, with `staff.added` and `staff.removed` platform events). On the test copy the outbox and test inbox are for testers only.
+- **Texts** aren't sent (N3): the mobile code shows on screen on the test copy.
+- **Photos** are kept in Postgres (`STORAGE_PROVIDER=database`, the `dev_objects` table); production refuses it.
+- **Made-up letters and homes:** two agencies and a private landlord, with nine live homes in Dublin, Galway and Cork and drawn photos, seeded by the build (`pnpm db:seed --deploy`, the test copy's production deployment only). Each deploy tops up their viewing times and confirms them as available. "Add test enquiries" on a letting brings five made-up renters from Daft and MyHome, most with answers.
+- **Never indexed:** every page says `noindex` and `robots.txt` disallows everything; a banner on every page says it's the test copy. Vercel Authentication covers previews only.
 
 ## Marketplace (approved 7 November 2026)
 

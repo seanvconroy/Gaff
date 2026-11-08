@@ -21,7 +21,7 @@ Banked on 8 November 2026, after marketplace milestones 1 to 7, developments, M1
 | --- | --- | --- | --- |
 | N1 | Where do the map tiles live: Supabase Storage, or Vercel Blob as the fallback? And who refreshes the OpenStreetMap extract? | Blocks the map (M56, M57, M71) | CTO, founders |
 | N2 | Gaff's own email domain for sending (and a subdomain for alerts), and a subdomain for receiving replies and Daft or MyHome enquiries | The test copy borrows a verified domain for now; production needs Gaff's own, with SPF and DKIM | Founders |
-| N3 | Sinch for texts: when do we set it up? | Mobile codes and viewing reminders are shown on screen in the test copy, not texted | Founders |
+| N3 | Sinch for texts: when do we set it up? | On the test copy, mobile codes show on screen and texted viewing reminders go to the outbox; nothing is texted | Founders |
 | N4 | Claude on Bedrock (EU): AWS account and keys | The test copy's AI is a stand-in; real answers, drafts and checks need Bedrock | Founders |
 | N5 | Stripe Identity: test mode for the test copy, then live keys and the DPA | Landlords' ID checks are a stand-in page in the test copy | Founders |
 | N6 | The solicitor's review: first reply version 2, statements of reasons, the listing policy, terms, the privacy notice and the DPIA (Q36) | Needed before the first real renter (M101, M102) | Founders, solicitor |
@@ -39,3 +39,4 @@ Banked on 8 November 2026, after marketplace milestones 1 to 7, developments, M1
 - Development pages are at `/development/[slug]`, because `/developments` is the letter's workspace.
 - Bulk add copies a home already set up, rather than separate unit-type records.
 - The test copy keeps photos in the database (`STORAGE_PROVIDER=database`); production uses Supabase Storage.
+- The test copy sends from a borrowed domain and can't receive email (N2), shows mobile codes on screen (N3), and is open to anyone with its address (never indexed). Its production branch is `claude/epic-ride-0ha68s` only once Branch Tracking is changed in Vercel; until then, it's redeployed by hand.

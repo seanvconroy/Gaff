@@ -3,9 +3,10 @@
 Gaff is one Next.js app on Vercel, with its functions in Dublin, and one Postgres database on Supabase, in Ireland ([ADR-0014](adr/0014-vercel-supabase-approved-vendors.md)).
 
 This sets up the **test copy**, for the end-to-end test in [testing-guide.md](testing-guide.md):
-- Emails and texts aren't sent. They appear on the Outbox page.
+- Real email goes to real addresses, through Resend. Mail to made-up addresses (`example.com`, `example.ie`, `.test`, `.example` and the like) goes to the Outbox page instead.
+- Texts aren't sent: the mobile code shows on screen, and every text is in the Outbox.
 - The AI and the ID and income checks are stand-ins.
-- **Use made-up details only.**
+- It's open to anyone with the address, never indexed, and has a banner saying it's the test copy. **Use made-up names and numbers.**
 
 It takes about 20 minutes. Production uses the same steps with real providers; see [Production, later](#production-later).
 
@@ -39,7 +40,7 @@ It takes about 20 minutes. Production uses the same steps with real providers; s
 ## 2. The app (Vercel)
 
 1. **Import the project.** Choose **Add New**, then **Project**, and import `seanvconroy/Gaff`. Vercel finds Next.js and pnpm on its own.
-2. **Add the settings.** Before deploying, open **Environment Variables** and add these four:
+2. **Add the settings.** Before deploying, open **Environment Variables** and add these, for **Production**:
 
    | Name | Value |
    | --- | --- |
@@ -47,11 +48,17 @@ It takes about 20 minutes. Production uses the same steps with real providers; s
    | `AUTH_SECRET` | 32 or more random letters and digits |
    | `CRON_SECRET` | another 32 or more random letters and digits |
    | `GAFF_ENV` | `staging` |
+   | `MARKETPLACE_PUBLIC` | `1`: renter sign-up, search and the public pages |
+   | `EMAIL_PROVIDER` | `resend` |
+   | `RESEND_API_KEY` | a Resend key with **sending access** only, limited to the sending domain (sensitive) |
+   | `MAIL_FROM_DOMAIN` | a domain verified in Resend, in `eu-west-1`. The test copy borrows `avondale-square.com` until Gaff has its own (open question N2). |
+   | `STORAGE_PROVIDER` | `database`: listing photos are kept in Postgres, so no storage buckets are needed |
+   | `TEST_STAFF_EMAILS` | the founders' emails, separated by commas: they're testers (Gaff staff) from their first sign-in |
 
-   For the random values, use a password manager's generator, or run `openssl rand -hex 32` in a terminal.
-3. **Deploy.** The build applies the database migrations first, then builds the app. It takes 3 to 5 minutes.
+   For the random values, use a password manager's generator, or run `openssl rand -hex 32` in a terminal. Without `RESEND_WEBHOOK_SECRET`, the test copy sends email but doesn't receive it: replies go through the links in each email, and each email says so.
+3. **Deploy.** The build applies the database migrations, seeds the made-up letters and homes ([`src/server/dev/seed.ts`](../src/server/dev/seed.ts)), then builds the app. The first build takes 5 to 8 minutes; later ones 3 to 5. The seed keeps what's there, tops up viewing times and confirms the made-up homes are still available. If it fails, the build carries on and the log says why.
 
-Vercel deploys the repository's default branch, `claude/gaff-mvp`, as production. You can check this in **Settings**, **Environments**, **Production**, under **Branch Tracking**. Every push to that branch deploys again.
+The test copy deploys the branch `claude/epic-ride-0ha68s` as production. To have every push to it deploy on its own, set it in **Settings**, **Environments**, **Production**, under **Branch Tracking**. Otherwise, redeploy from the latest commit.
 
 ## 3. Check it works
 
@@ -66,7 +73,7 @@ Vercel deploys the repository's default branch, `claude/gaff-mvp`, as production
    | `"database": "XX000"` | The user name should be `gaff.` followed by your project's reference. |
    | `"database": "42P01"` | The tables aren't there. Check the build log for the migration step. |
 
-2. **Sign in.** Open the app and sign in with a made-up email, then open the sign-in link from `/dev/outbox`.
+2. **Sign in.** Open the app and sign in with your own email. The link arrives in your inbox; check spam the first time.
 3. **The daily job.** In Vercel, **Settings**, then **Cron Jobs**, shows `/api/cron/daily` once a day.
 
 ## 4. The minute tick (Supabase)
@@ -74,7 +81,7 @@ Vercel deploys the repository's default branch, `claude/gaff-mvp`, as production
 In Supabase's **SQL Editor**, run [`scripts/db/supabase-tick.sql`](../scripts/db/supabase-tick.sql). It needs three things:
 - the app's address;
 - the same `CRON_SECRET` as in Vercel;
-- the project's **Protection Bypass for Automation** secret, from Vercel's **Settings**, then **Deployment Protection**.
+- the project's **Protection Bypass for Automation** secret, from Vercel's **Settings**, then **Deployment Protection** (only needed while Vercel Authentication covers production).
 
 From then on, Supabase calls the app every minute to run anything due. You can see it in **Integrations**, then **Cron**, as `gaff-tick`, with its history.
 
@@ -91,9 +98,9 @@ Each run stops once nothing is left, or after 45 seconds, and lets running jobs 
 
 Locally, `pnpm worker` does the same job continuously (see `CLAUDE.md`).
 
-## 5. Listing photos (Supabase Storage)
+## 5. Listing photos (Supabase Storage, for production)
 
-Listing photos (M43) live in Supabase Storage, next to the database. Without this, everything else works, but photos can't be added.
+The test copy keeps listing photos in Postgres (`STORAGE_PROVIDER=database`), which is fine for a few dozen homes. Production keeps them (M43) in Supabase Storage, next to the database:
 
 1. In the Supabase project, open **Storage** and create two buckets:
    - `uploads`, **private**: originals waiting to be checked;
@@ -109,7 +116,9 @@ Listing photos (M43) live in Supabase Storage, next to the database. Without thi
 
 ## Good to know
 
-- **Vercel's sign-in protects the test copy.** New Vercel projects ask for a Vercel sign-in on every `vercel.app` address, so only you can open the test copy and its Outbox, which shows every email, sign-in links included. Keep it on. Sign in to Vercel once on your phone too. The minute tick passes it with the project's automation bypass secret. Production, on Gaff's own domain, is open to renters and has no Outbox.
+- **Who can open what.** In **Settings**, **Deployment Protection**, Vercel Authentication covers **preview deployments only**: the test copy itself is open, so both testers can use it on any device, and previews (which share its database) stay private. The Outbox and test inbox are for testers only, and the Outbox holds only made-up people's mail. The test copy is never indexed: every page says `noindex` and `robots.txt` disallows everything.
+- **Testers** are Gaff staff on the test copy. The founders in `TEST_STAFF_EMAILS` are admins from their first sign-in; an admin adds others at `/staff/testers`. Production has no such page: staff are added with `pnpm staff:add`.
+- **Email limits:** Resend's free plan sends 100 emails a day and 3,000 a month.
 - **Preview deployments** of other branches share the test database but never migrate it.
 - **Logs:** Vercel shows function logs per request. They hold IDs and counts, never personal data.
 - **Seeing the data:** Supabase's **Table Editor** shows Gaff's tables. Remember it's the test copy: made-up details only.

@@ -223,8 +223,15 @@ describe('Measurement: listing views without cookies', () => {
     );
     expect(hashes).toHaveLength(2);
     expect(JSON.stringify(hashes)).not.toMatch(/203\.0\.113|iPhone/);
-    const tomorrow = new Date(Date.now() + 86_400_000);
-    await sweepMarketplace(tomorrow);
+    // The sweep runs across every organisation. So these hashes move to the day before, rather
+    // than the clock to tomorrow, which would clear every other test's hashes from today too.
+    await withOrg(member.organisationId, (tx) =>
+      tx
+        .update(listingVisitors)
+        .set({ day: sql`${listingVisitors.day} - 1` })
+        .where(eq(listingVisitors.listingId, listingId)),
+    );
+    await sweepMarketplace();
     const left = await withOrg(member.organisationId, (tx) =>
       tx.select().from(listingVisitors).where(eq(listingVisitors.listingId, listingId)),
     );
@@ -241,8 +248,9 @@ describe('M74: a let home’s page goes after 90 days', () => {
         .set({ closedAt: sql`now() - interval '91 days'` })
         .where(and(eq(publicListings.listingId, listingId))),
     );
-    const swept = await sweepMarketplace();
-    expect(swept.closedPages).toBeGreaterThanOrEqual(1);
+    await sweepMarketplace();
+    // This page, not the sweep's count: another test's sweep, across every organisation, may
+    // have removed it first.
     expect(await publicListingBySlug(slug)).toBeNull();
   });
 });

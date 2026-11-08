@@ -157,27 +157,45 @@ describe('M49, M50, M52: a listing stays fresh and follows its letting', () => {
     const member = await aCheckedLandlord();
     const { lettingId } = await aListableLetting(member, [31, 32, 33]);
     await publishListing(member, lettingId, { declare: true });
-    const day = 86_400_000;
-    const published = (await publicRow(lettingId, member.organisationId)).listing.confirmedAt!;
-
-    const later = (days: number) => new Date(published.getTime() + days * day);
-    expect((await sweepFreshness(later(15))).reminded).toBeGreaterThanOrEqual(1);
-    const [reminder] = await db()
-      .select({ text: devOutbox.text })
-      .from(devOutbox)
-      .where(
-        and(
-          eq(devOutbox.toAddress, member.email),
-          like(devOutbox.subject, 'Is % still available?'),
-        ),
+    const { listing } = await publicRow(lettingId, member.organisationId);
+    // The sweep runs across every organisation, as it does each morning. So this listing's dates
+    // move back, not the clock forward: a later clock would remind about and pause every other
+    // test's live listings too.
+    const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000);
+    const backdate = (dates: { confirmedAt: Date; reminderSentAt?: Date }) =>
+      withOrg(member.organisationId, (tx) =>
+        tx.update(listings).set(dates).where(eq(listings.id, listing.id)),
       );
-    const [, organisationId, listingId, token] =
-      /\/listings\/confirm\/([^/]+)\/([^/]+)\/([A-Za-z0-9_-]+)/.exec(reminder!.text)!;
+    const emailAbout = async (subject: string) => {
+      const [mail] = await db()
+        .select({ text: devOutbox.text })
+        .from(devOutbox)
+        .where(and(eq(devOutbox.toAddress, member.email), like(devOutbox.subject, subject)));
+      return mail?.text ?? '';
+    };
+    const confirmUrl = /\/listings\/confirm\/([^/]+)\/([^/]+)\/([A-Za-z0-9_-]+)/;
 
-    await sweepFreshness(later(18));
-    expect((await publicRow(lettingId, member.organisationId)).listing.status).toBe('paused');
-    expect((await publicRow(lettingId, member.organisationId)).row).toBeNull();
+    // Last confirmed 15 days ago: the letter is asked to confirm.
+    await backdate({ confirmedAt: daysAgo(15) });
+    await sweepFreshness();
+    expect(await emailAbout('Is % still available?')).toMatch(confirmUrl);
+    expect((await publicRow(lettingId, member.organisationId)).listing).toMatchObject({
+      status: 'live',
+      reminderSentAt: expect.any(Date),
+    });
 
+    // 18 days, with the reminder 3 days ago: the listing is paused.
+    await backdate({ confirmedAt: daysAgo(18), reminderSentAt: daysAgo(3) });
+    await sweepFreshness();
+    const paused = await publicRow(lettingId, member.organisationId);
+    expect(paused.listing).toMatchObject({ status: 'paused', pauseReason: 'freshness' });
+    expect(paused.row).toBeNull();
+
+    // The link is signed with the date the home was last confirmed, which the test moved, so it
+    // comes from the latest email. In use, the reminder and this email carry the same link.
+    const pausedEmail = await emailAbout('% is paused until you confirm%');
+    expect(pausedEmail).toMatch(confirmUrl);
+    const [, organisationId, listingId, token] = confirmUrl.exec(pausedEmail)!;
     expect(await confirmAvailableByLink(organisationId!, listingId!, 'wrong-token')).toBe(
       'invalid',
     );

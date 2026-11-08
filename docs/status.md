@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 8 November 2026 (the UX redesign of 7 November merged with marketplace milestones 1 to 7; the test copy sends real email and has made-up homes, ready for the founders' end-to-end test).
+Last updated: 8 November 2026 (integration test files no longer interfere when they run side by side: a test that runs a sweep across every organisation now backdates only its own data and sweeps at the real time; the UX redesign of 7 November merged with marketplace milestones 1 to 7; the test copy sends real email and has made-up homes, ready for the founders' end-to-end test).
 
 ## Done
 

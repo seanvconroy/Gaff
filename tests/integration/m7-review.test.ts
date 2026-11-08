@@ -14,7 +14,9 @@ import { publishListing } from '@/server/listings/publish';
 import { submitReport, REPORTS_PER_DAY } from '@/server/moderation/reports';
 import { appealDecision, decideCase, openCases, restoreAccount } from '@/server/moderation/review';
 import { UserFacingError } from '@/server/errors';
+import { irishToday } from '@/lib/format';
 import { sweepMarketplace } from '@/server/retention/marketplace';
+import { daysFromToday } from '../fixtures/lettings';
 import type { Member } from './helpers';
 import { aCheckedLandlord, aListableLetting, aStaffMember } from './listing-helpers';
 
@@ -32,15 +34,18 @@ async function aLiveListing(member?: Member) {
 }
 
 let device = 0;
-const report = (slug: string, values: Record<string, string>, ip?: string) => {
+/** A report from a new device. One that's refused fails here, with the reason, not later on. */
+const report = async (slug: string, values: Record<string, string>, ip?: string) => {
   device += 1;
-  return submitReport({
+  const result = await submitReport({
     slug,
     values: { details: '', email: '', ...values },
     ip: ip ?? `198.51.100.${device % 250}`,
     userAgent: `Mozilla/5.0 test device ${device}`,
     userId: null,
   });
+  expect(result, `the report about ${slug}`).toMatchObject({ ok: true });
+  return result;
 };
 
 async function listingStatus(member: Member, listingId: string) {
@@ -248,12 +253,29 @@ describe('Rule 9: reports are deleted 6 months after their case closes', () => {
     const staff = await aStaffMember();
     const item = await caseFor(listingId);
     await decideCase(staff, item!.id, 'no_action', 'other');
-    const sevenMonths = new Date(Date.now() + 213 * 86_400_000);
-    const swept = await sweepMarketplace(sevenMonths);
-    expect(swept.reports).toBeGreaterThanOrEqual(1);
-    const left = await withSystem((tx) =>
-      tx.select().from(reports).where(eq(reports.caseId, item!.id)),
+    const reportsKept = () =>
+      withSystem((tx) => tx.select().from(reports).where(eq(reports.caseId, item!.id)));
+    const [closed] = await withSystem((tx) =>
+      tx.select().from(moderationCases).where(eq(moderationCases.id, item!.id)),
     );
-    expect(left).toEqual([]);
+    const sixMonthsOn = new Date(closed!.closedAt!);
+    sixMonthsOn.setMonth(sixMonthsOn.getMonth() + 6);
+    await sweepMarketplace();
+    expect(await reportsKept()).toEqual([
+      expect.objectContaining({ deleteAfter: irishToday(sixMonthsOn) }),
+    ]);
+
+    // The sweep runs across every organisation. So the report's date moves back, rather than the
+    // clock 7 months on, which would also clear other tests' reports, closed listing pages,
+    // visitor hashes and alert deliveries. This checks the report, not the sweep's count:
+    // another test's sweep may get to it first.
+    await withSystem((tx) =>
+      tx
+        .update(reports)
+        .set({ deleteAfter: daysFromToday(-7) })
+        .where(eq(reports.caseId, item!.id)),
+    );
+    await sweepMarketplace();
+    expect(await reportsKept()).toEqual([]);
   });
 });

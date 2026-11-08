@@ -164,7 +164,7 @@ OSM-derived rows are kept separate from rows from other sources. Following the O
          street 0.75 · landmark 0.72 · townland 0.6
   ```
 
-  Then at most 3 streets and 2 landmarks (unless nothing else matches), one row per name and context, and 8 rows in all. Groups come in the order of their best item, so the best match is always first.
+  Equal scores go by live homes, then the size of the place's county (Census 2022, `counties.ts`), then name, so of the many streets called "Highfield Road" or "Main Street", Dublin's come first. The SQL keeps its candidates in the same order, so a common name never loses a Dublin street to the limit. Then at most 3 streets and 2 landmarks (unless nothing else matches), one row per name and context, and 8 rows in all. Groups come in the order of their best item, so the best match is always first.
 - **Response:**
 
   ```json

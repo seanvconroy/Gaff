@@ -1,3 +1,4 @@
+import { COUNTY_POPULATION } from './counties';
 import { parseRoutingKey, routingKeyAreaName } from './eircode';
 import type { Place, PlaceKind } from './gazetteer';
 import { normalise, normaliseQuery, queryWords, similarity, wordsMatch } from './normalise';
@@ -9,8 +10,9 @@ import { normalise, normaliseQuery, queryWords, similarity, wordsMatch } from '.
  *
  *   score = match × kind + 0.05 × log10(1 + live homes) + 0.02 × log10(1 + population)
  *
- * Then at most 3 streets and 2 landmarks, unless nothing else matches, one row per name and
- * context, and 8 rows in all, in groups that come in the order of their best row.
+ * Equal scores go by live homes, then the county's size (counties.ts), then name. Then at most
+ * 3 streets and 2 landmarks, unless nothing else matches, one row per name and context, and
+ * 8 rows in all, in groups that come in the order of their best row.
  */
 
 export type SuggestionGroupKind = 'places' | 'streets' | 'landmarks';
@@ -96,6 +98,11 @@ export function matchQuality(query: string, place: Place): { quality: number; ne
   return best >= MIN_SIMILARITY ? { quality: best * 0.7, near: true } : { quality: 0, near: false };
 }
 
+/** Among equals, the bigger county first: Dublin's Highfield Road before Sligo's. */
+function countySize(s: Suggestion): number {
+  return s.place ? (COUNTY_POPULATION[s.place.county] ?? 0) : 0;
+}
+
 function scoreOf(match: number, place: Place): number {
   return (
     match * kindWeight[place.kind] +
@@ -148,7 +155,10 @@ export function rankSuggestions(query: string, candidates: readonly Place[]): Su
   const pool = exactEnough.length ? exactEnough : scored;
   pool.sort(
     (a, b) =>
-      b.score - a.score || (b.homes ?? 0) - (a.homes ?? 0) || a.name.localeCompare(b.name, 'en-IE'),
+      b.score - a.score ||
+      (b.homes ?? 0) - (a.homes ?? 0) ||
+      countySize(b) - countySize(a) ||
+      a.name.localeCompare(b.name, 'en-IE'),
   );
 
   const seen = new Set<string>();

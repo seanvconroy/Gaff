@@ -115,6 +115,24 @@ describe('M56: what the Where box suggests', () => {
     expect(found.groups.flatMap((g) => g.items.map((i) => i.slug))).toEqual(['main']);
   });
 
+  it('ADR-0027: orders streets of one name by the size of their county', () => {
+    const street = (slug: string, county: County, context: string): Place => ({
+      slug,
+      name: 'Highfield Road',
+      kind: 'street',
+      county,
+      context,
+      centre: { lat: 53.3, lng: -6.27 },
+      radiusMetres: 0,
+    });
+    const found = rankSuggestions('Highfield road', [
+      street('sligo', 'Sligo', 'Cranmore, Sligo'),
+      street('rathgar', 'Dublin', 'Rathgar, Dublin 6'),
+      street('cavan', 'Cavan', 'County Cavan'),
+    ]);
+    expect(found.groups[0]!.items.map((i) => i.slug)).toEqual(['rathgar', 'cavan', 'sligo']);
+  });
+
   it('ranks places with more homes higher among equals', () => {
     const a: Place = {
       slug: 'newtown-a',

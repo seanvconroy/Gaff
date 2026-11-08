@@ -8,6 +8,7 @@ import {
   type Gazetteer,
   type Place,
 } from '@/domain/places/gazetteer';
+import { COUNTY_POPULATION } from '@/domain/places/counties';
 import { normalise, normaliseQuery, queryWords } from '@/domain/places/normalise';
 import { rankSuggestions, type Suggestion, type Suggestions } from '@/domain/places/suggest';
 import { areaBox, areaContains, searchArea } from '@/domain/search/places';
@@ -170,6 +171,14 @@ const kindRank = sql`case ${places.kind}
   when 'area' then 4 when 'village' then 5 when 'landmark' then 6 when 'street' then 7
   else 8 end`;
 
+/** The county's population (domain/places/counties.ts), as rankSuggestions breaks ties. */
+const countySize = sql`case ${places.county} ${sql.join(
+  Object.entries(COUNTY_POPULATION).map(
+    ([county, people]) => sql`when ${county} then ${sql.raw(String(people))}`,
+  ),
+  sql` `,
+)} else 0 end`;
+
 /**
  * M56: candidates for what was typed, from the whole index: places whose names and context have
  * a word starting with each word typed (or a form it stands for: "rd" is "road"), and near
@@ -215,6 +224,8 @@ async function candidates(tx: Tx, typed: string): Promise<Place[]> {
       kindRank,
       sql`${places.liveHomes} desc`,
       sql`${places.population} desc nulls last`,
+      // Of a name shared by more places than are kept ("Main Street"), the biggest counties'.
+      sql`${countySize} desc`,
       places.name,
     )
     .limit(MAX_CANDIDATES);

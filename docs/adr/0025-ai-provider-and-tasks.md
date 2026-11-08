@@ -1,6 +1,6 @@
 # ADR-0025: Where the AI runs, and the tasks it does
 
-- Status: Proposed (with the [providers PRD](../providers/prd.md), 8 November 2026). Amends ADR-0009.
+- Status: Proposed (with the [providers PRD](../providers/prd.md), 8 November 2026, revised the same day). Amends ADR-0009.
 - Date: 2026-11-08
 
 ## Context
@@ -18,7 +18,7 @@ ADR-0009 put Claude on Amazon Bedrock with EU routing, and limited the AI to dra
 1. Answers to renters' questions (R8), unchanged from ADR-0009.
 2. Drafting a listing description from the facts the letter entered (M45). It's checked like the letter's own words and published only by the letter.
 3. Checking listings, and operators' reusable answers, for wording that excludes people on a protected ground (ADR-0023). It only adds holds for a person at Gaff.
-4. Reading payslips: is it a payslip, is a PPS number visible, the pay date, the period and the net pay. It returns figures, never prose.
+4. Reading renters' work and income documents (ADR-0026): the kind of document, the name on it, its date, and the employer and pay, or the amount of other income. It returns fields, never prose, and never a PPS number.
 
 Holding letters' messages that ask for money before a viewing (M28) waits for a later phase.
 
@@ -27,12 +27,12 @@ Holding letters' messages that ask for money before a viewing (M28) waits for a 
 ## Consequences
 
 - The AI's scope widens from one message kind to four tasks, each behind its own checks and evals.
-- Payslip images reach the model with names on them, because they can't be redacted first. That's acceptable only in the EU, which is why production must be Bedrock in Dublin.
+- Documents reach the model with names on them, because they can't be redacted first. That's acceptable only in the EU, which is why production must be Bedrock in Dublin.
 - An AWS account with Bedrock access to Claude Opus 5.5 in `eu-west-1` is needed before launch.
 - The test copy's costs come out of the founders' credits, capped by the budget.
 
 ## Alternatives considered
 
-- **The Claude API everywhere.** Simplest, but it means US processing for renters' messages and payslips, a new vendor under rule 10, and reversing ADR-0009.
+- **The Claude API everywhere.** Simplest, but it means US processing for renters' messages and documents, a new vendor under rule 10, and reversing ADR-0009.
 - **Bedrock everywhere now.** EU from day one, but it needs the AWS account before anyone can try the real model, and the credits go unused.
 - **Server-side model fallback on refusal.** It re-runs a refused request on another model, which our evals wouldn't cover, and Bedrock doesn't offer it. A person is the fallback instead.

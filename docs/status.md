@@ -97,13 +97,14 @@ https://gaff-test.vercel.app, for the founders to test as a letter and as a rent
 
 ## Replacing the stand-ins (draft, 8 November 2026)
 
-The [providers PRD](providers/prd.md) (P1 to P48) and [technical specification](providers/tech-spec.md), for the founders' approval. Sean took five decisions the same day (Q37 to Q41):
-- the AI runs on the Claude API on the test copy and on Bedrock in Dublin in production;
-- chosen renters prove their identity with Stripe Identity or in person;
-- they prove their income through Tink (TrueLayer as the backup) or payslips read by Claude;
-- the AI drafts descriptions and checks for unfair wording.
+The [providers PRD](providers/prd.md) (P1 to P60) and [technical specification](providers/tech-spec.md), for the founders' approval. Sean took five decisions on 8 November 2026 (Q37 to Q41), then revised the plan the same day after reviewing the first draft (Q44, Q48, Q50):
+- the AI runs on the Claude API on the test copy and on Bedrock in Dublin in production, and drafts descriptions, checks for unfair wording and reads documents;
+- everyone checks their identity once, with Stripe Identity, as part of their Gaff profile: renters before their first enquiry, letters (agents included) before their first listing, with a check without a selfie as the alternative. Gaff doesn't wait for Stripe's written confirmation;
+- chosen renters share the documents Irish letters already ask for (payslips and an employer's reference, or the equivalent), read and checked by Claude, with no income estimate and no open banking at launch (Q49, proposed);
+- payslips showing a PPS number are accepted;
+- HAP and affordability is banked as an open question (Q42).
 
-Two proposed ADRs: [0025](adr/0025-ai-provider-and-tasks.md) and [0026](adr/0026-checking-chosen-renters.md). Before renters' checks go live: Stripe's written confirmation (Q44) and the solicitor's answers (Q42 to Q46). Nothing is built yet.
+Two proposed ADRs: [0025](adr/0025-ai-provider-and-tasks.md) and [0026](adr/0026-identity-and-documents.md). Rules 2, 3 and 10 in `CLAUDE.md` are amended to match. Before real people use the checks: the solicitor's answers (Q42, Q43, Q45, Q51, Q52), Stripe's DPA and the privacy notice. Nothing is built yet.
 
 ## Marketplace (approved 7 November 2026)
 

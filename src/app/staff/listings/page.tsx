@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { holdReasonWords, removalReasonWords } from '@/copy/listings';
+import { groundLabels, type ProtectedGround } from '@/domain/compliance/protected-grounds';
 import { formatDateTime, formatRent } from '@/lib/format';
 import { requireStaff } from '@/server/auth/staff';
 import { UserFacingError } from '@/server/errors';
@@ -69,6 +70,19 @@ export default async function StaffListingsPage({
                 <li key={r}>{holdReasonWords[r] ?? r}</li>
               ))}
             </ul>
+            {item.wordingFindings.length > 0 ? (
+              <div>
+                <p>The AI’s wording check flagged:</p>
+                <ul>
+                  {item.wordingFindings.map((f) => (
+                    <li key={f.phrase}>
+                      “{f.phrase}” ({groundLabels[f.ground as ProtectedGround] ?? f.ground}):{' '}
+                      {f.why} Suggested: “{f.rewording}”
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             <blockquote>{item.description}</blockquote>
             <form action={decideAction.bind(null, item.holdId)}>
               <Row>

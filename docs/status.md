@@ -106,7 +106,15 @@ The [providers PRD](providers/prd.md) (P1 to P60) and [technical specification](
 - payslips showing a PPS number are accepted;
 - HAP and affordability is banked as an open question (Q42).
 
-Two proposed ADRs: [0025](adr/0025-ai-provider-and-tasks.md) and [0026](adr/0026-identity-and-documents.md). Rules 2, 3 and 10 in `CLAUDE.md` are amended to match. Before real people use the checks: the solicitor's answers (Q42, Q43, Q45, Q52), Stripe's DPA and the privacy notice. Nothing is built yet.
+Two proposed ADRs: [0025](adr/0025-ai-provider-and-tasks.md) and [0026](adr/0026-identity-and-documents.md). Rules 2, 3 and 10 in `CLAUDE.md` are amended to match. Before real people use the checks: the solicitor's answers (Q42, Q43, Q45, Q52), Stripe's DPA and the privacy notice. Sean approved the build on 8 November 2026.
+
+| # | Milestone | Status |
+| --- | --- | --- |
+| 1 | The Claude adapter, usage, budget, kill switches; answers on the real model; evals | **Done**: one adapter for the Claude API and Claude on Bedrock (`src/adapters/ai/claude.ts`), Claude Opus 5.5 with effort per task, structured output checked against each task's schema, refusals and cut-short replies treated as no output (P1, P2, P5); every call logged in `ai_calls` with its task, model, prompt version, tokens, estimated cost, time and outcome, never its text, and deleted after 12 months (P3); a monthly budget in dollars, with one email to Gaff's admins at 80% and a pause at 100% (P4); `AI_TASKS_OFF` switches a task off (P8); answers to renters go through it (P9). Production refuses the Claude API and its key (Q37). `pnpm evals answers` runs the 60-question golden set against the configured provider, with a cost estimate first and `--confirm` to spend (P6). **Needs:** `ANTHROPIC_API_KEY` on the test copy ([deploy.md](deploy.md)); the evals haven't been run against the real model yet |
+| 2 | Drafted descriptions and the wording check | **Done**: **Draft a description** in the listing editor drafts one from the home's facts and the letter's own statements, never the rent, criteria or anything about a renter (P10); a draft is used only if it passes the letter's own checks (M46), cites only facts it was given and has no number the facts don't have, otherwise the letter is asked to write their own; it goes into the editor, not live, marked "Drafted by AI" until the letter changes it, and saving it unchanged keeps it marked (P11). The AI's wording check runs at publishing, after the word list, and straight after the words of a live listing change (a job): a phrase copied word for word from the text, with its ground, why and a fairer rewording, holds the listing for a person at Gaff (`unfair_wording`), who sees the findings on `/staff/listings`; the letter sees them on the listing page and by email (P12, P13). An operator's answer is checked before it's remembered for everyone; a flagged one can still be sent once (P14). If the check can't run, the word list alone decides (P5). Golden sets: 30 homes for descriptions, 80 unfair and 80 fair listings for wording (`pnpm evals description wording`) |
+| 3 | Identity once per person | Not started |
+| 4 | Work and income documents | Not started |
+| 5 | The letter's pack and fairness words; measures | Not started |
 
 ## Marketplace (approved 7 November 2026)
 

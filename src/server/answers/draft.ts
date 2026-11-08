@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import { aiDrafter } from '@/adapters/ai';
+import { runAi } from '@/server/ai/usage';
 import { withOrg, type Tx } from '@/db/client';
 import {
   aiDrafts,
@@ -116,32 +116,27 @@ export async function draftAnswersFor(input: { organisationId: string; messageId
   let checked: CheckedItem[] = [];
   let ai: { model: string; promptVersion: string; refused: boolean } | null = null;
   if (remaining.length > 0) {
-    const drafter = aiDrafter();
-    try {
-      const response = await drafter.draftAnswers({
-        operatorName: organisation.name,
-        facts,
-        questions: remaining.map((q) => redact(q, application.fullName)),
-      });
-      ai = {
-        model: response.model,
-        promptVersion: drafter.promptVersion,
-        refused: Boolean(response.refused),
-      };
-      checked = remaining.map((question, i) => {
-        const item = response.items[i];
-        return item
-          ? { ...checkDraftItem({ ...item, question }, facts), question }
-          : { question, outcome: 'to_operator' as const, reason: 'no_facts' as const };
-      });
-    } catch (error) {
-      console.error('AI drafting failed; the questions go to the operator', error);
-      checked = remaining.map((question) => ({
-        question,
-        outcome: 'to_operator' as const,
-        reason: 'no_facts' as const,
-      }));
-      ai = { model: 'unavailable', promptVersion: drafter.promptVersion, refused: false };
+    const run = await runAi({
+      task: 'answers',
+      organisationId: input.organisationId,
+      call: (provider) =>
+        provider.draftAnswers({
+          operatorName: organisation.name,
+          facts,
+          questions: remaining.map((q) => redact(q, application.fullName)),
+        }),
+    });
+    ai = { model: run.model, promptVersion: run.promptVersion, refused: run.outcome === 'refused' };
+    // P5: anything but a usable answer goes to the operator, and the letting carries on.
+    const items = run.outcome === 'ok' ? run.output.items : [];
+    checked = remaining.map((question, i) => {
+      const item = items[i];
+      return item
+        ? { ...checkDraftItem({ ...item, question }, facts), question }
+        : { question, outcome: 'to_operator' as const, reason: 'no_facts' as const };
+    });
+    if (run.outcome !== 'ok' && run.outcome !== 'refused') {
+      ai = { ...ai, model: 'unavailable' };
     }
   }
 

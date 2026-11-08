@@ -27,6 +27,7 @@
     "places:check": "tsx scripts/places/check.ts",
     "places:load": "tsx src/server/places/load.ts",
     "staff:add": "tsx scripts/add-staff.ts",
+    "evals": "tsx tests/evals/run.ts",
     "check": "pnpm tokens:check && pnpm typecheck && pnpm lint && pnpm test && pnpm test:int && pnpm build"
   },
   "dependencies": {

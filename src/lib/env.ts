@@ -14,7 +14,27 @@ const schema = z
     AUTH_SECRET: z.string().min(32, 'AUTH_SECRET must be at least 32 characters'),
     EMAIL_PROVIDER: z.enum(['dev', 'resend', 'mailgun']).default('dev'),
     SMS_PROVIDER: z.enum(['fake', 'sinch']).default('fake'),
-    AI_PROVIDER: z.enum(['fake', 'bedrock']).default('fake'),
+    /**
+     * Q37 (ADR-0025): the Claude API on the test copy and in development, with the founders'
+     * credits and made-up data only; Claude on Bedrock in Dublin in production; "fake" for tests.
+     */
+    AI_PROVIDER: z.enum(['fake', 'anthropic', 'bedrock']).default('fake'),
+    /** The Claude API's key: the test copy and development only, never production (Q37). */
+    ANTHROPIC_API_KEY: z.string().optional(),
+    /** P2: one model for every task. Bedrock adds the "anthropic." prefix itself. */
+    AI_MODEL: z.string().default('claude-opus-5-5'),
+    /** P4: the month's AI spend, in US dollars as both providers bill it. Past it, people answer. */
+    AI_MONTHLY_BUDGET_USD: z.coerce.number().min(0).default(100),
+    /** P8: tasks switched off without a deploy, such as "description,wording". */
+    AI_TASKS_OFF: z
+      .string()
+      .default('')
+      .transform((v) =>
+        v
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean),
+      ),
     /**
      * R18: ID and income checks. "stand_in" is a development page where a tester picks the
      * result; "none" means no provider is connected yet, so the operator arranges the check.
@@ -56,8 +76,8 @@ const schema = z
     SINCH_SERVICE_PLAN_ID: z.string().optional(),
     SINCH_API_TOKEN: z.string().optional(),
     SINCH_FROM: z.string().optional(),
+    /** Claude on Bedrock's region: Dublin, in-region (Q37). */
     AWS_REGION: z.string().default('eu-west-1'),
-    BEDROCK_MODEL_ID: z.string().default('anthropic.claude-opus-5-5'),
     RETENTION_PERSONAL_DAYS: z.coerce.number().int().positive().default(30),
     RETENTION_RECORD_MONTHS: z.coerce.number().int().positive().default(12),
     /**
@@ -160,6 +180,21 @@ const schema = z
           });
         }
       }
+      if (env.AI_PROVIDER === 'anthropic') {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['AI_PROVIDER'],
+          message:
+            'The Claude API is for the test copy only: production uses Bedrock in Dublin (Q37)',
+        });
+      }
+      if (env.ANTHROPIC_API_KEY) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['ANTHROPIC_API_KEY'],
+          message: 'ANTHROPIC_API_KEY is for the test copy and development only (Q37)',
+        });
+      }
       for (const [key, value, standIn] of standIns) {
         if (value === standIn) {
           ctx.addIssue({
@@ -190,6 +225,13 @@ const schema = z
         if (!env[key])
           ctx.addIssue({ code: 'custom', path: [key], message: `${key} is required for Mailgun` });
       }
+    }
+    if (env.AI_PROVIDER === 'anthropic' && !env.ANTHROPIC_API_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['ANTHROPIC_API_KEY'],
+        message: 'ANTHROPIC_API_KEY is required for the Claude API',
+      });
     }
     if (env.LETTER_IDENTITY_PROVIDER === 'stripe') {
       for (const key of ['STRIPE_SECRET_KEY', 'STRIPE_IDENTITY_WEBHOOK_SECRET'] as const) {
@@ -290,4 +332,9 @@ let cached: Env | undefined;
 export function env(): Env {
   cached ??= readEnvironment(process.env);
   return cached;
+}
+
+/** Tests that change a setting read the environment again, then put it back. */
+export function resetEnvForTests(): void {
+  cached = undefined;
 }

@@ -48,7 +48,32 @@ export const holdReasonWords: Record<string, string> = {
   scam_wording: 'The description asks for money or contact before a viewing.',
   description_copied: 'The description matches another letter’s listing.',
   new_account_burst: 'A new account listed several homes at once.',
+  unfair_wording: 'Some of the wording could exclude people the Equal Status Acts protect.',
 };
+
+/** ADR-0023, P13: what the AI flagged, in the letter's words, with a fairer way to say it. */
+export function listingHeldForWordingEmail(input: {
+  title: string;
+  findings: ReadonlyArray<{ phrase: string; why: string; rewording: string }>;
+}): { subject: string; text: string } {
+  return {
+    subject: `${input.title} is waiting for a person at Gaff`,
+    text: [
+      'Hello,',
+      '',
+      `We’ve taken ${input.title} off Gaff for now, because some of its wording could exclude people that equality law protects:`,
+      '',
+      ...input.findings.flatMap((f) => [
+        `“${f.phrase}”: ${f.why}`,
+        `You could say: “${f.rewording}”`,
+        '',
+      ]),
+      'A person at Gaff will look at it within one working day, and put it back or tell you what to change. You can edit the words in the meantime.',
+      '',
+      'Gaff',
+    ].join('\n'),
+  };
+}
 
 export const removalReasonWords = {
   scam: 'it shows signs of a rental scam',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useMemo, useState } from 'react';
+import { useActionState, useMemo, useState, useTransition } from 'react';
 import {
   accessibilityFeatures,
   appliances,
@@ -10,12 +10,15 @@ import {
 } from '@/domain/homes/facts';
 import { checkListingText } from '@/domain/moderation/listing-text';
 import { emptyFormState, type FormState } from '@/lib/forms';
+import { Button } from '@/ui/Button';
 import { ChoiceGroup, SelectField, TextArea, TextField } from '@/ui/Field';
 import { Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
+import { DraftedByAi } from '@/ui/StatusPill';
 import { SubmitButton } from '@/ui/SubmitButton';
 import {
   descriptionAction,
+  draftDescriptionAction,
   homeDetailsAction,
   lettingDetailsAction,
   publishAction,
@@ -238,28 +241,83 @@ export function LettingDetailsForm({
   );
 }
 
-/** M45, M46: the description, checked as the letter types. */
-export function DescriptionForm({ lettingId, initial }: { lettingId: string; initial: string }) {
+/**
+ * M45, M46: the description, checked as the letter types. P10, P11: the AI can draft one from
+ * the facts; it stays marked as drafted by AI until the letter changes it, and only the letter
+ * saves it.
+ */
+export function DescriptionForm({
+  lettingId,
+  initial,
+  initialFromAi,
+}: {
+  lettingId: string;
+  initial: string;
+  /** The saved description is the AI's draft, unchanged. */
+  initialFromAi: boolean;
+}) {
   const [state, action] = useActionState<FormState, FormData>(
     descriptionAction.bind(null, lettingId) as Action,
     emptyFormState,
   );
   const [text, setText] = useState(state.values?.description ?? initial);
+  const [draft, setDraft] = useState<string | null>(
+    state.values?.drafted ?? (initialFromAi ? initial : null),
+  );
+  const [problem, setProblem] = useState<string | null>(null);
+  const [drafting, startDrafting] = useTransition();
   const findings = useMemo(() => checkListingText(text), [text]);
+  const fromAi = draft !== null && draft.trim() === text.trim();
+
+  function draftOne() {
+    setProblem(null);
+    startDrafting(async () => {
+      const result = await draftDescriptionAction(lettingId);
+      if (result.ok) {
+        setText(result.description);
+        setDraft(result.description);
+      } else {
+        setProblem(result.message);
+      }
+    });
+  }
+
   return (
     <form key={state.attempt ?? 'first'} action={action} noValidate>
       <Stack gap={4}>
+        <div className={styles.descriptionHead}>
+          {fromAi ? <DraftedByAi /> : null}
+          <Button variant="quiet" onClick={draftOne} disabled={drafting} aria-busy={drafting}>
+            {drafting
+              ? 'Drafting…'
+              : text.trim()
+                ? 'Draft a new description'
+                : 'Draft a description'}
+          </Button>
+        </div>
+        {problem ? (
+          <Notice tone="warning" role="alert">
+            <p>{problem}</p>
+          </Notice>
+        ) : null}
         <TextArea
           name="description"
           label="Describe the home"
-          hint="What it’s like to live in, and what’s nearby. Renters see your criteria, the cost to move in and the facts separately. No phone numbers or links: renters enquire through Gaff."
+          hint="What it’s like to live in, and what’s nearby. Renters see your criteria, the cost to move in and the facts separately. No phone numbers or links: renters enquire through Gaff. Gaff can draft one from the facts you’ve entered, for you to check and change."
           rows={8}
           maxLength={4000}
           value={text}
           onChange={(event) => setText(event.currentTarget.value)}
           error={state.errors?.description}
         />
+        {draft !== null ? <input type="hidden" name="drafted" value={draft} /> : null}
         <p className={styles.count}>{text.trim().length} of 4,000 characters</p>
+        {fromAi ? (
+          <p className={styles.count}>
+            Drafted by AI from the facts you entered. Read it through and change anything that isn’t
+            right: renters see it only when you save and publish.
+          </p>
+        ) : null}
         {findings.length > 0 ? (
           <Notice tone="warning" role="status" title="Before this can go live">
             <ul>

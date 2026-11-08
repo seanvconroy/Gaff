@@ -135,6 +135,8 @@ export async function saveDescription(
   member: Member,
   lettingId: string,
   text: string,
+  /** P11: the AI's draft, if the letter started from one: unchanged, it stays marked as drafted. */
+  drafted?: string,
 ): Promise<Saved> {
   const parsed = descriptionSchema.safeParse(text);
   if (!parsed.success)
@@ -145,11 +147,20 @@ export async function saveDescription(
     if (blocking.length > 0 && isPublic(listing.status)) {
       return { ok: false, errors: { description: blocking[0]!.message } } as const;
     }
+    const source = drafted !== undefined && drafted.trim() === parsed.data ? 'ai_draft' : 'letter';
+    const changed = (listing.description ?? '') !== parsed.data;
     await tx
       .update(listings)
-      .set({ description: parsed.data, descriptionSource: 'letter' })
+      .set({ description: parsed.data, descriptionSource: source })
       .where(eq(listings.id, listing.id));
     await republishIfPublic(tx, lettingId, member.userId);
+    // P12: new words on a live listing get the AI's wording check straight after the save.
+    if (changed && listing.status === 'live' && parsed.data.length > 0) {
+      await enqueue(tx, 'check_listing_wording', {
+        organisationId: member.organisationId,
+        lettingId,
+      });
+    }
     if (blocking.length > 0)
       return { ok: false, errors: { description: blocking[0]!.message } } as const;
     return { ok: true } as const;

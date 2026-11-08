@@ -58,6 +58,16 @@ It takes about 20 minutes. Production uses the same steps with real providers; s
    For the random values, use a password manager's generator, or run `openssl rand -hex 32` in a terminal. Without `RESEND_WEBHOOK_SECRET`, the test copy sends email but doesn't receive it: replies go through the links in each email, and each email says so.
 3. **Deploy.** The build applies the database migrations, seeds the made-up letters and homes ([`src/server/dev/seed.ts`](../src/server/dev/seed.ts)), then builds the app. The first build takes 5 to 8 minutes; later ones 3 to 5. The seed keeps what's there, tops up viewing times and confirms the made-up homes are still available. If it fails, the build carries on and the log says why.
 
+**The real AI on the test copy (Q37).** To have Claude answer renters' questions, instead of the stand-in, add these too, then redeploy:
+
+| Name | Value |
+| --- | --- |
+| `AI_PROVIDER` | `anthropic`: the Claude API, with the founders' credits. Made-up data only |
+| `ANTHROPIC_API_KEY` | a key from the Claude Console, for a workspace holding the credits (sensitive) |
+| `AI_MONTHLY_BUDGET_USD` | `90`: past it, the AI pauses for the month and people answer instead |
+
+At 80% of the budget, Gaff's admins get an email. Every call is logged in `ai_calls`, without its text. To stop one task straight away, set `AI_TASKS_OFF` (for example `answers`) and redeploy.
+
 The test copy deploys the branch `claude/epic-ride-0ha68s` as production. To have every push to it deploy on its own, set it in **Settings**, **Environments**, **Production**, under **Branch Tracking**. Otherwise, redeploy from the latest commit.
 
 ## 3. Check it works
@@ -175,7 +185,9 @@ Before the first real renter (see [launch-checklist.md](launch-checklist.md)):
   | `INBOUND_DOMAIN` | e.g. `in.gaff.ie` |
   | `MAIL_FROM_DOMAIN` | e.g. `mail.gaff.ie` |
   | SMS | the Sinch settings |
-  | AI | the Bedrock settings and AWS keys |
+  | `AI_PROVIDER` | `bedrock`: Claude on Bedrock in Dublin, in-region, with invocation logging off. Production refuses the Claude API (Q37) |
+  | `AWS_REGION` | `eu-west-1`, with AWS keys scoped to Bedrock in that region |
+  | `AI_MONTHLY_BUDGET_USD` | the founders' monthly limit |
   | `IDENTITY_PROVIDER`, `INCOME_PROVIDER` | `none` |
   | `STORAGE_PROVIDER`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | as in [step 5](#5-listing-photos-supabase-storage) |
 

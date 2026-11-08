@@ -172,3 +172,26 @@ describe('Hosting on Vercel (ADR-0014)', () => {
     ).toEqual([]);
   });
 });
+
+describe('P1 (Q37): the Claude API never runs in production', () => {
+  it('refuses the Claude API, and its key, in production', () => {
+    expect(
+      environmentProblems({ ...production, AI_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'k' }),
+    ).toEqual(['AI_PROVIDER', 'ANTHROPIC_API_KEY']);
+    expect(environmentProblems({ ...production, AI_PROVIDER: 'fake' })).toEqual(['AI_PROVIDER']);
+  });
+
+  it('allows the Claude API on the test copy, with its key', () => {
+    expect(
+      environmentProblems({ ...base, GAFF_ENV: 'development', AI_PROVIDER: 'anthropic' }),
+    ).toEqual(['ANTHROPIC_API_KEY']);
+    expect(
+      environmentProblems({
+        ...base,
+        GAFF_ENV: 'development',
+        AI_PROVIDER: 'anthropic',
+        ANTHROPIC_API_KEY: 'k',
+      }),
+    ).toEqual([]);
+  });
+});

@@ -11,11 +11,15 @@ import { E2E_DATABASE_URL } from '../../playwright.config';
  * again once the page has its title. A page with no title at all still fails.
  */
 export async function expectAccessible(page: Page): Promise<void> {
+  // Next.js streams a dynamic page's metadata, so its <title> can land just after the content.
+  // Every page has one; wait for it rather than let axe race it.
+  await page.waitForFunction(() => document.title.trim().length > 0, null, { timeout: 5_000 });
   const analyse = () =>
     new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
       .analyze();
   let results = await analyse();
+  // A client-side navigation can still swap the title while axe runs: check again once it's back.
   if (results.violations.some((v) => v.id === 'document-title')) {
     await expect(page).toHaveTitle(/\S/);
     results = await analyse();

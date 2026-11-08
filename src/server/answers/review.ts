@@ -16,6 +16,7 @@ import { recordDecision } from '@/server/decisions/record-decision';
 import { UserFacingError } from '@/server/errors';
 import { queueMessage, scheduleApproved } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
+import { unfairWording } from '@/server/listings/wording-check';
 import { renterAddress } from '@/server/lettings/address';
 
 /**
@@ -112,6 +113,15 @@ export async function answerQuestion(
   if (text.length < 2) throw new UserFacingError('Write an answer before sending.');
   const problem = protectedGroundProblem(text);
   if (problem) throw new UserFacingError(problem);
+  // P14: an answer Gaff will reuse for everyone gets the AI's wording check first.
+  if (remember) {
+    const [finding] = (await unfairWording(member.organisationId, text)) ?? [];
+    if (finding) {
+      throw new UserFacingError(
+        `“${finding.phrase}” could exclude people that equality law protects: ${finding.why} You could say “${finding.rewording}” instead, or choose not to remember it, to send it just this once.`,
+      );
+    }
+  }
   await withOrg(member.organisationId, async (tx) => {
     const [row] = await tx
       .select({

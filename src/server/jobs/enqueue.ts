@@ -20,6 +20,7 @@ export type TaskName =
   | 'alerts_match'
   | 'alerts_send'
   | 'alerts_daily'
+  | 'check_listing_wording'
   | 'places_count';
 
 /**

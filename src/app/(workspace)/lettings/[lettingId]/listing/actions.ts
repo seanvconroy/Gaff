@@ -13,6 +13,7 @@ import {
   saveHomeDetails,
   saveLettingDetails,
 } from '@/server/listings/editor';
+import { draftListingDescription } from '@/server/listings/description';
 import { confirmAvailable } from '@/server/listings/freshness';
 import { setPaused } from '@/server/listings/manage';
 import { publishListing } from '@/server/listings/publish';
@@ -53,10 +54,28 @@ export async function descriptionAction(
 ): Promise<FormState> {
   const member = await requireMember();
   const values = formValues(formData);
-  const saved = await saveDescription(member, lettingId, values.description ?? '');
+  const saved = await saveDescription(
+    member,
+    lettingId,
+    values.description ?? '',
+    values.drafted || undefined,
+  );
   if (!saved.ok) return invalid(saved.errors, values);
   revalidatePath(page(lettingId));
   return { message: 'saved', values };
+}
+
+/** M45, P10: a description drafted by the AI from the facts, for the letter to edit and save. */
+export async function draftDescriptionAction(
+  lettingId: string,
+): Promise<{ ok: true; description: string } | { ok: false; message: string }> {
+  const member = await requireMember();
+  try {
+    return await draftListingDescription(member, lettingId);
+  } catch (error) {
+    if (error instanceof UserFacingError) return { ok: false, message: error.message };
+    throw error;
+  }
 }
 
 /** M43: the first step of an upload: Gaff checks the file and returns where to send it. */

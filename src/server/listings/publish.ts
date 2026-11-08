@@ -15,6 +15,8 @@ import { letterReadiness } from '@/server/verification/readiness';
 import { loadListing, readyPhotos, type ListingContext } from './context';
 import { removePublicListing, saveRevision, writePublicListing } from './project';
 import { riskSignals, type RiskReason } from './risk';
+import { recordWordingEvents } from './wording-events';
+import { unfairWording } from './wording-check';
 
 export type PublishResult =
   | { outcome: 'live'; slug: string }
@@ -67,6 +69,9 @@ export async function publishListing(
   if (problems.length > 0) return { outcome: 'problems', problems };
 
   const reasons = await riskSignals(context, now);
+  // ADR-0023, P12: the AI's wording check, after the word list. Null means it couldn't run.
+  const wording = await unfairWording(member.organisationId, context.listing.description ?? '');
+  if (wording && wording.length > 0) reasons.push('unfair_wording');
   return withOrg(member.organisationId, async (tx) => {
     const fresh = (await loadListing(tx, lettingId))!;
     if (!fresh.declared) await declare(tx, member, fresh);
@@ -79,15 +84,19 @@ export async function publishListing(
         organisationId: member.organisationId,
         listingId: fresh.listing.id,
         reasons,
+        wordingFindings: wording && wording.length > 0 ? wording : null,
       });
-      await recordEvent(tx, {
-        organisationId: member.organisationId,
-        lettingId,
-        actor: { type: 'system' },
-        type: 'listing.held',
-        subject: { type: 'listing', id: fresh.listing.id },
-        data: { listingId: fresh.listing.id, reasons },
-      });
+      if (wording && wording.length > 0) await recordWordingEvents(tx, fresh, wording, reasons);
+      else {
+        await recordEvent(tx, {
+          organisationId: member.organisationId,
+          lettingId,
+          actor: { type: 'system' },
+          type: 'listing.held',
+          subject: { type: 'listing', id: fresh.listing.id },
+          data: { listingId: fresh.listing.id, reasons },
+        });
+      }
       return { outcome: 'held', reasons };
     }
 

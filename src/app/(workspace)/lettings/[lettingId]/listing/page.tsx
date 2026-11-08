@@ -20,6 +20,7 @@ import { Table } from '@/ui/Table';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { LettingHeader } from '../LettingHeader';
 import { finishUploadAction, liveAction, photoAction, startUploadAction } from './actions';
+import { openWordingFindings } from '@/server/listings/wording';
 import { DescriptionForm, HomeDetailsForm, LettingDetailsForm, PublishForm } from './ListingForms';
 import { PhotoUploader } from '../../../PhotoUploader';
 import styles from './listing.module.css';
@@ -78,6 +79,8 @@ export default async function ListingPage({
   const status = listing.status;
   const stats = await listingStats(member, lettingId);
   const editable = status !== 'let' && status !== 'withdrawn';
+  const flagged =
+    status === 'in_review' ? await openWordingFindings(member.organisationId, listing.id) : [];
 
   return (
     <Stack gap={8}>
@@ -102,6 +105,26 @@ export default async function ListingPage({
       {problem ? (
         <Notice tone="warning" role="alert">
           <p>{problem}</p>
+        </Notice>
+      ) : null}
+      {flagged.length > 0 ? (
+        <Notice tone="warning" title="Some wording could exclude people">
+          <p>
+            Equality law protects renters on grounds such as family status, age and receiving HAP.
+            Gaff’s checks flagged:
+          </p>
+          <ul className={styles.checklist}>
+            {flagged.map((f) => (
+              <li key={f.phrase}>
+                “{f.phrase}”: {f.why} You could say: “{f.rewording}”
+              </li>
+            ))}
+          </ul>
+          <p>
+            A person at Gaff will look at it within one working day, and put it live or tell you
+            what to change. You can <Link href="#description">change the words</Link> in the
+            meantime.
+          </p>
         </Notice>
       ) : null}
 
@@ -340,7 +363,11 @@ export default async function ListingPage({
         <h2 id="description" className="type-title">
           Description
         </h2>
-        <DescriptionForm lettingId={lettingId} initial={listing.description ?? ''} />
+        <DescriptionForm
+          lettingId={lettingId}
+          initial={listing.description ?? ''}
+          initialFromAi={listing.descriptionSource === 'ai_draft'}
+        />
       </Card>
 
       <Card labelledBy="criteria-heading">

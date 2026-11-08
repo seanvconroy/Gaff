@@ -116,7 +116,7 @@ The test copy keeps listing photos in Postgres (`STORAGE_PROVIDER=database`), wh
 
 ## 6. The search map (Google Maps, for production)
 
-Renters see homes on Google's map beside the list ([ADR-0027](adr/0027-places-index-on-google-maps.md), Q58). Until it's set up, the search pages show the list alone: outside development and tests, no `MAP_PROVIDER` means `none`. The map uses the **Maps JavaScript API only**, showing Gaff's own homes. Place suggestions never come from Google (see the next section).
+Renters see homes on Google's map beside the list ([ADR-0027](adr/0027-places-index-on-google-maps.md), Q58). Until it's set up, the test copy shows a stand-in map drawn from Gaff's own data, marked "Test map: not Google Maps", and production shows the list alone. The map uses the **Maps JavaScript API only**, showing Gaff's own homes. Place suggestions never come from Google (see the next section).
 
 1. **A project.** In the Google Cloud console, create a project in Gaff's name, with a billing account, and enable the **Maps JavaScript API** and nothing else. Set the budget alerts and quota cap in [launch-checklist.md](launch-checklist.md).
 2. **A key for each copy.** Under **Keys & Credentials**, create an API key for production and another for the test copy. Restrict each to **Websites** (HTTP referrers: its own address, such as `https://gaff-test.vercel.app/*`) and to the **Maps JavaScript API**. The key is in every search page, so these restrictions are what protect it.

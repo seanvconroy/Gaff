@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { environmentProblems, withPlatformDefaults } from './env';
+import { environmentProblems, readEnvironment, withPlatformDefaults } from './env';
 
 const base = {
   DATABASE_URL: 'postgres://gaff:gaff@localhost:5432/gaff',
@@ -124,6 +124,23 @@ describe('Hosting on Vercel (ADR-0014)', () => {
     };
     expect(environmentProblems(testCopy)).toEqual([]);
     expect(environmentProblems({ ...testCopy, CRON_SECRET: undefined })).toEqual(['CRON_SECRET']);
+  });
+
+  it('ADR-0027: shows the test copy the stand-in map until Google Maps is set up, and production none', () => {
+    const testCopy = {
+      ...vercel,
+      DATABASE_URL: base.DATABASE_URL,
+      AUTH_SECRET: base.AUTH_SECRET,
+      CRON_SECRET: 'c'.repeat(32),
+      GAFF_ENV: 'staging',
+    };
+    expect(readEnvironment(testCopy).MAP_PROVIDER).toBe('static');
+    expect(readEnvironment({ ...production, MARKETPLACE_PUBLIC: '1' }).MAP_PROVIDER).toBe('none');
+    const google = { MAP_PROVIDER: 'google', GOOGLE_MAPS_API_KEY: 'key', GOOGLE_MAPS_MAP_ID: 'id' };
+    expect(readEnvironment({ ...testCopy, ...google }).MAP_PROVIDER).toBe('google');
+    expect(
+      environmentProblems({ ...production, MARKETPLACE_PUBLIC: '1', MAP_PROVIDER: 'static' }),
+    ).toEqual(['MAP_PROVIDER']);
   });
 
   it('sends real email from the test copy with only a Resend API key, and keeps photos in the database', () => {

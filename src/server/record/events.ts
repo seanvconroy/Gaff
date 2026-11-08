@@ -115,6 +115,9 @@ export const eventCatalogue = {
   'settings.approve_before_send': z.object({ on: z.boolean() }),
   'viewing.booked': z.object({ bookingId: z.uuid(), slotId: z.uuid(), rescheduled: z.boolean() }),
   'viewing.cancelled': z.object({ bookingId: z.uuid(), slotId: z.uuid() }),
+  /** P16: a renter asked for a text code to book a viewing, and confirmed their mobile. */
+  'booking.mobile_code_sent': z.object({ applicationId: z.uuid() }),
+  'booking.mobile_confirmed': z.object({ applicationId: z.uuid() }),
   /** R15: a person marked whether someone came (a 'mark_attendance' decision). */
   'viewing.attendance_marked': z.object({
     decisionId: z.uuid(),
@@ -283,6 +286,14 @@ export const eventCatalogue = {
   }),
   /** M24: the ID-check provider was asked to delete its copy of the documents. */
   'letter_check.provider_redacted': z.object({ checkId: z.uuid() }),
+  /** P23, P29: a chosen renter's own identity check, copied to their application. */
+  'identity.shared': z.object({
+    applicationId: z.uuid(),
+    checkId: z.uuid(),
+    outcome: z.enum(['checked', 'in_person']),
+  }),
+  /** P27: the letter saw an original photo ID when they met the renter. */
+  'check.recorded_in_person': z.object({ applicationId: z.uuid(), checkId: z.uuid() }),
   /** M16: an admin invited a colleague; a colleague joined; one was removed. */
   'member.invited': z.object({
     invitationId: z.uuid(),
@@ -304,6 +315,7 @@ export const eventCatalogue = {
         'description_copied',
         'new_account_burst',
         'unfair_wording',
+        'first_listing_review',
       ]),
     ),
   }),

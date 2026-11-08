@@ -4,9 +4,9 @@ import { redirect } from 'next/navigation';
 import { formValues, invalid, type FormState } from '@/lib/forms';
 import { startProviderCheck, submitReferees } from '@/server/checks/checks';
 
-/** R18: the renter starts their ID or income check with the provider. */
-export async function startCheckAction(token: string, kind: 'identity' | 'income'): Promise<void> {
-  const started = await startProviderCheck(token, kind);
+/** R18: the renter starts their income check with the provider. */
+export async function startCheckAction(token: string): Promise<void> {
+  const started = await startProviderCheck(token, 'income');
   if ('problem' in started) redirect(`/r/${token}?check_problem=${started.problem}`);
   redirect(started.redirectUrl);
 }

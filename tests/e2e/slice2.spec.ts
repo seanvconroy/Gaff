@@ -1,11 +1,16 @@
 import { expect, test } from '@playwright/test';
+import { identityExplained } from '../../src/copy/identity';
 import {
+  checkIdWithSelfie,
   expectAccessible,
   expectNoSidewaysScroll,
+  latestCodeFor,
   linkInEmail,
   screenshot,
   subjectsSentTo,
 } from './support';
+
+const identityOnce = identityExplained.once;
 import { AOIFE, CIARAN, applyOnPhone, onPhone, twoChosen, twoPeopleWhoCame } from './journeys';
 
 test('R16: someone who came applies on their phone, with two questions and no documents', async ({
@@ -84,16 +89,25 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   const aoife = await onPhone(browser, checksLink);
   const renter = aoife.page;
   await expect(renter.getByRole('heading', { name: 'A few checks before an offer' })).toBeVisible();
-  await expect(renter.getByText('Gaff keeps only whether it worked')).toBeVisible();
   await expectAccessible(renter);
   await screenshot(renter, '37-renter-checks');
 
-  // ID: through the stand-in provider, back to a page that shows nothing private.
-  await renter.getByRole('button', { name: 'Check my ID' }).click();
-  await expect(renter.getByRole('heading', { name: 'Stand-in ID check' })).toBeVisible();
-  await renter.getByRole('button', { name: 'The ID and selfie match' }).click();
+  // P15, P16: she confirms the email she enquired with, which sets up her Gaff profile.
+  await renter.getByRole('button', { name: 'Email me a code' }).click();
+  // The code field appears once the email has gone.
+  await expect(renter.getByLabel('The code from the email')).toBeVisible();
+  await renter.getByLabel('The code from the email').fill(await latestCodeFor(AOIFE));
+  await renter.getByRole('button', { name: 'Confirm', exact: true }).click();
+  await expect(renter.getByText(identityOnce)).toBeVisible();
+  await expectAccessible(renter);
+  await screenshot(renter, '37b-renter-identity');
+
+  // P17, P18: the ID check, with a selfie after a clear yes, back to a page with nothing private.
+  await checkIdWithSelfie(renter);
+  await expect(renter.getByRole('heading', { name: 'Thanks, your ID is checked' })).toBeVisible();
+  await renter.goto(checksLink);
   await expect(
-    renter.getByRole('heading', { name: 'Thanks, that’s your ID check done' }),
+    renter.getByText(/Checked on \w+day \d+ \w+, and kept on your Gaff profile/),
   ).toBeVisible();
 
   // Income: the first try doesn't work, and that's said kindly, then it's confirmed.
@@ -142,7 +156,7 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   // The operator sees each result in words.
   await page.goto(`${lettingUrl}/applications`);
   const card = page.getByRole('listitem').filter({ hasText: 'Aoife Byrne' });
-  await expect(card.getByText('Verified: Aoife Byrne.')).toBeVisible();
+  await expect(card.getByText(/^Checked by Gaff on .+: Aoife Byrne\.$/)).toBeVisible();
   await expect(
     card.getByText(/Confirmed €5,200 a month, 2\.8 times the rent: meets your rule\./),
   ).toBeVisible();

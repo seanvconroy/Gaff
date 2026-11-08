@@ -72,6 +72,8 @@ export interface QueuedLicence {
   kind: 'agency' | 'landlord';
   /** The agent's name for an agent's licence; null for the agency's own. */
   agentName: string | null;
+  /** P24: the agent's name from their checked ID, if they've checked it. */
+  idName: string | null;
   licenceNumber: string;
   status: 'pending' | 'needs_review';
   waitingSince: Date;
@@ -102,6 +104,23 @@ export async function licenceQueue(staff: Staff): Promise<QueuedLicence[]> {
       )
       .orderBy(asc(letterChecks.updatedAt));
     const agentIds = rows.map((r) => r.userId).filter((id): id is string => id !== null);
+    // P24: the agent's name from their checked ID, to compare with the register's.
+    const idNames = agentIds.length
+      ? await tx
+          .select({
+            userId: letterChecks.userId,
+            organisationId: letterChecks.organisationId,
+            verifiedName: letterChecks.verifiedName,
+          })
+          .from(letterChecks)
+          .where(
+            and(
+              inArray(letterChecks.userId, agentIds),
+              eq(letterChecks.method, 'id_document'),
+              eq(letterChecks.status, 'passed'),
+            ),
+          )
+      : [];
     const agents = agentIds.length
       ? await tx
           .select({
@@ -125,6 +144,9 @@ export async function licenceQueue(staff: Staff): Promise<QueuedLicence[]> {
         legalName: row.legalName,
         kind: row.kind,
         agentName: agent ? (agent.displayName ?? agent.name) : null,
+        idName:
+          idNames.find((n) => n.userId === row.userId && n.organisationId === row.organisationId)
+            ?.verifiedName ?? null,
         licenceNumber: row.licenceNumber ?? '',
         status: row.status as 'pending' | 'needs_review',
         waitingSince: row.waitingSince,

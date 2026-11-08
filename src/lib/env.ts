@@ -36,10 +36,11 @@ const schema = z
           .filter(Boolean),
       ),
     /**
-     * R18: ID and income checks. "stand_in" is a development page where a tester picks the
-     * result; "none" means no provider is connected yet, so the operator arranges the check.
+     * Q48 (ADR-0026): everyone's identity, once per person: Stripe Identity, or a development
+     * page where a tester picks the result. Production refuses the stand-in.
      */
-    IDENTITY_PROVIDER: z.enum(['none', 'stand_in']).default('stand_in'),
+    IDENTITY_PROVIDER: z.enum(['stand_in', 'stripe']).default('stand_in'),
+    /** R18: the income check's stand-in, until work and income documents replace it (P30). */
     INCOME_PROVIDER: z.enum(['none', 'stand_in']).default('stand_in'),
     /** ADR-0005: key for check results, encrypted in the application. 32 bytes, base64. */
     DATA_ENCRYPTION_KEY: z
@@ -120,11 +121,6 @@ const schema = z
     SUPABASE_SERVICE_KEY: z.string().optional(),
     STORAGE_UPLOADS_BUCKET: z.string().default('uploads'),
     STORAGE_MEDIA_BUCKET: z.string().default('listing-photos'),
-    /**
-     * M24 (Q29): the ID check on private landlords. "stand_in" is a development page where a
-     * tester picks the result; production uses Stripe Identity.
-     */
-    LETTER_IDENTITY_PROVIDER: z.enum(['stand_in', 'stripe']).default('stand_in'),
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_IDENTITY_WEBHOOK_SECRET: z.string().optional(),
     /**
@@ -162,7 +158,6 @@ const schema = z
         ['INCOME_PROVIDER', env.INCOME_PROVIDER, 'stand_in'],
         ['STORAGE_PROVIDER', env.STORAGE_PROVIDER, 'local'],
         ['STORAGE_PROVIDER', env.STORAGE_PROVIDER, 'database'],
-        ['LETTER_IDENTITY_PROVIDER', env.LETTER_IDENTITY_PROVIDER, 'stand_in'],
       ] as const;
       if (!env.DATA_ENCRYPTION_KEY) {
         ctx.addIssue({
@@ -233,7 +228,7 @@ const schema = z
         message: 'ANTHROPIC_API_KEY is required for the Claude API',
       });
     }
-    if (env.LETTER_IDENTITY_PROVIDER === 'stripe') {
+    if (env.IDENTITY_PROVIDER === 'stripe') {
       for (const key of ['STRIPE_SECRET_KEY', 'STRIPE_IDENTITY_WEBHOOK_SECRET'] as const) {
         if (!env[key])
           ctx.addIssue({

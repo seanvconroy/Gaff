@@ -7,6 +7,7 @@ import { invitations, letterChecks, memberships, organisations, users } from '@/
 import { env } from '@/lib/env';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
+import { refreshCopies } from '@/server/identity/identity';
 import { recordEvent } from '@/server/record/events';
 
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -116,6 +117,8 @@ export async function acceptInvitation(
       });
     }
   });
+  // P15, P24: their identity, if already checked, is copied to the workspace they've joined.
+  if (!existing) await refreshCopies(userId);
   return { ok: true };
 }
 

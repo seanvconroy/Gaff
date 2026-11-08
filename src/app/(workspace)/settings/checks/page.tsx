@@ -3,12 +3,13 @@ import type { Metadata } from 'next';
 import { maskMobile } from '@/domain/verification/mobile';
 import { badgeWords, missingCheckWords, type CheckRecord } from '@/domain/verification/readiness';
 import { requireMember } from '@/server/auth/member';
+import { identityOf } from '@/server/identity/identity';
 import { letterReadiness } from '@/server/verification/readiness';
+import { IdentityChoices } from '@/ui/IdentityChoices';
 import { Card, PageHeader, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { StatusPill } from '@/ui/StatusPill';
-import { SubmitButton } from '@/ui/SubmitButton';
-import { startIdentityAction } from './actions';
+import { identityOfflineAction, startIdentityAction } from './actions';
 import { MobileForm } from './MobileForm';
 
 export const metadata: Metadata = { title: 'Checks' };
@@ -39,11 +40,12 @@ function CheckStatus({ check }: { check: (CheckRecord & { reason?: string | null
 export default async function ChecksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; identity?: string }>;
+  searchParams: Promise<{ saved?: string; identity?: string; problem?: string }>;
 }) {
-  const { saved, identity } = await searchParams;
+  const { saved, identity, problem } = await searchParams;
   const member = await requireMember();
   const readiness = await letterReadiness(member);
+  const own = await identityOf(member.userId);
   const idCheck = readiness.member.find((c) => c.method === 'id_document');
   const agencyLicence = readiness.organisation.find((c) => c.method === 'psra_register');
   const ownLicence = readiness.member.find((c) => c.method === 'psra_register');
@@ -58,6 +60,11 @@ export default async function ChecksPage({
       {saved === 'mobile' ? (
         <Notice tone="success" role="status">
           <p>Your mobile number is confirmed.</p>
+        </Notice>
+      ) : null}
+      {problem ? (
+        <Notice tone="warning" role="alert">
+          <p>{problem}</p>
         </Notice>
       ) : null}
       {identity === 'returned' && idCheck?.status === 'pending' ? (
@@ -98,35 +105,44 @@ export default async function ChecksPage({
         )}
       </Card>
 
-      {member.organisationKind === 'landlord' ? (
-        <Card labelledBy="identity-heading">
-          <h2 id="identity-heading" className="type-title">
-            Your identity
-          </h2>
-          <Stack gap={4}>
+      <Card labelledBy="identity-heading">
+        <h2 id="identity-heading" className="type-title">
+          Your identity
+        </h2>
+        <Stack gap={4}>
+          <p>
+            <CheckStatus check={idCheck} />
+          </p>
+          {own?.status === 'verified' ? (
             <p>
-              <CheckStatus check={idCheck} />
+              Checked once, for every workspace you’re in and any home you rent through Gaff.
+              {own.selfie
+                ? ''
+                : ' A person at Gaff looks at your first listing before it goes live.'}
             </p>
-            {idCheck?.status === 'failed' && idCheck.reason ? (
-              <p>{failureWords[idCheck.reason]}</p>
-            ) : null}
-            {idCheck?.status !== 'passed' ? (
-              <>
-                <p>
-                  You take a photo of your passport, driving licence or ID card, then a selfie. Our
-                  checking partner, Stripe, confirms they match. Gaff keeps only the result and your
-                  name, never the photos, and Stripe deletes them after 30 days.
-                </p>
-                <form action={startIdentityAction}>
-                  <SubmitButton pendingLabel="Opening the check…">
-                    {idCheck ? 'Start the check again' : 'Check my identity'}
-                  </SubmitButton>
-                </form>
-              </>
-            ) : null}
-          </Stack>
-        </Card>
-      ) : (
+          ) : own?.status === 'offline' ? (
+            <Notice tone="info" title="A person at Gaff will check your ID with you">
+              <p>
+                We’ll contact you within one working day to arrange it. Your homes can go live once
+                it’s done.
+              </p>
+            </Notice>
+          ) : own?.status === 'pending' ? (
+            <p>We’re waiting for the result. If you didn’t finish, you can start again below.</p>
+          ) : null}
+          {own?.status !== 'verified' && own?.status !== 'offline' ? (
+            <IdentityChoices
+              audience="letter"
+              startAction={startIdentityAction}
+              offlineAction={identityOfflineAction}
+              attemptsLeft={own?.attemptsLeft ?? 3}
+              reason={own?.status === 'not_verified' ? own.reason : null}
+            />
+          ) : null}
+        </Stack>
+      </Card>
+
+      {member.organisationKind === 'landlord' ? null : (
         <Card labelledBy="licence-heading">
           <h2 id="licence-heading" className="type-title">
             PSRA licences

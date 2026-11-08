@@ -18,7 +18,7 @@ const production = {
   SINCH_API_TOKEN: 't',
   SINCH_FROM: 'Gaff',
   AI_PROVIDER: 'bedrock',
-  IDENTITY_PROVIDER: 'none',
+  IDENTITY_PROVIDER: 'stripe',
   INCOME_PROVIDER: 'none',
   DATA_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
   DEV_TOOLS: '0',
@@ -26,7 +26,6 @@ const production = {
   STORAGE_PROVIDER: 'supabase',
   SUPABASE_URL: 'https://project.supabase.co',
   SUPABASE_SERVICE_KEY: 'service-key',
-  LETTER_IDENTITY_PROVIDER: 'stripe',
   STRIPE_SECRET_KEY: 'sk_live_test',
   STRIPE_IDENTITY_WEBHOOK_SECRET: 'whsec_test',
 };
@@ -58,9 +57,6 @@ describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)'
     ]);
     expect(environmentProblems({ ...production, SUPABASE_SERVICE_KEY: undefined })).toEqual([
       'SUPABASE_SERVICE_KEY',
-    ]);
-    expect(environmentProblems({ ...production, LETTER_IDENTITY_PROVIDER: 'stand_in' })).toEqual([
-      'LETTER_IDENTITY_PROVIDER',
     ]);
     expect(environmentProblems({ ...production, STRIPE_SECRET_KEY: undefined })).toEqual([
       'STRIPE_SECRET_KEY',

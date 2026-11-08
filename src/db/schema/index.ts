@@ -18,3 +18,4 @@ export * from './alerts';
 export * from './moderation';
 export * from './ai';
 export * from './places';
+export * from './identity';

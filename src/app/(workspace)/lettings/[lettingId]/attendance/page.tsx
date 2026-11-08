@@ -75,6 +75,9 @@ export default async function AttendancePage({
                       <div className={styles.who}>
                         <span className={styles.time}>{formatTime(row.startsAt)}</span>
                         <span className={styles.name}>{row.name}</span>
+                        {row.mobileConfirmedAt ? null : (
+                          <span className={styles.mobile}>No mobile confirmed</span>
+                        )}
                       </div>
                       {canMarkAttendance(row.startsAt, now) ? (
                         <div

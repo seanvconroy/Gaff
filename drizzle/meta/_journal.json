@@ -253,6 +253,13 @@
       "when": 1794164293017,
       "tag": "0035_m56_places",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794166388931,
+      "tag": "0036_identity_per_person",
+      "breakpoints": true
     }
   ]
 }

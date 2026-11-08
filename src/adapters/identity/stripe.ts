@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import type { IdentityOutcome, LetterIdentityProvider } from '@/ports/letter-identity';
+import type { IdentityOutcome, IdentityProvider, IdentityReason } from '@/ports/identity';
 
 const API = 'https://api.stripe.com/v1';
 
@@ -8,7 +8,7 @@ function form(fields: Record<string, string>): string {
 }
 
 /** Stripe's codes for a failed session, in Gaff's three reasons. */
-export function failureReason(code: string | undefined): 'document' | 'face_mismatch' | 'gave_up' {
+export function failureReason(code: string | undefined): IdentityReason {
   if (!code || code === 'abandoned' || code === 'consent_declined') return 'gave_up';
   return code.startsWith('selfie_') ? 'face_mismatch' : 'document';
 }
@@ -21,19 +21,26 @@ interface StripeSession {
   verified_outputs?: { first_name?: string | null; last_name?: string | null } | null;
 }
 
-/** Reads the outcome from a session. Only the names are read; the date of birth is never asked for. */
+/**
+ * Reads the outcome from a session. Only the names are read, with the secret key: the date of
+ * birth, document number and images need a restricted key Gaff doesn't have (P21).
+ */
 export function sessionOutcome(session: StripeSession): IdentityOutcome {
   switch (session.status) {
     case 'verified': {
-      const name = [session.verified_outputs?.first_name, session.verified_outputs?.last_name]
-        .filter(Boolean)
-        .join(' ')
-        .trim();
-      return name ? { status: 'passed', verifiedName: name } : { status: 'pending' };
+      const first = session.verified_outputs?.first_name?.trim() ?? '';
+      const last = session.verified_outputs?.last_name?.trim() ?? '';
+      return first && last
+        ? { status: 'passed', verifiedName: { first, last } }
+        : { status: 'pending' };
     }
     case 'requires_input':
       return session.last_error
-        ? { status: 'failed', reason: failureReason(session.last_error.code) }
+        ? {
+            status: 'failed',
+            reason: failureReason(session.last_error.code),
+            ...(session.last_error.code === 'consent_declined' ? { consentDeclined: true } : {}),
+          }
         : { status: 'pending' };
     case 'canceled':
       return { status: 'failed', reason: 'gave_up' };
@@ -42,30 +49,46 @@ export function sessionOutcome(session: StripeSession): IdentityOutcome {
   }
 }
 
-export function stripeIdentity(config: { secretKey: string }): LetterIdentityProvider {
-  const headers = {
-    authorization: `Bearer ${config.secretKey}`,
-    'content-type': 'application/x-www-form-urlencoded',
-  };
+/** P17 to P19, P26: Stripe Identity, with or without a selfie, through Stripe's own pages. */
+export function stripeIdentity(config: { secretKey: string }): IdentityProvider {
   async function call(path: string, init: RequestInit = {}): Promise<StripeSession> {
-    const response = await fetch(`${API}${path}`, { ...init, headers });
+    const response = await fetch(`${API}${path}`, {
+      ...init,
+      headers: {
+        authorization: `Bearer ${config.secretKey}`,
+        'content-type': 'application/x-www-form-urlencoded',
+        ...(init.headers ?? {}),
+      },
+    });
     if (!response.ok) throw new Error(`Stripe Identity refused: ${response.status}`);
     return (await response.json()) as StripeSession;
   }
   return {
     name: 'stripe',
-    async start({ checkId, organisationId, returnUrl }) {
+    async start({ checkId, userId, selfie, returnUrl, providerRef, attempt }) {
+      // Stripe advises reusing the session for another try: it keeps count of failed attempts.
+      if (providerRef) {
+        const existing = await call(
+          `/identity/verification_sessions/${encodeURIComponent(providerRef)}`,
+        );
+        if (existing.status === 'requires_input' && existing.url) {
+          return { providerRef: existing.id, redirectUrl: existing.url };
+        }
+      }
       const session = await call('/identity/verification_sessions', {
         method: 'POST',
+        headers: { 'idempotency-key': `identity-${checkId}-${attempt}-${selfie ? 's' : 'd'}` },
         body: form({
           type: 'document',
-          'options[document][require_matching_selfie]': 'true',
+          'options[document][require_matching_selfie]': selfie ? 'true' : 'false',
+          'options[document][require_live_capture]': 'true',
           'options[document][allowed_types][0]': 'passport',
           'options[document][allowed_types][1]': 'driving_license',
           'options[document][allowed_types][2]': 'id_card',
           return_url: returnUrl,
-          'metadata[organisation_id]': organisationId,
+          client_reference_id: checkId,
           'metadata[check_id]': checkId,
+          'metadata[user_id]': userId,
         }),
       });
       if (!session.url) throw new Error('Stripe Identity did not return a link');

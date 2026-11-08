@@ -123,6 +123,17 @@ export const applications = pgTable(
     status: applicationStatus().notNull().default('enquired'),
     /** R13 (Q12): the renter gave a mobile number for text reminders when they booked. */
     smsReminders: boolean().notNull().default(false),
+    /**
+     * P16 (Q48): the mobile confirmed by text code to book a viewing, and the code while it's
+     * open (hashed, as for letters' mobiles, M3). Cleared with the rest of the personal data.
+     */
+    mobileConfirmedAt: timestamp({ withTimezone: true }),
+    mobilePending: text(),
+    mobileCodeHash: text(),
+    mobileCodeExpiresAt: timestamp({ withTimezone: true }),
+    mobileCodeAttempts: integer().notNull().default(0),
+    mobileCodesToday: integer().notNull().default(0),
+    mobileCodeSentAt: timestamp({ withTimezone: true }),
     /** R16, stage 5 only: how they mainly earn, and household take-home income (cents). */
     earning: text({ enum: ['employed', 'self_employed', 'other'] }),
     monthlyIncomeCents: integer(),

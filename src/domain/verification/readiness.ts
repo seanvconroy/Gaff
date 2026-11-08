@@ -26,8 +26,8 @@ const passed = (checks: readonly CheckRecord[], method: CheckMethod) =>
 
 /**
  * M22: nothing goes live until the letter is checked.
- * - A private landlord: their mobile and their identity.
- * - An agency: its licence, and the agent's own mobile and licence (M23).
+ * - Everyone: their mobile and their identity, checked once as a person (P15, Q48).
+ * - An agency: also its licence, and the agent's own licence (M23).
  */
 export function missingChecks(letter: {
   kind: 'agency' | 'landlord';
@@ -36,9 +36,9 @@ export function missingChecks(letter: {
 }): MissingCheck[] {
   const missing: MissingCheck[] = [];
   if (!passed(letter.member, 'mobile')) missing.push('mobile');
-  if (letter.kind === 'landlord') {
-    if (!passed(letter.member, 'id_document')) missing.push('identity');
-  } else {
+  // P15 (Q48): every letter checks their identity once, agents as well as landlords.
+  if (!passed(letter.member, 'id_document')) missing.push('identity');
+  if (letter.kind === 'agency') {
     if (!passed(letter.organisation, 'psra_register')) missing.push('agency_licence');
     if (!passed(letter.member, 'psra_register')) missing.push('agent_licence');
   }
@@ -48,7 +48,7 @@ export function missingChecks(letter: {
 /** What the letter still has to do, in their words. */
 export const missingCheckWords: Record<MissingCheck, string> = {
   mobile: 'Confirm your mobile number',
-  identity: 'Check your identity: a photo of your ID and a selfie',
+  identity: 'Check your identity: a photo of your ID, and a selfie if you agree',
   agency_licence: 'Gaff checks your agency’s PSRA licence on the public register',
   agent_licence: 'Gaff checks your own PSRA licence on the public register',
 };

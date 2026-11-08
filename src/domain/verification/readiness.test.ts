@@ -23,8 +23,9 @@ describe('M22: nothing goes live until the letter is checked', () => {
     ).toEqual([]);
   });
 
-  it('an agency needs its licence, and the agent’s mobile and licence', () => {
+  it('P15: an agency needs its licence, and the agent’s mobile, identity and licence', () => {
     expect(missingChecks({ kind: 'agency', organisation: [], member: [ok('mobile')] })).toEqual([
+      'identity',
       'agency_licence',
       'agent_licence',
     ]);
@@ -32,7 +33,7 @@ describe('M22: nothing goes live until the letter is checked', () => {
       missingChecks({
         kind: 'agency',
         organisation: [ok('psra_register')],
-        member: [ok('mobile'), ok('psra_register')],
+        member: [ok('mobile'), ok('id_document'), ok('psra_register')],
       }),
     ).toEqual([]);
   });

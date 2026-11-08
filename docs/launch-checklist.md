@@ -78,5 +78,5 @@ The [marketplace PRD](marketplace/prd.md) was approved for build on 7 November 2
 - [ ] Supabase Storage: a private bucket for uploads and a public bucket for listing photos, behind the CDN
 - [ ] The weekly PSRA register import running, with its log checked
 - [ ] Gaff staff added with `pnpm staff:add` (they sign in once first), with passkeys, and review cover for the first weeks after launch
-- [ ] Stripe Identity's webhook (`identity.verification_session.*`) pointing at `/api/webhooks/stripe-identity`, with `LETTER_IDENTITY_PROVIDER=stripe`, `STRIPE_SECRET_KEY` and `STRIPE_IDENTITY_WEBHOOK_SECRET` set
+- [ ] Stripe Identity's webhook (`identity.verification_session.*`) pointing at `/api/webhooks/stripe-identity`, with `IDENTITY_PROVIDER=stripe`, `STRIPE_SECRET_KEY` and `STRIPE_IDENTITY_WEBHOOK_SECRET` set
 - [ ] The licence queue (`/staff/checks`) worked every working day, until the PSRA register's weekly file is matched automatically

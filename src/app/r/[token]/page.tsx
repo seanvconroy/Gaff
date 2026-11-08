@@ -3,6 +3,7 @@ import { stayChoices } from '@/domain/criteria/answers';
 import { formatDate, formatEuro, irishToday } from '@/lib/format';
 import { formatRatio, minimumIncomeCents } from '@/domain/applications/apply';
 import { loadRenterPage } from '@/server/renter/answers';
+import { renterIdentityView } from '@/server/identity/view';
 import { env } from '@/lib/env';
 import { Card, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
@@ -49,6 +50,8 @@ export default async function RenterPage({
     offer_problem?: string;
     accepted?: string;
     declined?: string;
+    code?: string;
+    identity_problem?: string;
   }>;
 }) {
   const { token } = await params;
@@ -63,6 +66,8 @@ export default async function RenterPage({
     referees,
     decline,
     offer_problem,
+    code,
+    identity_problem,
   } = await searchParams;
   const page = await loadRenterPage(token);
   if (!page) {
@@ -212,11 +217,11 @@ export default async function RenterPage({
               token={token}
               operatorName={organisation.name}
               checks={page.checks}
-              providers={{
-                identity: env().IDENTITY_PROVIDER !== 'none',
-                income: env().INCOME_PROVIDER !== 'none',
-              }}
+              providers={{ income: env().INCOME_PROVIDER !== 'none' }}
               problem={check_problem}
+              identity={await renterIdentityView(token, application.email)}
+              code={code}
+              identityProblem={identity_problem}
             />
           </>
         ) : null}

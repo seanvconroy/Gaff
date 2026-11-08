@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import {
   expectAccessible,
   latestLinkFor,
+  checkIdWithSelfie,
   latestSmsCode,
   makeStaff,
   screenshot,
@@ -33,9 +34,12 @@ test('M3, M22, M24: a private landlord confirms their mobile and their identity'
   await page.getByRole('button', { name: 'Confirm my number' }).click();
   await expect(page.getByText('Your mobile number is confirmed.')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Check my identity' }).click();
-  await expect(page.getByRole('heading', { name: 'Stand-in identity check' })).toBeVisible();
-  await page.getByRole('button', { name: 'The ID and selfie match' }).click();
+  // P18: the selfie needs a clear yes first; checking without one is an equal choice.
+  await page.getByRole('button', { name: 'Check my ID with a selfie' }).click();
+  await expect(
+    page.getByText('Tick the box to agree to the selfie, or check your ID without a selfie.'),
+  ).toBeVisible();
+  await checkIdWithSelfie(page);
   await expect(page.getByText('You’re checked')).toBeVisible();
   await expect(page.getByText(/Identity checked by Gaff on \d+ \w+/)).toBeVisible();
   await expectAccessible(page);

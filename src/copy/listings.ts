@@ -49,6 +49,8 @@ export const holdReasonWords: Record<string, string> = {
   description_copied: 'The description matches another letter’s listing.',
   new_account_burst: 'A new account listed several homes at once.',
   unfair_wording: 'Some of the wording could exclude people the Equal Status Acts protect.',
+  first_listing_review:
+    'The letter’s identity was checked without a selfie, so a person at Gaff looks at their first listing.',
 };
 
 /** ADR-0023, P13: what the AI flagged, in the letter's words, with a fairer way to say it. */

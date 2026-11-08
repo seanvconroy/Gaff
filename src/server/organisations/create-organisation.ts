@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { db, scopeToOrg, type Tx } from '@/db/client';
 import { memberships, organisations, users } from '@/db/schema';
 import { inboundSlugFor, type NewOrganisation } from '@/domain/organisations/new-organisation';
+import { refreshCopies } from '@/server/identity/identity';
 import { recordEvent } from '@/server/record/events';
 import { requestLicenceCheck } from '@/server/verification/licence';
 import { uniqueOrganisationSlug } from './profile';
@@ -14,7 +15,7 @@ export async function createOrganisation(
   userId: string,
   input: NewOrganisation,
 ): Promise<{ organisationId: string }> {
-  return db().transaction(async (tx) => {
+  const created = await db().transaction(async (tx) => {
     const [existing] = await tx
       .select({ organisationId: memberships.organisationId })
       .from(memberships)
@@ -62,6 +63,9 @@ export async function createOrganisation(
     }
     return { organisationId };
   });
+  // P15, P24: someone who checked their identity already (as a renter, say) is checked here too.
+  await refreshCopies(userId);
+  return created;
 }
 
 async function uniqueInboundSlug(tx: Tx, base: string): Promise<string> {

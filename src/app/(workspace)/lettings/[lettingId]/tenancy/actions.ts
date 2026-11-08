@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { formValues, invalid, type FormState } from '@/lib/forms';
 import { requireMember } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
+import { recordIdSeenInPerson } from '@/server/identity/in-person';
 import { saveLandlordContact } from '@/server/offers/approval';
 import { confirmPayment, requestPayment } from '@/server/tenancy/payment';
 import { markRtbRegistered } from '@/server/tenancy/rtb';
@@ -32,6 +33,18 @@ async function run(lettingId: string, done: string, work: () => Promise<void>): 
 export async function sendAgreementAction(lettingId: string): Promise<void> {
   const member = await requireMember();
   await run(lettingId, 'sent', () => sendAgreement(member, lettingId));
+}
+
+/** P27: the letter saw the renter's original photo ID when they met, and records the name. */
+export async function seenIdAction(
+  lettingId: string,
+  applicationId: string,
+  formData: FormData,
+): Promise<void> {
+  const member = await requireMember();
+  await run(lettingId, 'id_seen', () =>
+    recordIdSeenInPerson(member, applicationId, String(formData.get('seenName') ?? '')),
+  );
 }
 
 /** R22, Q23: both sides signed the printed agreement by hand. */

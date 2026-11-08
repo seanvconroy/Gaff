@@ -9,6 +9,7 @@ import {
   goLiveThroughUi,
   linkInEmail,
   linkInEmailStarting,
+  latestSmsCode,
   screenshot,
   sendTestEmail,
   signUpOperator,
@@ -76,11 +77,23 @@ test('R10, R11, R12, R13, R14: a person decides who views; renters book, move an
   await expectAccessible(aoife.page);
   await screenshot(aoife.page, '27-renter-choose-time-dark');
   await aoife.page.emulateMedia({ colorScheme: 'light' });
-  await aoife.page.getByRole('button', { name: 'Book this time' }).click();
+  await aoife.page.getByRole('button', { name: 'Text me a code' }).click();
   await expect(aoife.page.getByText('Choose a time first.')).toBeVisible();
+  // P16: a mobile confirmed with a texted code books the time, and gets the reminder.
+  const mobile = `087${String(Date.now()).slice(-7)}`;
   await aoife.page.getByRole('radio').first().check();
-  await aoife.page.getByLabel('Mobile number for a text reminder').fill('087 123 4567');
-  await aoife.page.getByRole('button', { name: 'Book this time' }).click();
+  await aoife.page.getByLabel('Your mobile number').fill(mobile);
+  await aoife.page.getByRole('button', { name: 'Text me a code' }).click();
+  await expect(aoife.page.getByRole('heading', { name: 'Confirm your mobile' })).toBeVisible();
+  await expectAccessible(aoife.page);
+  await screenshot(aoife.page, '27b-renter-booking-code');
+  await aoife.page.getByLabel('The code from the text').fill('000000');
+  await aoife.page.getByRole('button', { name: 'Confirm and book' }).click();
+  await expect(aoife.page.getByText('That code doesn’t match.')).toBeVisible();
+  await aoife.page
+    .getByLabel('The code from the text')
+    .fill(await latestSmsCode(`+353${mobile.slice(1)}`));
+  await aoife.page.getByRole('button', { name: 'Confirm and book' }).click();
   await expect(aoife.page.getByText('You’re booked')).toBeVisible();
   await expect(aoife.page.getByRole('heading', { name: 'Your viewing' })).toBeVisible();
   await expectAccessible(aoife.page);
@@ -98,6 +111,8 @@ test('R10, R11, R12, R13, R14: a person decides who views; renters book, move an
   await aoife.page.getByRole('button', { name: 'Cancel my viewing' }).click();
   await expect(aoife.page.getByText('Your viewing is cancelled')).toBeVisible();
   await expect(aoife.page.getByRole('heading', { name: 'Choose a time to view' })).toBeVisible();
+  // Her mobile is confirmed already, so booking again needs no new code.
+  await expect(aoife.page.getByText(/We’ll text 087 ••• \d{4} two hours before/)).toBeVisible();
   await expectAccessible(aoife.page);
   await screenshot(aoife.page, '29-renter-cancelled');
   await aoife.context.close();
@@ -114,7 +129,7 @@ test('R10, R11, R12, R13, R14: a person decides who views; renters book, move an
   await expectAccessible(ciaran.page);
   await screenshot(ciaran.page, '30-renter-place-offered');
   await ciaran.page.getByRole('radio').check();
-  await ciaran.page.getByRole('button', { name: 'Book this time' }).click();
+  await ciaran.page.getByRole('button', { name: 'Book without a mobile' }).click();
   await expect(ciaran.page.getByText('You’re booked')).toBeVisible();
   await ciaran.context.close();
 

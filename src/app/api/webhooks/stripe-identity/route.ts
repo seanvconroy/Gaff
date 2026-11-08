@@ -1,11 +1,11 @@
-import { verifyStripeSignature } from '@/adapters/letter-identity/stripe';
+import { verifyStripeSignature } from '@/adapters/identity/stripe';
 import { env } from '@/lib/env';
-import { handleIdentityEvent } from '@/server/verification/identity';
+import { handleIdentityEvent } from '@/server/identity/identity';
 
-/** M24: Stripe Identity tells Gaff a landlord's check changed. Signed; anything else is refused. */
+/** P54: Stripe Identity tells Gaff a person's check changed. Signed; anything else is refused. */
 export async function POST(request: Request): Promise<Response> {
   const config = env();
-  if (config.LETTER_IDENTITY_PROVIDER !== 'stripe' || !config.STRIPE_IDENTITY_WEBHOOK_SECRET) {
+  if (config.IDENTITY_PROVIDER !== 'stripe' || !config.STRIPE_IDENTITY_WEBHOOK_SECRET) {
     return new Response(null, { status: 404 });
   }
   const payload = await request.text();

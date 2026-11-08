@@ -7,6 +7,7 @@ import { canFinish } from '@/domain/tenancy/steps';
 import { rtbDeadline } from '@/domain/tenancy/tenancy';
 import { env } from '@/lib/env';
 import { formatDate, formatDateTime, formatEuro, irishToday } from '@/lib/format';
+import { inPersonIdentity } from '@/server/identity/in-person';
 import { inventoryFor } from '@/server/tenancy/movein';
 import { tenancyFor } from '@/server/tenancy/tenancy';
 import { Disclosure } from '@/ui/Disclosure';
@@ -31,6 +32,7 @@ import {
   removeItemAction,
   requestPaymentAction,
   rtbRegisteredAction,
+  seenIdAction,
   sendAgreementAction,
   shareInventoryAction,
 } from './actions';
@@ -75,6 +77,7 @@ export default async function TenancyPage({
     );
   }
   const items = await inventoryFor(member, letting.id);
+  const id = await inPersonIdentity(member, view.tenancy.applicationId);
   return (
     <Stack gap={8}>
       <LettingHeader letting={letting} tab="tenancy" />
@@ -89,6 +92,7 @@ export default async function TenancyPage({
           view={view}
           signerName={member.name}
           justSigned={Boolean(done.signed)}
+          id={id}
         />
         <PaymentStep lettingId={letting.id} view={view} />
         <RtbStep lettingId={letting.id} view={view} />
@@ -104,11 +108,14 @@ function AgreementStep({
   view,
   signerName,
   justSigned,
+  id,
 }: {
   lettingId: string;
   view: View;
   signerName: string;
   justSigned: boolean;
+  /** P27: whether to see the tenant's photo ID in person first, and whether it's been seen. */
+  id: Awaited<ReturnType<typeof inPersonIdentity>>;
 }) {
   const { tenancy, tenant } = view;
   const first = firstNameOf(view);
@@ -154,6 +161,34 @@ function AgreementStep({
             </div>
           </Stack>
         </form>
+      ) : null}
+      {status === 'draft' && id?.needed && !id.seen ? (
+        <Notice tone="info" title="See their photo ID first">
+          <Stack gap={4}>
+            <p>
+              {id.why === 'no_selfie'
+                ? `Gaff checked ${first}’s ID without a selfie.`
+                : `${first}’s ID couldn’t be checked online.`}{' '}
+              Before you send the agreement, ask to see their original passport, driving licence or
+              ID card when you meet, and record the name on it. Don’t keep a copy.
+            </p>
+            <form action={seenIdAction.bind(null, lettingId, view.tenancy.applicationId)}>
+              <Stack gap={4}>
+                <TextField name="seenName" label="The name on their photo ID" width="medium" />
+                <div>
+                  <SubmitButton variant="secondary" pendingLabel="Saving…">
+                    I’ve seen their photo ID
+                  </SubmitButton>
+                </div>
+              </Stack>
+            </form>
+          </Stack>
+        </Notice>
+      ) : null}
+      {status === 'draft' && id?.seen ? (
+        <p>
+          You saw their photo ID on {formatDate(id.seen.at)}: {id.seen.name}.
+        </p>
       ) : null}
       {status === 'draft' && !view.needsLandlord ? (
         <>

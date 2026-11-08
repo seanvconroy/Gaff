@@ -63,7 +63,7 @@ function describe(check: CheckSummary, rentCents: number, ruleTenths: number): [
         ? ['info', `Asked ${check.refereeName ?? 'them'}${asked}. No answer yet.`]
         : ['info', `Started${asked}.`];
     case 'passed':
-      if (check.kind === 'identity') return ['success', `Verified: ${check.verifiedName}.`];
+      if (check.kind === 'identity') return describeIdentity(check);
       if (check.monthlyIncomeCents !== undefined) {
         const { ratioTenths, meetsRule } = incomeAgainstRule(
           check.monthlyIncomeCents,
@@ -90,4 +90,33 @@ function describe(check: CheckSummary, rentCents: number, ruleTenths: number): [
           : 'Not needed: no employer to ask.',
       ];
   }
+}
+
+/**
+ * P19, P22, P23, P27: how the renter's identity was checked, once, by Gaff; or that you'll see
+ * it. A verified name that isn't the one they gave is shown in `warning`, never as a failure.
+ */
+function describeIdentity(check: CheckSummary): [Tone, string] {
+  const on = check.checkedAt ? ` on ${formatDate(check.checkedAt)}` : '';
+  const differs =
+    check.nameDiffers && check.verifiedName
+      ? ' That’s not quite the name they gave, which happens for ordinary reasons, such as a fada, a married name or a middle name.'
+      : '';
+  if (check.seenInPerson) {
+    return [
+      'success',
+      `You saw their photo ID on ${formatDate(check.seenInPerson.at)}: ${check.seenInPerson.name}.`,
+    ];
+  }
+  if (!check.inPersonNeeded)
+    return [
+      differs ? 'warning' : 'success',
+      `Checked by Gaff${on}: ${check.verifiedName ?? ''}.${differs}`,
+    ];
+  return [
+    differs ? 'warning' : 'info',
+    check.verifiedName
+      ? `Checked by Gaff without a selfie${on}: ${check.verifiedName}.${differs} Ask to see their photo ID when you meet.`
+      : 'Their ID can’t be checked online. Ask to see their photo ID when you meet, before you send the agreement.',
+  ];
 }

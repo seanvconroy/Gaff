@@ -5,7 +5,7 @@ import { processInboundEmail } from '@/server/enquiries/process';
 import { processMedia } from '@/server/media/process';
 import { sweepFreshness } from '@/server/listings/freshness';
 import { closeEnquiries } from '@/server/listings/manage';
-import { redactIdentity } from '@/server/verification/identity';
+import { redactIdentity } from '@/server/identity/identity';
 import { markReferenceOverdue } from '@/server/checks/checks';
 import { sendMessage } from '@/server/messages/outbox';
 import { expireHomeOffer } from '@/server/offers/offer';
@@ -100,7 +100,12 @@ export const taskList: TaskList = {
     await draftAnswersFor(messageJob.parse(payload));
   },
   redact_identity: async (payload) => {
-    await redactIdentity(z.object({ organisationId: z.uuid(), checkId: z.uuid() }).parse(payload));
+    // Queued before Q48 with the workspace's ID; a person's own check has its user's.
+    const job = z
+      .object({ userId: z.string().optional(), checkId: z.uuid() })
+      .passthrough()
+      .parse(payload);
+    if (job.userId) await redactIdentity({ userId: job.userId, checkId: job.checkId });
   },
   listings_freshness: async () => {
     const swept = await sweepFreshness();

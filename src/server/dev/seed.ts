@@ -38,7 +38,8 @@ import { finishPhotoUpload, startHomePhotoUpload } from '@/server/media/upload';
 import { createOrganisation } from '@/server/organisations/create-organisation';
 import { updateAgencyProfile, updateMyProfile } from '@/server/organisations/profile';
 import { recordPlatformEvent } from '@/server/record/platform-events';
-import { recordIdentityOutcome, startIdentityCheck } from '@/server/verification/identity';
+import { recordIdentityOutcome } from '@/server/identity/identity';
+import { startIdentityCheck } from '@/server/verification/identity';
 import { decideLicenceCheck } from '@/server/verification/licence';
 import {
   scenePhoto,
@@ -510,13 +511,14 @@ async function seedLetter(
       await decideLicenceCheck(reviewer, check.id, { outcome: 'passed' }, now);
     }
   } else {
-    const { redirectUrl } = await startIdentityCheck(member);
-    const checkId = /letter-identity\/[^/]+\/([^/?]+)/.exec(redirectUrl)?.[1];
+    const { redirectUrl } = await startIdentityCheck(member, { selfie: true, consented: true });
+    const checkId = /\/dev\/identity\/([^/?]+)/.exec(redirectUrl)?.[1];
     if (!checkId) throw new Error('The stand-in ID check did not start');
+    const [first = letter.person, ...rest] = (letter.verifiedName ?? letter.person).split(' ');
     await recordIdentityOutcome({
-      organisationId: member.organisationId,
       checkId,
-      outcome: { status: 'passed', verifiedName: letter.verifiedName ?? letter.person },
+      userId: member.userId,
+      outcome: { status: 'passed', verifiedName: { first, last: rest.join(' ') || first } },
       now,
     });
   }

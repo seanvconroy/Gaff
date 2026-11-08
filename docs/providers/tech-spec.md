@@ -61,16 +61,18 @@ src/domain/ai/                      budget maths, price table, output validators
 src/server/ai/usage.ts              logs each call, enforces the budget, kill switches
 src/ports/identity.ts               was ports/letter-identity.ts, now for every person
 src/adapters/identity/stripe.ts     was adapters/letter-identity/stripe.ts, with or without a selfie
-src/adapters/identity/stand-in.ts   the development stand-in page, as today
+src/adapters/identity/index.ts      Stripe, or the stand-in page at /dev/identity (development and
+                                      the test copy)
 src/domain/identity/                names.ts (does a name match?), access.ts (is a chosen renter's
-                                      identity done? may this letter publish yet?), words.ts (what each
-                                      person sees)
-src/server/identity/                start, consent, outcome, webhook, redaction, "can't be checked
-                                      online", copies to workspaces and applications, seen in person
+                                      identity done? may this letter publish yet?)
+src/copy/identity.ts                what each person sees about the check
+src/server/identity/                identity.ts (start, consent, outcome, webhook, redaction, "can't
+                                      be checked online", copies to workspaces and applications),
+                                      renter.ts, in-person.ts, staff.ts
 src/domain/documents/               requests.ts (what's asked, by how someone earns), checks.ts
                                       (recency, names, flags), pay.ts (pay periods to a month)
 src/server/documents/               upload, read, confirm, share, view, keep, delete
-src/server/viewings/booking.ts      + the mobile and its text code, reusing server/verification/mobile.ts
+src/server/viewings/mobile.ts       the booking's text code, reusing domain/verification/mobile.ts
 src/jobs/tasks.ts                   + process_document, delete_documents; redact_identity moves to
                                       person rows
 tests/evals/                        golden sets and runners, against the real model (not in CI)
@@ -148,17 +150,17 @@ Results are saved under `tests/evals/results/` with the prompt version and model
 | `status` | `pending` (a Stripe session is open), `verified`, `not_verified` (the last attempt failed; fewer than three tries), `offline` ("can't be checked online", chosen or after three tries) |
 | `selfie` | Whether the selfie was checked |
 | `verified_name_sealed` | First and last name from Stripe, sealed (`src/lib/crypto.ts`) |
-| `provider`, `provider_ref` | `stripe`, the VerificationSession, reused across a person's retries as Stripe advises |
+| `provider`, `provider_ref` | `stripe` (`stand_in` in development and on the test copy, or `staff` once a person at Gaff has seen the ID, Q55), and the VerificationSession, reused across a person's retries as Stripe advises |
 | `attempts`, `reason` | Up to three; Gaff's reason code from Stripe's (`document`, `face_mismatch`, `gave_up`) |
 | `consent_version`, `consented_at` | The selfie consent wording the person agreed to (P18) |
-| `checked_at`, `provider_redacted_at` | The result's date; when Stripe was asked to redact |
+| `checked_at`, `checked_by`, `provider_redacted_at` | The result's date; the person at Gaff who saw the ID (Q55); when Stripe was asked to redact |
 
 `domain/identity/access.ts` decides what's done, with unit tests: a chosen renter's identity is done when the status is `verified`, or `offline` with the letter's in-person record to come before the agreement (P27). A letter's listing may go live under `missingChecks` (M22) when they're `verified`, with the first listing held for review if `selfie` is false (P19). A letter who's `offline` stays in the staff queue until a person at Gaff checks them (Q55).
 
 ### Starting a check
 
 1. Gaff's page explains the check (P18). For a selfie check, the person ticks the consent box (not ticked by default), which records `consent_version` and `consented_at` with an `identity.consented` event. "Check without a selfie" and "My ID can't be checked online" are links on the same page, with equal weight.
-2. `server/identity/start.ts` creates or reuses the person's VerificationSession: `type=document`; `options.document.require_matching_selfie` true or false; `require_live_capture=true`; `allowed_types` passport, driving licence and ID card; `return_url` back to the page the person came from (a renter's checks page, or a letter's Settings). `metadata[user_id]` and `metadata[check_id]` are opaque IDs, never names. The idempotency key is the check ID and the attempt number.
+2. `startIdentity` (`server/identity/identity.ts`) creates or reuses the person's VerificationSession: `type=document`; `options.document.require_matching_selfie` true or false; `require_live_capture=true`; `allowed_types` passport, driving licence and ID card; `return_url` to a letter's Settings, or for a renter to `/identity/done`, which shows nothing private, so their private link is never given to Stripe. `metadata[user_id]` and `metadata[check_id]` are opaque IDs, never names. The idempotency key is the check ID and the attempt number.
 3. Stripe's hosted page does the rest, and offers a laptop user to carry on on their phone. No Stripe script loads on Gaff's pages (M103).
 4. The webhook (`/api/webhooks/stripe-identity`, one route for everyone) verifies the signature, loads the check inside `withRenter(metadata.user_id)`, checks the session belongs to it, and asks Stripe for the session's state rather than trusting the payload (P54). The return page also asks, so the person rarely waits for the webhook.
 5. With the secret key only, Gaff reads `status`, `last_error.code` and `verified_outputs.first_name` and `last_name`. It never expands `dob`, `id_number` or images, which need a restricted key Gaff doesn't have.
@@ -171,17 +173,17 @@ The same way for every renter, wherever they enquired:
 
 1. When a letter chooses the preferred applicant and the backup (R18), each gets the existing checks email, with a link to their checks page (`r/[token]`), "A few checks before an offer".
 2. The page asks a renter who isn't signed in to confirm their email with a 6-digit code (M76's sign-in). That links the application to their Gaff account and profile, so whatever they do here is kept for next time. A Daft or MyHome renter gets their account this way.
-3. If their profile already has a verified identity, the page shows it as done (P29). Otherwise it shows the identity step, which goes to Stripe and returns to the same page with `?identity=returned`, so nothing else on the page is lost.
+3. If their profile already has a verified identity, the page shows it as done (P29). Otherwise it shows the identity step, which goes to Stripe and returns to `/identity/done`, then back to the link in the email.
 4. Documents and referees sit on the same page (P30 to P39). "Share" sends all of it at once (P39).
 
 ### A confirmed mobile to book a viewing
 
-The booking page (`BookingSection`) asks for a mobile number, as today, but now sends a text code and books the slot only once it's confirmed (P16). The code logic in `server/verification/mobile.ts` (hashed codes, expiry, attempts and daily sends) is reused, keyed to the application, so renters from Daft and MyHome need no account to book. The confirmed number becomes the application's `phone_e164`, with `mobile_confirmed_at`, and also gets the 2-hour text reminder (R13, changing Q12). On the test copy the code shows on screen until Sinch is set up (N3). "I don't have a mobile" books the slot without one, and the letter's attendance list shows that no mobile was confirmed.
+The booking page (`BookingSection`) asks for a mobile number, as today, but now sends a text code and books the slot only once it's confirmed (P16). The code rules in `domain/verification/mobile.ts` (expiry, attempts and daily sends) are reused by `server/viewings/mobile.ts`, with the code hashed and keyed to the application, so renters from Daft and MyHome need no account to book. The confirmed number becomes the application's `phone_e164`, with `mobile_confirmed_at`, and also gets the 2-hour text reminder (R13, changing Q12). On the test copy the code shows on screen until Sinch is set up (N3). "Book without a mobile" books the slot without one, and the letter's attendance list shows "No mobile confirmed".
 
 ### Copies at each stage
 
-- **Workspaces.** When a person is verified, or joins a workspace already verified, `server/identity/copies.ts` writes or refreshes their `letter_checks` row for each of their workspaces (`method=id_document`, `passed`, the verified name, `checkedAt`). The row keeps no `providerRef`: the session belongs to the person's own record. Badges (M26) and readiness (M22) keep reading `letter_checks`, so nothing changes for them. Agents now need identity too (`missingChecks` adds `identity` for agency members). The staff licence queue shows the agent's verified name next to the register's (P24).
-- **Applications.** When a renter is chosen, their checks are created as today (R18). The identity check is `to_do`, or filled from their record if they've checked before: `passed` (with or without a selfie), or `in_person_needed` for `offline`. It reaches the letter when the renter shares their checks, with the `checks` data group (M11, M12), and the event is `identity.shared`.
+- **Workspaces.** When a person is verified, or creates or joins a workspace already verified, `refreshCopies` (`server/identity/identity.ts`) writes or refreshes their `letter_checks` row for each of their workspaces (`method=id_document`, `passed`, the verified name, `checkedAt`). The row keeps no `providerRef`: the session belongs to the person's own record. Badges (M26) and readiness (M22) keep reading `letter_checks`, so nothing changes for them. Agents now need identity too (`missingChecks` adds `identity` for agency members). The staff licence queue shows the agent's verified name next to the register's (P24).
+- **Applications.** When a renter is chosen, their checks are created as today (R18). The identity check is `to_do`, or filled from their record if they've checked before, or as soon as they do: `passed`, with or without a selfie, or with `inPersonNeeded` for `offline`. The sealed result also says whether the verified name differs from the one they gave (P22). The event is `identity.shared`. Until the one "Share" step arrives with documents (P39), it reaches the letter as soon as it's checked, with the `checks` data group (M11, M12).
 - **Seen in person (P27).** For a check without a selfie, or `offline`, the Tenancy page asks the letter to record that they saw an original photo ID, and the name on it, before sending the agreement. The application's check records `recordedBy` and the date, with `check.recorded_in_person`. The person's own record isn't changed: one letter's sighting stays with that letting.
 
 ### Moving the landlords' check over
@@ -259,13 +261,13 @@ It needs Tink's enterprise terms for Income Check, its confirmed Irish bank list
 | --- | --- |
 | `identity_checks` (new, renter zone, `renterPolicy`) | As above |
 | `letter_checks` | `id_document` rows become copies of the person's record: no `providerRef` or `providerRedactedAt` for new rows. Migrated as above |
-| `checks` | The identity check's sealed result gains `selfie` and `inPersonNeeded`. New columns `recorded_by`, `recorded_at` for "seen in person". The `income` kind holds the shared documents' summary: `documentsSharedAt` and the flags |
+| `checks` | The identity check's sealed result gains `selfie`, `inPersonNeeded` and `nameDiffers`, and, once the letter has seen the photo ID in person, the name on it and the date; `check.recorded_in_person` records who. The `income` kind holds the shared documents' summary: `documentsSharedAt` and the flags |
 | `applications` | `mobile_confirmed_at`, and the booking's text code (hashed, with its expiry and attempts), cleared once confirmed. The number is the existing `phone_e164`; `sms_reminders` follows the confirmed number (Q12) |
 | `renter_documents` (new, renter zone, `renterPolicy`) | `user_id`, `kind` (`payslip`, `contract`, `employer_letter`, `revenue_statement`, `accountant_letter`, `other_income`), `storage_key` (null once deleted), `content_type`, `bytes`, `pages`, `status` (`processing`, `ready`, `deleted`), `reading_sealed`, `flags`, `document_date`, `corrected_by_renter`, `keep`, `delete_after`, `deleted_at` |
 | `check_documents` (new, organisation zone, `tenantPolicy`) | `check_id`, `application_id`, `kind` (`other_income` has no file), `storage_key`, `reading_sealed`, `flags`, `document_date`, `corrected_by_renter`, `delete_after`, `deleted_at` |
 | `ai_calls` (new, platform zone) | As above. No organisation data beyond the ID |
 | `listing_holds` | `reasons` adds `unfair_wording`, and `first_listing_review` for a letter checked without a selfie (P19). New `wording_findings` (jsonb): the phrase from the letter's own words, the ground, why and a rewording, shown to the letter and to staff. Not personal data, so not sealed |
-| Events | `booking.mobile_confirmed`, `identity.consented`, `identity.started`, `identity.decided`, `identity.offline`, `identity.redacted`, `identity.copied`, `identity.shared`, `check.recorded_in_person`, `document.uploaded`, `document.read`, `document.confirmed`, `documents.shared`, `document.viewed`, `document.deleted`, `listing.description_drafted`, `listing.wording_flagged`; platform: `ai.budget_warning`. IDs, codes, numbers and dates only, checked by the compliance suite. Person-zone events carry no organisation |
+| Events | `booking.mobile_code_sent`, `booking.mobile_confirmed`, `identity.consented`, `identity.started`, `identity.decided`, `identity.offline`, `identity.redacted`, `identity.shared` (a workspace's copy keeps `letter_check.decided`), `check.recorded_in_person`, `document.uploaded`, `document.read`, `document.confirmed`, `documents.shared`, `document.viewed`, `document.deleted`, `listing.description_drafted`, `listing.wording_flagged`; platform: `ai.budget_warning`. IDs, codes, numbers and dates only, checked by the compliance suite. Person-zone events carry no organisation |
 
 ## Privacy and retention
 

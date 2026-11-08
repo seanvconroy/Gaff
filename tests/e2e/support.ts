@@ -400,9 +400,34 @@ export async function getChecked(page: Page): Promise<void> {
     .getByLabel('The code from the text')
     .fill(await latestSmsCode(`+353${mobile.slice(1)}`));
   await page.getByRole('button', { name: 'Confirm my number' }).click();
-  await page.getByRole('button', { name: 'Check my identity' }).click();
-  await page.getByRole('button', { name: 'The ID and selfie match' }).click();
+  await checkIdWithSelfie(page);
   await expect(page.getByText('You’re checked')).toBeVisible();
+}
+
+/** P17, P18: agrees to the selfie, then passes the stand-in for Stripe Identity. */
+export async function checkIdWithSelfie(page: Page): Promise<void> {
+  await page.getByLabel('I agree to Stripe comparing my selfie with the photo on my ID').check();
+  await page.getByRole('button', { name: 'Check my ID with a selfie' }).click();
+  await expect(page.getByRole('heading', { name: 'Stand-in identity check' })).toBeVisible();
+  await page.getByRole('button', { name: 'The ID and selfie match' }).click();
+}
+
+/**
+ * R12, P16: books the first free time from a renter's private page, confirming a mobile with
+ * the texted code, or without one.
+ */
+export async function bookFirstTime(page: Page, mobile: string | null): Promise<void> {
+  await page.getByRole('radio').first().check();
+  if (!mobile) {
+    await page.getByRole('button', { name: 'Book without a mobile' }).click();
+    return;
+  }
+  await page.getByLabel('Your mobile number').fill(mobile);
+  await page.getByRole('button', { name: 'Text me a code' }).click();
+  await expect(page.getByText(/We’ve texted a 6-digit code to 0\d\d •••/)).toBeVisible();
+  const e164 = `+353${mobile.replace(/\s/g, '').slice(1)}`;
+  await page.getByLabel('The code from the text').fill(await latestSmsCode(e164));
+  await page.getByRole('button', { name: 'Confirm and book' }).click();
 }
 
 /** Fills in everything a listing needs, through the listing editor. */

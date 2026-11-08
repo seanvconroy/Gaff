@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Tx } from '@/db/client';
 import { platformEvents } from '@/db/schema';
+import { selfieConsentVersions } from '@/domain/identity/access';
 import { assertNoPersonalData } from '@/domain/record/personal-data';
 import type { Actor } from './events';
 
@@ -53,6 +54,21 @@ export const platformEventCatalogue = {
   /** M105: someone became, or stopped being, Gaff staff (on the test copy, a tester). */
   'staff.added': z.object({ role: z.enum(['reviewer', 'admin']), testCopy: z.boolean() }),
   'staff.removed': z.object({ testCopy: z.boolean() }),
+  /** P15 to P28 (Q48): a person's own identity check, once, for every workspace and home. */
+  'identity.consented': z.object({ checkId: z.uuid(), version: z.enum(selfieConsentVersions) }),
+  'identity.started': z.object({
+    checkId: z.uuid(),
+    selfie: z.boolean(),
+    attempt: z.number().int(),
+  }),
+  'identity.decided': z.object({
+    checkId: z.uuid(),
+    outcome: z.enum(['verified', 'not_verified', 'offline']),
+    selfie: z.boolean().optional(),
+    reason: z.enum(['document', 'face_mismatch', 'gave_up']).optional(),
+  }),
+  'identity.offline': z.object({ checkId: z.uuid() }),
+  'identity.redacted': z.object({ checkId: z.uuid() }),
   /** P4: the month's AI spend passed 80% of the budget, and Gaff's admins were told. */
   'ai.budget_warning': z.object({ month: z.iso.date() }),
   /** M86, M87: an alert email went out, with this many homes in it. */

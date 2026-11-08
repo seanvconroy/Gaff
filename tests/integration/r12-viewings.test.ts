@@ -1,4 +1,4 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, like } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { db, withOrg } from '@/db/client';
 import {
@@ -12,6 +12,7 @@ import {
 import { sendMessage } from '@/server/messages/outbox';
 import { inviteToView } from '@/server/shortlist/invite';
 import { bookViewing, cancelViewing, slotAvailability } from '@/server/viewings/booking';
+import { confirmBookingCode, sendBookingCode } from '@/server/viewings/mobile';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
 import {
   aLiveLetting,
@@ -41,6 +42,23 @@ async function setUp() {
   return { member, lettingId, ids, slots, token };
 }
 
+/** P16: the renter confirms their mobile with the texted code before booking. */
+async function confirmMobile(token: string, mobile: string) {
+  expect((await sendBookingCode(token, mobile)).ok).toBe(true);
+  const [sms] = await db()
+    .select({ text: devOutbox.text })
+    .from(devOutbox)
+    .where(
+      and(
+        eq(devOutbox.toAddress, `+353${mobile.replace(/\s/g, '').slice(1)}`),
+        like(devOutbox.text, '%Gaff code%'),
+      ),
+    )
+    .orderBy(desc(devOutbox.createdAt))
+    .limit(1);
+  expect(await confirmBookingCode(token, /(\d{6})/.exec(sms!.text)![1]!)).toEqual({ ok: true });
+}
+
 async function messagesFor(
   member: Awaited<ReturnType<typeof createTestMember>>,
   applicationId: string,
@@ -54,9 +72,11 @@ async function messagesFor(
 }
 
 describe('R12 and R13: booking, with confirmation and reminders', () => {
-  it('books a slot, confirms it, and schedules reminders (SMS too, with a mobile)', async () => {
+  it('books a slot, confirms it, and schedules reminders (SMS too, with a confirmed mobile)', async () => {
     const { member, ids, slots, token } = await setUp();
-    expect(await bookViewing(await token(0), slots[0]!.id, '086 765 4321')).toEqual({
+    const t = await token(0);
+    await confirmMobile(t, '086 765 4321');
+    expect(await bookViewing(t, slots[0]!.id)).toEqual({
       ok: true,
       rescheduled: false,
     });
@@ -113,7 +133,9 @@ describe('R12 and R13: booking, with confirmation and reminders', () => {
 
   it('sends SMS through the SMS adapter (development outbox locally)', async () => {
     const { member, ids, slots, token } = await setUp();
-    await bookViewing(await token(0), slots[0]!.id, '086 765 4321');
+    const t = await token(0);
+    await confirmMobile(t, '086 765 4321');
+    await bookViewing(t, slots[0]!.id);
     const sms = (await messagesFor(member, ids[0]!)).find((m) => m.channel === 'sms')!;
     await withOrg(member.organisationId, (tx) =>
       tx.update(messages).set({ sendAt: new Date() }).where(eq(messages.id, sms.id)),
@@ -129,7 +151,13 @@ describe('R12 and R13: booking, with confirmation and reminders', () => {
     const [stored] = await db()
       .select()
       .from(devOutbox)
-      .where(and(eq(devOutbox.toAddress, '+353867654321'), eq(devOutbox.fromAddress, 'SMS')));
+      .where(
+        and(
+          eq(devOutbox.toAddress, '+353867654321'),
+          eq(devOutbox.fromAddress, 'SMS'),
+          like(devOutbox.text, '%reminder%'),
+        ),
+      );
     expect(stored?.text).toMatch(/reminder, you're viewing 12 Ranelagh Road today at \d/);
   });
 });

@@ -2,9 +2,10 @@ import { env } from '@/lib/env';
 import type { CheckProvider } from '@/ports/checks';
 
 /**
- * Development and staging stand-in: a Gaff page where a tester picks the result. Production
- * refuses it (src/lib/env.ts); until a real provider is approved and added, production uses
- * "none" and the operator arranges these checks themselves.
+ * Development and staging stand-in for the income check: a Gaff page where a tester picks the
+ * result. Production refuses it (src/lib/env.ts) and uses "none", where the operator arranges
+ * the check themselves, until work and income documents replace it (P30). Identity has its own
+ * port and adapters (`src/ports/identity.ts`).
  */
 function standIn(): CheckProvider {
   return {
@@ -15,10 +16,6 @@ function standIn(): CheckProvider {
       };
     },
   };
-}
-
-export function identityProvider(): CheckProvider | null {
-  return env().IDENTITY_PROVIDER === 'stand_in' ? standIn() : null;
 }
 
 export function incomeProvider(): CheckProvider | null {

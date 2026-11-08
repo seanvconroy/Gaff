@@ -1,9 +1,11 @@
 import { sql } from 'drizzle-orm';
 import { withSystem } from '@/db/client';
+import { firstListingNeedsReview } from '@/domain/identity/access';
 import { DUPLICATE_DISTANCE } from '@/domain/media/photos';
 import { checkListingText } from '@/domain/moderation/listing-text';
 import { approximateLocation } from '@/domain/places/locate';
 import { bboxAround } from '@/domain/places/geo';
+import { identityOf } from '@/server/identity/identity';
 import { loadGazetteer } from '@/server/places/places';
 import type { ListingContext } from './context';
 
@@ -13,7 +15,8 @@ export type RiskReason =
   | 'scam_wording'
   | 'description_copied'
   | 'new_account_burst'
-  | 'unfair_wording';
+  | 'unfair_wording'
+  | 'first_listing_review';
 
 /** A rent this far below similar homes nearby is held for a look (M29). */
 const FAR_BELOW = 0.6;
@@ -77,4 +80,19 @@ export async function riskSignals(
   if (found.copies > 0) reasons.push('description_copied');
   if (found.burst.young && found.burst.recent >= 5) reasons.push('new_account_burst');
   return reasons;
+}
+
+/**
+ * P19: a letter whose identity was checked without a selfie has their first listing looked at
+ * by a person at Gaff before it goes live. "First" is across all their workspaces: once one of
+ * their listings has gone live, the rest don't wait.
+ */
+export async function needsFirstListingReview(userId: string): Promise<boolean> {
+  if (!firstListingNeedsReview(await identityOf(userId))) return false;
+  const { rows } = await withSystem((tx) =>
+    tx.execute<{ n: number }>(sql`
+      select count(*)::int as n from listings
+      where assigned_to = ${userId} and published_at is not null`),
+  );
+  return rows[0]!.n === 0;
 }

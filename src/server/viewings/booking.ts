@@ -16,7 +16,6 @@ import {
   reminderEmail,
   reminderSms,
 } from '@/copy/templates/viewings';
-import { normalisePhone } from '@/domain/enquiries/parse';
 import { BOOKING_CUTOFF_MINUTES, placesLeft, reminderTimes } from '@/domain/viewings/booking';
 import { heldForOthers } from '@/domain/viewings/waitlist';
 import { env } from '@/lib/env';
@@ -84,22 +83,18 @@ export async function currentBooking(tx: Tx, applicationId: string) {
 
 export type BookResult =
   | { ok: true; rescheduled: boolean }
-  | { ok: false; reason: 'invalid_link' | 'not_invited' | 'full' | 'too_late' | 'invalid_phone' };
+  | { ok: false; reason: 'invalid_link' | 'not_invited' | 'full' | 'too_late' };
 
 /**
  * R12: a renter books (or moves) their viewing from their private link. The slot row is locked
  * while its places are counted, so two people can't take the last place. R13: confirmation and
- * reminders are queued in the same transaction.
+ * reminders are queued in the same transaction. P16: the text reminder goes only to a mobile
+ * the renter confirmed with a code (`confirmBookingCode`), and someone without one can still
+ * book.
  */
-export async function bookViewing(
-  token: string,
-  slotId: string,
-  mobile?: string,
-): Promise<BookResult> {
+export async function bookViewing(token: string, slotId: string): Promise<BookResult> {
   const link = await resolveAccessLink(token, 'renter');
   if (!link) return { ok: false, reason: 'invalid_link' };
-  const phoneE164 = mobile?.trim() ? normalisePhone(mobile) : null;
-  if (mobile?.trim() && !phoneE164) return { ok: false, reason: 'invalid_phone' };
 
   return withOrg(link.organisationId, async (tx) => {
     const [row] = await tx
@@ -170,10 +165,7 @@ export async function bookViewing(
       .returning({ id: bookings.id });
     await tx
       .update(applications)
-      .set({
-        status: 'booked',
-        ...(phoneE164 ? { phoneE164, phone: mobile!.trim(), smsReminders: true } : {}),
-      })
+      .set({ status: 'booked' })
       .where(eq(applications.id, application.id));
     if (offer) {
       await tx
@@ -216,8 +208,9 @@ export async function bookViewing(
       toAddress: application.email,
       ...bookingConfirmationEmail({ ...viewing, rescheduled: Boolean(existing) }),
     });
-    // Q12: text reminders only to a number the renter gave for them when booking.
-    const sms = phoneE164 ?? (application.smsReminders ? application.phoneE164 : null);
+    // P16, Q12: text reminders only to the mobile the renter confirmed when booking.
+    const sms =
+      application.smsReminders && application.mobileConfirmedAt ? application.phoneE164 : null;
     for (const reminder of reminderTimes(slot.startsAt, new Date())) {
       await queueMessage(tx, {
         ...common,

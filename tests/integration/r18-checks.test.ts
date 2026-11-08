@@ -65,47 +65,40 @@ describe('R18: checks only for the preferred applicant and the backup', () => {
   });
 });
 
-describe('R18: ID and income checks, through a provider', () => {
+describe('R18: the income check, through a provider', () => {
   it('sends the renter to the provider without their private link, and keeps only a sealed result', async () => {
     const { member, ids, token } = await chosen();
-    const started = await startProviderCheck(token, 'identity');
+    const started = await startProviderCheck(token, 'income');
     expect('redirectUrl' in started && started.redirectUrl).toMatch(
-      /\/dev\/checks\/[0-9a-f-]{36}\?return=.*%2Fchecks%2Fdone%3Fkind%3Didentity$/,
+      /\/dev\/checks\/[0-9a-f-]{36}\?return=.*%2Fchecks%2Fdone%3Fkind%3Dincome$/,
     );
     expect(JSON.stringify(started)).not.toContain(token);
-    const [identity] = (await checksOfPerson(member, ids[0]!)).filter((c) => c.kind === 'identity');
-    expect(identity!.status).toBe('in_progress');
+    const [income] = (await checksOfPerson(member, ids[0]!)).filter((c) => c.kind === 'income');
+    expect(income!.status).toBe('in_progress');
 
-    await recordProviderResult(identity!.id, {
-      kind: 'identity',
-      result: { verified: true, verifiedName: 'Renter 1' },
-    });
-    const [stored] = (await checksOfPerson(member, ids[0]!)).filter((c) => c.kind === 'identity');
+    await recordProviderResult(income!.id, { confirmed: true, monthlyIncomeCents: 480_000 });
+    const [stored] = (await checksOfPerson(member, ids[0]!)).filter((c) => c.kind === 'income');
     expect(stored).toMatchObject({ status: 'passed', reason: null });
     expect(stored!.resultSealed).toMatch(/^v1:/);
-    expect(stored!.resultSealed).not.toContain('Renter');
+    expect(stored!.resultSealed).not.toContain('480000');
     const results = await withOrg(member.organisationId, (tx) => checkResultsFor(tx, [ids[0]!]));
-    expect(results.get(ids[0]!)!.find((c) => c.kind === 'identity')!.verifiedName).toBe('Renter 1');
+    expect(results.get(ids[0]!)!.find((c) => c.kind === 'income')!.monthlyIncomeCents).toBe(
+      480_000,
+    );
   });
 
   it('records a check that didn’t pass with a reason code, and lets the renter try again', async () => {
     const { member, ids, token } = await chosen();
     await startProviderCheck(token, 'income');
     const [income] = (await checksOfPerson(member, ids[0]!)).filter((c) => c.kind === 'income');
-    await recordProviderResult(income!.id, {
-      kind: 'income',
-      result: { confirmed: false, reason: 'no_regular_income' },
-    });
+    await recordProviderResult(income!.id, { confirmed: false, reason: 'no_regular_income' });
     expect((await checksOfPerson(member, ids[0]!)).find((c) => c.kind === 'income')).toMatchObject({
       status: 'not_passed',
       reason: 'no_regular_income',
       resultSealed: null,
     });
     await startProviderCheck(token, 'income');
-    await recordProviderResult(income!.id, {
-      kind: 'income',
-      result: { confirmed: true, monthlyIncomeCents: 510_000 },
-    });
+    await recordProviderResult(income!.id, { confirmed: true, monthlyIncomeCents: 510_000 });
     const results = await withOrg(member.organisationId, (tx) => checkResultsFor(tx, [ids[0]!]));
     expect(results.get(ids[0]!)!.find((c) => c.kind === 'income')).toMatchObject({
       status: 'passed',

@@ -188,7 +188,8 @@ Before the first real renter (see [launch-checklist.md](launch-checklist.md)):
   | `AI_PROVIDER` | `bedrock`: Claude on Bedrock in Dublin, in-region, with invocation logging off. Production refuses the Claude API (Q37) |
   | `AWS_REGION` | `eu-west-1`, with AWS keys scoped to Bedrock in that region |
   | `AI_MONTHLY_BUDGET_USD` | the founders' monthly limit |
-  | `IDENTITY_PROVIDER`, `INCOME_PROVIDER` | `none` |
+  | `IDENTITY_PROVIDER` | `stripe`, with `STRIPE_SECRET_KEY` and `STRIPE_IDENTITY_WEBHOOK_SECRET` (Q48) |
+  | `INCOME_PROVIDER` | `none`, until work and income documents replace the income check (P30) |
   | `STORAGE_PROVIDER`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | as in [step 5](#5-listing-photos-supabase-storage) |
 
   Production refuses to start with a stand-in or without the encryption key.

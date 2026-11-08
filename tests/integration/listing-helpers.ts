@@ -11,7 +11,7 @@ import {
   startDevelopmentPhotoUpload,
   startHomePhotoUpload,
 } from '@/server/media/upload';
-import { recordIdentityOutcome, startIdentityCheck } from '@/server/verification/identity';
+import { checkIdentity } from './identity-helpers';
 import { createTestMember, aLiveLetting, type Member } from './helpers';
 import { sendMobileCode } from '@/server/verification/mobile';
 import { withRenter } from '@/db/client';
@@ -67,7 +67,7 @@ export async function addPhotos(
 }
 
 /** A private landlord whose mobile and identity Gaff has checked (M22). */
-export async function aCheckedLandlord(): Promise<Member> {
+export async function aCheckedLandlord(options: { selfie?: boolean } = {}): Promise<Member> {
   const member = await createTestMember({ kind: 'landlord' });
   await sendMobileCode(member.userId, `087${String(Math.random()).slice(2, 9)}`);
   await withRenter(member.userId, (tx) =>
@@ -76,13 +76,7 @@ export async function aCheckedLandlord(): Promise<Member> {
       .set({ confirmedPhone: '+353870000000', confirmedAt: new Date() })
       .where(eq(phoneConfirmations.userId, member.userId)),
   );
-  const { redirectUrl } = await startIdentityCheck(member);
-  const checkId = /letter-identity\/[^/]+\/([^/?]+)/.exec(redirectUrl)![1]!;
-  await recordIdentityOutcome({
-    organisationId: member.organisationId,
-    checkId,
-    outcome: { status: 'passed', verifiedName: 'Mary Walsh' },
-  });
+  await checkIdentity(member.userId, { returnTo: 'letter', selfie: options.selfie ?? true });
   return member;
 }
 

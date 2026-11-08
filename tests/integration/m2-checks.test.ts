@@ -6,11 +6,9 @@ import { findStaff, type Staff } from '@/server/auth/staff';
 import { licenceQueue, decideLicenceCheck } from '@/server/verification/licence';
 import { confirmMobileCode, sendMobileCode } from '@/server/verification/mobile';
 import { letterReadiness } from '@/server/verification/readiness';
-import {
-  handleIdentityEvent,
-  recordIdentityOutcome,
-  startIdentityCheck,
-} from '@/server/verification/identity';
+import { handleIdentityEvent } from '@/server/identity/identity';
+import { startIdentityCheck } from '@/server/verification/identity';
+import { checkIdIn, checkIdentity } from './identity-helpers';
 import { setPaymentAccount } from '@/server/tenancy/payment';
 import { createTestMember, queuedJobs, type Member } from './helpers';
 
@@ -80,48 +78,54 @@ describe('M3: confirming a mobile', () => {
   });
 });
 
-describe('M22, M24: a private landlord’s identity', () => {
+describe('M22, M24, P15: a letter’s identity, checked once as a person', () => {
   it('starts the check, records the result and the name only, and is then ready', async () => {
     const member = await createTestMember({ kind: 'landlord' });
     expect((await letterReadiness(member)).missing).toEqual(['mobile', 'identity']);
     await confirmAMobile(member);
-    const { redirectUrl } = await startIdentityCheck(member);
-    const [, organisationId, checkId] = /letter-identity\/([^/]+)\/([^/?]+)/.exec(redirectUrl)!;
-    expect(organisationId).toBe(member.organisationId);
+    const checkId = await checkIdentity(member.userId, { returnTo: 'letter' });
 
-    await recordIdentityOutcome({
-      organisationId: member.organisationId,
-      checkId: checkId!,
-      outcome: { status: 'passed', verifiedName: 'Mary Walsh' },
-    });
     const readiness = await letterReadiness(member);
     expect(readiness.missing).toEqual([]);
-    const [check] = await withOrg(member.organisationId, (tx) =>
-      tx.select().from(letterChecks).where(eq(letterChecks.id, checkId!)),
+    const [copy] = await withOrg(member.organisationId, (tx) =>
+      tx
+        .select()
+        .from(letterChecks)
+        .where(and(eq(letterChecks.userId, member.userId), eq(letterChecks.method, 'id_document'))),
     );
-    expect(check).toMatchObject({ status: 'passed', verifiedName: 'Mary Walsh', reason: null });
+    // The workspace's copy: the result, the name and the date, never the provider's session.
+    expect(copy).toMatchObject({ status: 'passed', verifiedName: 'Mary Walsh', providerRef: null });
     // The stand-in holds no documents, so nothing is queued for the provider to delete.
     expect(await queuedJobs('redact_identity')).not.toContainEqual(
       expect.objectContaining({ checkId }),
     );
   });
 
-  it('agents are checked by licence, not ID', async () => {
+  it('P15: agents check their identity too', async () => {
     const agent = await createTestMember({ kind: 'agency' });
-    await expect(startIdentityCheck(agent)).rejects.toThrow(/PSRA licence/);
+    expect((await letterReadiness(agent)).missing).toContain('identity');
+    await checkIdentity(agent.userId, { returnTo: 'letter' });
+    expect((await letterReadiness(agent)).missing).not.toContain('identity');
+  });
+
+  it('P18: a selfie needs the person’s explicit agreement first', async () => {
+    const member = await createTestMember({ kind: 'landlord' });
+    await expect(startIdentityCheck(member, { selfie: true, consented: false })).rejects.toThrow(
+      /agree to the selfie/,
+    );
   });
 
   it('ignores webhooks for sessions that aren’t the check’s own', async () => {
     const member = await createTestMember({ kind: 'landlord' });
-    const { redirectUrl } = await startIdentityCheck(member);
-    const checkId = /letter-identity\/[^/]+\/([^/?]+)/.exec(redirectUrl)![1]!;
+    const { redirectUrl } = await startIdentityCheck(member, { selfie: true, consented: true });
+    const checkId = checkIdIn(redirectUrl);
     expect(
       await handleIdentityEvent({
         type: 'identity.verification_session.verified',
         data: {
           object: {
             id: 'vs_someone_else',
-            metadata: { organisation_id: member.organisationId, check_id: checkId },
+            metadata: { user_id: member.userId, check_id: checkId },
           },
         },
       }),
@@ -130,13 +134,7 @@ describe('M22, M24: a private landlord’s identity', () => {
 
   it('M30: the payment account must be in the checked name', async () => {
     const member = await createTestMember({ kind: 'landlord' });
-    const { redirectUrl } = await startIdentityCheck(member);
-    const checkId = /letter-identity\/[^/]+\/([^/?]+)/.exec(redirectUrl)![1]!;
-    await recordIdentityOutcome({
-      organisationId: member.organisationId,
-      checkId,
-      outcome: { status: 'passed', verifiedName: 'Mary Walsh' },
-    });
+    await checkIdentity(member.userId, { returnTo: 'letter' });
     const iban = 'IE29AIBK93115212345678';
     const wrong = await setPaymentAccount(member, { accountName: 'John Smith', iban });
     expect(wrong).toMatchObject({
@@ -160,7 +158,7 @@ describe('M23, M105: licences checked by a person at Gaff', () => {
 
     await decideLicenceCheck(staff, queued!.checkId, { outcome: 'passed' });
     const after = await letterReadiness(agency);
-    expect(after.missing).toEqual(['mobile', 'agent_licence']);
+    expect(after.missing).toEqual(['mobile', 'identity', 'agent_licence']);
     expect(after.organisation[0]).toMatchObject({ status: 'passed', licenceNumber: '001234' });
     await expect(decideLicenceCheck(staff, queued!.checkId, { outcome: 'passed' })).rejects.toThrow(
       /already decided/,

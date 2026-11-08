@@ -5,7 +5,7 @@ import { mobileProblems } from '@/copy/verification';
 import { invalid, type FormState } from '@/lib/forms';
 import { requireMember } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
-import { startIdentityCheck } from '@/server/verification/identity';
+import { identityOffline, startIdentityCheck } from '@/server/verification/identity';
 import { confirmMobileCode, sendMobileCode } from '@/server/verification/mobile';
 
 /** M3: texts a code to the mobile number. */
@@ -39,15 +39,28 @@ export async function confirmCodeAction(_state: FormState, formData: FormData): 
   redirect('/settings/checks?saved=mobile');
 }
 
-/** M24: sends a private landlord to the ID check. */
-export async function startIdentityAction(): Promise<void> {
+/**
+ * M24, P15, P18: sends the letter to the ID check: with a selfie, once they've agreed to it, or
+ * the document alone. Agents and landlords alike.
+ */
+export async function startIdentityAction(formData: FormData): Promise<void> {
   const member = await requireMember();
+  const selfie = formData.get('selfie') !== 'no';
   let url: string;
   try {
-    url = (await startIdentityCheck(member)).redirectUrl;
+    url = (
+      await startIdentityCheck(member, { selfie, consented: formData.get('consent') === 'yes' })
+    ).redirectUrl;
   } catch (error) {
     if (!(error instanceof UserFacingError)) throw error;
-    redirect('/settings/checks');
+    redirect(`/settings/checks?problem=${encodeURIComponent(error.message)}`);
   }
   redirect(url);
+}
+
+/** P20, Q55: the letter's ID can't be checked online; a person at Gaff checks it with them. */
+export async function identityOfflineAction(): Promise<void> {
+  const member = await requireMember();
+  await identityOffline(member);
+  redirect('/settings/checks?identity=offline');
 }

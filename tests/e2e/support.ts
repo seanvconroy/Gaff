@@ -5,11 +5,21 @@ import pg from 'pg';
 import sharp from 'sharp';
 import { E2E_DATABASE_URL } from '../../playwright.config';
 
-/** WCAG 2.2 AA (PRD non-functional requirements; design system). */
+/**
+ * WCAG 2.2 AA (PRD non-functional requirements; design system). Next.js swaps the <title> just
+ * after a client-side navigation, so a check that lands in that moment sees none: it checks
+ * again once the page has its title. A page with no title at all still fails.
+ */
 export async function expectAccessible(page: Page): Promise<void> {
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
-    .analyze();
+  const analyse = () =>
+    new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+      .analyze();
+  let results = await analyse();
+  if (results.violations.some((v) => v.id === 'document-title')) {
+    await expect(page).toHaveTitle(/\S/);
+    results = await analyse();
+  }
   const summary = results.violations.map(
     (v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(' ')).join(', ')})`,
   );

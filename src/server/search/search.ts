@@ -208,6 +208,8 @@ export interface MapPoint {
   rentCents: number;
   /** The listing's public title, so a pin can be named for its home (M117). */
   title: string;
+  /** Its page, /home/{slug}, for the phone map's row of cards (M57). */
+  slug: string;
 }
 
 const MAX_POINTS = 2000;
@@ -224,10 +226,14 @@ export async function mapPoints(
       .filter((r) => inBBox({ lat: r.latitude, lng: r.longitude }, view))
       .slice(0, MAX_POINTS);
     if (found.length === 0) return [];
-    const titles = new Map(
+    const named = new Map(
       (
         await tx
-          .select({ id: publicListings.listingId, title: publicListings.title })
+          .select({
+            id: publicListings.listingId,
+            title: publicListings.title,
+            slug: publicListings.slug,
+          })
           .from(publicListings)
           .where(
             inArray(
@@ -235,14 +241,15 @@ export async function mapPoints(
               found.map((r) => r.listingId),
             ),
           )
-      ).map((row) => [row.id, row.title] as const),
+      ).map((row) => [row.id, row] as const),
     );
     return found.map((r) => ({
       id: r.listingId,
       lat: r.latitude,
       lng: r.longitude,
       rentCents: r.rentCents,
-      title: titles.get(r.listingId) ?? '',
+      title: named.get(r.listingId)?.title ?? '',
+      slug: named.get(r.listingId)?.slug ?? '',
     }));
   });
 }

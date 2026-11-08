@@ -62,7 +62,12 @@ export async function writePublicListing(
     now,
   );
   const [before] = await tx
-    .select({ rentCents: publicListings.rentCents, status: publicListings.status })
+    .select({
+      rentCents: publicListings.rentCents,
+      status: publicListings.status,
+      latitude: publicListings.latitude,
+      longitude: publicListings.longitude,
+    })
     .from(publicListings)
     .where(eq(publicListings.listingId, listing.id));
   await tx
@@ -78,6 +83,24 @@ export async function writePublicListing(
       'alerts_match',
       { listingId: listing.id },
       { jobKey: `alerts_match:${listing.id}` },
+    );
+  }
+  // M121: the counts of homes beside places, once a minute at most however many homes change.
+  const wasLive = before?.status === 'live';
+  const moved =
+    wasLive &&
+    status === 'live' &&
+    (before.latitude !== values.latitude || before.longitude !== values.longitude);
+  if (wasLive !== (status === 'live') || moved) {
+    await enqueue(
+      tx,
+      'places_count',
+      {},
+      {
+        jobKey: 'places_count',
+        jobKeyMode: 'preserve_run_at',
+        runAt: new Date(now.getTime() + 60_000),
+      },
     );
   }
   return values;

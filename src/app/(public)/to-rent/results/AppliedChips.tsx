@@ -29,10 +29,11 @@ export function AppliedChips({
             href={searchHref(area, withoutChip(filters, chip), view)}
             className={styles.appliedChip}
             scroll={false}
+            // The name starts with what the chip says (WCAG 2.5.3), then what it does.
+            aria-label={`${chip.label}: remove this filter`}
           >
             <span>{chip.label}</span>
             <X size={16} strokeWidth={2.25} aria-hidden="true" />
-            <span className="visually-hidden">: remove this filter</span>
           </Link>
         </li>
       ))}

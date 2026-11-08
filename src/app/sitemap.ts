@@ -34,5 +34,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     { url: `${base}/how-results-are-ordered`, changeFrequency: 'monthly' },
     { url: `${base}/listing-policy`, changeFrequency: 'monthly' },
+    { url: `${base}/map-and-place-data`, changeFrequency: 'monthly' },
   ];
 }

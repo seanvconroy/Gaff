@@ -182,7 +182,7 @@ The same filter bar, with cards two to a row and no map column. A floating "Map"
 ```
 
 - **The search pill** shows the search in words ("Rathmines · 2+ beds"). Tapping it opens the full-screen search sheet. The round button beside it opens the Filters sheet, with a badge for the number of filters on.
-- **Quick-filter chips** scroll sideways: Rent, Beds, Move in, Pets and Type. Chips that are on look selected and come first. Each opens a bottom sheet with that one control and "Show 23 homes".
+- **Quick-filter chips** scroll sideways: Rent, Beds, Move in, Pets and Type. Chips that are on look selected and come first. Each opens the Filters sheet at that filter, with "Show 23 homes" (amended in the build: one sheet, so every filter is a scroll away).
 - **The list** is one card per row. A floating navy "Map" button switches to the map view. The map loads only then (M119).
 - **The map view** is full screen, with the pill on top and a row of cards to swipe at the bottom, kept in step with the pins. "List" goes back. The web address remembers the view, so the Back button works.
 
@@ -346,13 +346,13 @@ M38 (the letter places the pin) stays a Must and moves into this release, becaus
 
 ## Release
 
-- **One release** (Q39), built behind the `SEARCH_V2` flag on the test copy. The old search stays live until the new one passes every check:
+- **One release** (Q39). Amended in the build: no `SEARCH_V2` flag. The redesign replaces the old page on its own branch, because the old page ran on the hand-typed place list the index replaces; the branch reaches the test copy only once it passes every check:
   - the place test set: 98% or more;
   - an end-to-end journey with axe for every state, on a phone and a desktop;
   - the speed budgets on a mid-range phone;
   - Google Maps set up: billing in Gaff's name, keys restricted, budget alerts, the privacy notice and terms updated, and the DPIA updated;
   - the founders' walkthrough on a phone and a laptop.
-- **Then** the flag is switched on, and the old page and the hand-typed list of places are removed.
+- **Then** the branch merges. The hand-typed places stay as the index's curated base, so area pages keep their addresses.
 
 ## Open questions
 

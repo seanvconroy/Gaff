@@ -10,7 +10,8 @@ import { areaPath, baseArea } from '@/domain/search/places';
 import { MAX_SHAPE_KM2, MAX_SHAPE_POINTS, searchQuery } from '@/domain/search/url';
 import { useSearchNavigation } from '../navigation';
 import { hrefFor, type ClientSearch } from '../state';
-import type { MapPin, MapProviderProps } from './types';
+import { CardRow } from './CardRow';
+import type { MapCard, MapPin, MapProviderProps } from './types';
 import { StaticMap } from './StaticMap';
 import styles from './map.module.css';
 
@@ -22,15 +23,6 @@ export interface MapSettings {
   apiKey?: string;
   mapId?: string;
   mapIdDark?: string;
-}
-
-interface MiniCard {
-  id: string;
-  href: string;
-  title: string;
-  rent: string;
-  rooms: string;
-  photo: { src: string; srcSet: string; alt: string; width: number; height: number } | null;
 }
 
 /** Pins load when the map stops moving, 300 ms later; a request still waiting is dropped. */
@@ -60,7 +52,8 @@ export function SearchMap({
   const [pins, setPins] = useState<MapPin[]>([]);
   const [drawing, setDrawing] = useState(false);
   const [drawNote, setDrawNote] = useState<string | null>(null);
-  const [cards, setCards] = useState<Record<string, MiniCard | null>>({});
+  const [cards, setCards] = useState<Record<string, MapCard | null>>({});
+  const requested = useRef(new Set<string>());
   const { navigate, hovered, setHovered, chosen, setChosen } = useSearchNavigation();
   const pointsRequest = useRef<AbortController | null>(null);
   const timers = useRef<{
@@ -154,15 +147,19 @@ export function SearchMap({
     [navigate, search],
   );
 
+  /** A home's card (photo, rooms, link), fetched once and kept: for the mini card and the row. */
+  const requestCard = useCallback((id: string) => {
+    if (requested.current.has(id)) return;
+    requested.current.add(id);
+    fetch(`/api/search/card?id=${encodeURIComponent(id)}`)
+      .then((r) => (r.ok ? (r.json() as Promise<MapCard>) : null))
+      .then((body) => setCards((prev) => ({ ...prev, [id]: body })))
+      .catch(() => requested.current.delete(id));
+  }, []);
+
   useEffect(() => {
-    if (!chosen || chosen in cards) return;
-    const controller = new AbortController();
-    fetch(`/api/search/card?id=${chosen}`, { signal: controller.signal })
-      .then((r) => (r.ok ? (r.json() as Promise<MiniCard>) : null))
-      .then((body) => setCards((prev) => ({ ...prev, [chosen]: body })))
-      .catch(() => undefined);
-    return () => controller.abort();
-  }, [chosen, cards]);
+    if (chosen) requestCard(chosen);
+  }, [chosen, requestCard]);
   const card = chosen ? (cards[chosen] ?? null) : null;
 
   const providerProps: MapProviderProps = {
@@ -237,6 +234,16 @@ export function SearchMap({
             </p>
           ) : null}
         </div>
+      ) : null}
+
+      {!failed && visible ? (
+        <CardRow
+          pins={pins}
+          chosen={chosen}
+          onChoose={setChosen}
+          cards={cards}
+          requestCard={requestCard}
+        />
       ) : null}
 
       {card ? (

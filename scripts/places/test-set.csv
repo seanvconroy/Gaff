@@ -1,0 +1,55 @@
+# ADR-0025, M56: places renters must find, for `pnpm places:check`.
+# query: what a renter types. name: words the suggestion's name must contain.
+# where: words its context or county must contain (empty for any). within: its highest position.
+# Keep to places whose OpenStreetMap names are settled; add the misses renters hit most.
+query,name,where,within
+# Counties, cities and towns
+Kinsale,Kinsale,Cork,1
+Kins,Kinsale,Cork,1
+Westport,Westport,Mayo,1
+Clifden,Clifden,Galway,1
+Skibbereen,Skibbereen,Cork,1
+Kenmare,Kenmare,Kerry,1
+Carrick-on-Shannon,Carrick-on-Shannon,Leitrim,1
+Ennistymon,Ennistymon,Clare,1
+Gorey,Gorey,Wexford,1
+Arklow,Arklow,Wicklow,1
+Thurles,Thurles,Tipperary,1
+Ballincollig,Ballincollig,Cork,1
+Galway,Galway,Galway,2
+Cork,Cork,Cork,2
+Limerick,Limerick,Limerick,2
+Wicklow,Wicklow,Wicklow,2
+Portlaois,Portlaoise,Laois,1
+# Dublin areas and districts
+Rathmines,Rathmines,Dublin,1
+Ranelagh,Ranelagh,Dublin,1
+Stoneybatter,Stoneybatter,Dublin,1
+Phibsboro,Phibsborough,Dublin,1
+Tallaght,Tallaght,Dublin,1
+Blanchardstown,Blanchardstown,Dublin,1
+Dundrum,Dundrum,Dublin,2
+Blackrock,Blackrock,Dublin,3
+Dublin 6,Dublin 6,Dublin,1
+# Typos, fadas and Irish names
+Kinsael,Kinsale,Cork,1
+Rathmins,Rathmines,Dublin,1
+dun laoghaire,Dún Laoghaire,Dublin,1
+Cionn tSáile,Kinsale,Cork,1
+Gaillimh,Galway,Galway,2
+# Streets
+Grafton Street,Grafton Street,Dublin,1
+Highfield Road,Highfield Road,Rathgar,3
+Leeson Street,Leeson Street,Dublin,3
+Camden Street,Camden Street,Dublin,3
+Shop Street,Shop Street,Galway,3
+# Landmarks
+Heuston,Heuston,Dublin,3
+St James's Hospital,St James,Dublin,2
+Cork University Hospital,Cork University Hospital,Cork,1
+University College Cork,University College Cork,Cork,2
+University College Dublin,University College Dublin,Dublin,1
+Dublin City University,Dublin City University,Dublin,1
+Maynooth University,Maynooth University,Kildare,1
+Phoenix Park,Phoenix Park,Dublin,2
+Dundrum Town Centre,Dundrum Town Centre,Dublin,1

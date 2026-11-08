@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Search, SlidersHorizontal } from 'lucide-react';
+import { Search, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import { bedsLabel, filterCount, moveInLabel, rentLabel } from '@/domain/search/labels';
 import { NEAR_KM, PLUS_KM } from '@/domain/search/places';
@@ -8,8 +8,10 @@ import { Popover } from '@/ui/Popover';
 import { Segmented } from '@/ui/Segmented';
 import { Sheet } from '@/ui/Sheet';
 import { useSearchNavigation } from '../navigation';
+import type { RecentSearch } from '@/server/search/recent';
 import { filtersQueryOf, hrefFor, withKm, type ClientSearch } from '../state';
 import { FiltersSheet, type FilterSection } from './FiltersSheet';
+import { SaveSearch } from './SaveSearch';
 import { WhereBox } from './WhereBox';
 import styles from './bar.module.css';
 
@@ -23,11 +25,17 @@ export function SearchBar({
   search,
   everywhereHref,
   saveAction,
+  saved,
+  recent,
   filtersOpen = false,
 }: {
   search: ClientSearch;
   everywhereHref: string;
   saveAction: () => Promise<void>;
+  /** The renter has an alert for this search already. */
+  saved: boolean;
+  /** M114: a signed-in renter's recent searches; undefined for visitors (kept in the tab). */
+  recent?: RecentSearch[];
   /** `?filters=1`: the sheet starts open (it then works without JavaScript too). */
   filtersOpen?: boolean;
 }) {
@@ -84,6 +92,9 @@ export function SearchBar({
   ) : null;
 
   const summary = [rentLabel(f), bedsLabel(f), moveInLabel(f)].filter(Boolean).join(' · ');
+  // Without JavaScript, Filters opens the sheet through the web address (?filters=1).
+  const here = hrefFor(search, f);
+  const filtersHref = `${here}${here.includes('?') ? '&' : '?'}filters=1`;
 
   return (
     <div className={styles.bar} role="search" aria-label="Homes to rent">
@@ -95,6 +106,7 @@ export function SearchBar({
             label={search.label}
             filtersQuery={filtersQuery}
             everywhereHref={everywhereHref}
+            recent={recent}
           />
           {distanceSelect}
         </div>
@@ -221,7 +233,7 @@ export function SearchBar({
           </Popover>
           <a
             className={styles.filtersButton}
-            href={`?${new URLSearchParams([...new URLSearchParams(hrefFor(search, f).split('?')[1] ?? ''), ['filters', '1']]).toString()}`}
+            href={filtersHref}
             onClick={(event) => {
               event.preventDefault();
               openSheet();
@@ -238,12 +250,7 @@ export function SearchBar({
             ) : null}
           </a>
         </div>
-        <form action={saveAction} className={styles.saveForm}>
-          <button type="submit" className={styles.saveSearch}>
-            <Bell size={18} strokeWidth={2} aria-hidden="true" />
-            <span>Save search</span>
-          </button>
-        </form>
+        <SaveSearch saved={saved} saveAction={saveAction} className={styles.saveForm} />
       </div>
 
       {/* Phones. */}
@@ -320,6 +327,7 @@ export function SearchBar({
             label={search.label}
             filtersQuery={filtersQuery}
             everywhereHref={everywhereHref}
+            recent={recent}
             autoFocus
             onChosen={() => setWhere(false)}
           />

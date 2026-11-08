@@ -8,6 +8,18 @@ export interface MapPin {
   lng: number;
   rentCents: number;
   title: string;
+  /** The home's page is /home/{slug}. */
+  slug: string;
+}
+
+/** A home's card on the map (M117): the mini card, and the phone's row of cards (M57). */
+export interface MapCard {
+  id: string;
+  href: string;
+  title: string;
+  rent: string;
+  rooms: string;
+  photo: { src: string; srcSet: string; alt: string; width: number; height: number } | null;
 }
 
 /** What every map provider (Google, or the static stand-in) is given. */

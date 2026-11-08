@@ -9,10 +9,13 @@ import {
   loadGazetteer,
   missWorthCounting,
   recordMiss,
+  refreshPlaceCounts,
   suggestPlaces,
 } from '@/server/places/places';
+import { sweepMarketplace } from '@/server/retention/marketplace';
 import { publicListingBySlug } from '@/server/search/listing';
 import { countListings, mapCard, mapPoints, searchListings } from '@/server/search/search';
+import { queuedJobs } from './helpers';
 import { aCheckedLandlord, aListableLetting } from './listing-helpers';
 
 const slugsOf = (s: Awaited<ReturnType<typeof suggestPlaces>>) =>
@@ -61,6 +64,17 @@ describe('M124: counting places nobody found', () => {
     );
     expect(rows).toEqual([{ day: '2026-11-08', text: 'ballyzork', count: 2 }]);
   });
+
+  it('deletes them after 30 days, in the nightly job', async () => {
+    const now = new Date('2026-12-20T12:00:00Z');
+    await recordMiss('Ballyold', '2026-11-19');
+    await recordMiss('Ballynew', '2026-11-21');
+    const swept = await sweepMarketplace(now);
+    expect(swept.placeMisses).toBeGreaterThanOrEqual(1);
+    const left = await withSystem((tx) => tx.select({ text: placeMisses.text }).from(placeMisses));
+    expect(left.map((r) => r.text)).not.toContain('ballyold');
+    expect(left.map((r) => r.text)).toContain('ballynew');
+  });
 });
 
 describe('M113, M116, M117, M57: near a street, counts, map points and cards', () => {
@@ -74,6 +88,17 @@ describe('M113, M116, M117, M57: near a street, counts, map points and cards', (
     const result = await publishListing(member, lettingId, { declare: true });
     if (result.outcome !== 'live') throw new Error(`Not live: ${result.outcome}`);
     listingId = (await publicListingBySlug(result.slug))!.listingId;
+  });
+
+  it('M121: counts the home beside its places, after a job queued when it went live', async () => {
+    expect(await queuedJobs('places_count')).toHaveLength(1);
+    await refreshPlaceCounts();
+    const g = await loadGazetteer();
+    expect(g.bySlug('rathgar')?.liveHomes).toBeGreaterThanOrEqual(1);
+    expect(g.bySlug('kinsale')?.liveHomes ?? 0).toBe(0);
+    const rathgar = await suggestPlaces('Rathgar');
+    expect(rathgar.groups[0]?.items[0]).toMatchObject({ slug: 'rathgar' });
+    expect(rathgar.groups[0]?.items[0]?.homes).toBeGreaterThanOrEqual(1);
   });
 
   it('finds a home within a kilometre of Highfield Road, Rathgar', async () => {
@@ -106,7 +131,8 @@ describe('M113, M116, M117, M57: near a street, counts, map points and cards', (
     const pin = pins.find((p) => p.id === listingId);
     expect(pin).toMatchObject({ rentCents: 235_000 });
     expect(pin!.title).toMatch(/Rathgar/);
-    expect(Object.keys(pin!).sort()).toEqual(['id', 'lat', 'lng', 'rentCents', 'title']);
+    expect(Object.keys(pin!).sort()).toEqual(['id', 'lat', 'lng', 'rentCents', 'slug', 'title']);
+    expect(pin!.slug).toMatch(/^2-bed-apartment-in-rathgar-dublin-6-[a-f0-9]{8}$/);
     const outside = await mapPoints(dublin, readFilters(new URLSearchParams()), {
       minLat: 53.38,
       maxLat: 53.4,

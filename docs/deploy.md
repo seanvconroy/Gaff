@@ -114,6 +114,39 @@ The test copy keeps listing photos in Postgres (`STORAGE_PROVIDER=database`), wh
    | `SUPABASE_URL` | the project URL, like `https://abcdefghijklmnop.supabase.co` |
    | `SUPABASE_SERVICE_KEY` | the service role key |
 
+## 6. The search map (Google Maps, for production)
+
+Renters see homes on Google's map beside the list ([ADR-0025](adr/0025-places-index-on-google-maps.md), Q38). Until it's set up, the search pages show the list alone: outside development and tests, no `MAP_PROVIDER` means `none`. The map uses the **Maps JavaScript API only**, showing Gaff's own homes. Place suggestions never come from Google (see the next section).
+
+1. **A project.** In the Google Cloud console, create a project in Gaff's name, with a billing account, and enable the **Maps JavaScript API** and nothing else. Set the budget alerts and quota cap in [launch-checklist.md](launch-checklist.md).
+2. **A key for each copy.** Under **Keys & Credentials**, create an API key for production and another for the test copy. Restrict each to **Websites** (HTTP referrers: its own address, such as `https://gaff-test.vercel.app/*`) and to the **Maps JavaScript API**. The key is in every search page, so these restrictions are what protect it.
+3. **Map IDs.** Under **Map management**, create a **JavaScript**, **Vector** Map ID. Under **Map styles**, create a style that hides points of interest (businesses) and keeps transit, and attach it to the Map ID. A second Map ID with a dark style is optional.
+4. **In Vercel**, add these settings, then redeploy (the search pages' content security policy is set when the app is built):
+
+   | Setting | Value |
+   | --- | --- |
+   | `MAP_PROVIDER` | `google` |
+   | `GOOGLE_MAPS_API_KEY` | the key for this copy |
+   | `GOOGLE_MAPS_MAP_ID` | the Map ID |
+   | `GOOGLE_MAPS_MAP_ID_DARK` | the dark Map ID, if there is one |
+
+5. **Check it.** Search for a place with homes: the map shows a pin with each home's rent, and Google's logo and terms are visible. The browser console should show no content security policy errors other than Google's font, which Gaff blocks on purpose (the map's buttons use the page's own font).
+
+## 7. The place index (towns, streets and landmarks)
+
+The Where box suggests places from Gaff's own place index, the `places` table ([ADR-0025](adr/0025-places-index-on-google-maps.md)). It needs Postgres's `pg_trgm` extension, which the deploy's migrations add. If a migration stops with "pg_trgm is missing", enable **pg_trgm** in Supabase (**Database**, **Extensions**, in the `public` schema), then deploy again.
+
+- **Loading.** Each production deploy runs `pnpm places:load --deploy`. It loads `data/places/places.ndjson.gz` when that file's version is newer than the one in the database, all in one transaction. Without the file, an empty index gets the fixture: the places Gaff started with, typed by hand, and a few streets and landmarks. Preview deployments leave the index alone.
+- **Building.** The file comes from OpenStreetMap, through Geofabrik's Ireland extract. Rebuild it every quarter, or when the misses below show gaps:
+  1. Install `osmium-tool` (for example `apt-get install osmium-tool` or `brew install osmium-tool`).
+  2. Run `pnpm places:build`. It downloads the extract (about 300 MB) and writes the file, with its version as the date.
+  3. Run `pnpm places:check`. It tests the file against the places renters must find, in `scripts/places/test-set.csv`.
+  4. Commit the file. The next deploy loads it.
+
+  The GitHub workflow **Build the place index** does the same on GitHub and opens a pull request with the new file.
+- **Attribution.** The data is © OpenStreetMap contributors (ODbL 1.0); the Where box says so under its suggestions.
+- **Misses.** What renters typed that matched nothing is counted by day in `place_misses`, with no digits, user or device, and deleted after 30 days. The most common misses are the places to add as aliases.
+
 ## Good to know
 
 - **Who can open what.** In **Settings**, **Deployment Protection**, Vercel Authentication covers **preview deployments only**: the test copy itself is open, so both testers can use it on any device, and previews (which share its database) stay private. The Outbox and test inbox are for testers only, and the Outbox holds only made-up people's mail. The test copy is never indexed: every page says `noindex` and `robots.txt` disallows everything.

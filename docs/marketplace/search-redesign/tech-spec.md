@@ -4,10 +4,10 @@ Proposed, 8 November 2026 · goes with the [search redesign PRD](prd.md) · Sean
 
 ## Summary
 
-- **Place suggestions** come from a new `places` table in Postgres: every county, town, village, area, Dublin district, Eircode area, townland, street and landmark in the Republic. It's built from open data and searched with `pg_trgm` and `unaccent`. It replaces the 136 hand-typed places in `src/domain/places/gazetteer.ts`.
+- **Place suggestions** come from a new `places` table in Postgres: every county, town, village, area, Dublin district, Eircode area, townland, street and landmark in the Republic. It's built from open data and searched with `pg_trgm`; names are normalised (fadas, apostrophes, "Co.") in TypeScript when they're loaded, so `unaccent` isn't needed. It replaces the 136 hand-typed places in `src/domain/places/gazetteer.ts`, which become its curated base.
 - **The map** is Google Maps, through the Maps JavaScript API. It shows only Gaff's own content (homes, places, shapes), and is loaded only when it's on screen. No other Google API is called.
 - **The page** is still server-rendered from its web address, so it works without JavaScript and search engines can read it. Small client islands handle the Where box, the filter bar, the Filters sheet, sort and the map. A change becomes a new web address, rendered in a transition.
-- **It ships in one release** (Q39), behind `SEARCH_V2`.
+- **It ships in one release** (Q39), on its own branch rather than behind `SEARCH_V2` (amended in the build; see decision 7).
 
 Everything in the [marketplace technical specification](../tech-spec.md) still holds unless this document says otherwise. This document replaces its decision 6 (MapLibre with self-hosted tiles), and adds to decision 5 (search on Postgres).
 
@@ -21,7 +21,7 @@ Everything in the [marketplace technical specification](../tech-spec.md) still h
 | 4 | Drawing an area | A small freehand tool of our own on `google.maps.Polygon`, simplified in domain code | Google deprecated its Drawing Library in August 2025, with removal set for May 2026. A freehand outline is all M56 needs |
 | 5 | State | The web address is the search. One codec reads and writes it, and changes go through `router.push` or `router.replace` in a transition | Shareable, bookmarkable and cacheable (M58). Back works, and so do alerts |
 | 6 | UI building blocks | Native `<dialog>` for sheets, the Popover API for filter popovers, and the WAI-ARIA combobox for the Where box. No UI library | Accessible by default, small, and styled only with tokens (ADR-0011) |
-| 7 | Release | Behind `SEARCH_V2` until the release checks pass, then the old page goes | Q39 |
+| 7 | Release | On its own branch, which merges once the release checks pass; the old page goes in the same change. (Planned behind `SEARCH_V2`; dropped in the build, because a flag would have kept the old place list and page alive beside the index.) | Q39 |
 
 ## The shape
 
@@ -105,7 +105,7 @@ Indexes: GIN `gin_trgm_ops` on `search_text`; B-tree on `slug`; B-tree on `(kind
 
 ### `recent_searches` (M114, renter zone)
 
-`(user_id, area_path, query, label, searched_at)`, the last 5 for each signed-in renter. It's written when a search is opened, holds the same address a saved search would, and is deleted with the account. Signed-out visitors' recent searches stay in `sessionStorage` for the visit and are never sent to the server.
+`(user_id, area_path, query, label, searched_at)`, the last 5 for each signed-in renter. It's written once a search of a place is sent (after the response), is part of the renter's data download, and is deleted with the account. As built, it holds the place only: choosing a recent search keeps the renter's current filters, as choosing a suggestion does, so `query` stays empty for now. Signed-out visitors' recent searches stay in `sessionStorage` for the visit and are never sent to the server.
 
 ### Saved searches
 
@@ -325,12 +325,12 @@ The EEA terms apply, because Gaff is billed in Ireland.
 
 ### Content Security Policy
 
-`next.config.ts` adds the hosts in Google's CSP guide for the Maps JavaScript API:
+`next.config.ts` adds the hosts in Google's CSP guide for the Maps JavaScript API, on the search pages (`/to-rent/...`) only, and only when the build has `MAP_PROVIDER=google`. Every other page keeps the policy without Google:
 
-- `script-src`, `img-src` and `connect-src` for `*.googleapis.com` and `*.gstatic.com` (and what the guide lists beyond those);
-- `worker-src blob:` for the vector map.
+- `script-src` (with `'unsafe-eval'` and `blob:`, as the guide's allowlist has them), `img-src` and `connect-src` for `*.googleapis.com`, `*.gstatic.com` and `*.google.com` (and `*.ggpht.com` and `*.googleusercontent.com`, as listed);
+- `frame-src *.google.com`, and `worker-src blob:` for the vector map.
 
-`font-src` stays `'self'`. The policy applies only in production builds today, so a production-mode end-to-end run with the Google provider checks it before release.
+`font-src` stays `'self'`: Google's Roboto is blocked, and the map's buttons use the page's font. The policy applies only in production builds, so a production-mode end-to-end run with the Google provider checks it before release.
 
 ## The letter's map pin (M38)
 
@@ -447,7 +447,7 @@ One release (Q39). Built in this order, with requirement IDs in commits and test
 
 | # | Step | Requirements | Size |
 | --- | --- | --- | --- |
-| 1 | Spikes, in the first week: what Google's script stores and fetches; the CSP; a Map ID styled from the tokens; the `pg_trgm` and `unaccent` extensions on Supabase | M119, ADR-0025 | S |
+| 1 | Spikes, in the first week: what Google's script stores and fetches; the CSP; a Map ID styled from the tokens; the `pg_trgm` extension on Supabase | M119, ADR-0025 | S |
 | 2 | The place index: schema, build, check, load, the test set, `listing_places`, counts and misses | M56, M121, M124 | L |
 | 3 | Search areas and the codec: `near`, `+ km`, map area, shape; the count, points and card endpoints | M56, M57, M113 | M |
 | 4 | UI building blocks: Combobox, Popover, Sheet, Chip, Segmented, MenuButton, PhotoCarousel | ADR-0011 | M |

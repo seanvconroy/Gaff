@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { SuggestionItem, SuggestionsResponse } from '@/app/api/places/route';
+import type { LandmarkKind } from '@/domain/places/gazetteer';
 import { useSearchNavigation } from '../navigation';
 import styles from './bar.module.css';
 
@@ -36,7 +37,10 @@ interface Recent {
   path: string;
 }
 
-/** This visit's recent searches: kept in the tab only, never sent anywhere (M114). */
+/**
+ * M114: a visitor's recent searches, for this visit: kept in the tab only, never sent anywhere.
+ * A signed-in renter's come from their account instead.
+ */
 function readRecent(): Recent[] {
   try {
     return JSON.parse(sessionStorage.getItem(RECENT_KEY) ?? '[]') as Recent[];
@@ -68,17 +72,25 @@ const groupLabels: Record<string, string> = {
   recent: 'Recent searches',
 };
 
-function OptionIcon({ kind, path }: { kind: string; path: string }) {
+function OptionIcon({ kind, landmarkKind }: { kind: string; landmarkKind?: LandmarkKind }) {
   const props = { size: 20, strokeWidth: 1.75, 'aria-hidden': true } as const;
   if (kind === 'recent') return <Clock {...props} />;
   if (kind === 'street') return <Route {...props} />;
   if (kind === 'landmark') {
-    if (/hospital/.test(path)) return <Hospital {...props} />;
-    if (/college|university|institute/.test(path)) return <GraduationCap {...props} />;
-    if (/station|luas|dart/.test(path)) return <TrainFront {...props} />;
-    if (/park/.test(path)) return <Trees {...props} />;
-    if (/centre|mall/.test(path)) return <ShoppingBag {...props} />;
-    return <Building2 {...props} />;
+    switch (landmarkKind) {
+      case 'hospital':
+        return <Hospital {...props} />;
+      case 'college':
+        return <GraduationCap {...props} />;
+      case 'station':
+        return <TrainFront {...props} />;
+      case 'park':
+        return <Trees {...props} />;
+      case 'shopping_centre':
+        return <ShoppingBag {...props} />;
+      default:
+        return <Building2 {...props} />;
+    }
   }
   return <MapPin {...props} />;
 }
@@ -103,6 +115,7 @@ export function WhereBox({
   everywhereHref,
   autoFocus = false,
   onChosen,
+  recent: accountRecent,
 }: {
   /** What the box shows for the current search: "Rathmines", "Map area". */
   label: string;
@@ -112,6 +125,8 @@ export function WhereBox({
   everywhereHref: string;
   autoFocus?: boolean;
   onChosen?: () => void;
+  /** M114: a signed-in renter's recent searches, from their account; otherwise this tab's. */
+  recent?: Recent[];
 }) {
   const id = useId();
   const { navigate } = useSearchNavigation();
@@ -192,7 +207,10 @@ export function WhereBox({
   const nothing = showingTyped && response !== null && options.length === 0 && !loading;
 
   function choose(option: (typeof options)[number]) {
-    remember({ name: option.name, description: option.description, path: option.path });
+    // Signed-in renters' searches are remembered with their account when the page opens.
+    if (!accountRecent) {
+      remember({ name: option.name, description: option.description, path: option.path });
+    }
     setValue(option.name);
     setOpen(false);
     input.current?.blur();
@@ -251,15 +269,15 @@ export function WhereBox({
           placeholder="Town, area, street or Eircode"
           className={styles.whereInput}
           value={value}
-          // M56: renters type straight away on the phone's search sheet.
-          autoFocus={autoFocus}
+          // M56: renters type straight away on the phone's search sheet, which focuses this.
+          data-autofocus={autoFocus || undefined}
           onChange={(event) => {
             setValue(event.target.value);
             setActive(-1);
             setOpen(true);
           }}
           onFocus={(event) => {
-            setRecent(readRecent());
+            setRecent(accountRecent ?? readRecent());
             setOpen(true);
             event.target.select();
           }}
@@ -339,7 +357,12 @@ export function WhereBox({
                         {group.kind === 'popular' ? (
                           <TrendingUp size={20} strokeWidth={1.75} aria-hidden="true" />
                         ) : (
-                          <OptionIcon kind={option.kind} path={option.path} />
+                          <OptionIcon
+                            kind={option.kind}
+                            landmarkKind={
+                              'landmarkKind' in option ? option.landmarkKind : undefined
+                            }
+                          />
                         )}
                       </span>
                       <span className={styles.optionText}>

@@ -160,6 +160,7 @@
 
 .miniBody {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: center;
   gap: var(--space-1);
   min-width: 0;
@@ -172,16 +173,18 @@
 
 .miniTitle {
   margin: 0;
-  overflow: hidden;
   font-size: var(--type-body-size);
   font-weight: var(--type-title-weight);
   line-height: var(--type-body-line);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
+/* A block, so the link is a whole line tall (WCAG 2.5.8), and the whole card opens it. */
 .miniLink {
+  display: block;
+  overflow: hidden;
   color: var(--color-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .miniLink::after {
@@ -221,6 +224,75 @@
 .miniLink:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: -3px;
+}
+
+/* M57: on phones and tablets, the homes as a row of cards along the foot of the map, above the
+   List button and clear of the map's credits. */
+.row {
+  position: absolute;
+  right: 0;
+  bottom: calc(var(--space-6) + 48px + var(--space-4) + env(safe-area-inset-bottom));
+  left: 0;
+  z-index: 6;
+  display: flex;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-1) var(--space-4);
+  overflow-x: auto;
+  list-style: none;
+  scroll-padding-inline: var(--space-4);
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.rowItem {
+  position: relative;
+  display: flex;
+  flex: 0 0 min(320px, 85%);
+  gap: var(--space-3);
+  overflow: hidden;
+  background-color: var(--color-surface-1);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+  scroll-snap-align: center;
+}
+
+/* The card whose pin is chosen: the 2px primary edge of a chosen choice card. */
+.rowItem[aria-current='true'] {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.rowPhoto {
+  display: block;
+  flex: none;
+  width: 104px;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background-color: var(--color-surface-2);
+}
+
+.rowBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-3) var(--space-3) var(--space-3) 0;
+}
+
+@media (width >= 1128px) {
+  .row {
+    display: none;
+  }
+}
+
+/* Below 1128px the row shows the chosen home, so the mini card isn't needed. */
+@media (width < 1128px) {
+  .miniCard {
+    display: none;
+  }
 }
 
 /* The static stand-in (tests and development). */

@@ -11,6 +11,7 @@ import { sendMessage } from '@/server/messages/outbox';
 import { expireHomeOffer } from '@/server/offers/offer';
 import { sendRtbReminder } from '@/server/tenancy/rtb';
 import { matchListing, sendAlerts, sendDailyAlerts } from '@/server/alerts/match';
+import { refreshPlaceCounts } from '@/server/places/places';
 import { sweepMarketplace } from '@/server/retention/marketplace';
 import { sweepPersonalData } from '@/server/retention/sweep';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
@@ -28,6 +29,8 @@ export const CRONTAB = [
   '15 8 * * * listings_freshness ?fill=2d',
   // M86: daily alerts at 8am in Ireland, which is 7am or 8am UTC; the task checks the hour.
   '0 7,8 * * * alerts_daily ?fill=1h',
+  // M121: the counts of homes beside places, again nightly in case a change was missed.
+  '45 2 * * * places_count ?fill=1d',
 ].join('\n');
 
 /** Every background task. Tasks are thin: they call use cases in src/server. */
@@ -56,6 +59,11 @@ export const taskList: TaskList = {
     const sent = await sendDailyAlerts();
     if (sent) console.log(`Alerts: ${sent} homes sent in daily emails.`);
   },
+  // M121: queued when a listing goes live, comes down or moves (src/server/listings/project.ts).
+  places_count: async () => {
+    const { places } = await refreshPlaceCounts();
+    console.log(`Places: ${places} with homes taking enquiries.`);
+  },
   retention_sweep: async () => {
     const swept = await sweepPersonalData();
     // Counts only: never personal data in logs.
@@ -64,7 +72,7 @@ export const taskList: TaskList = {
     );
     const marketplace = await sweepMarketplace();
     console.log(
-      `Retention: ${marketplace.visitorDays} visitor hashes, ${marketplace.closedPages} closed listing pages, ${marketplace.alertDeliveries} alert deliveries and ${marketplace.reports} reports removed.`,
+      `Retention: ${marketplace.visitorDays} visitor hashes, ${marketplace.closedPages} closed listing pages, ${marketplace.alertDeliveries} alert deliveries, ${marketplace.reports} reports and ${marketplace.placeMisses} place misses removed.`,
     );
   },
   reference_overdue: async (payload) => {

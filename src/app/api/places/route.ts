@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { homesCount, placeDescription } from '@/copy/search';
+import type { LandmarkKind } from '@/domain/places/gazetteer';
 import type { Suggestion, Suggestions } from '@/domain/places/suggest';
 import { placePath } from '@/domain/search/places';
 import { env } from '@/lib/env';
@@ -10,6 +11,8 @@ export interface SuggestionItem {
   slug: string;
   name: string;
   kind: Suggestion['kind'];
+  /** For landmarks: a college, hospital, station, park or shopping centre, for its icon. */
+  landmarkKind?: LandmarkKind;
   /** "Town in County Cork · 4 homes". */
   description: string;
   path: string;
@@ -27,6 +30,7 @@ function item(s: Suggestion): SuggestionItem {
     slug: s.slug,
     name: s.name,
     kind: s.kind,
+    ...(s.place?.landmarkKind ? { landmarkKind: s.place.landmarkKind } : {}),
     description: `${description}${homes}`,
     path: s.place ? placePath(s.place) : `/to-rent/${s.slug}`,
   };

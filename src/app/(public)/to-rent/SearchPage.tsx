@@ -1,5 +1,6 @@
 import { Info } from 'lucide-react';
 import Link from 'next/link';
+import { after } from 'next/server';
 import { homesCount, wideningWords } from '@/copy/search';
 import { hasAreaPage } from '@/domain/places/gazetteer';
 import { bboxAround, IRELAND, type BBox } from '@/domain/places/geo';
@@ -16,11 +17,14 @@ import { searchHref, searchQuery } from '@/domain/search/url';
 import { env } from '@/lib/env';
 import { formatDate } from '@/lib/format';
 import { savedAmong } from '@/server/alerts/saved-homes';
+import { isSearchSaved } from '@/server/alerts/searches';
+import { recentSearchesOf, rememberSearch } from '@/server/search/recent';
 import { currentUser } from '@/server/auth/member';
 import { searchListings, widerSearchesWithHomes } from '@/server/search/search';
 import { buttonClass } from '@/ui/Button';
 import { Notice } from '@/ui/Notice';
 import { saveSearchAction } from '../actions';
+import { SaveSearch } from './bar/SaveSearch';
 import { SearchBar } from './bar/SearchBar';
 import { SearchMap, type MapSettings } from './map/SearchMap';
 import { MapToggle } from './map/MapToggle';
@@ -49,6 +53,16 @@ function whereLabel(area: SearchArea): string {
     case 'shape':
       return 'The area you drew';
   }
+}
+
+/** M114: searches of a place are remembered; all of Ireland, map areas and shapes aren't. */
+function rememberable(area: SearchArea): boolean {
+  return (
+    area.kind === 'county' ||
+    area.kind === 'routing_key' ||
+    area.kind === 'radius' ||
+    area.kind === 'near'
+  );
 }
 
 /** Where the map starts: the place and its distance, the map area or shape, or Ireland. */
@@ -94,19 +108,29 @@ export async function SearchPage({
 }) {
   const { search, g, unknownPlace } = request;
   const { area, filters, view } = search;
-  const results = await searchListings(area, filters);
-  const user = await currentUser();
-  const saved = user
-    ? await savedAmong(
-        user.id,
-        results.results.map((r) => r.listingId),
-      )
-    : new Set<string>();
+  const [results, user] = await Promise.all([searchListings(area, filters), currentUser()]);
   const here = searchHref(area, filters, view);
   const path = areaPath(area);
   // M86: an alert is for the place, distance, map area and filters: not the order or the page.
   const alertQuery = searchQuery(area, { ...filters, sort: 'best', page: 1 });
-  const wider = results.total === 0 ? await widerSearchesWithHomes(area, filters, g) : [];
+  const [saved, searchSaved, recent, wider] = await Promise.all([
+    user
+      ? savedAmong(
+          user.id,
+          results.results.map((r) => r.listingId),
+        )
+      : new Set<string>(),
+    user ? isSearchSaved(user.id, path, alertQuery) : false,
+    // M114: a signed-in renter's recent searches come from their account; others' from the tab.
+    user ? recentSearchesOf(user.id) : undefined,
+    results.total === 0 ? widerSearchesWithHomes(area, filters, g) : [],
+  ]);
+  if (user && rememberable(area)) {
+    // Once the page has gone, so remembering never slows it down.
+    // A county is remembered by its name, as suggestions show it: "Galway · County".
+    const name = area.kind === 'county' ? area.place.name : whereLabel(area);
+    after(() => rememberSearch(user.id, path, name));
+  }
   const base = baseArea(area);
   const place = 'place' in base && base.place && hasAreaPage(base.place) ? base.place : null;
   const nearby = place ? nearbyPlaces(place, g) : [];
@@ -131,6 +155,8 @@ export async function SearchPage({
           search={client}
           everywhereHref={searchHref({ kind: 'everywhere' }, { ...filters, page: 1 }, view)}
           saveAction={saveAction}
+          saved={searchSaved}
+          recent={recent}
           filtersOpen={request.filtersOpen}
         />
         <div className={styles.layout} data-view={view} data-map={map ? true : undefined}>
@@ -147,6 +173,13 @@ export async function SearchPage({
                       How we order results
                     </Link>
                     <SortMenu search={client} />
+                    {results.total > 0 ? (
+                      <SaveSearch
+                        saved={searchSaved}
+                        saveAction={saveAction}
+                        className={styles.phoneSave}
+                      />
+                    ) : null}
                   </div>
                 </div>
                 <AppliedChips area={area} filters={filters} view={view} />
@@ -211,15 +244,19 @@ export async function SearchPage({
                       </ul>
                     </>
                   ) : null}
-                  <form action={saveAction} className={styles.alert}>
-                    <p>
-                      Get alerts for this search. We’ll email you as soon as a home like this is
-                      listed.
+                  {searchSaved ? (
+                    <p className={styles.alertOn}>
+                      Your alert is on for this search. We’ll email you as soon as a home like this
+                      is listed. <Link href="/my/alerts">See your alerts</Link>
                     </p>
-                    <button type="submit" className={buttonClass('secondary')}>
-                      Get alerts
-                    </button>
-                  </form>
+                  ) : (
+                    <form action={saveAction} className={styles.alert}>
+                      <p>We’ll email you as soon as a home like this is listed.</p>
+                      <button type="submit" className={buttonClass('secondary')}>
+                        Get alerts for this search
+                      </button>
+                    </form>
+                  )}
                 </section>
               )}
 

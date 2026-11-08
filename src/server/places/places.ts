@@ -10,7 +10,7 @@ import {
 } from '@/domain/places/gazetteer';
 import { normalise, normaliseQuery } from '@/domain/places/normalise';
 import { rankSuggestions, type Suggestion, type Suggestions } from '@/domain/places/suggest';
-import { areaContains, searchArea } from '@/domain/search/places';
+import { areaBox, areaContains, searchArea } from '@/domain/search/places';
 import { irishToday } from '@/lib/format';
 
 /**
@@ -211,6 +211,9 @@ export function missWorthCounting(typed: string): string | null {
   return q;
 }
 
+/** M124: misses are kept 30 days, then the nightly job deletes them. */
+export const PLACE_MISS_KEEP_DAYS = 30;
+
 export async function recordMiss(typed: string, today = irishToday()): Promise<void> {
   const text = missWorthCounting(typed);
   if (!text) return;
@@ -250,14 +253,30 @@ export async function refreshPlaceCounts(): Promise<{ places: number }> {
         longitude: publicListings.longitude,
       })
       .from(publicListings)
-      .where(eq(publicListings.status, 'live'));
+      .where(eq(publicListings.status, 'live'))
+      .orderBy(publicListings.latitude);
+    // Homes are in order of latitude, so each place checks only the homes level with its box.
+    const firstNorthOf = (lat: number, orEqual: boolean) => {
+      let [lo, hi] = [0, homes.length];
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        const south = orEqual ? homes[mid]!.latitude < lat : homes[mid]!.latitude <= lat;
+        if (south) lo = mid + 1;
+        else hi = mid;
+      }
+      return lo;
+    };
     const rows = await tx.select().from(places).where(eq(places.hasPage, true));
     const g = gazetteer(rows.map(placeFromRow));
     const counts = new Map<string, number>();
     for (const place of g.places) {
       const area = searchArea(place.slug, g);
       if (!area) continue;
-      const n = homes.filter((home) => areaContains(area, home)).length;
+      const box = areaBox(area);
+      const level = box
+        ? homes.slice(firstNorthOf(box.minLat, true), firstNorthOf(box.maxLat, false))
+        : homes;
+      const n = level.filter((home) => areaContains(area, home)).length;
       if (n > 0) counts.set(place.slug, n);
     }
     const counted = [...counts.keys()];
@@ -269,8 +288,15 @@ export async function refreshPlaceCounts(): Promise<{ places: number }> {
           ? and(sql`${places.liveHomes} > 0`, notInArray(places.slug, counted))
           : sql`${places.liveHomes} > 0`,
       );
-    for (const [slug, n] of counts) {
-      await tx.update(places).set({ liveHomes: n }).where(eq(places.slug, slug));
+    if (counts.size) {
+      const values = sql.join(
+        [...counts].map(([slug, n]) => sql`(${slug}::text, ${n}::int)`),
+        sql`, `,
+      );
+      await tx.execute(sql`
+        update ${places} set live_homes = counted.n
+        from (values ${values}) as counted(slug, n)
+        where ${places.slug} = counted.slug and ${places.liveHomes} <> counted.n`);
     }
     forgetCachedPlaces();
     return { places: counts.size };

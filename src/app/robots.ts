@@ -19,6 +19,7 @@ export default function robots(): MetadataRoute.Robots {
         '/how-results-are-ordered',
         '/listing-policy',
         '/contact',
+        '/map-and-place-data',
       ],
       disallow: '/',
     },

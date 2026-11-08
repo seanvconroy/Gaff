@@ -58,6 +58,22 @@ export async function saveSearch(
   });
 }
 
+/** Whether a search is saved already, from its path and canonical query, so it can say "Saved". */
+export async function isSearchSaved(
+  userId: string,
+  areaPath: string,
+  query: string,
+): Promise<boolean> {
+  const rows = await withRenter(userId, (tx) =>
+    tx
+      .select({ id: savedSearches.id })
+      .from(savedSearches)
+      .where(and(eq(savedSearches.areaPath, areaPath), eq(savedSearches.query, query)))
+      .limit(1),
+  );
+  return rows.length > 0;
+}
+
 export async function mySearches(userId: string) {
   return withRenter(userId, (tx) =>
     tx.select().from(savedSearches).orderBy(savedSearches.createdAt),

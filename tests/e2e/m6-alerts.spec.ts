@@ -37,12 +37,24 @@ test('M85 to M88: a renter gets an alert for a new home, saves it, and stops ale
 
   // M61, M86: nothing in Clontarf yet, so she asks to hear first.
   await renter.goto('/to-rent/dublin/clontarf');
-  await expect(renter.getByRole('heading', { name: 'Nothing matches yet' })).toBeVisible();
+  await expect(
+    renter.getByRole('heading', { name: 'No homes match yet in Clontarf.' }),
+  ).toBeVisible();
   await renter.getByRole('button', { name: 'Get alerts for this search' }).click();
   await expect(renter.getByText('Your alert is on')).toBeVisible();
   await expect(renter.getByRole('radio', { name: 'As soon as a home is listed' })).toBeChecked();
   await expectAccessible(renter);
   await screenshot(renter, 'm6-alerts');
+
+  // M114: her recent searches are kept with her account, for the Where box.
+  await renter.goto('/to-rent');
+  await renter.getByRole('button', { name: /Where do you want to live\?/ }).click();
+  await expect(
+    renter
+      .getByRole('group', { name: 'Recent searches' })
+      .getByRole('option', { name: /^Clontarf/ }),
+  ).toBeVisible();
+  await expectAccessible(renter);
 
   // A checked landlord lists a home in Clontarf.
   await signUpLandlord(page);

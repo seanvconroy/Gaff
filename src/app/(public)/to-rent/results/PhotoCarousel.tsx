@@ -15,8 +15,9 @@ export interface CarouselPhoto {
 
 /**
  * M60: a result's photos, to swipe on a phone, or step through with the arrows that appear on
- * hover and focus. A tap opens the home's page. The title is the card's link for keyboards and
- * screen readers, so the photos aren't a second one.
+ * hover. Keyboards reach the photos as one stop and step through them with ← and →. A tap opens
+ * the home's page; the title is the card's link for keyboards and screen readers, so the photos
+ * aren't a second one.
  */
 export function PhotoCarousel({
   photos,
@@ -44,6 +45,13 @@ export function PhotoCarousel({
         ref={strip}
         className={styles.strip}
         aria-label={`Photos of ${title}`}
+        // WCAG 2.1.1: the strip scrolls sideways, so keyboards can reach it too.
+        tabIndex={photos.length > 1 ? 0 : undefined}
+        onKeyDown={(event) => {
+          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+          event.preventDefault();
+          step(event.key === 'ArrowRight' ? 1 : -1);
+        }}
         onScroll={(event) => {
           const el = event.currentTarget;
           setIndex(Math.round(el.scrollLeft / Math.max(1, el.clientWidth)));
@@ -73,6 +81,7 @@ export function PhotoCarousel({
             type="button"
             className={`${styles.arrow} ${styles.arrowPrev}`}
             aria-label={`Previous photo of ${title}`}
+            tabIndex={-1}
             hidden={index === 0}
             onClick={() => step(-1)}
           >
@@ -82,6 +91,7 @@ export function PhotoCarousel({
             type="button"
             className={`${styles.arrow} ${styles.arrowNext}`}
             aria-label={`Next photo of ${title}`}
+            tabIndex={-1}
             hidden={index >= photos.length - 1}
             onClick={() => step(1)}
           >

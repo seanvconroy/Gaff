@@ -6,9 +6,11 @@ import styles from './Sheet.module.css';
 
 /**
  * A modal sheet on the native <dialog>: M58's Filters, and the phone's search. A dialog in the
- * middle of the screen on larger screens; the whole screen on phones. Focus starts on the title,
- * stays inside, and goes back to whatever opened it on close; Escape and the close button close
- * it, and so does a click on the backdrop. `startOpen` shows it without JavaScript (not modal).
+ * middle of the screen on larger screens; the whole screen on phones. Focus starts on a field
+ * marked `data-autofocus` (the phone's Where box, so renters type straight away), or else on the
+ * title; it stays inside, and goes back to whatever opened it on close. Escape and the close
+ * button close it, and so does a click on the backdrop. `startOpen` shows it without JavaScript
+ * (not modal).
  */
 export function Sheet({
   open,
@@ -37,7 +39,10 @@ export function Sheet({
     if (open && !d.open) {
       opener.current = document.activeElement;
       d.showModal();
-      d.querySelector<HTMLElement>(`#${CSS.escape(`${id}-title`)}`)?.focus();
+      const first =
+        d.querySelector<HTMLElement>('[data-autofocus]') ??
+        d.querySelector<HTMLElement>(`#${CSS.escape(`${id}-title`)}`);
+      first?.focus();
     } else if (!open && d.open) {
       d.close();
     }

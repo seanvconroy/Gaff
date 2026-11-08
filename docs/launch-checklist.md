@@ -19,6 +19,7 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] **Sinch:** EU region SMS account; check Irish sender ID rules. Sign the DPA.
 - [ ] **ID and income checks:** choose providers (for example Veriff or Onfido for ID; TrueLayer, Tink or Yapily for open banking, checking AIB, Bank of Ireland, PTSB and Revolut coverage), sign DPAs, and add their adapters. Until then production runs with `IDENTITY_PROVIDER=none` and `INCOME_PROVIDER=none`, and operators arrange those checks themselves.
 - [ ] **Google Maps Platform (Q38, ADR-0025):** a billing account in Gaff's name, with budget alerts at 50%, 80% and 100% of the monthly budget (search redesign PRD S1) and a daily quota cap on map loads. Separate API keys for production and the test copy, each restricted to Gaff's domains (HTTP referrers) and to the Maps JavaScript API only. Light and dark Map IDs, styled from the tokens. Accept the Controller-Controller Data Protection Terms, and record that Google offers no EU region (transfers under the EU–US Data Privacy Framework).
+- [ ] **Place index (ADR-0025):** the real index built from OpenStreetMap and committed (`pnpm places:build`, then `pnpm places:check`, or the **Build the place index** workflow), and `pg_trgm` enabled on the production database ([deploy.md](deploy.md), step 7).
 - [ ] **GitHub:** push access and Actions enabled for CI.
 
 ## Solicitor (before the first pilot letting)
@@ -34,7 +35,7 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] Message templates in `src/copy/templates/`: first reply (with AI disclosure; version 2 adds the M28 line that no money is asked for before signing, and thanks renters who answered on Gaff), holding message, invitation, waiting list, booking confirmation, reminders (email and SMS), place offered, letting closed, and later offer and outcome
 - [ ] Privacy notice for renters (GDPR Article 14)
 - [ ] Google Maps on renter pages: Gaff's terms carry Google's notice (Google Maps Additional Terms of Service and Privacy Policy), the privacy notice names Google Maps, and the DPIA covers it, including whether the map needs a tap before it loads (search redesign PRD S2)
-- [ ] OpenStreetMap data in the place index: OSM rows kept separate, the build method published, and the "Map and place data" credits page (ODbL)
+- [ ] OpenStreetMap data in the place index: OSM rows kept separate, the build method published, and the wording of the "Map and place data" credits page (`/map-and-place-data`, drafted) (ODbL)
 - [ ] Collecting the PPSN for RTB registration (optional, sealed, deleted once registered; no date of birth, Q24), and the registration deadline
 - [ ] Gaff’s standard tenancy agreement wording (`src/copy/templates/tenancy-agreement.ts`), and whether it can be signed electronically or must be signed on paper (Electronic Commerce Act 2000, s.10(1)(b); Q23)
 

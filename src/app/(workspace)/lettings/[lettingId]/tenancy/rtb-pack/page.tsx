@@ -3,8 +3,8 @@ import { formatDate, formatEuro } from '@/lib/format';
 import { rtbPack } from '@/server/tenancy/rtb';
 import { Card, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
+import { SummaryList } from '@/ui/SummaryList';
 import { loadLetting } from '../../letting';
-import styles from '../../letting.module.css';
 
 export const metadata: Metadata = { title: 'RTB registration pack' };
 export const dynamic = 'force-dynamic';
@@ -59,14 +59,7 @@ export default async function RtbPackPage({ params }: { params: Promise<{ lettin
         </Notice>
       )}
       <Card>
-        <dl className={styles.facts}>
-          {rows.map(([label, value]) => (
-            <div key={label} className={styles.pair}>
-              <dt>{label}</dt>
-              <dd>{value}</dd>
-            </div>
-          ))}
-        </dl>
+        <SummaryList rows={rows.map(([label, value]) => ({ label, value }))} />
       </Card>
     </Stack>
   );

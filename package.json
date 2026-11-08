@@ -24,6 +24,7 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
     "staff:add": "tsx scripts/add-staff.ts",
+    "evals": "tsx tests/evals/run.ts",
     "check": "pnpm tokens:check && pnpm typecheck && pnpm lint && pnpm test && pnpm test:int && pnpm build"
   },
   "dependencies": {

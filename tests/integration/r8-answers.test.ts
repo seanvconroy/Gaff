@@ -1,7 +1,8 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
-import { fakeDrafter } from '@/adapters/ai/fake';
+import { fakeAi } from '@/adapters/ai/fake';
 import { withOrg } from '@/db/client';
+import { AiCallError } from '@/ports/ai';
 import { aiDrafts, decisions, lettingFacts, messages, operatorQuestions } from '@/db/schema';
 import { draftAnswersFor } from '@/server/answers/draft';
 import { listAwaitingApproval, listOpenQuestions } from '@/server/answers/queries';
@@ -152,6 +153,20 @@ describe('R8 and R29: answers from the facts, approved by a person', () => {
     expect(answer!.body).toContain('Yes, a small back garden.');
   });
 
+  it('P14: won’t remember an answer the wording check flags, but it can be sent once', async () => {
+    const member = await createTestMember();
+    await aLiveLetting(member);
+    await ask(member, 'Is there a garden?');
+    const [question] = await listOpenQuestions(member);
+    // The word list misses this; the AI's wording check (here, the stand-in) catches it.
+    const unfair = 'Yes, a small garden. Tenants must be working.';
+    await expect(answerQuestion(member, question!.id, unfair, true)).rejects.toThrow(
+      /could exclude people/,
+    );
+    await answerQuestion(member, question!.id, unfair, false);
+    expect(await listOpenQuestions(member)).toEqual([]);
+  });
+
   it('won’t remember or send an operator answer that touches a protected ground', async () => {
     const member = await createTestMember();
     await aLiveLetting(member);
@@ -189,7 +204,7 @@ describe('R8 and R29: answers from the facts, approved by a person', () => {
   it('if the AI is down, nothing is lost: the questions go to a person', async () => {
     const member = await createTestMember();
     await aLiveLetting(member);
-    const spy = vi.spyOn(fakeDrafter, 'draftAnswers').mockRejectedValueOnce(new Error('timeout'));
+    const spy = vi.spyOn(fakeAi, 'draftAnswers').mockRejectedValueOnce(new AiCallError('timeout'));
     vi.spyOn(console, 'error').mockImplementationOnce(() => {});
     await ask(member, 'Is there parking?');
     spy.mockRestore();
@@ -199,7 +214,7 @@ describe('R8 and R29: answers from the facts, approved by a person', () => {
   it('only sends the AI redacted questions, never the renter’s name or contact details', async () => {
     const member = await createTestMember();
     await aLiveLetting(member);
-    const spy = vi.spyOn(fakeDrafter, 'draftAnswers');
+    const spy = vi.spyOn(fakeAi, 'draftAnswers');
     await ask(member, 'Hi, Aoife Byrne here (087 123 4567). Is there parking, Aoife?');
     const sent = JSON.stringify(spy.mock.calls[0]?.[0]?.questions);
     spy.mockRestore();

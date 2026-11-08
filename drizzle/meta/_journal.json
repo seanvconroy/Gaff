@@ -232,6 +232,20 @@
       "when": 1794130112097,
       "tag": "0032_test_copy_objects",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794161377014,
+      "tag": "0033_ai_calls",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794161705771,
+      "tag": "0034_listing_wording_findings",
+      "breakpoints": true
     }
   ]
 }

@@ -178,6 +178,12 @@ export const listingHolds = pgTable(
       .notNull()
       .references(() => listings.id, { onDelete: 'cascade' }),
     reasons: text().array().notNull(),
+    /**
+     * ADR-0023, P13: for an unfair-wording hold, what the AI flagged: the phrase from the
+     * letter's own words, the ground, why, and a fairer rewording. Shown to the letter and to staff.
+     */
+    wordingFindings:
+      jsonb().$type<Array<{ phrase: string; ground: string; why: string; rewording: string }>>(),
     openedAt: createdAt(),
     resolvedAt: timestamp({ withTimezone: true }),
     resolvedBy: text().references(() => users.id),

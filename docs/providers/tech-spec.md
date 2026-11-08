@@ -86,8 +86,8 @@ tests/evals/                        golden sets and runners, against the real mo
 | `ANTHROPIC_API_KEY` | secret | The test copy and development only |
 | `AWS_REGION` | `eu-west-1` | Production. The client signs with the Vercel project's AWS credentials |
 | `AI_MODEL` | default `claude-opus-5-5` | Bedrock adds the `anthropic.` prefix |
-| `AI_MONTHLY_BUDGET_EUR` | number | P4. The test copy starts at 80 (about $100 of credits) |
-| `AI_TASKS_OFF` | list | P8, for example `descriptions,wording` |
+| `AI_MONTHLY_BUDGET_USD` | number, default 100 | P4. In dollars, as both providers bill. The test copy uses 90, inside the $100 of credits |
+| `AI_TASKS_OFF` | list | P8, for example `description,wording`, or `all` |
 
 `inference_geo` isn't sent: the test copy uses the default global routing, and Bedrock's region comes from the endpoint. No `temperature`, `top_p` or `top_k` (rejected since API version `2026-10-21`). Thinking is adaptive and always on with Opus 5.5; the effort is set per task. Timeouts: 20 seconds for answers and the wording check, 60 for documents; two retries on 429, 5xx and connection errors (the SDK's defaults).
 
@@ -264,7 +264,7 @@ It needs Tink's enterprise terms for Income Check, its confirmed Irish bank list
 | `renter_documents` (new, renter zone, `renterPolicy`) | `user_id`, `kind` (`payslip`, `contract`, `employer_letter`, `revenue_statement`, `accountant_letter`, `other_income`), `storage_key` (null once deleted), `content_type`, `bytes`, `pages`, `status` (`processing`, `ready`, `deleted`), `reading_sealed`, `flags`, `document_date`, `corrected_by_renter`, `keep`, `delete_after`, `deleted_at` |
 | `check_documents` (new, organisation zone, `tenantPolicy`) | `check_id`, `application_id`, `kind` (`other_income` has no file), `storage_key`, `reading_sealed`, `flags`, `document_date`, `corrected_by_renter`, `delete_after`, `deleted_at` |
 | `ai_calls` (new, platform zone) | As above. No organisation data beyond the ID |
-| `listing_holds.reasons` | Adds `unfair_wording`, and `first_listing_review` for a letter checked without a selfie (P19) |
+| `listing_holds` | `reasons` adds `unfair_wording`, and `first_listing_review` for a letter checked without a selfie (P19). New `wording_findings` (jsonb): the phrase from the letter's own words, the ground, why and a rewording, shown to the letter and to staff. Not personal data, so not sealed |
 | Events | `booking.mobile_confirmed`, `identity.consented`, `identity.started`, `identity.decided`, `identity.offline`, `identity.redacted`, `identity.copied`, `identity.shared`, `check.recorded_in_person`, `document.uploaded`, `document.read`, `document.confirmed`, `documents.shared`, `document.viewed`, `document.deleted`, `listing.description_drafted`, `listing.wording_flagged`; platform: `ai.budget_warning`. IDs, codes, numbers and dates only, checked by the compliance suite. Person-zone events carry no organisation |
 
 ## Privacy and retention

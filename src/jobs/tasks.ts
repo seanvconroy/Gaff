@@ -11,6 +11,8 @@ import { sendMessage } from '@/server/messages/outbox';
 import { expireHomeOffer } from '@/server/offers/offer';
 import { sendRtbReminder } from '@/server/tenancy/rtb';
 import { matchListing, sendAlerts, sendDailyAlerts } from '@/server/alerts/match';
+import { sweepAiCalls } from '@/server/ai/usage';
+import { checkLiveListingWording } from '@/server/listings/wording';
 import { sweepMarketplace } from '@/server/retention/marketplace';
 import { sweepPersonalData } from '@/server/retention/sweep';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
@@ -66,6 +68,7 @@ export const taskList: TaskList = {
     console.log(
       `Retention: ${marketplace.visitorDays} visitor hashes, ${marketplace.closedPages} closed listing pages, ${marketplace.alertDeliveries} alert deliveries and ${marketplace.reports} reports removed.`,
     );
+    console.log(`Retention: ${await sweepAiCalls()} AI usage rows over 12 months old deleted.`);
   },
   reference_overdue: async (payload) => {
     await markReferenceOverdue(
@@ -78,6 +81,11 @@ export const taskList: TaskList = {
   rtb_reminder: async (payload) => {
     await sendRtbReminder(
       z.object({ organisationId: z.uuid(), tenancyId: z.uuid() }).parse(payload),
+    );
+  },
+  check_listing_wording: async (payload) => {
+    await checkLiveListingWording(
+      z.object({ organisationId: z.uuid(), lettingId: z.uuid() }).parse(payload),
     );
   },
   draft_answers: async (payload) => {

@@ -303,8 +303,43 @@ export const eventCatalogue = {
         'scam_wording',
         'description_copied',
         'new_account_burst',
+        'unfair_wording',
       ]),
     ),
+  }),
+  /** ADR-0023, P13: the AI flagged wording in a listing; counts and grounds only. */
+  'listing.wording_flagged': z.object({
+    listingId: z.uuid(),
+    findings: z.number().int(),
+    grounds: z.array(
+      z.enum([
+        'gender',
+        'civil_status',
+        'family_status',
+        'sexual_orientation',
+        'religion',
+        'age',
+        'disability',
+        'race',
+        'traveller_community',
+        'housing_assistance',
+      ]),
+    ),
+  }),
+  /** M45, P10: the AI drafted a description; whether it passed Gaff's checks, and if not why. */
+  'listing.description_drafted': z.object({
+    listingId: z.uuid(),
+    accepted: z.boolean(),
+    problem: z
+      .enum([
+        'unavailable',
+        'too_short',
+        'too_long',
+        'listing_text',
+        'unknown_fact',
+        'number_not_in_facts',
+      ])
+      .optional(),
   }),
   /** M32 to M35: developments and the homes added to them. */
   'development.created': z.object({ developmentId: z.uuid() }),

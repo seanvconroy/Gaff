@@ -13,6 +13,10 @@ const IDENTITY_TABLES = new Set(['organisations', 'memberships']);
 // belong to the renter: protected by the renter's policy, never the organisation's.
 const RENTER_TABLES = new Set(['profile_shares', 'renter_enquiries']);
 
+// ADR-0017, ADR-0025: the platform zone. These name an organisation only to report costs per
+// letter; they hold no tenant data, any use case may add a row, and only staff and jobs read them.
+const PLATFORM_TABLES = new Set(['ai_calls']);
+
 describe('ADR-0004: tenant isolation', () => {
   it('every tenant table has row-level security enabled, forced and a tenant policy', async () => {
     const { rows } = await db().execute<{
@@ -30,7 +34,10 @@ describe('ADR-0004: tenant isolation', () => {
       join information_schema.columns col on col.table_name = c.relname and col.table_schema = n.nspname
       where n.nspname = 'public' and c.relkind = 'r' and col.column_name = 'organisation_id'`);
     const tenantTables = rows.filter(
-      (row) => !IDENTITY_TABLES.has(row.table) && !RENTER_TABLES.has(row.table),
+      (row) =>
+        !IDENTITY_TABLES.has(row.table) &&
+        !RENTER_TABLES.has(row.table) &&
+        !PLATFORM_TABLES.has(row.table),
     );
     expect(tenantTables.length).toBeGreaterThan(0);
     for (const row of tenantTables) {

@@ -29,6 +29,8 @@ export interface HeldListing {
   description: string;
   rentCents: number;
   reasons: string[];
+  /** ADR-0023: what the AI flagged, for an unfair-wording hold. */
+  wordingFindings: Array<{ phrase: string; ground: string; why: string; rewording: string }>;
   openedAt: Date;
 }
 
@@ -44,6 +46,7 @@ export async function heldListings(staff: Staff): Promise<HeldListing[]> {
         organisationId: listingHolds.organisationId,
         listingId: listingHolds.listingId,
         reasons: listingHolds.reasons,
+        wordingFindings: listingHolds.wordingFindings,
         openedAt: listingHolds.openedAt,
         organisationName: organisations.name,
       })
@@ -69,6 +72,7 @@ export async function heldListings(staff: Staff): Promise<HeldListing[]> {
         description: context.listing.description ?? '',
         rentCents: context.letting.monthlyRentCents,
         reasons: hold.reasons,
+        wordingFindings: hold.wordingFindings ?? [],
         openedAt: hold.openedAt,
       });
     }

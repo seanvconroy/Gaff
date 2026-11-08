@@ -7,7 +7,12 @@ import { bboxAround } from '@/domain/places/geo';
 import type { ListingContext } from './context';
 
 export type RiskReason =
-  'photo_reused' | 'rent_far_below' | 'scam_wording' | 'description_copied' | 'new_account_burst';
+  | 'photo_reused'
+  | 'rent_far_below'
+  | 'scam_wording'
+  | 'description_copied'
+  | 'new_account_burst'
+  | 'unfair_wording';
 
 /** A rent this far below similar homes nearby is held for a look (M29). */
 const FAR_BELOW = 0.6;

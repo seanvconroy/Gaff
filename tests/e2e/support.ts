@@ -7,6 +7,9 @@ import { E2E_DATABASE_URL } from '../../playwright.config';
 
 /** WCAG 2.2 AA (PRD non-functional requirements; design system). */
 export async function expectAccessible(page: Page): Promise<void> {
+  // Next.js streams a dynamic page's metadata, so its <title> can land just after the content.
+  // Every page has one; wait for it rather than let axe race it.
+  await page.waitForFunction(() => document.title.trim().length > 0, null, { timeout: 5_000 });
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();

@@ -19,7 +19,8 @@ export type TaskName =
   | 'listings_freshness'
   | 'alerts_match'
   | 'alerts_send'
-  | 'alerts_daily';
+  | 'alerts_daily'
+  | 'check_listing_wording';
 
 /**
  * Queues a job in the caller's transaction (ADR-0003): the job exists only if the change that

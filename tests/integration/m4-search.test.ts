@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { withOrg, withPublic, withSystem } from '@/db/client';
 import { listingDailyStats, listingVisitors, publicListings } from '@/db/schema';
 import { readFilters } from '@/domain/search/filters';
+import { fixtureGazetteer } from '@/domain/places/fixture';
 import { searchArea } from '@/domain/search/places';
 import { closeLetting } from '@/server/lettings/close';
 import { setCriteria } from '@/server/lettings/set-criteria';
@@ -54,8 +55,9 @@ const sligo = (extra: Record<string, string>) => ({
   ...extra,
 });
 
+const g = fixtureGazetteer();
 const search = (place: string | null, query = '') =>
-  searchListings(searchArea(place)!, readFilters(new URLSearchParams(query)));
+  searchListings(searchArea(place, g)!, readFilters(new URLSearchParams(query)));
 const ids = (results: Awaited<ReturnType<typeof search>>) =>
   results.results.map((r) => r.listingId);
 
@@ -142,8 +144,9 @@ describe('M59: the order', () => {
 describe('M61: when nothing matches', () => {
   it('suggests the wider searches that do find homes', async () => {
     const wider = await widerSearchesWithHomes(
-      searchArea('sligo-town')!,
+      searchArea('sligo-town', g)!,
       readFilters(new URLSearchParams('beds=4')),
+      g,
     );
     expect(wider).toEqual([
       expect.objectContaining({ widening: { change: 'beds', beds: 3 }, total: 1 }),

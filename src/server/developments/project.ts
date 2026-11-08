@@ -2,6 +2,7 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { Tx } from '@/db/client';
 import { developments, homes, listings, media, publicDevelopments } from '@/db/schema';
 import { approximateLocation } from '@/domain/places/locate';
+import { loadGazetteer } from '@/server/places/places';
 import { republishIfPublic } from '@/server/listings/editor';
 import { letterCard } from '@/server/listings/context';
 
@@ -33,7 +34,7 @@ export async function writePublicDevelopment(tx: Tx, developmentId: string, now 
   const located =
     development.latitude !== null && development.longitude !== null
       ? { lat: development.latitude, lng: development.longitude }
-      : approximateLocation(development).point;
+      : approximateLocation(development, await loadGazetteer([], tx)).point;
   const values = {
     developmentId,
     organisationId: development.organisationId,

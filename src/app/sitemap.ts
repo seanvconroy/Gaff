@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { placePath, placesWithHomes } from '@/domain/search/places';
 import { env } from '@/lib/env';
 import { indexableDevelopments } from '@/server/search/developments';
+import { loadGazetteer } from '@/server/places/places';
 import { indexableListings } from '@/server/search/sitemap';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const live = listings.filter((l) => l.status === 'live');
   return [
     { url: `${base}/to-rent`, changeFrequency: 'hourly' },
-    ...placesWithHomes(live).map((place) => ({
+    ...placesWithHomes(live, await loadGazetteer()).map((place) => ({
       url: `${base}${placePath(place)}`,
       changeFrequency: 'hourly' as const,
     })),

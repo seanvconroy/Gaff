@@ -1,12 +1,9 @@
 import { TZDate } from '@date-fns/tz';
 import { formatEuro } from '@/lib/format';
+import type { Gazetteer } from '@/domain/places/gazetteer';
 import { matchesFilters, readFilters, type FilterableListing } from '@/domain/search/filters';
-import {
-  areaContains,
-  areaHeading,
-  resolvePlacePath,
-  type SearchArea,
-} from '@/domain/search/places';
+import { areaContains, areaName, type SearchArea } from '@/domain/search/places';
+import { savedSearchArea } from '@/domain/search/url';
 
 /**
  * M85 to M88: saved homes and alerts. Matching uses exactly the search's own rules (M58), so an
@@ -22,11 +19,12 @@ export const DAILY_HOUR = 8;
 /** Rule 9: alert deliveries are kept this long. */
 export const DELIVERY_KEEP_DAYS = 90;
 
-/** The area a saved search covers, from its address; null if the place is no longer known. */
-export function searchAreaOf(areaPath: string): SearchArea | null {
-  const segments = areaPath.split('/').filter(Boolean).slice(1);
-  const resolved = resolvePlacePath(segments);
-  return resolved?.kind === 'area' ? resolved.area : null;
+/**
+ * The area a saved search covers, from its address and query (a distance, map area or drawn
+ * shape); null if the place is no longer known.
+ */
+export function searchAreaOf(areaPath: string, query: string, g: Gazetteer): SearchArea | null {
+  return savedSearchArea(areaPath, query, g);
 }
 
 export type AlertableListing = FilterableListing & {
@@ -40,9 +38,10 @@ export type AlertableListing = FilterableListing & {
 export function alertMatches(
   listing: AlertableListing,
   search: { areaPath: string; query: string },
+  g: Gazetteer,
   now = new Date(),
 ): boolean {
-  const area = searchAreaOf(search.areaPath);
+  const area = searchAreaOf(search.areaPath, search.query, g);
   if (!area) return false;
   // "Newly listed" means new to this renter: an alert is always about a new home.
   const { listedWithin: _ignored, ...filters } = readFilters(new URLSearchParams(search.query));
@@ -50,9 +49,9 @@ export function alertMatches(
 }
 
 /** A name for a saved search, from its place and main filters: "Rathmines, 2+ beds, up to €2,600". */
-export function savedSearchName(areaPath: string, query: string): string {
-  const area = searchAreaOf(areaPath);
-  const place = area ? areaHeading(area).replace(/^Homes to rent in /, '') : 'Ireland';
+export function savedSearchName(areaPath: string, query: string, g: Gazetteer): string {
+  const area = searchAreaOf(areaPath, query, g);
+  const place = area ? searchPlaceLabel(area) : 'Ireland';
   const filters = readFilters(new URLSearchParams(query));
   const parts = [place];
   if (filters.beds !== undefined) {
@@ -61,6 +60,13 @@ export function savedSearchName(areaPath: string, query: string): string {
   if (filters.maxRent !== undefined) parts.push(`up to ${formatEuro(filters.maxRent * 100)}`);
   if (filters.pets) parts.push('pets considered');
   return parts.join(', ');
+}
+
+/** The place part of a saved search's name: "Rathmines", "Near Highfield Road", "Map area". */
+function searchPlaceLabel(area: SearchArea): string {
+  if (area.kind === 'near') return `Near ${area.place.name}`;
+  if (area.kind === 'radius' && area.plusKm > 0) return `${area.place.name} +${area.plusKm} km`;
+  return areaName(area);
 }
 
 /** M86: the next daily email: 8am in Ireland, today if it's not yet 8, otherwise tomorrow. */

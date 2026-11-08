@@ -45,6 +45,20 @@ export const publicReadPolicy = () =>
   pgPolicy('public_read', { as: 'permissive', for: 'select', using: sql`true` });
 
 /**
+ * Reference data (ADR-0025): written only by system jobs (withSystem), such as loading the place
+ * index. Pair it with publicReadPolicy() so anyone can read.
+ */
+const systemCheck = sql`current_setting('app.rls_bypass', true) = 'on'`;
+
+export const systemWritePolicy = () =>
+  pgPolicy('system_write', {
+    as: 'permissive',
+    for: 'all',
+    using: systemCheck,
+    withCheck: systemCheck,
+  });
+
+/**
  * Gaff staff (ADR-0017) may read and decide some organisation rows, such as letter checks
  * (M105), but only inside withStaff(), which needs a signed-in staff member.
  */

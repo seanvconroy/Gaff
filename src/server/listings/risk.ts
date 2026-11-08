@@ -4,6 +4,7 @@ import { DUPLICATE_DISTANCE } from '@/domain/media/photos';
 import { checkListingText } from '@/domain/moderation/listing-text';
 import { approximateLocation } from '@/domain/places/locate';
 import { bboxAround } from '@/domain/places/geo';
+import { loadGazetteer } from '@/server/places/places';
 import type { ListingContext } from './context';
 
 export type RiskReason =
@@ -27,7 +28,7 @@ export async function riskSignals(
   if (checkListingText(listing.description ?? '').some((f) => f.kind === 'scam_wording')) {
     reasons.push('scam_wording');
   }
-  const place = approximateLocation(home);
+  const place = approximateLocation(home, await loadGazetteer());
   const box = bboxAround(place.place.centre, place.place.radiusMetres);
 
   const found = await withSystem(async (tx) => {

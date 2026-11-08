@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import pg from 'pg';
 import { E2E_CRON_SECRET, E2E_DATABASE_URL, e2eEnv, vercelJobs } from '../../playwright.config';
 import { runMigrations } from '../../src/db/migrate';
+import { loadFixturePlaces } from '../fixtures/places';
 
 /**
  * A fresh, migrated database for each run, and the real background worker; or, with
@@ -18,6 +19,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   await admin.query(`create database "${name}"`);
   await admin.end();
   await runMigrations(url.toString());
+  await loadFixturePlaces(url.toString());
 
   if (vercelJobs) {
     const tick = () =>

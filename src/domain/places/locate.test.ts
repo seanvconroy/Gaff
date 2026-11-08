@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { approximateLocation } from './locate';
+import { fixtureGazetteer } from './fixture';
+import { approximateLocation as locate } from './locate';
+
+const g = fixtureGazetteer();
+const approximateLocation = (home: Parameters<typeof locate>[0]) => locate(home, g);
 
 describe('M38: an approximate location until the letter places a pin', () => {
   it('uses the most specific named area', () => {

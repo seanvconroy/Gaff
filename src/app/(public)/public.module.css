@@ -101,3 +101,33 @@
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
+
+/* M60: the heart on a result card's photo: a white circle, 44px. */
+.saveIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background-color: var(--color-surface-1);
+  border: 0;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-overlay);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.saveIcon:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ADR-0025: search pages use the whole width, for the list and map side by side. */
+.main:has([data-wide-page]) {
+  max-width: none;
+  padding: 0;
+}
+
+.shell:has([data-wide-page]) .barInner {
+  max-width: none;
+  padding-inline: var(--space-6);
+}

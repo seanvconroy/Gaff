@@ -161,7 +161,7 @@ OSM-derived rows are kept separate from rows from other sources. Following the O
   score = match × kind + 0.05 × log10(1 + live_homes) + 0.02 × log10(1 + population)
   match: exact name or alias 1.0 · name starts with it 0.9 · a word starts with it 0.8 · similarity × 0.7
   kind:  county, city 1.0 · district, town 0.95 · area 0.9 · routing key, village 0.85
-         landmark 0.8 · street 0.75 · townland 0.6
+         street 0.75 · landmark 0.72 · townland 0.6
   ```
 
   Then at most 3 streets and 2 landmarks (unless nothing else matches), one row per name and context, and 8 rows in all. Groups come in the order of their best item, so the best match is always first.
@@ -389,7 +389,7 @@ None of them holds what was typed. Misses are counted only in `place_misses`.
 
 - **The new endpoints** are GET-only, validated with Zod, and bounded:
   - `q` up to 60 characters;
-  - a `bbox` up to 50,000 km²;
+  - a `bbox` centred on Ireland, up to 600,000 km² (the whole country, zoomed out);
   - a shape of at most 100 points and 2,000 km².
 - **They hold no personal data,** are cached at the CDN, and are rate-limited by the Vercel firewall.
 - **The Google key** is public by design, so it's locked to Gaff's referrers and to one API, with a daily quota. Rotating it is in `docs/deploy.md`.

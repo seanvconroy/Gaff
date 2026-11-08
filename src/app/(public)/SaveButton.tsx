@@ -8,12 +8,33 @@ export function SaveButton({
   saved,
   returnTo,
   title,
+  variant = 'text',
 }: {
   listingId: string;
   saved: boolean;
   returnTo: string;
   title: string;
+  /** M60: on a result card, a heart on the photo; elsewhere, a button with words. */
+  variant?: 'text' | 'icon';
 }) {
+  if (variant === 'icon') {
+    return (
+      <form action={toggleSaveAction.bind(null, listingId, returnTo)} className={styles.saveForm}>
+        <input type="hidden" name="save" value={saved ? '0' : '1'} />
+        <button type="submit" className={styles.saveIcon} aria-pressed={saved}>
+          <Heart
+            size={22}
+            strokeWidth={1.75}
+            fill={saved ? 'currentColor' : 'none'}
+            aria-hidden="true"
+          />
+          <span className="visually-hidden">
+            {saved ? 'Saved' : 'Save'} {title}
+          </span>
+        </button>
+      </form>
+    );
+  }
   return (
     <form action={toggleSaveAction.bind(null, listingId, returnTo)} className={styles.saveForm}>
       <input type="hidden" name="save" value={saved ? '0' : '1'} />

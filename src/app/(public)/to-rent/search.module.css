@@ -1,165 +1,274 @@
-/* M56 to M62: the search page and its results, phone first. */
+/* M56 to M62, M113 to M120: the search page, with the list and map side by side. */
 .page {
   display: grid;
-  gap: var(--space-8);
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
 }
 
-.header {
+.layout {
   display: grid;
-  gap: var(--space-2);
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-6) var(--space-16);
 }
 
-.header h1 {
-  margin: 0;
+.resultsColumn {
+  min-width: 0;
 }
 
-.lead {
-  margin: 0;
-  color: var(--color-ink-muted);
+.mapColumn {
+  display: none;
 }
 
-.form {
+/* "Skip the map": hidden until a keyboard reaches it, then shown over the map. */
+.skipMap {
+  position: absolute;
+  left: var(--space-3);
+  top: var(--space-16);
+  z-index: 10;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-surface-1);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-overlay);
+}
+
+.skipMap:not(:focus) {
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (width >= 1128px) {
+  .layout[data-map] {
+    grid-template-columns: minmax(0, 58fr) minmax(0, 42fr);
+  }
+
+  .layout[data-map] .mapColumn {
+    position: sticky;
+    top: calc(var(--space-16) + var(--space-8));
+    display: block;
+    align-self: start;
+    height: calc(100vh - var(--space-16) - var(--space-16));
+  }
+}
+
+/* Phones and tablets: the map on its own, when asked for. */
+@media (width < 1128px) {
+  .layout[data-view='map'] {
+    padding: 0;
+  }
+
+  .layout[data-view='map'] .resultsColumn {
+    display: none;
+  }
+
+  .layout[data-view='map'] .mapColumn {
+    position: relative;
+    display: block;
+    height: calc(100dvh - var(--space-16) - var(--space-16));
+  }
+
+  .layout[data-view='map'] .mapColumn > div {
+    border-radius: 0;
+  }
+}
+
+/* M116: the old results stay, dimmed, while the new ones load. */
+.pendingRegion {
+  position: relative;
   display: grid;
-  gap: var(--space-4);
-  padding: var(--space-4);
-  background-color: var(--color-surface-0);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  gap: var(--space-6);
 }
 
-.formEnd {
+.pendingRegion[data-pending] > :not(.progress) {
+  opacity: 0.45;
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+
+.progress {
+  position: absolute;
+  top: calc(var(--space-3) * -1);
+  left: 0;
+  width: 100%;
+  height: 3px;
+  overflow: hidden;
+  background-color: var(--color-border);
+  border-radius: var(--radius-pill);
+}
+
+.progress::after {
+  position: absolute;
+  inset: 0;
+  width: 30%;
+  background-color: var(--color-navy);
+  border-radius: var(--radius-pill);
+  content: '';
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .progress::after {
+    animation: progress 1.1s var(--ease-standard) infinite;
+  }
+}
+
+@keyframes progress {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(340%);
+  }
+}
+
+/* The heading, how results are ordered, sort, and the applied filters. */
+.resultsHeader {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.headingRow {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-3) var(--space-6);
+}
+
+.heading {
+  margin: 0;
+}
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
 }
 
 .howOrdered {
-  margin: 0;
-  color: var(--color-ink-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  color: var(--color-ink);
 }
 
-.combo {
-  position: relative;
-  display: grid;
-  gap: var(--space-1);
-}
-
-.label {
+.sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
   font-weight: var(--type-title-weight);
 }
 
-.hint {
-  margin: 0;
-  color: var(--color-ink-muted);
-}
-
-.control {
-  min-height: 48px;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface-1);
+.sort select {
+  field-sizing: content;
+  min-height: 44px;
+  padding: 0 var(--space-6) 0 var(--space-1);
+  background-color: transparent;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--color-ink) 50%),
+    linear-gradient(135deg, var(--color-ink) 50%, transparent 50%);
+  background-position:
+    calc(100% - 12px) 52%,
+    calc(100% - 6px) 52%;
+  background-repeat: no-repeat;
+  background-size: 6px 6px;
+  border: 0;
   color: var(--color-ink);
+  font-family: var(--type-body-family);
   font-size: var(--type-body-size);
+  font-weight: var(--type-title-weight);
+  appearance: none;
+  cursor: pointer;
 }
 
-.control:focus-visible {
+.sort select:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 
-.options {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  margin: var(--space-1) 0 0;
-  padding: var(--space-1) 0;
-  list-style: none;
-  background-color: var(--color-surface-1);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-overlay);
-}
-
-.option {
+.applied {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
+  align-items: center;
   gap: var(--space-2);
-  min-height: 44px;
-  align-items: center;
-  padding: var(--space-2) var(--space-3);
-  cursor: pointer;
-}
-
-.option[aria-selected='true'],
-.option:hover {
-  background-color: var(--color-surface-2);
-}
-
-.optionName {
-  font-weight: var(--type-title-weight);
-}
-
-.optionMore {
-  color: var(--color-ink-muted);
-}
-
-.filters {
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-2);
-}
-
-.summary {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  font-weight: var(--type-title-weight);
-  cursor: pointer;
-}
-
-.filterGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: var(--space-4);
-  padding-top: var(--space-4);
-}
-
-.results {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--space-6);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.card {
+.appliedChip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font-weight: var(--type-title-weight);
+  text-decoration: none;
+}
+
+.appliedChip:hover {
+  background-color: var(--color-border);
+}
+
+.clearLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  color: var(--color-ink);
+  font-weight: var(--type-title-weight);
+}
+
+/* M60: results, two to a row beside the map (three on wide screens). */
+.grid {
   display: grid;
-  overflow: hidden;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-8) var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hoverArea {
   height: 100%;
-  background-color: var(--color-surface-1);
-  border: 1px solid var(--color-border);
+}
+
+.card {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+}
+
+.media {
+  position: relative;
+}
+
+.carousel {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-surface-2);
   border-radius: var(--radius-lg);
 }
 
 .strip {
   display: flex;
-  overflow-x: auto;
   margin: 0;
   padding: 0;
+  overflow-x: auto;
   list-style: none;
   scroll-snap-type: x mandatory;
-  background-color: var(--color-surface-2);
-}
-
-.strip:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: -3px;
+  scrollbar-width: none;
+  cursor: pointer;
 }
 
 .stripItem {
@@ -175,11 +284,95 @@
   object-fit: cover;
 }
 
+.noPhoto {
+  aspect-ratio: 4 / 3;
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-lg);
+}
+
+/* Photo arrows appear on hover and keyboard focus. */
+.arrow {
+  position: absolute;
+  top: 50%;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background-color: var(--color-surface-1);
+  border: 0;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-overlay);
+  color: var(--color-ink);
+  opacity: 0;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.arrowPrev {
+  left: var(--space-2);
+}
+
+.arrowNext {
+  right: var(--space-2);
+}
+
+.arrow[hidden] {
+  display: none;
+}
+
+.arrow:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+  opacity: 1;
+}
+
+.carousel:hover .arrow {
+  opacity: 1;
+}
+
+.dots {
+  position: absolute;
+  bottom: var(--space-2);
+  left: 50%;
+  display: flex;
+  gap: var(--space-1);
+  transform: translateX(-50%);
+}
+
+.dots span {
+  width: 7px;
+  height: 7px;
+  background-color: var(--color-surface-1);
+  border-radius: var(--radius-pill);
+  opacity: 0.6;
+}
+
+.dots span[data-on] {
+  opacity: 1;
+}
+
+.photoPill {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  background-color: var(--color-surface-1);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-overlay);
+  color: var(--color-ink);
+  font-weight: var(--type-title-weight);
+}
+
+.heart {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+}
+
 .cardBody {
+  position: relative;
   display: grid;
-  align-content: start;
-  gap: var(--space-2);
-  padding: var(--space-4);
+  gap: var(--space-1);
 }
 
 .cardBody p {
@@ -188,20 +381,71 @@
 
 .cardTitle {
   margin: 0;
+  overflow: hidden;
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-title-weight);
+  line-height: var(--type-body-line);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.cardTitle a {
+.cardLink {
   color: var(--color-ink);
+  text-decoration: none;
+}
+
+/* The title's link covers the words under the photo, so a tap there opens the home. */
+.cardLink::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+
+.cardLink:hover {
+  text-decoration: underline;
+}
+
+.cardLink:focus-visible {
+  outline: none;
+}
+
+.cardLink:focus-visible::after {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .rent {
   font-family: var(--type-heading-family);
   font-size: var(--type-title-size);
-  line-height: var(--type-title-line);
   font-weight: var(--type-title-weight);
+  line-height: var(--type-title-line);
 }
 
-.tags {
+.muted {
+  color: var(--color-ink-muted);
+}
+
+/* M117: the card whose pin is being looked at. */
+.hoverArea[data-hovered] .carousel {
+  outline: 3px solid var(--color-navy);
+  outline-offset: 2px;
+}
+
+/* M61: nothing matches. */
+.nothing {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: start;
+}
+
+.nothing h2,
+.nothing p {
+  margin: 0;
+}
+
+.wider {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
@@ -210,39 +454,23 @@
   list-style: none;
 }
 
-.tags li {
-  padding: var(--space-1) var(--space-2);
-  background-color: var(--color-surface-2);
-  border-radius: var(--radius-sm);
-}
-
-.nothing,
-.nearby {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.nothing h2,
-.nothing p,
-.nearby h2 {
-  margin: 0;
-}
-
-.wider,
-.nearby ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-6);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.wider a,
-.nearby a {
+.widerLink {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font-weight: var(--type-title-weight);
+  text-decoration: none;
+}
+
+.alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
 }
 
 .pages {
@@ -259,13 +487,67 @@
   min-height: 44px;
 }
 
-.alert {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3) var(--space-4);
+.nearby {
+  display: grid;
+  gap: var(--space-3);
 }
 
-.alert p {
+.nearby h2 {
   margin: 0;
+}
+
+.nearby ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nearby a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* M57: the floating Map and List button, on phones and tablets. */
+.mapToggle {
+  position: fixed;
+  bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 15;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: 0 var(--space-5);
+  background-color: var(--color-navy);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-overlay);
+  color: var(--color-nav-ink);
+  font-weight: var(--type-title-weight);
+  text-decoration: none;
+  transform: translateX(-50%);
+}
+
+.mapToggle:focus-visible {
+  outline: 3px solid var(--color-nav-focus);
+  outline-offset: 2px;
+}
+
+@media (width >= 1128px) {
+  .mapToggle {
+    display: none;
+  }
+}
+
+@media (width < 744px) {
+  .layout {
+    padding: var(--space-4) var(--space-4) var(--space-16);
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

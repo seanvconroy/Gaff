@@ -1,0 +1,350 @@
+/* M57, M117: the map. Everything floating over it has shadow-overlay; the rest is hairlines. */
+.map {
+  position: relative;
+  height: 100%;
+  min-height: 320px;
+  overflow: hidden;
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-lg);
+}
+
+.googleMap {
+  width: 100%;
+  height: 100%;
+}
+
+.failed {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.failed p {
+  max-width: 32ch;
+  margin: 0;
+}
+
+/* Our controls sit in the top corners; Google's logo and terms keep the bottom ones. */
+.controls {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  z-index: 5;
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+  max-width: calc(100% - var(--space-16));
+}
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-overlay);
+  color: var(--color-ink);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-title-weight);
+  cursor: pointer;
+}
+
+.control[aria-pressed='true'] {
+  background-color: var(--color-navy);
+  color: var(--color-nav-ink);
+}
+
+.control:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.note {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-surface-1);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-overlay);
+}
+
+/* A price pin: a white pill; the home being looked at is navy. */
+.pin {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-overlay);
+  color: var(--color-ink);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-title-weight);
+  line-height: var(--type-body-line);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pin[data-on] {
+  background-color: var(--color-navy);
+  border-color: var(--color-navy);
+  color: var(--color-nav-ink);
+}
+
+.cluster {
+  display: grid;
+  place-items: center;
+  min-width: 48px;
+  height: 48px;
+  padding: 0 var(--space-2);
+  background-color: var(--color-surface-1);
+  border: 2px solid var(--color-navy);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-overlay);
+  color: var(--color-ink);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-title-weight);
+  cursor: pointer;
+}
+
+.drawLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.drawSvg {
+  width: 100%;
+  height: 100%;
+}
+
+.drawn {
+  fill: none;
+  stroke: var(--color-atlantic);
+  stroke-width: 3;
+  stroke-dasharray: 8 6;
+}
+
+/* The chosen home's mini card, at the bottom of the map. */
+.miniCard {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-10);
+  left: var(--space-3);
+  z-index: 6;
+  display: flex;
+  gap: var(--space-3);
+  max-width: 420px;
+  margin: 0 auto;
+  overflow: hidden;
+  background-color: var(--color-surface-1);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+}
+
+.miniPhoto {
+  flex: none;
+  width: 132px;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.miniBody {
+  display: grid;
+  align-content: center;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-3) var(--space-12) var(--space-3) 0;
+}
+
+.miniBody p {
+  margin: 0;
+}
+
+.miniTitle {
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--type-body-size);
+  font-weight: var(--type-title-weight);
+  line-height: var(--type-body-line);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.miniLink {
+  color: var(--color-ink);
+}
+
+.miniLink::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+
+.miniRent {
+  font-family: var(--type-heading-family);
+  font-size: var(--type-title-size);
+  font-weight: var(--type-title-weight);
+  line-height: var(--type-title-line);
+}
+
+.miniRooms {
+  color: var(--color-ink-muted);
+}
+
+.miniClose {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.miniClose:focus-visible,
+.miniLink:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -3px;
+}
+
+/* The static stand-in (tests and development). */
+.staticMap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.staticSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+
+.staticSvg[data-drawing] {
+  cursor: crosshair;
+}
+
+.land {
+  fill: var(--color-surface-2);
+}
+
+.gridLine {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.outline {
+  fill: none;
+  stroke: var(--color-atlantic);
+  stroke-width: 3;
+}
+
+.street {
+  fill: none;
+  stroke: var(--color-atlantic);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+.staticPin rect {
+  fill: var(--color-surface-1);
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
+}
+
+.staticPin text,
+.staticCluster text {
+  fill: var(--color-ink);
+  font-family: var(--type-body-family);
+  font-weight: var(--type-title-weight);
+}
+
+.staticPin[data-on] rect {
+  fill: var(--color-navy);
+  stroke: var(--color-navy);
+}
+
+.staticPin[data-on] text {
+  fill: var(--color-nav-ink);
+}
+
+.staticCluster circle {
+  fill: var(--color-surface-1);
+  stroke: var(--color-navy);
+  stroke-width: 3;
+}
+
+.staticPin,
+.staticCluster {
+  cursor: pointer;
+}
+
+.staticPin:focus-visible rect,
+.staticCluster:focus-visible circle {
+  stroke: var(--color-focus);
+  stroke-width: 4;
+}
+
+.staticPin:focus,
+.staticCluster:focus {
+  outline: none;
+}
+
+.zoom {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: grid;
+  overflow: hidden;
+  background-color: var(--color-surface-1);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-overlay);
+}
+
+.zoom button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background: none;
+  border: 0;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.zoom button + button {
+  border-top: 1px solid var(--color-border);
+}
+
+.zoom button:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -3px;
+}
+
+.attribution {
+  position: absolute;
+  bottom: var(--space-2);
+  left: var(--space-3);
+  margin: 0;
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+}

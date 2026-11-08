@@ -42,3 +42,64 @@ export function parseRoutingKey(query: string): string | null {
 export function routingKeyName(routingKey: string): string {
   return dublinDistricts.find((d) => d.routingKey === routingKey)?.name ?? routingKey;
 }
+
+/**
+ * M56: the town each routing key is named after, for the keys checked so far. Others show as
+ * "Eircode area" until they're checked against Eircode's published list of routing keys.
+ */
+const routingKeyTowns: Readonly<Record<string, string>> = {
+  A63: 'Greystones',
+  A67: 'Wicklow',
+  A91: 'Dundalk',
+  A92: 'Drogheda',
+  A94: 'Blackrock',
+  A96: 'Glenageary',
+  A98: 'Bray',
+  C15: 'Navan',
+  E91: 'Clonmel',
+  F23: 'Castlebar',
+  F26: 'Ballina',
+  F28: 'Westport',
+  F91: 'Sligo',
+  F92: 'Letterkenny',
+  H12: 'Cavan',
+  H18: 'Monaghan',
+  H91: 'Galway',
+  K32: 'Balbriggan',
+  K36: 'Malahide',
+  K67: 'Swords',
+  K78: 'Lucan',
+  N37: 'Athlone',
+  N39: 'Longford',
+  N91: 'Mullingar',
+  P17: 'Kinsale',
+  P24: 'Cobh',
+  P25: 'Midleton',
+  P31: 'Ballincollig',
+  P43: 'Carrigaline',
+  P51: 'Mallow',
+  P72: 'Bandon',
+  P85: 'Clonakilty',
+  R32: 'Portlaoise',
+  R35: 'Tullamore',
+  R93: 'Carlow',
+  R95: 'Kilkenny',
+  T12: 'Cork Southside',
+  T23: 'Cork Northside',
+  V92: 'Tralee',
+  V93: 'Killarney',
+  V94: 'Limerick',
+  V95: 'Ennis',
+  W12: 'Newbridge',
+  W91: 'Naas',
+  X91: 'Waterford',
+  Y14: 'Arklow',
+  Y21: 'Enniscorthy',
+  Y25: 'Gorey',
+  Y35: 'Wexford',
+};
+
+/** "P17" → "Kinsale"; null for Dublin districts (they have their own names) and unchecked keys. */
+export function routingKeyAreaName(routingKey: string): string | null {
+  return routingKeyTowns[routingKey] ?? null;
+}

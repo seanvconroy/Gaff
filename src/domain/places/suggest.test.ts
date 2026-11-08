@@ -97,6 +97,24 @@ describe('M56: what the Where box suggests', () => {
     expect(found.groups[0]!.items.map((i) => i.slug)).toEqual(['ucd-belfield', 'ucd-lyons']);
   });
 
+  it('ADR-0027: matches a finished word whole, so "main" never finds "mainistreach"', () => {
+    const street = (slug: string, name: string, context: string, irishName?: string): Place => ({
+      slug,
+      name,
+      kind: 'street',
+      county: 'Kilkenny',
+      context,
+      centre: { lat: 52.65, lng: -7.25 },
+      radiusMetres: 0,
+      ...(irishName ? { irishName } : {}),
+    });
+    const found = rankSuggestions('Main Street Kilkenny', [
+      street('abbey', 'Abbey Street', 'Kilkenny city, County Kilkenny', 'Sráid na Mainistreach'),
+      street('main', 'Main Street', 'Piltown, County Kilkenny'),
+    ]);
+    expect(found.groups.flatMap((g) => g.items.map((i) => i.slug))).toEqual(['main']);
+  });
+
   it('ranks places with more homes higher among equals', () => {
     const a: Place = {
       slug: 'newtown-a',

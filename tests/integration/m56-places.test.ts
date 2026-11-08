@@ -67,7 +67,7 @@ describe('M56: suggestions from the place index in Postgres', () => {
       ...Array.from({ length: 65 }, (_, i) =>
         street(`zz-test-abbey-street-${i}`, 'Abbey Street', `Testtown ${i}, County Galway`),
       ),
-      street('zz-test-shop-street-galway', 'Shop Street', 'Latin Quarter, Galway'),
+      street('zz-test-shop-street-galway', 'Shop Street', 'Latin Quarter, County Galway'),
     ];
     await withSystem((tx) =>
       tx.insert(places).values(streets.map((p) => rowFromPlace(p, 1, 'test'))),
@@ -77,6 +77,10 @@ describe('M56: suggestions from the place index in Postgres', () => {
         'zz-test-shop-street-galway',
       );
       expect(slugsOf(await suggestPlaces('shop st'))).toContain('zz-test-shop-street-galway');
+      // Near spellings ("... Street ..., County Galway") never crowd out the exact ones.
+      expect(slugsOf(await suggestPlaces('Shop Street County Galway'))).toEqual([
+        'zz-test-shop-street-galway',
+      ]);
     } finally {
       await withSystem((tx) => tx.delete(places).where(like(places.slug, 'zz-test-%')));
     }

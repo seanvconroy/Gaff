@@ -67,12 +67,16 @@ export function queryWords(query: string): string[][] {
     .map((word) => [word, ...(abbreviations[word] ?? [])]);
 }
 
-/** Does a query match these words of a place? Every typed word must start one of them. */
+/**
+ * Does a query match these words of a place? A finished word must be one of them (or a form it
+ * stands for), so "main" doesn't match "mainistreach"; the last, still being typed, only has to
+ * start one.
+ */
 export function wordsMatch(query: string[][], words: readonly string[]): boolean {
   return query.every((forms, i) => {
     const last = i === query.length - 1;
     return forms.some((form) =>
-      words.some((word) => (last ? word.startsWith(form) : word === form || word.startsWith(form))),
+      words.some((word) => (last ? word.startsWith(form) : word === form)),
     );
   });
 }

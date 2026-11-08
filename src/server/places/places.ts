@@ -171,8 +171,9 @@ const kindRank = sql`case ${places.kind}
   else 8 end`;
 
 /**
- * M56: candidates for what was typed, from the whole index: places whose names and context hold
- * every word typed (or a form it stands for: "rd" is "road"), and near spellings (pg_trgm).
+ * M56: candidates for what was typed, from the whole index: places whose names and context have
+ * a word starting with each word typed (or a form it stands for: "rd" is "road"), and near
+ * spellings (pg_trgm).
  * Every word, not the longest: "Shop Street Galway" by "street" alone matches 45,000 streets.
  * Short queries look only at the start of names, which the prefix index answers quickly.
  */
@@ -183,11 +184,15 @@ async function candidates(tx: Tx, typed: string): Promise<Place[]> {
   const first = q.split(' ')[0]!;
   const startsWith = sql`${places.searchText} like ${`${q}%`}`;
   const wordStarts = sql`${places.searchText} like ${`% ${first}%`}`;
+  // Each word typed starts a word of the place's text (its words are single-spaced).
   const everyWord = sql.join(
     words.map(
       (forms) =>
         sql`(${sql.join(
-          forms.map((form) => sql`${places.searchText} like ${`%${form}%`}`),
+          forms.map(
+            (form) =>
+              sql`(${places.searchText} like ${`${form}%`} or ${places.searchText} like ${`% ${form}%`})`,
+          ),
           sql` or `,
         )})`,
     ),
@@ -204,7 +209,9 @@ async function candidates(tx: Tx, typed: string): Promise<Place[]> {
     .from(places)
     .where(where)
     .orderBy(
-      sql`case when ${startsWith} then 0 when ${wordStarts} then 1 else 2 end`,
+      // Exact matches fill the candidates before near spellings, which a long query can find
+      // by the hundred ("... street ... county kilkenny").
+      sql`case when ${startsWith} then 0 when ${wordStarts} then 1 when ${everyWord} then 2 else 3 end`,
       kindRank,
       sql`${places.liveHomes} desc`,
       sql`${places.population} desc nulls last`,

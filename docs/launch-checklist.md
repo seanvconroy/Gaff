@@ -21,7 +21,8 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] **AI:** Bedrock access to Claude Opus 5.5 in `eu-west-1`, the evals passing there, and `AI_MONTHLY_BUDGET_EUR` set. Production refuses the Claude API (Q37).
 - [ ] **Privacy notice and DPIA** cover Stripe Identity for everyone (biometric data), renters' documents and the AI tasks (P50, P51), and the solicitor has answered Q42, Q43, Q45 and Q52.
 - [ ] **Google Maps Platform (Q58, ADR-0027):** a billing account in Gaff's name, with budget alerts at 50%, 80% and 100% of the monthly budget (search redesign PRD S1) and a daily quota cap on map loads. Separate API keys for production and the test copy, each restricted to Gaff's domains (HTTP referrers) and to the Maps JavaScript API only. Light and dark Map IDs, styled from the tokens. Accept the Controller-Controller Data Protection Terms, and record that Google offers no EU region (transfers under the EU–US Data Privacy Framework).
-- [ ] **Place index (ADR-0027):** the real index built from OpenStreetMap and committed (`pnpm places:build`, then `pnpm places:check`, or the **Build the place index** workflow), and `pg_trgm` enabled on the production database ([deploy.md](deploy.md), step 7).
+- [x] **Place index (ADR-0027):** built from OpenStreetMap and committed (8 November 2026; the **Build the place index** workflow rebuilds and checks it every quarter).
+- [ ] **`pg_trgm` on the production database** ([deploy.md](deploy.md), step 7). It's on for the test copy (`gaff-test`, in `public`).
 - [ ] **GitHub:** push access and Actions enabled for CI.
 
 ## Solicitor (before the first pilot letting)

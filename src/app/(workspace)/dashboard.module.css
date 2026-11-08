@@ -1,51 +1,82 @@
-.list {
-  display: grid;
-  gap: var(--space-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* The screen's one Atlantic accent. */
+.accent {
+  color: var(--color-atlantic-text);
+  font-weight: var(--type-title-weight);
 }
 
-.item {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-6);
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-6);
+/* R28 panels, as A4's list: a card with a title row and hairline rows, each a whole-row link. */
+.panel {
   background-color: var(--color-surface-1);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
-.text {
-  display: grid;
-  gap: var(--space-1);
-  min-width: 0;
+.panelHeading,
+.panelHeader {
+  padding: var(--space-4) var(--space-5);
 }
 
-.address {
-  color: var(--color-ink);
+.panelHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+  justify-content: space-between;
 }
 
-.meta {
+.count {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.panelEmpty {
+  padding: 0 var(--space-5) var(--space-5);
   color: var(--color-ink-muted);
 }
 
-.today {
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-  padding-left: var(--space-6);
+.line {
+  display: block;
 }
 
-.today a {
+.stage {
+  display: grid;
+  justify-items: end;
+  gap: var(--space-2);
+}
+
+.stageTop {
+  display: flex;
+}
+
+.stageWords {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
-  font-weight: var(--type-title-weight);
+  gap: var(--space-2);
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+  white-space: nowrap;
 }
 
 .note {
   color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+@media (width <= 640px) {
+  .panelHeading,
+  .panelHeader {
+    padding-inline: var(--space-4);
+  }
+
+  .panelEmpty {
+    padding: 0 var(--space-4) var(--space-4);
+  }
+
+  .stage {
+    justify-items: start;
+  }
 }

@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import { conditions } from '@/domain/tenancy/movein';
 import { emptyFormState } from '@/lib/forms';
 import { SelectField, TextField } from '@/ui/Field';
+import { Columns } from '@/ui/Form';
 import { Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { PhotoField } from '@/ui/PhotoField';
@@ -23,19 +24,23 @@ export function InventoryItemForm({ lettingId }: { lettingId: string }) {
             <p>{state.message}</p>
           </Notice>
         ) : null}
-        <TextField name="room" label="Room" defaultValue={v.room} error={e.room} />
-        <TextField name="item" label="Item" defaultValue={v.item} error={e.item} />
-        <SelectField
-          name="condition"
-          label="Condition"
-          defaultValue={v.condition ?? ''}
-          error={e.condition}
-          options={[
-            { value: '', label: 'Choose…' },
-            ...Object.entries(conditions).map(([value, label]) => ({ value, label })),
-          ]}
-        />
-        <TextField name="note" label="Note" optional defaultValue={v.note} error={e.note} />
+        <Columns>
+          <TextField name="room" label="Room" defaultValue={v.room} error={e.room} />
+          <TextField name="item" label="Item" defaultValue={v.item} error={e.item} />
+        </Columns>
+        <Columns>
+          <SelectField
+            name="condition"
+            label="Condition"
+            defaultValue={v.condition ?? ''}
+            error={e.condition}
+            options={[
+              { value: '', label: 'Choose…' },
+              ...Object.entries(conditions).map(([value, label]) => ({ value, label })),
+            ]}
+          />
+          <TextField name="note" label="Note" optional defaultValue={v.note} error={e.note} />
+        </Columns>
         <PhotoField
           name="photo"
           label="Photo"

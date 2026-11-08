@@ -1,169 +1,161 @@
+import { House, Plus } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { stageLabels, stageNumber } from '@/domain/lettings/stages';
-import type { TodayItem } from '@/domain/dashboard/today';
 import { formatDate, formatMinutes, formatRent } from '@/lib/format';
 import { requireMember } from '@/server/auth/member';
 import { dashboardFor } from '@/server/dashboard/dashboard';
+import { ActionList, ActionRow } from '@/ui/ActionList';
 import { ButtonLink } from '@/ui/Button';
-import { Card, PageHeader, Stack } from '@/ui/Layout';
+import { EmptyState } from '@/ui/EmptyState';
+import { PageHeader, Stack } from '@/ui/Layout';
+import { StageMeter } from '@/ui/StageTracker';
 import { StatusPill } from '@/ui/StatusPill';
 import styles from './dashboard.module.css';
+import { TodayList } from './TodayList';
 
 export const metadata: Metadata = { title: 'Lettings' };
 
-const people = (n: number) => (n === 1 ? '1 person' : `${n} people`);
-const tenancyStepWords = {
-  send_agreement: 'send the tenancy agreement',
-  sign_agreement: 'sign the tenancy agreement',
-  request_payment: 'ask for the deposit and first month’s rent',
-  confirm_payment: 'check the payment has arrived',
-  finish: 'finish and close the letting',
-} as const;
 const daysAgo = (n: number) => (n === 0 ? 'today' : n === 1 ? 'yesterday' : `${n} days ago`);
 
-/** R28: one line per thing that needs a person, linking to where it's done. */
-function todayLink(item: TodayItem): { href: string; text: string } {
-  switch (item.kind) {
-    case 'approvals':
-      return {
-        href: '/approvals',
-        text: `${item.count} ${item.count === 1 ? 'answer' : 'answers'} to approve`,
-      };
-    case 'attention':
-      return {
-        href: '/attention',
-        text: `${item.count} ${item.count === 1 ? 'email needs' : 'emails need'} your attention`,
-      };
-    case 'questions':
-      return {
-        href: '/questions',
-        text: `${item.count} ${item.count === 1 ? 'question' : 'questions'} only you can answer`,
-      };
-    case 'attendance':
-      return {
-        href: `/lettings/${item.lettingId}/attendance`,
-        text: `${item.address}: mark who came (${people(item.count)})`,
-      };
-    case 'choose':
-      return {
-        href: `/lettings/${item.lettingId}/applications`,
-        text: `${item.address}: choose who to offer it to (${item.count} applied)`,
-      };
-    case 'tenancy':
-      return {
-        href: `/lettings/${item.lettingId}/tenancy`,
-        text: `${item.address}: ${tenancyStepWords[item.step]}`,
-      };
-    case 'rtb':
-      return {
-        href: `/lettings/${item.lettingId}/tenancy`,
-        text: `${item.address}: register with the RTB by ${formatDate(item.dueBy)}`,
-      };
-    case 'offer':
-      return {
-        href: `/lettings/${item.lettingId}/applications`,
-        text: `${item.address}: make the offer`,
-      };
-    case 'rechoose':
-      return {
-        href: `/lettings/${item.lettingId}/applications`,
-        text: `${item.address}: choose again`,
-      };
-    case 'shortlist':
-      return {
-        href: `/lettings/${item.lettingId}/shortlist`,
-        text: `${item.address}: decide who views (${people(item.count)} waiting)`,
-      };
-    case 'setup':
-      return { href: `/lettings/${item.lettingId}`, text: `${item.address}: finish setting up` };
-  }
-}
+const statusPill = {
+  draft: ['neutral', 'Not live yet'],
+  live: ['success', 'Live'],
+  let: ['success', 'Let'],
+  withdrawn: ['neutral', 'Withdrawn'],
+} as const;
 
 /** R28: each letting's stage, what needs a person today, and time against the usual. */
 export default async function DashboardPage() {
   const member = await requireMember();
   const { today, lettings, usualDaysToLet } = await dashboardFor(member);
+  const homes = lettings.length;
   return (
     <Stack gap={8}>
       <PageHeader
         eyebrow={member.organisationName}
         title="Your lettings"
+        lead={
+          homes > 0 && today.length > 0 ? (
+            // The screen's one accent (A4): how many things need a person today.
+            <>
+              <span className={styles.accent}>
+                {today.length} {today.length === 1 ? 'thing' : 'things'}
+              </span>{' '}
+              {today.length === 1 ? 'needs' : 'need'} you today.
+            </>
+          ) : undefined
+        }
         actions={
-          <ButtonLink href="/lettings/new" variant="primary">
-            Add a letting
-          </ButtonLink>
+          // One primary action per view: with no lettings yet, it's in the empty state instead.
+          homes > 0 ? (
+            <ButtonLink href="/lettings/new" variant="primary">
+              <Plus size={18} strokeWidth={2} aria-hidden="true" />
+              Add a letting
+            </ButtonLink>
+          ) : undefined
         }
       />
-      {lettings.length > 0 ? (
-        <Card labelledBy="today-heading">
-          <h2 id="today-heading" className="type-title">
-            Needs you today
-          </h2>
-          {today.length === 0 ? (
-            <p>
-              Nothing needs you right now. Gaff is answering enquiries and booking viewings, and
-              it’ll list anything that needs you here.
-            </p>
-          ) : (
-            <ul className={styles.today}>
-              {today.map((item) => {
-                const { href, text } = todayLink(item);
-                return (
-                  <li key={`${item.kind}:${'lettingId' in item ? item.lettingId : ''}`}>
-                    <Link href={href}>{text}</Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Card>
-      ) : null}
-      {lettings.length === 0 ? (
-        <Card>
-          <h2 className="type-title">No lettings yet</h2>
+
+      {homes === 0 ? (
+        <EmptyState
+          icon={House}
+          title="No lettings yet"
+          action={
+            <ButtonLink href="/lettings/new" variant="primary">
+              <Plus size={18} strokeWidth={2} aria-hidden="true" />
+              Add a letting
+            </ButtonLink>
+          }
+        >
           <p>
             Add a home you&apos;re letting. It takes about ten minutes: the address, rent, key facts
             and viewing times. Then Gaff answers every enquiry for you.
           </p>
-        </Card>
+        </EmptyState>
       ) : (
-        <ul className={styles.list}>
-          {lettings.map((letting) => (
-            <li key={letting.id} className={styles.item}>
-              <div className={styles.text}>
-                <Link href={`/lettings/${letting.id}`} className={`${styles.address} type-title`}>
-                  {letting.addressLine1}
-                </Link>
-                <span className={styles.meta}>
-                  {letting.area} · {formatRent(letting.monthlyRentCents)} · Available from{' '}
-                  {formatDate(letting.availableFrom)}
-                </span>
-                <span className={styles.meta}>
-                  Your time in Gaff: {formatMinutes(letting.time.minutes)}
-                  {letting.time.usual !== null
-                    ? ` · usually ${formatMinutes(letting.time.usual)} a letting`
-                    : ''}
-                  {letting.daysToLet !== null
-                    ? ` · let in ${letting.daysToLet} ${letting.daysToLet === 1 ? 'day' : 'days'}${usualDaysToLet !== null ? `, usually ${usualDaysToLet}` : ''}`
-                    : letting.daysSinceFirstEnquiry !== null
-                      ? ` · first enquiry ${daysAgo(letting.daysSinceFirstEnquiry)}${usualDaysToLet !== null ? `, usually let in ${usualDaysToLet} days` : ''}`
-                      : ''}
-                </span>
-              </div>
-              <StatusPill tone={letting.status === 'live' ? 'success' : 'neutral'}>
-                Step {stageNumber(letting.stage)} of 9 · {stageLabels[letting.stage]}
-              </StatusPill>
-            </li>
-          ))}
-        </ul>
+        <>
+          <section className={styles.panel} aria-labelledby="today-heading">
+            <h2 id="today-heading" className={`${styles.panelHeading} type-title`}>
+              Needs you today
+            </h2>
+            {today.length === 0 ? (
+              <p className={styles.panelEmpty}>
+                Nothing needs you right now. Gaff is answering enquiries and booking viewings, and
+                it’ll list anything that needs you here.
+              </p>
+            ) : (
+              <TodayList items={today} flush />
+            )}
+          </section>
+
+          <section className={styles.panel} aria-labelledby="lettings-heading">
+            <div className={styles.panelHeader}>
+              <h2 id="lettings-heading" className="type-title">
+                All lettings
+              </h2>
+              <span className={styles.count}>
+                {homes} {homes === 1 ? 'home' : 'homes'}
+              </span>
+            </div>
+            <ActionList flush>
+              {lettings.map((letting) => {
+                const [tone, status] = statusPill[letting.status as keyof typeof statusPill] ?? [
+                  'neutral',
+                  'Not live yet',
+                ];
+                return (
+                  <ActionRow
+                    key={letting.id}
+                    id={`letting-${letting.id}`}
+                    href={`/lettings/${letting.id}`}
+                    icon={House}
+                    nameFromTitle
+                    title={letting.addressLine1}
+                    meta={
+                      <>
+                        <span className={styles.line}>
+                          {letting.area} · {formatRent(letting.monthlyRentCents)} · Available from{' '}
+                          {formatDate(letting.availableFrom)}
+                        </span>
+                        <span className={styles.line}>
+                          Your time in Gaff: {formatMinutes(letting.time.minutes)}
+                          {letting.time.usual !== null
+                            ? ` · usually ${formatMinutes(letting.time.usual)} a letting`
+                            : ''}
+                          {letting.daysToLet !== null
+                            ? ` · let in ${letting.daysToLet} ${letting.daysToLet === 1 ? 'day' : 'days'}${usualDaysToLet !== null ? `, usually ${usualDaysToLet}` : ''}`
+                            : letting.daysSinceFirstEnquiry !== null
+                              ? ` · first enquiry ${daysAgo(letting.daysSinceFirstEnquiry)}${usualDaysToLet !== null ? `, usually let in ${usualDaysToLet} days` : ''}`
+                              : ''}
+                        </span>
+                      </>
+                    }
+                    trailing={
+                      <span className={styles.stage}>
+                        <span className={styles.stageTop}>
+                          <StatusPill tone={tone}>{status}</StatusPill>
+                        </span>
+                        <span className={styles.stageWords}>
+                          <StageMeter current={letting.stage} />
+                          <span>
+                            Step {stageNumber(letting.stage)} of 9 · {stageLabels[letting.stage]}
+                          </span>
+                        </span>
+                      </span>
+                    }
+                  />
+                );
+              })}
+            </ActionList>
+          </section>
+
+          <p className={styles.note}>
+            Gaff counts a minute of your time only while you’re using it, to show the time it saves
+            you. <Link href="/settings">Set your usual times</Link>.
+          </p>
+        </>
       )}
-      {lettings.length > 0 ? (
-        <p className={styles.note}>
-          Gaff counts a minute of your time only while you’re using it, to show the time it saves
-          you. <Link href="/settings">Set your usual times</Link>.
-        </p>
-      ) : null}
     </Stack>
   );
 }

@@ -1,0 +1,60 @@
+/* R1's three steps. A hidden step stays in the form (so it's sent), but isn't shown. */
+.step:not([hidden]) {
+  display: grid;
+  gap: var(--space-6);
+}
+
+/* Groups of fields inside the step's panel, divided by hairlines. */
+.section {
+  display: grid;
+  gap: var(--space-6);
+  padding: var(--space-6) 0;
+  min-width: 0;
+}
+
+.section + .section {
+  border-top: 1px solid var(--color-border);
+}
+
+.sectionHeader {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.lead {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+/* Focused when its step opens, for screen readers: no ring, as it isn't a control. */
+.heading:focus {
+  outline: none;
+}
+
+/* "Add a second address line": an optional field, shown only when it's wanted. */
+.reveal {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  margin-top: calc(var(--space-4) * -1);
+  padding: 0 var(--space-2) 0 0;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-atlantic-text);
+  font-weight: var(--type-title-weight);
+  cursor: pointer;
+}
+
+.reveal:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+}
+
+@media (width <= 640px) {
+  .section {
+    padding: var(--space-4) 0;
+  }
+}

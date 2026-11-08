@@ -1,25 +1,97 @@
-/* Renter pages: phone first, surface-1, a space-4 gutter, never below body size (design system). */
+/*
+ * The private pages (renters, referees, tenants): phone first, surface-1, a space-4 gutter, and
+ * never below body size. The shell's data-density="comfortable" gives fields and buttons 48px and
+ * body-size hints.
+ */
 .page {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
   min-height: 100vh;
   background-color: var(--color-surface-1);
 }
 
 .header {
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border);
 }
 
 .headerInner,
-.main {
+.main,
+.footer {
+  width: 100%;
   max-width: 560px;
   margin: 0 auto;
+}
+
+.headerInner {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+/* The agency's initial, in navy: their page, not Gaff's. */
+.monogram {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: var(--color-navy);
+  border-radius: var(--radius-pill);
+  color: var(--color-nav-ink);
+  font-family: var(--type-heading-family);
+  font-size: var(--type-title-size);
+  line-height: var(--type-title-line);
+  font-weight: var(--type-heading-weight);
+}
+
+.who {
+  display: grid;
+  min-width: 0;
+}
+
+.operator {
+  font-weight: var(--type-title-weight);
+}
+
+.assistant {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-ink-muted);
+}
+
+.assistant svg {
+  flex: none;
+  color: var(--color-ai);
 }
 
 .main {
   padding: var(--space-6) var(--space-4) var(--space-12);
 }
 
-.operator {
+.footer {
+  padding: var(--space-6) var(--space-4) var(--space-10);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-ink-muted);
+}
+
+.footer strong {
+  color: var(--color-ink);
+}
+
+/* The home: its address as the title, then where, how much and when. */
+.home {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.homeArea {
+  color: var(--color-ink-muted);
+}
+
+.homeFacts {
   font-weight: var(--type-title-weight);
 }
 
@@ -27,16 +99,32 @@
   color: var(--color-ink-muted);
 }
 
-.footer {
-  max-width: 560px;
-  margin: 0 auto;
-  padding: 0 var(--space-4) var(--space-12);
-  color: var(--color-ink-muted);
+/* A section of the page: a title, a line about it, then what to do. */
+.section {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.sectionHead {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* What happens next, and when: a quiet panel at the end of a task (design principle 2). */
+.next {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-md);
+}
+
+.nextTitle {
+  font-weight: var(--type-title-weight);
 }
 
 .answers {
   display: grid;
-  gap: var(--space-2);
   margin: 0;
 }
 
@@ -44,13 +132,36 @@
   display: flex;
   justify-content: space-between;
   gap: var(--space-4);
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.answer:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.answer:last-child {
+  padding-bottom: 0;
+}
+
+.answer dt {
+  color: var(--color-ink-muted);
 }
 
 .answer dd {
   margin: 0;
   font-weight: var(--type-title-weight);
+  text-align: end;
+  overflow-wrap: anywhere;
+}
+
+/* A total under a list of amounts. */
+.total {
+  font-family: var(--type-heading-family);
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
+  font-weight: var(--type-heading-weight);
 }
 
 .big {
@@ -71,40 +182,71 @@
 
 .day legend {
   padding: 0;
+  margin-bottom: var(--space-3);
 }
 
+/* Viewing times as a grid of big cards: two across on a phone, so a short list fits on screen. */
 .slots {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
   gap: var(--space-2);
 }
 
+/* Viewing slots (A4): big cards; the chosen one gets a 2px primary edge that grows inwards. */
 .slot {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: 48px;
-  padding: var(--space-2) var(--space-4);
+  min-height: 64px;
+  padding: var(--space-3) var(--space-4);
   background-color: var(--color-surface-1);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+
+.slot:hover {
+  border-color: var(--color-ink-muted);
 }
 
 .slot:has(input:checked) {
-  background-color: var(--color-surface-2);
-  border-color: var(--color-ink);
+  padding: calc(var(--space-3) - 1px) calc(var(--space-4) - 1px);
+  border-width: 2px;
+  border-color: var(--color-primary);
+}
+
+.slot:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Where the card can show the ring, the radio doesn't need its own. */
+@supports selector(:has(*)) {
+  .slot input:focus-visible {
+    outline: none;
+  }
 }
 
 .slot input {
+  flex: none;
   width: 22px;
   height: 22px;
   margin: 0;
   accent-color: var(--color-primary);
 }
 
+.slotText {
+  display: grid;
+}
+
+.slotTime {
+  font-weight: var(--type-title-weight);
+}
+
+/* A tenancy's steps: an icon for each (never colour alone), its name, and what's next. */
 .steps {
   display: grid;
-  gap: var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -115,11 +257,51 @@
   grid-template-columns: max-content minmax(0, 1fr);
   gap: var(--space-3);
   align-items: start;
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.step:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.step:last-child {
+  padding-bottom: 0;
+}
+
+.stepIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-surface-2);
+  color: var(--color-ink-muted);
+}
+
+.stepDone {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.stepNow {
+  background-color: var(--color-primary);
+  color: var(--color-ink-inverse);
+}
+
+.stepText {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.stepName {
+  font-weight: var(--type-title-weight);
 }
 
 .inventory {
   display: grid;
-  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -130,11 +312,41 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: var(--space-3);
   align-items: center;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.inventoryItem:first-child {
+  padding-top: 0;
+  border-top: 0;
 }
 
 .inventoryPhoto {
   width: 88px;
   height: 88px;
   object-fit: cover;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
+}
+
+.inventoryText {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: start;
+}
+
+/* Bank details: each value with a copy button beside it. */
+.copyRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mono {
+  font-variant-numeric: tabular-nums;
+}
+
+.centred {
+  text-align: center;
 }

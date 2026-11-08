@@ -1,0 +1,148 @@
+/* A4's list rows: hairlines, 20px insets, a whole-row link. */
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list > li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+/* Straight under a card's header: a hairline above the first row too. */
+.flush {
+  border-top: 1px solid var(--color-border);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 44px;
+  padding: var(--space-4) var(--space-5);
+  color: var(--color-ink);
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+/* The title link's hit area covers the whole row; its focus ring stays on the title. */
+.stretched {
+  position: relative;
+}
+
+a.row:hover,
+.stretched:hover {
+  background-color: var(--color-surface-2);
+}
+
+.stretch {
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.stretch::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.stretched:hover .stretch {
+  text-decoration: underline;
+}
+
+/* Inside a card: the card's rounded corners would clip a ring drawn outside the row. */
+a.row:focus-visible {
+  outline-offset: -2px;
+}
+
+.currentItem {
+  background-color: var(--color-surface-2);
+}
+
+.tile {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+}
+
+.quiet {
+  background-color: var(--color-surface-2);
+  color: var(--color-ink);
+}
+
+.currentItem .quiet {
+  background-color: var(--color-surface-1);
+}
+
+.ai {
+  background-color: var(--color-ai-bg);
+  color: var(--color-ai);
+}
+
+.warning {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.success {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+/* The step to do next: primary, like its button (the page's accent is the stage tracker). */
+.primary {
+  background-color: var(--color-primary);
+  color: var(--color-ink-inverse);
+}
+
+.text {
+  display: grid;
+  flex: 1;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.title {
+  font-weight: var(--type-title-weight);
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.trailing {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.chevron {
+  flex: none;
+  color: var(--color-ink-muted);
+}
+
+@media (width <= 640px) {
+  .row {
+    flex-wrap: wrap;
+    padding-inline: var(--space-4);
+  }
+
+  /* On a phone the pill or button goes under the words, lined up with them. */
+  .trailing {
+    order: 1;
+    flex-basis: 100%;
+    padding-inline-start: calc(36px + var(--space-4));
+  }
+
+  .row:not(:has(.tile)) .trailing {
+    padding-inline-start: 0;
+  }
+}

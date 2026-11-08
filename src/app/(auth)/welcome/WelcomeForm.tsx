@@ -5,13 +5,14 @@ import { emptyFormState } from '@/lib/forms';
 import { ChoiceGroup, TextField } from '@/ui/Field';
 import { Stack } from '@/ui/Layout';
 import { SubmitButton } from '@/ui/SubmitButton';
+import styles from './welcome.module.css';
 import { setUpOrganisation, startRentingAction } from './actions';
 
 export function WelcomeForm({ defaultName }: { defaultName: string }) {
   const [state, action] = useActionState(setUpOrganisation, emptyFormState);
   const values = state.values ?? {};
   return (
-    <form key={state.attempt ?? 'first'} action={action} noValidate>
+    <form key={state.attempt ?? 'first'} action={action} className={styles.form} noValidate>
       <Stack gap={6}>
         <TextField
           name="yourName"
@@ -42,18 +43,20 @@ export function WelcomeForm({ defaultName }: { defaultName: string }) {
           defaultValue={values.name}
           error={state.errors?.name}
         />
-        <TextField
-          name="psraLicenceNumber"
-          label="PSRA licence number"
-          hint="Agencies only. It's on your licence, for example 001234."
-          optional
-          inputMode="numeric"
-          defaultValue={values.psraLicenceNumber}
-          error={state.errors?.psraLicenceNumber}
-        />
-        <div>
-          <SubmitButton pendingLabel="Setting up…">Set up my workspace</SubmitButton>
+        <div className={styles.agencyOnly}>
+          <TextField
+            name="psraLicenceNumber"
+            label="PSRA licence number"
+            hint="It's on your licence, for example 001234."
+            width="short"
+            inputMode="numeric"
+            defaultValue={values.psraLicenceNumber}
+            error={state.errors?.psraLicenceNumber}
+          />
         </div>
+        <SubmitButton fullWidth pendingLabel="Setting up…">
+          Set up my workspace
+        </SubmitButton>
       </Stack>
     </form>
   );

@@ -62,6 +62,7 @@ export function CriteriaQuestions({
           name="hasPets"
           legend="Do you have any pets?"
           hint="Assistance dogs don’t count as pets."
+          inline
           defaultValue={values.hasPets}
           error={errors.hasPets}
           options={[

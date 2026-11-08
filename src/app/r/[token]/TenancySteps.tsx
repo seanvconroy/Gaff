@@ -1,6 +1,7 @@
+import { Check, Circle, CircleDot } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { formatDate } from '@/lib/format';
-import { Card, Stack } from '@/ui/Layout';
-import { StatusPill } from '@/ui/StatusPill';
+import { Card } from '@/ui/Layout';
 import styles from '../renter.module.css';
 
 type Tenancy = {
@@ -14,7 +15,7 @@ type Tenancy = {
 
 /**
  * Stage 8, the tenant's side: each step with what's done and what's next (design system: every
- * screen says what happens next, and when).
+ * screen says what happens next, and when). Each step's state is an icon and words.
  */
 export function TenancySteps({
   token,
@@ -26,7 +27,7 @@ export function TenancySteps({
   tenancy: Tenancy | null;
 }) {
   const signed = ['signed', 'signed_on_paper'].includes(tenancy?.agreementStatus ?? '');
-  const steps: Array<{ name: string; done: boolean; text: React.ReactNode }> = [
+  const steps: Array<{ name: string; done: boolean; text: ReactNode }> = [
     {
       name: 'Your agreement',
       done: signed,
@@ -71,30 +72,44 @@ export function TenancySteps({
       ),
     },
   ];
+  const now = steps.findIndex((step) => !step.done);
   return (
-    <Stack gap={4}>
-      <Stack gap={2}>
-        <h2 className="type-title">Your tenancy</h2>
+    <section className={styles.section} aria-labelledby="tenancy-heading">
+      <div className={styles.sectionHead}>
+        <h2 id="tenancy-heading" className="type-title">
+          Your tenancy
+        </h2>
         <p>
           You’ve accepted the offer, and your tenancy starts on{' '}
           {tenancy ? formatDate(tenancy.startDate) : 'the date in your offer'}. Here’s what’s done,
           and what’s next.
         </p>
-      </Stack>
+      </div>
       <Card>
-        <ul className={styles.steps}>
-          {steps.map((step) => (
-            <li key={step.name} className={styles.step}>
-              <StatusPill tone={step.done ? 'success' : 'neutral'}>
-                {step.done ? 'Done' : 'To do'}
-              </StatusPill>
-              <span>
-                <strong>{step.name}.</strong> {step.text}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <ol className={styles.steps}>
+          {steps.map((step, index) => {
+            const Icon = step.done ? Check : index === now ? CircleDot : Circle;
+            return (
+              <li key={step.name} className={styles.step}>
+                <span
+                  className={`${styles.stepIcon} ${step.done ? styles.stepDone : index === now ? styles.stepNow : ''}`}
+                >
+                  <Icon size={18} strokeWidth={2} aria-hidden="true" />
+                </span>
+                <span className={styles.stepText}>
+                  <span className={styles.stepName}>
+                    {step.name}
+                    <span className="visually-hidden">
+                      {step.done ? ' (done)' : index === now ? ' (next)' : ' (to come)'}
+                    </span>
+                  </span>
+                  <span>{step.text}</span>
+                </span>
+              </li>
+            );
+          })}
+        </ol>
       </Card>
-    </Stack>
+    </section>
   );
 }

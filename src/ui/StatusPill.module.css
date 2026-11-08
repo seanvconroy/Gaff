@@ -1,34 +1,53 @@
+/* Status pills: the status tint behind, the status colour for icon and words (A4). */
 .pill {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid currentcolor;
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-2);
   border-radius: var(--radius-pill);
-  background-color: var(--color-surface-1);
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
   white-space: nowrap;
 }
 
+.large {
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
 .neutral {
+  background-color: var(--color-surface-2);
   color: var(--color-ink-muted);
 }
 
 .info {
+  background-color: var(--color-info-bg);
   color: var(--color-info);
 }
 
 .success {
+  background-color: var(--color-success-bg);
   color: var(--color-success);
 }
 
 .warning {
+  background-color: var(--color-warning-bg);
   color: var(--color-warning);
 }
 
 .danger {
+  background-color: var(--color-danger-bg);
   color: var(--color-danger);
 }
 
+/* Soft brand fill: text on sky is ink, never atlantic-text. */
 .accent {
-  color: var(--color-brick-text);
+  background-color: var(--color-sky);
+  color: var(--color-ink);
+}
+
+.ai {
+  background-color: var(--color-ai-bg);
+  color: var(--color-ai);
 }

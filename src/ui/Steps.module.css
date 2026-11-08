@@ -1,0 +1,114 @@
+.nav {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.count {
+  display: none;
+  color: var(--color-ink-muted);
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: var(--type-label-transform);
+}
+
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* A hairline between steps. */
+.step + .step::before {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 1px;
+  background-color: var(--color-border-strong);
+}
+
+.button,
+.static {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-2) 0 0;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--color-ink-muted);
+  font: inherit;
+}
+
+.button {
+  cursor: pointer;
+}
+
+.button:hover .name {
+  color: var(--color-ink);
+  text-decoration: underline;
+}
+
+.dot {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+  font-weight: var(--type-title-weight);
+}
+
+.done .dot {
+  background-color: var(--color-success-bg);
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+/* The current step is the screen's one Atlantic accent. */
+.current .dot {
+  background-color: var(--color-atlantic);
+  border-color: var(--color-atlantic);
+  color: var(--color-ink-inverse);
+}
+
+.current .static {
+  color: var(--color-ink);
+  font-weight: var(--type-title-weight);
+}
+
+/* A phone: "Step 2 of 3" and the current step's name; the dots stay as a quiet trail. */
+@media (width <= 640px) {
+  .count {
+    display: block;
+  }
+
+  .step:not(.current) .name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .step + .step::before {
+    width: 16px;
+  }
+}

@@ -15,7 +15,7 @@ export default async function SignInPage({
 }) {
   const { next } = await searchParams;
   return (
-    <Stack gap={8}>
+    <Stack gap={6}>
       <PageHeader title="Sign in" lead="We'll email you a link. There's no password to remember." />
       <SignInForm
         devOutbox={env().DEV_TOOLS && !sendsRealEmail()}

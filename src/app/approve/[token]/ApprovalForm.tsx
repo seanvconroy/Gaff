@@ -36,6 +36,7 @@ export function ApprovalForm({
                 ? `${person.name}, the preferred tenant`
                 : `${person.name}, the backup`
             }
+            inline
             defaultValue={v[person.role]}
             error={e[person.role]}
             options={[

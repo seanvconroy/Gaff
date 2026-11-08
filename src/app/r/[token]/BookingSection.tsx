@@ -41,8 +41,10 @@ export function BookingSection({
       ) : null}
       {booking ? (
         <Card>
-          <h2 className="type-title">Your viewing</h2>
-          <p className={styles.big}>{formatDateTime(booking.slot.startsAt)}</p>
+          <div className={styles.sectionHead}>
+            <h2 className="type-title">Your viewing</h2>
+            <p className={styles.big}>{formatDateTime(booking.slot.startsAt)}</p>
+          </div>
           <p>
             We’ll remind you the day before. If you can’t make it, please change or cancel, so
             someone else can have the place.
@@ -71,17 +73,16 @@ export function BookingSection({
       {available.length > 0 ? (
         <form action={bookAction.bind(null, token)}>
           <Stack gap={6}>
-            <Stack gap={2}>
+            <div className={styles.sectionHead}>
               <h2 className="type-title">
                 {booking ? 'Change to another time' : 'Choose a time to view'}
               </h2>
-              {!booking ? (
-                <p>
-                  Pick a time that suits you. We’ll email you to confirm it straight away, and
-                  remind you the day before.
-                </p>
-              ) : null}
-            </Stack>
+              <p>
+                {booking
+                  ? 'Pick a new time, and your old one goes to someone else.'
+                  : 'Pick a time that suits you. We’ll email you to confirm it straight away, and remind you the day before.'}
+              </p>
+            </div>
             {days.map((day) => (
               <fieldset key={day} className={styles.day}>
                 <legend className="type-title">{day}</legend>
@@ -91,12 +92,11 @@ export function BookingSection({
                     .map((slot) => (
                       <label key={slot.id} className={styles.slot}>
                         <input type="radio" name="slotId" value={slot.id} />
-                        <span>
-                          {formatTime(slot.startsAt)}
+                        <span className={styles.slotText}>
+                          <span className={styles.slotTime}>{formatTime(slot.startsAt)}</span>
                           {slot.capacity > 1 ? (
                             <span className={styles.muted}>
-                              {' '}
-                              · group viewing, {placesLeft(slot)} places left
+                              Group viewing, {placesLeft(slot)} places left
                             </span>
                           ) : null}
                         </span>

@@ -53,11 +53,13 @@ test('M32 to M35, M75: a development, a home in it, two more copied from it, and
   await page.getByLabel('Address', { exact: true }).fill('Apartment 1, Barrow Street');
   await page.getByLabel('Rent a month').fill('2650');
   await page.getByLabel('Available from').fill(inDays(AVAILABLE_IN_DAYS));
+  await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByLabel('Type of home').selectOption('apartment');
   await page.getByLabel('Bedrooms').fill('2');
   await page.getByLabel('Bathrooms').fill('2');
   await page.getByLabel('Furnishing').selectOption('furnished');
   await page.getByLabel('BER rating').selectOption('A2');
+  await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Save and add viewing times' }).click();
   await expect(page.getByText('Apartment 1, Barrow Street is saved')).toBeVisible();
   await page.getByLabel('Date').fill(inDays(7));

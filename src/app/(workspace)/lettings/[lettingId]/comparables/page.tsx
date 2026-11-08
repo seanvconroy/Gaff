@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 import { irishToday } from '@/lib/format';
-import { Stack } from '@/ui/Layout';
-import { Notice } from '@/ui/Notice';
+import { Narrow, Stack } from '@/ui/Layout';
 import { loadLetting } from '../letting';
-import { LettingHeader } from '../LettingHeader';
+import { TaskHeader } from '../LettingHeader';
 import { ComparablesForm } from './ComparablesForm';
 
 export const metadata: Metadata = { title: 'Comparable rents' };
@@ -24,15 +23,14 @@ export default async function ComparablesPage({
   }
   return (
     <Stack gap={8}>
-      <LettingHeader letting={letting} section="Comparable rents" />
-      <Notice tone="info" title="Three similar homes from the RTB Rent Register">
-        <p>
-          Search the Rent Register on rtb.ie for homes like {letting.addressLine1}: the same type, a
-          similar size, in the same area. Gaff keeps them for the rent-setting pack you give the new
-          tenant.
-        </p>
-      </Notice>
-      <ComparablesForm lettingId={letting.id} today={irishToday()} current={current} />
+      <TaskHeader
+        letting={letting}
+        title="Comparable rents"
+        lead={`Three homes like ${letting.addressLine1} from the RTB Rent Register on rtb.ie: the same type, a similar size, in the same area. Gaff keeps them for the rent-setting pack you give the new tenant.`}
+      />
+      <Narrow>
+        <ComparablesForm lettingId={letting.id} today={irishToday()} current={current} />
+      </Narrow>
     </Stack>
   );
 }

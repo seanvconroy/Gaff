@@ -1,5 +1,6 @@
 .card {
   display: grid;
+  align-content: start;
   gap: var(--space-4);
   padding: var(--space-6);
   background-color: var(--color-surface-1);
@@ -8,10 +9,38 @@
   min-width: 0;
 }
 
+/* An aside, such as what happens next: a quiet fill, no edge. */
+.quietCard {
+  background-color: var(--color-surface-2);
+  border-color: transparent;
+}
+
 @media (width <= 640px) {
   .card {
     padding: var(--space-4);
   }
+}
+
+.cardHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.cardHeaderText {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.cardAction {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin-block: calc(var(--space-2) * -1);
 }
 
 .stack {
@@ -58,42 +87,104 @@
   justify-content: space-between;
 }
 
+/* The title block on the left, and its actions on the right; on a phone they wrap under it. */
 .header {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.headerRow {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: var(--space-4) var(--space-6);
   align-items: flex-end;
   justify-content: space-between;
 }
 
+.headerText {
+  display: grid;
+  flex: 1 1 28rem;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.backRow {
+  margin-bottom: var(--space-2);
+}
+
+/* A quiet link up a level: muted until it's hovered, and a full 44px tall to tap. */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  margin-inline-start: calc(var(--space-1) * -1);
+  padding-inline-end: var(--space-2);
+  color: var(--color-ink-muted);
+  font-weight: var(--type-title-weight);
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--color-ink);
+}
+
 .eyebrow {
   color: var(--color-ink-muted);
-  text-transform: uppercase;
 }
 
 .lead {
   color: var(--color-ink-muted);
-  max-width: 60ch;
+  max-width: 64ch;
 }
 
 .muted {
   color: var(--color-ink-muted);
 }
 
+.narrow {
+  display: grid;
+  gap: var(--space-6);
+  width: 100%;
+  max-width: 720px;
+  min-width: 0;
+}
+
+/* Page titles at phone width use display-mobile. */
 @media (width <= 640px) {
   .title {
-    font-family: var(--type-heading-family);
-    font-size: var(--type-heading-size);
-    line-height: var(--type-heading-line);
+    font-family: var(--type-display-mobile-family);
+    font-size: var(--type-display-mobile-size);
+    line-height: var(--type-display-mobile-line);
+    letter-spacing: var(--type-display-mobile-tracking);
   }
 }
 
+/* The A4 wordmark: lowercase Fraunces at its display optical size, with an Atlantic full stop. */
 .wordmark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--color-ink);
+  font-family: var(--type-heading-family);
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
+  font-weight: var(--type-heading-weight);
+  letter-spacing: var(--type-heading-tracking);
+  font-variation-settings: 'opsz' 144;
   text-decoration: none;
+}
+
+.wordmarkDot {
+  color: var(--color-atlantic);
+}
+
+/* On the navy sidebar and bar. */
+.onNavy {
+  color: var(--color-nav-ink);
+}
+
+.onNavy:focus-visible {
+  outline-color: var(--color-nav-focus);
 }

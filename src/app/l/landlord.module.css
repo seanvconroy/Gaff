@@ -1,18 +1,58 @@
-/* The landlord's read-only page: phone-friendly, quiet, one column. */
+/* The landlord's private pages: phone-friendly, quiet, one column. Never below 16px. */
 .page {
   min-height: 100vh;
   background-color: var(--color-surface-0);
 }
 
 .header {
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   background-color: var(--color-surface-1);
   border-bottom: 1px solid var(--color-border);
 }
 
 .inner {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
   max-width: 880px;
   margin: 0 auto;
+}
+
+/* The agency's initial, in navy: their page, not Gaff's. */
+.monogram {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: var(--color-navy);
+  border-radius: var(--radius-pill);
+  color: var(--color-nav-ink);
+  font-family: var(--type-heading-family);
+  font-size: var(--type-title-size);
+  line-height: var(--type-title-line);
+  font-weight: var(--type-heading-weight);
+}
+
+.who {
+  display: grid;
+  min-width: 0;
+}
+
+.operator {
+  font-weight: var(--type-title-weight);
+}
+
+.tagline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-ink-muted);
+}
+
+.tagline svg {
+  flex: none;
 }
 
 .main {
@@ -21,24 +61,26 @@
   padding: var(--space-8) var(--space-4) var(--space-12);
 }
 
-.operator {
-  font-weight: var(--type-title-weight);
-}
-
 .muted {
   color: var(--color-ink-muted);
 }
 
+/* Where things are: a row of figures, each a small tile. */
 .numbers {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+  gap: var(--space-3);
   margin: 0;
 }
 
 .number {
   display: grid;
+  align-content: start;
   gap: var(--space-1);
+  padding: var(--space-4);
+  background-color: var(--color-surface-0);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
 .number dt {
@@ -69,8 +111,8 @@
 
 .entry {
   display: grid;
-  grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
-  gap: var(--space-2) var(--space-4);
+  grid-template-columns: minmax(0, 13rem) minmax(0, 1fr);
+  gap: var(--space-1) var(--space-4);
   padding: var(--space-3) 0;
   border-top: 1px solid var(--color-border);
 }
@@ -86,16 +128,20 @@
   }
 }
 
+/* A chosen applicant's figures, side by side. */
 .facts {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
+  gap: var(--space-3);
   margin: 0;
 }
 
 .fact {
   display: grid;
   gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface-0);
+  border-radius: var(--radius-md);
 }
 
 .fact dt {
@@ -104,4 +150,37 @@
 
 .fact dd {
   margin: 0;
+}
+
+/* Each check: its name as a pill, then the result in words. */
+.checks {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.check {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: start;
+}
+
+.personHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* The page's title block: the step, the address and the home's figures. */
+.title {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.title > :first-child {
+  color: var(--color-ink-muted);
 }

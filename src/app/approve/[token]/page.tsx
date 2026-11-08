@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { formatRatio } from '@/domain/applications/apply';
 import { formatDate, formatRent } from '@/lib/format';
 import { loadApprovalSummary } from '@/server/offers/approval';
-import { Card, PageHeader, Stack } from '@/ui/Layout';
-import { Notice } from '@/ui/Notice';
+import { Card, Stack } from '@/ui/Layout';
+import { Outcome } from '@/ui/Outcome';
 import { StatusPill } from '@/ui/StatusPill';
 import { LandlordShell } from '../../l/LandlordShell';
 import styles from '../../l/landlord.module.css';
@@ -69,13 +69,12 @@ export default async function ApprovePage({
   if (!summary) {
     return (
       <LandlordShell organisationName="Gaff" tagline="Using Gaff">
-        <Stack gap={4}>
-          <h1 className="type-heading">This link isn’t working</h1>
+        <Outcome tone="info" title="This link isn’t working" headingLevel={1}>
           <p>
             It may have expired, or the choice may have changed. Ask your letting agent for a new
             one.
           </p>
-        </Stack>
+        </Outcome>
       </LandlordShell>
     );
   }
@@ -87,13 +86,16 @@ export default async function ApprovePage({
       tagline="Sent to you privately, using Gaff"
     >
       <Stack gap={8}>
-        <PageHeader
-          eyebrow="Approve a tenant"
-          title={letting.addressLine1}
-          lead={`${letting.area} · ${formatRent(letting.monthlyRentCents)} · Available from ${formatDate(letting.availableFrom)}`}
-        />
+        <header className={styles.title}>
+          <p className="type-label">Approve a tenant</p>
+          <h1 className="type-display-mobile">{letting.addressLine1}</h1>
+          <p className={styles.muted}>
+            {letting.area} · {formatRent(letting.monthlyRentCents)} · Available from{' '}
+            {formatDate(letting.availableFrom)}
+          </p>
+        </header>
         {done ? (
-          <Notice
+          <Outcome
             tone="success"
             title={answered ? 'Thanks for your answer' : 'You’ve answered'}
             role="status"
@@ -102,7 +104,7 @@ export default async function ApprovePage({
               {summary.operatorName} will make the offer and keep you posted. There’s nothing else
               you need to do now.
             </p>
-          </Notice>
+          </Outcome>
         ) : (
           <p>
             {summary.operatorName} has chosen{' '}
@@ -114,14 +116,14 @@ export default async function ApprovePage({
         {summary.people.map((person) => (
           <Card key={person.role} labelledBy={`person-${person.role}`}>
             <Stack gap={4}>
-              <Stack gap={1}>
+              <div className={styles.personHead}>
                 <h2 id={`person-${person.role}`} className="type-title">
                   {person.name}
                 </h2>
-                <p className={styles.muted}>
+                <StatusPill tone={person.role === 'preferred' ? 'success' : 'info'} large>
                   {person.role === 'preferred' ? 'Preferred tenant' : 'Backup'}
-                </p>
-              </Stack>
+                </StatusPill>
+              </div>
               <dl className={styles.facts}>
                 <div className={styles.fact}>
                   <dt>Criteria</dt>
@@ -142,12 +144,15 @@ export default async function ApprovePage({
                   </dd>
                 </div>
               </dl>
-              <ul className={styles.list}>
+              <ul className={styles.checks}>
                 {person.checks.map((check) => {
                   const [tone, words] = checkWords(check);
                   return (
-                    <li key={check.kind}>
-                      <StatusPill tone={tone}>{checkName[check.kind]}</StatusPill> {words}
+                    <li key={check.kind} className={styles.check}>
+                      <StatusPill tone={tone} large>
+                        {checkName[check.kind]}
+                      </StatusPill>
+                      <span>{words}</span>
                     </li>
                   );
                 })}

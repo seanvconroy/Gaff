@@ -3,6 +3,7 @@ import { daftEnquiry, myhomeEnquiry } from '../fixtures/emails';
 import {
   createLettingThroughUi,
   expectAccessible,
+  expectFocusRings,
   expectNoSidewaysScroll,
   gaffAddress,
   goLiveThroughUi,
@@ -66,6 +67,15 @@ test('R10, R11, R12, R13, R14: a person decides who views; renters book, move an
   await expectAccessible(aoife.page);
   await expectNoSidewaysScroll(aoife.page);
   await screenshot(aoife.page, '27-renter-choose-time');
+  // ADR-0011: in both themes, a focus ring on everything; the dark theme passes axe too.
+  await aoife.page.reload();
+  await expectFocusRings(aoife.page);
+  await aoife.page.emulateMedia({ colorScheme: 'dark' });
+  await aoife.page.reload();
+  await expectFocusRings(aoife.page);
+  await expectAccessible(aoife.page);
+  await screenshot(aoife.page, '27-renter-choose-time-dark');
+  await aoife.page.emulateMedia({ colorScheme: 'light' });
   await aoife.page.getByRole('button', { name: 'Book this time' }).click();
   await expect(aoife.page.getByText('Choose a time first.')).toBeVisible();
   await aoife.page.getByRole('radio').first().check();

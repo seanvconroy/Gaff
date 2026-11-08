@@ -6,6 +6,7 @@ import { requireMember } from '@/server/auth/member';
 import { listingsOverview } from '@/server/listings/manage';
 import { teamMembers } from '@/server/organisations/team';
 import { SelectField } from '@/ui/Field';
+import { ButtonLink } from '@/ui/Button';
 import { PageHeader, Row, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { SubmitButton } from '@/ui/SubmitButton';
@@ -41,6 +42,11 @@ export default async function ListingsPage({
         eyebrow={member.organisationName}
         title="Listings"
         lead="Each home’s advert on Gaff. Enquiries from listings come into the same lists as Daft and MyHome."
+        actions={
+          <ButtonLink href="/developments" variant="secondary">
+            Developments
+          </ButtonLink>
+        }
       />
       {problem ? (
         <Notice tone="warning" role="alert">

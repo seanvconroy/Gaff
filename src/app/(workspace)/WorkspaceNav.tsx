@@ -1,0 +1,70 @@
+'use client';
+
+import {
+  Building2,
+  House,
+  Images,
+  Inbox,
+  type LucideIcon,
+  MessageCircleQuestionMark,
+  SlidersHorizontal,
+  Sparkles,
+} from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import styles from './workspace.module.css';
+
+const items: Array<{
+  href: string;
+  label: string;
+  Icon: LucideIcon;
+  current: RegExp;
+  wideOnly?: boolean;
+}> = [
+  { href: '/', label: 'Lettings', Icon: House, current: /^\/($|lettings(\/|$))/ },
+  // M91, M32: the marketplace's listings and developments.
+  { href: '/listings', label: 'Listings', Icon: Images, current: /^\/listings(\/|$)/ },
+  {
+    href: '/developments',
+    label: 'Developments',
+    Icon: Building2,
+    current: /^\/developments(\/|$)/,
+    // Six fit a phone's bottom bar; on a phone, developments open from Listings.
+    wideOnly: true,
+  },
+  { href: '/approvals', label: 'Approvals', Icon: Sparkles, current: /^\/approvals(\/|$)/ },
+  {
+    href: '/questions',
+    label: 'Questions',
+    Icon: MessageCircleQuestionMark,
+    current: /^\/questions(\/|$)/,
+  },
+  { href: '/attention', label: 'Needs attention', Icon: Inbox, current: /^\/attention(\/|$)/ },
+  { href: '/settings', label: 'Settings', Icon: SlidersHorizontal, current: /^\/settings(\/|$)/ },
+];
+
+/**
+ * The workspace navigation: a navy sidebar on a laptop and a bottom bar on a phone (A4), one
+ * element either way. The current page is marked for screen readers as well as by colour.
+ */
+export function WorkspaceNav() {
+  const pathname = usePathname();
+  return (
+    <nav aria-label="Workspace" className={styles.nav} data-bottom-bar="">
+      <ul className={styles.navList}>
+        {items.map(({ href, label, Icon, current, wideOnly }) => (
+          <li key={href} className={wideOnly ? styles.wideOnly : undefined}>
+            <Link
+              href={href}
+              className={styles.navLink}
+              aria-current={current.test(pathname) ? 'page' : undefined}
+            >
+              <Icon className={styles.navIcon} size={18} strokeWidth={1.75} aria-hidden="true" />
+              <span>{label}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}

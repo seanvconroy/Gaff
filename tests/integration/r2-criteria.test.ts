@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { withOrg } from '@/db/client';
 import { events, lettings } from '@/db/schema';
@@ -23,8 +23,13 @@ describe('R2: criteria', () => {
     const { lettingId } = await createLetting(member, aLetting());
     await setCriteria(member, lettingId, { minStayMonths: 12, noPets: false });
     await setCriteria(member, lettingId, { minStayMonths: 24, noPets: false });
+    // In the order they happened: without an order, Postgres may return rows in any order.
     const history = await withOrg(member.organisationId, (tx) =>
-      tx.select({ data: events.data }).from(events).where(eq(events.type, 'criteria.set')),
+      tx
+        .select({ data: events.data })
+        .from(events)
+        .where(eq(events.type, 'criteria.set'))
+        .orderBy(asc(events.id)),
     );
     expect(history.map((e) => e.data)).toEqual([
       { minStayMonths: 12, noPets: false },

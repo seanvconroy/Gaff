@@ -1,73 +1,171 @@
-.breadcrumb {
-  color: var(--color-ink-muted);
+/* The step line: "Step 2 of 9 · Enquiries" and the letting's status, in sentence case. */
+.eyebrow {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
 }
 
-.checklist {
-  display: grid;
+.eyebrow > :last-child {
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* The letting's pages: one row that scrolls sideways on a phone rather than wrapping. */
+.tabs {
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tabList {
+  display: flex;
+  gap: var(--space-6);
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid var(--color-border);
 }
 
-.checkItem {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-2) var(--space-4);
+.tab,
+.tabCurrent {
+  display: inline-flex;
   align-items: center;
-  padding: var(--space-4) 0;
-  border-bottom: 1px solid var(--color-border);
+  min-height: 44px;
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition-property: color, border-color;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease-standard);
 }
 
-.checkText {
-  display: grid;
-  gap: var(--space-1);
+.tab:hover {
+  color: var(--color-ink);
+  border-bottom-color: var(--color-border-strong);
 }
 
-.checkTitle {
+.tabCurrent {
+  color: var(--color-ink);
   font-weight: var(--type-title-weight);
+  border-bottom-color: var(--color-ink);
 }
 
-.checkHint {
-  color: var(--color-ink-muted);
+/* Inside the scrolling row, so the ring isn't clipped. */
+.tab:focus-visible,
+.tabCurrent:focus-visible {
+  outline-offset: -2px;
 }
 
-.facts {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: var(--space-2) var(--space-6);
-  margin: 0;
+@media (width <= 640px) {
+  .tabList {
+    gap: var(--space-5);
+  }
 }
 
-.pair {
-  display: contents;
-}
-
-.facts dt {
-  color: var(--color-ink-muted);
-}
-
-.facts dd {
-  margin: 0;
-}
-
-.factList {
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-  padding-left: var(--space-6);
-}
-
-.twoUp {
+/* The overview's cards, two side by side on a laptop. */
+.grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-6);
   align-items: start;
 }
 
-.sessions {
+@media (width <= 900px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A card that is a titled list: the header, then hairline rows edge to edge. */
+.listCard {
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.listCardHeader {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-1);
+  padding: var(--space-5) var(--space-5) var(--space-4);
+}
+
+.listCardFooter {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+@media (width <= 640px) {
+  .listCardHeader,
+  .listCardFooter {
+    padding-inline: var(--space-4);
+  }
+}
+
+.muted {
+  color: var(--color-ink-muted);
+}
+
+.small {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.headerRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+/* A quiet "Change" link in a card's header: standalone, so no underline until it's hovered. */
+.change {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  font-weight: var(--type-title-weight);
+  text-decoration: none;
+}
+
+.change:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+}
+
+/* A small action that looks like a link, such as "Remove" on a row. */
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-atlantic-text);
+  font-weight: var(--type-title-weight);
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+}
+
+/* Viewing times on their set-up page. */
+.sessions {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -79,10 +177,8 @@
   gap: var(--space-2) var(--space-4);
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4);
-  background-color: var(--color-surface-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--color-border);
 }
 
 .sessionText {
@@ -90,49 +186,47 @@
   gap: var(--space-1);
 }
 
-@media (width <= 800px) {
-  .twoUp {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.removeButton {
-  min-height: 44px;
-  padding: 0 var(--space-2);
-  background-color: transparent;
-  border: 0;
-  color: var(--color-brick-text);
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  column-gap: var(--space-6);
-  border-bottom: 1px solid var(--color-border);
+.sessionWhen {
+  font-weight: var(--type-title-weight);
 }
 
 @media (width <= 640px) {
-  .tabs {
-    column-gap: var(--space-4);
+  .session {
+    padding-inline: var(--space-4);
   }
 }
 
-.tab,
-.tabCurrent {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  color: var(--color-ink-muted);
-  text-decoration: none;
-  border-bottom: 2px solid transparent;
+/* Only the field for the chosen kind of viewing shows (progressive disclosure, no script). */
+.slotsOnly,
+.groupOnly {
+  display: grid;
 }
 
-.tabCurrent {
-  color: var(--color-ink);
-  font-weight: var(--type-title-weight);
-  border-bottom-color: var(--color-ink);
+.sessionForm:has(input[name='kind'][value='group']:checked) .slotsOnly,
+.sessionForm:has(input[name='kind'][value='slots']:checked) .groupOnly {
+  display: none;
+}
+
+/* The rent check asks only what applies to the answer before (progressive disclosure). */
+.ifLetBefore,
+.ifBeforeNewRules {
+  display: none;
+}
+
+.rentForm:has(input[name='lastLet'][value='before_new_rules']:checked) .ifLetBefore,
+.rentForm:has(input[name='lastLet'][value='under_new_rules']:checked) .ifLetBefore,
+.rentForm:has(input[name='lastLet'][value='before_new_rules']:checked) .ifBeforeNewRules {
+  display: grid;
+  gap: var(--space-6);
+}
+
+/* Without :has(), every question shows. */
+@supports not selector(:has(*)) {
+  .ifLetBefore,
+  .ifBeforeNewRules {
+    display: grid;
+    gap: var(--space-6);
+  }
 }
 
 .timeline {
@@ -144,10 +238,10 @@
 
 .entry {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: var(--space-2) var(--space-6);
-  padding: var(--space-4) 0;
-  border-bottom: 1px solid var(--color-border);
+  grid-template-columns: 13rem minmax(0, 1fr);
+  gap: var(--space-1) var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--color-border);
 }
 
 .entryWhen {
@@ -164,15 +258,14 @@
 @media (width <= 640px) {
   .entry {
     grid-template-columns: minmax(0, 1fr);
+    padding-inline: var(--space-4);
   }
 }
 
 .tick {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
+  margin: 0;
   accent-color: var(--color-primary);
-}
-
-.narrow {
-  max-width: 280px;
+  cursor: pointer;
 }

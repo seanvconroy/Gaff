@@ -1,9 +1,11 @@
-import Link from 'next/link';
+import { LogOut } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { requireStaff } from '@/server/auth/staff';
 import { testersAllowed } from '@/server/staff/testers';
 import { Wordmark } from '@/ui/Layout';
+import { signOut } from '../(workspace)/actions';
 import styles from '../(workspace)/workspace.module.css';
+import { StaffNav } from './StaffNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,24 +17,24 @@ export default async function StaffLayout({ children }: { children: ReactNode })
       <a href="#main" className={styles.skip}>
         Skip to content
       </a>
-      <header className={styles.bar}>
-        <div className={styles.barInner}>
-          <Wordmark href="/staff/checks" />
-          <nav aria-label="Gaff staff" className={styles.nav}>
-            <Link href="/staff/checks">Checks</Link>
-            <Link href="/staff/listings">Listings</Link>
-            <Link href="/staff/review">Reports</Link>
-            {testersAllowed() ? (
-              <>
-                <Link href="/dev/outbox">Outbox</Link>
-                {staff.role === 'admin' ? <Link href="/staff/testers">Testers</Link> : null}
-              </>
-            ) : null}
-          </nav>
+      <header className={styles.side}>
+        <div className={styles.sideInner}>
+          <div className={styles.brand}>
+            <Wordmark href="/staff/checks" onNavy />
+          </div>
+          <StaffNav testCopy={testersAllowed()} admin={staff.role === 'admin'} />
           <div className={styles.account}>
-            <span className={styles.who}>
-              {staff.name ? `${staff.name} · Gaff staff` : 'Gaff staff'}
-            </span>
+            <p className={styles.who}>
+              <span className={styles.name}>{staff.name || 'Gaff staff'}</span>
+              <span className="visually-hidden"> · </span>
+              <span>Gaff staff</span>
+            </p>
+            <form action={signOut}>
+              <button type="submit" className={styles.signOut}>
+                <LogOut size={18} strokeWidth={1.75} aria-hidden="true" />
+                Sign out
+              </button>
+            </form>
           </div>
         </div>
       </header>

@@ -46,7 +46,7 @@ test('M16, M18, M23, M105: an agency invites an agent, and Gaff staff check both
   browser,
   page,
 }) => {
-  const admin = await signUpOperator(page, 'Halcyon Lettings');
+  const admin = await signUpOperator(page, 'Larkspur Lettings');
   await page.goto('/settings/team');
   await expectAccessible(page);
   const agentEmail = uniqueEmail('aoife');
@@ -58,13 +58,15 @@ test('M16, M18, M23, M105: an agency invites an agent, and Gaff staff check both
   const agentContext = await browser.newContext();
   const agent = await agentContext.newPage();
   await agent.goto(await latestLinkFor(agentEmail));
-  await expect(agent.getByRole('heading', { name: 'Join Halcyon Lettings on Gaff' })).toBeVisible();
+  await expect(
+    agent.getByRole('heading', { name: 'Join Larkspur Lettings on Gaff' }),
+  ).toBeVisible();
   await expectAccessible(agent);
   await agent.getByLabel('Your email address').fill(agentEmail);
   await agent.getByRole('button', { name: 'Email me a sign-in link' }).click();
   await expect(agent.getByText('Check your email')).toBeVisible();
   await agent.goto(await latestLinkFor(agentEmail));
-  await agent.getByRole('button', { name: 'Join Halcyon Lettings' }).click();
+  await agent.getByRole('button', { name: 'Join Larkspur Lettings' }).click();
   await expect(agent.getByRole('heading', { name: 'Profile' })).toBeVisible();
   await agent.getByLabel('Your name, as renters see it').fill('Aoife Byrne');
   await agent.getByLabel('Your own PSRA licence number').fill('002345');
@@ -82,7 +84,7 @@ test('M16, M18, M23, M105: an agency invites an agent, and Gaff staff check both
   await expect(staff.getByRole('heading', { name: 'Licence checks' })).toBeVisible();
   await expectAccessible(staff);
   await screenshot(staff, 'm2-staff-checks');
-  for (const whose of ['Halcyon Lettings', 'Agent at Halcyon Lettings']) {
+  for (const whose of ['Larkspur Lettings', 'Agent at Larkspur Lettings']) {
     const row = staff
       .getByRole('row')
       .filter({ has: staff.getByRole('cell', { name: whose, exact: true }) });

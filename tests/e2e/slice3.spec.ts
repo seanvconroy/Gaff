@@ -1,51 +1,25 @@
 import { expect, test, type Page } from '@playwright/test';
+import { rentDueDay, rtbDeadline } from '../../src/domain/tenancy/tenancy';
+import { formatDate } from '../../src/lib/format';
 import { AOIFE, anAcceptedOffer, onPhone } from './journeys';
 import {
   AVAILABLE_IN_DAYS,
   createLettingThroughUi,
-  inDays,
   expectAccessible,
   expectNoSidewaysScroll,
+  isoDateInDays,
   linkInEmail,
   screenshot,
   signUpOperator,
 } from './support';
-
-/** The tenancy starts on the letting's available date; these are worked out from it. */
-const tenancyStart = new Date(`${inDays(AVAILABLE_IN_DAYS)}T12:00:00Z`);
-
-function ordinal(n: number): string {
-  const suffix =
-    n % 10 === 1 && n !== 11
-      ? 'st'
-      : n % 10 === 2 && n !== 12
-        ? 'nd'
-        : n % 10 === 3 && n !== 13
-          ? 'rd'
-          : 'th';
-  return `${n}${suffix}`;
-}
-
-/** The RTB deadline: one month from the start, written as "Thursday 7 January 2027". */
-function rtbDeadline(): string {
-  const deadline = new Date(tenancyStart);
-  deadline.setUTCMonth(deadline.getUTCMonth() + 1);
-  return deadline
-    .toLocaleDateString('en-IE', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'Europe/Dublin',
-    })
-    .replace(',', '');
-}
 
 test('R22: the tenant reads and signs the agreement on their phone, then the operator signs for the landlord', async ({
   browser,
   page,
 }) => {
   test.slow();
+  // The offer starts the tenancy when the home is available.
+  const startDate = isoDateInDays(AVAILABLE_IN_DAYS);
   const { lettingUrl } = await anAcceptedOffer(browser, page);
   await page.goto(`${lettingUrl}/tenancy`);
   await expect(page.getByRole('heading', { name: 'Tenancy agreement' })).toBeVisible();
@@ -67,10 +41,11 @@ test('R22: the tenant reads and signs the agreement on their phone, then the ope
   await expect(
     tenant.getByRole('heading', { name: 'Tenancy agreement: 12 Ranelagh Road' }),
   ).toBeVisible();
+  // Rent falls due on the start date's day of the month (rentDueDay, unit-tested).
+  const rentDay = rentDueDay(startDate);
   await expect(
     tenant.getByText(
-      `€1,850 a month, paid in advance on the ${ordinal(tenancyStart.getUTCDate())} day`,
-      { exact: false },
+      new RegExp(`€1,850 a month, paid in advance on the ${rentDay}(st|nd|rd|th) day`),
     ),
   ).toBeVisible();
   await expectAccessible(tenant);
@@ -161,6 +136,8 @@ test('R24: the rent-setting and RTB packs; the tenant’s PPS number is optional
   page,
 }) => {
   test.slow();
+  // The offer starts the tenancy when the home is available.
+  const startDate = isoDateInDays(AVAILABLE_IN_DAYS);
   const { lettingUrl, offerLink } = await anAcceptedOffer(browser, page);
   await signedOnPaper(page, lettingUrl);
 
@@ -184,7 +161,7 @@ test('R24: the rent-setting and RTB packs; the tenant’s PPS number is optional
     page.getByRole('heading', { name: 'RTB registration pack: 12 Ranelagh Road' }),
   ).toBeVisible();
   await expect(page.getByText('1234567T')).toBeVisible();
-  await expect(page.getByText(`Register by ${rtbDeadline()}`, { exact: false })).toBeVisible();
+  await expect(page.getByText(`Register by ${formatDate(rtbDeadline(startDate))}`)).toBeVisible();
   await expectAccessible(page);
   await screenshot(page, '45-rtb-pack');
   await page.goto(`${lettingUrl}/tenancy/rent-pack`);

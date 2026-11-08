@@ -125,7 +125,7 @@
 .withdraw summary {
   display: list-item;
   padding: var(--space-3) 0;
-  color: var(--color-brick-text);
+  color: var(--color-atlantic-text);
   text-decoration: underline;
   cursor: pointer;
 }

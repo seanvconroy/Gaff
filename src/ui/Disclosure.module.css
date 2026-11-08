@@ -1,0 +1,81 @@
+.details {
+  min-width: 0;
+}
+
+.summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  color: var(--color-atlantic-text);
+  font-weight: var(--type-title-weight);
+  cursor: pointer;
+  list-style: none;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary:hover {
+  color: var(--color-ink);
+}
+
+.icon {
+  flex: none;
+  transition: rotate var(--motion-base) var(--ease-standard);
+}
+
+.details[open] > .summary .icon {
+  rotate: 90deg;
+}
+
+.content {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-2) 0 var(--space-2) var(--space-6);
+  color: var(--color-ink);
+}
+
+/* Standing on its own: a hairline card whose summary is the whole top row. */
+.card {
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.card > .summary {
+  display: flex;
+  width: 100%;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-lg);
+  color: var(--color-ink);
+}
+
+.card > .summary:hover {
+  background-color: var(--color-surface-2);
+}
+
+.card[open] > .summary {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+/* Inside the card: the card's rounded corners would clip a ring drawn outside the summary. */
+.card > .summary:focus-visible {
+  outline-offset: -2px;
+}
+
+.card > .content {
+  padding: var(--space-2) var(--space-6) var(--space-6);
+}
+
+@media (width <= 640px) {
+  .card > .summary {
+    padding-inline: var(--space-4);
+  }
+
+  .card > .content {
+    padding: 0 var(--space-4) var(--space-4);
+  }
+}

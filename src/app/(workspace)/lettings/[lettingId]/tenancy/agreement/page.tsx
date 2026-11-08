@@ -46,7 +46,7 @@ export default async function AgreementPage({
                 : 'not signed yet'}
             </p>
             {tenancy.agreementHash ? (
-              <p className="type-label">
+              <p className="type-caption">
                 Agreement fingerprint: {tenancy.agreementHash.slice(0, 16)}
               </p>
             ) : null}

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { irishToday } from '@/lib/format';
-import { Stack } from '@/ui/Layout';
-import { Notice } from '@/ui/Notice';
+import { Disclosure } from '@/ui/Disclosure';
+import { Narrow, Stack } from '@/ui/Layout';
 import { loadLetting } from '../letting';
-import { LettingHeader } from '../LettingHeader';
+import { TaskHeader } from '../LettingHeader';
 import { CriteriaForm } from './CriteriaForm';
 
 export const metadata: Metadata = { title: 'Who can view' };
@@ -22,16 +22,22 @@ export default async function CriteriaPage({ params }: { params: Promise<{ letti
 
   return (
     <Stack gap={8}>
-      <LettingHeader letting={letting} section="Who can view" />
-      <Notice tone="info" title="Why only these four?">
-        <p>
-          Criteria must be fair to everyone and lawful, so they come from a fixed list. Gaff asks
-          renters only what your criteria need, and ranks everyone the same way: by how many
-          criteria they meet, then by when they enquired. Nobody is turned away by Gaff. You decide
-          who views.
-        </p>
-      </Notice>
-      <CriteriaForm lettingId={letting.id} today={irishToday()} current={current} />
+      <TaskHeader
+        letting={letting}
+        title="Who can view"
+        lead="Gaff asks renters only what these need, and ranks everyone the same way. Leave any of them out if it doesn’t matter for this home."
+      />
+      <Narrow>
+        <Disclosure summary="Why only these four?">
+          <p>
+            Criteria must be fair to everyone and lawful, so they come from a fixed list. Gaff asks
+            renters only what your criteria need, and ranks everyone the same way: by how many
+            criteria they meet, then by when they enquired. Nobody is turned away by Gaff. You
+            decide who views.
+          </p>
+        </Disclosure>
+        <CriteriaForm lettingId={letting.id} today={irishToday()} current={current} />
+      </Narrow>
     </Stack>
   );
 }

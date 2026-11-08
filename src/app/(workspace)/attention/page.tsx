@@ -2,6 +2,9 @@ import type { Metadata } from 'next';
 import { formatDateTime } from '@/lib/format';
 import { requireMember } from '@/server/auth/member';
 import { lettingsToAssign, listNeedsAttention } from '@/server/enquiries/queries';
+import { Inbox } from 'lucide-react';
+import { Disclosure } from '@/ui/Disclosure';
+import { EmptyState } from '@/ui/EmptyState';
 import { SelectField } from '@/ui/Field';
 import { Card, PageHeader, Row, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
@@ -52,26 +55,26 @@ export default async function NeedsAttentionPage({
         </Notice>
       ) : null}
       {emails.length === 0 ? (
-        <Card>
-          <h2 className="type-title">Nothing needs you right now</h2>
-          <p>Gaff has placed every email it received.</p>
-        </Card>
+        <EmptyState icon={Inbox} title="Nothing needs you right now">
+          <p>Gaff has placed every email it received. Anything it can’t place waits here.</p>
+        </EmptyState>
       ) : null}
       {emails.map((email) => (
         <Card key={email.id} as="article" labelledBy={`email-${email.id}`}>
-          <h2 id={`email-${email.id}`} className="type-title">
-            {email.subject || '(no subject)'}
-          </h2>
-          <p className={styles.meta}>
-            From {email.fromAddress} · {formatDateTime(email.receivedAt)}
-          </p>
+          <div className={styles.head}>
+            <h2 id={`email-${email.id}`} className="type-title">
+              {email.subject || '(no subject)'}
+            </h2>
+            <p className={styles.meta}>
+              From {email.fromAddress} · {formatDateTime(email.receivedAt)}
+            </p>
+          </div>
           <Notice tone="warning">
             <p>{problems[email.problem ?? ''] ?? 'Gaff couldn’t place this email.'}</p>
           </Notice>
-          <details>
-            <summary>Show the email</summary>
+          <Disclosure summary="Show the email">
             <pre className={styles.body}>{email.text}</pre>
-          </details>
+          </Disclosure>
           <Row>
             {email.problem === 'no_matching_letting' && lettings.length > 0 ? (
               <form action={assignAction} className={styles.assign}>

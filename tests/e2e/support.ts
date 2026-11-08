@@ -16,6 +16,46 @@ export async function expectAccessible(page: Page): Promise<void> {
   expect(summary, 'accessibility violations').toEqual([]);
 }
 
+/**
+ * Tabs through the page from the top (call it straight after loading). Every stop must show a
+ * 2px focus ring: `focus`, or `nav-focus` in the navy navigation, where `focus` is too faint.
+ * A radio or checkbox in a choice card shows the ring on its card (design system).
+ */
+export async function expectFocusRings(page: Page): Promise<void> {
+  const seen = new Set<string>();
+  const problems: string[] = [];
+  for (let i = 0; i < 60; i++) {
+    await page.keyboard.press('Tab');
+    const stop = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || el === document.body) return null;
+      const ringOn = el.matches('label > input') ? el.closest('label')! : el;
+      const style = getComputedStyle(ringOn);
+      const inNav = !!el.closest('header:has([data-bottom-bar])') || el.matches('a[href="#main"]');
+      const token = inNav ? '--color-nav-focus' : '--color-focus';
+      const probe = document.createElement('i');
+      probe.style.color = `var(${token})`;
+      document.body.append(probe);
+      const expected = getComputedStyle(probe).color;
+      probe.remove();
+      return {
+        id: `${el.outerHTML.slice(0, 120)}@${Math.round(el.getBoundingClientRect().top + scrollY)}`,
+        name: (el.getAttribute('aria-label') || el.textContent || el.tagName).trim().slice(0, 40),
+        ok:
+          style.outlineStyle === 'solid' &&
+          parseFloat(style.outlineWidth) >= 2 &&
+          style.outlineColor === expected,
+        ring: `${style.outlineStyle} ${style.outlineWidth} ${style.outlineColor}, want ${expected}`,
+      };
+    });
+    if (!stop || seen.has(stop.id)) break;
+    seen.add(stop.id);
+    if (!stop.ok) problems.push(`${stop.name}: ${stop.ring}`);
+  }
+  expect(seen.size, 'focus stops').toBeGreaterThan(1);
+  expect(problems, 'focus rings').toEqual([]);
+}
+
 /** WCAG 1.4.10 reflow: nothing makes the page scroll sideways at this width. */
 export async function expectNoSidewaysScroll(page: Page): Promise<void> {
   const overflow = await page.evaluate(
@@ -134,16 +174,21 @@ export async function signUpOperator(
   return email;
 }
 
-/** A date this many days from now, as YYYY-MM-DD. */
-export function inDays(days: number): string {
-  const date = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
-  return date.toISOString().slice(0, 10);
+/** The date this many days from now, as YYYY-MM-DD, the way the date fields take it. */
+export function isoDateInDays(days: number): string {
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
-/** The letting's available date, which becomes the tenancy's start date. */
+/** The marketplace journeys' name for isoDateInDays. */
+export const inDays = isoDateInDays;
+
+/** A letting made by createLettingThroughUi is available, so its tenancy starts, this far ahead. */
 export const AVAILABLE_IN_DAYS = 30;
 
-/** Creates a letting with one evening of viewing slots, through the real screens. */
+/**
+ * Creates a letting with one evening of viewing slots, through the real screens: the three steps
+ * of "Add a letting" (the home, key facts, adverts), then a viewing time.
+ */
 export async function createLettingThroughUi(
   page: Page,
   address = '12 Ranelagh Road',
@@ -154,16 +199,18 @@ export async function createLettingThroughUi(
   await page.getByLabel('Address', { exact: true }).fill(address);
   await page.getByLabel('Area').fill(area);
   await page.getByLabel('Rent a month').fill('1850');
-  await page.getByLabel('Available from').fill(inDays(AVAILABLE_IN_DAYS));
+  await page.getByLabel('Available from').fill(isoDateInDays(AVAILABLE_IN_DAYS));
+  await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByLabel('Type of home').selectOption('apartment');
   await page.getByLabel('Bedrooms').fill('2');
   await page.getByLabel('Bathrooms').fill('1');
   await page.getByLabel('Furnishing').selectOption('furnished');
   await page.getByLabel('BER rating').selectOption('C1');
+  await page.getByRole('button', { name: 'Continue' }).click();
   if (daftUrl) await page.getByLabel('Daft advert').fill(daftUrl);
   await page.getByRole('button', { name: 'Save and add viewing times' }).click();
   await expect(page.getByText(`${address} is saved`)).toBeVisible();
-  await page.getByLabel('Date').fill(inDays(7));
+  await page.getByLabel('Date').fill(isoDateInDays(7));
   await page.getByLabel('From').fill('18:00');
   await page.getByLabel('Until').fill('19:00');
   await page.getByRole('button', { name: 'Add viewing time' }).click();

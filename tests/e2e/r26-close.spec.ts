@@ -33,7 +33,9 @@ test('R26 (basic): a person closes the letting, everyone hears back, and renters
   }).toPass({ timeout: 20_000 });
 
   await page.goto(lettingUrl);
-  await expect(page.getByRole('heading', { name: 'Close this letting' })).toBeVisible();
+  // A rare step that can't be undone, so it waits behind a summary line until it's wanted.
+  await expect(page.getByRole('button', { name: 'Close the letting' })).toBeHidden();
+  await page.getByText('Close this letting').click();
   await page.getByRole('button', { name: 'Close the letting' }).click();
   await expect(page.getByText('Choose whether the home is let or withdrawn')).toBeVisible();
   await page.getByLabel('It’s let').check();

@@ -93,8 +93,8 @@
 }
 
 .save[aria-pressed='true'] {
-  color: var(--color-brick-text);
-  border-color: var(--color-brick-text);
+  color: var(--color-atlantic-text);
+  border-color: var(--color-atlantic-text);
 }
 
 .save:focus-visible {

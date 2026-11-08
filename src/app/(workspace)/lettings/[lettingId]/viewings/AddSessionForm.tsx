@@ -7,20 +7,43 @@ import { ChoiceGroup, SelectField, TextField } from '@/ui/Field';
 import { Columns, FormActions, FormSection, formClass } from '@/ui/Form';
 import { Notice } from '@/ui/Notice';
 import { SubmitButton } from '@/ui/SubmitButton';
+import styles from '../letting.module.css';
 import { addSessionAction } from './actions';
 
-export function AddSessionForm({ lettingId, today }: { lettingId: string; today: string }) {
+/**
+ * R1: one viewing time. Only the setting for the chosen kind shows: the slot length for
+ * individual slots, or how many can come to a group viewing.
+ */
+export function AddSessionForm({
+  lettingId,
+  today,
+  another,
+  primary,
+}: {
+  lettingId: string;
+  today: string;
+  another: boolean;
+  primary: boolean;
+}) {
   const [state, action] = useActionState(addSessionAction.bind(null, lettingId), emptyFormState);
   const v = state.values ?? {};
   const e = state.errors ?? {};
   return (
-    <form key={state.attempt ?? 'first'} action={action} className={formClass} noValidate>
+    <form
+      key={state.attempt ?? 'first'}
+      action={action}
+      className={`${formClass} ${styles.sessionForm}`}
+      noValidate
+    >
       {e.form ? (
         <Notice tone="danger" role="alert">
           <p>{e.form}</p>
         </Notice>
       ) : null}
-      <FormSection id="add-session" title="Add a viewing time">
+      <FormSection
+        id="add-session"
+        title={another ? 'Add another viewing time' : 'Add a viewing time'}
+      >
         <Columns three>
           <TextField
             name="date"
@@ -50,6 +73,7 @@ export function AddSessionForm({ lettingId, today }: { lettingId: string; today:
         <ChoiceGroup
           name="kind"
           legend="How will people view?"
+          inline
           defaultValue={v.kind ?? 'slots'}
           error={e.kind}
           options={[
@@ -65,11 +89,11 @@ export function AddSessionForm({ lettingId, today }: { lettingId: string; today:
             },
           ]}
         />
-        <Columns>
+        <div className={styles.slotsOnly}>
           <SelectField
             name="slotMinutes"
             label="Length of each slot"
-            hint="For individual slots"
+            width="short"
             defaultValue={v.slotMinutes ?? '15'}
             error={e.slotMinutes}
             options={slotLengths.map((minutes) => ({
@@ -77,17 +101,22 @@ export function AddSessionForm({ lettingId, today }: { lettingId: string; today:
               label: `${minutes} minutes`,
             }))}
           />
+        </div>
+        <div className={styles.groupOnly}>
           <TextField
             name="capacity"
             label="How many can come"
-            hint={`For group viewings, up to ${MAX_GROUP_CAPACITY}`}
+            hint={`Up to ${MAX_GROUP_CAPACITY}`}
+            width="number"
             inputMode="numeric"
             defaultValue={v.capacity}
             error={e.capacity}
           />
-        </Columns>
+        </div>
         <FormActions>
-          <SubmitButton pendingLabel="Adding…">Add viewing time</SubmitButton>
+          <SubmitButton variant={primary ? 'primary' : 'secondary'} pendingLabel="Adding…">
+            Add viewing time
+          </SubmitButton>
         </FormActions>
       </FormSection>
     </form>

@@ -2,50 +2,82 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  contrastMinimum,
   contrastRatio,
   definedCustomProperties,
   loadTokens,
   parseTokens,
+  pxToRem,
   renderCss,
   renderTypeScript,
   resolveTokens,
+  type ContrastRule,
   type Theme,
 } from './lib';
 
 const tokens = loadTokens();
 const themes: Theme[] = ['light', 'dark'];
 const surfaces = ['surface-0', 'surface-1', 'surface-2'];
-
-// The pairs the design system promises (docs/design-system.md, docs/design-tokens.json usage notes).
-const textPairs = [
-  ...['ink', 'ink-muted', 'brick-text', 'success', 'warning', 'danger', 'info'].flatMap((fg) =>
-    surfaces.map((bg) => [fg, bg] as const),
-  ),
-  ['ink-inverse', 'primary'],
-  ['ink-inverse', 'forest'],
-  ['peach', 'forest'],
-] as const;
-const nonTextPairs = [
-  ...['border-strong', 'focus', 'brick', 'primary'].flatMap((fg) =>
-    surfaces.map((bg) => [fg, bg] as const),
-  ),
-] as const;
+const tints = ['success-bg', 'warning-bg', 'danger-bg', 'info-bg'];
 
 /**
- * Known problems in design-tokens.json v1, tracked in docs/status.md. In the dark theme,
- * forest is too light for text on it. Until the tokens are fixed, no component puts text
- * on forest. When the tokens are fixed, this test fails and asks for the entry to go.
+ * The pairs the design system promises (docs/design-system.md). The tokens file's contrast list
+ * must include each, so a pair can't pass by being left out of the list.
  */
-const knownTokenIssues = new Set(['dark:ink-inverse/forest', 'dark:peach/forest']);
+const promised: Array<[fg: string, bg: string, rule: ContrastRule]> = [
+  // Text and secondary text, links, and status words on every surface.
+  ...['ink', 'ink-muted', 'atlantic-text', 'success', 'warning', 'danger', 'info'].flatMap((fg) =>
+    surfaces.map((bg) => [fg, bg, 'text'] as [string, string, ContrastRule]),
+  ),
+  // Control edges and the focus ring on every surface.
+  ...['border-strong', 'focus'].flatMap((fg) =>
+    surfaces.map((bg) => [fg, bg, 'ui'] as [string, string, ContrastRule]),
+  ),
+  // Buttons, and text on the accent fill (the current stage).
+  ['ink-inverse', 'primary', 'text'],
+  ['ink-inverse', 'primary-hover', 'text'],
+  ['ink-inverse', 'danger', 'text'],
+  ['ink-inverse', 'atlantic', 'text'],
+  // Status pills and notices: the status colour and ink on its tint, and links in notices.
+  ['success', 'success-bg', 'text'],
+  ['warning', 'warning-bg', 'text'],
+  ['danger', 'danger-bg', 'text'],
+  ['info', 'info-bg', 'text'],
+  ['ai', 'ai-bg', 'text'],
+  ...tints.flatMap((bg) => [
+    ['ink', bg, 'text'] as [string, string, ContrastRule],
+    ['atlantic-text', bg, 'text'] as [string, string, ContrastRule],
+    ['focus', bg, 'ui'] as [string, string, ContrastRule],
+  ]),
+  // Soft brand fill: text on it is ink.
+  ['ink', 'sky', 'text'],
+  // The navy sidebar and bottom bar.
+  ['nav-ink', 'nav-bg', 'text'],
+  ['nav-ink', 'nav-active', 'text'],
+  ['nav-ink', 'navy', 'text'],
+  ['nav-ink-muted', 'nav-bg', 'text'],
+  ['nav-ink-muted', 'nav-active', 'text'],
+  ['nav-focus', 'nav-bg', 'ui'],
+  ['nav-focus', 'nav-active', 'ui'],
+];
 
 describe('design tokens (ADR-0011)', () => {
   it('the tokens file is valid and every reference resolves', () => {
     expect(Object.keys(tokens.colors)).toContain('surface-0');
-    for (const value of Object.values(tokens.colors)) {
-      expect(value.light).toMatch(/^#[0-9a-f]{3,6}$/);
-      expect(value.dark).toMatch(/^#[0-9a-f]{3,6}$/);
+    for (const [name, value] of Object.entries(tokens.colors)) {
+      const solid = name === 'overlay' ? /^rgba\(/ : /^#[0-9a-f]{3,6}$/;
+      expect(value.light).toMatch(solid);
+      expect(value.dark).toMatch(solid);
     }
-    expect(tokens.colors['focus']).toEqual(tokens.colors['brick']);
+    expect(tokens.colors['focus']).toEqual(tokens.colors['atlantic-text']);
+    expect(tokens.colors['ai']).toEqual(tokens.colors['info']);
+    expect(tokens.colors['nav-bg']!.light).toBe(tokens.colors['navy']!.light);
+  });
+
+  it('the old brand names are gone, with no aliases left behind', () => {
+    for (const old of ['forest', 'brick', 'brick-text', 'peach']) {
+      expect(Object.keys(tokens.colors)).not.toContain(old);
+    }
   });
 
   it('rejects an invalid tokens file with a readable reason', () => {
@@ -63,37 +95,69 @@ describe('design tokens (ADR-0011)', () => {
     expect(() => resolveTokens(loop)).toThrow(/loop/);
   });
 
+  it('rejects a contrast pair with an unknown or see-through colour', () => {
+    const file = parseTokens(JSON.parse(readFileSync('docs/design-tokens.json', 'utf8')));
+    const unknown = structuredClone(file);
+    unknown.contrast.pairs[0]!.bg = 'nope';
+    expect(() => resolveTokens(unknown)).toThrow(/unknown token "nope"/);
+    const seeThrough = structuredClone(file);
+    seeThrough.contrast.pairs[0]!.bg = 'overlay';
+    expect(() => resolveTokens(seeThrough)).toThrow(/not a solid colour/);
+  });
+
   it('the generated files are up to date with the tokens file', () => {
     expect(readFileSync('src/styles/tokens.css', 'utf8')).toBe(renderCss(tokens));
     expect(readFileSync('src/styles/tokens.ts', 'utf8')).toBe(renderTypeScript(tokens));
   });
 
-  for (const theme of themes) {
-    for (const [fg, bg] of textPairs) {
-      const key = `${theme}:${fg}/${bg}`;
-      if (knownTokenIssues.has(key)) continue;
-      it(`text contrast ${key} meets WCAG AA (4.5:1)`, () => {
-        expect(
-          contrastRatio(tokens.colors[fg]![theme], tokens.colors[bg]![theme]),
-        ).toBeGreaterThanOrEqual(4.5);
-      });
-    }
-    for (const [fg, bg] of nonTextPairs) {
-      it(`non-text contrast ${theme}:${fg}/${bg} meets WCAG AA (3:1)`, () => {
-        expect(
-          contrastRatio(tokens.colors[fg]![theme], tokens.colors[bg]![theme]),
-        ).toBeGreaterThanOrEqual(3);
+  it('type sizes are in rem, so they follow the reader’s text size', () => {
+    expect(pxToRem('16px')).toBe('1rem');
+    expect(pxToRem('13px')).toBe('0.8125rem');
+    const css = renderCss(tokens);
+    expect(css).toContain('--type-body-size: 1rem;');
+    expect(css).toContain('--type-display-mobile-size: 1.875rem;');
+    expect(css).not.toMatch(/--type-[a-z0-9-]+-(size|line): \d+px/);
+  });
+
+  it('labels are uppercase through their type style', () => {
+    expect(renderCss(tokens)).toMatch(
+      /\.type-label \{[^}]*text-transform: var\(--type-label-transform\);/,
+    );
+    expect(renderCss(tokens)).toContain('--type-label-transform: uppercase;');
+  });
+
+  it('with reduced motion on, every duration is 0ms and nothing animates', () => {
+    const css = renderCss(tokens);
+    const reduced = /@media \(prefers-reduced-motion: reduce\) \{\s*:root \{([^}]*)\}/.exec(css);
+    expect(reduced).not.toBeNull();
+    const durations = Object.entries(tokens.motion).filter(([, value]) => /ms$/.test(value));
+    expect(durations.map(([name]) => name)).toEqual(['motion-fast', 'motion-base', 'motion-slow']);
+    for (const [name] of durations) expect(reduced![1]).toContain(`--${name}: 0ms;`);
+  });
+
+  it('the contrast list covers every pair the design system promises', () => {
+    const listed = new Map(tokens.contrastPairs.map((p) => [`${p.fg}/${p.bg}`, p.rule]));
+    const missing = promised
+      .filter(([fg, bg, rule]) => {
+        const listedRule = listed.get(`${fg}/${bg}`);
+        return !listedRule || contrastMinimum[listedRule] < contrastMinimum[rule];
+      })
+      .map(([fg, bg, rule]) => `${fg}/${bg} (${rule})`);
+    expect(missing).toEqual([]);
+  });
+
+  for (const pair of tokens.contrastPairs) {
+    for (const theme of themes) {
+      const key = `${theme}:${pair.fg}/${pair.bg}`;
+      const minimum = contrastMinimum[pair.rule];
+      it(`contrast ${key} meets WCAG AA for ${pair.rule} (${minimum}:1), as recorded`, () => {
+        const ratio = contrastRatio(tokens.colors[pair.fg]![theme], tokens.colors[pair.bg]![theme]);
+        expect(ratio).toBeGreaterThanOrEqual(minimum);
+        // The design system's table shows these numbers; keep them true.
+        expect(Math.round(ratio * 100) / 100).toBe(pair.recorded[theme]);
       });
     }
   }
-
-  it('the known token issues are still issues (remove them once the tokens are fixed)', () => {
-    for (const key of knownTokenIssues) {
-      const [theme, pair] = key.split(':') as [Theme, string];
-      const [fg, bg] = pair.split('/') as [string, string];
-      expect(contrastRatio(tokens.colors[fg]![theme], tokens.colors[bg]![theme])).toBeLessThan(4.5);
-    }
-  });
 
   it('every var(--…) used in the app stylesheets is defined by the tokens', () => {
     const defined = definedCustomProperties(tokens);

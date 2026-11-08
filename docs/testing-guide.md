@@ -52,10 +52,10 @@ The made-up letters don't answer beyond the AI, so for the full journey, enquire
 
 1. **Sign in** with your own email and choose **Set up a letting workspace**.
 2. Choose **Ourselves: we are landlords letting our own homes** (the quickest way), or **Other people: we are a letting agency** to try the agency checks (section 7).
-3. **Get checked:** **Settings**, then **Checks**.
+3. **Get checked:** **Settings**, then **Checks** under "Your account".
    - Enter a made-up mobile, like `087 555 0123`, and press **Text me a code**. The code shows on the screen.
    - Press **Check my identity**, then **The ID and selfie match** on the test page.
-4. **Add a letting:** an address, area and rent. Use a real area so search finds it, like `Terenure, Dublin 6W`, `Salthill, Galway city` or `Douglas, Cork city`, and a made-up street.
+4. **Add a letting**, in three short steps: the home (a made-up street in a real area, so search finds it, like `Terenure, Dublin 6W`, `Salthill, Galway city` or `Douglas, Cork city`, and the rent), its key facts, then any advert links.
 5. Add a **viewing time** in the next few days, set the **criteria** (how many people, pets), **check the rent**, and **Start taking enquiries**.
 6. Open **Listing**: the home's details, the deposit, a description and at least three photos. Photos from your phone's camera roll are fine.
 7. Tick the declaration and press **Publish this listing**. It's live: search for its area as a renter and it's there. Anyone with an alert for that area gets an email.
@@ -104,6 +104,7 @@ Then swap roles.
 
 ## 8. Good to know
 
+- **On a phone**, the workspace's menu is a bar at the bottom. Developments open from **Listings**.
 - **Timing:** emails arrive within seconds; timed things (reminders, deadlines, chasers) up to a minute after their time.
 - **Limits:** the email account sends up to 100 emails a day. That's plenty for two testers, but if emails stop arriving, it's probably the limit; it resets at midnight.
 - **The made-up homes** stay listed: each deploy tops up their viewing times. Your own homes and enquiries stay until you close them.

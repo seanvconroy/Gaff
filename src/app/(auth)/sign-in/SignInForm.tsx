@@ -47,9 +47,9 @@ export function SignInForm({ devOutbox, next }: { devOutbox: boolean; next?: str
           defaultValue={state.values?.email}
           error={state.errors?.email}
         />
-        <div>
-          <SubmitButton pendingLabel="Sending your link…">Email me a sign-in link</SubmitButton>
-        </div>
+        <SubmitButton fullWidth pendingLabel="Sending your link…">
+          Email me a sign-in link
+        </SubmitButton>
       </Stack>
     </form>
   );

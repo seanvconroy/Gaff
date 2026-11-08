@@ -14,12 +14,15 @@ export function SignForm({
   consentLabel,
   button,
   hash,
+  fullWidth,
 }: {
   action: (state: FormState, formData: FormData) => Promise<FormState>;
   nameHint: string;
   consentLabel: string;
   button: string;
   hash?: string;
+  /** On a phone, the private pages' main button spans the screen. */
+  fullWidth?: boolean;
 }) {
   const [state, formAction] = useActionState(action, emptyFormState);
   const v = state.values ?? {};
@@ -36,6 +39,7 @@ export function SignForm({
         <TextField
           name="typedName"
           label="Type your full name to sign"
+          width="medium"
           hint={nameHint}
           autoComplete="name"
           defaultValue={v.typedName}
@@ -50,7 +54,9 @@ export function SignForm({
           options={[{ value: 'yes', label: consentLabel }]}
         />
         <div>
-          <SubmitButton pendingLabel="Signing…">{button}</SubmitButton>
+          <SubmitButton fullWidth={fullWidth} pendingLabel="Signing…">
+            {button}
+          </SubmitButton>
         </div>
       </Stack>
     </form>

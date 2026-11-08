@@ -96,6 +96,18 @@ https://gaff-test.vercel.app, for the founders to test as a letter and as a rent
 - **Made-up letters and homes:** two agencies and a private landlord, with nine live homes in Dublin, Galway and Cork, seeded by the build (`pnpm db:seed --deploy`, the test copy's production deployment only). Their photos are real ones Sean supplied for the test copy (`data/seed-photos`), each letter with its own framing so Gaff's copied-photo check (M29) never holds them; the next deploy swaps the drawings the homes had before, and keeps any photo a tester added. Each deploy tops up their viewing times and confirms them as available. "Add test enquiries" on a letting brings five made-up renters from Daft and MyHome, most with answers.
 - **Never indexed:** every page says `noindex` and `robots.txt` disallows everything; a banner on every page says it's the test copy. Vercel Authentication covers previews only.
 
+## Replacing the stand-ins (draft, 8 November 2026)
+
+The [providers PRD](providers/prd.md) (P1 to P60) and [technical specification](providers/tech-spec.md), for the founders' approval. Sean took five decisions on 8 November 2026 (Q37 to Q41), then revised the plan the same day after reviewing the first draft (Q44, Q48, Q50):
+- the AI runs on the Claude API on the test copy and on Bedrock in Dublin in production, and drafts descriptions, checks for unfair wording and reads documents;
+- everyone checks their identity once, with Stripe Identity, kept on their Gaff profile: renters the first time they're chosen (moved from "before their first enquiry" on the CTO's recommendation), letters (agents included) before their first listing, with a check without a selfie as the alternative. Gaff doesn't wait for Stripe's written confirmation;
+- renters confirm their mobile with a text code to book a viewing;
+- chosen renters do everything on one page: identity, the documents Irish letters already ask for (payslips and an employer's reference, or the equivalent) read and checked by Claude, and references. No income estimate, no bank statements and no open banking at launch (Q49);
+- payslips showing a PPS number are accepted;
+- HAP and affordability is banked as an open question (Q42).
+
+Two proposed ADRs: [0025](adr/0025-ai-provider-and-tasks.md) and [0026](adr/0026-identity-and-documents.md). Rules 2, 3 and 10 in `CLAUDE.md` are amended to match. Before real people use the checks: the solicitor's answers (Q42, Q43, Q45, Q52), Stripe's DPA and the privacy notice. Nothing is built yet.
+
 ## Marketplace (approved 7 November 2026)
 
 What's next, and the open questions to resolve as we build, are banked in [next-steps.md](next-steps.md).

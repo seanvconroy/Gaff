@@ -11,17 +11,18 @@ Gaff is where homes in Ireland are let. Letters (private landlords, and agents w
 - **Before the first pilot:** `docs/launch-checklist.md`.
 - **Competitor teardowns:** `docs/competitors/` (reference only).
 - **Marketplace (approved 7 November 2026):** `docs/marketplace/prd.md` (requirement IDs M1, M2…) and `docs/marketplace/tech-spec.md`. The product rules below apply to it in full.
+- **Replacing the stand-ins (draft, 8 November 2026):** `docs/providers/prd.md` (requirement IDs P1, P2…) and `docs/providers/tech-spec.md`: the real AI, identity checks for everyone, and work and income documents for chosen renters.
 
 ## Product rules: never break these
 
 If a task would break one of these rules, stop and say so. Each rule has a mechanism in the code and a test; keep both.
 
 1. **People make every decision.** Gaff ranks, drafts and suggests. It never rejects, chooses, invites or offers anyone on its own (Principle 1, GDPR Article 22). Anything that changes a renter's chances takes a `PersonDecision` (`src/domain/decisions`). Only `src/server/decisions` can create one, from a signed-in `Member`. Jobs, adapters, AI and domain code can't import it (lint rule, ADR-0007).
-2. **Staged data.** Collect renter data only at its stage (PRD workflow table):
+2. **Staged data.** Collect renter data only at its stage (PRD workflow table), and share it with a letter only at its stage:
    - before viewing: contact details and self-declared answers;
    - at applications: employment and income;
-   - for the preferred applicant and one backup only: identity, affordability and references;
-   - for RTB registration only: the PPSN.
+   - for the preferred applicant and one backup only: identity, work and income documents, and references. Identity is checked once, by Gaff with Stripe Identity, and kept on the renter's profile for their next home; Gaff keeps only the result and the verified name (Q48);
+   - for RTB registration only: the PPSN. Documents may show it, but Gaff never reads it out or records it (Q50).
 
    Ask only what the operator's criteria need. Never ask for documents before an applicant is chosen (DPC guidance).
 
@@ -29,9 +30,9 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
    - gender, civil status, family status, sexual orientation, religion or age;
    - disability, race or nationality;
    - membership of the Traveller community;
-   - receiving housing assistance (HAP).
+   - receiving housing assistance (HAP or rent supplement) or any social welfare payment (the housing assistance ground).
 
-   Criteria come only from the fixed list (move-in date, length of stay, maximum occupants, pets). There are no free-text criteria. Assistance dogs never count as pets. HAP counts as income. Ranking reads only criteria answers and enquiry time (Equal Status Acts).
+   Criteria come only from the fixed list (move-in date, length of stay, maximum occupants, pets). There are no free-text criteria. Assistance dogs never count as pets. HAP counts as income. Statements of other income are read by Gaff and never shown to letters (ADR-0026). Ranking reads only criteria answers and enquiry time (Equal Status Acts).
 
 4. **Renters never pay.** No fee or charge of any kind from a renter, including for checks. The only payments are the deposit and first month's rent, each capped at one month's rent, paid to the landlord's or agent's own account.
 5. **Gaff never holds money.** No integration that receives funds. Gaff is software operated by a licensed agent (PSRA licence) or by a landlord letting their own homes.
@@ -48,7 +49,13 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
     - its EU region, wherever it has one;
     - a lawful basis for anything outside the EU (the EU–US Data Privacy Framework or standard contractual clauses), named in the privacy notice.
 
-    Approved so far (Q26, Q29, Q58, ADR-0014, ADR-0027): Vercel (functions in Dublin), Supabase (Ireland), Resend (email), Claude on Amazon Bedrock (EU), Sinch (EU), Mailgun (EU, as an alternative), Stripe Identity, only to check private landlords' identity before their first listing, Google Maps Platform, only the Maps JavaScript API for maps showing Gaff's own content (Q58: Google is an independent controller, with no EU region; ADR-0027), and later Stripe, only to charge operators.
+    Approved so far (Q26, Q29, Q37, Q39, Q48, Q58, ADR-0014, ADR-0027):
+    - Vercel (functions in Dublin), Supabase (Ireland), Resend (email), Sinch (EU), and Mailgun (EU, as an alternative);
+    - Claude on Amazon Bedrock (EU); the Claude API on the test copy and in development only, never with real renters' data (Q37);
+    - Stripe Identity, to check every person's identity once, as part of their Gaff profile (Q48);
+    - Google Maps Platform, only the Maps JavaScript API, for maps showing Gaff's own content (Q58: Google is an independent controller, with no EU region; ADR-0027);
+    - later, Tink, for an optional read-only "Confirm with your bank", with TrueLayer as the backup (Q39, Q56);
+    - later, Stripe, only to charge operators.
 
 ## Voice: every word renters see
 

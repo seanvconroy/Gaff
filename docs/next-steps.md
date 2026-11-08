@@ -5,15 +5,15 @@ Banked on 8 November 2026, after marketplace milestones 1 to 7, developments, M1
 ## Next steps, in order
 
 1. **The founders' end-to-end test** on the test copy ([testing-guide.md](testing-guide.md)), as a letter and as a renter, and what it shows us.
-2. **Safety before real renters:**
-   - hold a letter's message that asks for money, or moves the conversation off Gaff, before a viewing, and warn the renter (M28);
-   - the AI check for subtler protected-ground wording in listings (ADR-0023), with a golden set of phrases;
+2. **Replacing the stand-ins** ([providers PRD](providers/prd.md), draft of 8 November 2026, revised the same day): the real AI (the Claude API on the test copy, Bedrock in Dublin in production), drafted descriptions (M45) and the unfair-wording check (ADR-0023); everyone's identity checked once with Stripe Identity, renters the first time they're chosen (Q48); chosen renters' work and income documents, read by Claude, with no income estimate (Q49); a confirmed mobile to book a viewing. Built in the [specification's](providers/tech-spec.md) six milestones, once the founders approve it.
+3. **Safety before real renters:**
+   - hold a letter's message that asks for money, or moves the conversation off Gaff, before a viewing, and warn the renter (M28, after the providers work, Q41);
    - passkeys for Gaff staff (M5).
-3. **The renter search redesign** (M56 to M61, M113 to M124; [PRD](marketplace/search-redesign/prd.md), [tech spec](marketplace/search-redesign/tech-spec.md)): built on its branch (see [status.md](status.md)). To finish it: build the real place index from OpenStreetMap (`pnpm places:build`, or the **Build the place index** workflow) and commit it; set up Google Maps for the test copy ([deploy.md](deploy.md), step 6); the founders' walkthrough on a phone and a laptop; then merge. Next on the same map: M38, the letter's map pin, and the listing page's map with nearby transport and schools (M71).
-4. **Letters' time savers:** AI-drafted descriptions from the facts only (M45), sections saving as you type (M37), unit types as their own records and one listing for several identical homes (M36).
-5. **Public pages:** agency pages (`/agencies/[slug]`, M17, M18), "You enquired" on result cards (M60), caching with tags, and installing Gaff as a web app (M110, M112).
-6. **Launch readiness (milestone 8):** speed on a mid-range phone, load tests on synthetic data at ten times the plan, a security review, the DPIA, the solicitor's wording, and the letter beta.
-7. **After launch, the Should items**, in the PRD's order: M53, M36, M63, M89, M54, M84, M64, M6, M20, M21, M95, M104, M108.
+4. **The renter search redesign** (M56 to M61, M113 to M124; [PRD](marketplace/search-redesign/prd.md), [tech spec](marketplace/search-redesign/tech-spec.md)): built on its branch (see [status.md](status.md)). To finish it: build the real place index from OpenStreetMap (`pnpm places:build`, or the **Build the place index** workflow) and commit it; set up Google Maps for the test copy ([deploy.md](deploy.md), step 6); the founders' walkthrough on a phone and a laptop; then merge. Next on the same map: M38, the letter's map pin, and the listing page's map with nearby transport and schools (M71).
+5. **Letters' time savers:** sections saving as you type (M37), unit types as their own records and one listing for several identical homes (M36). AI-drafted descriptions (M45) moved to the providers work.
+6. **Public pages:** agency pages (`/agencies/[slug]`, M17, M18), "You enquired" on result cards (M60), caching with tags, and installing Gaff as a web app (M110, M112).
+7. **Launch readiness (milestone 8):** speed on a mid-range phone, load tests on synthetic data at ten times the plan, a security review, the DPIA, the solicitor's wording, and the letter beta.
+8. **After launch, the Should items**, in the PRD's order: M53, M36, M63, M89, M54, M84, M64, M6, M20, M21, M95, M104, M108.
 
 ## Open questions to resolve as we build
 
@@ -22,8 +22,12 @@ Banked on 8 November 2026, after marketplace milestones 1 to 7, developments, M1
 | N1 | ~~Where do the map tiles live?~~ Answered on 8 November 2026: Google Maps hosts them (Q58). New: the monthly Google Maps budget (search redesign PRD S1), and whether the map needs a tap before it loads (S2) | Needed before the search redesign's release | Founders, solicitor |
 | N2 | Gaff's own email domain for sending (and a subdomain for alerts), and a subdomain for receiving replies and Daft or MyHome enquiries | The test copy borrows a verified domain for now; production needs Gaff's own, with SPF and DKIM | Founders |
 | N3 | Sinch for texts: when do we set it up? | On the test copy, mobile codes show on screen and texted viewing reminders go to the outbox; nothing is texted | Founders |
-| N4 | Claude on Bedrock (EU): AWS account and keys | The test copy's AI is a stand-in; real answers, drafts and checks need Bedrock | Founders |
-| N5 | Stripe Identity: test mode for the test copy, then live keys and the DPA | Landlords' ID checks are a stand-in page in the test copy | Founders |
+| N4 | An Anthropic API key for the test copy now; an AWS account with Bedrock in Dublin before launch (Q37) | The test copy's AI is a stand-in until the key is set | Founders |
+| N5 | Stripe Identity: test mode and the webhook for the test copy, then live keys and the DPA. No written confirmation needed (Q44) | Everyone's ID check is a stand-in page in the test copy; the identity milestone needs test keys | Founders |
+| N13 | Tink, later: a quote and the confirmed Irish bank list, only when "Confirm with your bank" is wanted (Q56) | Not needed at launch: documents replace open banking (Q49) | Founders |
+| N14 | HAP and affordability: the council pays most of a HAP renter's rent to the landlord directly, so it never shows on their payslips, and an income rule like 2.5 times the rent fails them unfairly. Gaff can't ask who gets HAP. How should affordability work? Options in [Q42](open-questions.md#q42-hap-and-affordability-solicitor-founders) | It's unlawful to refuse someone because they get HAP, and the rule may do that indirectly | Solicitor, founders |
+| N15 | The solicitor's view on statements of other income being read by Gaff and never shown to letters (Q52), and on checking the backup at the same time (Q43) | Both shape what letters see at the checks stage | Solicitor |
+| N16 | How a person at Gaff checks a letter whose ID can't be checked online: a video call tool to approve (Q55) | Rare, but those letters can't publish until it's settled | Founders |
 | N6 | The solicitor's review: first reply version 2, statements of reasons, the listing policy, terms, the privacy notice and the DPIA (Q36) | Needed before the first real renter (M101, M102) | Founders, solicitor |
 | N7 | Who reviews reports and appeals at Gaff, at least two people, and the review targets (4 working hours for scams, 1 working day otherwise) | An appeal always goes to someone else (M98) | Founders |
 | N8 | Report retention: 6 months after the case closes (proposed in Q36) | Set in code now; the solicitor confirms | Solicitor |

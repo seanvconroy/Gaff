@@ -17,7 +17,9 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] **Resend:** sending domain in `eu-west-1` with SPF and DKIM, open and click tracking off; receiving on the inbound subdomain (MX record); `email.received` webhook to `/api/inbound/resend`. Sign the DPA (data is stored in the US under the Data Privacy Framework, Q26). Mailgun EU remains an alternative.
 - [ ] **Alerts (M86):** a separate sending subdomain for alerts (`ALERTS_MAIL_FROM_DOMAIN`, for example `alerts.gaff.ie`) with its own SPF and DKIM, so a spike in alerts can't affect sign-in codes. Check one-click unsubscribe (List-Unsubscribe and List-Unsubscribe-Post) in Gmail and Outlook.
 - [ ] **Sinch:** EU region SMS account; check Irish sender ID rules. Sign the DPA.
-- [ ] **ID and income checks:** choose providers (for example Veriff or Onfido for ID; TrueLayer, Tink or Yapily for open banking, checking AIB, Bank of Ireland, PTSB and Revolut coverage), sign DPAs, and add their adapters. Until then production runs with `IDENTITY_PROVIDER=none` and `INCOME_PROVIDER=none`, and operators arrange those checks themselves.
+- [ ] **Identity and documents** ([providers PRD](providers/prd.md), Q48 to Q50): Stripe Identity's live keys and webhook for everyone's identity check (`IDENTITY_PROVIDER=stripe`), and a private `documents` bucket in Supabase Storage for chosen renters' work and income documents. No open banking provider is needed at launch. Until then production runs with the renters' checks off, and operators arrange those checks themselves.
+- [ ] **AI:** Bedrock access to Claude Opus 5.5 in `eu-west-1`, the evals passing there, and `AI_MONTHLY_BUDGET_EUR` set. Production refuses the Claude API (Q37).
+- [ ] **Privacy notice and DPIA** cover Stripe Identity for everyone (biometric data), renters' documents and the AI tasks (P50, P51), and the solicitor has answered Q42, Q43, Q45 and Q52.
 - [ ] **Google Maps Platform (Q58, ADR-0027):** a billing account in Gaff's name, with budget alerts at 50%, 80% and 100% of the monthly budget (search redesign PRD S1) and a daily quota cap on map loads. Separate API keys for production and the test copy, each restricted to Gaff's domains (HTTP referrers) and to the Maps JavaScript API only. Light and dark Map IDs, styled from the tokens. Accept the Controller-Controller Data Protection Terms, and record that Google offers no EU region (transfers under the EU–US Data Privacy Framework).
 - [ ] **Place index (ADR-0027):** the real index built from OpenStreetMap and committed (`pnpm places:build`, then `pnpm places:check`, or the **Build the place index** workflow), and `pg_trgm` enabled on the production database ([deploy.md](deploy.md), step 7).
 - [ ] **GitHub:** push access and Actions enabled for CI.
@@ -57,9 +59,9 @@ The [marketplace PRD](marketplace/prd.md) was approved for build on 7 November 2
 
 **Founders**
 
-- [ ] **Stripe Identity:** a Stripe account with Identity enabled; sign the DPA; the privacy notice names it and its transfer basis (Q29)
+- [ ] **Stripe Identity:** a Stripe account with Identity enabled; sign the DPA; the privacy notice names it and its transfer basis, for letters (Q29) and now for renters too (Q48)
 - [ ] The budget and target cost per active renter (Q31)
-- [ ] Decide Q32 to Q35 (workflow free during launch; listing defaults; partner services; "Ready to move")
+- [ ] Decide Q32 to Q34 (workflow free during launch; listing defaults; partner services). Q35, "Ready to move", is superseded by Q48
 - [ ] The letter beta: invite pilot agencies, Ann's network and two or three developments, aiming for 300 live homes in Dublin
 
 **Solicitor**

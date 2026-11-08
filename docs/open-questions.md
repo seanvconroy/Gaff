@@ -108,6 +108,8 @@ The pre-viewing page asks only the questions for criteria the operator has set. 
 
 **Decision:** Adopted (CTO, 31 October 2026).
 
+**Changed (Sean, 8 November 2026, Q48):** renters confirm a mobile number with a text code to book a viewing, and that number gets the 2-hour text reminder. A renter without a mobile can still book, and the letter sees that no mobile was confirmed.
+
 ### Q13. Who approves messages in approve-before-send mode (R29)?
 
 **Proposal:** the operator approves, in Gaff. The mode is on by default for each new organisation, and the organisation's admin switches it off. Gaff staff never approve or send messages on an operator's behalf, which keeps Gaff as software, not a letting agent.
@@ -296,7 +298,7 @@ Every Gaff enquiry starts the workflow, so a free listing comes with it.
 
 **Proposal:** later. A renter could verify their identity once, at Gaff's cost, with the result shared only if they become the preferred applicant or backup. It needs the solicitor's view on staged data first.
 
-**Decision:** open (founders, then the solicitor).
+**Superseded (Sean, 8 November 2026) by Q48:** every renter checks their identity once, the first time they're chosen, and it's kept on their profile for every later home.
 
 ### Q36. Questions for the solicitor before launch (**Solicitor**)
 
@@ -312,6 +314,151 @@ Every Gaff enquiry starts the workflow, so a free listing comes with it.
 - The BER display against SEAI's current guidelines.
 - Google Maps on renter pages: the notice Google's terms require in Gaff's terms, the privacy notice, and whether the map needs a tap before it loads (search redesign PRD S2).
 - Using OpenStreetMap data in the place index: keeping OSM rows separate (a collective database) and publishing the build method (ODbL 4.6).
+
+## G. Replacing the stand-ins
+
+Raised on 8 November 2026 with the [providers PRD](providers/prd.md) and [technical specification](providers/tech-spec.md). Sean took Q37 to Q41 the same day. After reviewing the first draft, he also took Q44 and Q48 to Q50, which supersede Q38 and Q40 and change Q39 and Q12. Q46, Q47 and Q51 are closed. Q42, Q43, Q45 and Q52 to Q56 are open, with proposals.
+
+### Q37. Where does the AI run?
+
+The Claude API offers only global or US inference and stores data at rest in the US. Claude in Amazon Bedrock runs Claude Opus 5.5 in Dublin (`eu-west-1`).
+
+**Decision (Sean, 8 November 2026):** the test copy and development use the Claude API, with the founders' credits, on made-up data and the founders' own test messages. Production uses Claude on Bedrock in Dublin. Real renters' data never reaches the Claude API. See [ADR-0025](adr/0025-ai-provider-and-tasks.md).
+
+### Q38. How are chosen renters' identities checked?
+
+**Decision (Sean, 8 November 2026):** Stripe Identity (a document and a selfie), or the renter shows an original photo ID to the letter in person, and the letter records it.
+
+**Superseded the same day by Q48:** renters still check when they're chosen, but only once ever, and it's kept on their Gaff profile. The in-person step stays for chosen renters checked without a selfie, or whose ID can't be checked online.
+
+### Q39. Which open banking provider?
+
+Plaid supports Ireland for transactions, but its income product isn't offered in Ireland yet, it stores European data in the US, and its EU plans need a minimum commitment. Tink's Income Check lists Ireland and processes in the EU. TrueLayer is authorised by the Central Bank of Ireland and keeps data in Ireland and the UK, but has no income report.
+
+**Decision (Sean, 8 November 2026):** Tink, with TrueLayer as the backup behind the same port. Revisit Plaid if its income product reaches Ireland.
+
+**Changed the same day (Q49):** no open banking at launch. Tink stays approved for a later, optional "Confirm with your bank" (Q56).
+
+### Q40. Can renters prove income without connecting a bank?
+
+**Decision (Sean, 8 November 2026):** yes, by uploading recent payslips (or an employer's letter) with the PPS number covered.
+
+**Superseded the same day by Q49 and Q50:** payslips are one of the documents asked for, read without an income estimate, and the PPS number may stay showing.
+
+### Q41. Which AI tasks come in this phase?
+
+**Decision (Sean, 8 November 2026):** answers to renters' questions (R8, already built), drafted listing descriptions (M45) and the unfair-wording check (ADR-0023), plus reading documents (Q49). Holding letters' messages that ask for money before a viewing (M28) waits.
+
+### Q42. HAP and affordability (**Solicitor, founders**)
+
+**HAP, in plain words.** The Housing Assistance Payment is how councils help people on lower incomes rent a home privately. The renter finds the home, and the council pays the rent to the landlord directly, every month. The renter pays the council a weekly contribution based on their income, usually far less than the rent.
+
+**Why it matters for Gaff:**
+- The council's part never passes through the renter's hands, so it isn't on their payslips or in their bank account. Their documents make them look less able to pay than they are.
+- An income rule such as "take-home pay of 2.5 times the rent" (Q18) therefore fails most people on HAP, even though the council pays most of the rent, and pays it reliably.
+- Refusing someone because they get HAP, rent supplement or any social welfare payment is unlawful (the housing assistance ground in the Equal Status Acts). So is a rule that puts them at a disadvantage without a good reason (indirect discrimination). WRC awards reach the €15,000 maximum.
+- Gaff can't ask whether someone gets HAP (rule 3), so it can't simply apply the rule differently for them.
+
+**Today:** the application's hint says to include housing support in household income (Q17), and nothing records it. That helps, but it isn't clear what amount someone on HAP should add, and the rule still compares the whole rent with their income.
+
+**The question:** how should a letter judge, fairly, whether someone can afford the home, when the council may pay most of the rent and Gaff can't ask?
+
+**Options:**
+1. **Keep today's approach:** housing support counts as income, declared without a label, and letters are reminded that it counts.
+2. **Apply the rule only to what the renter pays:** any renter can say "part of my rent will be paid to the landlord directly", without naming the scheme, and the rule compares their income with the rest. Fairer, but close to asking about HAP.
+3. **No income rule at all:** letters judge the evidence, as they now do at the checks stage. The simplest and fairest, but letters like a clear rule.
+
+**Proposal:** ask the solicitor which of these is lawful and fair, then decide with the founders before launch. Until then, option 1 stands.
+
+### Q43. Asking the backup at the same time (**Solicitor**)
+
+The DPC ties ID and financial documents to "those who will be entering into a tenancy". This covers the identity check, work and income documents and references. Payslips showing a PPS number would reach the letter for both renters.
+
+**Proposal:** keep asking both together (R18), which saves days if the preferred applicant drops out, if the solicitor agrees it's proportionate. Otherwise, ask the backup only when they're promoted.
+
+### Q44. Do Stripe's terms allow checking renters? (**Sean, Stripe**)
+
+Stripe's service terms appear to forbid using Identity "as a factor in determining any person's eligibility for … housing". Stripe's docs say that applies to US credit-reporting activity.
+
+**Decision (Sean, 8 November 2026):** don't wait for Stripe's confirmation. Gaff checks its own users' identity to prevent fraud, the same way for everyone, and the result never decides who gets a home. Daft uses Stripe Identity in the same way.
+
+### Q45. Is consent to the selfie freely given? (**Solicitor**)
+
+The DPC considers consent rarely freely given between landlord and tenant, and checking identity is part of being offered a home.
+
+**Proposal:** yes. Gaff asks, not the letter, for the person's own profile. Checking without a selfie is equally prominent, needs no reason and carries no penalty. The check itself rests on Gaff's legitimate interest in preventing fraud, so only the selfie relies on consent.
+
+### Q46. Open banking at offer stage (**Solicitor**)
+
+**Closed (8 November 2026):** there's no open banking at launch (Q49). The question returns with "Confirm with your bank" (Q56).
+
+### Q47. Renters whose bank can't be connected
+
+**Closed (8 November 2026):** nobody needs to connect a bank (Q49).
+
+### Q48. Who checks their identity, and when?
+
+**Decision (Sean, 8 November 2026, revised the same day on the CTO's recommendation):** everyone, once, with Stripe Identity, kept on their Gaff profile and reused for every later home and every workspace.
+- **Renters** check the first time a letter chooses them as the preferred applicant or the backup, wherever they enquired (Gaff, Daft or MyHome), on one page with their documents and referees. Sean first chose "before their first enquiry". He moved it because that's when identity matters, because a renter could skip an earlier check by enquiring on Daft, because early requests for ID look like a scam to renters, and because it matches the DPC's guidance and costs far less.
+- **Before a renter is chosen,** they confirm their email with a code to enquire, and their mobile with a text code to book a viewing (changing Q12).
+- **Letters** (private landlords and agents) check before their first listing goes live.
+- A renter's result reaches only the letters who choose them, and ranking never reads it.
+- Checking without a selfie is an equal choice. A chosen renter checked that way, or whose ID can't be checked online, shows their ID to the letter in person. A letter checked without a selfie has their first listing reviewed by a person at Gaff.
+- Supersedes Q38, Q35 ("Ready to move") and M14. Changes rule 2 (identity kept on the profile for next time) and rule 10 (Stripe Identity for everyone). See [ADR-0026](adr/0026-identity-and-documents.md).
+- Cost: about €1.25 per person, once; at most about €2.50 a letting for renters.
+
+### Q49. How do chosen renters show their work and income?
+
+**Decision (Sean, 8 November 2026, on the CTO's recommendation):**
+- the documents Irish letters already ask for, chosen by how the renter earns: payslips (or a contract for a new job) and an employer's reference or letter; a Revenue Notice of Assessment or an accountant's letter; or statements of other income;
+- no bank statements, apart from a savings statement showing only the balance, for someone living on savings;
+- references from their last landlord, or a character reference for someone who hasn't rented before or is new to Ireland, and from their employer if they have one;
+- Claude reads each one, and Gaff checks it's the kind asked for, recent, and in the verified name. The renter confirms and shares everything, identity included, in one step, and can keep the documents and referees' details for their next application;
+- statements of other income never reach letters: Gaff tells the letter only the amount, how often and the date;
+- no income estimate, score or ratio: the letter reads the evidence and decides;
+- no open banking at launch, and "Confirm with your bank" later (Q56).
+
+### Q50. Payslips that show a PPS number
+
+**Decision (Sean, 8 November 2026):** accepted as they are. Gaff suggests covering the number, never reads it out or records it, and deletes the document on schedule. Rule 2 says so.
+
+### Q51. Checking every renter's identity before their first enquiry (**Solicitor**)
+
+**Closed (8 November 2026):** renters now check their identity when they're chosen (Q48), which is what the DPC's guidance expects.
+
+### Q52. Statements of other income (**Solicitor**)
+
+Pension, social welfare and maintenance statements can show age, disability, family status or the housing assistance ground.
+
+**Proposal:** Gaff reads them, tells the letter only the amount, how often and the date, and deletes them once the renter confirms. Gaff is the controller for that reading.
+
+### Q53. Can a letter ask for more than the standard set?
+
+For example, bank statements or two years of accounts.
+
+**Proposal:** no. The same set on every letting, reviewed by the solicitor, just as criteria come from a fixed list (rule 3).
+
+**Decision:** open (founders).
+
+### Q54. Joint tenants
+
+**Proposal:** soon after launch, each adult who'll sign the agreement joins the application with their own profile, identity and documents. Until then, the lead renter's documents and the household income they gave.
+
+**Decision:** open (founders).
+
+### Q55. A letter whose ID can't be checked online
+
+**Proposal:** a short video call with a person at Gaff, who sees the original document, using a tool the founders approve (rule 10). Only the result is recorded.
+
+**Decision:** open (founders).
+
+### Q56. When to build "Confirm with your bank"
+
+An optional, read-only check through Tink that the pay on a renter's payslips arrives in their account, keeping only the outcome. Forged payslips are the most common fraud in UK tenant referencing.
+
+**Proposal:** when a forged document is found on Gaff, or letters ask for it.
+
+**Decision:** open (founders).
 
 ## H. The renter search redesign
 

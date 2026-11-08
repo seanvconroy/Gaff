@@ -7,7 +7,7 @@ import { pinLabel, type MapPin, type MapProviderProps } from './types';
 import styles from './map.module.css';
 
 /**
- * ADR-0025: the stand-in map for tests and development without a Google key (MAP_PROVIDER=
+ * ADR-0027: the stand-in map for tests and development without a Google key (MAP_PROVIDER=
  * static). Plain SVG on a grid, with the same behaviour as the real map: pins with the rent,
  * clusters, zoom, dragging to search the area in view, drawing an outline, and the searched
  * area drawn on it. Never in production.

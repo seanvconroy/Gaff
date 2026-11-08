@@ -19,7 +19,7 @@ Banked on 8 November 2026, after marketplace milestones 1 to 7, developments, M1
 
 | # | Question | Why it matters | Who |
 | --- | --- | --- | --- |
-| N1 | ~~Where do the map tiles live?~~ Answered on 8 November 2026: Google Maps hosts them (Q38). New: the monthly Google Maps budget (search redesign PRD S1), and whether the map needs a tap before it loads (S2) | Needed before the search redesign's release | Founders, solicitor |
+| N1 | ~~Where do the map tiles live?~~ Answered on 8 November 2026: Google Maps hosts them (Q58). New: the monthly Google Maps budget (search redesign PRD S1), and whether the map needs a tap before it loads (S2) | Needed before the search redesign's release | Founders, solicitor |
 | N2 | Gaff's own email domain for sending (and a subdomain for alerts), and a subdomain for receiving replies and Daft or MyHome enquiries | The test copy borrows a verified domain for now; production needs Gaff's own, with SPF and DKIM | Founders |
 | N3 | Sinch for texts: when do we set it up? | On the test copy, mobile codes show on screen and texted viewing reminders go to the outbox; nothing is texted | Founders |
 | N4 | Claude on Bedrock (EU): AWS account and keys | The test copy's AI is a stand-in; real answers, drafts and checks need Bedrock | Founders |

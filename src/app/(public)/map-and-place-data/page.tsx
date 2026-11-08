@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * M56, M57 (ADR-0025): credits for the place index and the map. OpenStreetMap's licence (ODbL)
+ * M56, M57 (ADR-0027): credits for the place index and the map. OpenStreetMap's licence (ODbL)
  * asks for its credit and an offer of the data Gaff built from it; Google's terms apply when its
  * map loads. The words are reviewed before launch (docs/launch-checklist.md).
  */

@@ -4,7 +4,7 @@ import { normalise, normaliseQuery, queryWords, similarity, wordsMatch } from '.
 
 /**
  * M56, M121: what the Where box suggests. Candidates come from the place index (Postgres finds
- * them with pg_trgm, ADR-0025) or, in tests and development, from the fixture; this ranks them
+ * them with pg_trgm, ADR-0027) or, in tests and development, from the fixture; this ranks them
  * the same way either way.
  *
  *   score = match × kind + 0.05 × log10(1 + live homes) + 0.02 × log10(1 + population)

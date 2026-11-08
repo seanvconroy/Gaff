@@ -1,6 +1,6 @@
-# ADR-0025: Renter search uses our own place index, on Google Maps
+# ADR-0027: Renter search uses our own place index, on Google Maps
 
-- Status: Accepted (Sean, 8 November 2026: Q37 and Q38). Replaces decision 6 of the [marketplace tech spec](../marketplace/tech-spec.md) (MapLibre with self-hosted OpenStreetMap tiles; ADR-0020 was planned but never written). Adds to decision 5 (search on Postgres).
+- Status: Accepted (Sean, 8 November 2026: Q57 and Q58). Replaces decision 6 of the [marketplace tech spec](../marketplace/tech-spec.md) (MapLibre with self-hosted OpenStreetMap tiles; ADR-0020 was planned but never written). Adds to decision 5 (search on Postgres).
 - Date: 2026-11-08
 
 ## Context
@@ -26,7 +26,7 @@
   - the NTA (CC BY 4.0).
 
   Suggestions, area pages, alerts and the sitemap all read it. It replaces the hand-typed list.
-- **Map:** Google Maps through the Maps JavaScript API (approved by Sean, Q38), with `@vis.gl/react-google-maps` and `@googlemaps/markerclusterer`.
+- **Map:** Google Maps through the Maps JavaScript API (approved by Sean, Q58), with `@vis.gl/react-google-maps` and `@googlemaps/markerclusterer`.
   - Only Gaff's own content is on or next to the map: homes, places and drawn shapes.
   - No other Google API is called. The API key is restricted to the Maps JavaScript API and Gaff's domains.
   - The map loads only when it's on screen, so renters' devices don't call Google otherwise.
@@ -53,8 +53,8 @@
 ## Alternatives considered
 
 - **Google Places in our own dropdown, as Airbnb does.** Not allowed under Google's EEA terms when a map is on or near the page.
-- **Google's Places UI Kit widget.** Allowed, but Google-styled. It can't show home counts, recent searches or our area pages, it loads Google's script on every search page (phones included), and it's billed per session. Sean chose our own index instead (Q37).
+- **Google's Places UI Kit widget.** Allowed, but Google-styled. It can't show home counts, recent searches or our area pages, it loads Google's script on every search page (phones included), and it's billed per session. Sean chose our own index instead (Q57).
 - **Our own index, with Google for misses.** Still Google content in our dropdown, so the same EEA problem.
-- **MapLibre with self-hosted OpenStreetMap tiles** (the old plan). No vendor and no per-load cost, but a tile-hosting spike, a less familiar map, and more work before launch. Sean chose Google Maps (Q38). It stays possible behind `MAP_PROVIDER`.
+- **MapLibre with self-hosted OpenStreetMap tiles** (the old plan). No vendor and no per-load cost, but a tile-hosting spike, a less familiar map, and more work before launch. Sean chose Google Maps (Q58). It stays possible behind `MAP_PROVIDER`.
 - **Mapbox** for the map and search. Another vendor, per-load and per-search costs, and the same question of storing its results.
 - **An Eircode address service (Autoaddress)** for suggestions. Renters search for areas, not addresses, and it adds a cost per lookup. It stays optional for letters' addresses.

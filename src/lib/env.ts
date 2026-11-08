@@ -77,7 +77,7 @@ const schema = z
     /** ADR-0014: the minute tick (Supabase Cron) and Vercel Cron send it to /api/cron/tick. */
     CRON_SECRET: z.string().min(16, 'CRON_SECRET must be at least 16 characters').optional(),
     /**
-     * ADR-0025: the map on search pages. "google" is Google Maps (the Maps JavaScript API only,
+     * ADR-0027: the map on search pages. "google" is Google Maps (the Maps JavaScript API only,
      * with a key restricted to Gaff's domains); "static" draws pins on a plain grid, for tests and
      * development without a key; "none" shows the list alone. Production needs "google".
      */

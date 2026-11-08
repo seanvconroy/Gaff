@@ -12,7 +12,7 @@ const header = (count: number): PlaceFileHeader => ({
   attribution: ['© OpenStreetMap contributors (ODbL 1.0)'],
 });
 
-describe('ADR-0025, M56: checking a built place index before it is committed', () => {
+describe('ADR-0027, M56: checking a built place index before it is committed', () => {
   it('reads the test set, and refuses a malformed one', () => {
     const csv = [
       '# Places renters must find.',

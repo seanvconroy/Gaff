@@ -45,7 +45,7 @@ export const publicReadPolicy = () =>
   pgPolicy('public_read', { as: 'permissive', for: 'select', using: sql`true` });
 
 /**
- * Reference data (ADR-0025): written only by system jobs (withSystem), such as loading the place
+ * Reference data (ADR-0027): written only by system jobs (withSystem), such as loading the place
  * index. Pair it with publicReadPolicy() so anyone can read.
  */
 const systemCheck = sql`current_setting('app.rls_bypass', true) = 'on'`;

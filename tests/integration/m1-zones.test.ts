@@ -50,7 +50,7 @@ const PUBLIC_LISTING_COLUMNS = [
 ];
 
 /** M75: a published development's page. */
-/** ADR-0025: the place index holds places only: never anything about a person. */
+/** ADR-0027: the place index holds places only: never anything about a person. */
 const PLACE_COLUMNS = [
   'id',
   'slug',
@@ -155,7 +155,7 @@ describe('ADR-0017: data zones', () => {
     expect(rows.length).toBeGreaterThan(0);
     for (const row of rows) {
       expect(row.forced, `${row.table} must force row-level security`).toBe(true);
-      // ADR-0025: reference data (the place index) is its own zone: read by anyone, written only
+      // ADR-0027: reference data (the place index) is its own zone: read by anyone, written only
       // by system jobs.
       const zones = row.policies.filter((p) =>
         [

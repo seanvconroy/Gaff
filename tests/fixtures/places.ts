@@ -6,7 +6,7 @@ import { fixturePlaces } from '../../src/domain/places/fixture';
 import { rowFromPlace } from '../../src/server/places/places';
 
 /**
- * ADR-0025: tests search the fixture (real Irish places, a few streets and landmarks), not the
+ * ADR-0027: tests search the fixture (real Irish places, a few streets and landmarks), not the
  * whole place index, so they're quick and their answers don't change when the index does.
  */
 export async function loadFixturePlaces(databaseUrl: string): Promise<void> {

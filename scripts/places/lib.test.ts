@@ -45,7 +45,7 @@ const road = (name: string, points: Array<[number, number]>, highway = 'resident
   properties: { highway, name },
 });
 
-describe('ADR-0025: building the place index from OpenStreetMap', () => {
+describe('ADR-0027: building the place index from OpenStreetMap', () => {
   it('reads osmium’s GeoJSON lines, with or without a record separator', () => {
     const line = JSON.stringify(node({ place: 'town', name: 'Kinsale' }, 51.7, -8.52));
     expect(parseFeature(`\x1e${line}`)?.properties.name).toBe('Kinsale');

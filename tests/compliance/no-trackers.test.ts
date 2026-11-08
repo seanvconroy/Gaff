@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 /**
  * M103: no third-party advertising, ad networks or tracking. The Content Security Policy lets
  * scripts load only from Gaff itself, and no code loads anything from a tracker. The one
- * exception is approved (Q38, ADR-0025): Google's map on the search pages, when it's switched on.
+ * exception is approved (Q58, ADR-0027): Google's map on the search pages, when it's switched on.
  */
 
 function sourceFiles(dir: string): string[] {
@@ -49,7 +49,7 @@ describe('M103: no third-party advertising or tracking', () => {
     expect(directive(policy, 'frame-ancestors')).toBe("frame-ancestors 'none'");
   });
 
-  it('ADR-0025: with Google’s map on, only the search pages add the Maps JavaScript API’s hosts', async () => {
+  it('ADR-0027: with Google’s map on, only the search pages add the Maps JavaScript API’s hosts', async () => {
     const policies = await productionPolicies({ MAP_PROVIDER: 'google' });
     expect(policies.map((p) => p.source)).toEqual(['/:path*', '/to-rent/:path*']);
     const [everywhere = '', search = ''] = policies.map((p) => p.policy);

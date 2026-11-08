@@ -11,7 +11,7 @@ import type { Place } from '@/domain/places/gazetteer';
 import { forgetCachedPlaces, refreshPlaceCounts, rowFromPlace } from './places';
 
 /**
- * ADR-0025: loading the place index. The built file (`data/places/places.ndjson.gz`) replaces
+ * ADR-0027: loading the place index. The built file (`data/places/places.ndjson.gz`) replaces
  * the whole index in one transaction when its version is newer than the one loaded. Without a
  * built file (development, tests), the fixture keeps search working.
  */

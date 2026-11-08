@@ -1,4 +1,4 @@
--- ADR-0025: the place index needs pg_trgm (a trusted extension). On Supabase, if the app's role
+-- ADR-0027: the place index needs pg_trgm (a trusted extension). On Supabase, if the app's role
 -- can't create it, enable pg_trgm once in the dashboard (Database, Extensions) and deploy again.
 DO $$
 BEGIN

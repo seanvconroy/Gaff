@@ -218,7 +218,7 @@ test('M59, M62, M111: search engines read the public pages, and nothing private'
   await expect(page.getByRole('heading', { name: 'How we order results' })).toBeVisible();
   await expectAccessible(page);
 
-  // ADR-0025: the credits for the place index and the map, linked from every public page.
+  // ADR-0027: the credits for the place index and the map, linked from every public page.
   await page.getByRole('contentinfo').getByRole('link', { name: 'Map and place data' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Map and place data' })).toBeVisible();
   await expect(

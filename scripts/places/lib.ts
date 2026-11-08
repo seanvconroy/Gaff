@@ -1,5 +1,5 @@
 /**
- * ADR-0025: turning OpenStreetMap features (as `osmium export` writes them, one GeoJSON feature
+ * ADR-0027: turning OpenStreetMap features (as `osmium export` writes them, one GeoJSON feature
  * a line) into Gaff's place index. Pure functions, tested in lib.test.ts; build.ts does the I/O.
  *
  * - Counties come from OSM's county boundaries (admin level 6), and only places inside the 26

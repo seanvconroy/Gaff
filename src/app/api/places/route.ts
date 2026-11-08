@@ -44,7 +44,7 @@ function response(suggestions: Suggestions): SuggestionsResponse {
 }
 
 /**
- * M56, M121: place suggestions as a renter types, from Gaff's own place index (ADR-0025); with
+ * M56, M121: place suggestions as a renter types, from Gaff's own place index (ADR-0027); with
  * nothing typed, the places with the most homes. The same for everyone, so the CDN keeps it.
  */
 export async function GET(request: NextRequest) {

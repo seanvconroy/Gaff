@@ -1,6 +1,6 @@
 # Renter search redesign: product requirements
 
-Decided by Sean on 8 November 2026 (Q37 to Q39 in [open-questions.md](../../open-questions.md)) · amends M56 to M61 and adds M113 to M124 in the [marketplace PRD](../prd.md) · goes with the [technical specification](tech-spec.md) and [ADR-0025](../../adr/0025-places-index-on-google-maps.md)
+Decided by Sean on 8 November 2026 (Q57 to Q59 in [open-questions.md](../../open-questions.md)) · amends M56 to M61 and adds M113 to M124 in the [marketplace PRD](../prd.md) · goes with the [technical specification](tech-spec.md) and [ADR-0027](../../adr/0027-places-index-on-google-maps.md)
 
 ## Summary
 
@@ -11,10 +11,10 @@ Renters should be able to type any place in Ireland and see it suggested at once
 
 | Question | Decision | Why |
 | --- | --- | --- |
-| What suggests places? (Q37) | Gaff's own index of every place, street and landmark in Ireland, built from open data, shown in Gaff's own dropdown | It's what property portals do (Zillow, Rightmove, Daft). Google's EU terms forbid showing Google's suggestions next to any map, including Google's, except through Google's own widget. Area pages and alerts need places we can store |
-| Which map? (Q38) | Google Maps, showing only Gaff's own content | The map renters know best, used by Airbnb and Zillow. Google hosts the tiles, which removes the tile-hosting risk |
-| Which layout? (Q39) | Zillow's filter bar with Airbnb's polish | It suits rentals: the controls renters use most are one tap away |
-| How does it ship? (Q39) | Everything in one release, map included, behind a flag until it passes the release checks | Renters get the complete experience on day one |
+| What suggests places? (Q57) | Gaff's own index of every place, street and landmark in Ireland, built from open data, shown in Gaff's own dropdown | It's what property portals do (Zillow, Rightmove, Daft). Google's EU terms forbid showing Google's suggestions next to any map, including Google's, except through Google's own widget. Area pages and alerts need places we can store |
+| Which map? (Q58) | Google Maps, showing only Gaff's own content | The map renters know best, used by Airbnb and Zillow. Google hosts the tiles, which removes the tile-hosting risk |
+| Which layout? (Q59) | Zillow's filter bar with Airbnb's polish | It suits rentals: the controls renters use most are one tap away |
+| How does it ship? (Q59) | Everything in one release, map included, behind a flag until it passes the release checks | Renters get the complete experience on day one |
 
 - **Mockups:** [images](#mockups) of each screen, on Gaff's tokens.
 
@@ -346,7 +346,7 @@ M38 (the letter places the pin) stays a Must and moves into this release, becaus
 
 ## Release
 
-- **One release** (Q39). Amended in the build: no `SEARCH_V2` flag. The redesign replaces the old page on its own branch, because the old page ran on the hand-typed place list the index replaces; the branch reaches the test copy only once it passes every check:
+- **One release** (Q59). Amended in the build: no `SEARCH_V2` flag. The redesign replaces the old page on its own branch, because the old page ran on the hand-typed place list the index replaces; the branch reaches the test copy only once it passes every check:
   - the place test set: 98% or more;
   - an end-to-end journey with axe for every state, on a phone and a desktop;
   - the speed budgets on a mid-range phone;

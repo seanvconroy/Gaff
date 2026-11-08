@@ -127,7 +127,7 @@
   outline-offset: 2px;
 }
 
-/* ADR-0025: search pages use the whole width, for the list and map side by side. */
+/* ADR-0027: search pages use the whole width, for the list and map side by side. */
 .main:has([data-wide-page]) {
   max-width: none;
   padding: 0;

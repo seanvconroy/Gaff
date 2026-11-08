@@ -14,7 +14,7 @@ import { areaBox, areaContains, searchArea } from '@/domain/search/places';
 import { irishToday } from '@/lib/format';
 
 /**
- * M56, M62, M121, M124 (ADR-0025): the place index in Postgres. The places with area pages are
+ * M56, M62, M121, M124 (ADR-0027): the place index in Postgres. The places with area pages are
  * few (about 6,000) and change only when the index is reloaded, so each server instance keeps
  * them in memory and checks the index version once a minute. Streets, landmarks and townlands
  * are looked up by slug when a search names one.

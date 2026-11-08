@@ -1,5 +1,5 @@
 /**
- * ADR-0025: builds Gaff's place index from OpenStreetMap.
+ * ADR-0027: builds Gaff's place index from OpenStreetMap.
  *
  *   pnpm places:build                  download Geofabrik's Ireland extract, build, write the file
  *   pnpm places:build --pbf <file>     build from a local .osm.pbf instead

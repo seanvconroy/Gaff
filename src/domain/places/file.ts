@@ -9,7 +9,7 @@ import {
 } from './gazetteer';
 
 /**
- * ADR-0025: the place index as a file, one place per line (NDJSON, gzipped), after a header line.
+ * ADR-0027: the place index as a file, one place per line (NDJSON, gzipped), after a header line.
  * `scripts/places/build.ts` writes it from open data; `pnpm places:load` reads it. Short keys
  * keep a 200,000-place file small. Coordinates have 5 decimals (about a metre).
  */

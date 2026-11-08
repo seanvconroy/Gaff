@@ -116,7 +116,7 @@ The test copy keeps listing photos in Postgres (`STORAGE_PROVIDER=database`), wh
 
 ## 6. The search map (Google Maps, for production)
 
-Renters see homes on Google's map beside the list ([ADR-0025](adr/0025-places-index-on-google-maps.md), Q38). Until it's set up, the search pages show the list alone: outside development and tests, no `MAP_PROVIDER` means `none`. The map uses the **Maps JavaScript API only**, showing Gaff's own homes. Place suggestions never come from Google (see the next section).
+Renters see homes on Google's map beside the list ([ADR-0027](adr/0027-places-index-on-google-maps.md), Q58). Until it's set up, the search pages show the list alone: outside development and tests, no `MAP_PROVIDER` means `none`. The map uses the **Maps JavaScript API only**, showing Gaff's own homes. Place suggestions never come from Google (see the next section).
 
 1. **A project.** In the Google Cloud console, create a project in Gaff's name, with a billing account, and enable the **Maps JavaScript API** and nothing else. Set the budget alerts and quota cap in [launch-checklist.md](launch-checklist.md).
 2. **A key for each copy.** Under **Keys & Credentials**, create an API key for production and another for the test copy. Restrict each to **Websites** (HTTP referrers: its own address, such as `https://gaff-test.vercel.app/*`) and to the **Maps JavaScript API**. The key is in every search page, so these restrictions are what protect it.
@@ -134,7 +134,7 @@ Renters see homes on Google's map beside the list ([ADR-0025](adr/0025-places-in
 
 ## 7. The place index (towns, streets and landmarks)
 
-The Where box suggests places from Gaff's own place index, the `places` table ([ADR-0025](adr/0025-places-index-on-google-maps.md)). It needs Postgres's `pg_trgm` extension, which the deploy's migrations add. If a migration stops with "pg_trgm is missing", enable **pg_trgm** in Supabase (**Database**, **Extensions**, in the `public` schema), then deploy again.
+The Where box suggests places from Gaff's own place index, the `places` table ([ADR-0027](adr/0027-places-index-on-google-maps.md)). It needs Postgres's `pg_trgm` extension, which the deploy's migrations add. If a migration stops with "pg_trgm is missing", enable **pg_trgm** in Supabase (**Database**, **Extensions**, in the `public` schema), then deploy again.
 
 - **Loading.** Each production deploy runs `pnpm places:load --deploy`. It loads `data/places/places.ndjson.gz` when that file's version is newer than the one in the database, all in one transaction. Without the file, an empty index gets the fixture: the places Gaff started with, typed by hand, and a few streets and landmarks. Preview deployments leave the index alone.
 - **Building.** The file comes from OpenStreetMap, through Geofabrik's Ireland extract. Rebuild it every quarter, or when the misses below show gaps:

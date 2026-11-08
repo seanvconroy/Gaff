@@ -1,6 +1,6 @@
 name: Build the place index
 
-# ADR-0025: rebuilds data/places/places.ndjson.gz from OpenStreetMap (Geofabrik's Ireland
+# ADR-0027: rebuilds data/places/places.ndjson.gz from OpenStreetMap (Geofabrik's Ireland
 # extract), checks it, and opens a pull request with the new file. Quarterly, or by hand from
 # the Actions tab. A pull request opened by this workflow doesn't start CI on its own: push a
 # commit to it, or close and reopen it, before merging.
@@ -70,4 +70,4 @@ jobs:
           git push -u origin "$branch"
           gh pr create --base "${{ github.event.repository.default_branch }}" \
             --title "data(M56): rebuild the place index from OpenStreetMap" \
-            --body "The place index, rebuilt from Geofabrik's Ireland extract and checked with \`pnpm places:check\` (ADR-0025). The next production deploy loads it. Data © OpenStreetMap contributors (ODbL 1.0)."
+            --body "The place index, rebuilt from Geofabrik's Ireland extract and checked with \`pnpm places:check\` (ADR-0027). The next production deploy loads it. Data © OpenStreetMap contributors (ODbL 1.0)."

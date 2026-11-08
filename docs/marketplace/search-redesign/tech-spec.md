@@ -1,13 +1,13 @@
 # Renter search redesign: technical specification
 
-Proposed, 8 November 2026 · goes with the [search redesign PRD](prd.md) · Sean took the product and vendor decisions the same day (Q37 to Q39); the CTO accepts this design before the build starts · [ADR-0025](../../adr/0025-places-index-on-google-maps.md)
+Proposed, 8 November 2026 · goes with the [search redesign PRD](prd.md) · Sean took the product and vendor decisions the same day (Q57 to Q59); the CTO accepts this design before the build starts · [ADR-0027](../../adr/0027-places-index-on-google-maps.md)
 
 ## Summary
 
 - **Place suggestions** come from a new `places` table in Postgres: every county, town, village, area, Dublin district, Eircode area, townland, street and landmark in the Republic. It's built from open data and searched with `pg_trgm`; names are normalised (fadas, apostrophes, "Co.") in TypeScript when they're loaded, so `unaccent` isn't needed. It replaces the 136 hand-typed places in `src/domain/places/gazetteer.ts`, which become its curated base.
 - **The map** is Google Maps, through the Maps JavaScript API. It shows only Gaff's own content (homes, places, shapes), and is loaded only when it's on screen. No other Google API is called.
 - **The page** is still server-rendered from its web address, so it works without JavaScript and search engines can read it. Small client islands handle the Where box, the filter bar, the Filters sheet, sort and the map. A change becomes a new web address, rendered in a transition.
-- **It ships in one release** (Q39), on its own branch rather than behind `SEARCH_V2` (amended in the build; see decision 7).
+- **It ships in one release** (Q59), on its own branch rather than behind `SEARCH_V2` (amended in the build; see decision 7).
 
 Everything in the [marketplace technical specification](../tech-spec.md) still holds unless this document says otherwise. This document replaces its decision 6 (MapLibre with self-hosted tiles), and adds to decision 5 (search on Postgres).
 
@@ -16,12 +16,12 @@ Everything in the [marketplace technical specification](../tech-spec.md) still h
 | # | Decision | Choice | Why |
 | --- | --- | --- | --- |
 | 1 | Place suggestions | Gaff's own `places` index in Postgres, built from OpenStreetMap, Tailte Éireann, the CSO and the NTA | Google's EU terms forbid Places content "on, next to, or ... visually associated with any map, including a Google Map", except in Google's own widget. Area pages and alerts need places we can store. No per-search cost, and renters' typing stays in Gaff |
-| 2 | Map | Google Maps JavaScript API: a vector map with a Map ID styled to match the tokens, and Advanced Markers | Sean's decision (Q38). Google hosts the tiles, which removes the tile-hosting spike. Only Gaff's content is on the map, and the API key allows the Maps JavaScript API only |
+| 2 | Map | Google Maps JavaScript API: a vector map with a Map ID styled to match the tokens, and Advanced Markers | Sean's decision (Q58). Google hosts the tiles, which removes the tile-hosting spike. Only Gaff's content is on the map, and the API key allows the Maps JavaScript API only |
 | 3 | Map libraries | `@vis.gl/react-google-maps` (MIT) and `@googlemaps/markerclusterer` (Apache-2.0) | The standard React components for the Maps JavaScript API, maintained by vis.gl with Google's support. They load only with the map |
 | 4 | Drawing an area | A small freehand tool of our own on `google.maps.Polygon`, simplified in domain code | Google deprecated its Drawing Library in August 2025, with removal set for May 2026. A freehand outline is all M56 needs |
 | 5 | State | The web address is the search. One codec reads and writes it, and changes go through `router.push` or `router.replace` in a transition | Shareable, bookmarkable and cacheable (M58). Back works, and so do alerts |
 | 6 | UI building blocks | Native `<dialog>` for sheets, the Popover API for filter popovers, and the WAI-ARIA combobox for the Where box. No UI library | Accessible by default, small, and styled only with tokens (ADR-0011) |
-| 7 | Release | On its own branch, which merges once the release checks pass; the old page goes in the same change. (Planned behind `SEARCH_V2`; dropped in the build, because a flag would have kept the old place list and page alive beside the index.) | Q39 |
+| 7 | Release | On its own branch, which merges once the release checks pass; the old page goes in the same change. (Planned behind `SEARCH_V2`; dropped in the build, because a flag would have kept the old place list and page alive beside the index.) | Q59 |
 
 ## The shape
 
@@ -443,11 +443,11 @@ Test names start with the requirement ID (`M56: …`).
 
 ## Delivery plan
 
-One release (Q39). Built in this order, with requirement IDs in commits and tests; L and M are as in the marketplace tech spec.
+One release (Q59). Built in this order, with requirement IDs in commits and tests; L and M are as in the marketplace tech spec.
 
 | # | Step | Requirements | Size |
 | --- | --- | --- | --- |
-| 1 | Spikes, in the first week: what Google's script stores and fetches; the CSP; a Map ID styled from the tokens; the `pg_trgm` extension on Supabase | M119, ADR-0025 | S |
+| 1 | Spikes, in the first week: what Google's script stores and fetches; the CSP; a Map ID styled from the tokens; the `pg_trgm` extension on Supabase | M119, ADR-0027 | S |
 | 2 | The place index: schema, build, check, load, the test set, `listing_places`, counts and misses | M56, M121, M124 | L |
 | 3 | Search areas and the codec: `near`, `+ km`, map area, shape; the count, points and card endpoints | M56, M57, M113 | M |
 | 4 | UI building blocks: Combobox, Popover, Sheet, Chip, Segmented, MenuButton, PhotoCarousel | ADR-0011 | M |
@@ -473,7 +473,7 @@ One release (Q39). Built in this order, with requirement IDs in commits and test
 
 | Need | Choice | Status |
 | --- | --- | --- |
-| Map | Google Maps Platform: the Maps JavaScript API only | Approved by Sean on 8 November 2026 (Q38). Google is an independent controller (Controller-Controller Data Protection Terms), with no EU region; transfers under the EU–US Data Privacy Framework. Named in the privacy notice before release |
+| Map | Google Maps Platform: the Maps JavaScript API only | Approved by Sean on 8 November 2026 (Q58). Google is an independent controller (Controller-Controller Data Protection Terms), with no EU region; transfers under the EU–US Data Privacy Framework. Named in the privacy notice before release |
 | Place data | OpenStreetMap (ODbL), Tailte Éireann (CC BY 4.0), CSO (CC BY 4.0), NTA GTFS (CC BY 4.0) | Open data; attribution on the "Map and place data" page |
 | Libraries | `@vis.gl/react-google-maps` (MIT), `@googlemaps/markerclusterer` (Apache-2.0) | Client-side only, loaded with the map |
 | Build tools | `osmium-tool`, GDAL (`ogr2ogr`) | In GitHub Actions only |
@@ -481,4 +481,4 @@ One release (Q39). Built in this order, with requirement IDs in commits and test
 
 ## ADR
 
-- [ADR-0025](../../adr/0025-places-index-on-google-maps.md): Renter search uses our own place index, on Google Maps. It replaces the marketplace tech spec's decision 6 (MapLibre with self-hosted tiles; ADR-0020 was planned but never written).
+- [ADR-0027](../../adr/0027-places-index-on-google-maps.md): Renter search uses our own place index, on Google Maps. It replaces the marketplace tech spec's decision 6 (MapLibre with self-hosted tiles; ADR-0020 was planned but never written).

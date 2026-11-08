@@ -27,7 +27,7 @@ export const placeKind = pgEnum('place_kind', placeKinds);
 export const landmarkKind = pgEnum('landmark_kind', landmarkKinds);
 
 /**
- * M56 (ADR-0025): the place index, built from open data (OpenStreetMap, Tailte Éireann, the
+ * M56 (ADR-0027): the place index, built from open data (OpenStreetMap, Tailte Éireann, the
  * CSO, the NTA) by `scripts/places`. Reference data: anyone may read it; only system jobs, such
  * as `pnpm places:load`, write it. `search_text` is already normalised (no fadas, lower case),
  * so the trigram index needs no unaccent().

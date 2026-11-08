@@ -1,5 +1,5 @@
 /**
- * ADR-0025: tests a built place index before it's committed.
+ * ADR-0027: tests a built place index before it's committed.
  *
  *   pnpm places:check                  check data/places/places.ndjson.gz
  *   pnpm places:check --file <file>    check another file

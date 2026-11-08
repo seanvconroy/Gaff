@@ -4,7 +4,7 @@ import { slugify } from './slug';
 
 /**
  * M56, M62, M113: the places renters search by. The place index (`places` in Postgres, built
- * from open data, ADR-0025) holds every county, city, town, village, area, Dublin district,
+ * from open data, ADR-0027) holds every county, city, town, village, area, Dublin district,
  * townland, street and landmark in the Republic. Domain code never loads it: the server passes a
  * Gazetteer in, holding the places with area pages, plus any street or landmark a search names.
  */

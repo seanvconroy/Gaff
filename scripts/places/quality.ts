@@ -6,7 +6,7 @@ import { IRELAND, inBBox } from '@/domain/places/geo';
 import { normalise } from '@/domain/places/normalise';
 
 /**
- * ADR-0025: what a built place index must pass before it's committed (`pnpm places:check`).
+ * ADR-0027: what a built place index must pass before it's committed (`pnpm places:check`).
  * The checks are pure, so they're tested here; check.ts runs them on the real file.
  */
 

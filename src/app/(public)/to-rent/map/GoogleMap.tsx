@@ -9,7 +9,7 @@ import { pinLabel, type MapPin, type MapProviderProps } from './types';
 import styles from './map.module.css';
 
 /**
- * ADR-0025: Google Maps (the Maps JavaScript API only) for search. Only Gaff's own content goes
+ * ADR-0027: Google Maps (the Maps JavaScript API only) for search. Only Gaff's own content goes
  * on it: price pins, clusters, the searched area and drawn shapes. Business markers are off in
  * the Map ID's style; Google's logo and terms are never covered. Loaded only when the map is on
  * screen (SearchMap), so renters' devices don't call Google otherwise (M119).

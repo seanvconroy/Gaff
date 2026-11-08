@@ -35,7 +35,7 @@ const noIndex = {
 // listing photos (M43): they upload to, and load from, Supabase Storage when it's set.
 const storageOrigin = process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).origin : '';
 
-// M57, ADR-0025: the search pages load Google's map when MAP_PROVIDER is google, so they also
+// M57, ADR-0027: the search pages load Google's map when MAP_PROVIDER is google, so they also
 // allow the hosts Google's CSP guide lists for the Maps JavaScript API. Not its fonts: the map's
 // buttons use the page's own. Every other page keeps the policy without Google.
 const googleMaps = process.env.MAP_PROVIDER === 'google';

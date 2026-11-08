@@ -7,7 +7,7 @@ import { placeToLine } from '@/domain/places/file';
 import { fixturePlaces } from '@/domain/places/fixture';
 import { readPlaceFile } from './load';
 
-describe('ADR-0025: reading the built place index', () => {
+describe('ADR-0027: reading the built place index', () => {
   it('reads the header and every valid place, skipping bad lines and repeats', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'places-'));
     const path = join(dir, 'places.ndjson.gz');

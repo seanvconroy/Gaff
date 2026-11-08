@@ -23,7 +23,7 @@ import { slugify } from '@/domain/places/slug';
  * - Moving the map searches the box in view, and drawing searches inside the shape. Both keep
  *   the place they started from, for the way back.
  *
- * Domain code never loads places: the server passes in a Gazetteer (ADR-0025).
+ * Domain code never loads places: the server passes in a Gazetteer (ADR-0027).
  */
 
 export type PlaceArea =

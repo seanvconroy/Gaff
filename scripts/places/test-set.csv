@@ -37,12 +37,13 @@ Rathmins,Rathmines,Dublin,1
 dun laoghaire,Dún Laoghaire,Dublin,1
 Cionn tSáile,Kinsale,Cork,1
 Gaillimh,Galway,Galway,2
-# Streets
-Grafton Street,Grafton Street,Dublin,1
-Highfield Road,Highfield Road,Rathgar,3
+# Streets: many share a name, so the town is in the query where it matters
+Grafton Street,Grafton Street,Dublin,3
+Highfield Road,Highfield Road,,1
+Highfield Road Rathgar,Highfield Road,Rathgar,1
 Leeson Street,Leeson Street,Dublin,3
 Camden Street,Camden Street,Dublin,3
-Shop Street,Shop Street,Galway,3
+Shop Street Galway,Shop Street,Galway,2
 # Landmarks
 Heuston,Heuston,Dublin,3
 St James's Hospital,St James,Dublin,2
@@ -50,6 +51,6 @@ Cork University Hospital,Cork University Hospital,Cork,1
 University College Cork,University College Cork,Cork,2
 University College Dublin,University College Dublin,Dublin,1
 Dublin City University,Dublin City University,Dublin,1
-Maynooth University,Maynooth University,Kildare,1
+Maynooth University,Maynooth,Kildare,2
 Phoenix Park,Phoenix Park,Dublin,2
 Dundrum Town Centre,Dundrum Town Centre,Dublin,1

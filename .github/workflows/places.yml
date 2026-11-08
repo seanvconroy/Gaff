@@ -1,23 +1,30 @@
 name: Build the place index
 
 # ADR-0027: rebuilds data/places/places.ndjson.gz from OpenStreetMap (Geofabrik's Ireland
-# extract), checks it, and opens a pull request with the new file. Quarterly, or by hand from
-# the Actions tab. A pull request opened by this workflow doesn't start CI on its own: push a
-# commit to it, or close and reopen it, before merging.
+# extract) and checks it.
+# - Quarterly, or by hand from the Actions tab: it opens a pull request with the new file. A pull
+#   request opened by this workflow doesn't start CI on its own: push a commit to it before
+#   merging.
+# - When a push changes the build scripts or this workflow: it commits the new file to that
+#   branch, so the index always matches the scripts that built it.
 
 on:
   workflow_dispatch:
   schedule:
     # 04:17 UTC on the first day of January, April, July and October.
     - cron: '17 4 1 1,4,7,10 *'
+  push:
+    paths:
+      - .github/workflows/places.yml
+      - scripts/places/**
 
 permissions:
   contents: write
   pull-requests: write
 
 concurrency:
-  group: places-index
-  cancel-in-progress: false
+  group: places-index-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -53,7 +60,21 @@ jobs:
         run: psql postgres://postgres:postgres@localhost:5432/postgres -c "create role gaff login password 'gaff' createdb nosuperuser nobypassrls"
       - run: pnpm places:build
       - run: pnpm places:check
+      - name: Commit the new index to this branch
+        if: github.event_name == 'push'
+        run: |
+          if [ -z "$(git status --porcelain -- data/places)" ]; then
+            echo "The place index hasn't changed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/places/places.ndjson.gz
+          git commit -m "data(M56): the place index, built from OpenStreetMap" \
+            -m "Built and checked by the Build the place index workflow (ADR-0027). Data © OpenStreetMap contributors (ODbL 1.0)."
+          git push origin "HEAD:${GITHUB_REF_NAME}"
       - name: Open a pull request with the new index
+        if: github.event_name != 'push'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

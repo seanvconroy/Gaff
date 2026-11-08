@@ -116,7 +116,7 @@ See the [mockups](#mockups). Breakpoints follow common practice: phones under 74
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ gaff.                                                Homes to rent   Sign in │
+│ gaff.                     Homes to rent   Saved   List a home free   Sign in │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ ( Q  Rathmines, Dublin 6   x )  +0 km v  [€1,500 to €2,400 v] [2+ beds v]    │  sticky
 │                                          [Move in v] [Filters 2]  [Save search]
@@ -152,6 +152,12 @@ See the [mockups](#mockups). Breakpoints follow common practice: phones under 74
   - "Draw", and zoom;
   - Google's logo and terms, which are always visible (M119).
 - **Changes apply at once** (M116). The list keeps the old results, dimmed with a thin progress bar, until the new ones arrive. Screen readers hear the new count.
+- **The look** (as in the mockups):
+  - the Where box, filter buttons, chips and segmented controls are pill-shaped (`radius-pill`); ordinary inputs keep `radius-sm`;
+  - a set filter button has the 2px primary edge of a chosen choice card;
+  - everything floating over the map (pins, clusters, Draw, zoom, the mini card, the phone search pill) has `shadow-overlay`; the rest of the page uses hairlines, as the design system says;
+  - the outline of the searched area on the map is the screen's one Atlantic accent;
+  - the site header adds "Saved" and "List a home free" beside "Homes to rent" and "Sign in".
 
 ### Tablet
 
@@ -185,7 +191,8 @@ The same filter bar, with cards two to a row and no map column. A floating "Map"
 - **Before typing:** focusing the box shows the renter's recent searches (M114), then popular places, which are the places with the most homes (M121).
 - **Typing two letters or more** shows up to 8 suggestions, grouped as Places, Streets and Landmarks:
   - each row has an icon, the name with the typed part in bold, and context: "Kinsale · Town in County Cork · 4 homes", "Highfield Road · Rathgar, Dublin 6", "St Vincent's University Hospital · Elm Park, Dublin 4";
-  - streets and landmarks never crowd out places: at most 3 streets and 2 landmarks, unless nothing else matches.
+  - streets and landmarks never crowd out places: at most 3 streets and 2 landmarks, unless nothing else matches;
+  - groups appear in the order of their best suggestion, so the best match always comes first. For "Highf", the area Highfield in Cork leads; for "Highfield r", Highfield Road does.
 - **Eircodes:**
   - a routing key ("P17", "D6W", "d06") suggests its Eircode area first: "P17 · Eircode area · Kinsale";
   - a full Eircode searches its routing key's area. Gaff doesn't hold the Eircode address database;
@@ -288,6 +295,8 @@ Plain, warm and short, with no exclamation marks. Copy lives in `src/copy/search
 | Count | "23 homes in Rathmines", "1 home near Highfield Road, Rathgar", "23 homes in this map area" |
 | Filters sheet | "Filters", "Clear all", "Show 23 homes", "Show 1 home", "No homes match these filters" (with the button off) |
 | Distance | "Only Kinsale", "+3 km", "Within 1 km" |
+| Rent filter | "Homes here are from €1,450 to €3,100 a month" (above the histogram) |
+| Move in filter | "Homes free on or before this date" |
 | Save | "Save search", "Saved" |
 | Map buttons | "Map", "List", "Draw", "Remove shape", "Skip the map" |
 | Map unavailable | "The map isn't available right now. Every home is still in the list." |
@@ -356,7 +365,35 @@ M38 (the letter places the pin) stays a Must and moves into this release, becaus
 
 ## Mockups
 
-Static mockups on Gaff's design tokens, in [mockups/](mockups/). The map is a placeholder for Google's.
+Static pages on Gaff's own tokens, fonts and house drawings, in [mockups/](mockups/), with these screenshots. The map is a placeholder for Google's, and every home is made up. The distance control beside the Where box isn't drawn.
+
+**1. Desktop results:** the filter bar with two filters set, the count, chips and sort, and the list and map side by side. The chosen home's pin is navy, with its mini card.
+
+![Desktop results with the map](images/01-desktop-results.webp)
+
+**2. The Where box:** "Highf" typed, suggestions grouped with the best group first, the active row highlighted, and the data credit at the foot.
+
+![Suggestions for Highf](images/02-desktop-where.webp)
+
+**3. The Filters sheet on desktop:** the rent histogram and range, Bedrooms and Bathrooms, Type of home, and "Clear all" and "Show 23 homes" in the footer.
+
+![The Filters sheet](images/03-desktop-filters.webp)
+
+**4. Phone results:** the search pill with the filter badge, the quick-filter chips (set ones first), the count and sort, cards, and the floating Map button.
+
+![Phone results](images/04-phone-results.webp)
+
+**5. Phone search:** "Kins" typed. Kinsale, the town in County Cork, comes first.
+
+![Phone search for Kins](images/05-phone-search.webp)
+
+**6. Phone map:** pins, a cluster and the chosen home, the card row, and the List button. The card row sits below the map's edge, so Google's logo stays visible.
+
+![Phone map view](images/06-phone-map.webp)
+
+**7. The Filters sheet on a phone:** full screen, with the footer always in view.
+
+![Phone Filters sheet](images/07-phone-filters.webp)
 
 ## Sources
 

@@ -164,7 +164,7 @@ OSM-derived rows are kept separate from rows from other sources. Following the O
          landmark 0.8 · street 0.75 · townland 0.6
   ```
 
-  Then at most 3 streets and 2 landmarks (unless nothing else matches), one row per name and context, and 8 rows in all.
+  Then at most 3 streets and 2 landmarks (unless nothing else matches), one row per name and context, and 8 rows in all. Groups come in the order of their best item, so the best match is always first.
 - **Response:**
 
   ```json
@@ -267,7 +267,8 @@ Points are `public_listings.latitude` and `longitude`. These are already approxi
 
 - **Cloud-based map styling** gives us light and dark Map IDs, picked from the theme. The colours are taken from the tokens: land `surface-2`, water a quiet Atlantic tint, roads `border`, and labels `ink-muted`.
 - **Business markers are hidden; transport lines stay.** Design signs off the style.
-- **Attribution:** our controls (Draw, the expand button) sit in the top corners. Google's logo, terms and "Report a map error" in the bottom corners are never covered.
+- **Attribution:** our controls (Draw, the expand button) sit in the top corners. Google's logo, terms and "Report a map error" in the bottom corners are never covered. On the phone map view, the map ends above the row of cards, rather than running under it.
+- **Floating elements** (pins, clusters, Draw, zoom, the mini card, the phone search pill) use `shadow-overlay`; the rest of the page keeps to hairlines.
 
 ### Moving and drawing
 

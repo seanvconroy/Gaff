@@ -187,12 +187,18 @@ describe('M98, M106: a person decides, with reasons', () => {
       statementTemplate: 'listing_removed@2',
       decidedBy: staff.userId,
     });
-    const statements = await db()
+    // This letter's statement only: other tests' letters have a 12 Ranelagh Road too.
+    const [statement] = await db()
       .select()
       .from(devOutbox)
-      .where(eq(devOutbox.subject, 'We’ve removed your listing for 12 Ranelagh Road'));
-    expect(statements.at(-1)?.text).toContain('This rests on the Equal Status Acts 2000 to 2018.');
-    expect(statements.at(-1)?.text).toContain(`/listings/appeal/${item!.id}`);
+      .where(
+        and(
+          eq(devOutbox.toAddress, member.email),
+          eq(devOutbox.subject, 'We’ve removed your listing for 12 Ranelagh Road'),
+        ),
+      );
+    expect(statement?.text).toContain('This rests on the Equal Status Acts 2000 to 2018.');
+    expect(statement?.text).toContain(`/listings/appeal/${item!.id}`);
   });
 });
 

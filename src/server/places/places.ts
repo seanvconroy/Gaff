@@ -8,7 +8,7 @@ import {
   type Gazetteer,
   type Place,
 } from '@/domain/places/gazetteer';
-import { normalise, normaliseQuery } from '@/domain/places/normalise';
+import { normalise, normaliseQuery, queryWords } from '@/domain/places/normalise';
 import { rankSuggestions, type Suggestion, type Suggestions } from '@/domain/places/suggest';
 import { areaBox, areaContains, searchArea } from '@/domain/search/places';
 import { irishToday } from '@/lib/format';
@@ -171,23 +171,33 @@ const kindRank = sql`case ${places.kind}
   else 8 end`;
 
 /**
- * M56: candidates for what was typed, from the whole index: names that start with it, words
- * that start with it, and near spellings (pg_trgm). Short queries look only at the start of
- * names, which the prefix index answers quickly.
+ * M56: candidates for what was typed, from the whole index: places whose names and context hold
+ * every word typed (or a form it stands for: "rd" is "road"), and near spellings (pg_trgm).
+ * Every word, not the longest: "Shop Street Galway" by "street" alone matches 45,000 streets.
+ * Short queries look only at the start of names, which the prefix index answers quickly.
  */
 async function candidates(tx: Tx, typed: string): Promise<Place[]> {
   const q = normaliseQuery(typed);
   if (q.length === 0) return [];
-  const words = q.split(' ');
-  const first = words[0]!;
-  const longest = [...words].sort((a, b) => b.length - a.length)[0]!;
+  const words = queryWords(typed);
+  const first = q.split(' ')[0]!;
   const startsWith = sql`${places.searchText} like ${`${q}%`}`;
   const wordStarts = sql`${places.searchText} like ${`% ${first}%`}`;
+  const everyWord = sql.join(
+    words.map(
+      (forms) =>
+        sql`(${sql.join(
+          forms.map((form) => sql`${places.searchText} like ${`%${form}%`}`),
+          sql` or `,
+        )})`,
+    ),
+    sql` and `,
+  );
   const where =
     q.length < 3
       ? sql`(${startsWith} or ${wordStarts}) and ${places.hasPage}`
-      : longest.length >= 3
-        ? sql`(${places.searchText} like ${`%${longest}%`} or ${q} <% ${places.searchText})`
+      : words.some((forms) => forms[0]!.length >= 3)
+        ? sql`(${everyWord} or ${q} <% ${places.searchText})`
         : sql`(${startsWith} or ${wordStarts})`;
   const rows = await tx
     .select()

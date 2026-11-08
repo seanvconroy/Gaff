@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fixturePlaces } from './fixture';
-import type { Place } from './gazetteer';
+import type { County, Place } from './gazetteer';
 import { rankSuggestions, suggestFrom } from './suggest';
 
 const slugs = (query: string) =>
@@ -78,6 +78,23 @@ describe('M56: what the Where box suggests', () => {
     expect(all.length).toBeLessThanOrEqual(8);
     // With nothing else matching, streets fill the list.
     expect(rankSuggestions('kinsale lane', streets).groups[0]!.items).toHaveLength(6);
+  });
+
+  it('ADR-0027: puts the name closest to what was typed first among those it starts', () => {
+    const ucd = (slug: string, name: string, county: County): Place => ({
+      slug,
+      name,
+      kind: 'landmark',
+      landmarkKind: 'college',
+      county,
+      centre: { lat: 53.3, lng: -6.22 },
+      radiusMetres: 200,
+    });
+    const found = rankSuggestions('University College Dublin', [
+      ucd('ucd-lyons', 'University College Dublin - Lyons Research Farm', 'Kildare'),
+      ucd('ucd-belfield', 'University College Dublin (Belfield Campus)', 'Dublin'),
+    ]);
+    expect(found.groups[0]!.items.map((i) => i.slug)).toEqual(['ucd-belfield', 'ucd-lyons']);
   });
 
   it('ranks places with more homes higher among equals', () => {

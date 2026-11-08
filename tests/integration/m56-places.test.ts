@@ -1,7 +1,8 @@
-import { eq } from 'drizzle-orm';
+import { eq, like } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { withSystem } from '@/db/client';
-import { placeMisses } from '@/db/schema';
+import { placeMisses, places } from '@/db/schema';
+import type { Place } from '@/domain/places/gazetteer';
 import { readFilters } from '@/domain/search/filters';
 import { searchArea } from '@/domain/search/places';
 import { publishListing } from '@/server/listings/publish';
@@ -10,6 +11,7 @@ import {
   missWorthCounting,
   recordMiss,
   refreshPlaceCounts,
+  rowFromPlace,
   suggestPlaces,
 } from '@/server/places/places';
 import { sweepMarketplace } from '@/server/retention/marketplace';
@@ -42,6 +44,42 @@ describe('M56: suggestions from the place index in Postgres', () => {
     const typo = await suggestPlaces('Kinsael');
     expect(typo.didYouMean).toBe(true);
     expect(slugsOf(typo)[0]).toBe('kinsale');
+  });
+
+  it('finds a street by every word typed, though thousands share its commonest word', async () => {
+    // As in the real index: many more "... Street"s than suggestions, sorting before this one.
+    const street = (slug: string, name: string, context: string): Place => ({
+      slug,
+      name,
+      kind: 'street',
+      county: 'Galway',
+      context,
+      centre: { lat: 53.27, lng: -9.05 },
+      radiusMetres: 0,
+      line: [
+        [
+          { lat: 53.27, lng: -9.05 },
+          { lat: 53.271, lng: -9.051 },
+        ],
+      ],
+    });
+    const streets = [
+      ...Array.from({ length: 65 }, (_, i) =>
+        street(`zz-test-abbey-street-${i}`, 'Abbey Street', `Testtown ${i}, County Galway`),
+      ),
+      street('zz-test-shop-street-galway', 'Shop Street', 'Latin Quarter, Galway'),
+    ];
+    await withSystem((tx) =>
+      tx.insert(places).values(streets.map((p) => rowFromPlace(p, 1, 'test'))),
+    );
+    try {
+      expect(slugsOf(await suggestPlaces('Shop Street Galway'))[0]).toBe(
+        'zz-test-shop-street-galway',
+      );
+      expect(slugsOf(await suggestPlaces('shop st'))).toContain('zz-test-shop-street-galway');
+    } finally {
+      await withSystem((tx) => tx.delete(places).where(like(places.slug, 'zz-test-%')));
+    }
   });
 
   it('loads streets for a search by slug, beside the places with pages', async () => {

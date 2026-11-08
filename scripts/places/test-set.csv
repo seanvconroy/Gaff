@@ -11,7 +11,8 @@ Clifden,Clifden,Galway,1
 Skibbereen,Skibbereen,Cork,1
 Kenmare,Kenmare,Kerry,1
 Carrick-on-Shannon,Carrick-on-Shannon,Leitrim,1
-Ennistymon,Ennistymon,Clare,1
+# OpenStreetMap spells it Ennistimon; the official spelling must still find it
+Ennistymon,Ennistimon,Clare,1
 Gorey,Gorey,Wexford,1
 Arklow,Arklow,Wicklow,1
 Thurles,Thurles,Tipperary,1

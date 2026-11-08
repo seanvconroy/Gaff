@@ -74,7 +74,14 @@ export function matchQuality(query: string, place: Place): { quality: number; ne
   if (names.includes(q) || (key !== null && place.routingKey === key)) {
     return { quality: 1, near: false };
   }
-  if (names.some((n) => n.startsWith(q))) return { quality: 0.9, near: false };
+  // A name that starts with what was typed. When that's whole words with more after, the fewer
+  // more the better, so "University College Dublin" puts "... (Belfield Campus)" before
+  // "... - Lyons Research Farm". A word still being typed ("rath") keeps them equal.
+  const starting = names.filter((n) => n.startsWith(q));
+  if (starting.length) {
+    const extra = Math.min(...starting.map((n) => (n[q.length] === ' ' ? n.length - q.length : 0)));
+    return { quality: 0.9 - Math.min(0.05, extra * 0.002), near: false };
+  }
   const words = queryWords(query);
   const nameWords = names.flatMap((n) => n.split(' '));
   if (wordsMatch(words, nameWords)) return { quality: 0.8, near: false };

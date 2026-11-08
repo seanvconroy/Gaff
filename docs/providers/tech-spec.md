@@ -7,8 +7,10 @@ Draft, 8 November 2026, revised the same day after Sean's review · CTO · goes 
 The stand-ins are replaced inside the existing monolith, behind ports that already exist or are renamed. No new service runs alongside the app, and no vendor beyond those already approved is needed at launch. The work adds:
 
 - a Claude adapter for both the Claude API (test copy) and Claude on Bedrock in Dublin (production), with four tasks, usage logging, a budget and evals;
-- **one identity check per person**, with Stripe Identity, kept in the person's own zone. Each workspace gets a copy for its badges, and each application gets one when the renter is chosen. Renters check before their first enquiry, behind a setting that can move it to "when chosen";
-- **work and income documents** for chosen renters: uploaded straight to private storage, read and checked by Claude, encrypted, shared in one step, and deleted on schedule. Statements of other income never reach letters;
+- **one identity check per person**, with Stripe Identity, kept in the person's own zone. Renters check the first time they're chosen, letters before their first listing. Each workspace gets a copy for its badges, and each application gets one when the renter is chosen;
+- **a mobile confirmed by text code to book a viewing**, using the code logic letters already have;
+- **one checks page for chosen renters**: identity (once), work and income documents, and referees, shared in one step;
+- **work and income documents**: uploaded straight to private storage, read and checked by Claude, encrypted, and deleted on schedule. Statements of other income never reach letters;
 - no open banking at launch. "Confirm with your bank" (Tink) is sketched as a later option.
 
 Everything in [architecture.md](../architecture.md), the ADRs and the [marketplace specification](../marketplace/tech-spec.md) still holds unless this document says otherwise.
@@ -22,7 +24,7 @@ Everything in [architecture.md](../architecture.md), the ADRs and the [marketpla
 | 3 | Model | Claude Opus 5.5 for every task, effort set per task. A cheaper model per task is a founder decision once its evals pass | ADR-0009; quality first, cost is a few cents per call | 0025 |
 | 4 | Refusals and failures | A refusal, timeout or invalid output falls back to people. No server-side model fallback | Rule 1 and P5; evals cover exactly the model that runs; Bedrock doesn't offer server-side fallback | 0025 |
 | 5 | Identity belongs to the person | One `identity_checks` row per person, in the renter zone (ADR-0017), with copies into `letter_checks` for each workspace and into `checks` for each application when the renter is chosen | Q48: checked once and reused; the person owns it; letters get copies only at their stage (rule 2) | 0026 |
-| 6 | When renters check | Before their first enquiry on Gaff, behind `RENTER_ID_AT` (`first_enquiry` or `chosen`) | Q48, with Q51 and the drop-off measure able to move it without a rebuild (P29) | 0026 |
+| 6 | When renters check | The first time a letter chooses them as the preferred applicant or the backup, on the same page as their documents and referees, whatever the source of their enquiry. Before then, a confirmed email to enquire and a confirmed mobile to book a viewing | Q48: the moment identity matters, one rule for Gaff, Daft and MyHome renters, the DPC's guidance, and about €2.50 a letting instead of €1.25 a sign-up | 0026 |
 | 7 | The non-biometric alternative | Stripe's document check without a selfie, then "seen in person" by the letter for a chosen renter, or a person at Gaff reviewing a letter's first listing. "Can't be checked online" leads to the same in-person step | EU law, and Stripe's own guidance, call for an alternative to biometrics; nobody is shut out by the document they hold | 0026 |
 | 8 | Work and income | Documents chosen by how the renter earns, read and checked by Claude. No income estimate, no score, no ratio. Statements of other income are read by Gaff alone | Q49; the Irish norm; rule 3 | 0026 |
 | 9 | Documents | Uploaded straight to private storage, then checked, read and encrypted by a job, as photos are (ADR-0021). The renter's and the letter's copies are separate objects with their own deletion dates | Vercel's 4.5 MB request limit; the photo pipeline already works this way; the two copies have different reasons to exist (Q25) | 0026 |
@@ -31,13 +33,13 @@ Everything in [architecture.md](../architecture.md), the ADRs and the [marketpla
 ## The shape
 
 ```
-Sign-up and enquiry (marketplace)          Renter's checks page (r/[token])        Letter's Applications page
-   │ first enquiry: check identity            │ upload, confirm, share                   │ see the pack, open documents,
-   ▼                                          ▼                                          ▼ record "seen in person"
-server/identity ──► ports/identity ──► adapters/identity/stripe ──► Stripe Identity (hosted)
-      │   copies at stage: letter_checks (workspace badges), checks (application, when chosen)
-      ▼
-domain/identity (names, may enquire, words)            webhook /api/webhooks/stripe-identity ─► server/identity
+Booking a viewing (r/[token])     Renter's checks page (r/[token])               Letter's Applications page
+   │ mobile + text code             │ identity (once), upload, confirm, share        │ see the pack, open documents,
+   ▼                                ▼                                                ▼ record "seen in person"
+server/viewings              server/identity ──► ports/identity ──► adapters/identity/stripe ──► Stripe Identity (hosted)
+                                   │   copies at stage: letter_checks (workspace badges), checks (application, when chosen)
+                                   ▼
+                             domain/identity (names, what's done, words)   webhook /api/webhooks/stripe-identity ─► server/identity
 
 server/documents ──► ports/storage (private bucket) ──► job process_document ──► ports/ai (read)
       ▼
@@ -60,13 +62,15 @@ src/server/ai/usage.ts              logs each call, enforces the budget, kill sw
 src/ports/identity.ts               was ports/letter-identity.ts, now for every person
 src/adapters/identity/stripe.ts     was adapters/letter-identity/stripe.ts, with or without a selfie
 src/adapters/identity/stand-in.ts   the development stand-in page, as today
-src/domain/identity/                names.ts (does a name match?), access.ts (may this person enquire
-                                      or publish yet?), words.ts (what each person sees)
+src/domain/identity/                names.ts (does a name match?), access.ts (is a chosen renter's
+                                      identity done? may this letter publish yet?), words.ts (what each
+                                      person sees)
 src/server/identity/                start, consent, outcome, webhook, redaction, "can't be checked
                                       online", copies to workspaces and applications, seen in person
 src/domain/documents/               requests.ts (what's asked, by how someone earns), checks.ts
                                       (recency, names, flags), pay.ts (pay periods to a month)
 src/server/documents/               upload, read, confirm, share, view, keep, delete
+src/server/viewings/booking.ts      + the mobile and its text code, reusing server/verification/mobile.ts
 src/jobs/tasks.ts                   + process_document, delete_documents; redact_identity moves to
                                       person rows
 tests/evals/                        golden sets and runners, against the real model (not in CI)
@@ -149,32 +153,35 @@ Results are saved under `tests/evals/results/` with the prompt version and model
 | `consent_version`, `consented_at` | The selfie consent wording the person agreed to (P18) |
 | `checked_at`, `provider_redacted_at` | The result's date; when Stripe was asked to redact |
 
-`domain/identity/access.ts` decides what someone may do next, with unit tests: a renter may enquire when the status is `verified` or `offline`, or when `RENTER_ID_AT=chosen`; a letter's listing may go live under `missingChecks` (M22) when they're `verified`, with the first listing held for review if `selfie` is false (P19). A letter who's `offline` stays in the staff queue until a person at Gaff checks them (Q55).
+`domain/identity/access.ts` decides what's done, with unit tests: a chosen renter's identity is done when the status is `verified`, or `offline` with the letter's in-person record to come before the agreement (P27). A letter's listing may go live under `missingChecks` (M22) when they're `verified`, with the first listing held for review if `selfie` is false (P19). A letter who's `offline` stays in the staff queue until a person at Gaff checks them (Q55).
 
 ### Starting a check
 
 1. Gaff's page explains the check (P18). For a selfie check, the person ticks the consent box (not ticked by default), which records `consent_version` and `consented_at` with an `identity.consented` event. "Check without a selfie" and "My ID can't be checked online" are links on the same page, with equal weight.
-2. `server/identity/start.ts` creates or reuses the person's VerificationSession: `type=document`; `options.document.require_matching_selfie` true or false; `require_live_capture=true`; `allowed_types` passport, driving licence and ID card; `return_url` back to the page the person came from (the enquiry, their profile, a checks page or Settings). `metadata[user_id]` and `metadata[check_id]` are opaque IDs, never names. The idempotency key is the check ID and the attempt number.
+2. `server/identity/start.ts` creates or reuses the person's VerificationSession: `type=document`; `options.document.require_matching_selfie` true or false; `require_live_capture=true`; `allowed_types` passport, driving licence and ID card; `return_url` back to the page the person came from (a renter's checks page, or a letter's Settings). `metadata[user_id]` and `metadata[check_id]` are opaque IDs, never names. The idempotency key is the check ID and the attempt number.
 3. Stripe's hosted page does the rest, and offers a laptop user to carry on on their phone. No Stripe script loads on Gaff's pages (M103).
 4. The webhook (`/api/webhooks/stripe-identity`, one route for everyone) verifies the signature, loads the check inside `withRenter(metadata.user_id)`, checks the session belongs to it, and asks Stripe for the session's state rather than trusting the payload (P54). The return page also asks, so the person rarely waits for the webhook.
 5. With the secret key only, Gaff reads `status`, `last_error.code` and `verified_outputs.first_name` and `last_name`. It never expands `dob`, `id_number` or images, which need a restricted key Gaff doesn't have.
 6. `consent_declined` moves the person to the check without a selfie (P18). A failed attempt shows the reason in plain words and offers another try, up to three, then "can't be checked online" (P25).
 7. `redact_identity` runs 30 days after the result and redacts the session, as for landlords today; the webhook listens for `identity.verification_session.redacted`.
 
-### The gate before a first enquiry
+### When renters check
 
-`enquireAboutListing` checks `mayEnquire` before anything else. On the listing page, the enquiry sheet asks for the name, email and code, as now (M76). Then, for someone who hasn't checked, it shows the identity step before the letter's questions, so nothing typed is lost on the trip to Stripe. The step returns to the same sheet with `?identity=returned`.
+The same way for every renter, wherever they enquired:
 
-With `RENTER_ID_AT=chosen`, the gate is off and every renter checks on their checks page when chosen (P16), as Daft and MyHome renters do anyway.
+1. When a letter chooses the preferred applicant and the backup (R18), each gets the existing checks email, with a link to their checks page (`r/[token]`), "A few checks before an offer".
+2. The page asks a renter who isn't signed in to confirm their email with a 6-digit code (M76's sign-in). That links the application to their Gaff account and profile, so whatever they do here is kept for next time. A Daft or MyHome renter gets their account this way.
+3. If their profile already has a verified identity, the page shows it as done (P29). Otherwise it shows the identity step, which goes to Stripe and returns to the same page with `?identity=returned`, so nothing else on the page is lost.
+4. Documents and referees sit on the same page (P30 to P39). "Share" sends all of it at once (P39).
 
-### Daft and MyHome renters
+### A confirmed mobile to book a viewing
 
-Their checks page (`r/[token]`) asks them to confirm their email with a 6-digit code, which sets up their Gaff account and profile (M76's sign-in), then runs the same check. The application is linked to the account, so the result is copied in at once and kept for next time.
+The booking page (`BookingSection`) asks for a mobile number, as today, but now sends a text code and books the slot only once it's confirmed (P16). The code logic in `server/verification/mobile.ts` (hashed codes, expiry, attempts and daily sends) is reused, keyed to the application, so renters from Daft and MyHome need no account to book. The confirmed number becomes the application's `phone_e164`, with `mobile_confirmed_at`, and also gets the 2-hour text reminder (R13, changing Q12). On the test copy the code shows on screen until Sinch is set up (N3). "I don't have a mobile" books the slot without one, and the letter's attendance list shows that no mobile was confirmed.
 
 ### Copies at each stage
 
 - **Workspaces.** When a person is verified, or joins a workspace already verified, `server/identity/copies.ts` writes or refreshes their `letter_checks` row for each of their workspaces (`method=id_document`, `passed`, the verified name, `checkedAt`). The row keeps no `providerRef`: the session belongs to the person's own record. Badges (M26) and readiness (M22) keep reading `letter_checks`, so nothing changes for them. Agents now need identity too (`missingChecks` adds `identity` for agency members). The staff licence queue shows the agent's verified name next to the register's (P24).
-- **Applications.** When a renter is chosen, their checks are created as today (R18). The identity check is filled from their record straight away: `passed` (with or without a selfie), or `in_person_needed` for `offline`. It's shared with the `checks` data group (M11, M12), and the event is `identity.shared`.
+- **Applications.** When a renter is chosen, their checks are created as today (R18). The identity check is `to_do`, or filled from their record if they've checked before: `passed` (with or without a selfie), or `in_person_needed` for `offline`. It reaches the letter when the renter shares their checks, with the `checks` data group (M11, M12), and the event is `identity.shared`.
 - **Seen in person (P27).** For a check without a selfie, or `offline`, the Tenancy page asks the letter to record that they saw an original photo ID, and the name on it, before sending the agreement. The application's check records `recordedBy` and the date, with `check.recorded_in_person`. The person's own record isn't changed: one letter's sighting stays with that letting.
 
 ### Moving the landlords' check over
@@ -183,7 +190,7 @@ A migration copies each `letter_checks` row with `method=id_document` into `iden
 
 ### Cost
 
-€1.25 per submitted verification in Ireland while Identity is in public beta, the first 50 free, charged whatever the outcome. Once per person, so about €1.25 to €1.50 for each new renter or letter, attempts included. If a renter enquires about five homes on average, that's about 25 to 30 cents an enquiry. It grows with sign-ups, not lettings, so the weekly view (P58) shows the cost per new person.
+€1.25 per submitted verification in Ireland while Identity is in public beta, the first 50 free, charged whatever the outcome. Once per person: for renters, only those chosen, so at most about €2.50 a letting for the preferred applicant and the backup, and less as renters who've checked before are chosen again. Each letter costs the same, once. The weekly view (P58) shows the cost per letting.
 
 ## Work and income documents
 
@@ -195,9 +202,9 @@ A migration copies each `letter_checks` row with `method=id_document` into `iden
 | --- | --- | --- |
 | `employed` | Three most recent payslips; or, if they started in the last three months, a contract or offer letter | The employer reference (built), or an uploaded employer's letter instead; the landlord reference |
 | `self_employed` | The latest Notice of Assessment from Revenue, or an accountant's letter | The landlord reference |
-| `other` | A statement of each regular income, or of savings, with transactions removed or covered | The landlord reference |
+| `other` | A statement of each regular income, or a savings statement showing only the balance | The landlord reference |
 
-Anyone can add a statement of other income too. A first-time renter gives a character reference instead of a landlord's (P42, Should).
+Anyone can add a statement of other income too. A renter who hasn't rented before, or is new to Ireland, gives a character reference instead of a landlord's (P42): the same email and fixed questions, worded for someone who knows them. Referees' details are kept with the documents if the renter ticks "keep" (P40).
 
 ### The pipeline
 
@@ -253,11 +260,12 @@ It needs Tink's enterprise terms for Income Check, its confirmed Irish bank list
 | `identity_checks` (new, renter zone, `renterPolicy`) | As above |
 | `letter_checks` | `id_document` rows become copies of the person's record: no `providerRef` or `providerRedactedAt` for new rows. Migrated as above |
 | `checks` | The identity check's sealed result gains `selfie` and `inPersonNeeded`. New columns `recorded_by`, `recorded_at` for "seen in person". The `income` kind holds the shared documents' summary: `documentsSharedAt` and the flags |
+| `applications` | `mobile_confirmed_at`, and the booking's text code (hashed, with its expiry and attempts), cleared once confirmed. The number is the existing `phone_e164`; `sms_reminders` follows the confirmed number (Q12) |
 | `renter_documents` (new, renter zone, `renterPolicy`) | `user_id`, `kind` (`payslip`, `contract`, `employer_letter`, `revenue_statement`, `accountant_letter`, `other_income`), `storage_key` (null once deleted), `content_type`, `bytes`, `pages`, `status` (`processing`, `ready`, `deleted`), `reading_sealed`, `flags`, `document_date`, `corrected_by_renter`, `keep`, `delete_after`, `deleted_at` |
 | `check_documents` (new, organisation zone, `tenantPolicy`) | `check_id`, `application_id`, `kind` (`other_income` has no file), `storage_key`, `reading_sealed`, `flags`, `document_date`, `corrected_by_renter`, `delete_after`, `deleted_at` |
 | `ai_calls` (new, platform zone) | As above. No organisation data beyond the ID |
 | `listing_holds.reasons` | Adds `unfair_wording`, and `first_listing_review` for a letter checked without a selfie (P19) |
-| Events | `identity.consented`, `identity.started`, `identity.decided`, `identity.offline`, `identity.redacted`, `identity.copied`, `identity.shared`, `check.recorded_in_person`, `document.uploaded`, `document.read`, `document.confirmed`, `documents.shared`, `document.viewed`, `document.deleted`, `listing.description_drafted`, `listing.wording_flagged`; platform: `ai.budget_warning`. IDs, codes, numbers and dates only, checked by the compliance suite. Person-zone events carry no organisation |
+| Events | `booking.mobile_confirmed`, `identity.consented`, `identity.started`, `identity.decided`, `identity.offline`, `identity.redacted`, `identity.copied`, `identity.shared`, `check.recorded_in_person`, `document.uploaded`, `document.read`, `document.confirmed`, `documents.shared`, `document.viewed`, `document.deleted`, `listing.description_drafted`, `listing.wording_flagged`; platform: `ai.budget_warning`. IDs, codes, numbers and dates only, checked by the compliance suite. Person-zone events carry no organisation |
 
 ## Privacy and retention
 
@@ -266,6 +274,7 @@ It needs Tink's enterprise terms for Income Check, its confirmed Irish bank list
 | Identity result, verified name, selfie or not | `identity_checks`, sealed | As long as the account (P28) | Account deletion; the 2-year inactivity rule (Q25) |
 | Copies of a letter's result | `letter_checks` | While they're a member | Leaving the workspace; account deletion |
 | A chosen renter's result | `checks.result_sealed` | With the application (R26) | The retention job |
+| Confirmed mobile | `applications.phone_e164` | With the application (R26) | The retention job |
 | ID documents and selfies | Stripe | 30 days, then redacted; Stripe's own controller copy per its terms | `redact_identity`, and the privacy notice |
 | The renter's documents | `documents` bucket, encrypted; `renter_documents` | Until shared, unless kept; kept ones until out of date | `delete_documents` |
 | The letter's copies | `documents` bucket, encrypted; `check_documents` | Until the tenancy starts or the application closes, 30 days after sharing at most | `delete_documents` |
@@ -285,8 +294,8 @@ It needs Tink's enterprise terms for Income Check, its confirmed Irish bank list
 ## Testing
 
 - **Unit:** `names.ts` (fadas, Ó and O', Mc and Mac, middle names, married names), `access.ts` (each status and setting), `requests.ts`, `checks.ts` (each flag at its boundary), `pay.ts`, the AI validators (a phrase not in the input, a fact ID that doesn't exist, a number not in the facts, a PPS number or IBAN in a reading, a payer on other income), the budget maths, the Stripe adapter with a mocked `fetch` (with and without a selfie, `consent_declined`, retries on one session).
-- **Integration:** each use case with the fake AI and the stand-in provider: the enquiry gate on and off, consent, attempts, "can't be checked online", copies to workspaces when verified and on joining, sharing to an application, seen in person, redaction, the migration from `letter_checks`, uploads and readings, sharing, deletion of each copy on its date, other income never reaching the organisation zone, and events without personal data.
-- **End to end:** a renter's first enquiry with the identity step on a phone; a Daft renter checking when chosen; a chosen renter uploading, confirming and sharing; the letter's pack and opening a payslip; an agent's identity and licence; axe on every page; the existing journeys keep passing.
+- **Integration:** each use case with the fake AI and the stand-in provider: the mobile code at booking (with and without a mobile), consent, attempts, "can't be checked online", copies to workspaces when verified and on joining, sharing to an application, seen in person, redaction, the migration from `letter_checks`, uploads and readings, sharing, deletion of each copy on its date, other income never reaching the organisation zone, and events without personal data.
+- **End to end:** booking a viewing with a text code on a phone; a chosen renter checking their identity, uploading, confirming and sharing on one page; a Daft renter doing the same; the same renter chosen again, with identity already done; the letter's pack and opening a payslip; an agent's identity and licence; axe on every page; the existing journeys keep passing.
 - **Compliance:** no column can hold a date of birth, document number, transactions or a payer of other income (a schema test); event payloads; no third-party scripts; production refuses `AI_PROVIDER=anthropic`, `IDENTITY_PROVIDER=stand_in` and the database storage provider; no route serves an `other_income` document.
 - **Evals:** above, before every prompt or model change.
 - **Sandboxes:** a manual contract test against Stripe test mode before each release that touches it.
@@ -297,7 +306,7 @@ It needs Tink's enterprise terms for Income Check, its confirmed Irish bank list
 | --- | --- | --- | --- |
 | 1 | The Claude adapter on both clients, usage logging, budget, kill switches; answers on the real model; their evals | P1 to P9, P56 | An Anthropic API key on the test copy |
 | 2 | Drafted descriptions and the wording check, with evals | P10 to P14 | — |
-| 3 | Identity per person: the record, Stripe with and without a selfie, consent, "can't be checked online", the enquiry gate and its setting, Daft and MyHome renters, copies to workspaces and applications, agents, seen in person, redaction, the migration | P15 to P29 | Stripe test keys and the webhook on the test copy; a test-mode spike with Irish documents first |
+| 3 | Identity per person: the record, Stripe with and without a selfie, consent, "can't be checked online", the checks page and reuse on a later letting, the mobile code at booking, copies to workspaces and applications, agents, seen in person, redaction, the migration | P15 to P29 | Stripe test keys and the webhook on the test copy; a test-mode spike with Irish documents first |
 | 4 | Documents: what's asked, upload, reading, flags, confirming, sharing, the letter's viewer, keeping, deletion; their evals | P30 to P41 | — |
 | 5 | The letter's pack and fairness words; character references and guarantors; measures and alerts | P42 to P49, P58, P59 | — |
 | 6 | Production readiness: Bedrock in Dublin and its evals, Stripe's live keys and DPA, the privacy notice, the DPIA, the solicitor's answers | P50 to P55, P57 | AWS account; solicitor; Stripe |
@@ -310,16 +319,17 @@ It needs Tink's enterprise terms for Income Check, its confirmed Irish bank list
 | Description draft | about €0.03 | per draft |
 | Wording check | about €0.01 | per publish or edit |
 | Reading documents | about €0.02 a page | about €0.10 per chosen renter |
-| Stripe Identity | €1.25 per verification (first 50 free), per attempt | once per person: about €1,250 to €1,500 per 1,000 new people |
+| Stripe Identity | €1.25 per verification (first 50 free), per attempt | once per person: at most about €2.50 a letting for chosen renters, and once per letter |
+| Text codes | Sinch's price per text, a few cents | once per booking |
 
-AI figures are estimates at Claude Opus 5.5's list price ($4 and $20 per million tokens); Bedrock's regional endpoint costs about 10% more than its global one. The $100 of API credits cover several thousand test calls. Identity is now the largest cost, and it grows with renters rather than lettings.
+AI figures are estimates at Claude Opus 5.5's list price ($4 and $20 per million tokens); Bedrock's regional endpoint costs about 10% more than its global one. The $100 of API credits cover several thousand test calls.
 
 ## Risks and spikes
 
 | Risk | Mitigation |
 | --- | --- |
-| Renters leave at the identity step before their first enquiry | Measure it from the first day (P58); `RENTER_ID_AT=chosen` moves the check without a rebuild (P29) |
-| The solicitor finds checking every renter before their first enquiry disproportionate (Q51) | The same setting; the record and the copies work either way |
+| A chosen renter doesn't finish their checks in time | One page, about five minutes; the existing reminders and chasers; the backup is checked at the same time (R18); the letter decides |
+| Fake bookings and no-shows at viewings | A confirmed mobile to book, and text reminders (P16) |
 | Stripe reads its terms as excluding housing | Gaff checks its own users, the same way for everyone, and the result never decides who gets a home. Daft uses Stripe Identity the same way. "Seen in person" works without Stripe, and another provider fits behind the same port (with approval, rule 10) |
 | Stripe doesn't accept an Irish document (passport card, driving licence, Irish Residence Permit) | A spike in test mode with each type before milestone 3 ships; "can't be checked online" means nobody is shut out |
 | Identity costs grow with sign-ups | The cost per new person in the weekly view; three attempts at most; ask Stripe for volume pricing after the beta |

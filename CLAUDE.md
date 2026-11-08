@@ -19,13 +19,12 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
 
 1. **People make every decision.** Gaff ranks, drafts and suggests. It never rejects, chooses, invites or offers anyone on its own (Principle 1, GDPR Article 22). Anything that changes a renter's chances takes a `PersonDecision` (`src/domain/decisions`). Only `src/server/decisions` can create one, from a signed-in `Member`. Jobs, adapters, AI and domain code can't import it (lint rule, ADR-0007).
 2. **Staged data.** Collect renter data only at its stage (PRD workflow table), and share it with a letter only at its stage:
-   - once, on the renter's Gaff profile, before their first enquiry on Gaff (or when chosen, if they enquired on Daft or MyHome): identity, checked by Gaff with Stripe Identity. Gaff keeps only the result and the verified name, and a letter sees them only when the renter is chosen (Q48);
    - before viewing: contact details and self-declared answers;
    - at applications: employment and income;
-   - for the preferred applicant and one backup only: work and income documents, and references;
+   - for the preferred applicant and one backup only: identity, work and income documents, and references. Identity is checked once, by Gaff with Stripe Identity, and kept on the renter's profile for their next home; Gaff keeps only the result and the verified name (Q48);
    - for RTB registration only: the PPSN. Documents may show it, but Gaff never reads it out or records it (Q50).
 
-   Ask only what the operator's criteria need. Never ask for documents before an applicant is chosen (DPC guidance), apart from the ID the renter shows Stripe.
+   Ask only what the operator's criteria need. Never ask for documents before an applicant is chosen (DPC guidance).
 
 3. **No protected grounds.** Never ask about, store, infer or use any of these:
    - gender, civil status, family status, sexual orientation, religion or age;

@@ -126,7 +126,7 @@ The marketplace keeps the workflow's staged data (rule 2). A renter's account an
 | --- | --- |
 | Enquiry | Name, email, mobile if given, answers to the letter's criteria questions, and the message |
 | Application, after a viewing | Also: how they mainly earn and the household's monthly take-home income |
-| Preferred applicant or backup | Also: their identity check (made once, on their profile), their work and income documents, and references |
+| Preferred applicant or backup | Also: their identity check (made once, and kept for their next home), their work and income documents, and references |
 | Signed tenancy | Also: the PPS number for RTB registration, if the tenant gives it (sealed, deleted after registration) |
 | Never | Date of birth or age, nationality, family details, whether they get HAP or any social welfare payment, statements of other income, photos of them, their searches, saved homes or other enquiries |
 
@@ -194,13 +194,13 @@ Anyone can report a listing from its page, without an account, and Gaff acknowle
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| M8 | The profile holds name, email, an optional mobile, and answers to the pre-viewing questions, which come only from the fixed criteria list: move-in date, how long they plan to stay, how many people, pets. Answers are reused, and can be changed for each enquiry | Must |
+| M8 | The profile holds name, email, a mobile (optional to enquire, confirmed by text code to book a viewing, Q48), and answers to the pre-viewing questions, which come only from the fixed criteria list: move-in date, how long they plan to stay, how many people, pets. Answers are reused, and can be changed for each enquiry | Must |
 | M9 | "Keep my details for next time" is one unticked box, at enquiry and when a letting ends for them (Q25). With it, the profile is kept until they delete it, or for 2 years after they last use it. Without it, their details live only in each application. The account itself lasts while they have an open enquiry, saved homes or alerts | Must |
 | M10 | Saved searches, saved homes and alerts belong to the renter and are never shared with letters | Must |
-| M11 | Employment and income answers can be saved in the profile, but a letter gets them only when the renter applies after a viewing (stage 5). The identity check is on every renter's profile (Q48), and documents are kept only if the renter chooses (Q25). Both are shared only if the renter becomes the preferred applicant or backup (stage 6). Before that, letters see only that Gaff asks everyone who enquires on Gaff to check their identity, never a renter's own result | Must |
+| M11 | Employment and income answers can be saved in the profile, but a letter gets them only when the renter applies after a viewing (stage 5). A renter's identity check, made the first time they're chosen, stays on their profile (Q48), and documents stay only if the renter chooses (Q25). Both are shared only if the renter becomes the preferred applicant or backup (stage 6). Before that, letters can't see them, or that they exist | Must |
 | M12 | "Who has my details": for each letter, what they have, since when, and when it will be deleted | Must |
 | M13 | Renters can download all their data and delete their account themselves. Letters' copies follow their own deletion dates; the renter is told so plainly, and how to ask a letter to delete sooner | Must |
-| M14 | "Ready to move", superseded by Q48: every renter checks their identity once, before their first enquiry, at Gaff's cost ([providers PRD](../providers/prd.md), P15 to P29) | Superseded |
+| M14 | "Ready to move", superseded by Q48: every renter checks their identity once, the first time they're chosen, at Gaff's cost, and it's reused for every later home ([providers PRD](../providers/prd.md), P15 to P29) | Superseded |
 
 ### C. Letter profiles: landlords, agencies and agents
 
@@ -436,7 +436,7 @@ All parts launch together (Q27). To avoid an empty site on day one:
 - **Q32.** Is the workflow free for every letter during launch? Proposed: yes, until a date you set, then pricing as in the business plan.
 - **Q33.** Defaults: at least 3 photos to publish; availability confirmed every 14 days, with the listing paused after 3 days without an answer.
 - **Q34.** Partner services for renters, such as insurance or utilities. Proposed: none at launch.
-- **Q35.** "Ready to move" identity checks for renters in advance (M14). Superseded on 8 November 2026 by Q48: every renter checks once, before their first enquiry.
+- **Q35.** "Ready to move" identity checks for renters in advance (M14). Superseded on 8 November 2026 by Q48: every renter checks once, the first time they're chosen, and it's kept for next time.
 - Already open: whether "Gaff" stays the name. Also, the business plan needs updating for Q27.
 
 **For the solicitor (Q36):**

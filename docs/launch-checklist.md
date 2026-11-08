@@ -17,9 +17,9 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] **Resend:** sending domain in `eu-west-1` with SPF and DKIM, open and click tracking off; receiving on the inbound subdomain (MX record); `email.received` webhook to `/api/inbound/resend`. Sign the DPA (data is stored in the US under the Data Privacy Framework, Q26). Mailgun EU remains an alternative.
 - [ ] **Alerts (M86):** a separate sending subdomain for alerts (`ALERTS_MAIL_FROM_DOMAIN`, for example `alerts.gaff.ie`) with its own SPF and DKIM, so a spike in alerts can't affect sign-in codes. Check one-click unsubscribe (List-Unsubscribe and List-Unsubscribe-Post) in Gmail and Outlook.
 - [ ] **Sinch:** EU region SMS account; check Irish sender ID rules. Sign the DPA.
-- [ ] **Identity and documents** ([providers PRD](providers/prd.md), Q48 to Q50): Stripe Identity's live keys and webhook for everyone's identity check (`IDENTITY_PROVIDER=stripe`, with `RENTER_ID_AT` set), and a private `documents` bucket in Supabase Storage for chosen renters' work and income documents. No open banking provider is needed at launch. Until then production runs with the renters' checks off, and operators arrange those checks themselves.
+- [ ] **Identity and documents** ([providers PRD](providers/prd.md), Q48 to Q50): Stripe Identity's live keys and webhook for everyone's identity check (`IDENTITY_PROVIDER=stripe`), and a private `documents` bucket in Supabase Storage for chosen renters' work and income documents. No open banking provider is needed at launch. Until then production runs with the renters' checks off, and operators arrange those checks themselves.
 - [ ] **AI:** Bedrock access to Claude Opus 5.5 in `eu-west-1`, the evals passing there, and `AI_MONTHLY_BUDGET_EUR` set. Production refuses the Claude API (Q37).
-- [ ] **Privacy notice and DPIA** cover Stripe Identity for everyone (biometric data), renters' documents and the AI tasks (P50, P51), and the solicitor has answered Q42, Q43, Q45, Q51 and Q52.
+- [ ] **Privacy notice and DPIA** cover Stripe Identity for everyone (biometric data), renters' documents and the AI tasks (P50, P51), and the solicitor has answered Q42, Q43, Q45 and Q52.
 - [ ] **GitHub:** push access and Actions enabled for CI.
 
 ## Solicitor (before the first pilot letting)

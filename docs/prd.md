@@ -71,7 +71,7 @@ A letting runs through nine stages. Renters share more only as they move forward
 | 3. Shortlist | Sorts enquirers against the criteria and says why | **Operator approves who is invited to view** | None new |
 | 4. Viewings | Invites, lets renters book, sends reminders, fills cancellations from a waitlist | Operator shows the home | Booking time, attendance |
 | 5. Applications | Invites viewers to apply; collects self-declared employment and income | **Operator and landlord choose a preferred applicant and a backup** | Self-declared employment and income |
-| 6. Checks | Shares the identity check, reads and checks work and income documents, requests and chases references | Operator reviews the results | Identity result, documents and references, preferred applicant and backup only |
+| 6. Checks | Checks identity (once per renter, reused after), reads and checks work and income documents, requests and chases references | Operator reviews the results | Identity result, documents and references, preferred applicant and backup only |
 | 7. Offer | Sends the landlord a one-page summary; sends the offer; tells every other applicant | **Landlord approves; renter accepts** | None new |
 | 8. Tenancy set-up | Prepares the tenancy agreement for e-signing, the payment request, the rent-setting pack and the RTB registration pack | **Both sides sign**; operator confirms payment and submits the RTB registration | PPSN for RTB registration; signature |
 | 9. Close | Deletes unsuccessful applicants' data on schedule, archives the letting record, reports time and days saved | None | Renter chooses whether to keep a Gaff profile |
@@ -93,13 +93,13 @@ A letting runs through nine stages. Renters share more only as they move forward
 | R9 | Enquiries | Renter answers the pre-viewing questions on a mobile page, no account needed | Must |
 | R10 | Shortlist | Gaff ranks enquirers against the criteria, then by enquiry time, and shows the reason for each position | Must |
 | R11 | Shortlist | Operator approves invitations in one action; nobody is rejected without a person's approval | Must |
-| R12 | Viewings | Booked slots or capped group viewings; renters self-book, reschedule or cancel | Must |
+| R12 | Viewings | Booked slots or capped group viewings; renters self-book, reschedule or cancel, confirming their mobile with a text code to book (Q48) | Must |
 | R13 | Viewings | Email confirmation and reminders the day before and two hours before; SMS reminder | Must |
 | R14 | Viewings | Cancellations are offered to the waitlist automatically | Must |
 | R15 | Viewings | Operator marks attendance on a phone in one tap per person | Should |
 | R16 | Applications | After a viewing, attendees get an apply link; the application reuses everything already given | Must |
 | R17 | Applications | Operator sees applicants side by side and picks a preferred applicant and a backup | Must |
-| R18 | Checks | Work and income documents and references are asked for only from the preferred applicant and backup, with the renter's knowledge, and their identity check is shared with the letter at the same point (see Checks) | Must |
+| R18 | Checks | Identity, work and income documents and references are asked for only from the preferred applicant and backup, on one page, with the renter's knowledge. Identity is checked once and reused for later homes (see Checks) | Must |
 | R19 | Offer | Landlord gets a one-page summary by link and approves or declines without an account | Must |
 | R20 | Offer | The offer goes to the chosen renter with a deadline to accept; on expiry, the backup is offered | Must |
 | R21 | Offer | Every other applicant gets a prompt, polite outcome message | Must |
@@ -116,11 +116,11 @@ A letting runs through nine stages. Renters share more only as they move forward
 
 ## Checks on the chosen applicant
 
-Gaff collects work and income documents and references only from the preferred applicant and one backup. The Data Protection Commission has found that collecting documents from every applicant before an offer is excessive, so this design is both lawful and lighter for renters. Identity is different: every person checks theirs once, as part of their Gaff profile, and a letter sees a renter's result only when they choose them ([providers PRD](providers/prd.md), Q48).
+Gaff runs identity, work and income, and reference checks, but only on the preferred applicant and one backup. The Data Protection Commission has found that collecting documents from every applicant before an offer is excessive, so this design is both lawful and lighter for renters. Identity is checked once, the first time a renter is chosen, and kept on their Gaff profile for their next home ([providers PRD](providers/prd.md), Q48).
 
 | Check | How it works in the MVP | What Gaff keeps |
 | --- | --- | --- |
-| Identity | Checked once, on the renter's Gaff profile, before their first enquiry: Stripe Identity checks an ID document, and a selfie with consent. Without a selfie, or if the ID can't be checked online, the letter sees the ID in person | The result, the verified name and the date; never the document, the selfie or the date of birth (Q19) |
+| Identity | Checked once, the first time the renter is chosen, and kept on their Gaff profile: Stripe Identity checks an ID document, and a selfie with consent. Without a selfie, or if the ID can't be checked online, the letter sees the ID in person | The result, the verified name and the date; never the document, the selfie or the date of birth (Q19) |
 | Work and income | The documents Irish letters already ask for, by how the renter earns: payslips and an employer's reference, a Revenue statement or an accountant's letter, or statements of other income. Gaff reads them and checks they're recent and in the renter's name; the letter reads the evidence. No income estimate | What each document shows; the documents themselves until the tenancy starts. Statements of other income are read by Gaff and never shown to the letter |
 | References | Gaff emails the previous landlord and employer a short form, chases twice, and flags if no answer | The answers, until the tenancy starts, then deleted |
 | Guarantor | The renter can add a guarantor, who checks their identity and shares their own documents the same way | As above |

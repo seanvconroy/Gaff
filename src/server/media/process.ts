@@ -28,6 +28,17 @@ interface Processed {
 /** No more than 100 megapixels: anything bigger is refused before it's decoded. */
 const pixelLimit = { limitInputPixels: 100_000_000, failOn: 'error' as const };
 
+/** M29: a photo's perceptual hash, from a 9 × 8 greyscale thumbnail of it the right way up. */
+export async function photoHash(original: Buffer): Promise<bigint> {
+  const thumb = await sharp(original, pixelLimit)
+    .rotate()
+    .greyscale()
+    .resize(9, 8, { fit: 'fill' })
+    .raw()
+    .toBuffer();
+  return differenceHash(thumb);
+}
+
 /**
  * M43: checks an uploaded photo by its bytes, turns it the right way up, and writes the fixed
  * sizes renters see. sharp removes all metadata (location, camera) unless asked to keep it, and
@@ -63,12 +74,7 @@ async function resize(
       .toBuffer();
     await storage.write('media', keys.preview, preview, 'image/jpeg');
 
-    const thumb = await sharp(original, pixelLimit)
-      .rotate()
-      .greyscale()
-      .resize(9, 8, { fit: 'fill' })
-      .raw()
-      .toBuffer();
+    const phash = await photoHash(original);
     const [r, g, b] = await sharp(original, pixelLimit)
       .rotate()
       .resize(1, 1)
@@ -80,7 +86,7 @@ async function resize(
       width,
       height,
       widths,
-      phash: differenceHash(thumb),
+      phash,
       placeholder: `#${hex(r)}${hex(g)}${hex(b)}`,
     };
   } catch {

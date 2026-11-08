@@ -17,3 +17,4 @@ export * from './measurement';
 export * from './alerts';
 export * from './moderation';
 export * from './ai';
+export * from './places';

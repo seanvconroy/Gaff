@@ -20,6 +20,9 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] **Identity and documents** ([providers PRD](providers/prd.md), Q48 to Q50): Stripe Identity's live keys and webhook for everyone's identity check (`IDENTITY_PROVIDER=stripe`), and a private `documents` bucket in Supabase Storage for chosen renters' work and income documents. No open banking provider is needed at launch. Until then production runs with the renters' checks off, and operators arrange those checks themselves.
 - [ ] **AI:** Bedrock access to Claude Opus 5.5 in `eu-west-1`, the evals passing there, and `AI_MONTHLY_BUDGET_EUR` set. Production refuses the Claude API (Q37).
 - [ ] **Privacy notice and DPIA** cover Stripe Identity for everyone (biometric data), renters' documents and the AI tasks (P50, P51), and the solicitor has answered Q42, Q43, Q45 and Q52.
+- [ ] **Google Maps Platform (Q58, ADR-0027):** a billing account in Gaff's name, with budget alerts at 50%, 80% and 100% of the monthly budget (search redesign PRD S1) and a daily quota cap on map loads. Separate API keys for production and the test copy, each restricted to Gaff's domains (HTTP referrers) and to the Maps JavaScript API only. Light and dark Map IDs, styled from the tokens. Accept the Controller-Controller Data Protection Terms, and record that Google offers no EU region (transfers under the EU–US Data Privacy Framework).
+- [x] **Place index (ADR-0027):** built from OpenStreetMap and committed (8 November 2026; the **Build the place index** workflow rebuilds and checks it every quarter).
+- [ ] **`pg_trgm` on the production database** ([deploy.md](deploy.md), step 7). It's on for the test copy (`gaff-test`, in `public`).
 - [ ] **GitHub:** push access and Actions enabled for CI.
 
 ## Solicitor (before the first pilot letting)
@@ -34,6 +37,8 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] Fixed answers on protected grounds (Q7)
 - [ ] Message templates in `src/copy/templates/`: first reply (with AI disclosure; version 2 adds the M28 line that no money is asked for before signing, and thanks renters who answered on Gaff), holding message, invitation, waiting list, booking confirmation, reminders (email and SMS), place offered, letting closed, and later offer and outcome
 - [ ] Privacy notice for renters (GDPR Article 14)
+- [ ] Google Maps on renter pages: Gaff's terms carry Google's notice (Google Maps Additional Terms of Service and Privacy Policy), the privacy notice names Google Maps, and the DPIA covers it, including whether the map needs a tap before it loads (search redesign PRD S2)
+- [ ] OpenStreetMap data in the place index: OSM rows kept separate, the build method published, and the wording of the "Map and place data" credits page (`/map-and-place-data`, drafted) (ODbL)
 - [ ] Collecting the PPSN for RTB registration (optional, sealed, deleted once registered; no date of birth, Q24), and the registration deadline
 - [ ] Gaff’s standard tenancy agreement wording (`src/copy/templates/tenancy-agreement.ts`), and whether it can be signed electronically or must be signed on paper (Electronic Commerce Act 2000, s.10(1)(b); Q23)
 

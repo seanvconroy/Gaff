@@ -25,3 +25,6 @@ blob-report/
 
 # local object storage (STORAGE_PROVIDER=local)
 .data/
+
+# Place index build downloads (scripts/places)
+.cache/

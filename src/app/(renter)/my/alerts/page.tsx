@@ -49,8 +49,7 @@ export default async function AlertsPage({
       ) : null}
       {searches.length === 0 ? (
         <p>
-          On any search, tap “Get alerts for this search”.{' '}
-          <Link href="/to-rent">Search homes to rent</Link>
+          On any search, tap “Save search”. <Link href="/to-rent">Search homes to rent</Link>
         </p>
       ) : (
         <ul className={styles.homes}>

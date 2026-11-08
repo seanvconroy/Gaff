@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { fixtureGazetteer } from '@/domain/places/fixture';
 import {
   alertMatches,
   homeChanges,
@@ -25,35 +26,39 @@ const home: AlertableListing = {
   longitude: -6.2563,
 };
 
+const g = fixtureGazetteer();
+
 describe('M86: alerts match exactly what the search would find', () => {
   it('matches by place and filters', () => {
-    expect(alertMatches(home, { areaPath: '/to-rent/dublin/ranelagh', query: 'beds=2' }, now)).toBe(
-      true,
+    expect(
+      alertMatches(home, { areaPath: '/to-rent/dublin/ranelagh', query: 'beds=2' }, g, now),
+    ).toBe(true);
+    expect(alertMatches(home, { areaPath: '/to-rent/dublin', query: 'max=1800' }, g, now)).toBe(
+      false,
     );
-    expect(alertMatches(home, { areaPath: '/to-rent/dublin', query: 'max=1800' }, now)).toBe(false);
-    expect(alertMatches(home, { areaPath: '/to-rent/cork', query: '' }, now)).toBe(false);
-    expect(alertMatches(home, { areaPath: '/to-rent/dublin/dublin-6', query: 'pets=1' }, now)).toBe(
-      true,
-    );
-    expect(alertMatches(home, { areaPath: '/to-rent', query: '' }, now)).toBe(true);
+    expect(alertMatches(home, { areaPath: '/to-rent/cork', query: '' }, g, now)).toBe(false);
+    expect(
+      alertMatches(home, { areaPath: '/to-rent/dublin/dublin-6', query: 'pets=1' }, g, now),
+    ).toBe(true);
+    expect(alertMatches(home, { areaPath: '/to-rent', query: '' }, g, now)).toBe(true);
   });
 
   it('treats every home in an alert as new, whatever "newly listed" says', () => {
-    expect(alertMatches(home, { areaPath: '/to-rent/dublin', query: 'new=1d' }, now)).toBe(true);
+    expect(alertMatches(home, { areaPath: '/to-rent/dublin', query: 'new=1d' }, g, now)).toBe(true);
   });
 
   it('matches nothing for a place Gaff no longer knows', () => {
-    expect(alertMatches(home, { areaPath: '/to-rent/nowhere', query: '' }, now)).toBe(false);
+    expect(alertMatches(home, { areaPath: '/to-rent/nowhere', query: '' }, g, now)).toBe(false);
   });
 });
 
 describe('M86: saved searches', () => {
   it('get a plain name from their place and filters', () => {
-    expect(savedSearchName('/to-rent/dublin/rathmines', 'max=2600&beds=2&pets=1')).toBe(
+    expect(savedSearchName('/to-rent/dublin/rathmines', 'max=2600&beds=2&pets=1', g)).toBe(
       'Rathmines, 2+ beds, up to €2,600, pets considered',
     );
-    expect(savedSearchName('/to-rent', '')).toBe('Ireland');
-    expect(savedSearchName('/to-rent/cork', 'beds=1')).toBe('County Cork, 1+ beds');
+    expect(savedSearchName('/to-rent', '', g)).toBe('Ireland');
+    expect(savedSearchName('/to-rent/cork', 'beds=1', g)).toBe('County Cork, 1+ beds');
   });
 
   it('send the daily email at 8am in Ireland', () => {
@@ -84,5 +89,22 @@ describe('M51, M85: what changed about a saved home', () => {
     expect(homeChanges(saved, { rentCents: 185_000, status: 'let' })).toEqual([{ kind: 'let' }]);
     expect(homeChanges(saved, null)).toEqual([{ kind: 'gone' }]);
     expect(homeChanges(saved, { rentCents: 185_000, status: 'live' })).toEqual([]);
+  });
+
+  it('M113: matches a home near a street, from a "near" search with its distance', () => {
+    const nearRathgar = { ...home, latitude: 53.315, longitude: -6.27 };
+    const search = { areaPath: '/to-rent/near/highfield-road-rathgar-dublin-6', query: '' };
+    expect(alertMatches(nearRathgar, search, g, now)).toBe(true);
+    expect(alertMatches({ ...home, latitude: 53.35, longitude: -6.26 }, search, g, now)).toBe(
+      false,
+    );
+    expect(
+      alertMatches(
+        { ...home, latitude: 53.33, longitude: -6.27 },
+        { ...search, query: 'km=2' },
+        g,
+        now,
+      ),
+    ).toBe(true);
   });
 });

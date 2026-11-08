@@ -13,6 +13,19 @@ export function roomsLine(home: { bedrooms: number; bathrooms: number; propertyT
   return home.propertyType === 'studio' ? `${beds} · ${baths}` : `${beds} · ${baths} · ${type}`;
 }
 
+/** M60: the short form on result cards: "2 beds · 1 bath", "Studio · 1 bath". */
+export function shortRoomsLine(home: {
+  bedrooms: number;
+  bathrooms: number;
+  propertyType: string;
+}) {
+  const beds =
+    home.propertyType === 'studio' || home.bedrooms === 0
+      ? 'Studio'
+      : `${home.bedrooms} bed${home.bedrooms === 1 ? '' : 's'}`;
+  return `${beds} · ${home.bathrooms} bath${home.bathrooms === 1 ? '' : 's'}`;
+}
+
 /** "Available now" or "Available from Thursday 4 December". */
 export function availableWords(availableFrom: string, now = new Date()): string {
   return availableFrom <= irishToday(now)

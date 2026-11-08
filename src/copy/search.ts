@@ -57,6 +57,7 @@ export function whatHappensWhenYouEnquire(input: {
 /** M61: what a wider search changes, in words. */
 export function wideningWords(
   widening:
+    | { change: 'distance'; phrase: string }
     | { change: 'area'; areaName: string }
     | { change: 'budget'; maxRent: number }
     | { change: 'date'; date: string }
@@ -64,6 +65,8 @@ export function wideningWords(
     | { change: 'drop'; filter: string },
 ): string {
   switch (widening.change) {
+    case 'distance':
+      return `Look ${widening.phrase}`;
     case 'area':
       return `Look in ${widening.areaName}`;
     case 'budget':
@@ -105,19 +108,36 @@ export const howResultsAreOrdered = [
   'Three things decide it, in this order of weight:',
 ] as const;
 
-/** M56: what each suggested place is, so "Blackrock" and "Blackrock, Cork" can be told apart. */
+/**
+ * M56: the line under a suggestion, so "Blackrock" and "Blackrock, Cork" can be told apart:
+ * "Town in County Cork", "Rathgar, Dublin 6". Places from the index carry their own context;
+ * otherwise it comes from the kind.
+ */
 export function placeDescription(place: {
-  kind: 'county' | 'town' | 'district' | 'area';
+  kind: string;
   county: string;
+  context?: string | null;
 }): string {
+  if (place.context) return place.context;
+  const inCounty = place.county === 'Dublin' ? 'County Dublin' : `County ${place.county}`;
   switch (place.kind) {
     case 'county':
       return 'County';
+    case 'city':
+      return `City in ${inCounty}`;
+    case 'town':
+      return `Town in ${inCounty}`;
+    case 'village':
+      return `Village in ${inCounty}`;
     case 'district':
       return 'Dublin postal district';
-    case 'town':
-      return `County ${place.county}`;
     case 'area':
-      return place.county === 'Dublin' ? 'Dublin' : `County ${place.county}`;
+      return place.county === 'Dublin' ? 'Area in Dublin' : `Area in ${inCounty}`;
+    case 'townland':
+      return `Townland in ${inCounty}`;
+    case 'street':
+      return `Street in ${inCounty}`;
+    default:
+      return inCounty;
   }
 }

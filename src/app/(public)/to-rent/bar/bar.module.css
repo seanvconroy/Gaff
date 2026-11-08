@@ -1,0 +1,605 @@
+/* M56 to M58, M118: the search bar, sticky at the top of the page. */
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: var(--space-3) var(--space-6);
+  background-color: var(--color-surface-1);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.wide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.narrow {
+  display: none;
+}
+
+.whereWrap {
+  display: flex;
+  flex: 1 1 360px;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 600px;
+}
+
+/* The Where box: a rounded field with its suggestions under it. */
+.where {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.whereField {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: 0 var(--space-1) 0 var(--space-4);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+}
+
+.whereField:focus-within {
+  border-color: var(--color-ink);
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.whereIcon {
+  flex: none;
+  color: var(--color-ink-muted);
+}
+
+.whereInput {
+  flex: 1;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--color-ink);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-title-weight);
+  line-height: var(--type-body-line);
+}
+
+.whereInput:focus {
+  outline: none;
+}
+
+.whereInput::placeholder {
+  color: var(--color-ink-muted);
+  font-weight: var(--type-body-weight);
+}
+
+.whereClear {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background-color: var(--color-surface-2);
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.whereClear:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.suggest {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  z-index: 40;
+  width: min(560px, calc(100vw - var(--space-8)));
+  padding: var(--space-2) 0 0;
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+}
+
+.suggest[hidden] {
+  display: none;
+}
+
+.suggestNote {
+  margin: 0;
+  padding: var(--space-3) var(--space-5) var(--space-1);
+}
+
+.suggestList,
+.group {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.groupLabel {
+  padding: var(--space-3) var(--space-5) var(--space-1);
+  color: var(--color-ink-muted);
+  font-weight: var(--type-title-weight);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 60px;
+  padding: var(--space-2) var(--space-5);
+  cursor: pointer;
+}
+
+.option:hover,
+.option[aria-selected='true'] {
+  background-color: var(--color-surface-2);
+}
+
+.optionTile {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  color: var(--color-ink);
+}
+
+.option[aria-selected='true'] .optionTile,
+.option:hover .optionTile {
+  background-color: var(--color-surface-1);
+}
+
+.optionText {
+  display: grid;
+  min-width: 0;
+}
+
+.optionName b {
+  font-weight: var(--type-title-weight);
+}
+
+.optionMore {
+  overflow: hidden;
+  color: var(--color-ink-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestFoot {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+/* M113: the distance, beside the Where box. */
+.distance select {
+  min-height: 48px;
+  padding: 0 var(--space-8) 0 var(--space-4);
+  background-color: var(--color-surface-1);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--color-ink) 50%),
+    linear-gradient(135deg, var(--color-ink) 50%, transparent 50%);
+  background-position:
+    calc(100% - 22px) 52%,
+    calc(100% - 16px) 52%;
+  background-repeat: no-repeat;
+  background-size: 6px 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-title-weight);
+  appearance: none;
+  cursor: pointer;
+}
+
+.distance select:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.panelForm {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.rentInputs {
+  display: flex;
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.rentInputs > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.rentInputs > .rentTo {
+  flex: none;
+  padding-bottom: var(--space-3);
+}
+
+.money {
+  display: grid;
+  gap: var(--space-1);
+  font-weight: var(--type-title-weight);
+}
+
+.moneyField {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  font-weight: var(--type-body-weight);
+}
+
+.moneyField:focus-within {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.dateInput {
+  min-height: 48px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+}
+
+.panelActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.clearAll {
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--color-ink);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-title-weight);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.done {
+  min-height: 44px;
+  padding: 0 var(--space-5);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-ink);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-title-weight);
+  cursor: pointer;
+}
+
+.filtersButton,
+.saveSearch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-title-weight);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.filtersButton:hover,
+.saveSearch:hover {
+  border-color: var(--color-ink);
+}
+
+.badge,
+.badgeCorner {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 var(--space-1);
+  background-color: var(--color-navy);
+  border-radius: var(--radius-pill);
+  color: var(--color-nav-ink);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.saveForm {
+  display: inline-flex;
+  margin-left: auto;
+}
+
+/* The Filters sheet. */
+.filtersForm {
+  display: grid;
+}
+
+.filterSection {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-6) 0;
+  border-bottom: 1px solid var(--color-border);
+  scroll-margin-top: var(--space-4);
+}
+
+.filterSection:last-of-type {
+  border-bottom: 0;
+}
+
+.filterSection h3 {
+  margin: 0;
+}
+
+.sectionNote {
+  margin: 0;
+  color: var(--color-ink-muted);
+}
+
+.histogram {
+  display: block;
+  width: 100%;
+  height: 64px;
+}
+
+.barIn {
+  fill: var(--color-navy);
+}
+
+.barOut {
+  fill: var(--color-border);
+}
+
+.tiles {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.tiles legend {
+  padding: 0;
+}
+
+.tileGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-3);
+}
+
+.tile {
+  position: relative;
+  display: grid;
+}
+
+.tile input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.tileBody {
+  display: grid;
+  align-content: space-between;
+  gap: var(--space-3);
+  min-height: 96px;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  font-weight: var(--type-title-weight);
+}
+
+.tile input:checked + .tileBody {
+  border-color: var(--color-primary);
+  outline: 1px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.tile input:focus-visible + .tileBody {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* The phone's search sheet: the suggestions sit in the page, not over it. */
+.whereSheet {
+  display: grid;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+}
+
+.whereSheet .suggest {
+  position: static;
+  width: 100%;
+  border: 0;
+  box-shadow: none;
+}
+
+.whereSheet .option {
+  padding-inline: 0;
+}
+
+.whereSheet .groupLabel,
+.whereSheet .suggestNote,
+.whereSheet .suggestFoot {
+  padding-inline: 0;
+}
+
+/* Phones: the pill, the Filters button and quick chips. */
+.pillRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pill {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 56px;
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-overlay);
+  color: var(--color-ink);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pillText {
+  display: grid;
+  min-width: 0;
+}
+
+.pillPlace {
+  overflow: hidden;
+  font-weight: var(--type-title-weight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pillMore {
+  overflow: hidden;
+  color: var(--color-ink-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roundButton {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.badgeCorner {
+  position: absolute;
+  top: calc(var(--space-1) * -1);
+  right: calc(var(--space-1) * -1);
+}
+
+.chips {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) 0 var(--space-1);
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: none;
+}
+
+.chip {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-title-weight);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chip[data-on] {
+  border-color: var(--color-primary);
+  outline: 1px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.moneyField input {
+  width: 7ch;
+  min-width: 0;
+  flex: 1;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--color-ink);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+}
+
+.moneyField input:focus {
+  outline: none;
+}
+
+.clearAll:focus-visible,
+.done:focus-visible,
+.filtersButton:focus-visible,
+.saveSearch:focus-visible,
+.pill:focus-visible,
+.roundButton:focus-visible,
+.chip:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (width < 744px) {
+  .bar {
+    padding: var(--space-3) var(--space-4) var(--space-1);
+  }
+
+  .wide {
+    display: none;
+  }
+
+  .narrow {
+    display: block;
+  }
+}

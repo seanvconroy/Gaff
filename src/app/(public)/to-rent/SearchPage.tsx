@@ -1,328 +1,312 @@
+import { Info } from 'lucide-react';
 import Link from 'next/link';
-import { furnishing, propertyTypes, accessibilityFeatures } from '@/domain/homes/facts';
-import { BER_BANDS, writeFilters, type Filters } from '@/domain/search/filters';
+import { after } from 'next/server';
+import { homesCount, wideningWords } from '@/copy/search';
+import { hasAreaPage } from '@/domain/places/gazetteer';
+import { bboxAround, IRELAND, type BBox } from '@/domain/places/geo';
 import {
-  areaHeading,
   areaPath,
+  areaPhrase,
+  baseArea,
   nearbyPlaces,
   placePath,
   type SearchArea,
 } from '@/domain/search/places';
 import { itemListStructuredData, jsonForScript } from '@/domain/search/structured-data';
-import { homesCount, sortWords, wideningWords } from '@/copy/search';
+import { searchHref, searchQuery } from '@/domain/search/url';
 import { env } from '@/lib/env';
 import { formatDate } from '@/lib/format';
 import { savedAmong } from '@/server/alerts/saved-homes';
+import { isSearchSaved } from '@/server/alerts/searches';
+import { recentSearchesOf, rememberSearch } from '@/server/search/recent';
 import { currentUser } from '@/server/auth/member';
 import { searchListings, widerSearchesWithHomes } from '@/server/search/search';
-import { SubmitButton } from '@/ui/SubmitButton';
-import { saveSearchAction } from '../actions';
-import { Button } from '@/ui/Button';
-import { ChoiceGroup, SelectField, TextField } from '@/ui/Field';
+import { buttonClass } from '@/ui/Button';
 import { Notice } from '@/ui/Notice';
-import { PlaceSearch } from './PlaceSearch';
+import { saveSearchAction } from '../actions';
+import { SaveSearch } from './bar/SaveSearch';
+import { SearchBar } from './bar/SearchBar';
+import { SearchMap, type MapSettings } from './map/SearchMap';
+import { MapToggle } from './map/MapToggle';
+import { PendingRegion, SearchNavigationProvider } from './navigation';
+import type { SearchRequest } from './query';
 import { ResultCard } from './ResultCard';
+import { AppliedChips } from './results/AppliedChips';
+import { SortMenu } from './results/SortMenu';
+import type { ClientSearch } from './state';
 import styles from './search.module.css';
 
-const option = (value: string, label: string) => ({ value, label });
-const anyOption = option('', 'Any');
-
-/** How many filters are set, for the "Filters (3)" summary. */
-function filterCount(filters: Filters): number {
-  const { sort: _sort, page: _page, ...rest } = filters;
-  return Object.values(rest).filter((v) => v !== undefined).length;
-}
-
-function areaName(area: SearchArea): string {
+/** What the Where box shows for a search. */
+function whereLabel(area: SearchArea): string {
   switch (area.kind) {
     case 'everywhere':
-      return 'Ireland';
+      return '';
     case 'county':
       return area.county === 'Dublin' ? 'County Dublin' : `County ${area.county}`;
     case 'routing_key':
       return area.name;
     case 'radius':
+    case 'near':
       return area.place.name;
+    case 'map':
+      return 'Map area';
+    case 'shape':
+      return 'The area you drew';
   }
 }
 
+/** M114: searches of a place are remembered; all of Ireland, map areas and shapes aren't. */
+function rememberable(area: SearchArea): boolean {
+  return (
+    area.kind === 'county' ||
+    area.kind === 'routing_key' ||
+    area.kind === 'radius' ||
+    area.kind === 'near'
+  );
+}
+
+/** Where the map starts: the place and its distance, the map area or shape, or Ireland. */
+function startBox(area: SearchArea): BBox {
+  switch (area.kind) {
+    case 'radius':
+    case 'near':
+    case 'map':
+    case 'shape':
+      return area.box;
+    case 'county':
+      return bboxAround(area.place.centre, area.place.radiusMetres);
+    case 'routing_key':
+      return area.place ? bboxAround(area.place.centre, area.place.radiusMetres) : IRELAND;
+    case 'everywhere':
+      return IRELAND;
+  }
+}
+
+function mapSettings(): MapSettings | null {
+  const config = env();
+  if (config.MAP_PROVIDER === 'none') return null;
+  if (config.MAP_PROVIDER === 'google') {
+    return {
+      provider: 'google',
+      apiKey: config.GOOGLE_MAPS_API_KEY,
+      mapId: config.GOOGLE_MAPS_MAP_ID,
+      ...(config.GOOGLE_MAPS_MAP_ID_DARK ? { mapIdDark: config.GOOGLE_MAPS_MAP_ID_DARK } : {}),
+    };
+  }
+  return { provider: 'static' };
+}
+
 /**
- * M56 to M62: the search page, for all of Ireland or one place. Server-rendered, so it works
- * without JavaScript and search engines can read it (M111).
+ * M56 to M62, M113 to M120: the search page, for all of Ireland, a place, a street or a map area.
+ * Server-rendered from its web address, so it works without JavaScript and search engines can
+ * read it (M111); the bar, the map and the card photos are small client islands.
  */
 export async function SearchPage({
-  area,
-  filters,
-  unknownPlace,
+  request,
 }: {
-  area: SearchArea;
-  filters: Filters;
-  unknownPlace?: string;
+  request: Extract<SearchRequest, { kind: 'search' }>;
 }) {
-  const results = await searchListings(area, filters);
+  const { search, g, unknownPlace } = request;
+  const { area, filters, view } = search;
+  const [results, user] = await Promise.all([searchListings(area, filters), currentUser()]);
+  const here = searchHref(area, filters, view);
   const path = areaPath(area);
-  const user = await currentUser();
-  const saved = user
-    ? await savedAmong(
-        user.id,
-        results.results.map((r) => r.listingId),
-      )
-    : new Set<string>();
-  // M86: an alert is for the place and the filters, not the order or the page.
-  const alertQuery = writeFilters({ ...filters, sort: 'best', page: 1 });
-  const here = `${path}${writeFilters(filters) ? `?${writeFilters(filters)}` : ''}`;
-  const heading = areaHeading(area);
-  const wider = results.total === 0 ? await widerSearchesWithHomes(area, filters) : [];
-  const place = area.kind === 'everywhere' ? null : (area.place ?? null);
-  const nearby = place ? nearbyPlaces(place) : [];
-  const count = filterCount(filters);
-  const pageLink = (page: number) => {
-    const query = writeFilters({ ...filters, page });
-    return query ? `${path}?${query}` : path;
+  // M86: an alert is for the place, distance, map area and filters: not the order or the page.
+  const alertQuery = searchQuery(area, { ...filters, sort: 'best', page: 1 });
+  const [saved, searchSaved, recent, wider] = await Promise.all([
+    user
+      ? savedAmong(
+          user.id,
+          results.results.map((r) => r.listingId),
+        )
+      : new Set<string>(),
+    user ? isSearchSaved(user.id, path, alertQuery) : false,
+    // M114: a signed-in renter's recent searches come from their account; others' from the tab.
+    user ? recentSearchesOf(user.id) : undefined,
+    results.total === 0 ? widerSearchesWithHomes(area, filters, g) : [],
+  ]);
+  if (user && rememberable(area)) {
+    // Once the page has gone, so remembering never slows it down.
+    // A county is remembered by its name, as suggestions show it: "Galway · County".
+    const name = area.kind === 'county' ? area.place.name : whereLabel(area);
+    after(() => rememberSearch(user.id, path, name));
+  }
+  const base = baseArea(area);
+  const place = 'place' in base && base.place && hasAreaPage(base.place) ? base.place : null;
+  const nearby = place ? nearbyPlaces(place, g) : [];
+  const map = mapSettings();
+  const heading = `${homesCount(results.total)} ${areaPhrase(area)}`;
+  const client: ClientSearch = {
+    area,
+    filters,
+    view,
+    total: results.total,
+    label: whereLabel(area),
+    path,
   };
+  const pageLink = (page: number) => searchHref(area, { ...filters, page }, view);
   const appUrl = env().APP_URL;
+  const saveAction = saveSearchAction.bind(null, path, alertQuery);
 
   return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <h1 className="type-display">{heading}</h1>
-        <p className={styles.lead} aria-live="polite">
-          {homesCount(results.total)} taking enquiries
-          {results.pages > 1 ? ` · page ${results.page} of ${results.pages}` : ''}
-        </p>
-      </header>
-
-      {unknownPlace ? (
-        <Notice tone="info" title={`We couldn’t find “${unknownPlace}”`}>
-          <p>Try a county, a town, an area such as Rathmines, or a Dublin district such as D6.</p>
-        </Notice>
-      ) : null}
-
-      <form
-        action="/search"
-        method="get"
-        role="search"
-        aria-label="Homes to rent"
-        className={styles.form}
-      >
-        <input type="hidden" name="from" value={path} />
-        <PlaceSearch
-          defaultValue={area.kind === 'everywhere' ? '' : areaName(area)}
-          defaultSlug={place?.slug ?? ''}
+    <div data-wide-page className={styles.page}>
+      <SearchNavigationProvider>
+        <SearchBar
+          search={client}
+          everywhereHref={searchHref({ kind: 'everywhere' }, { ...filters, page: 1 }, view)}
+          saveAction={saveAction}
+          saved={searchSaved}
+          recent={recent}
+          filtersOpen={request.filtersOpen}
         />
-        <details className={styles.filters} open={count > 0}>
-          <summary className={styles.summary}>Filters{count ? ` (${count} on)` : ''}</summary>
-          <div className={styles.filterGrid}>
-            <TextField
-              name="min"
-              label="Lowest rent a month"
-              prefix="€"
-              inputMode="numeric"
-              defaultValue={filters.minRent ?? ''}
-              optional
-            />
-            <TextField
-              name="max"
-              label="Highest rent a month"
-              prefix="€"
-              inputMode="numeric"
-              defaultValue={filters.maxRent ?? ''}
-              optional
-            />
-            <SelectField
-              name="beds"
-              label="Bedrooms"
-              defaultValue={filters.beds?.toString() ?? ''}
-              options={[anyOption, ...[1, 2, 3, 4].map((n) => option(String(n), `${n} or more`))]}
-            />
-            <SelectField
-              name="baths"
-              label="Bathrooms"
-              defaultValue={filters.baths?.toString() ?? ''}
-              options={[anyOption, ...[1, 2, 3].map((n) => option(String(n), `${n} or more`))]}
-            />
-            <TextField
-              name="by"
-              type="date"
-              label="Available by"
-              defaultValue={filters.availableBy ?? ''}
-              optional
-            />
-            <SelectField
-              name="ber"
-              label="Lowest energy rating (BER)"
-              defaultValue={filters.minBer ?? ''}
-              options={[
-                anyOption,
-                ...BER_BANDS.slice(0, 6).map((b) => option(b, `${b} or better`)),
-              ]}
-            />
-            <SelectField
-              name="new"
-              label="Listed"
-              defaultValue={filters.listedWithin ?? ''}
-              options={[
-                option('', 'At any time'),
-                option('1d', 'In the last day'),
-                option('7d', 'In the last 7 days'),
-              ]}
-            />
-            <ChoiceGroup
-              name="type"
-              type="checkbox"
-              legend="Type of home"
-              defaultValue={filters.types ?? []}
-              options={Object.entries(propertyTypes)
-                .filter(([key]) => key !== 'other')
-                .map(([value, label]) => ({ value, label }))}
-            />
-            <ChoiceGroup
-              name="furnished"
-              type="checkbox"
-              legend="Furnishing"
-              defaultValue={filters.furnishing ?? []}
-              options={Object.entries(furnishing).map(([value, label]) => ({ value, label }))}
-            />
-            <ChoiceGroup
-              name="need"
-              type="checkbox"
-              legend="Must have"
-              defaultValue={[
-                ...(filters.pets ? ['pets'] : []),
-                ...(filters.parking ? ['parking'] : []),
-                ...(filters.outdoor ? ['outdoor'] : []),
-              ]}
-              options={[
-                {
-                  value: 'pets',
-                  label: 'Pets considered',
-                  hint: 'Assistance dogs are always welcome',
-                },
-                { value: 'parking', label: 'Parking' },
-                { value: 'outdoor', label: 'Outdoor space' },
-              ]}
-            />
-            <ChoiceGroup
-              name="access"
-              type="checkbox"
-              legend="Accessibility"
-              defaultValue={filters.access ?? []}
-              options={Object.entries(accessibilityFeatures).map(([value, label]) => ({
-                value,
-                label,
-              }))}
-            />
-          </div>
-        </details>
-        <div className={styles.formEnd}>
-          <SelectField
-            name="sort"
-            label="Order"
-            defaultValue={filters.sort}
-            options={Object.entries(sortWords).map(([value, label]) => option(value, label))}
-          />
-          <Button type="submit" variant="primary">
-            Show homes
-          </Button>
-        </div>
-        <p className={styles.howOrdered}>
-          <Link href="/how-results-are-ordered">How we order results</Link>. Nobody can pay to be
-          shown first.
-        </p>
-      </form>
+        <div className={styles.layout} data-view={view} data-map={map ? true : undefined}>
+          <section className={styles.resultsColumn} aria-labelledby="results-heading">
+            <PendingRegion>
+              <header className={styles.resultsHeader}>
+                <div className={styles.headingRow}>
+                  <h1 id="results-heading" className={`type-heading ${styles.heading}`}>
+                    {heading}
+                  </h1>
+                  <div className={styles.tools}>
+                    <Link href="/how-results-are-ordered" className={styles.howOrdered}>
+                      <Info size={18} strokeWidth={2} aria-hidden="true" />
+                      How we order results
+                    </Link>
+                    <SortMenu search={client} />
+                    {results.total > 0 ? (
+                      <SaveSearch
+                        saved={searchSaved}
+                        saveAction={saveAction}
+                        className={styles.phoneSave}
+                      />
+                    ) : null}
+                  </div>
+                </div>
+                <AppliedChips area={area} filters={filters} view={view} />
+              </header>
+              <p className="visually-hidden" aria-live="polite">
+                {heading}
+              </p>
 
-      <form action={saveSearchAction.bind(null, path, alertQuery)} className={styles.alert}>
-        <p>
-          {results.total === 0
-            ? 'Hear first when a home like this is listed:'
-            : 'Hear first when another home like these is listed:'}
-        </p>
-        <SubmitButton variant="secondary" pendingLabel="Saving…">
-          Get alerts for this search
-        </SubmitButton>
-      </form>
+              {unknownPlace ? (
+                <Notice tone="info" title={`We couldn’t find “${unknownPlace}”`}>
+                  <p>
+                    Try a county, a town, an area such as Rathmines, a street, or an Eircode such as
+                    D06.
+                  </p>
+                </Notice>
+              ) : null}
 
-      {results.total > 0 ? (
-        <ol className={styles.results} aria-label="Homes">
-          {results.results.map((card, i) => (
-            <li key={card.listingId}>
-              <ResultCard
-                card={card}
-                eager={i < 2}
-                saved={saved.has(card.listingId)}
-                returnTo={here}
-              />
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <section aria-labelledby="nothing-heading" className={styles.nothing}>
-          <h2 id="nothing-heading" className="type-heading">
-            Nothing matches yet
-          </h2>
-          {wider.length ? (
-            <>
-              <p>These searches have homes taking enquiries:</p>
-              <ul className={styles.wider}>
-                {wider.map((w) => {
-                  const query = writeFilters(w.filters);
-                  const href = `${areaPath(w.area)}${query ? `?${query}` : ''}`;
-                  const words = wideningWords(
-                    w.widening.change === 'area'
-                      ? { change: 'area', areaName: areaName(w.widening.area) }
-                      : w.widening.change === 'date'
-                        ? { change: 'date', date: formatDate(w.widening.availableBy) }
-                        : w.widening,
-                  );
-                  return (
-                    <li key={href}>
-                      <Link href={href}>{words}</Link> ({homesCount(w.total).toLowerCase()})
+              {results.total > 0 ? (
+                <ol className={styles.grid} aria-label="Homes">
+                  {results.results.map((card, i) => (
+                    <li key={card.listingId}>
+                      <ResultCard
+                        card={card}
+                        eager={i < 2}
+                        saved={saved.has(card.listingId)}
+                        returnTo={here}
+                      />
                     </li>
-                  );
-                })}
-              </ul>
-            </>
-          ) : (
-            <p>
-              No homes here are taking enquiries right now. New homes are listed every day, so look
-              again soon, or try a wider area.
-            </p>
-          )}
-        </section>
-      )}
+                  ))}
+                </ol>
+              ) : (
+                <section aria-labelledby="nothing-heading" className={styles.nothing}>
+                  <h2 id="nothing-heading" className="type-title">
+                    No homes match yet {areaPhrase(area)}.
+                  </h2>
+                  {wider.length ? (
+                    <>
+                      <p>These searches have homes taking enquiries:</p>
+                      <ul className={styles.wider}>
+                        {wider.slice(0, 3).map((w) => {
+                          const href = searchHref(w.area, w.filters);
+                          const words = wideningWords(
+                            w.widening.change === 'distance'
+                              ? { change: 'distance', phrase: areaPhrase(w.widening.area) }
+                              : w.widening.change === 'area'
+                                ? {
+                                    change: 'area',
+                                    areaName: areaPhrase(w.widening.area).replace(/^in /, ''),
+                                  }
+                                : w.widening.change === 'date'
+                                  ? { change: 'date', date: formatDate(w.widening.availableBy) }
+                                  : w.widening,
+                          );
+                          return (
+                            <li key={href}>
+                              <Link href={href} className={styles.widerLink}>
+                                {words}: {homesCount(w.total).toLowerCase()}
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </>
+                  ) : null}
+                  {searchSaved ? (
+                    <p className={styles.alertOn}>
+                      Your alert is on for this search. We’ll email you as soon as a home like this
+                      is listed. <Link href="/my/alerts">See your alerts</Link>
+                    </p>
+                  ) : (
+                    <form action={saveAction} className={styles.alert}>
+                      <p>We’ll email you as soon as a home like this is listed.</p>
+                      <button type="submit" className={buttonClass('secondary')}>
+                        Get alerts for this search
+                      </button>
+                    </form>
+                  )}
+                </section>
+              )}
 
-      {results.pages > 1 ? (
-        <nav aria-label="Pages of results" className={styles.pages}>
-          {results.page > 1 ? (
-            <Link href={pageLink(results.page - 1)} rel="prev">
-              Previous page
-            </Link>
-          ) : null}
-          <span>
-            Page {results.page} of {results.pages}
-          </span>
-          {results.page < results.pages ? (
-            <Link href={pageLink(results.page + 1)} rel="next">
-              Next page
-            </Link>
-          ) : null}
-        </nav>
-      ) : null}
+              {results.pages > 1 ? (
+                <nav aria-label="Pages of results" className={styles.pages}>
+                  {results.page > 1 ? (
+                    <Link href={pageLink(results.page - 1)} rel="prev">
+                      Previous page
+                    </Link>
+                  ) : null}
+                  <span>
+                    Page {results.page} of {results.pages}
+                  </span>
+                  {results.page < results.pages ? (
+                    <Link href={pageLink(results.page + 1)} rel="next">
+                      Next page
+                    </Link>
+                  ) : null}
+                </nav>
+              ) : null}
 
-      {nearby.length ? (
-        <nav aria-labelledby="nearby-heading" className={styles.nearby}>
-          <h2 id="nearby-heading" className="type-title">
-            {place?.kind === 'county' ? `Places in ${areaName(area)}` : 'Nearby'}
-          </h2>
-          <ul>
-            {nearby.map((p) => (
-              <li key={p.slug}>
-                <Link href={placePath(p)}>{p.name}</Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      ) : null}
+              {nearby.length ? (
+                <nav aria-labelledby="nearby-heading" className={styles.nearby}>
+                  <h2 id="nearby-heading" className="type-title">
+                    {place?.kind === 'county' ? `Places in County ${place.county}` : 'Nearby'}
+                  </h2>
+                  <ul>
+                    {nearby.map((p) => (
+                      <li key={p.slug}>
+                        <Link href={placePath(p)}>{p.name}</Link>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              ) : null}
+            </PendingRegion>
+          </section>
+
+          {map ? (
+            <aside className={styles.mapColumn} aria-label="Map">
+              <a href="#after-map" className={styles.skipMap}>
+                Skip the map
+              </a>
+              <SearchMap settings={map} search={client} startBox={startBox(area)} />
+            </aside>
+          ) : null}
+        </div>
+        <span id="after-map" tabIndex={-1} />
+        {map ? <MapToggle search={client} /> : null}
+      </SearchNavigationProvider>
 
       {results.total > 0 ? (
         <script
@@ -331,7 +315,7 @@ export async function SearchPage({
           dangerouslySetInnerHTML={{
             __html: jsonForScript(
               itemListStructuredData(
-                heading,
+                `Homes to rent ${areaPhrase(area)}`,
                 results.results.map((r) => `${appUrl}/home/${r.slug}`),
               ),
             ),

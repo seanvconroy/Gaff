@@ -2,6 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "regions": ["dub1"],
-  "buildCommand": "pnpm db:migrate --deploy && pnpm db:seed --deploy && pnpm build",
+  "buildCommand": "pnpm db:migrate --deploy && pnpm places:load --deploy && pnpm db:seed --deploy && pnpm build",
   "crons": [{ "path": "/api/cron/daily", "schedule": "30 2 * * *" }]
 }

@@ -1,10 +1,11 @@
-import sharp from 'sharp';
+import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { isMadeUpAddress } from '@/adapters/email/test-copy';
-import { DUPLICATE_DISTANCE, differenceHash, hammingDistance } from '@/domain/media/photos';
+import { DUPLICATE_DISTANCE, MIN_PHOTOS_TO_PUBLISH, hammingDistance } from '@/domain/media/photos';
 import { newLettingSchema } from '@/domain/lettings/new-letting';
 import { irishToday } from '@/lib/format';
-import { scenePhoto, sceneSvg } from './seed-photos';
+import { photoHash } from '@/server/media/process';
+import { sceneSvg, seedPhoto, seedPhotoFile, seedPhotos } from './seed-photos';
 import { seedLetters, shouldSeed } from './seed';
 
 describe('Test copy seed: made-up letters and homes', () => {
@@ -51,32 +52,40 @@ describe('Test copy seed: made-up letters and homes', () => {
     expect(shouldSeed({})).toBe(false);
   });
 
-  it('draws the same picture from the same seed', () => {
-    expect(sceneSvg('kitchen', 42)).toBe(sceneSvg('kitchen', 42));
-    expect(sceneSvg('kitchen', 42)).not.toBe(sceneSvg('kitchen', 43));
+  it('gives every home at least 3 photos, each there and described for screen readers', () => {
+    for (const letter of seedLetters) {
+      for (const home of letter.homes) {
+        expect(home.photos.length, home.letting.addressLine1).toBeGreaterThanOrEqual(
+          MIN_PHOTOS_TO_PUBLISH,
+        );
+        for (const photo of home.photos) {
+          expect(existsSync(seedPhotoFile(photo, letter.framing)), photo).toBe(true);
+          expect(seedPhotos[photo].length).toBeGreaterThan(10);
+        }
+      }
+    }
   });
 
-  it('never draws one letter’s photos like another’s, so none looks copied (M29)', async () => {
-    const scenes = ['outside', 'living', 'kitchen', 'bedroom'] as const;
-    const hashes: Array<{ letter: number; hash: bigint }> = [];
+  it('never gives one letter a photo like another letter’s, so none looks copied (M29)', async () => {
+    const hashes: Array<{ letter: number; photo: string; hash: bigint }> = [];
     for (const [letter, seeded] of seedLetters.entries()) {
-      for (const home of seeded.homes) {
-        for (const [i, scene] of scenes.entries()) {
-          const photo = await scenePhoto(scene, home.photoSeed * 100 + i);
-          const thumb = await sharp(photo)
-            .greyscale()
-            .resize(9, 8, { fit: 'fill' })
-            .raw()
-            .toBuffer();
-          hashes.push({ letter, hash: differenceHash(thumb) });
-        }
+      for (const photo of new Set(seeded.homes.flatMap((h) => h.photos))) {
+        const hash = await photoHash(await seedPhoto(photo, seeded.framing));
+        hashes.push({ letter, photo: `${photo}-${seeded.framing}`, hash });
       }
     }
     for (const a of hashes) {
       for (const b of hashes) {
         if (a.letter === b.letter) continue;
-        expect(hammingDistance(a.hash, b.hash)).toBeGreaterThan(DUPLICATE_DISTANCE);
+        expect(hammingDistance(a.hash, b.hash), `${a.photo} and ${b.photo}`).toBeGreaterThan(
+          DUPLICATE_DISTANCE,
+        );
       }
     }
-  }, 60_000);
+  });
+
+  it('draws the old pictures the same from the same seed, so the seed can swap them', () => {
+    expect(sceneSvg('kitchen', 42)).toBe(sceneSvg('kitchen', 42));
+    expect(sceneSvg('kitchen', 42)).not.toBe(sceneSvg('kitchen', 43));
+  });
 });

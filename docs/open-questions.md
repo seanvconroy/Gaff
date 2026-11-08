@@ -246,7 +246,7 @@ The PRD asks for data hosted in the EU, and the build turned that into "EU only"
 
 ## F. The marketplace
 
-Raised on 7 November 2026 with the [marketplace PRD](marketplace/prd.md) and [technical specification](marketplace/tech-spec.md). Sean took Q27 to Q30. Q31 to Q36 are open, with proposals.
+Raised on 7 November 2026 with the [marketplace PRD](marketplace/prd.md) and [technical specification](marketplace/tech-spec.md). Sean took Q27 to Q30. Q31 to Q36 are open, with proposals. Q57 to Q59 (the search redesign) are in section G.
 
 ### Q27. When does the marketplace go live?
 
@@ -312,6 +312,8 @@ Every Gaff enquiry starts the workflow, so a free listing comes with it.
 - Terms for private landlords, who may be consumers.
 - Retention for reports: proposed 6 months after a case closes.
 - The BER display against SEAI's current guidelines.
+- Google Maps on renter pages: the notice Google's terms require in Gaff's terms, the privacy notice, and whether the map needs a tap before it loads (search redesign PRD S2).
+- Using OpenStreetMap data in the place index: keeping OSM rows separate (a collective database) and publishing the build method (ODbL 4.6).
 
 ## G. Replacing the stand-ins
 
@@ -457,3 +459,21 @@ An optional, read-only check through Tink that the pay on a renter's payslips ar
 **Proposal:** when a forged document is found on Gaff, or letters ask for it.
 
 **Decision:** open (founders).
+
+## H. The renter search redesign
+
+Raised on 8 November 2026, after Sean found that typing "Kinsale" or "Highfield Road" suggested nothing. The [search redesign PRD](marketplace/search-redesign/prd.md) and [technical specification](marketplace/search-redesign/tech-spec.md) follow from these decisions; [ADR-0027](adr/0027-places-index-on-google-maps.md) records Q57 and Q58.
+
+### Q57. What suggests places as renters type?
+
+Airbnb uses Google Places; Zillow, Rightmove and Daft use their own index of places. Google's EEA terms, which apply because Gaff is billed in Ireland, forbid showing Places content "on, next to, or ... visually associated with any map, including a Google Map", except in Google's own Places UI Kit widget.
+
+**Decision (Sean, 8 November 2026):** Gaff's own index of every county, town, village, area, Dublin district, Eircode area, townland, street and landmark in Ireland, built from open data, in Gaff's own dropdown (Zillow's model). Sean first chose Google, like Airbnb, then chose this once the EEA terms were clear.
+
+### Q58. Which map?
+
+**Decision (Sean, 8 November 2026):** Google Maps, through the Maps JavaScript API, showing only Gaff's own content. **Google Maps Platform approved by Sean on 8 November 2026** for that use only (rule 10). Google acts as an independent controller under its Controller-Controller Data Protection Terms and offers no EU region; transfers rely on the EU–US Data Privacy Framework. The privacy notice, Gaff's terms and the DPIA are on the [launch checklist](launch-checklist.md). This replaces the marketplace tech spec's self-hosted MapLibre map.
+
+### Q59. Which layout, and how does it ship?
+
+**Decision (Sean, 8 November 2026):** Zillow's filter bar (Where, Rent, Beds, Move in, Filters, Save search) with Airbnb's polish, and list and map side by side. Everything ships in one release, the map included, behind a flag until the release checks pass.

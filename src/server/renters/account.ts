@@ -5,6 +5,7 @@ import {
   applications,
   memberships,
   profileShares,
+  recentSearches,
   renterEnquiries,
   renterProfiles,
   savedHomes,
@@ -18,7 +19,7 @@ import { whoHasMyDetails } from './homes';
 
 /**
  * M13: a renter's own data, all of it, as one file: their account and profile, the homes they
- * enquired about and what each letter has, saved homes and notes, and saved searches. The
+ * enquired about and what each letter has, saved homes and notes, saved and recent searches. The
  * letters' copies are theirs to keep until their own deletion dates; the file says who has
  * what, and until when.
  */
@@ -33,6 +34,7 @@ export async function myData(userId: string, now = new Date()) {
     sharedWithLetters: await tx.select().from(profileShares),
     savedHomes: await tx.select().from(savedHomes),
     savedSearches: await tx.select().from(savedSearches),
+    recentSearches: await tx.select().from(recentSearches),
     alertsSent: await tx.select().from(alertDeliveries),
     // What letters hold from the renter's enquiries, as the renter gave it.
     applications: await tx

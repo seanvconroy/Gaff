@@ -96,6 +96,16 @@ const schema = z
       .transform((v) => v === '1'),
     /** ADR-0014: the minute tick (Supabase Cron) and Vercel Cron send it to /api/cron/tick. */
     CRON_SECRET: z.string().min(16, 'CRON_SECRET must be at least 16 characters').optional(),
+    /**
+     * ADR-0027: the map on search pages. "google" is Google Maps (the Maps JavaScript API only,
+     * with a key restricted to Gaff's domains); "static" draws pins on a plain grid, for tests,
+     * development and the test copy without a key; "none" shows the list alone. Production
+     * needs "google".
+     */
+    MAP_PROVIDER: z.enum(['google', 'static', 'none']).optional(),
+    GOOGLE_MAPS_API_KEY: z.string().optional(),
+    GOOGLE_MAPS_MAP_ID: z.string().optional(),
+    GOOGLE_MAPS_MAP_ID_DARK: z.string().optional(),
     /** Supabase's CA certificate (PEM), so the database's certificate is verified. */
     DATABASE_CA_CERT: z.string().optional(),
     /**
@@ -243,6 +253,23 @@ const schema = z
           });
       }
     }
+    if (env.MAP_PROVIDER === 'google') {
+      for (const key of ['GOOGLE_MAPS_API_KEY', 'GOOGLE_MAPS_MAP_ID'] as const) {
+        if (!env[key])
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is required for Google Maps`,
+          });
+      }
+    }
+    if (env.GAFF_ENV === 'production' && env.MARKETPLACE_PUBLIC && env.MAP_PROVIDER === 'static') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['MAP_PROVIDER'],
+        message: "MAP_PROVIDER can't be the static stand-in in production",
+      });
+    }
     if (env.SMS_PROVIDER === 'sinch') {
       for (const key of ['SINCH_SERVICE_PLAN_ID', 'SINCH_API_TOKEN', 'SINCH_FROM'] as const) {
         if (!env[key])
@@ -253,6 +280,10 @@ const schema = z
   .transform((env) => ({
     ...env,
     DEV_TOOLS: env.DEV_TOOLS === undefined ? env.GAFF_ENV === 'staging' : env.DEV_TOOLS === '1',
+    // Without a choice: the stand-in map everywhere but production (the test copy too, until
+    // Google Maps is set up there), and in production the list alone until it is.
+    MAP_PROVIDER:
+      env.MAP_PROVIDER ?? (env.GAFF_ENV === 'production' ? ('none' as const) : ('static' as const)),
   }));
 
 export type Env = z.infer<typeof schema>;
@@ -284,18 +315,22 @@ export function environmentProblems(source: Source): string[] {
   return parsed.success ? [] : parsed.error.issues.map((i) => i.path.join('.'));
 }
 
-let cached: Env | undefined;
-
-export function env(): Env {
-  if (cached) return cached;
-  const parsed = schema.safeParse(withPlatformDefaults(process.env));
+/** The settings these variables make, with the platform's defaults. Throws on a problem. */
+export function readEnvironment(source: Source): Env {
+  const parsed = schema.safeParse(withPlatformDefaults(source));
   if (!parsed.success) {
     const problems = parsed.error.issues
       .map((i) => `  ${i.path.join('.')}: ${i.message}`)
       .join('\n');
     throw new Error(`Environment is not configured correctly:\n${problems}`);
   }
-  cached = parsed.data;
+  return parsed.data;
+}
+
+let cached: Env | undefined;
+
+export function env(): Env {
+  cached ??= readEnvironment(process.env);
   return cached;
 }
 

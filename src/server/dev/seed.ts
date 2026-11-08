@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, inArray } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNotNull } from 'drizzle-orm';
 import { objectStorage } from '@/adapters/storage';
 import { db, withOrg, withRenter } from '@/db/client';
 import {
@@ -6,12 +6,14 @@ import {
   letterChecks,
   lettings,
   listings,
+  media,
   phoneConfirmations,
   staffMembers,
   users,
   viewingSessions,
 } from '@/db/schema';
 import { newLettingSchema } from '@/domain/lettings/new-letting';
+import { DUPLICATE_DISTANCE, hammingDistance } from '@/domain/media/photos';
 import { viewingSessionSchema } from '@/domain/viewings/viewing-session';
 import { env } from '@/lib/env';
 import { irishToday } from '@/lib/format';
@@ -22,17 +24,30 @@ import { startTakingEnquiries } from '@/server/lettings/go-live';
 import { recordRentCheck } from '@/server/lettings/rent-check';
 import { setCriteria } from '@/server/lettings/set-criteria';
 import { addViewingSession } from '@/server/lettings/viewing-sessions';
-import { saveDescription, saveHomeDetails, saveLettingDetails } from '@/server/listings/editor';
+import {
+  describePhoto,
+  removePhoto,
+  saveDescription,
+  saveHomeDetails,
+  saveLettingDetails,
+} from '@/server/listings/editor';
 import { confirmAvailable } from '@/server/listings/freshness';
 import { publishListing } from '@/server/listings/publish';
-import { processMedia } from '@/server/media/process';
+import { photoHash, processMedia } from '@/server/media/process';
 import { finishPhotoUpload, startHomePhotoUpload } from '@/server/media/upload';
 import { createOrganisation } from '@/server/organisations/create-organisation';
 import { updateAgencyProfile, updateMyProfile } from '@/server/organisations/profile';
 import { recordPlatformEvent } from '@/server/record/platform-events';
 import { recordIdentityOutcome, startIdentityCheck } from '@/server/verification/identity';
 import { decideLicenceCheck } from '@/server/verification/licence';
-import { scenePhoto, type SceneKind } from './seed-photos';
+import {
+  scenePhoto,
+  seedPhoto,
+  seedPhotos,
+  type Framing,
+  type SceneKind,
+  type SeedPhoto,
+} from './seed-photos';
 
 /**
  * The test copy's made-up letters and homes, so renters have homes to search, save and enquire
@@ -46,6 +61,9 @@ interface SeedHome {
   details: Record<string, string>;
   description: string;
   criteria: { maxOccupants: number; noPets: boolean };
+  /** Its photos (data/seed-photos), the cover first. */
+  photos: SeedPhoto[];
+  /** The seed of the drawings earlier seeds added, so they can be swapped for photos. */
   photoSeed: number;
 }
 
@@ -59,6 +77,8 @@ interface SeedLetter {
   agentLicence?: string;
   about?: string;
   verifiedName?: string;
+  /** Each letter's photos are framed their own way, so none looks copied from another's (M29). */
+  framing: Framing;
   homes: SeedHome[];
 }
 
@@ -68,6 +88,7 @@ export const seedLetters: SeedLetter[] = [
   {
     kind: 'agency',
     organisation: 'Halcyon Lettings',
+    framing: 'full',
     person: 'Ann Power',
     email: 'ann@halcyon-lettings.example',
     phone: '+353870000101',
@@ -105,6 +126,12 @@ export const seedLetters: SeedLetter[] = [
         description:
           'A bright two-bedroom apartment on the second floor of a quiet red-brick terrace, five minutes’ walk from Ranelagh village and the Luas. The living room opens onto a south-facing balcony. The kitchen is fully fitted, with a dishwasher and washing machine. Both bedrooms are doubles with built-in wardrobes. Fibre broadband is connected.',
         criteria: { maxOccupants: 3, noPets: true },
+        photos: [
+          'living-room-and-kitchen',
+          'bed-by-the-window',
+          'living-room-tall-windows',
+          'outside',
+        ],
         photoSeed: 11,
       },
       {
@@ -136,6 +163,7 @@ export const seedLetters: SeedLetter[] = [
         description:
           'A one-bedroom flat on the first floor of a period house just off Rathmines Road. High ceilings and tall sash windows make it light all day. There is a separate kitchen, a shower room and a shared back garden with secure bike storage. Shops, cafés and buses into town are at the end of the road.',
         criteria: { maxOccupants: 2, noPets: true },
+        photos: ['bed-by-the-window', 'living-room-and-kitchen', 'outside'],
         photoSeed: 23,
       },
       {
@@ -165,6 +193,7 @@ export const seedLetters: SeedLetter[] = [
         description:
           'A three-bedroom semi-detached house on a leafy avenue near Drumcondra village. Downstairs there is a living room with a stove, a kitchen-dining room and a toilet. Upstairs are two double bedrooms, a single and a family bathroom. The back garden faces west and there is parking for one car in the drive.',
         criteria: { maxOccupants: 5, noPets: false },
+        photos: ['living-room-tall-windows', 'living-room-and-kitchen', 'bed-by-the-window'],
         photoSeed: 37,
       },
       {
@@ -196,6 +225,7 @@ export const seedLetters: SeedLetter[] = [
         description:
           'A compact studio on the third floor of a modern block beside the Grand Canal at Portobello. One open room with a kitchen along one wall, a sofa bed area and a shower room. There is a lift, and the windows look out over the water. The city centre is a fifteen-minute walk away.',
         criteria: { maxOccupants: 1, noPets: true },
+        photos: ['studio', 'bed-by-the-window', 'outside'],
         photoSeed: 41,
       },
     ],
@@ -203,6 +233,7 @@ export const seedLetters: SeedLetter[] = [
   {
     kind: 'agency',
     organisation: 'Wren & Weir Lettings',
+    framing: 'left',
     person: 'Cian Moran',
     email: 'cian@wren-weir.example',
     phone: '+353870000202',
@@ -238,6 +269,7 @@ export const seedLetters: SeedLetter[] = [
         description:
           'A two-bedroom terraced house a short walk from the promenade in Salthill. The front room has a bay window, and the kitchen opens onto a sunny paved yard at the back. Upstairs are a double, a single and a bathroom with an electric shower. There is a parking space in front of the house.',
         criteria: { maxOccupants: 3, noPets: false },
+        photos: ['living-room-tall-windows', 'bed-by-the-window', 'living-room-and-kitchen'],
         photoSeed: 53,
       },
       {
@@ -269,6 +301,7 @@ export const seedLetters: SeedLetter[] = [
         description:
           'A one-bedroom apartment on the fourth floor, overlooking the river in the city centre. It has an open-plan living room and kitchen, a double bedroom and a bathroom with a bath. The balcony catches the evening sun. Heating is by heat pump, and the building has a lift and a bike room.',
         criteria: { maxOccupants: 2, noPets: true },
+        photos: ['living-room-and-kitchen', 'bed-by-the-window', 'outside'],
         photoSeed: 67,
       },
       {
@@ -298,6 +331,7 @@ export const seedLetters: SeedLetter[] = [
         description:
           'A four-bedroom detached house in a quiet estate in Knocknacarra, with a large back garden. Downstairs there is a living room, a playroom or study, a kitchen-dining room and a utility room. Upstairs, the main bedroom has an en-suite, and there are three more bedrooms and a bathroom. Parking for two cars.',
         criteria: { maxOccupants: 6, noPets: false },
+        photos: ['bed-by-the-window', 'living-room-tall-windows', 'living-room-and-kitchen'],
         photoSeed: 79,
       },
     ],
@@ -305,6 +339,7 @@ export const seedLetters: SeedLetter[] = [
   {
     kind: 'landlord',
     organisation: 'Siobhán Daly',
+    framing: 'right',
     person: 'Siobhán Daly',
     email: 'siobhan@daly-homes.example',
     phone: '+353870000303',
@@ -336,6 +371,7 @@ export const seedLetters: SeedLetter[] = [
         description:
           'My two-bedroom end-of-terrace house near the Lough in Ballintemple. It has a cosy front room with an open fire, a kitchen with space to eat, a double bedroom, a single bedroom and a bathroom upstairs. The back garden is small and private. Buses to the city centre stop at the corner.',
         criteria: { maxOccupants: 3, noPets: true },
+        photos: ['living-room-tall-windows', 'bed-by-the-window', 'living-room-and-kitchen'],
         photoSeed: 83,
       },
       {
@@ -366,6 +402,7 @@ export const seedLetters: SeedLetter[] = [
         description:
           'A one-bedroom apartment on the first floor of an old building on the quays, above a bookshop. The living room has two big windows onto the river. There is a galley kitchen, a double bedroom and a shower room. It comes with a bed, a sofa and a table; you bring the rest.',
         criteria: { maxOccupants: 2, noPets: true },
+        photos: ['outside', 'living-room-and-kitchen', 'bed-by-the-window'],
         photoSeed: 97,
       },
     ],
@@ -380,6 +417,8 @@ export interface SeedReport {
   homes: { listed: number; existing: number; held: number; problems: number };
   viewingsAdded: number;
   confirmed: number;
+  /** Existing homes whose drawn photos were swapped for photos. */
+  photosSwapped: number;
 }
 
 function daysFrom(now: Date, days: number): string {
@@ -484,9 +523,16 @@ async function seedLetter(
   return { member, created: true };
 }
 
-async function addPhotos(member: Member, homeId: string, seed: number) {
-  for (const [i, scene] of SCENES.entries()) {
-    const body = await scenePhoto(scene, seed * 100 + i);
+/** Uploads a home's photos as a letter would, in order, each described for screen readers. */
+async function addPhotos(
+  member: Member,
+  lettingId: string,
+  homeId: string,
+  framing: Framing,
+  photos: readonly SeedPhoto[],
+) {
+  for (const photo of photos) {
+    const body = await seedPhoto(photo, framing);
     const { mediaId, upload } = await startHomePhotoUpload(member, homeId, {
       contentType: 'image/jpeg',
       bytes: body.length,
@@ -496,7 +542,40 @@ async function addPhotos(member: Member, homeId: string, seed: number) {
     await objectStorage().write('uploads', key, body, 'image/jpeg');
     await finishPhotoUpload(member, mediaId);
     await processMedia({ organisationId: member.organisationId, mediaId });
+    await describePhoto(member, lettingId, mediaId, { altText: seedPhotos[photo], isCgi: false });
   }
+}
+
+/**
+ * Earlier seeds drew each home's photos. Swaps any of those drawings still on a home for its
+ * photos: the photos go on first, so the listing never has too few, then the drawings come off.
+ * Photos a tester added stay.
+ */
+async function swapDrawings(
+  member: Member,
+  lettingId: string,
+  homeId: string,
+  framing: Framing,
+  home: SeedHome,
+): Promise<boolean> {
+  const drawn = await Promise.all(
+    SCENES.map(async (scene, i) => photoHash(await scenePhoto(scene, home.photoSeed * 100 + i))),
+  );
+  const onHome = await withOrg(member.organisationId, (tx) =>
+    tx
+      .select({ id: media.id, phash: media.phash })
+      .from(media)
+      .where(and(eq(media.homeId, homeId), eq(media.kind, 'photo'), isNotNull(media.phash))),
+  );
+  const drawings = onHome.filter((photo) =>
+    drawn.some(
+      (hash) => hammingDistance(BigInt.asUintN(64, photo.phash!), hash) <= DUPLICATE_DISTANCE,
+    ),
+  );
+  if (drawings.length === 0) return false;
+  await addPhotos(member, lettingId, homeId, framing, home.photos);
+  for (const drawing of drawings) await removePhoto(member, lettingId, drawing.id);
+  return true;
 }
 
 /** Two viewing times in the next week: an evening, and a Saturday-style late morning. */
@@ -519,7 +598,7 @@ function viewingTimes(now: Date) {
   ];
 }
 
-async function listHome(member: Member, home: SeedHome, now: Date) {
+async function listHome(member: Member, framing: Framing, home: SeedHome, now: Date) {
   const letting = newLettingSchema(now).parse({
     addressLine2: '',
     availableFrom: daysFrom(now, 21),
@@ -548,7 +627,7 @@ async function listHome(member: Member, home: SeedHome, now: Date) {
   });
   await saveLettingDetails(member, lettingId, { deposit: home.letting.rent! });
   await saveDescription(member, lettingId, home.description);
-  await addPhotos(member, row!.homeId, home.photoSeed);
+  await addPhotos(member, lettingId, row!.homeId, framing, home.photos);
   return publishListing(member, lettingId, { declare: true }, now);
 }
 
@@ -600,6 +679,7 @@ export async function seedTestCopy(now = new Date()): Promise<SeedReport> {
     homes: { listed: 0, existing: 0, held: 0, problems: 0 },
     viewingsAdded: 0,
     confirmed: 0,
+    photosSwapped: 0,
   };
   const reviewer = await seedReviewer();
   for (const letter of seedLetters) {
@@ -608,7 +688,7 @@ export async function seedTestCopy(now = new Date()): Promise<SeedReport> {
     for (const home of letter.homes) {
       const [existing] = await withOrg(member.organisationId, (tx) =>
         tx
-          .select({ lettingId: lettings.id })
+          .select({ lettingId: lettings.id, homeId: lettings.homeId })
           .from(lettings)
           .innerJoin(homes, eq(homes.id, lettings.homeId))
           .where(
@@ -625,9 +705,17 @@ export async function seedTestCopy(now = new Date()): Promise<SeedReport> {
         const refreshed = await refreshHome(member, existing.lettingId, now);
         report.viewingsAdded += refreshed.viewingsAdded;
         report.confirmed += refreshed.confirmed;
+        const swapped = await swapDrawings(
+          member,
+          existing.lettingId,
+          existing.homeId,
+          letter.framing,
+          home,
+        );
+        if (swapped) report.photosSwapped += 1;
         continue;
       }
-      const result = await listHome(member, home, now);
+      const result = await listHome(member, letter.framing, home, now);
       if (result.outcome === 'live') report.homes.listed += 1;
       else if (result.outcome === 'held') report.homes.held += 1;
       else report.homes.problems += 1;

@@ -1,9 +1,16 @@
 import { and, inArray, lt } from 'drizzle-orm';
 import { withSystem } from '@/db/client';
-import { alertDeliveries, listingVisitors, publicListings, reports } from '@/db/schema';
+import {
+  alertDeliveries,
+  listingVisitors,
+  placeMisses,
+  publicListings,
+  reports,
+} from '@/db/schema';
 import { DELIVERY_KEEP_DAYS } from '@/domain/alerts/alerts';
 import { CLOSED_PAGE_DAYS } from '@/domain/search/pages';
 import { irishToday } from '@/lib/format';
+import { PLACE_MISS_KEEP_DAYS } from '@/server/places/places';
 
 /**
  * Rule 9: the marketplace's public side, cleared by the nightly job.
@@ -11,12 +18,14 @@ import { irishToday } from '@/lib/format';
  * - M74: a let or withdrawn home's page goes 90 days after it closed.
  * - M86: alert deliveries go after 90 days.
  * - M96: reports go 6 months after their case closes.
+ * - M124: places nobody found go after 30 days.
  */
 export async function sweepMarketplace(now = new Date()): Promise<{
   visitorDays: number;
   closedPages: number;
   alertDeliveries: number;
   reports: number;
+  placeMisses: number;
 }> {
   const today = irishToday(now);
   const pageCutoff = new Date(now.getTime() - CLOSED_PAGE_DAYS * 86_400_000);
@@ -47,11 +56,22 @@ export async function sweepMarketplace(now = new Date()): Promise<{
       .delete(reports)
       .where(lt(reports.deleteAfter, today))
       .returning({ id: reports.id });
+    // M124: what renters typed that found nothing (no digits, user or device) is kept 30 days.
+    const misses = await tx
+      .delete(placeMisses)
+      .where(
+        lt(
+          placeMisses.day,
+          irishToday(new Date(now.getTime() - PLACE_MISS_KEEP_DAYS * 86_400_000)),
+        ),
+      )
+      .returning({ text: placeMisses.text });
     return {
       visitorDays: visitors.length,
       closedPages: pages.length,
       alertDeliveries: deliveries.length,
       reports: expiredReports.length,
+      placeMisses: misses.length,
     };
   });
 }

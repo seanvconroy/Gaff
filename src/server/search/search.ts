@@ -3,8 +3,11 @@ import { withPublic, type Tx } from '@/db/client';
 import { publicListings } from '@/db/schema';
 import type { ProjectionLetter, ProjectionPhoto } from '@/domain/listings/projection';
 import { matchesFilters, type FilterableListing, type Filters } from '@/domain/search/filters';
+import { inBBox, type BBox } from '@/domain/places/geo';
+import { rentHistogram, type RentHistogram } from '@/domain/search/histogram';
 import { paginate, RESULTS_PER_PAGE } from '@/domain/search/pages';
-import { areaContains, type SearchArea } from '@/domain/search/places';
+import type { Gazetteer } from '@/domain/places/gazetteer';
+import { areaBox, areaCentre, areaContains, type SearchArea } from '@/domain/search/places';
 import { orderListings, type RankableListing } from '@/domain/search/ranking';
 import { widerSearches, type Widening } from '@/domain/search/widen';
 
@@ -85,13 +88,16 @@ function areaCondition(area: SearchArea): SQL | undefined {
       return eq(publicListings.county, area.county);
     case 'routing_key':
       return eq(publicListings.routingKey, area.routingKey);
-    case 'radius':
+    default: {
+      // A box first; the exact distance, line or shape is checked in domain code.
+      const box = areaBox(area)!;
       return and(
-        gte(publicListings.latitude, area.box.minLat),
-        lte(publicListings.latitude, area.box.maxLat),
-        gte(publicListings.longitude, area.box.minLng),
-        lte(publicListings.longitude, area.box.maxLng),
+        gte(publicListings.latitude, box.minLat),
+        lte(publicListings.latitude, box.maxLat),
+        gte(publicListings.longitude, box.minLng),
+        lte(publicListings.longitude, box.maxLng),
       );
+    }
   }
 }
 
@@ -128,9 +134,11 @@ async function candidates(
 }
 
 function rankingQuery(area: SearchArea, filters: Filters) {
-  return area.kind === 'radius'
-    ? { filters, centre: area.centre, radiusMetres: area.radiusMetres }
-    : { filters };
+  const centre = areaCentre(area);
+  if (!centre) return { filters };
+  const radiusMetres =
+    area.kind === 'near' ? area.withinKm * 1000 : area.kind === 'radius' ? area.radiusMetres : 0;
+  return radiusMetres > 0 ? { filters, centre, radiusMetres } : { filters };
 }
 
 export interface SearchResults {
@@ -158,9 +166,10 @@ export async function searchListings(
 export async function widerSearchesWithHomes(
   area: SearchArea,
   filters: Filters,
+  g: Gazetteer,
   now = new Date(),
 ): Promise<Array<{ widening: Widening; area: SearchArea; filters: Filters; total: number }>> {
-  const searches = widerSearches(area, filters);
+  const searches = widerSearches(area, filters, g);
   return withPublic(async (tx) => {
     const counted = [];
     for (const search of searches) {
@@ -168,5 +177,87 @@ export async function widerSearchesWithHomes(
       if (total > 0) counted.push({ ...search, total });
     }
     return counted.slice(0, 4);
+  });
+}
+
+/**
+ * M116, M122: how many homes a search finds, for the Filters sheet's "Show 23 homes", and the
+ * rents of the homes it would find whatever the rent filter, for its histogram.
+ */
+export async function countListings(
+  area: SearchArea,
+  filters: Filters,
+  now = new Date(),
+): Promise<{ total: number; histogram: RentHistogram | null }> {
+  return withPublic(async (tx) => {
+    const { minRent, maxRent, ...rest } = filters;
+    const pool = await candidates(tx, area, rest as Filters, now);
+    const total = pool.filter(
+      (r) =>
+        (minRent === undefined || r.rentCents >= minRent * 100) &&
+        (maxRent === undefined || r.rentCents <= maxRent * 100),
+    ).length;
+    return { total, histogram: rentHistogram(pool.map((r) => r.rentCents)) };
+  });
+}
+
+export interface MapPoint {
+  id: string;
+  lat: number;
+  lng: number;
+  rentCents: number;
+  /** The listing's public title, so a pin can be named for its home (M117). */
+  title: string;
+  /** Its page, /home/{slug}, for the phone map's row of cards (M57). */
+  slug: string;
+}
+
+const MAX_POINTS = 2000;
+
+/** M57, M117: every home the search finds inside the map's view, light enough for 2,000 pins. */
+export async function mapPoints(
+  area: SearchArea,
+  filters: Filters,
+  view: BBox,
+  now = new Date(),
+): Promise<MapPoint[]> {
+  return withPublic(async (tx) => {
+    const found = (await candidates(tx, area, filters, now))
+      .filter((r) => inBBox({ lat: r.latitude, lng: r.longitude }, view))
+      .slice(0, MAX_POINTS);
+    if (found.length === 0) return [];
+    const named = new Map(
+      (
+        await tx
+          .select({
+            id: publicListings.listingId,
+            title: publicListings.title,
+            slug: publicListings.slug,
+          })
+          .from(publicListings)
+          .where(
+            inArray(
+              publicListings.listingId,
+              found.map((r) => r.listingId),
+            ),
+          )
+      ).map((row) => [row.id, row] as const),
+    );
+    return found.map((r) => ({
+      id: r.listingId,
+      lat: r.latitude,
+      lng: r.longitude,
+      rentCents: r.rentCents,
+      title: named.get(r.listingId)?.title ?? '',
+      slug: named.get(r.listingId)?.slug ?? '',
+    }));
+  });
+}
+
+/** M117: what a pin's mini card shows. */
+export async function mapCard(listingId: string): Promise<ResultCard | null> {
+  return withPublic(async (tx) => {
+    const [card] = await loadCards(tx, [listingId]);
+    return card && card.status === 'live' ? card : null;
   });
 }

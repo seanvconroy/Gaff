@@ -2,8 +2,10 @@ import { and, count, eq } from 'drizzle-orm';
 import { withRenter, withSystem } from '@/db/client';
 import { savedSearches } from '@/db/schema';
 import { savedSearchName, type AlertFrequency } from '@/domain/alerts/alerts';
-import { readFilters, writeFilters } from '@/domain/search/filters';
-import { resolvePlacePath } from '@/domain/search/places';
+import { readFilters } from '@/domain/search/filters';
+import { areaPath as pathOf } from '@/domain/search/places';
+import { savedSearchArea, searchQuery } from '@/domain/search/url';
+import { loadGazetteer, nearSlugOf } from '@/server/places/places';
 import { recordPlatformEvent } from '@/server/record/platform-events';
 import { readStopToken } from './tokens';
 
@@ -17,10 +19,13 @@ export async function saveSearch(
   areaPath: string,
   query: string,
 ): Promise<{ id: string } | { tooMany: true } | null> {
-  const resolved = resolvePlacePath(areaPath.split('/').filter(Boolean).slice(1));
-  if (!resolved || resolved.kind !== 'area' || resolved.path !== areaPath) return null;
+  const near = nearSlugOf(areaPath);
+  const g = await loadGazetteer(near ? [near] : []);
+  const area = savedSearchArea(areaPath, query, g);
+  if (!area || pathOf(area) !== areaPath) return null;
+  // An alert is for the place, distance, map area and filters: not the order or the page.
   const { sort: _sort, page: _page, ...filters } = readFilters(new URLSearchParams(query));
-  const canonical = writeFilters(filters);
+  const canonical = searchQuery(area, filters);
   return withRenter(userId, async (tx) => {
     const [existing] = await tx
       .select({ id: savedSearches.id })
@@ -37,7 +42,12 @@ export async function saveSearch(
     if (n >= MAX_SAVED_SEARCHES) return { tooMany: true as const };
     const [row] = await tx
       .insert(savedSearches)
-      .values({ userId, name: savedSearchName(areaPath, canonical), areaPath, query: canonical })
+      .values({
+        userId,
+        name: savedSearchName(areaPath, canonical, g),
+        areaPath,
+        query: canonical,
+      })
       .returning({ id: savedSearches.id });
     await recordPlatformEvent(tx, {
       type: 'alert.created',
@@ -46,6 +56,22 @@ export async function saveSearch(
     });
     return { id: row!.id };
   });
+}
+
+/** Whether a search is saved already, from its path and canonical query, so it can say "Saved". */
+export async function isSearchSaved(
+  userId: string,
+  areaPath: string,
+  query: string,
+): Promise<boolean> {
+  const rows = await withRenter(userId, (tx) =>
+    tx
+      .select({ id: savedSearches.id })
+      .from(savedSearches)
+      .where(and(eq(savedSearches.areaPath, areaPath), eq(savedSearches.query, query)))
+      .limit(1),
+  );
+  return rows.length > 0;
 }
 
 export async function mySearches(userId: string) {

@@ -39,9 +39,9 @@ If you want a second renter account, use a "+" address, like `you+renter@gmail.c
 
 ## 4. A first look as a renter (15 minutes, on a phone)
 
-1. Open https://gaff-test.vercel.app. You land on **homes to rent**. Search for `Dublin 6`, `Galway` or `Cork`.
-2. Try the filters (rent, bedrooms, pets) and the order (cheapest, newest). Open a home: photos, facts, the map area, who's letting it and what Gaff has checked about them.
-3. **Save** a home, and press **Get alerts for this search**. You'll need to sign in: Gaff emails you a link.
+1. Open https://gaff-test.vercel.app. You land on **homes to rent**. Type a place, a street or a landmark, such as `Dublin 6`, `Kinsale`, `Highfield Road` or `UCD`, and choose a suggestion.
+2. Try Rent, Beds and Move in, then **Filters** for the rest, and the order (cheapest, newest). On a phone, **Map** shows the homes on a map. Open a home: photos, facts, the map area, who's letting it and what Gaff has checked about them.
+3. **Save** a home, and press **Save search** to get alerts. You'll need to sign in: Gaff emails you a link.
 4. **Enquire** about a home: your name and email, then the 6-digit code Gaff emails you, then the letter's questions and a message. Ask something the facts answer, like "Is there parking?" or "When are the bins collected?".
 5. Within a minute, the AI's first reply arrives **by email** and in **Your homes**. It says it's an AI assistant and how to reach a person.
 6. Look at **Your homes**, **Saved**, **Alerts** and **Who has my details**. Withdraw an enquiry if you like.

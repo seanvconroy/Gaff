@@ -19,6 +19,7 @@ import {
 import type { NewLetting } from '@/domain/lettings/new-letting';
 import { routingKeyOf } from '@/domain/places/eircode';
 import { approximateLocation } from '@/domain/places/locate';
+import { loadGazetteer } from '@/server/places/places';
 import { slugify } from '@/domain/places/slug';
 import { irishToday } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
@@ -58,7 +59,10 @@ export async function createDevelopment(
   if (!parsed.success) return { ok: false, errors: errorsOf(parsed.error.issues) };
   const input = parsed.data;
   const routingKey = input.eircode ? routingKeyOf(input.eircode) : null;
-  const point = approximateLocation({ area: input.area, county: input.county, routingKey }).point;
+  const point = approximateLocation(
+    { area: input.area, county: input.county, routingKey },
+    await loadGazetteer(),
+  ).point;
   const id = crypto.randomUUID();
   await withOrg(member.organisationId, async (tx) => {
     await tx.insert(developments).values({

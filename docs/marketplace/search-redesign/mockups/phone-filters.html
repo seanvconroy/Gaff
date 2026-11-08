@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en-IE" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Filters on a phone · Gaff search redesign mockup</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body class="phone">
+<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="filters-title">
+<header class="dialogHead"><h2 id="filters-title" class="type-title">Filters</h2><button class="iconButton" type="button" aria-label="Close filters"><svg class="icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></header>
+<div class="mFilterBody">
+<section class="fSection" aria-labelledby="f-rent">
+<div class="fSectionHead"><h3 id="f-rent" class="type-title">Rent a month</h3>
+<p class="muted">Homes here are from €1,450 to €3,100 a month</p></div>
+<div><div class="histogram" aria-hidden="true"><span class="bar" style="height:6px"></span><span class="bar" style="height:10px"></span><span class="bar" style="height:14px"></span><span class="bar" style="height:22px"></span><span class="bar" style="height:30px"></span><span class="bar" style="height:26px"></span><span class="bar isIn" style="height:40px"></span><span class="bar isIn" style="height:52px"></span><span class="bar isIn" style="height:64px"></span><span class="bar isIn" style="height:70px"></span><span class="bar isIn" style="height:58px"></span><span class="bar isIn" style="height:66px"></span><span class="bar isIn" style="height:72px"></span><span class="bar isIn" style="height:60px"></span><span class="bar isIn" style="height:54px"></span><span class="bar isIn" style="height:62px"></span><span class="bar isIn" style="height:48px"></span><span class="bar isIn" style="height:44px"></span><span class="bar isIn" style="height:50px"></span><span class="bar isIn" style="height:38px"></span><span class="bar isIn" style="height:34px"></span><span class="bar isIn" style="height:30px"></span><span class="bar isIn" style="height:26px"></span><span class="bar" style="height:22px"></span><span class="bar" style="height:18px"></span><span class="bar" style="height:20px"></span><span class="bar" style="height:14px"></span><span class="bar" style="height:12px"></span><span class="bar" style="height:10px"></span><span class="bar" style="height:8px"></span><span class="bar" style="height:6px"></span><span class="bar" style="height:5px"></span></div>
+<div class="track" aria-hidden="true"><span class="trackOn" style="left:20.3125%;width:50%"></span><span class="handle" style="left:20.3125%"></span><span class="handle" style="left:70.3125%"></span></div></div>
+<div class="rangeInputs">
+<label class="field"><span class="fieldLabel">Lowest</span><span class="input"><span class="prefix">€</span>1,500</span></label>
+<span class="toWord">to</span>
+<label class="field"><span class="fieldLabel">Highest</span><span class="input"><span class="prefix">€</span>2,400</span></label>
+</div>
+</section>
+<section class="fSection" aria-labelledby="f-beds">
+<h3 id="f-beds" class="type-title">Bedrooms</h3>
+<div class="segmented" role="radiogroup" aria-labelledby="f-beds"><span class="segment" role="radio" aria-checked="false">Any</span><span class="segment" role="radio" aria-checked="false">1+</span><span class="segment isOn" role="radio" aria-checked="true">2+</span><span class="segment" role="radio" aria-checked="false">3+</span><span class="segment" role="radio" aria-checked="false">4+</span></div>
+</section>
+<section class="fSection" aria-labelledby="f-baths">
+<h3 id="f-baths" class="type-title">Bathrooms</h3>
+<div class="segmented" role="radiogroup" aria-labelledby="f-baths"><span class="segment isOn" role="radio" aria-checked="true">Any</span><span class="segment" role="radio" aria-checked="false">1+</span><span class="segment" role="radio" aria-checked="false">2+</span><span class="segment" role="radio" aria-checked="false">3+</span></div>
+</section>
+<section class="fSection" aria-labelledby="f-type">
+<h3 id="f-type" class="type-title">Type of home</h3>
+<div class="tiles">
+<span class="tile"><svg class="icon iconLg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>Apartment</span>
+<span class="tile"><svg class="icon iconLg" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>House</span>
+<span class="tile"><svg class="icon iconLg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>Duplex</span>
+<span class="tile"><svg class="icon iconLg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20v-8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8"/><path d="M5 10V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4"/><path d="M3 18h18"/></svg>Studio</span>
+<span class="tile"><svg class="icon iconLg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>Bungalow</span>
+<span class="tile"><svg class="icon iconLg" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 12h18"/><path d="M12 3v18"/></svg>Townhouse</span>
+</div>
+</section>
+<section class="fSection" aria-labelledby="f-move">
+<div class="fSectionHead"><h3 id="f-move" class="type-title">Move in</h3>
+<p class="muted">Homes free on or before this date</p></div>
+<label class="field"><span class="fieldLabel">Available by</span><span class="input inputWide"><span class="muted">Any date</span><span class="barEnd"><svg class="icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg></span></span></label>
+</section>
+<section class="fSection" aria-labelledby="f-furn">
+<h3 id="f-furn" class="type-title">Furnishing</h3>
+<div class="pills"><span class="choicePill">Furnished</span><span class="choicePill">Part furnished</span><span class="choicePill">Unfurnished</span></div>
+</section>
+<section class="fSection" aria-labelledby="f-must">
+<h3 id="f-must" class="type-title">Must have</h3>
+<div class="checks">
+<span class="check"><span class="box"></span><span><span class="strong">Pets considered</span><br><span class="muted">Assistance dogs are always welcome</span></span></span>
+<span class="check"><span class="box"></span><span class="strong">Parking</span></span>
+<span class="check"><span class="box"></span><span class="strong">Outdoor space</span></span>
+</div>
+</section>
+<section class="fSection" aria-labelledby="f-ber">
+<h3 id="f-ber" class="type-title">Energy rating (BER)</h3>
+<div class="segmented" role="radiogroup" aria-labelledby="f-ber"><span class="segment isOn" role="radio" aria-checked="true">Any</span><span class="segment" role="radio" aria-checked="false">A</span><span class="segment" role="radio" aria-checked="false">B or better</span><span class="segment" role="radio" aria-checked="false">C or better</span><span class="segment" role="radio" aria-checked="false">D or better</span></div>
+</section>
+<section class="fSection" aria-labelledby="f-access">
+<h3 id="f-access" class="type-title">Accessibility</h3>
+<div class="checks">
+<span class="check"><span class="box"></span><span class="strong">Step-free entrance</span></span>
+<span class="check"><span class="box"></span><span class="strong">Lift</span></span>
+<span class="check"><span class="box"></span><span class="strong">Ground-floor bedroom</span></span>
+<span class="check"><span class="box"></span><span class="strong">Level-access shower</span></span>
+<span class="check"><span class="box"></span><span class="strong">Wide doorways</span></span>
+</div>
+</section>
+<section class="fSection" aria-labelledby="f-listed">
+<h3 id="f-listed" class="type-title">Listed</h3>
+<div class="pills"><span class="choicePill isOn">Any time</span><span class="choicePill">In the last day</span><span class="choicePill">In the last 7 days</span></div>
+</section>
+</div>
+<footer class="dialogFoot mFoot"><button class="linkButton" type="button">Clear all</button><button class="btn btnPrimary" type="button">Show 23 homes</button></footer>
+</div>
+</body>
+</html>

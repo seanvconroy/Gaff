@@ -1,9 +1,41 @@
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import sharp from 'sharp';
 
 /**
- * The test copy's photos: simple drawings of a home, made from a seed, so the made-up listings
- * look like homes rather than noise. Each seed draws a different scene (positions, sizes and
- * colours all move), so Gaff's copied-photo check (M29) never mistakes one home's for another's.
+ * The test copy's photos (data/seed-photos): real photos of homes, so the made-up listings look
+ * as they will when Gaff is live. Each original comes in three framings, one for each made-up
+ * letter, because Gaff's copied-photo check (M29) holds a listing whose photos match another
+ * letter's. The seed's tests check the framings stay far enough apart.
+ */
+
+export const SEED_PHOTO_DIR = 'data/seed-photos';
+
+/** Each photo, and what it shows, for screen readers (M109). */
+export const seedPhotos = {
+  'living-room-and-kitchen': 'Living room opening onto the kitchen',
+  'living-room-tall-windows': 'Living room with tall windows and a corner sofa',
+  'bed-by-the-window': 'Bed and sofa by tall windows with a city view',
+  studio: 'Studio with its kitchen, sofa and bed',
+  outside: 'The building from the street, with its balconies',
+} as const;
+
+export type SeedPhoto = keyof typeof seedPhotos;
+export type Framing = 'full' | 'left' | 'right';
+
+export function seedPhotoFile(photo: SeedPhoto, framing: Framing): string {
+  return join(SEED_PHOTO_DIR, `${photo}-${framing}.jpg`);
+}
+
+/** The photo as a letter's phone would upload it. */
+export async function seedPhoto(photo: SeedPhoto, framing: Framing): Promise<Buffer> {
+  return readFile(seedPhotoFile(photo, framing));
+}
+
+/**
+ * Earlier versions of the seed drew each home's photos instead: simple drawings made from a
+ * seed. They're kept so the seed can recognise those drawings on the test copy and swap them for
+ * the photos above.
  */
 
 export type SceneKind = 'outside' | 'living' | 'kitchen' | 'bedroom';

@@ -128,6 +128,9 @@ export async function queueDailyJobs(): Promise<void> {
   await db().execute(sql`
     select graphile_worker.add_job('alerts_daily', '{}'::json,
       run_at => ${nextDailySend(new Date()).toISOString()}::timestamptz, job_key => 'alerts_daily')`);
+  // M121: the counts of homes beside places, in case a change was missed.
+  await db().execute(sql`
+    select graphile_worker.add_job('places_count', '{}'::json, job_key => 'places_count')`);
 }
 
 /**

@@ -1,5 +1,7 @@
+import type { Gazetteer } from '@/domain/places/gazetteer';
+import { slugify } from '@/domain/places/slug';
 import type { Filters } from './filters';
-import { widerArea, type SearchArea } from './places';
+import { searchArea, widerArea, type SearchArea } from './places';
 
 /**
  * M61: when nothing matches, the searches a renter could try instead: a wider area, a higher
@@ -7,6 +9,7 @@ import { widerArea, type SearchArea } from './places';
  * homes in them, so a renter is never left at a dead end.
  */
 export type Widening =
+  | { change: 'distance'; area: SearchArea }
   | { change: 'area'; area: SearchArea }
   | { change: 'budget'; maxRent: number }
   | { change: 'date'; availableBy: string }
@@ -55,13 +58,29 @@ export interface WiderSearch {
   filters: Filters;
 }
 
+/** The county a place-based search sits in; null when the search is wider already. */
+function countyAround(area: SearchArea, g: Gazetteer): SearchArea | null {
+  if (area.kind === 'radius' || area.kind === 'near') {
+    return searchArea(slugify(area.place.county), g);
+  }
+  return null;
+}
+
 /** The searches to try, most useful first. Each changes one thing only. */
-export function widerSearches(area: SearchArea, filters: Filters): WiderSearch[] {
+export function widerSearches(area: SearchArea, filters: Filters, g: Gazetteer): WiderSearch[] {
   const base = { ...filters, page: 1 };
   const searches: WiderSearch[] = [];
-  const wider = widerArea(area);
-  if (wider)
+  const wider = widerArea(area, g);
+  // A place grows by distance first ("+3 km"), then to its county.
+  if (wider && (wider.kind === 'radius' || wider.kind === 'near')) {
+    searches.push({ widening: { change: 'distance', area: wider }, area: wider, filters: base });
+    const county = countyAround(area, g);
+    if (county) {
+      searches.push({ widening: { change: 'area', area: county }, area: county, filters: base });
+    }
+  } else if (wider) {
     searches.push({ widening: { change: 'area', area: wider }, area: wider, filters: base });
+  }
   if (filters.maxRent !== undefined) {
     const maxRent = widerBudget(filters.maxRent);
     searches.push({ widening: { change: 'budget', maxRent }, area, filters: { ...base, maxRent } });

@@ -7,6 +7,7 @@ import { alertEmail, type AlertSearch } from '@/copy/alerts';
 import { alertMatches, DAILY_HOUR, type AlertableListing } from '@/domain/alerts/alerts';
 import { slugify } from '@/domain/places/slug';
 import { env } from '@/lib/env';
+import { loadGazetteer, nearSlugOf } from '@/server/places/places';
 import { enqueue } from '@/server/jobs/enqueue';
 import { recordPlatformEvent } from '@/server/record/platform-events';
 import { stopToken } from './tokens';
@@ -42,7 +43,9 @@ export async function matchListing(listingId: string, now = new Date()): Promise
   if (!listing || listing.status !== 'live') return 0;
   const home = { ...listing, facts: listing.facts as AlertableListing['facts'] };
   return withSystem(async (tx) => {
-    // Only searches that could contain the home: all of Ireland, its county, or its routing key.
+    // Only searches that could contain the home: all of Ireland, its county, its routing key, or
+    // any search that can cross a county line (near a street or landmark, "+ km", a map area or a
+    // drawn shape).
     const searches = await tx
       .select({
         id: savedSearches.id,
@@ -62,10 +65,18 @@ export async function matchListing(listingId: string, now = new Date()): Promise
             home.routingKey
               ? eq(savedSearches.areaPath, `/to-rent/${home.routingKey.toLowerCase()}`)
               : undefined,
+            like(savedSearches.areaPath, '/to-rent/near/%'),
+            like(savedSearches.query, '%km=%'),
+            like(savedSearches.query, '%bbox=%'),
+            like(savedSearches.query, '%shape=%'),
           ),
         ),
       );
-    const matched = searches.filter((s) => alertMatches(home, s, now));
+    const g = await loadGazetteer(
+      searches.map((s) => nearSlugOf(s.areaPath)).filter((s): s is string => s !== null),
+      tx,
+    );
+    const matched = searches.filter((s) => alertMatches(home, s, g, now));
     if (matched.length === 0) return 0;
     const added = await tx
       .insert(alertDeliveries)

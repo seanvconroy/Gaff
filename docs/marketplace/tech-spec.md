@@ -4,7 +4,7 @@ Accepted, 7 November 2026 · CTO · goes with the [marketplace PRD](prd.md), app
 
 ## Summary
 
-The marketplace is built inside the existing modular monolith: the same Next.js app on Vercel (Dublin), the same Postgres on Supabase (Ireland), and the same jobs, ports and adapters. It adds public pages for renters, renter accounts, a model of homes and listings, search, photos, checks on letters and moderation. Search, maps and measurement need no new service. One new use of a vendor, ID checks for private landlords with Stripe Identity, was approved by Sean on 7 November 2026.
+The marketplace is built inside the existing modular monolith: the same Next.js app on Vercel (Dublin), the same Postgres on Supabase (Ireland), and the same jobs, ports and adapters. It adds public pages for renters, renter accounts, a model of homes and listings, search, photos, checks on letters and moderation. Search and measurement need no new service. Two new uses of a vendor were approved by Sean: ID checks for private landlords with Stripe Identity (7 November 2026), and Google Maps for the map (8 November 2026, Q58; see the [search redesign](search-redesign/tech-spec.md)).
 
 Everything in [architecture.md](../architecture.md) and the ADRs still holds unless this document says otherwise.
 
@@ -17,7 +17,7 @@ Everything in [architecture.md](../architecture.md) and the ADRs still holds unl
 | 3 | Data zones | Organisation, renter, public and staff zones, each with its own row-level security and helper | Keeps tenant isolation (ADR-0004) and staged data (ADR-0005) provable as the data model grows | 0017 |
 | 4 | Homes, lettings and listings | A home lasts, a letting is one let, and a listing is the letting's public advert | Relisting, developments and a safe public copy all need it | 0018 |
 | 5 | Search and alerts | Postgres with pg_trgm, unaccent and full-text search. Locations are latitude and longitude with bounding-box indexes, and matching an area or a drawn shape is domain code | Fewer than 2,400 homes were advertised to rent nationally in August 2026. Postgres is ample, and adds no vendor (ADR-0003). PostGIS needs a superuser to install, which our migrations don't have, and this scale doesn't need it | 0019 |
-| 6 | Maps | MapLibre with self-hosted OpenStreetMap tiles, and open data for places, transport and schools | No map vendor sees where renters look. The map re-skins from the design tokens | 0020 |
+| 6 | Maps | Google Maps (Maps JavaScript API) showing only Gaff's own content, loaded only when on screen; Gaff's own place index from open data for suggestions, transport and schools. **Changed on 8 November 2026** (Q57, Q58): it was MapLibre with self-hosted OpenStreetMap tiles | Sean's decision. Google's EEA terms rule out Google's suggestions beside a map, so places stay ours; Google hosts the tiles. See the [search redesign tech spec](search-redesign/tech-spec.md) | 0027 |
 | 7 | Photos | Direct uploads to Supabase Storage. A job checks, cleans and resizes them. Fixed sizes are served from the CDN, with perceptual hashes | Predictable cost, no location data, and stolen-photo detection | 0021 |
 | 8 | Checking letters | Weekly PSRA register import; Stripe Identity for private landlords; our own SMS codes through Sinch | Matches Q29, and keeps only results | 0022 |
 | 9 | Moderation | Rules first, AI second, and a person decides every removal | Equal Status Acts and the Digital Services Act; the same principle as ADR-0007 | 0023 |
@@ -40,7 +40,7 @@ Everything in [architecture.md](../architecture.md) and the ADRs still holds unl
        ┌─────────▼──────────────────────┐        ┌───────────▼────────────────┐
        │ Postgres (Supabase, Ireland)   │        │ Supabase Storage + CDN     │
        │ zones: organisation, renter,   │        │ photos (fixed sizes),      │
-       │ public, staff; pg_trgm; events;│        │ map tiles (PMTiles)        │
+       │ public, staff; pg_trgm; events;│        │ (map tiles: Google, ADR-0027)│
        │ job queue; outbox              │        └────────────────────────────┘
        └─────────▲──────────────────────┘
                  │
@@ -96,7 +96,7 @@ src/
 | 7. Grounded AI | Description drafts use only the facts entered, and the letter edits and publishes them. Moderation and photo checks only classify. Names and contact details are stripped before any text goes to the model | AI evals |
 | 8. Logging without personal data | `events` as now, plus `platform_events` for the new zones, under the same enforcement | Existing tests, extended |
 | 9. Retention by jobs | Every new kind of data has a deletion rule and a job (see [Privacy and retention](#privacy-and-retention)) | Integration tests |
-| 10. Approved vendors | One new use (ID checks for landlords). Everything else runs on approved vendors or is self-hosted | Vendor table; launch checklist |
+| 10. Approved vendors | Two new uses: ID checks for landlords, and Google Maps for the map (Q58). Everything else runs on approved vendors or is self-hosted | Vendor table; launch checklist |
 
 ## Data model
 
@@ -262,11 +262,11 @@ Two narrow exceptions, each lint-restricted to the use cases that need them, lik
 
 ## Maps and places
 
-- **MapLibre GL JS**, loaded only when the map opens or scrolls into view.
-- **Base map:** an OpenStreetMap extract of the island of Ireland in Protomaps PMTiles format, stored in Supabase Storage and read with range requests. `pnpm tokens` will also generate the map style from the design tokens, so the map re-skins with everything else. Attribution: "© OpenStreetMap contributors".
-- **No Google or Mapbox scripts.** "Open in Google Maps" is a plain link.
-- **Address entry:** the Eircode's format is checked and the Eircode stored. The letter places the pin, and the place is found by point-in-polygon against `places`, in domain code. An Eircode lookup service (Autoaddress) could fill in the address and pin automatically; it's optional and needs approval (rule 10).
-- **Places:** counties and towns from Tailte Éireann open data (CC BY 4.0). Areas come from OpenStreetMap suburb and neighbourhood boundaries where they exist, otherwise from Electoral Division boundaries grouped by hand for the most-searched areas. Aliases include Irish names, "Dublin 6" and common spellings.
+Changed on 8 November 2026 by the [search redesign](search-redesign/tech-spec.md) and [ADR-0027](../adr/0027-places-index-on-google-maps.md), which hold the detail.
+
+- **Google Maps (Maps JavaScript API)**, loaded only when the map is on screen, through `@vis.gl/react-google-maps`, with clusters from `@googlemaps/markerclusterer`. A Map ID styled from the tokens, light and dark. Only Gaff's own content is on or next to the map, and no other Google API is called (Google's EEA terms).
+- **Places:** Gaff's own `places` index in Postgres (`pg_trgm`, `unaccent`): counties, cities, towns, villages, areas, Dublin districts, Eircode areas, townlands, streets and landmarks in the Republic, built quarterly from OpenStreetMap (ODbL), Tailte Éireann and the CSO (CC BY 4.0) and the NTA (CC BY 4.0). It replaces the hand-typed list.
+- **Address entry:** the Eircode's format is checked and the Eircode stored. The letter drags the pin on a Google map (M38), and the place is found by point-in-polygon against `places`, in domain code. No geocoding service. An Eircode lookup service (Autoaddress) could fill in the address; it's optional and needs approval (rule 10).
 - **Nearby:** transport stops from the NTA's GTFS feeds and schools from the Department of Education's lists. Walking distance is straight-line distance × 1.3 until a routing engine arrives.
 - **Commute time (Should, M63)** needs a routing engine. OpenTripPlanner with GTFS and OpenStreetMap is self-hostable, but it needs a long-running server that Vercel and Supabase don't provide. That's a hosting decision for when we get there.
 
@@ -412,7 +412,8 @@ After launch, the Should items follow in this order: M53, M36, M63, M89, M54, M8
 | Address and Eircode lookup | Autoaddress, optional | Needs approval. Launch works without it |
 | Bot detection beyond rate limits | Vercel BotID, to evaluate | Check its sub-processor first |
 | Browser notifications | Web Push through the browsers' push services | DPIA before switching on (Should) |
-| Map data | OpenStreetMap (ODbL), self-hosted | Data licence and attribution |
+| Map | Google Maps Platform: the Maps JavaScript API only | Approved by Sean on 8 November 2026 (Q58). Independent controller (Controller-Controller Data Protection Terms), no EU region, EU–US Data Privacy Framework. Privacy notice, terms and DPIA before release |
+| Place data | OpenStreetMap (ODbL), in Gaff's own place index | Data licence and attribution; OSM rows kept separate |
 | Boundaries | Tailte Éireann open data (CC BY 4.0) and the CSO | Data licence and attribution |
 | Transport stops | National Transport Authority GTFS | Data licence |
 | Schools | Department of Education | Data licence |
@@ -423,7 +424,7 @@ After launch, the Should items follow in this order: M53, M36, M63, M89, M54, M8
 
 | Risk | Spike or answer |
 | --- | --- |
-| Range requests and egress for map tiles from Supabase Storage | Spike in milestone 1, with Vercel Blob as the fallback |
+| Google Maps on renters' devices: what its script stores, its cost, and Google's EEA terms | Spike in the search redesign's first week; budget alerts and a daily quota; only Gaff's content on the map (ADR-0027) |
 | HEIC photos in browsers other than Safari | Spike: the WebAssembly decoder's size and speed on a mid-range phone |
 | Boundaries for Dublin neighbourhoods | Spike: OpenStreetMap's coverage; Electoral Divisions grouped by hand for the top 200 areas |
 | Stripe Identity with Irish documents (passport, driving licence) | Spike with test documents; watch pass rates in the beta |
@@ -439,7 +440,8 @@ After launch, the Should items follow in this order: M53, M36, M63, M89, M54, M8
 - ADR-0017: Data zones: organisation, renter, public and staff
 - ADR-0018: Homes, lettings and listings
 - ADR-0019: Search and alerts on Postgres
-- ADR-0020: Self-hosted maps and open data
+- ADR-0020: Self-hosted maps and open data (never written; replaced by ADR-0027)
+- ADR-0027: Renter search uses our own place index, on Google Maps
 - ADR-0021: The photo pipeline
 - ADR-0022: Checking letters
 - ADR-0023: Moderation: rules first, AI second, people decide

@@ -11,6 +11,7 @@ import { isPublic } from '@/domain/listings/lifecycle';
 import { mediaKeys } from '@/domain/media/photos';
 import { blockingFindings, checkListingText } from '@/domain/moderation/listing-text';
 import { approximateLocation } from '@/domain/places/locate';
+import { loadGazetteer } from '@/server/places/places';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { enqueue } from '@/server/jobs/enqueue';
@@ -66,7 +67,9 @@ export async function saveHomeDetails(
     const { home } = await context(tx, lettingId);
     // M38: until the letter places a pin (milestone 4), the area gives an approximate point.
     const located =
-      home.latitude === null || home.longitude === null ? approximateLocation(home).point : null;
+      home.latitude === null || home.longitude === null
+        ? approximateLocation(home, await loadGazetteer([], tx)).point
+        : null;
     await tx
       .update(homes)
       .set({

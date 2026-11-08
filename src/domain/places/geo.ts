@@ -39,14 +39,17 @@ export function bboxAround(centre: Point, radiusMetres: number): BBox {
   };
 }
 
+/** The box round some points. A loop, not Math.min(...), so a boundary of any size fits. */
 export function bboxOf(points: readonly Point[]): BBox {
   if (points.length === 0) throw new Error('bboxOf needs at least one point');
-  return {
-    minLat: Math.min(...points.map((p) => p.lat)),
-    maxLat: Math.max(...points.map((p) => p.lat)),
-    minLng: Math.min(...points.map((p) => p.lng)),
-    maxLng: Math.max(...points.map((p) => p.lng)),
-  };
+  const box = { minLat: Infinity, maxLat: -Infinity, minLng: Infinity, maxLng: -Infinity };
+  for (const p of points) {
+    if (p.lat < box.minLat) box.minLat = p.lat;
+    if (p.lat > box.maxLat) box.maxLat = p.lat;
+    if (p.lng < box.minLng) box.minLng = p.lng;
+    if (p.lng > box.maxLng) box.maxLng = p.lng;
+  }
+  return box;
 }
 
 export function inBBox(point: Point, box: BBox): boolean {
@@ -90,4 +93,154 @@ export function approximate(point: Point, metres = 150): Point {
   // The longitude step comes from the snapped latitude, so snapping a snapped point is a no-op.
   const stepLng = stepLat / Math.cos(rad(lat));
   return { lat: Number(lat.toFixed(6)), lng: Number(snap(point.lng, stepLng).toFixed(6)) };
+}
+
+/** A box grown by `metres` on every side. */
+export function expandBBox(box: BBox, metres: number): BBox {
+  const dLat = (metres / EARTH_RADIUS_M) * (180 / Math.PI);
+  const midLat = (box.minLat + box.maxLat) / 2;
+  const dLng = dLat / Math.cos(rad(midLat));
+  return {
+    minLat: box.minLat - dLat,
+    maxLat: box.maxLat + dLat,
+    minLng: box.minLng - dLng,
+    maxLng: box.maxLng + dLng,
+  };
+}
+
+/** Flat x and y in metres around a latitude: accurate enough over a few kilometres. */
+function project(point: Point, originLat: number): { x: number; y: number } {
+  return {
+    x: rad(point.lng) * EARTH_RADIUS_M * Math.cos(rad(originLat)),
+    y: rad(point.lat) * EARTH_RADIUS_M,
+  };
+}
+
+/** M113: how far a point is from a street, given as runs of points, in metres. */
+export function distanceToLineMetres(point: Point, runs: readonly (readonly Point[])[]): number {
+  let best = Infinity;
+  const p = project(point, point.lat);
+  for (const run of runs) {
+    if (run.length === 1) best = Math.min(best, distanceMetres(point, run[0]!));
+    for (let i = 1; i < run.length; i++) {
+      const a = project(run[i - 1]!, point.lat);
+      const b = project(run[i]!, point.lat);
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const lengthSquared = dx * dx + dy * dy;
+      const t =
+        lengthSquared === 0
+          ? 0
+          : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSquared));
+      best = Math.min(best, Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy)));
+    }
+  }
+  return best;
+}
+
+/** The area of a box, in square kilometres. */
+export function bboxAreaKm2(box: BBox): number {
+  const height = distanceMetres(
+    { lat: box.minLat, lng: box.minLng },
+    { lat: box.maxLat, lng: box.minLng },
+  );
+  const midLat = (box.minLat + box.maxLat) / 2;
+  const width = distanceMetres({ lat: midLat, lng: box.minLng }, { lat: midLat, lng: box.maxLng });
+  return (height * width) / 1_000_000;
+}
+
+/** The area inside a polygon, in square kilometres (the shoelace formula on flat metres). */
+export function polygonAreaKm2(polygon: readonly Point[]): number {
+  if (polygon.length < 3) return 0;
+  const originLat = polygon.reduce((sum, p) => sum + p.lat, 0) / polygon.length;
+  const flat = polygon.map((p) => project(p, originLat));
+  let twice = 0;
+  for (let i = 0, j = flat.length - 1; i < flat.length; j = i++) {
+    twice += flat[j]!.x * flat[i]!.y - flat[i]!.x * flat[j]!.y;
+  }
+  return Math.abs(twice) / 2 / 1_000_000;
+}
+
+/** M56: a drawn outline with fewer points, keeping its shape to within `metres` (Douglas–Peucker). */
+export function simplify(points: readonly Point[], metres: number): Point[] {
+  if (points.length <= 2) return [...points];
+  const keep = new Array<boolean>(points.length).fill(false);
+  keep[0] = true;
+  keep[points.length - 1] = true;
+  const stack: Array<[number, number]> = [[0, points.length - 1]];
+  while (stack.length) {
+    const [first, last] = stack.pop()!;
+    let index = -1;
+    let furthest = 0;
+    for (let i = first + 1; i < last; i++) {
+      const d = distanceToLineMetres(points[i]!, [[points[first]!, points[last]!]]);
+      if (d > furthest) {
+        furthest = d;
+        index = i;
+      }
+    }
+    if (index !== -1 && furthest > metres) {
+      keep[index] = true;
+      stack.push([first, index], [index, last]);
+    }
+  }
+  return points.filter((_, i) => keep[i]);
+}
+
+/**
+ * The encoded polyline format (five decimal places), for a drawn shape in a web address. It's a
+ * public algorithm for compressing coordinates, not anything from a map provider.
+ */
+export function encodePolyline(points: readonly Point[]): string {
+  let out = '';
+  let lastLat = 0;
+  let lastLng = 0;
+  const encode = (value: number) => {
+    let v = value < 0 ? ~(value << 1) : value << 1;
+    while (v >= 0x20) {
+      out += String.fromCharCode((0x20 | (v & 0x1f)) + 63);
+      v >>= 5;
+    }
+    out += String.fromCharCode(v + 63);
+  };
+  for (const p of points) {
+    const lat = Math.round(p.lat * 1e5);
+    const lng = Math.round(p.lng * 1e5);
+    encode(lat - lastLat);
+    encode(lng - lastLng);
+    lastLat = lat;
+    lastLng = lng;
+  }
+  return out;
+}
+
+/** The points of an encoded polyline; null if it isn't one. */
+export function decodePolyline(encoded: string): Point[] | null {
+  const points: Point[] = [];
+  let index = 0;
+  let lat = 0;
+  let lng = 0;
+  const next = (): number | null => {
+    let result = 0;
+    let shift = 0;
+    let byte: number;
+    do {
+      if (index >= encoded.length) return null;
+      byte = encoded.charCodeAt(index++) - 63;
+      if (byte < 0 || byte > 0x3f) return null;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+      if (shift > 30) return null;
+    } while (byte >= 0x20);
+    return result & 1 ? ~(result >> 1) : result >> 1;
+  };
+  while (index < encoded.length) {
+    const dLat = next();
+    const dLng = next();
+    if (dLat === null || dLng === null) return null;
+    lat += dLat;
+    lng += dLng;
+    points.push({ lat: lat / 1e5, lng: lng / 1e5 });
+  }
+  return points;
 }

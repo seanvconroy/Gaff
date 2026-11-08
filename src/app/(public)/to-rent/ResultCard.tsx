@@ -6,74 +6,79 @@ import {
   enquiriesCloseWords,
   furnishingWords,
   petsWords,
-  roomsLine,
+  shortRoomsLine,
 } from '../facts';
 import { photoSources } from '../photos';
 import { SaveButton } from '../SaveButton';
+import { HoverArea } from './navigation';
+import { PhotoCarousel } from './results/PhotoCarousel';
 import styles from './search.module.css';
 
+/** "New": listed in the last 3 days. */
+const NEW_DAYS = 3;
+
 /**
- * M60: each result shows the photos (swipe), the rent, the rooms and what renters filter on.
- * The first photo of the first results loads straight away; the rest load as they scroll in.
+ * M60: one result. A photo to swipe with the heart on it, at most one status pill, then the
+ * title, the rent, and the facts renters filter on, in plain text. Hovering or focusing the card
+ * lights up its pin on the map (M117).
  */
 export function ResultCard({
   card,
   eager,
   saved,
   returnTo,
+  now = new Date(),
 }: {
   card: Card;
   eager: boolean;
   saved: boolean;
   returnTo: string;
+  now?: Date;
 }) {
   const photos = card.photos
     .filter((p) => p.kind === 'photo')
     .map((p, i, all) => photoSources(p, `Photo ${i + 1} of ${all.length}`));
   const headingId = `result-${card.listingId}`;
+  const href = `/home/${card.slug}`;
   const closes = enquiriesCloseWords(card.enquiriesCloseAt);
+  const isNew = now.getTime() - new Date(card.publishedAt).getTime() < NEW_DAYS * 86_400_000;
+  const pill = closes ?? (isNew ? 'New' : null);
   return (
-    <article className={styles.card} aria-labelledby={headingId}>
-      {photos.length ? (
-        <ul className={styles.strip} aria-label={`Photos of ${card.title}`} tabIndex={0}>
-          {photos.map((photo, i) => (
-            <li key={photo.src} className={styles.stripItem}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={photo.src}
-                srcSet={photo.srcSet}
-                sizes="(min-width: 1120px) 360px, (min-width: 720px) 45vw, 100vw"
-                width={photo.width}
-                height={photo.height}
-                alt={photo.alt}
-                loading={eager && i === 0 ? 'eager' : 'lazy'}
-                fetchPriority={eager && i === 0 ? 'high' : undefined}
-                className={styles.photo}
-              />
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      <div className={styles.cardBody}>
-        <h2 id={headingId} className={`${styles.cardTitle} type-title`}>
-          <Link href={`/home/${card.slug}`}>{card.title}</Link>
-        </h2>
-        <p className={styles.rent}>{formatRent(card.rentCents)}</p>
-        <p>{roomsLine(card)}</p>
-        <ul className={styles.tags}>
-          <li>{availableWords(card.availableFrom)}</li>
-          <li>{furnishingWords(card.furnished)}</li>
-          <li>{card.berLabel}</li>
-          <li>{petsWords(card.petsConsidered)}</li>
-          {closes ? <li>{closes}</li> : null}
-        </ul>
-        <SaveButton
-          listingId={card.listingId}
-          saved={saved}
-          returnTo={returnTo}
-          title={card.title}
-        />
-      </div>
-    </article>
+    <HoverArea listingId={card.listingId}>
+      <article className={styles.card} aria-labelledby={headingId}>
+        <div className={styles.media}>
+          {photos.length ? (
+            <PhotoCarousel photos={photos} href={href} title={card.title} eager={eager} />
+          ) : (
+            <div className={styles.noPhoto} />
+          )}
+          {pill ? <span className={styles.photoPill}>{pill}</span> : null}
+          <div className={styles.heart}>
+            <SaveButton
+              listingId={card.listingId}
+              saved={saved}
+              returnTo={returnTo}
+              title={card.title}
+              variant="icon"
+            />
+          </div>
+        </div>
+        <div className={styles.cardBody}>
+          <h2 id={headingId} className={styles.cardTitle}>
+            <Link href={href} className={styles.cardLink}>
+              {card.title}
+            </Link>
+          </h2>
+          <p className={styles.rent}>{formatRent(card.rentCents)}</p>
+          <p>
+            {shortRoomsLine(card)} · {furnishingWords(card.furnished)}
+          </p>
+          <p className={styles.muted}>{availableWords(card.availableFrom)}</p>
+          <p className={styles.muted}>
+            {card.berLabel} · {petsWords(card.petsConsidered)}
+          </p>
+        </div>
+      </article>
+    </HoverArea>
   );
 }

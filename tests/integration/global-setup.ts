@@ -1,5 +1,6 @@
 import pg from 'pg';
 import { runMigrations } from '../../src/db/migrate';
+import { loadFixturePlaces } from '../fixtures/places';
 
 export const TEST_DATABASE_URL =
   process.env.TEST_DATABASE_URL ?? 'postgres://gaff:gaff@localhost:5432/gaff_test';
@@ -19,4 +20,5 @@ export default async function setup(): Promise<void> {
     await admin.end();
   }
   await runMigrations(TEST_DATABASE_URL);
+  await loadFixturePlaces(TEST_DATABASE_URL);
 }

@@ -9,7 +9,7 @@ Banked on 8 November 2026, after marketplace milestones 1 to 7, developments, M1
 3. **Safety before real renters:**
    - hold a letter's message that asks for money, or moves the conversation off Gaff, before a viewing, and warn the renter (M28, after the providers work, Q41);
    - passkeys for Gaff staff (M5).
-4. **The map** (M56, M57, M71, M38): MapLibre with self-hosted tiles of Ireland, list and map side by side, "Search this area", drawing an area, the map pin for letters, and nearby transport stops and schools from open data.
+4. **The renter search redesign** (M56 to M61, M113 to M124; [PRD](marketplace/search-redesign/prd.md), [tech spec](marketplace/search-redesign/tech-spec.md)): built, with the place index from OpenStreetMap, and merged for the test copy in [seanvconroy/Gaff#1](https://github.com/seanvconroy/Gaff/pull/1) (see [status.md](status.md)). To finish it: Google Maps keys for the test copy ([deploy.md](deploy.md), step 6; it shows the stand-in map until then) and the founders' walkthrough on a phone and a laptop. Next on the same map: M38, the letter's map pin, and the listing page's map with nearby transport and schools (M71).
 5. **Letters' time savers:** sections saving as you type (M37), unit types as their own records and one listing for several identical homes (M36). AI-drafted descriptions (M45) moved to the providers work.
 6. **Public pages:** agency pages (`/agencies/[slug]`, M17, M18), "You enquired" on result cards (M60), caching with tags, and installing Gaff as a web app (M110, M112).
 7. **Launch readiness (milestone 8):** speed on a mid-range phone, load tests on synthetic data at ten times the plan, a security review, the DPIA, the solicitor's wording, and the letter beta.
@@ -19,7 +19,7 @@ Banked on 8 November 2026, after marketplace milestones 1 to 7, developments, M1
 
 | # | Question | Why it matters | Who |
 | --- | --- | --- | --- |
-| N1 | Where do the map tiles live: Supabase Storage, or Vercel Blob as the fallback? And who refreshes the OpenStreetMap extract? | Blocks the map (M56, M57, M71) | CTO, founders |
+| N1 | ~~Where do the map tiles live?~~ Answered on 8 November 2026: Google Maps hosts them (Q58). New: the monthly Google Maps budget (search redesign PRD S1), and whether the map needs a tap before it loads (S2) | Needed before the search redesign's release | Founders, solicitor |
 | N2 | Gaff's own email domain for sending (and a subdomain for alerts), and a subdomain for receiving replies and Daft or MyHome enquiries | The test copy borrows a verified domain for now; production needs Gaff's own, with SPF and DKIM | Founders |
 | N3 | Sinch for texts: when do we set it up? | On the test copy, mobile codes show on screen and texted viewing reminders go to the outbox; nothing is texted | Founders |
 | N4 | An Anthropic API key for the test copy now; an AWS account with Bedrock in Dublin before launch (Q37) | The test copy's AI is a stand-in until the key is set | Founders |

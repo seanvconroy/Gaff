@@ -1,0 +1,94 @@
+name: Build the place index
+
+# ADR-0027: rebuilds data/places/places.ndjson.gz from OpenStreetMap (Geofabrik's Ireland
+# extract) and checks it.
+# - Quarterly, or by hand from the Actions tab: it opens a pull request with the new file. A pull
+#   request opened by this workflow doesn't start CI on its own: push a commit to it before
+#   merging.
+# - When a push changes the build scripts or this workflow: it commits the new file to that
+#   branch, so the index always matches the scripts that built it.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 04:17 UTC on the first day of January, April, July and October.
+    - cron: '17 4 1 1,4,7,10 *'
+  push:
+    paths:
+      - .github/workflows/places.yml
+      - scripts/places/**
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: places-index-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PLACES_CHECK_DATABASE_URL: postgres://gaff:gaff@localhost:5432/gaff_places_check
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install osmium
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool
+      - name: Create the app database role
+        run: psql postgres://postgres:postgres@localhost:5432/postgres -c "create role gaff login password 'gaff' createdb nosuperuser nobypassrls"
+      - run: pnpm places:build
+      - run: pnpm places:check
+      - name: Commit the new index to this branch
+        if: github.event_name == 'push'
+        run: |
+          if [ -z "$(git status --porcelain -- data/places)" ]; then
+            echo "The place index hasn't changed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/places/places.ndjson.gz
+          git commit -m "data(M56): the place index, built from OpenStreetMap" \
+            -m "Built and checked by the Build the place index workflow (ADR-0027). Data © OpenStreetMap contributors (ODbL 1.0)."
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+      - name: Open a pull request with the new index
+        if: github.event_name != 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(git status --porcelain -- data/places)" ]; then
+            echo "The place index hasn't changed."
+            exit 0
+          fi
+          branch="places/index-$(date -u +%Y%m%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add data/places/places.ndjson.gz
+          git commit -m "data(M56): rebuild the place index from OpenStreetMap"
+          git push -u origin "$branch"
+          gh pr create --base "${{ github.event.repository.default_branch }}" \
+            --title "data(M56): rebuild the place index from OpenStreetMap" \
+            --body "The place index, rebuilt from Geofabrik's Ireland extract and checked with \`pnpm places:check\` (ADR-0027). The next production deploy loads it. Data © OpenStreetMap contributors (ODbL 1.0)."

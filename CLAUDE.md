@@ -49,10 +49,11 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
     - its EU region, wherever it has one;
     - a lawful basis for anything outside the EU (the EU–US Data Privacy Framework or standard contractual clauses), named in the privacy notice.
 
-    Approved so far (Q26, Q29, Q37, Q39, Q48, ADR-0014):
+    Approved so far (Q26, Q29, Q37, Q39, Q48, Q58, ADR-0014, ADR-0027):
     - Vercel (functions in Dublin), Supabase (Ireland), Resend (email), Sinch (EU), and Mailgun (EU, as an alternative);
     - Claude on Amazon Bedrock (EU); the Claude API on the test copy and in development only, never with real renters' data (Q37);
     - Stripe Identity, to check every person's identity once, as part of their Gaff profile (Q48);
+    - Google Maps Platform, only the Maps JavaScript API, for maps showing Gaff's own content (Q58: Google is an independent controller, with no EU region; ADR-0027);
     - later, Tink, for an optional read-only "Confirm with your bank", with TrueLayer as the backup (Q39, Q56);
     - later, Stripe, only to charge operators.
 

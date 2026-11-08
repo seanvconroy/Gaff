@@ -29,6 +29,11 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
           <Wordmark href="/to-rent" />
           <nav aria-label="Gaff" className={styles.nav}>
             <Link href="/to-rent">Homes to rent</Link>
+            <Link href="/my/saved">Saved</Link>
+            {/* On phones it's in the footer, so the header stays on one line. */}
+            <Link href="/welcome?as=letting" className={styles.wideOnly}>
+              List a home free
+            </Link>
             <Link href="/sign-in">Sign in</Link>
           </nav>
         </div>
@@ -41,6 +46,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
           <Link href="/how-results-are-ordered">How we order results</Link>
           <Link href="/listing-policy">Listing policy</Link>
           <Link href="/contact">Contact</Link>
+          <Link href="/map-and-place-data">Map and place data</Link>
           <Link href="/welcome?as=letting">List a home free</Link>
         </nav>
         <p>Renters never pay Gaff. Listing a home is free, and nobody can pay to be shown first.</p>

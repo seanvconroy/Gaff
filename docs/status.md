@@ -114,4 +114,5 @@ The [marketplace PRD](marketplace/prd.md) and [technical specification](marketpl
 
 ## Known issues
 
+- **Integration tests' move-in date:** the R20 to R26 integration tests make offers with a fixed move-in date, 1 December 2026, and an offer can't start before today. From 2 December 2026 those tests will fail until the date is worked out from today.
 - **Dark theme:** new in A4. It passes WCAG AA for every pair the screens use, and the dashboard, a letting, Approvals and the booking screen have been checked in it, but the founders haven't reviewed it yet. (A4 fixed the old dark-theme problem with text on `forest`: text on `navy` now uses `nav-ink`, 9.01:1.)

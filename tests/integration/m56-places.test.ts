@@ -2,7 +2,7 @@ import { eq, like } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { withSystem } from '@/db/client';
 import { placeMisses, places } from '@/db/schema';
-import type { Place } from '@/domain/places/gazetteer';
+import type { County, Place } from '@/domain/places/gazetteer';
 import { readFilters } from '@/domain/search/filters';
 import { searchArea } from '@/domain/search/places';
 import { publishListing } from '@/server/listings/publish';
@@ -81,6 +81,40 @@ describe('M56: suggestions from the place index in Postgres', () => {
       expect(slugsOf(await suggestPlaces('Shop Street County Galway'))).toEqual([
         'zz-test-shop-street-galway',
       ]);
+    } finally {
+      await withSystem((tx) => tx.delete(places).where(like(places.slug, 'zz-test-%')));
+    }
+  });
+
+  it('puts the biggest county first among more streets of one name than it keeps', async () => {
+    const lane = (slug: string, county: County, context: string): Place => ({
+      slug,
+      name: 'Testbrook Lane',
+      kind: 'street',
+      county,
+      context,
+      centre: { lat: 53.3, lng: -6.27 },
+      radiusMetres: 0,
+      line: [
+        [
+          { lat: 53.3, lng: -6.27 },
+          { lat: 53.301, lng: -6.271 },
+        ],
+      ],
+    });
+    const lanes = [
+      ...Array.from({ length: 65 }, (_, i) =>
+        lane(`zz-test-testbrook-lane-${i}`, 'Leitrim', `Testvillage ${i}, County Leitrim`),
+      ),
+      lane('zz-test-testbrook-lane-dublin', 'Dublin', 'Rathgar, Dublin 6'),
+    ];
+    await withSystem((tx) =>
+      tx.insert(places).values(lanes.map((p) => rowFromPlace(p, 1, 'test'))),
+    );
+    try {
+      expect(slugsOf(await suggestPlaces('Testbrook Lane'))[0]).toBe(
+        'zz-test-testbrook-lane-dublin',
+      );
     } finally {
       await withSystem((tx) => tx.delete(places).where(like(places.slug, 'zz-test-%')));
     }

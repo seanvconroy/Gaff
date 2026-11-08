@@ -38,9 +38,9 @@ Rathmins,Rathmines,Dublin,1
 dun laoghaire,Dún Laoghaire,Dublin,1
 Cionn tSáile,Kinsale,Cork,1
 Gaillimh,Galway,Galway,2
-# Streets: many share a name, so the town is in the query where it matters
-Grafton Street,Grafton Street,Dublin,3
-Highfield Road,Highfield Road,,1
+# Streets: many share a name. The biggest county's comes first, and a town in the query narrows it
+Grafton Street,Grafton Street,Dublin,1
+Highfield Road,Highfield Road,Dublin,1
 Highfield Road Rathgar,Highfield Road,Rathgar,1
 Leeson Street,Leeson Street,Dublin,3
 Camden Street,Camden Street,Dublin,3

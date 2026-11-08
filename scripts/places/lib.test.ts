@@ -4,6 +4,7 @@ import {
   classify,
   Contexts,
   countyShape,
+  indexVersion,
   mergeStreets,
   parseFeature,
   type Candidate,
@@ -202,5 +203,40 @@ describe('ADR-0027: building the place index from OpenStreetMap', () => {
     expect(street.slug).toBe('pearse-street-kinsale-county-cork');
     expect(dropped).toEqual({ outsideRepublic: 1, duplicates: 1 });
     expect(new Set(slugs).size).toBe(slugs.length);
+  });
+
+  it('treats a city near a curated one as that city, whatever OSM calls it', () => {
+    const { places, dropped } = buildIndex({
+      counties: [countyShape(countyFeature('County Galway', 53.3, -9.0))!],
+      candidates: [
+        // Galway city, named in Irish only: the curated "Galway city", not a second city.
+        classify(
+          node(
+            { place: 'city', name: 'Cathair na Gaillimhe', population: '75529' },
+            53.2841,
+            -9.0488,
+          ),
+        )!,
+        classify(
+          road('Shop Street', [
+            [53.2725, -9.053],
+            [53.2731, -9.0525],
+          ]),
+        )!,
+      ],
+    });
+    expect(places.map((p) => p.place.slug)).not.toContain('cathair-na-gaillimhe');
+    expect(places.find((p) => p.place.kind === 'street')!.place.context).not.toMatch(/Cathair/);
+    expect(dropped.duplicates).toBe(1);
+  });
+
+  it('numbers each build above the last, so a deploy loads a rebuild the same day', () => {
+    const at = new Date('2026-11-08T19:42:00Z');
+    expect(indexVersion(at, null)).toBe(2026110819);
+    // The first index was numbered by its date alone.
+    expect(indexVersion(at, 20261108)).toBe(2026110819);
+    expect(indexVersion(at, 2026110819)).toBe(2026110820);
+    // It fits the places table's integer version.
+    expect(indexVersion(new Date('2099-12-31T23:00:00Z'), null)).toBeLessThan(2 ** 31);
   });
 });

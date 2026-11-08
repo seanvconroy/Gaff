@@ -507,15 +507,33 @@ export class Slugs {
   }
 }
 
-/** Is this OSM place the same as a curated one (same name or alias, within 3 km)? */
+/**
+ * Is this OSM place the same as a curated one: the same name or alias within 3 km, or a city
+ * within 10 km of a curated city? Ireland's cities are all curated, so a city near one is that
+ * city, whatever OSM calls it ("Cathair na Gaillimhe" is Galway city).
+ */
 export function duplicates(candidate: Candidate, curated: readonly Place[]): boolean {
   const name = normalise(candidate.name);
   return curated.some(
     (p) =>
-      [p.name, ...(p.aliases ?? [])].some(
+      (candidate.kind === 'city' &&
+        p.kind === 'city' &&
+        distanceMetres(p.centre, candidate.centre) <= 10_000) ||
+      ([p.name, ...(p.aliases ?? [])].some(
         (n) => normalise(n) === name || normalise(shortName(n)) === name,
-      ) && distanceMetres(p.centre, candidate.centre) <= 3000,
+      ) &&
+        distanceMetres(p.centre, candidate.centre) <= 3000),
   );
+}
+
+/**
+ * The built index's version: the hour it was built (2026110819), or one more than the index it
+ * replaces if that's as new. A deploy loads only a newer version, so this way it always loads a
+ * rebuild, even one the same day. The first index was numbered by its date alone (20261108).
+ */
+export function indexVersion(built: Date, replaces: number | null): number {
+  const hour = Number(built.toISOString().slice(0, 13).replace(/\D/g, ''));
+  return replaces !== null && replaces >= hour ? replaces + 1 : hour;
 }
 
 export interface BuildInput {

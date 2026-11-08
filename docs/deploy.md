@@ -149,7 +149,7 @@ The Where box suggests places from Gaff's own place index, the `places` table ([
 - **Loading.** Each production deploy runs `pnpm places:load --deploy`. It loads `data/places/places.ndjson.gz` when that file's version is newer than the one in the database, all in one transaction. Without the file, an empty index gets the fixture: the places Gaff started with, typed by hand, and a few streets and landmarks. Preview deployments leave the index alone.
 - **Building.** The file comes from OpenStreetMap, through Geofabrik's Ireland extract. Rebuild it every quarter, or when the misses below show gaps:
   1. Install `osmium-tool` (for example `apt-get install osmium-tool` or `brew install osmium-tool`).
-  2. Run `pnpm places:build`. It downloads the extract (about 300 MB) and writes the file, with its version as the date.
+  2. Run `pnpm places:build`. It downloads the extract (about 300 MB) and writes the file. Its version is the hour it was built (2026110819), and always above the file it replaces, so the next deploy loads it.
   3. Run `pnpm places:check`. It tests the file against the places renters must find, in `scripts/places/test-set.csv`.
   4. Commit the file. The next deploy loads it.
 

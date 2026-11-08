@@ -81,6 +81,14 @@ export function checkPlaces(
   if (missingCurated.length) {
     problems.push(`Curated places missing: ${missingCurated.slice(0, 10).join(', ')}.`);
   }
+  // Ireland's cities are all curated: another is a copy under another name (lib.ts duplicates).
+  const curatedSlugs = new Set(curatedPlaces.map((p) => p.slug));
+  const extraCities = places
+    .filter((p) => p.kind === 'city' && !curatedSlugs.has(p.slug))
+    .map((p) => p.slug);
+  if (extraCities.length) {
+    problems.push(`Cities that aren’t curated (a second copy of one?): ${extraCities.join(', ')}.`);
+  }
 
   const outside = places.filter((p) => !inBBox(p.centre, IRELAND)).map((p) => p.slug);
   if (outside.length) problems.push(`Places outside Ireland: ${outside.slice(0, 10).join(', ')}.`);

@@ -15,12 +15,13 @@ import { createInterface } from 'node:readline';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { ReadableStream as WebReadableStream } from 'node:stream/web';
-import { createGzip } from 'node:zlib';
+import { createGunzip, createGzip } from 'node:zlib';
 import { placeToLine, type PlaceFileHeader } from '@/domain/places/file';
 import {
   buildIndex,
   classify,
   countyShape,
+  indexVersion,
   parseFeature,
   type Candidate,
   type CountyShape,
@@ -62,6 +63,23 @@ const FILTERS = [
   'wr/leisure=park',
   'nwr/shop=mall',
 ];
+
+/** The version of the index file at a path, if there is one: the build replaces it. */
+async function versionOf(path: string): Promise<number | null> {
+  if (!existsSync(path)) return null;
+  const file = createReadStream(path);
+  const input = file.pipe(createGunzip());
+  try {
+    for await (const line of createInterface({ input })) {
+      const { version } = JSON.parse(line) as { version?: unknown };
+      return typeof version === 'number' ? version : null;
+    }
+    return null;
+  } finally {
+    input.destroy();
+    file.destroy();
+  }
+}
 
 async function main(): Promise<void> {
   mkdirSync(WORK, { recursive: true });
@@ -105,15 +123,15 @@ async function main(): Promise<void> {
   }
 
   const { places, dropped } = buildIndex({ counties, candidates });
-  const built = new Date().toISOString().slice(0, 10);
+  const out = arg('--out') ?? DEFAULT_OUT;
+  const builtAt = new Date();
   const header: PlaceFileHeader = {
-    version: Number(arg('--version') ?? built.replaceAll('-', '')),
-    built,
+    version: Number(arg('--version') ?? indexVersion(builtAt, await versionOf(out))),
+    built: builtAt.toISOString().slice(0, 10),
     source: 'OpenStreetMap (Geofabrik extract) and Gaff',
     count: places.length,
     attribution: ['© OpenStreetMap contributors (ODbL 1.0)'],
   };
-  const out = arg('--out') ?? DEFAULT_OUT;
   mkdirSync(dirname(out), { recursive: true });
   const body = [JSON.stringify(header), ...places.map((p) => placeToLine(p.place, p))].join('\n');
   await pipeline(Readable.from([`${body}\n`]), createGzip({ level: 9 }), createWriteStream(out));

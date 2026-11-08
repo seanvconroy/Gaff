@@ -38,6 +38,11 @@ describe('ADR-0027, M56: checking a built place index before it is committed', (
       ...curatedPlaces.filter((p) => p.county !== 'Leitrim' && p.slug !== 'rathmines'),
       { ...curatedPlaces[0]!, name: 'A copy' },
       { ...curatedPlaces[1]!, slug: 'paris', centre: { lat: 48.86, lng: 2.35 } },
+      {
+        ...curatedPlaces.find((p) => p.slug === 'galway-city')!,
+        slug: 'cathair-na-gaillimhe',
+        name: 'Cathair na Gaillimhe',
+      },
     ];
     const problems = checkPlaces(header(broken.length + 1), broken, { street: 1 });
     expect(problems).toEqual([
@@ -45,6 +50,7 @@ describe('ADR-0027, M56: checking a built place index before it is committed', (
       `Slugs used twice: ${curatedPlaces[0]!.slug}.`,
       'Counties missing: Leitrim.',
       expect.stringMatching(/^Curated places missing: .*rathmines/),
+      'Cities that aren’t curated (a second copy of one?): cathair-na-gaillimhe.',
       'Places outside Ireland: paris.',
       'Only 0 of kind street; expected at least 1.',
     ]);

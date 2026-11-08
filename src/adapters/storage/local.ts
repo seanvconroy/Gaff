@@ -35,6 +35,21 @@ export function safeKey(key: string): string {
   return key;
 }
 
+/** A signed URL for /api/dev/storage/upload, shared by the local and database stand-ins. */
+export function localUploadTarget(
+  config: { appUrl: string; secret: string },
+  key: string,
+  contentType: string,
+) {
+  const expires = Date.now() + UPLOAD_TTL_MS;
+  const url = new URL('/api/dev/storage/upload', config.appUrl);
+  url.searchParams.set('key', safeKey(key));
+  url.searchParams.set('type', contentType);
+  url.searchParams.set('expires', String(expires));
+  url.searchParams.set('token', sign(config.secret, key, contentType, expires));
+  return { url: url.toString(), method: 'PUT' as const, headers: { 'content-type': contentType } };
+}
+
 export function localStorage(config: {
   dir: string;
   appUrl: string;
@@ -43,13 +58,7 @@ export function localStorage(config: {
   const file = (bucket: Bucket, key: string) => path.join(config.dir, bucket, safeKey(key));
   return {
     async signedUpload(key, contentType) {
-      const expires = Date.now() + UPLOAD_TTL_MS;
-      const url = new URL('/api/dev/storage/upload', config.appUrl);
-      url.searchParams.set('key', safeKey(key));
-      url.searchParams.set('type', contentType);
-      url.searchParams.set('expires', String(expires));
-      url.searchParams.set('token', sign(config.secret, key, contentType, expires));
-      return { url: url.toString(), method: 'PUT', headers: { 'content-type': contentType } };
+      return localUploadTarget(config, key, contentType);
     },
     async read(bucket, key) {
       try {

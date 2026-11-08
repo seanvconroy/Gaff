@@ -21,12 +21,17 @@ function hashCode(userId: string, code: string): string {
   return createHmac('sha256', env().AUTH_SECRET).update(`${userId}:${code}`).digest('base64url');
 }
 
-/** M3: sends a 6-digit code by SMS to confirm a mobile. The code is stored hashed. */
+/**
+ * M3: sends a 6-digit code by SMS to confirm a mobile. The code is stored hashed. The test copy
+ * doesn't send texts yet (open question N3), so there the code comes back to show on screen.
+ */
 export async function sendMobileCode(
   userId: string,
   input: string,
   now = new Date(),
-): Promise<{ ok: true; masked: string } | { ok: false; problem: SendProblem }> {
+): Promise<
+  { ok: true; masked: string; testCopyCode?: string } | { ok: false; problem: SendProblem }
+> {
   const phone = normaliseMobile(input);
   if (!phone) return { ok: false, problem: 'invalid' };
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
@@ -69,7 +74,9 @@ export async function sendMobileCode(
   } catch {
     return { ok: false, problem: 'not_sent' };
   }
-  return { ok: true, masked: maskMobile(phone) };
+  const config = env();
+  const onScreen = config.GAFF_ENV === 'staging' && config.SMS_PROVIDER === 'fake';
+  return { ok: true, masked: maskMobile(phone), ...(onScreen ? { testCopyCode: code } : {}) };
 }
 
 /** M3: checks the code. Five wrong tries lock it until a new code is sent. */

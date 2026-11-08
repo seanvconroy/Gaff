@@ -287,11 +287,14 @@ export async function latestSmsCode(phone: string): Promise<string> {
 }
 
 /** Makes an existing account a Gaff staff member. The app has no way to do this, on purpose. */
-export async function makeStaff(email: string): Promise<void> {
+export async function makeStaff(
+  email: string,
+  role: 'reviewer' | 'admin' = 'reviewer',
+): Promise<void> {
   await query(
-    `insert into staff_members (user_id, role) select id, 'reviewer' from users where email = $1
+    `insert into staff_members (user_id, role) select id, $2 from users where email = $1
      on conflict do nothing`,
-    [email],
+    [email, role],
   );
 }
 

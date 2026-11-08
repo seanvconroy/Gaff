@@ -50,6 +50,9 @@ export const platformEventCatalogue = {
   }),
   /** M98: a letter appealed a decision. */
   'moderation.appealed': z.object({ caseId: z.uuid(), appealOf: z.uuid() }),
+  /** M105: someone became, or stopped being, Gaff staff (on the test copy, a tester). */
+  'staff.added': z.object({ role: z.enum(['reviewer', 'admin']), testCopy: z.boolean() }),
+  'staff.removed': z.object({ testCopy: z.boolean() }),
   /** M86, M87: an alert email went out, with this many homes in it. */
   'alert.sent': z.object({ homes: z.number().int(), frequency: z.enum(['instant', 'daily']) }),
 } satisfies Record<string, z.ZodObject>;

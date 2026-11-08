@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { sendsRealEmail } from '@/adapters/email';
 import { env } from '@/lib/env';
 import { currentUser } from '@/server/auth/member';
 import { openInvitation } from '@/server/organisations/team';
@@ -58,7 +59,10 @@ export default async function JoinPage({
           ) : (
             <Stack gap={4}>
               <p>First, sign in with your work email. There’s no password.</p>
-              <SignInForm devOutbox={env().DEV_TOOLS} next={`/join/${organisationId}/${token}`} />
+              <SignInForm
+                devOutbox={env().DEV_TOOLS && !sendsRealEmail()}
+                next={`/join/${organisationId}/${token}`}
+              />
             </Stack>
           )}
         </>

@@ -9,6 +9,7 @@ import { signInCodeEmail } from '@/copy/renter-emails';
 import { db } from '@/db/client';
 import { accounts, sessions, users, verifications } from '@/db/schema';
 import { env } from '@/lib/env';
+import { makeListedTesterStaff } from '@/server/staff/testers';
 
 /**
  * Operator sign-in with one-time email links (ADR-0013). Accounts live in our own
@@ -30,6 +31,16 @@ function createAuth() {
       useSecureCookies: config.APP_URL.startsWith('https://'),
     },
     session: { expiresIn: 60 * 60 * 24 * 14, updateAge: 60 * 60 * 24 },
+    // The test copy: the founders in TEST_STAFF_EMAILS are testers (staff) once they sign in.
+    databaseHooks: {
+      session: {
+        create: {
+          after: async (session) => {
+            await makeListedTesterStaff(session.userId);
+          },
+        },
+      },
+    },
     emailAndPassword: { enabled: false },
     telemetry: { enabled: false },
     // Sign-in attempts are rate limited per IP, except in end-to-end tests, which sign in

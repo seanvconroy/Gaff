@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { requireStaff } from '@/server/auth/staff';
+import { testersAllowed } from '@/server/staff/testers';
 import { Wordmark } from '@/ui/Layout';
 import styles from '../(workspace)/workspace.module.css';
 
@@ -21,6 +22,12 @@ export default async function StaffLayout({ children }: { children: ReactNode })
             <Link href="/staff/checks">Checks</Link>
             <Link href="/staff/listings">Listings</Link>
             <Link href="/staff/review">Reports</Link>
+            {testersAllowed() ? (
+              <>
+                <Link href="/dev/outbox">Outbox</Link>
+                {staff.role === 'admin' ? <Link href="/staff/testers">Testers</Link> : null}
+              </>
+            ) : null}
           </nav>
           <div className={styles.account}>
             <span className={styles.who}>

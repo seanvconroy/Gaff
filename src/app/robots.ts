@@ -3,10 +3,12 @@ import { env } from '@/lib/env';
 
 export const dynamic = 'force-dynamic';
 
-/** M111: search engines may read the public pages, and nothing else. */
+/** M111: search engines may read the public pages, and nothing else. The test copy, nothing. */
 export default function robots(): MetadataRoute.Robots {
   const config = env();
-  if (!config.MARKETPLACE_PUBLIC) return { rules: { userAgent: '*', disallow: '/' } };
+  if (!config.MARKETPLACE_PUBLIC || config.GAFF_ENV === 'staging') {
+    return { rules: { userAgent: '*', disallow: '/' } };
+  }
   return {
     rules: {
       userAgent: '*',

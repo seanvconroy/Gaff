@@ -225,6 +225,13 @@
       "when": 1794075928013,
       "tag": "0031_m92_saves",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794130112097,
+      "tag": "0032_test_copy_objects",
+      "breakpoints": true
     }
   ]
 }

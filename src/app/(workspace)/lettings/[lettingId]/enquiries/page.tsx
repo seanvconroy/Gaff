@@ -1,11 +1,15 @@
 import type { Metadata } from 'next';
+import { env } from '@/lib/env';
 import { formatDateTime } from '@/lib/format';
 import { listApplications } from '@/server/enquiries/queries';
 import { Card, Stack } from '@/ui/Layout';
+import { Notice } from '@/ui/Notice';
 import { StatusPill } from '@/ui/StatusPill';
+import { SubmitButton } from '@/ui/SubmitButton';
 import { Table, tableStyles } from '@/ui/Table';
 import { loadLetting } from '../letting';
 import { LettingHeader } from '../LettingHeader';
+import { addTestEnquiriesAction } from './dev-actions';
 
 export const metadata: Metadata = { title: 'Enquiries' };
 
@@ -15,14 +19,25 @@ const portalNames: Record<string, string> = { daft: 'Daft', myhome: 'MyHome', ga
 /** R6: everyone who has enquired, with duplicates across portals merged. */
 export default async function EnquiriesPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ lettingId: string }>;
+  searchParams: Promise<{ added?: string }>;
 }) {
   const { member, letting } = await loadLetting(params);
+  const { added } = await searchParams;
   const enquiries = await listApplications(member, letting.id);
   return (
     <Stack gap={8}>
       <LettingHeader letting={letting} tab="enquiries" />
+      {added ? (
+        <Notice tone="success" role="status">
+          <p>
+            {added === '1' ? '1 made-up renter has' : `${added} made-up renters have`} enquired.
+            Their emails are in the outbox, where you can open their links and play them.
+          </p>
+        </Notice>
+      ) : null}
       {enquiries.length === 0 ? (
         <Card>
           <h2 className="type-title">No enquiries yet</h2>
@@ -67,6 +82,25 @@ export default async function EnquiriesPage({
           </Table>
         </Stack>
       )}
+      {env().DEV_TOOLS && letting.status === 'live' ? (
+        <Card labelledBy="test-enquiries-heading">
+          <Stack gap={3}>
+            <h2 id="test-enquiries-heading" className="type-title">
+              Testing only
+            </h2>
+            <p>
+              Five made-up renters enquire, as if from Daft and MyHome, and most answer the
+              questions, so you have a shortlist to work with. Their emails go to the outbox. This
+              never appears in production.
+            </p>
+            <form action={addTestEnquiriesAction.bind(null, letting.id)}>
+              <SubmitButton variant="secondary" pendingLabel="Adding…">
+                Add test enquiries
+              </SubmitButton>
+            </form>
+          </Stack>
+        </Card>
+      ) : null}
     </Stack>
   );
 }

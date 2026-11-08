@@ -34,9 +34,22 @@ const schema = z
     CONTACT_EMAIL: z.email().optional(),
     /** M87: new homes within this many seconds go in one alert email (2 minutes; less in tests). */
     ALERT_GROUP_SECONDS: z.coerce.number().int().min(0).max(600).default(120),
-    /** Resend (ADR-0014): sending, and the signing secret of the email.received webhook. */
+    /**
+     * Resend (ADR-0014): sending, and the signing secret of the email.received webhook. Without
+     * the secret, Gaff sends but doesn't receive: replies by email and forwarded enquiries wait
+     * until receiving is set up (the test copy, open question N2).
+     */
     RESEND_API_KEY: z.string().optional(),
     RESEND_WEBHOOK_SECRET: z.string().optional(),
+    /**
+     * The test copy only: real email goes to these people alone (addresses, or "@domain" for a
+     * whole domain; "+tags" don't matter), and everyone else's to the outbox. Unset, real email
+     * goes to everyone except made-up addresses (example.com, .test and the like). Never in
+     * production.
+     */
+    TEST_EMAIL_RECIPIENTS: z.string().optional(),
+    /** The test copy only: these people are Gaff staff (admins) as soon as they sign in. */
+    TEST_STAFF_EMAILS: z.string().optional(),
     MAILGUN_API_KEY: z.string().optional(),
     MAILGUN_DOMAIN: z.string().optional(),
     MAILGUN_WEBHOOK_SIGNING_KEY: z.string().optional(),
@@ -67,9 +80,10 @@ const schema = z
     DATABASE_CA_CERT: z.string().optional(),
     /**
      * M43 (tech spec, decision 7): where listing photos live. "local" is files on disk, served by
-     * /api/dev/storage, for development and tests; production uses Supabase Storage.
+     * /api/dev/storage, for development and tests; "database" keeps them in Postgres, for the
+     * test copy, where functions have no disk; production uses Supabase Storage.
      */
-    STORAGE_PROVIDER: z.enum(['local', 'supabase']).default('local'),
+    STORAGE_PROVIDER: z.enum(['local', 'database', 'supabase']).default('local'),
     LOCAL_STORAGE_DIR: z.string().optional(),
     SUPABASE_URL: z.string().url().optional(),
     /** Server only: signs uploads and writes photos. Never sent to a browser. */
@@ -117,6 +131,7 @@ const schema = z
         ['IDENTITY_PROVIDER', env.IDENTITY_PROVIDER, 'stand_in'],
         ['INCOME_PROVIDER', env.INCOME_PROVIDER, 'stand_in'],
         ['STORAGE_PROVIDER', env.STORAGE_PROVIDER, 'local'],
+        ['STORAGE_PROVIDER', env.STORAGE_PROVIDER, 'database'],
         ['LETTER_IDENTITY_PROVIDER', env.LETTER_IDENTITY_PROVIDER, 'stand_in'],
       ] as const;
       if (!env.DATA_ENCRYPTION_KEY) {
@@ -125,6 +140,15 @@ const schema = z
           path: ['DATA_ENCRYPTION_KEY'],
           message: 'DATA_ENCRYPTION_KEY is required in production',
         });
+      }
+      for (const key of ['TEST_EMAIL_RECIPIENTS', 'TEST_STAFF_EMAILS'] as const) {
+        if (env[key]) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is for the test copy only`,
+          });
+        }
       }
       for (const [key, value, standIn] of standIns) {
         if (value === standIn) {
@@ -137,7 +161,12 @@ const schema = z
       }
     }
     if (env.EMAIL_PROVIDER === 'resend') {
-      for (const key of ['RESEND_API_KEY', 'RESEND_WEBHOOK_SECRET'] as const) {
+      // Production receives replies and forwarded enquiries, so it needs the webhook's secret.
+      const keys =
+        env.GAFF_ENV === 'production'
+          ? (['RESEND_API_KEY', 'RESEND_WEBHOOK_SECRET'] as const)
+          : (['RESEND_API_KEY'] as const);
+      for (const key of keys) {
         if (!env[key])
           ctx.addIssue({ code: 'custom', path: [key], message: `${key} is required for Resend` });
       }

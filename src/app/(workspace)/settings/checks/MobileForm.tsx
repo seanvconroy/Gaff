@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import { testCopyMobileCode } from '@/copy/test-copy';
 import { emptyFormState } from '@/lib/forms';
 import { TextField } from '@/ui/Field';
 import { Stack } from '@/ui/Layout';
@@ -46,6 +47,7 @@ export function MobileForm() {
         <p role="status">
           We’ve texted a 6-digit code to {values.masked}. It works for 10 minutes.
         </p>
+        {sent.values?.testCode ? <p>{testCopyMobileCode(sent.values.testCode)}</p> : null}
         <input type="hidden" name="phone" value={values.phone} />
         <input type="hidden" name="masked" value={values.masked} />
         <div className={styles.narrow}>

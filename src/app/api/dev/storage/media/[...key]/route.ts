@@ -1,14 +1,13 @@
-import { objectStorage } from '@/adapters/storage';
-import { env } from '@/lib/env';
+import { objectStorage, servesDevStorage } from '@/adapters/storage';
 
 const types: Record<string, string> = { webp: 'image/webp', jpg: 'image/jpeg' };
 
-/** Local stand-in for the public photos bucket (STORAGE_PROVIDER=local only). */
+/** Local stand-in for the public photos bucket (STORAGE_PROVIDER local or database). */
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ key: string[] }> },
 ): Promise<Response> {
-  if (env().STORAGE_PROVIDER !== 'local') return new Response(null, { status: 404 });
+  if (!servesDevStorage()) return new Response(null, { status: 404 });
   const key = (await params).key.join('/');
   let body: Buffer | null = null;
   try {

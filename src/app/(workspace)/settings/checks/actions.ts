@@ -14,7 +14,14 @@ export async function sendCodeAction(_state: FormState, formData: FormData): Pro
   const phone = String(formData.get('phone') ?? '');
   const sent = await sendMobileCode(member.userId, phone);
   if (!sent.ok) return invalid({ phone: mobileProblems[sent.problem] }, { phone });
-  return { values: { phone, masked: sent.masked }, message: 'sent' };
+  return {
+    values: {
+      phone,
+      masked: sent.masked,
+      ...(sent.testCopyCode ? { testCode: sent.testCopyCode } : {}),
+    },
+    message: 'sent',
+  };
 }
 
 /** M3: confirms the number with the code from the text. */

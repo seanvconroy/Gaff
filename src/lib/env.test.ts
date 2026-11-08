@@ -47,6 +47,15 @@ describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)'
     expect(environmentProblems({ ...production, STORAGE_PROVIDER: 'local' })).toEqual([
       'STORAGE_PROVIDER',
     ]);
+    expect(environmentProblems({ ...production, STORAGE_PROVIDER: 'database' })).toEqual([
+      'STORAGE_PROVIDER',
+    ]);
+    expect(environmentProblems({ ...production, TEST_EMAIL_RECIPIENTS: '@example.com' })).toEqual([
+      'TEST_EMAIL_RECIPIENTS',
+    ]);
+    expect(environmentProblems({ ...production, TEST_STAFF_EMAILS: 'a@example.com' })).toEqual([
+      'TEST_STAFF_EMAILS',
+    ]);
     expect(environmentProblems({ ...production, SUPABASE_SERVICE_KEY: undefined })).toEqual([
       'SUPABASE_SERVICE_KEY',
     ]);
@@ -117,7 +126,22 @@ describe('Hosting on Vercel (ADR-0014)', () => {
     expect(environmentProblems({ ...testCopy, CRON_SECRET: undefined })).toEqual(['CRON_SECRET']);
   });
 
-  it('needs the API key and webhook secret for Resend', () => {
+  it('sends real email from the test copy with only a Resend API key, and keeps photos in the database', () => {
+    const testCopy = {
+      ...vercel,
+      DATABASE_URL: base.DATABASE_URL,
+      AUTH_SECRET: base.AUTH_SECRET,
+      CRON_SECRET: 'c'.repeat(32),
+      GAFF_ENV: 'staging',
+      EMAIL_PROVIDER: 'resend',
+      STORAGE_PROVIDER: 'database',
+      TEST_STAFF_EMAILS: 'tester@example.com',
+    };
+    expect(environmentProblems(testCopy)).toEqual(['RESEND_API_KEY']);
+    expect(environmentProblems({ ...testCopy, RESEND_API_KEY: 're_x' })).toEqual([]);
+  });
+
+  it('needs the API key and webhook secret for Resend in production', () => {
     expect(
       environmentProblems({ ...production, EMAIL_PROVIDER: 'resend', RESEND_API_KEY: 're_x' }),
     ).toEqual(['RESEND_WEBHOOK_SECRET']);

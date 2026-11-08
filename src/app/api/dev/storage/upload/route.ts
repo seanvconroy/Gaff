@@ -1,12 +1,12 @@
-import { objectStorage } from '@/adapters/storage';
+import { objectStorage, servesDevStorage } from '@/adapters/storage';
 import { safeKey, verifyLocalUpload } from '@/adapters/storage/local';
 import { MAX_UPLOAD_BYTES } from '@/domain/media/photos';
 import { env } from '@/lib/env';
 
-/** Local stand-in for Supabase Storage's signed uploads (STORAGE_PROVIDER=local only). */
+/** Local stand-in for Supabase Storage's signed uploads (STORAGE_PROVIDER local or database). */
 export async function PUT(request: Request): Promise<Response> {
   const config = env();
-  if (config.STORAGE_PROVIDER !== 'local') return new Response(null, { status: 404 });
+  if (!servesDevStorage()) return new Response(null, { status: 404 });
   const url = new URL(request.url);
   const params = {
     key: url.searchParams.get('key') ?? '',

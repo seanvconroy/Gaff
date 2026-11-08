@@ -23,8 +23,10 @@ const publicPages = [
   'sitemap\\.xml',
   'robots\\.txt',
 ];
+// The test copy (GAFF_ENV=staging) is never indexed, public pages included.
+const testCopy = process.env.GAFF_ENV === 'staging';
 const noIndex = {
-  source: `/:path((?!${publicPages.join('|')}).*)`,
+  source: testCopy ? '/:path*' : `/:path((?!${publicPages.join('|')}).*)`,
   headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
 };
 

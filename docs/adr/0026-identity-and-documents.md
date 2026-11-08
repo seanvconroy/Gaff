@@ -1,6 +1,6 @@
 # ADR-0026: Identity once per person, and documents for chosen renters
 
-- Status: Proposed (with the [providers PRD](../providers/prd.md), 8 November 2026, revised the same day after Sean's review). Amends ADR-0022.
+- Status: Proposed (with the [providers PRD](../providers/prd.md), 8 November 2026, revised the same day after Sean's review, and again for one verification standard, Q60). Amends ADR-0022.
 - Date: 2026-11-08
 
 ## Context
@@ -13,17 +13,17 @@ Sean's review on 8 November 2026 changed four things:
 - an income estimate isn't needed;
 - a payslip showing a PPS number is accepted.
 
-Research the same day found that Irish letters ask chosen renters for photo ID, payslips, an employer's reference and a previous landlord's reference. The Data Protection Commission accepts documents showing someone can pay, but only from the person being offered the home, and never asks for transactions. Open banking is rare in Ireland. Daft has introduced identity checks with Stripe Identity. The housing assistance ground in the Equal Status Acts covers HAP, rent supplement and any social welfare payment. Selfie matching is biometric data (GDPR Article 9), so it needs explicit consent and, in the EU, an alternative.
+Research the same day found that Irish letters ask chosen renters for photo ID, payslips, an employer's reference and a previous landlord's reference. The Data Protection Commission accepts documents showing someone can pay, but only from the person being offered the home, and never asks for transactions. Open banking is rare in Ireland. Daft has introduced identity checks with Stripe Identity. The housing assistance ground in the Equal Status Acts covers HAP, rent supplement and any social welfare payment. Selfie matching is biometric data (GDPR Article 9), so it needs explicit consent. The first version offered an alternative without a selfie; Q60 removed it, and Q61 asks the solicitor whether consent still holds.
 
 ## Decision
 
 **Identity belongs to the person (Q48).**
-- One `identity_checks` row per person, in the renter zone, checked with Stripe Identity: a document, and a selfie with explicit consent, or the document alone.
+- One `identity_checks` row per person, in the renter zone, checked with Stripe Identity: a photo ID and a live selfie, agreed to explicitly, with no other way through (Q60). After three tries that don't work, a person at Gaff can give more.
 - Renters check the first time a letter chooses them as the preferred applicant or the backup, on one page with their documents and referees, wherever they enquired. Before then, a confirmed email to enquire and a mobile confirmed by text code to book a viewing.
-- Letters, agents included, check before their first listing goes live. An agent's verified name must match their PSRA licence.
+- Letters, agents included, verify (mobile and identity) before their first letting goes live, whether it takes enquiries from Daft and MyHome or is listed on Gaff. An agent's verified name must match their PSRA licence.
 - Each workspace gets a copy for its badges and readiness, so ADR-0022's `letter_checks` keeps working. Each application gets a copy when the renter is chosen, and not before (rule 2, M11).
-- Without a selfie, or when the ID can't be checked online, a chosen renter shows their ID to the letter in person, and a letter's first listing is reviewed by a person at Gaff. Nobody is shut out by the document they hold.
-- From Stripe, Gaff reads only the status and the verified names, with the secret key. It keeps the result, the name, whether a selfie was checked and the date, and redacts the session 30 days after its result. The check lasts as long as the account.
+- **Revised (Q60):** there's no check without a selfie, no "can't be checked online" and no seeing ID in person. Whether consent holds when the selfie is required, and whether anyone Stripe can't verify has a claim under the Equal Status Acts, are open for the solicitor (Q61).
+- From Stripe, Gaff reads only the status and the verified names, with the secret key. It keeps the result, the name and the date, and redacts the session 30 days after its result. The check lasts as long as the account.
 
 **Work and income are shown with documents, not estimated (Q49, Q50).**
 - What's asked depends on how the renter earns: payslips, or a contract for a new job; a Revenue Notice of Assessment or an accountant's letter; or statements of other income. No bank statements, apart from a balance-only savings statement for someone living on savings. Employer and landlord references are sent as before, with a character reference for someone who hasn't rented before.
@@ -38,8 +38,8 @@ Research the same day found that Irish letters ask chosen renters for photo ID, 
 
 - Chosen renters check their identity alongside their documents, in about five minutes in all; a renter chosen again skips it.
 - Identity costs about €1.25 per person, once: at most about €2.50 a letting for renters.
-- Booking a viewing gains a text code.
-- Agents check their identity for the first time.
+- Booking a viewing gains a text code, and needs it.
+- Agents check their identity for the first time, and every letter does before a letting goes live.
 - Gaff now holds documents (encrypted, deleted on schedule, every view logged) and reads them with the AI in the EU in production.
 - Forged documents aren't detected. Checked identities, matching names, references and the later bank confirmation are the defences.
 - The landlords' check moves from `letter-identity` to `identity`, with a migration.

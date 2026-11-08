@@ -3,10 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { db, withOrg } from '@/db/client';
 import { applications, devOutbox, events, messages, viewingSlots } from '@/db/schema';
 import { inviteToView } from '@/server/shortlist/invite';
-import { attendanceFor } from '@/server/viewings/attendance';
 import { bookViewing } from '@/server/viewings/booking';
 import { confirmBookingCode, sendBookingCode } from '@/server/viewings/mobile';
-import { aLiveLetting, aRenterEnquires, createTestMember, tokenInMessage } from './helpers';
+import {
+  aLiveLetting,
+  aRenterEnquires,
+  confirmBookingMobile,
+  createTestMember,
+  tokenInMessage,
+} from './helpers';
 
 /** A live letting with two people invited to view. */
 async function setUp() {
@@ -96,21 +101,16 @@ describe('P16: a confirmed mobile to book a viewing', () => {
     for (const event of logged) expect(JSON.stringify(event.data)).not.toContain(mobile.slice(3));
   });
 
-  it('P16: books without a mobile, with no text reminder, and the letter sees it', async () => {
-    const { member, lettingId, ids, slots, token } = await setUp();
-    expect((await bookViewing(await token(0), slots[0]!.id)).ok).toBe(true);
-    const sms = await withOrg(member.organisationId, (tx) =>
-      tx
-        .select()
-        .from(messages)
-        .where(and(eq(messages.applicationId, ids[0]!), eq(messages.channel, 'sms'))),
-    );
-    expect(sms).toHaveLength(0);
-    const [row] = await attendanceFor(member, lettingId);
-    expect(row?.mobileConfirmedAt).toBeNull();
+  it('P16, Q60: a new booking needs a confirmed mobile; moving it doesn’t ask again', async () => {
+    const { slots, token } = await setUp();
+    const t = await token(0);
+    expect(await bookViewing(t, slots[0]!.id)).toEqual({ ok: false, reason: 'mobile_needed' });
+    await confirmBookingMobile(t);
+    expect(await bookViewing(t, slots[0]!.id)).toEqual({ ok: true, rescheduled: false });
+    expect(await bookViewing(t, slots[1]!.id)).toEqual({ ok: true, rescheduled: true });
   });
 
-  it('P16, Q12: a number given when enquiring gets no reminder until it’s confirmed', async () => {
+  it('P16, Q12: a number given when enquiring isn’t enough to book, and gets no reminder', async () => {
     const { member, ids, slots, token } = await setUp();
     await withOrg(member.organisationId, (tx) =>
       tx
@@ -118,14 +118,17 @@ describe('P16: a confirmed mobile to book a viewing', () => {
         .set({ phoneE164: '+353871112223', smsReminders: false })
         .where(eq(applications.id, ids[1]!)),
     );
-    expect((await bookViewing(await token(1), slots[1]!.id)).ok).toBe(true);
+    const t = await token(1);
+    expect(await bookViewing(t, slots[1]!.id)).toEqual({ ok: false, reason: 'mobile_needed' });
+    const confirmed = await confirmBookingMobile(t);
+    expect((await bookViewing(t, slots[1]!.id)).ok).toBe(true);
     const sms = await withOrg(member.organisationId, (tx) =>
       tx
         .select()
         .from(messages)
         .where(and(eq(messages.applicationId, ids[1]!), eq(messages.channel, 'sms'))),
     );
-    expect(sms).toHaveLength(0);
+    expect(sms.map((m) => m.toAddress)).toEqual([confirmed]);
   });
 
   it('P16: a wrong code counts, five lock it, and an expired one is refused', async () => {

@@ -6,10 +6,10 @@ import {
   MAX_ATTEMPTS,
   REDACT_AFTER_DAYS,
   SELFIE_CONSENT_VERSION,
+  identityStage,
+  isChecked,
   mayAttempt,
-  renterIdentity,
   type IdentityRecord,
-  type IdentityStatus,
 } from '@/domain/identity/access';
 import { fullName, nameMatch } from '@/domain/identity/names';
 import { openJson, sealJson } from '@/lib/crypto';
@@ -20,12 +20,11 @@ import { recordEvent } from '@/server/record/events';
 import { recordPlatformEvent } from '@/server/record/platform-events';
 
 /**
- * P15 to P29 (Q48, ADR-0026): one identity check per person, kept in their own zone and reused
- * for every workspace and every home. Workspaces get a copy for badges and readiness; an
- * application gets one only when the renter is chosen (rule 2).
+ * P15 to P29 (Q48, Q60, ADR-0026): one identity check per person, a photo ID and a live selfie
+ * through Stripe Identity, kept in their own zone and reused for every workspace and every home.
+ * Workspaces get a copy for badges and readiness; an application gets one only when the renter
+ * is chosen (rule 2). There's no other way through: a person at Gaff can give more tries.
  */
-
-/** P18: the wording a person agrees to before the selfie; a new version needs agreeing again. */
 
 export interface IdentityView extends IdentityRecord {
   id: string;
@@ -41,7 +40,6 @@ function view(row: typeof identityChecks.$inferSelect): IdentityView {
     status: row.status,
     selfie: row.selfie,
     attempts: row.attempts,
-    byPerson: row.provider === 'staff',
     attemptsLeft: Math.max(0, MAX_ATTEMPTS - row.attempts),
     reason: row.reason,
     verifiedName: row.verifiedNameSealed
@@ -58,7 +56,7 @@ function view(row: typeof identityChecks.$inferSelect): IdentityView {
  */
 export async function identityWithName(userId: string): Promise<IdentityView | null> {
   const identity = await identityOf(userId);
-  if (!identity || identity.status !== 'verified' || identity.verifiedName) return identity;
+  if (!identity || !isChecked(identity) || identity.verifiedName) return identity;
   const [copy] = await withSystem((tx) =>
     tx
       .select({ name: letterChecks.verifiedName })
@@ -96,16 +94,16 @@ export async function identityOf(userId: string): Promise<IdentityView | null> {
 export type StartProblem = 'checked' | 'no_attempts_left' | 'consent_needed';
 
 /**
- * P17, P18, P25: starts (or restarts) the person's check with Stripe, with a selfie after their
- * explicit consent, or the document alone. Each attempt counts; after three, the person is
- * offered "can't be checked online" (P20).
+ * P17, P18, P25: starts (or restarts) the person's check with Stripe: a photo ID and a live
+ * selfie, once they've agreed to it (Q60). Each attempt counts; after three, a person at Gaff
+ * can give more.
  */
 export async function startIdentity(
   userId: string,
-  input: { selfie: boolean; consented: boolean; returnTo: 'renter' | 'letter' },
+  input: { consented: boolean; returnTo: 'renter' | 'letter' },
   now = new Date(),
 ): Promise<{ redirectUrl: string } | { problem: StartProblem }> {
-  if (input.selfie && !input.consented) return { problem: 'consent_needed' };
+  if (!input.consented) return { problem: 'consent_needed' };
   const provider = identityProvider();
   const prepared = await withRenter(userId, async (tx) => {
     const [existing] = await tx
@@ -114,17 +112,18 @@ export async function startIdentity(
       .where(eq(identityChecks.userId, userId))
       .for('update');
     if (existing && !mayAttempt(existing)) {
-      const problem: StartProblem = existing.status === 'verified' ? 'checked' : 'no_attempts_left';
+      const problem: StartProblem = isChecked(existing) ? 'checked' : 'no_attempts_left';
       return { problem, row: null, attempt: 0, previousRef: null };
     }
     const attempt = (existing?.attempts ?? 0) + 1;
     const values = {
       status: 'pending' as const,
-      selfie: input.selfie,
+      selfie: true,
       provider: provider.name,
       attempts: attempt,
       reason: null,
-      ...(input.selfie ? { consentVersion: SELFIE_CONSENT_VERSION, consentedAt: now } : {}),
+      consentVersion: SELFIE_CONSENT_VERSION,
+      consentedAt: now,
     };
     const [row] = existing
       ? await tx
@@ -136,25 +135,25 @@ export async function startIdentity(
           .insert(identityChecks)
           .values({ userId, ...values })
           .returning();
-    if (input.selfie) {
-      await recordPlatformEvent(tx, {
-        type: 'identity.consented',
-        actor: { type: 'person', userId },
-        subject: { type: 'identity_check', id: row!.id },
-        data: { checkId: row!.id, version: SELFIE_CONSENT_VERSION },
-      });
-    }
+    await recordPlatformEvent(tx, {
+      type: 'identity.consented',
+      actor: { type: 'person', userId },
+      subject: { type: 'identity_check', id: row!.id },
+      data: { checkId: row!.id, version: SELFIE_CONSENT_VERSION },
+    });
     await recordPlatformEvent(tx, {
       type: 'identity.started',
       actor: { type: 'person', userId },
       subject: { type: 'identity_check', id: row!.id },
-      data: { checkId: row!.id, selfie: input.selfie, attempt },
+      data: { checkId: row!.id, selfie: true, attempt },
     });
     return {
       problem: null,
       row: row!,
       attempt,
-      previousRef: existing?.selfie === input.selfie ? existing.providerRef : null,
+      // Stripe advises reusing a person's session across retries; one without a selfie, from
+      // before Q60, can't be reused.
+      previousRef: existing?.selfie ? existing.providerRef : null,
     };
   });
   if (prepared.problem !== null || !prepared.row) return { problem: prepared.problem ?? 'checked' };
@@ -166,7 +165,7 @@ export async function startIdentity(
   const started = await provider.start({
     checkId: prepared.row.id,
     userId,
-    selfie: input.selfie,
+    selfie: true,
     returnUrl,
     providerRef: prepared.previousRef,
     attempt: prepared.attempt,
@@ -178,39 +177,6 @@ export async function startIdentity(
       .where(eq(identityChecks.id, prepared.row.id)),
   );
   return { redirectUrl: started.redirectUrl };
-}
-
-/**
- * P20: the person's document can't be checked online, by their choice or after three tries. A
- * renter carries on, and the letter sees their ID in person (P27). A letter waits for a person
- * at Gaff (Q55).
- */
-export async function chooseOffline(userId: string): Promise<void> {
-  await withRenter(userId, async (tx) => {
-    const [existing] = await tx
-      .select()
-      .from(identityChecks)
-      .where(eq(identityChecks.userId, userId))
-      .for('update');
-    if (existing?.status === 'verified') return;
-    const [row] = existing
-      ? await tx
-          .update(identityChecks)
-          .set({ status: 'offline', reason: null })
-          .where(eq(identityChecks.id, existing.id))
-          .returning({ id: identityChecks.id })
-      : await tx
-          .insert(identityChecks)
-          .values({ userId, status: 'offline', provider: identityProvider().name, selfie: false })
-          .returning({ id: identityChecks.id });
-    await recordPlatformEvent(tx, {
-      type: 'identity.offline',
-      actor: { type: 'person', userId },
-      subject: { type: 'identity_check', id: row!.id },
-      data: { checkId: row!.id },
-    });
-  });
-  await refreshCopies(userId);
 }
 
 /**
@@ -233,17 +199,9 @@ export async function recordIdentityOutcome(input: {
       .where(and(eq(identityChecks.id, input.checkId), eq(identityChecks.userId, input.userId)))
       .for('update');
     if (!row || row.status !== 'pending') return null;
-    // P18: declining Stripe's own consent screen is a choice, not a failure: the check without
-    // a selfie is offered instead, and that attempt doesn't count against the person.
+    // P18: declining Stripe's own consent screen doesn't count as one of the person's tries.
     const declined = outcome.status === 'failed' && outcome.consentDeclined === true;
-    const status: IdentityStatus =
-      outcome.status === 'passed'
-        ? 'verified'
-        : declined
-          ? 'not_verified'
-          : row.attempts >= MAX_ATTEMPTS
-            ? 'offline'
-            : 'not_verified';
+    const status = outcome.status === 'passed' ? ('verified' as const) : ('not_verified' as const);
     await tx
       .update(identityChecks)
       .set(
@@ -258,7 +216,7 @@ export async function recordIdentityOutcome(input: {
               status,
               reason: outcome.reason,
               checkedAt: now,
-              ...(declined ? { selfie: false, attempts: Math.max(0, row.attempts - 1) } : {}),
+              ...(declined ? { attempts: Math.max(0, row.attempts - 1) } : {}),
             },
       )
       .where(eq(identityChecks.id, row.id));
@@ -269,11 +227,7 @@ export async function recordIdentityOutcome(input: {
       data:
         outcome.status === 'passed'
           ? { checkId: row.id, outcome: 'verified', selfie: row.selfie }
-          : {
-              checkId: row.id,
-              outcome: status === 'offline' ? 'offline' : 'not_verified',
-              reason: outcome.reason,
-            },
+          : { checkId: row.id, outcome: 'not_verified', reason: outcome.reason },
     });
     if (row.providerRef && row.provider === 'stripe') {
       await enqueue(
@@ -366,13 +320,11 @@ export async function refreshCopies(userId: string, now = new Date()): Promise<v
 }
 
 const letterStatus = (identity: IdentityView) =>
-  identity.status === 'verified'
+  isChecked(identity)
     ? ('passed' as const)
-    : identity.status === 'offline'
-      ? ('needs_review' as const)
-      : identity.status === 'not_verified'
-        ? ('failed' as const)
-        : ('pending' as const);
+    : identity.status === 'not_verified'
+      ? ('failed' as const)
+      : ('pending' as const);
 
 /** One workspace's copy of a person's identity, inside that workspace's transaction. */
 export async function copyToWorkspace(
@@ -401,8 +353,6 @@ export async function copyToWorkspace(
         eq(letterChecks.method, 'id_document'),
       ),
     );
-  // A person at Gaff's decision on an offline check stands until the person checks again.
-  if (existing?.status === 'passed' && status === 'needs_review') return;
   const [row] = existing
     ? await tx
         .update(letterChecks)
@@ -429,9 +379,9 @@ export async function copyToWorkspace(
 }
 
 /**
- * P16, P23, P29: a chosen renter's applications get their identity as it stands: checked, to
- * be seen in person, or still to do. Only applications whose checks have been asked for (the
- * preferred applicant and the backup) can hold it.
+ * P23, P29: a chosen renter's applications get their identity as it stands: checked, started,
+ * or still to do. Only applications whose checks have been asked for (the preferred applicant
+ * and the backup) can hold it.
  */
 async function shareWithOpenApplications(userId: string, identity: IdentityView): Promise<void> {
   const rows = await withSystem((tx) =>
@@ -468,13 +418,13 @@ export async function shareIdentity(
   check: { checkId: string; organisationId: string; lettingId: string; applicationId: string },
   identity: IdentityView | null,
 ): Promise<void> {
-  const where = renterIdentity(identity);
-  if (where === 'to_do' || where === 'started') {
+  const stage = identityStage(identity);
+  if (stage !== 'checked') {
     await tx
       .update(checks)
       .set({
         status:
-          where === 'started'
+          stage === 'started'
             ? 'in_progress'
             : identity?.status === 'not_verified'
               ? 'not_passed'
@@ -501,8 +451,6 @@ export async function shareIdentity(
       resultSealed: sealJson({
         verifiedName: identity?.verifiedName ? fullName(identity.verifiedName) : null,
         nameDiffers,
-        selfie: identity?.status === 'verified' && identity.selfie,
-        inPersonNeeded: where === 'in_person',
         checkedAt: identity?.checkedAt?.toISOString() ?? null,
       }),
       reason: null,
@@ -515,10 +463,6 @@ export async function shareIdentity(
     actor: { type: 'system' },
     type: 'identity.shared',
     subject: { type: 'check', id: check.checkId },
-    data: {
-      applicationId: check.applicationId,
-      checkId: check.checkId,
-      outcome: where === 'checked' ? 'checked' : 'in_person',
-    },
+    data: { applicationId: check.applicationId, checkId: check.checkId, outcome: 'checked' },
   });
 }

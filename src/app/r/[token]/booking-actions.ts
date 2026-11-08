@@ -11,6 +11,7 @@ const problems = {
   not_invited: 'not_invited',
   full: 'full',
   too_late: 'too_late',
+  mobile_needed: 'mobile',
 } as const;
 
 async function book(token: string, slotId: string): Promise<never> {
@@ -20,9 +21,9 @@ async function book(token: string, slotId: string): Promise<never> {
 }
 
 /**
- * R12, P16: the renter chose a time. With a mobile, Gaff texts a code to confirm it first;
- * someone moving their viewing, or whose mobile is already confirmed, or who has no mobile,
- * books straight away.
+ * R12, P16 (Q60): the renter chose a time. Gaff texts a code to confirm their mobile first;
+ * someone moving their viewing, or whose mobile is already confirmed, books straight away.
+ * Booking checks the mobile again, so this can't be skipped.
  */
 export async function chooseTimeAction(
   token: string,

@@ -1,16 +1,21 @@
 import type { Metadata } from 'next';
 import { formatDateTime } from '@/lib/format';
 import { requireStaff } from '@/server/auth/staff';
-import { offlineIdentityQueue } from '@/server/identity/staff';
+import { outOfTries } from '@/server/identity/staff';
 import { licenceQueue } from '@/server/verification/licence';
-import { TextField } from '@/ui/Field';
 import { PageHeader, Row, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { Table } from '@/ui/Table';
-import { confirmIdentityAction, decideAction } from './actions';
+import { decideAction, moreTriesAction } from './actions';
 
 export const metadata: Metadata = { title: 'Licence checks' };
+
+const reasonWords: Record<string, string> = {
+  document: 'the document couldn’t be confirmed',
+  face_mismatch: 'the selfie didn’t match the ID',
+  gave_up: 'not finished',
+};
 
 /**
  * M105: PSRA licences waiting for a person. The reviewer looks each one up on the public
@@ -24,7 +29,7 @@ export default async function StaffChecksPage({
   const { saved } = await searchParams;
   const staff = await requireStaff();
   const queue = await licenceQueue(staff);
-  const ids = await offlineIdentityQueue(staff);
+  const stuck = await outOfTries(staff);
 
   return (
     <Stack gap={8}>
@@ -111,27 +116,24 @@ export default async function StaffChecksPage({
       <section aria-labelledby="ids-heading">
         <Stack gap={4}>
           <h2 id="ids-heading" className="type-title">
-            IDs to check another way
+            IDs Stripe couldn’t check
           </h2>
           <p>
-            These letters’ IDs can’t be checked online. Contact each one within one working day, see
-            the original document (Q55), and record the name on it. Never keep a copy.
+            These people, renters or letters, used their three tries with Stripe. There’s no other
+            way to check an ID for now (Q60). If they ask for more tries, give them three more.
           </p>
-          {ids.length === 0 ? <p>Nothing waiting.</p> : null}
-          {ids.map((person) => (
-            <form key={person.userId} action={confirmIdentityAction.bind(null, person.userId)}>
+          {stuck.length === 0 ? <p>Nobody is out of tries.</p> : null}
+          {stuck.map((person) => (
+            <form key={person.userId} action={moreTriesAction.bind(null, person.userId)}>
               <Stack gap={4}>
                 <p>
-                  {person.name}, {person.organisationName} ({person.email}), waiting since{' '}
-                  {formatDateTime(person.waitingSince)}
+                  {person.name || person.email} ({person.email}), last try{' '}
+                  {formatDateTime(person.since)}
+                  {person.reason ? `: ${reasonWords[person.reason] ?? person.reason}` : ''}
                 </p>
-                <Row>
-                  <TextField name="firstName" label="First name on the ID" width="medium" />
-                  <TextField name="lastName" label="Last name on the ID" width="medium" />
-                </Row>
                 <div>
                   <SubmitButton variant="secondary" pendingLabel="Saving…">
-                    I’ve seen the original
+                    Give three more tries
                   </SubmitButton>
                 </div>
               </Stack>

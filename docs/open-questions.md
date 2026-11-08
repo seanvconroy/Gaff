@@ -388,6 +388,8 @@ The DPC considers consent rarely freely given between landlord and tenant, and c
 
 **Proposal:** yes. Gaff asks, not the letter, for the person's own profile. Checking without a selfie is equally prominent, needs no reason and carries no penalty. The check itself rests on Gaff's legitimate interest in preventing fraud, so only the selfie relies on consent.
 
+**Reopened (8 November 2026) by Q60:** the selfie is now required, with no check without one, so agreeing to it is a condition of being offered a home through Gaff. Is explicit consent still valid, or is another basis needed? With Q61.
+
 ### Q46. Open banking at offer stage (**Solicitor**)
 
 **Closed (8 November 2026):** there's no open banking at launch (Q49). The question returns with "Confirm with your bank" (Q56).
@@ -406,6 +408,8 @@ The DPC considers consent rarely freely given between landlord and tenant, and c
 - Checking without a selfie is an equal choice. A chosen renter checked that way, or whose ID can't be checked online, shows their ID to the letter in person. A letter checked without a selfie has their first listing reviewed by a person at Gaff.
 - Supersedes Q38, Q35 ("Ready to move") and M14. Changes rule 2 (identity kept on the profile for next time) and rule 10 (Stripe Identity for everyone). See [ADR-0026](adr/0026-identity-and-documents.md).
 - Cost: about €1.25 per person, once; at most about €2.50 a letting for renters.
+
+**Revised (Sean, 8 November 2026) by Q60:** the selfie is required, with no other ways through. Letters verify before their first letting goes live, including a letting that takes enquiries from Daft and MyHome. Renters' timing is unchanged, and banked to come back to (Q61).
 
 ### Q49. How do chosen renters show their work and income?
 
@@ -450,7 +454,7 @@ For example, bank statements or two years of accounts.
 
 **Proposal:** a short video call with a person at Gaff, who sees the original document, using a tool the founders approve (rule 10). Only the result is recorded.
 
-**Decision:** open (founders).
+**Decision (Sean, 8 November 2026, Q60):** no other way for now: Gaff relies on Stripe Identity. Someone Stripe can't verify after three tries can ask a person at Gaff for more tries.
 
 ### Q56. When to build "Confirm with your bank"
 
@@ -477,3 +481,44 @@ Airbnb uses Google Places; Zillow, Rightmove and Daft use their own index of pla
 ### Q59. Which layout, and how does it ship?
 
 **Decision (Sean, 8 November 2026):** Zillow's filter bar (Where, Rent, Beds, Move in, Filters, Save search) with Airbnb's polish, and list and map side by side. Everything ships in one release, the map included, behind a flag until the release checks pass.
+
+## I. Profile verification
+
+Raised on 8 November 2026, after Sean reviewed identity once per person (providers milestone 3): "We should have profile verification standards, and stick to them."
+
+### Q60. One verification standard, with no opt-outs
+
+**Decision (Sean, 8 November 2026, on the CTO's recommendation after looking at the market):** every Gaff profile, renter or letter, is verified the same way, once, and kept for good:
+- **email**, confirmed with a code;
+- **mobile**, confirmed with a text code;
+- **identity**: a photo ID and a live selfie, matched by Stripe Identity, so the person who owns the profile is the person on the ID.
+
+**When:**
+- **Letters** (landlords and agents) verify before their first letting goes live: a listing on Gaff, or a letting taking enquiries from Daft and MyHome. They can set up before then.
+- **Renters** confirm their email to enquire, their mobile to book a viewing, and their identity when a letter chooses them as the preferred applicant or the backup, before an offer.
+
+**No other ways through:** no check without a selfie, no "can't be checked online", no video call (Q55), no letter seeing ID in person, and no first-listing review. Someone Stripe can't verify after three tries can ask a person at Gaff for more tries.
+
+**The market, as found on 8 November 2026:** Airbnb checks hosts before they list and guests before they book (required worldwide since mid-2023, and the ID isn't shown to the other side). Zillow checks landlords before they see applicants' screening reports, and renters when they apply. In the UK, a renter's identity is checked at referencing, after the landlord accepts them, and before the tenancy (Right to Rent); OpenRent's earlier "Verified Tenant" is optional. SpareRoom's check is optional. Daft has added Stripe Identity for some features. Nobody checks renters' identity to enquire. The DPC says to collect only what's needed to arrange a viewing, and has said landlords shouldn't seek photo ID from prospective tenants before a lease is signed.
+
+Sean first asked for renters to verify before their first enquiry, then chose this timing the same day. Replaces P19, P20 and P27, and the choice without a selfie in P18.
+
+### Q61. When should renters verify? (**Founders, solicitor**)
+
+Built as Q60 for now; to come back to once the measures (P58) show how it works.
+
+| | When chosen (built) | Before their first viewing | Before their first enquiry |
+| --- | --- | --- | --- |
+| Who's verified | The two chosen, before an offer | Everyone who views | Everyone whose enquiry a letter acts on |
+| Friction | The least: two a letting, once each | Once invited, when they're keen | The most: every renter, before they can ask anything |
+| Daft and MyHome | Asked only once chosen | Asked only once invited | Their enquiries wait for an ID request from Gaff, which can look like a scam |
+| Stripe's cost (€1.25 a person, once) | Two a letting at most | Everyone who views | Everyone who enquires |
+| The DPC's guidance | Closest: checks for those entering a tenancy | Photo ID before a viewing | Photo ID from everyone who enquires |
+| The market | Zillow, UK referencing | Airbnb, by analogy with booking | Nobody |
+
+**For the solicitor:**
+- Is a required selfie, with no other way through, valid explicit consent under GDPR Article 9, or is another basis needed (Q45)?
+- Gaff checks identity, not the letter, and shares only the result and the verified name. Is that consistent with the DPC's position on photo ID before a lease is signed?
+- Does a renter Stripe can't verify, who then can't be offered a home, have a claim under the Equal Status Acts (a document Stripe doesn't read, or a disability)? Is a person granting more tries enough human review under Article 22?
+
+**Decision:** open (founders, with the solicitor's answers).

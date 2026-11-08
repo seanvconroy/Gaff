@@ -19,9 +19,11 @@ import {
 } from '@/domain/lettings/new-letting';
 import { nextSetupStep, setupChecklist, type SetupStep } from '@/domain/lettings/setup';
 import { comparableWarnings, medianRentCents } from '@/domain/rent/comparables';
+import { missingCheckWords } from '@/domain/verification/readiness';
 import { formatDate, formatDateTime, formatRent } from '@/lib/format';
 import { env } from '@/lib/env';
 import { dashboardFor } from '@/server/dashboard/dashboard';
+import { letterReadiness } from '@/server/verification/readiness';
 import { ActionList, ActionRow } from '@/ui/ActionList';
 import { ButtonLink } from '@/ui/Button';
 import { Disclosure } from '@/ui/Disclosure';
@@ -106,6 +108,10 @@ export default async function LettingPage({
   const finished = letting.stage === 'close';
   const checklist = setupChecklist(setup);
   const next = nextSetupStep(setup);
+  // P15 (Q60): a letter verifies before their first letting goes live.
+  const unverified = inSetup
+    ? (await letterReadiness(member)).missing.filter((m) => m === 'mobile' || m === 'identity')
+    : [];
   const criteriaLines = letting.criteria ? describeCriteria(letting.criteria) : null;
   const keyFacts = describeKeyFacts({
     propertyType: letting.propertyType as keyof typeof propertyTypes,
@@ -224,7 +230,24 @@ export default async function LettingPage({
               );
             })}
           </ActionList>
-          {next === 'go_live' ? (
+          {next === 'go_live' && unverified.length > 0 ? (
+            <div className={styles.listCardFooter}>
+              <Notice tone="info" title="Before this letting goes live, verify yourself">
+                <p>
+                  Everyone who lets homes through Gaff confirms their mobile and checks their ID
+                  once, so renters know you’re genuine. It takes about three minutes.
+                </p>
+                <ul>
+                  {unverified.map((check) => (
+                    <li key={check}>{missingCheckWords[check]}</li>
+                  ))}
+                </ul>
+                <p>
+                  <Link href="/settings/checks">Go to your checks</Link>
+                </p>
+              </Notice>
+            </div>
+          ) : next === 'go_live' ? (
             <form action={goLiveAction.bind(null, letting.id)} className={styles.listCardFooter}>
               <p>
                 Ready when you are. Gaff will reply to every enquiry within minutes, as your AI

@@ -109,7 +109,7 @@ describe('M17, M18: public profiles', () => {
   });
 
   it('a new legal name sends the agency’s licence back to be checked', async () => {
-    const admin = await createTestMember({ kind: 'agency' });
+    const admin = await createTestMember({ kind: 'agency', verified: false });
     const profile = { legalName: 'Halcyon Property Solutions Ltd', about: 'Lettings in Dublin 6.' };
     expect(await updateAgencyProfile(admin, profile)).toEqual({ ok: true });
     await withOrg(admin.organisationId, (tx) =>

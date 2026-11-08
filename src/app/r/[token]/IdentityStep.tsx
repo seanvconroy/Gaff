@@ -1,4 +1,4 @@
-import type { RenterIdentity } from '@/domain/identity/access';
+import type { IdentityStage } from '@/domain/identity/access';
 import { formatDate } from '@/lib/format';
 import { TextField } from '@/ui/Field';
 import { IdentityChoices } from '@/ui/IdentityChoices';
@@ -10,7 +10,6 @@ import { SubmitButton } from '@/ui/SubmitButton';
 import styles from '../renter.module.css';
 import {
   confirmChecksCodeAction,
-  renterIdentityOfflineAction,
   sendChecksCodeAction,
   startRenterIdentityAction,
 } from './identity-actions';
@@ -19,7 +18,7 @@ export interface RenterIdentityView {
   /** The signed-in person is this application's renter. */
   signedIn: boolean;
   maskedEmail: string;
-  where: RenterIdentity;
+  where: IdentityStage;
   reason: string | null;
   attemptsLeft: number;
   checkedAt: Date | null;
@@ -34,8 +33,9 @@ const codeProblems: Record<string, string> = {
 };
 
 const startProblems: Record<string, string> = {
-  consent_needed: 'Tick the box to agree to the selfie, or check your ID without a selfie.',
-  no_attempts_left: 'That’s three tries. Choose “My ID can’t be checked online” below.',
+  consent_needed: 'Press “Agree and check my ID” to agree to the selfie check.',
+  no_attempts_left:
+    'That’s three tries. Reply to any email from us, and a person at Gaff will give you more tries.',
   checked: 'Your ID is already checked.',
   not_yours: 'Confirm your email first.',
 };
@@ -59,8 +59,7 @@ export function IdentityStep({
   code?: string;
   problem?: string;
 }) {
-  const done =
-    identity.signedIn && (identity.where === 'checked' || identity.where === 'in_person');
+  const done = identity.signedIn && identity.where === 'checked';
   return (
     <StepCard
       id="check-identity"
@@ -125,11 +124,6 @@ export function IdentityStep({
           your Gaff profile. {operatorName} sees that it’s checked and the name on your ID, nothing
           else.
         </p>
-      ) : identity.where === 'in_person' ? (
-        <p>
-          {operatorName} will ask to see your photo ID when you meet, before the agreement is sent.
-          Nothing else to do here.
-        </p>
       ) : (
         <Stack gap={4}>
           {problem && startProblems[problem] ? (
@@ -141,9 +135,7 @@ export function IdentityStep({
             <p className={styles.muted}>If you didn’t finish, you can start again.</p>
           ) : null}
           <IdentityChoices
-            audience="renter"
             startAction={startRenterIdentityAction.bind(null, token)}
-            offlineAction={renterIdentityOfflineAction.bind(null, token)}
             attemptsLeft={identity.attemptsLeft}
             reason={identity.reason}
             fullWidth

@@ -169,6 +169,9 @@ export async function signUpOperator(
   await page.getByLabel('PSRA licence number').fill('001234');
   await page.getByRole('button', { name: 'Set up my workspace' }).click();
   await expect(page.getByRole('heading', { name: 'Your lettings' })).toBeVisible();
+  // P15 (Q60): a letter verifies before any letting goes live.
+  await getChecked(page);
+  await page.goto('/');
   const client = new pg.Client({ connectionString: E2E_DATABASE_URL });
   await client.connect();
   try {
@@ -401,27 +404,39 @@ export async function getChecked(page: Page): Promise<void> {
     .fill(await latestSmsCode(`+353${mobile.slice(1)}`));
   await page.getByRole('button', { name: 'Confirm my number' }).click();
   await checkIdWithSelfie(page);
-  await expect(page.getByText('You’re checked')).toBeVisible();
+  // An agency's licences wait for a person at Gaff, so look for the ID itself.
+  await expect(
+    page.getByText(
+      'Checked once, for every workspace you’re in and any home you rent through Gaff.',
+    ),
+  ).toBeVisible();
 }
 
-/** P17, P18: agrees to the selfie, then passes the stand-in for Stripe Identity. */
+/** P17, P18 (Q60): agrees to the selfie check, then passes the stand-in for Stripe Identity. */
 export async function checkIdWithSelfie(page: Page): Promise<void> {
-  await page.getByLabel('I agree to Stripe comparing my selfie with the photo on my ID').check();
-  await page.getByRole('button', { name: 'Check my ID with a selfie' }).click();
+  await expect(
+    page.getByText(
+      'By pressing the button, you agree to Stripe comparing your selfie with the photo on your ID.',
+    ),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Agree and check my ID' }).click();
   await expect(page.getByRole('heading', { name: 'Stand-in identity check' })).toBeVisible();
   await page.getByRole('button', { name: 'The ID and selfie match' }).click();
 }
 
+let mobiles = 0;
+/** A made-up Irish mobile no other journey in the run has used. */
+export function uniqueMobile(): string {
+  mobiles += 1;
+  return `086${String((Date.now() + mobiles * 7919) % 10_000_000).padStart(7, '0')}`;
+}
+
 /**
- * R12, P16: books the first free time from a renter's private page, confirming a mobile with
- * the texted code, or without one.
+ * R12, P16 (Q60): books the first free time from a renter's private page, confirming their
+ * mobile with the texted code, as every new booking needs.
  */
-export async function bookFirstTime(page: Page, mobile: string | null): Promise<void> {
+export async function bookFirstTime(page: Page, mobile = uniqueMobile()): Promise<void> {
   await page.getByRole('radio').first().check();
-  if (!mobile) {
-    await page.getByRole('button', { name: 'Book without a mobile' }).click();
-    return;
-  }
   await page.getByLabel('Your mobile number').fill(mobile);
   await page.getByRole('button', { name: 'Text me a code' }).click();
   await expect(page.getByText(/We’ve texted a 6-digit code to 0\d\d •••/)).toBeVisible();

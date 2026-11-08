@@ -510,8 +510,10 @@ async function seedLetter(
     for (const check of pending) {
       await decideLicenceCheck(reviewer, check.id, { outcome: 'passed' }, now);
     }
-  } else {
-    const { redirectUrl } = await startIdentityCheck(member, { selfie: true, consented: true });
+  }
+  // Q60: every letter, landlord or agent, has a photo ID and a live selfie checked.
+  {
+    const { redirectUrl } = await startIdentityCheck(member, { consented: true });
     const checkId = /\/dev\/identity\/([^/?]+)/.exec(redirectUrl)?.[1];
     if (!checkId) throw new Error('The stand-in ID check did not start');
     const [first = letter.person, ...rest] = (letter.verifiedName ?? letter.person).split(' ');

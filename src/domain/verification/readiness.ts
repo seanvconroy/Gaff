@@ -48,7 +48,7 @@ export function missingChecks(letter: {
 /** What the letter still has to do, in their words. */
 export const missingCheckWords: Record<MissingCheck, string> = {
   mobile: 'Confirm your mobile number',
-  identity: 'Check your identity: a photo of your ID, and a selfie if you agree',
+  identity: 'Check your identity: a photo of your ID and a live selfie',
   agency_licence: 'Gaff checks your agency’s PSRA licence on the public register',
   agent_licence: 'Gaff checks your own PSRA licence on the public register',
 };

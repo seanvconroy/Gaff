@@ -1,4 +1,4 @@
-import { renterIdentity } from '@/domain/identity/access';
+import { identityStage } from '@/domain/identity/access';
 import { currentUser } from '@/server/auth/member';
 import { identityOf } from './identity';
 import { isApplicationsRenter } from './renter';
@@ -17,7 +17,7 @@ export async function renterIdentityView(token: string, applicationEmail: string
   return {
     signedIn,
     maskedEmail: maskEmail(applicationEmail),
-    where: renterIdentity(identity),
+    where: identityStage(identity),
     reason: identity?.status === 'not_verified' ? identity.reason : null,
     attemptsLeft: identity?.attemptsLeft ?? 3,
     checkedAt: identity?.checkedAt ?? null,

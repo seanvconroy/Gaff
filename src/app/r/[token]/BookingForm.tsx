@@ -18,9 +18,9 @@ export interface BookingDay {
 }
 
 /**
- * R12, P16: two steps on one card. Choose a time and give a mobile; then the code from the
- * text books it. Someone moving their viewing, or whose mobile is already confirmed, books in
- * one step, and so does someone without a mobile.
+ * R12, P16 (Q60): two steps on one card. Choose a time and give a mobile; then the code from
+ * the text books it. Someone moving their viewing, or whose mobile is already confirmed, books
+ * in one step.
  */
 export function BookingForm({
   days,
@@ -154,21 +154,14 @@ export function BookingForm({
         {confirmedMobile && !moving ? (
           <p>We’ll text {confirmedMobile} two hours before your viewing.</p>
         ) : null}
-        <Stack gap={3}>
-          <SubmitButton
-            fullWidth
-            name="how"
-            value={needsMobile ? 'code' : 'book'}
-            pendingLabel={needsMobile ? 'Sending…' : 'Booking…'}
-          >
-            {moving ? 'Move my viewing' : needsMobile ? 'Text me a code' : 'Book this time'}
-          </SubmitButton>
-          {needsMobile ? (
-            <SubmitButton variant="quiet" fullWidth name="how" value="book">
-              Book without a mobile
-            </SubmitButton>
-          ) : null}
-        </Stack>
+        <SubmitButton
+          fullWidth
+          name="how"
+          value={needsMobile ? 'code' : 'book'}
+          pendingLabel={needsMobile ? 'Sending…' : 'Booking…'}
+        >
+          {moving ? 'Move my viewing' : needsMobile ? 'Text me a code' : 'Book this time'}
+        </SubmitButton>
       </Stack>
     </form>
   );

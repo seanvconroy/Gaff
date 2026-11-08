@@ -1,6 +1,6 @@
 # Gaff marketplace: product requirements
 
-Approved for build by Sean on 7 November 2026 · requirements M1 to M112
+Approved for build by Sean on 7 November 2026 · requirements M1 to M124 (M56 to M61 amended and M113 to M124 added on 8 November 2026 by the [search redesign](search-redesign/prd.md))
 
 ## Summary
 
@@ -267,16 +267,28 @@ Anyone can report a listing from its page, without an account, and Gaff acknowle
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| M56 | Search by county, town, area, Dublin postal district or Eircode routing key, with suggestions as they type, or draw an area on the map | Must |
-| M57 | List and map views, side by side on larger screens. Moving the map offers "Search this area" | Must |
-| M58 | Filters: rent, bedrooms, bathrooms, property type, available by, furnishing, pets considered, parking, outdoor space, accessibility features, minimum BER and newly listed. Filters live in the web address, so a search can be shared or bookmarked | Must |
-| M59 | Order: "Best match" by default (fit to the search, then freshness, then how complete the listing is), "Newest", and rent lowest or highest first. Never payment. "How we order results" explains it in plain words | Must |
-| M60 | Each result shows photos (swipe), rent a month, bedrooms, bathrooms, type, area, available from, furnishing, BER, pets, when enquiries close if set, a save button, and "You enquired" if they have | Must |
-| M61 | When nothing matches, Gaff suggests widening the area, budget or date, and offers an alert | Must |
+| M56 | Search any place in Ireland: county, city, town, village, area, Dublin postal district, Eircode routing key, townland, street or landmark (colleges, hospitals, stations), with suggestions as they type, grouped by kind and forgiving missing fadas and typos, from Gaff's own place index; or draw an area on the map (amended 8 November 2026, Q37) | Must |
+| M57 | List and map side by side on larger screens; on phones a Map button switches views. Moving the map searches the area in view. The map is Google Maps, showing only Gaff's own content (amended 8 November 2026, Q38) | Must |
+| M58 | Filters: rent, bedrooms, bathrooms, property type, available by, furnishing, pets considered, parking, outdoor space, accessibility features, minimum BER and newly listed. Rent, Beds and Move in sit in a filter bar; every filter is in one Filters sheet with a live count. Filters live in the web address, so a search can be shared or bookmarked (amended 8 November 2026) | Must |
+| M59 | Order: "Best match" by default (fit to the search, then freshness, then how complete the listing is), "Newest", and rent lowest or highest first. Never payment. Sort sits beside the results, with "How we order results" explaining it in plain words (amended 8 November 2026) | Must |
+| M60 | Each result shows photos (swipe), rent a month, bedrooms, bathrooms, type, area, available from, furnishing, BER, pets, when enquiries close if set, a save button on the photo, and "You enquired" if they have. Facts are plain text, with at most one status pill (amended 8 November 2026) | Must |
+| M61 | When nothing matches, Gaff suggests widening the area, budget or date, with how many homes each would find, and offers an alert in the same place (amended 8 November 2026) | Must |
 | M62 | Area pages that search engines can find ("Homes to rent in Rathmines"), with live homes and links to nearby areas | Must |
 | M63 | Commute time: search and sort by travel time to a place, by public transport, bike or car, from open transport data | Should |
 | M64 | Compare up to four saved homes side by side | Should |
 | M65 | Typical rents by area, from Gaff's listings and RTB data | Later |
+| M113 | Distance: "+ km" around an area, "Within" for a street or landmark | Must |
+| M114 | Recent searches: the last 5 for signed-in renters (kept with their account); this visit's for everyone else | Should |
+| M115 | Applied filters as chips, each removable, with "Clear all" | Must |
+| M116 | On larger screens, results update as soon as a filter changes; on phones, a sheet shows "Show 23 homes" with a live count | Must |
+| M117 | Map pins show the rent; a card and its pin light each other up; clusters show a count; a pin opens a mini card | Must |
+| M118 | The search bar stays at the top as the page scrolls | Must |
+| M119 | Google's map loads only when it's on screen, so renters' devices don't call Google otherwise; Google's attribution is always visible | Must |
+| M120 | When the map can't load, the list still works and says so | Must |
+| M121 | Popular places in the Where box, and home counts beside areas | Should |
+| M122 | A histogram of rents in the Rent filter | Should |
+| M123 | Search several areas at once ("Rathmines, Ranelagh") | Later |
+| M124 | Places renters couldn't find are counted, with no user, device or digits kept, so the place index can be improved | Must |
 
 ### H. The listing page
 

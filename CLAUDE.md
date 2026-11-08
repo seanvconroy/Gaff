@@ -48,7 +48,7 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
     - its EU region, wherever it has one;
     - a lawful basis for anything outside the EU (the EU–US Data Privacy Framework or standard contractual clauses), named in the privacy notice.
 
-    Approved so far (Q26, Q29, ADR-0014): Vercel (functions in Dublin), Supabase (Ireland), Resend (email), Claude on Amazon Bedrock (EU), Sinch (EU), Mailgun (EU, as an alternative), Stripe Identity, only to check private landlords' identity before their first listing, and later Stripe, only to charge operators.
+    Approved so far (Q26, Q29, Q38, ADR-0014, ADR-0025): Vercel (functions in Dublin), Supabase (Ireland), Resend (email), Claude on Amazon Bedrock (EU), Sinch (EU), Mailgun (EU, as an alternative), Stripe Identity, only to check private landlords' identity before their first listing, Google Maps Platform, only the Maps JavaScript API for maps showing Gaff's own content (Q38: Google is an independent controller, with no EU region; ADR-0025), and later Stripe, only to charge operators.
 
 ## Voice: every word renters see
 

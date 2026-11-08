@@ -18,3 +18,5 @@ Notes here record what we saw, not what to do about it. Decisions belong in the 
 | Daft.ie | [New homes search results](daft/new-homes-search.md) | Renters and buyers | November 2026 | 1 screenshot |
 | Daft.ie | [Rent search results](daft/rent-search.md) | Renters | November 2026 | 1 screenshot; agents' names and photos blanked out |
 | Daft.ie | [Place an ad (rental)](daft/place-ad.md) | Landlords and agents | November 2026 | 13 screenshots; the whole flow up to payment, including the ID check |
+| Airbnb | [Search with suggestions and the map](airbnb/search.md) | Guests | November 2026 | Notes only; screenshot shared by Sean, not stored |
+| Zillow | [Rent search with suggestions](zillow/rent-search.md) | Renters | November 2026 | Notes only; screenshot shared by Sean, not stored |

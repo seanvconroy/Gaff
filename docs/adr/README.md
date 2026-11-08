@@ -14,7 +14,7 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0008](0008-deterministic-ranking.md) | Ranking is deterministic code, not AI | Accepted |
 | [0009](0009-ai-drafting-with-claude-in-the-eu.md) | AI drafts answers only, from letting facts, processed in the EU | Accepted |
 | [0010](0010-messaging-adapters-and-outbox.md) | Email and SMS through adapters and an outbox | Accepted; email provider changed by 0014 |
-| [0011](0011-design-tokens-drive-styling.md) | Design tokens drive all styling | Accepted |
+| [0011](0011-design-tokens-drive-styling.md) | Design tokens drive all styling | Accepted; the map on renter pages calls Google (0025) |
 | [0012](0012-testing-and-ci.md) | Testing and CI | Accepted |
 | [0013](0013-sign-in-operators-links-for-renters.md) | Operators sign in by email link; renters and landlords use private links | Accepted; renter accounts added by 0016 |
 | [0014](0014-vercel-supabase-approved-vendors.md) | Vercel and Supabase, with approved vendors instead of EU-only | Accepted |
@@ -25,6 +25,7 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0021](0021-photo-pipeline.md) | The photo pipeline | Accepted |
 | [0022](0022-checking-letters.md) | Checking letters before their homes go live | Accepted |
 | [0023](0023-moderation.md) | Moderation: rules first, a hold for a person, people decide | Accepted |
+| [0025](0025-places-index-on-google-maps.md) | Renter search uses our own place index, on Google Maps | Accepted (replaces the marketplace tech spec's self-hosted map, planned as 0020) |
 
 ## Template
 

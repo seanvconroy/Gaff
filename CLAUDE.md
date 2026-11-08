@@ -7,6 +7,7 @@ Gaff is where homes in Ireland are let. Letters (private landlords, and agents w
 - **How it's built:** `docs/architecture.md` and the ADRs in `docs/adr/`.
 - **Decisions on PRD questions:** `docs/open-questions.md`.
 - **Progress:** `docs/status.md` (keep it current).
+- **Next steps and open questions to come back to:** `docs/next-steps.md`.
 - **Before the first pilot:** `docs/launch-checklist.md`.
 - **Competitor teardowns:** `docs/competitors/` (reference only).
 - **Marketplace (approved 7 November 2026):** `docs/marketplace/prd.md` (requirement IDs M1, M2…) and `docs/marketplace/tech-spec.md`. The product rules below apply to it in full.

@@ -82,6 +82,8 @@ Last updated: 1 November 2026 (all three slices built; hosting moved to Vercel a
 
 ## Marketplace (approved 7 November 2026)
 
+What's next, and the open questions to resolve as we build, are banked in [next-steps.md](next-steps.md).
+
 The [marketplace PRD](marketplace/prd.md) and [technical specification](marketplace/tech-spec.md), built in the specification's milestone order.
 
 | # | Milestone | Status |

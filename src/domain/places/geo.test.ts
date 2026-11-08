@@ -44,6 +44,18 @@ describe('M56: search geometry', () => {
     expect(pointInPolygon(cork, square)).toBe(false);
   });
 
+  it('ADR-0027: boxes a boundary of any size, such as a county’s 200,000 points', () => {
+    const ring = Array.from({ length: 200_000 }, (_, i) => ({
+      lat: 52 + Math.sin(i / 1000) * 0.5,
+      lng: -8 + Math.cos(i / 1000) * 0.5,
+    }));
+    const box = bboxOf(ring);
+    expect(box.minLat).toBeCloseTo(51.5, 3);
+    expect(box.maxLat).toBeCloseTo(52.5, 3);
+    expect(box.minLng).toBeCloseTo(-8.5, 3);
+    expect(box.maxLng).toBeCloseTo(-7.5, 3);
+  });
+
   it('knows roughly where Ireland is', () => {
     expect(inIreland(cork)).toBe(true);
     expect(inIreland({ lat: 51.5074, lng: -0.1278 })).toBe(false);

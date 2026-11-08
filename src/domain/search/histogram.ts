@@ -18,8 +18,13 @@ const MAX_BARS = 30;
 export function rentHistogram(rentsCents: readonly number[]): RentHistogram | null {
   if (rentsCents.length === 0) return null;
   const rents = rentsCents.map((c) => c / 100);
-  const min = Math.min(...rents);
-  const max = Math.max(...rents);
+  // A loop, not Math.min(...rents): a search across Ireland can have more rents than a call
+  // can take as arguments.
+  let [min, max] = [Infinity, -Infinity];
+  for (const rent of rents) {
+    if (rent < min) min = rent;
+    if (rent > max) max = rent;
+  }
   const from = Math.floor(min / 100) * 100;
   const to = Math.max(from + 100, Math.ceil((max + 1) / 100) * 100);
   const step = Math.max(100, Math.ceil((to - from) / MAX_BARS / 50) * 50);

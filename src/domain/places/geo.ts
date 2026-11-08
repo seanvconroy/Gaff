@@ -39,14 +39,17 @@ export function bboxAround(centre: Point, radiusMetres: number): BBox {
   };
 }
 
+/** The box round some points. A loop, not Math.min(...), so a boundary of any size fits. */
 export function bboxOf(points: readonly Point[]): BBox {
   if (points.length === 0) throw new Error('bboxOf needs at least one point');
-  return {
-    minLat: Math.min(...points.map((p) => p.lat)),
-    maxLat: Math.max(...points.map((p) => p.lat)),
-    minLng: Math.min(...points.map((p) => p.lng)),
-    maxLng: Math.max(...points.map((p) => p.lng)),
-  };
+  const box = { minLat: Infinity, maxLat: -Infinity, minLng: Infinity, maxLng: -Infinity };
+  for (const p of points) {
+    if (p.lat < box.minLat) box.minLat = p.lat;
+    if (p.lat > box.maxLat) box.maxLat = p.lat;
+    if (p.lng < box.minLng) box.minLng = p.lng;
+    if (p.lng > box.maxLng) box.maxLng = p.lng;
+  }
+  return box;
 }
 
 export function inBBox(point: Point, box: BBox): boolean {

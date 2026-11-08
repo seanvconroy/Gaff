@@ -299,7 +299,8 @@ export class Grid<T> {
     const out: T[] = [];
     for (let r = row - reach; r <= row + reach; r++) {
       for (let c = col - reach; c <= col + reach; c++) {
-        out.push(...(this.cells.get(`${r}:${c}`) ?? []));
+        // A loop, not push(...cell): a dense city cell can hold more items than a call can take.
+        for (const item of this.cells.get(`${r}:${c}`) ?? []) out.push(item);
       }
     }
     return out;

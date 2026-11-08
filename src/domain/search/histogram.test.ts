@@ -15,6 +15,14 @@ describe('M122: rents in a search, for the Rent filter', () => {
     expect(h.counts.reduce((a, b) => a + b)).toBe(2);
   });
 
+  it('takes a search across Ireland, however many homes it has', () => {
+    const rents = Array.from({ length: 200_000 }, (_, i) => 100_000 + (i % 400) * 1_000);
+    const h = rentHistogram(rents)!;
+    expect(h.min).toBe(1000);
+    expect(h.max).toBe(4990);
+    expect(h.counts.reduce((a, b) => a + b, 0)).toBe(200_000);
+  });
+
   it('has nothing to show for no homes', () => {
     expect(rentHistogram([])).toBeNull();
   });

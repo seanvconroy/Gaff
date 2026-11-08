@@ -95,6 +95,16 @@ https://gaff-test.vercel.app, for the founders to test as a letter and as a rent
 - **Made-up letters and homes:** two agencies and a private landlord, with nine live homes in Dublin, Galway and Cork and drawn photos, seeded by the build (`pnpm db:seed --deploy`, the test copy's production deployment only). Each deploy tops up their viewing times and confirms them as available. "Add test enquiries" on a letting brings five made-up renters from Daft and MyHome, most with answers.
 - **Never indexed:** every page says `noindex` and `robots.txt` disallows everything; a banner on every page says it's the test copy. Vercel Authentication covers previews only.
 
+## Replacing the stand-ins (draft, 8 November 2026)
+
+The [providers PRD](providers/prd.md) (P1 to P48) and [technical specification](providers/tech-spec.md), for the founders' approval. Sean took five decisions the same day (Q37 to Q41):
+- the AI runs on the Claude API on the test copy and on Bedrock in Dublin in production;
+- chosen renters prove their identity with Stripe Identity or in person;
+- they prove their income through Tink (TrueLayer as the backup) or payslips read by Claude;
+- the AI drafts descriptions and checks for unfair wording.
+
+Two proposed ADRs: [0025](adr/0025-ai-provider-and-tasks.md) and [0026](adr/0026-checking-chosen-renters.md). Before renters' checks go live: Stripe's written confirmation (Q44) and the solicitor's answers (Q42 to Q46). Nothing is built yet.
+
 ## Marketplace (approved 7 November 2026)
 
 What's next, and the open questions to resolve as we build, are banked in [next-steps.md](next-steps.md).

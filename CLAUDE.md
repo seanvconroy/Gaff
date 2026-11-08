@@ -11,6 +11,7 @@ Gaff is where homes in Ireland are let. Letters (private landlords, and agents w
 - **Before the first pilot:** `docs/launch-checklist.md`.
 - **Competitor teardowns:** `docs/competitors/` (reference only).
 - **Marketplace (approved 7 November 2026):** `docs/marketplace/prd.md` (requirement IDs M1, M2…) and `docs/marketplace/tech-spec.md`. The product rules below apply to it in full.
+- **Replacing the stand-ins (draft, 8 November 2026):** `docs/providers/prd.md` (requirement IDs P1, P2…) and `docs/providers/tech-spec.md`: the real AI, and ID and income checks for chosen renters.
 
 ## Product rules: never break these
 
@@ -48,7 +49,12 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
     - its EU region, wherever it has one;
     - a lawful basis for anything outside the EU (the EU–US Data Privacy Framework or standard contractual clauses), named in the privacy notice.
 
-    Approved so far (Q26, Q29, ADR-0014): Vercel (functions in Dublin), Supabase (Ireland), Resend (email), Claude on Amazon Bedrock (EU), Sinch (EU), Mailgun (EU, as an alternative), Stripe Identity, only to check private landlords' identity before their first listing, and later Stripe, only to charge operators.
+    Approved so far (Q26, Q29, Q37 to Q39, ADR-0014):
+    - Vercel (functions in Dublin), Supabase (Ireland), Resend (email), Sinch (EU), and Mailgun (EU, as an alternative);
+    - Claude on Amazon Bedrock (EU); the Claude API on the test copy and in development only, never with real renters' data (Q37);
+    - Stripe Identity, to check private landlords' identity before their first listing, and chosen renters' identity once Stripe confirms the use in writing (Q38, Q44);
+    - Tink, for read-only open banking income checks, with TrueLayer as the backup (Q39);
+    - later, Stripe, only to charge operators.
 
 ## Voice: every word renters see
 

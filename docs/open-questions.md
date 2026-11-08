@@ -310,3 +310,69 @@ Every Gaff enquiry starts the workflow, so a free listing comes with it.
 - Terms for private landlords, who may be consumers.
 - Retention for reports: proposed 6 months after a case closes.
 - The BER display against SEAI's current guidelines.
+
+## G. Replacing the stand-ins
+
+Raised on 8 November 2026 with the [providers PRD](providers/prd.md) and [technical specification](providers/tech-spec.md). Sean took Q37 to Q41 the same day. Q42 to Q47 are open, with proposals.
+
+### Q37. Where does the AI run?
+
+The Claude API offers only global or US inference and stores data at rest in the US. Claude in Amazon Bedrock runs Claude Opus 5.5 in Dublin (`eu-west-1`).
+
+**Decision (Sean, 8 November 2026):** the test copy and development use the Claude API, with the founders' credits, on made-up data and the founders' own test messages. Production uses Claude on Bedrock in Dublin. Real renters' data never reaches the Claude API. See [ADR-0025](adr/0025-ai-provider-and-tasks.md).
+
+### Q38. How are chosen renters' identities checked?
+
+**Decision (Sean, 8 November 2026):** Stripe Identity (a document and a selfie), or the renter shows an original photo ID to the letter in person, and the letter records it. This extends Stripe Identity's approval (Q29) from landlords to renters, subject to Q44. Gaff keeps only the result, the verified name, whether it matches and the date (Q19). See [ADR-0026](adr/0026-checking-chosen-renters.md).
+
+### Q39. Which open banking provider?
+
+Plaid supports Ireland for transactions, but its income product isn't offered in Ireland yet, it stores European data in the US, and its EU plans need a minimum commitment. Tink's Income Check lists Ireland and processes in the EU. TrueLayer is authorised by the Central Bank of Ireland and keeps data in Ireland and the UK, but has no income report.
+
+**Decision (Sean, 8 November 2026):** Tink, with TrueLayer as the backup behind the same port. Ask both for quotes and confirmed Irish bank lists. Revisit Plaid if its income product reaches Ireland.
+
+### Q40. Can renters prove income without connecting a bank?
+
+**Decision (Sean, 8 November 2026):** yes, by uploading recent payslips (or an employer's letter) with the PPS number covered. Claude reads the figures, the renter confirms them, and the letter can open the payslips until they're deleted, 30 days after the result at the latest.
+
+### Q41. Which AI tasks come in this phase?
+
+**Decision (Sean, 8 November 2026):** answers to renters' questions (R8, already built), drafted listing descriptions (M45) and the unfair-wording check (ADR-0023), plus reading payslips (Q40). Holding letters' messages that ask for money before a viewing (M28) waits.
+
+### Q42. Income checks and housing assistance (**Solicitor**)
+
+HAP is paid to the landlord, so it never shows in a renter's bank account, and a bank figure understates a HAP renter's means. Asking whether someone receives HAP is off limits (rule 3).
+
+**Proposal:** the renter can add any income that isn't in the account or on their payslips, housing support included, as one declared amount, and nothing records what it is (as Q17). Wherever a letter sees income, Gaff says that housing support counts and is paid to landlords directly. The solicitor confirms this is enough under the housing assistance ground.
+
+### Q43. Checking the backup at the same time (**Solicitor**)
+
+The DPC ties ID and financial checks to "those who will be entering into a tenancy".
+
+**Proposal:** keep checking the preferred applicant and the backup together (R18), if the solicitor agrees it's proportionate; otherwise, check the backup only when they're promoted.
+
+### Q44. Do Stripe's terms allow checking renters? (**Sean, Stripe**)
+
+Stripe's service terms appear to forbid using Identity "as a factor in determining any person's eligibility for … housing". Stripe's docs say that applies to US credit-reporting activity.
+
+**Proposal:** ask Stripe in writing before renters' Stripe checks go live. Until then, production offers the in-person route only.
+
+### Q45. Is consent to the selfie freely given? (**Solicitor**)
+
+The DPC considers consent rarely freely given between landlord and tenant.
+
+**Proposal:** yes, because the in-person route is equally prominent, needs no reason and carries no penalty.
+
+### Q46. Open banking at offer stage (**Solicitor**)
+
+The workflow PRD asks whether open banking affordability checks at offer stage are proportionate.
+
+**Proposal:** yes, as one of two routes the renter chooses between, with only one figure kept.
+
+### Q47. Renters whose bank can't be connected
+
+Most credit unions offer no open banking connection, and An Post Money's is unconfirmed.
+
+**Proposal:** payslips are an equal route, and not connecting a bank is never a negative.
+
+**Decision:** open (founders).

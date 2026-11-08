@@ -25,6 +25,8 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0021](0021-photo-pipeline.md) | The photo pipeline | Accepted |
 | [0022](0022-checking-letters.md) | Checking letters before their homes go live | Accepted |
 | [0023](0023-moderation.md) | Moderation: rules first, a hold for a person, people decide | Accepted |
+| [0025](0025-ai-provider-and-tasks.md) | Where the AI runs, and the tasks it does | Proposed (amends 0009) |
+| [0026](0026-checking-chosen-renters.md) | Checking chosen renters' identity and income | Proposed |
 
 ## Template
 

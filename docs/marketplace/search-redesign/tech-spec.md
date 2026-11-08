@@ -203,7 +203,7 @@ OSM-derived rows are kept separate from rows from other sources. Following the O
 | `map` | any path, plus `bbox=w,s,e,n` | Inside the box. The path's place is kept for the "back to Rathmines" link |
 | `shape` | any path, plus `shape=` | Inside the drawn polygon: at most 100 points and 2,000 km², encoded with Google's polyline format |
 
-Best match (ADR-0024's formula) uses the distance from the place for `near` and `+ km` searches, as it does for today's radius searches.
+Best match (the marketplace tech spec's formula, in `src/domain/search/ranking.ts`) uses the distance from the place for `near` and `+ km` searches, as it does for today's radius searches.
 
 ## Web addresses
 

@@ -1,6 +1,7 @@
 import { blockingFindings, checkListingText } from '@/domain/moderation/listing-text';
 import { berFromLettingRating, berProblem } from '@/domain/homes/ber';
 import { depositProblem } from '@/domain/homes/facts';
+import { isOnMap, type PointSource } from '@/domain/map/pin';
 import { MIN_PHOTOS_TO_PUBLISH } from '@/domain/media/photos';
 import { missingCheckWords, type MissingCheck } from '@/domain/verification/readiness';
 
@@ -11,7 +12,15 @@ import { missingCheckWords, type MissingCheck } from '@/domain/verification/read
  */
 
 export type Section =
-  'checks' | 'setup' | 'home' | 'price' | 'photos' | 'description' | 'criteria' | 'publish';
+  | 'checks'
+  | 'setup'
+  | 'home'
+  | 'location'
+  | 'price'
+  | 'photos'
+  | 'description'
+  | 'criteria'
+  | 'publish';
 
 export interface PublishProblem {
   section: Section;
@@ -32,7 +41,13 @@ export interface PublishDraft {
     outdoorSpace: string | null;
     latitude: number | null;
     longitude: number | null;
+    pointSource: PointSource;
   };
+  /**
+   * M38: whether a pin can be placed here: false while the map is switched off, when a home
+   * goes live at its area's centre, in the list alone, as before the map.
+   */
+  pinNeeded: boolean;
   photosReady: number;
   description: string | null;
   missingChecks: readonly MissingCheck[];
@@ -55,7 +70,9 @@ export function publishProblems(draft: PublishDraft): PublishProblem[] {
 
   if (!draft.home.heating) add('home', 'Choose the heating');
   if (!draft.home.outdoorSpace) add('home', 'Choose the outdoor space, or “No outdoor space”');
-  if (draft.home.latitude === null || draft.home.longitude === null) {
+  if (draft.pinNeeded && !isOnMap(draft.home.pointSource)) {
+    add('location', 'Place the pin on the map, so renters see where the home is');
+  } else if (draft.home.latitude === null || draft.home.longitude === null) {
     add('home', 'Confirm where the home is');
   }
   const ber =

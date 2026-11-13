@@ -260,6 +260,13 @@
       "when": 1794166388931,
       "tag": "0036_identity_per_person",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1794602406625,
+      "tag": "0037_m125_map_points",
+      "breakpoints": true
     }
   ]
 }

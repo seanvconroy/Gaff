@@ -35,6 +35,7 @@ const candidateColumns = {
   facts: publicListings.facts,
   latitude: publicListings.latitude,
   longitude: publicListings.longitude,
+  onMap: publicListings.onMap,
   confirmedAt: publicListings.confirmedAt,
   publishedAt: publicListings.publishedAt,
   completeness: publicListings.completeness,
@@ -78,7 +79,7 @@ async function loadCards(tx: Tx, ids: readonly string[]) {
 
 export type ResultCard = Awaited<ReturnType<typeof loadCards>>[number];
 
-type Candidate = FilterableListing & RankableListing;
+type Candidate = FilterableListing & RankableListing & { onMap: boolean };
 
 function areaCondition(area: SearchArea): SQL | undefined {
   switch (area.kind) {
@@ -214,7 +215,10 @@ export interface MapPoint {
 
 const MAX_POINTS = 2000;
 
-/** M57, M117: every home the search finds inside the map's view, light enough for 2,000 pins. */
+/**
+ * M57, M117, M125: every home the search finds inside the map's view that has a placed point,
+ * light enough for 2,000 pins. A home whose point is only its area's centre stays in the list.
+ */
 export async function mapPoints(
   area: SearchArea,
   filters: Filters,
@@ -223,7 +227,7 @@ export async function mapPoints(
 ): Promise<MapPoint[]> {
   return withPublic(async (tx) => {
     const found = (await candidates(tx, area, filters, now))
-      .filter((r) => inBBox({ lat: r.latitude, lng: r.longitude }, view))
+      .filter((r) => r.onMap && inBBox({ lat: r.latitude, lng: r.longitude }, view))
       .slice(0, MAX_POINTS);
     if (found.length === 0) return [];
     const named = new Map(

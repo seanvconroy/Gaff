@@ -15,7 +15,9 @@ const ready: PublishDraft = {
     outdoorSpace: 'balcony',
     latitude: 53.32,
     longitude: -6.26,
+    pointSource: 'letter',
   },
+  pinNeeded: true,
   photosReady: 5,
   description:
     'A bright two-bedroom apartment on a quiet road, a short walk from the Luas, with a balcony and gas central heating.',
@@ -81,5 +83,29 @@ describe('M48: a listing goes live only when it’s complete', () => {
     expect(publishProblems({ ...ready, lettingStatus: 'let' })).toEqual([
       { section: 'publish', message: 'This letting is closed. Let the home again to list it.' },
     ]);
+  });
+
+  it('M38: needs the letter’s pin, never just the centre of the home’s area', () => {
+    const unplaced = { ...ready, home: { ...ready.home, pointSource: 'area' as const } };
+    expect(publishProblems(unplaced)).toEqual([
+      {
+        section: 'location',
+        message: 'Place the pin on the map, so renters see where the home is',
+      },
+    ]);
+    // The test copy's made-up homes have points of their own.
+    expect(publishProblems({ ...ready, home: { ...ready.home, pointSource: 'seed' } })).toEqual([]);
+  });
+
+  it('M135: while the map is switched off, a home goes live without a pin, as before', () => {
+    const unplaced = {
+      ...ready,
+      pinNeeded: false,
+      home: { ...ready.home, pointSource: 'area' as const },
+    };
+    expect(publishProblems(unplaced)).toEqual([]);
+    expect(
+      publishProblems({ ...unplaced, home: { ...unplaced.home, latitude: null, longitude: null } }),
+    ).toEqual([{ section: 'home', message: 'Confirm where the home is' }]);
   });
 });

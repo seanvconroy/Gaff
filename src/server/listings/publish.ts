@@ -8,6 +8,7 @@ import {
   publishProblems,
   type PublishProblem,
 } from '@/domain/listings/publish-checks';
+import { env } from '@/lib/env';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
@@ -41,6 +42,8 @@ export function problemsFor(
     depositCents: letting.depositCents,
     criteriaSet: letting.criteria !== null,
     home,
+    // M38: a pin is needed wherever there's a map to place it on (M135: not while it's off).
+    pinNeeded: env().MAP_PROVIDER !== 'none',
     photosReady: readyPhotoCount(context),
     description: listing.description,
     missingChecks,

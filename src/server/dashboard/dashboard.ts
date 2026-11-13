@@ -4,8 +4,10 @@ import {
   activityMinutes,
   applications,
   bookings,
+  homes,
   inboundEmails,
   lettings,
+  listings,
   messages,
   operatorQuestions,
   offers,
@@ -17,6 +19,7 @@ import { needsYouToday } from '@/domain/dashboard/today';
 import { whoCanBeOffered } from '@/domain/offers/offer';
 import { rtbDeadline } from '@/domain/tenancy/tenancy';
 import { nextTenancyStep } from '@/domain/tenancy/steps';
+import { env } from '@/lib/env';
 import { irishToday } from '@/lib/format';
 import { approvalState } from '@/server/offers/approval';
 import { daysSince, timeAgainstUsual } from '@/domain/dashboard/time';
@@ -159,6 +162,24 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
       .from(organisations)
       .where(eq(organisations.id, member.organisationId));
 
+    // M38, M125: listed homes whose pin isn't placed, where there's a map to place it on.
+    const unpinned = new Set(
+      env().MAP_PROVIDER === 'none'
+        ? []
+        : (
+            await tx
+              .select({ lettingId: listings.lettingId })
+              .from(listings)
+              .innerJoin(homes, eq(homes.id, listings.homeId))
+              .where(
+                and(
+                  inArray(listings.status, ['live', 'paused', 'enquiries_closed']),
+                  eq(homes.pointSource, 'area'),
+                ),
+              )
+          ).map((row) => row.lettingId),
+    );
+
     const lettingsWithNumbers = rows.map((letting) => {
       const enquiredAt = firstEnquiry.get(letting.id)?.at ?? null;
       return {
@@ -169,6 +190,7 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         readyToOffer: offerState.get(letting.id)?.readyToOffer ?? false,
         needsNewChoice: offerState.get(letting.id)?.needsNewChoice ?? false,
         rtbDueBy: rtbDue.get(letting.id) ?? null,
+        needsPin: unpinned.has(letting.id),
         tenancyStep: tenancyByLetting.has(letting.id)
           ? nextTenancyStep(tenancyByLetting.get(letting.id)!)
           : null,

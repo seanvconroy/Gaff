@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { isMadeUpAddress } from '@/adapters/email/test-copy';
 import { DUPLICATE_DISTANCE, MIN_PHOTOS_TO_PUBLISH, hammingDistance } from '@/domain/media/photos';
 import { newLettingSchema } from '@/domain/lettings/new-letting';
+import { fixtureGazetteer } from '@/domain/places/fixture';
+import { distanceMetres, inIreland } from '@/domain/places/geo';
+import { approximateLocation } from '@/domain/places/locate';
 import { irishToday } from '@/lib/format';
 import { photoHash } from '@/server/media/process';
 import { sceneSvg, seedPhoto, seedPhotoFile, seedPhotos } from './seed-photos';
@@ -40,6 +43,30 @@ describe('Test copy seed: made-up letters and homes', () => {
       });
       expect(parsed.success, home.letting.addressLine1).toBe(true);
     }
+  });
+
+  it('M125: gives every home its own point, in its area, so none sits at an area’s centre', () => {
+    const g = fixtureGazetteer();
+    const homes = seedLetters.flatMap((l) => l.homes);
+    for (const home of homes) {
+      const address = home.letting.addressLine1!;
+      expect(inIreland(home.point), address).toBe(true);
+      const located = approximateLocation(
+        { area: home.letting.area!, county: home.letting.county!, routingKey: null },
+        g,
+      );
+      expect(located.source, address).toBe('area');
+      const fromCentre = distanceMetres(home.point, located.place.centre);
+      expect(fromCentre, address).toBeLessThanOrEqual(located.place.radiusMetres);
+      expect(fromCentre, address).toBeGreaterThan(50);
+    }
+    // No two homes share a point, so each has its own pin.
+    const points = homes.map((h) => `${h.point.lat},${h.point.lng}`);
+    expect(new Set(points).size).toBe(points.length);
+    // M38: some hide the exact address, so approximate points are tried on the test copy too.
+    const hidden = homes.filter((h) => !h.showExactAddress).length;
+    expect(hidden).toBeGreaterThanOrEqual(2);
+    expect(hidden).toBeLessThan(homes.length / 2);
   });
 
   it('seeds only the test copy’s production deployment: never previews or production', () => {

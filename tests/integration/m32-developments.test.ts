@@ -20,7 +20,7 @@ import { publishListing } from '@/server/listings/publish';
 import { publicDevelopmentBySlug } from '@/server/search/developments';
 import { publicListingBySlug } from '@/server/search/listing';
 import { aLetting, aViewingSession, daysFromToday } from '../fixtures/lettings';
-import { addPhotos, aCheckedLandlord, freshShades } from './listing-helpers';
+import { addPhotos, aCheckedLandlord, freshShades, placePin } from './listing-helpers';
 
 /** M32 to M35, M75: developments, the homes in them, and many homes at once. */
 
@@ -101,6 +101,8 @@ describe('M33 to M35: homes in a development', () => {
     });
     await saveLettingDetails(member, lettingId, { deposit: '2,650' });
     await saveDescription(member, lettingId, `${DESCRIPTION} Apartment 1 faces south.`);
+    // M38: the letter places the pin once; it's the development's, and its later homes'.
+    await placePin(member, lettingId);
     const first = await publishListing(member, lettingId, { declare: true });
     expect(first).toMatchObject({ outcome: 'live' });
     const listing = await publicListingBySlug(first.outcome === 'live' ? first.slug : '');
@@ -129,7 +131,13 @@ describe('M33 to M35: homes in a development', () => {
         depositCents: 265_000,
         criteria: { maxOccupants: 3, noPets: false },
       },
-      home: { developmentId: id, floor: 3, floorAreaSqm: 74, heating: 'heat_pump' },
+      home: {
+        developmentId: id,
+        floor: 3,
+        floorAreaSqm: 74,
+        heating: 'heat_pump',
+        pointSource: 'letter',
+      },
     });
     const sessions = await withOrg(member.organisationId, (tx) =>
       tx.select().from(viewingSessions).where(eq(viewingSessions.lettingId, added.added[0]!)),

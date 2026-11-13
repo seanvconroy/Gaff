@@ -23,6 +23,7 @@ const input: ProjectionInput = {
     routingKey: 'D06',
     latitude: 53.3262,
     longitude: -6.2563,
+    pointSource: 'letter',
     showExactAddress: false,
     propertyType: 'apartment',
     bedrooms: 2,
@@ -90,6 +91,14 @@ describe('ADR-0017: the public projection of a listing', () => {
     );
     expect(moved).toBeGreaterThan(0);
     expect(moved).toBeLessThan(150);
+  });
+
+  it('M125: goes on the map only with a placed point, never at its area’s centre', () => {
+    expect(buildPublicListing(input).onMap).toBe(true);
+    const seeded = { ...input, home: { ...input.home, pointSource: 'seed' as const } };
+    expect(buildPublicListing(seeded).onMap).toBe(true);
+    const unplaced = { ...input, home: { ...input.home, pointSource: 'area' as const } };
+    expect(buildPublicListing(unplaced).onMap).toBe(false);
   });
 
   it('carries the criteria in words, and pets considered unless the letter said no', () => {

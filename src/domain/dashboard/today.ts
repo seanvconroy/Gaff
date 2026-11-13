@@ -3,7 +3,8 @@ import type { TenancyStep } from '@/domain/tenancy/steps';
 /**
  * R28: what needs a person today, most urgent first. Renters waiting on a reply come first,
  * then people to mark at today's viewings, then applicants to choose from (R17), then who to
- * invite (soonest viewings first), then homes still being set up. Gaff only lists these; a person does each one.
+ * invite (soonest viewings first), then listed homes with no pin on the map, then homes still
+ * being set up. Gaff only lists these; a person does each one.
  */
 export interface LettingSnapshot {
   id: string;
@@ -23,6 +24,8 @@ export interface LettingSnapshot {
   rtbDueBy?: string | null;
   /** Stage 8: the operator's next step on the tenancy, if it's theirs. */
   tenancyStep?: TenancyStep | null;
+  /** M38, M125: its listing is public, but the home's pin isn't placed, so it's off the map. */
+  needsPin?: boolean;
   firstViewingAt: Date | null;
 }
 
@@ -37,7 +40,7 @@ export type TodayItem =
       address: string;
       count: number;
     }
-  | { kind: 'setup'; lettingId: string; address: string };
+  | { kind: 'pin' | 'setup'; lettingId: string; address: string };
 
 export function needsYouToday(input: {
   approvals: number;
@@ -91,6 +94,10 @@ export function needsYouToday(input: {
         count: l.undecided,
       });
     }
+  }
+  // M125: a home that's listed but not on the map yet. Nobody is waiting on it, so it's late.
+  for (const l of input.lettings) {
+    if (l.needsPin) items.push({ kind: 'pin', lettingId: l.id, address: l.addressLine1 });
   }
   for (const l of input.lettings) {
     if (l.status === 'draft')

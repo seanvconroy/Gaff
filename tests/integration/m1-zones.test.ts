@@ -19,6 +19,8 @@ const PUBLIC_LISTING_COLUMNS = [
   'routing_key',
   'latitude',
   'longitude',
+  // M125: whether the point is a placed pin; nothing about who placed it.
+  'on_map',
   'rent_cents',
   'deposit_cents',
   'property_type',

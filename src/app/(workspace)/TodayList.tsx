@@ -5,6 +5,7 @@ import {
   Handshake,
   Inbox,
   type LucideIcon,
+  MapPin,
   MessageCircleQuestionMark,
   RotateCcw,
   Sparkles,
@@ -36,6 +37,7 @@ const icons: Record<TodayItem['kind'], { Icon: LucideIcon; tone: TileTone }> = {
   offer: { Icon: Handshake, tone: 'quiet' },
   rechoose: { Icon: RotateCcw, tone: 'warning' },
   shortlist: { Icon: Users, tone: 'quiet' },
+  pin: { Icon: MapPin, tone: 'quiet' },
   setup: { Icon: ClipboardList, tone: 'quiet' },
 };
 
@@ -98,6 +100,11 @@ export function todayLink(item: TodayItem, withAddress = true): { href: string; 
       return {
         href: `/lettings/${item.lettingId}/shortlist`,
         text: about(item.address, `decide who views (${people(item.count)} waiting)`),
+      };
+    case 'pin':
+      return {
+        href: `/lettings/${item.lettingId}/listing#location`,
+        text: about(item.address, 'place the pin on the map'),
       };
     case 'setup':
       return {

@@ -1,6 +1,7 @@
 import { describeCriteria, questionsFor, type Criteria } from '@/domain/criteria/criteria';
 import { berBand, berLabel, type Ber } from '@/domain/homes/ber';
 import { propertyTypes } from '@/domain/homes/facts';
+import { isOnMap, type PointSource } from '@/domain/map/pin';
 import { approximate } from '@/domain/places/geo';
 import { slugify } from '@/domain/places/slug';
 import type { PublicStatus } from './lifecycle';
@@ -20,6 +21,8 @@ export interface ProjectionHome {
   routingKey: string | null;
   latitude: number;
   longitude: number;
+  /** M125: where the point came from. Only a placed point goes on the map. */
+  pointSource: PointSource;
   showExactAddress: boolean;
   propertyType: string;
   bedrooms: number;
@@ -184,6 +187,7 @@ export function buildPublicListing(input: ProjectionInput, now: Date = new Date(
     routingKey: home.routingKey,
     latitude: point.lat,
     longitude: point.lng,
+    onMap: isOnMap(home.pointSource),
     rentCents: input.rentCents,
     depositCents: input.depositCents,
     propertyType: home.propertyType,

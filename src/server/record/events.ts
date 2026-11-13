@@ -387,6 +387,16 @@ export const eventCatalogue = {
     because: z.enum(['letter', 'letting', 'freshness', 'review', 'enquiry_limit']),
   }),
   'listing.confirmed': z.object({ listingId: z.uuid() }),
+  /**
+   * M38: the letter placed the home's pin. Never the coordinates: a private landlord's home is
+   * personal data. `check` is whether the pin is in the area the address names (M126), and
+   * `homes` how many homes took the pin (a development's homes share theirs).
+   */
+  'home.point_set': z.object({
+    homeId: z.uuid(),
+    check: z.enum(['inside', 'outside', 'unknown']),
+    homes: z.number().int().min(1),
+  }),
   'listing.declared': z.object({ homeId: z.uuid(), wordingVersion: z.enum(['m25-v1']) }),
 } satisfies Record<string, z.ZodObject>;
 

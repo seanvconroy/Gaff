@@ -105,6 +105,8 @@ export const publicListings = pgTable(
     routingKey: text(),
     latitude: doublePrecision().notNull(),
     longitude: doublePrecision().notNull(),
+    /** M125: false while the point is only the centre of the home's area: off the map, in the list. */
+    onMap: boolean().notNull().default(false),
     rentCents: integer().notNull(),
     depositCents: integer().notNull(),
     propertyType: text().notNull(),

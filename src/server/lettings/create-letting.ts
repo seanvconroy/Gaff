@@ -25,6 +25,8 @@ export async function createLetting(
             id: developments.id,
             latitude: developments.latitude,
             longitude: developments.longitude,
+            pointSource: developments.pointSource,
+            pointSetAt: developments.pointSetAt,
           })
           .from(developments)
           .where(eq(developments.id, options.developmentId))
@@ -66,6 +68,9 @@ export async function createLetting(
         developmentId: development?.id ?? null,
         latitude: development?.latitude ?? null,
         longitude: development?.longitude ?? null,
+        // M38: once a letter has placed the development's pin, its new homes start with it.
+        pointSource: development?.pointSource ?? 'area',
+        pointSetAt: development?.pointSetAt ?? null,
         floor: options.floor ?? null,
         floorAreaSqm: options.floorAreaSqm ?? null,
         createdBy: member.userId,

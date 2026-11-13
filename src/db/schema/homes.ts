@@ -7,8 +7,10 @@ import {
   integer,
   pgTable,
   text,
+  timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
+import { pointSources } from '@/domain/map/pin';
 import { users } from './auth';
 import { createdAt, tenantPolicy, updatedAt } from './columns';
 import { organisations } from './organisations';
@@ -33,6 +35,9 @@ export const developments = pgTable(
     routingKey: text(),
     latitude: doublePrecision(),
     longitude: doublePrecision(),
+    /** M38, M125: the development's pin is its homes' pin, once a letter has placed it. */
+    pointSource: text({ enum: pointSources }).notNull().default('area'),
+    pointSetAt: timestamp({ withTimezone: true }),
     description: text(),
     amenities: text()
       .array()
@@ -89,6 +94,12 @@ export const homes = pgTable(
     routingKey: text(),
     latitude: doublePrecision(),
     longitude: doublePrecision(),
+    /**
+     * M125: where the point came from. Only a point the letter placed (M38), or a made-up home's
+     * own point on the test copy, goes on the map: never the centre of the home's area.
+     */
+    pointSource: text({ enum: pointSources }).notNull().default('area'),
+    pointSetAt: timestamp({ withTimezone: true }),
     /** M38: false shows renters only the street and area, and an approximate point. */
     showExactAddress: boolean().notNull().default(true),
     propertyType: text().notNull(),

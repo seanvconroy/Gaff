@@ -14,6 +14,7 @@ import {
 } from '@/db/schema';
 import { newLettingSchema } from '@/domain/lettings/new-letting';
 import { DUPLICATE_DISTANCE, hammingDistance } from '@/domain/media/photos';
+import type { Point } from '@/domain/places/geo';
 import { viewingSessionSchema } from '@/domain/viewings/viewing-session';
 import { env } from '@/lib/env';
 import { irishToday } from '@/lib/format';
@@ -27,6 +28,7 @@ import { addViewingSession } from '@/server/lettings/viewing-sessions';
 import {
   describePhoto,
   removePhoto,
+  republishIfPublic,
   saveDescription,
   saveHomeDetails,
   saveLettingDetails,
@@ -66,6 +68,13 @@ interface SeedHome {
   photos: SeedPhoto[];
   /** The seed of the drawings earlier seeds added, so they can be swapped for photos. */
   photoSeed: number;
+  /**
+   * M125: the home's own point, on a street's centre line in its area, taken once from the place
+   * index. The addresses are made up, so no point is anyone's real home.
+   */
+  point: Point;
+  /** M38: two homes in three show their made-up address in full, so their pins are exact. */
+  showExactAddress: boolean;
 }
 
 interface SeedLetter {
@@ -134,6 +143,8 @@ export const seedLetters: SeedLetter[] = [
           'outside',
         ],
         photoSeed: 11,
+        point: { lat: 53.32578, lng: -6.25423 },
+        showExactAddress: true,
       },
       {
         letting: {
@@ -166,6 +177,8 @@ export const seedLetters: SeedLetter[] = [
         criteria: { maxOccupants: 2, noPets: true },
         photos: ['bed-by-the-window', 'living-room-and-kitchen', 'outside'],
         photoSeed: 23,
+        point: { lat: 53.32296, lng: -6.2682 },
+        showExactAddress: false,
       },
       {
         letting: {
@@ -196,6 +209,8 @@ export const seedLetters: SeedLetter[] = [
         criteria: { maxOccupants: 5, noPets: false },
         photos: ['living-room-tall-windows', 'living-room-and-kitchen', 'bed-by-the-window'],
         photoSeed: 37,
+        point: { lat: 53.36978, lng: -6.2593 },
+        showExactAddress: true,
       },
       {
         letting: {
@@ -228,6 +243,8 @@ export const seedLetters: SeedLetter[] = [
         criteria: { maxOccupants: 1, noPets: true },
         photos: ['studio', 'bed-by-the-window', 'outside'],
         photoSeed: 41,
+        point: { lat: 53.32977, lng: -6.26608 },
+        showExactAddress: true,
       },
     ],
   },
@@ -272,6 +289,8 @@ export const seedLetters: SeedLetter[] = [
         criteria: { maxOccupants: 3, noPets: false },
         photos: ['living-room-tall-windows', 'bed-by-the-window', 'living-room-and-kitchen'],
         photoSeed: 53,
+        point: { lat: 53.26435, lng: -9.07494 },
+        showExactAddress: false,
       },
       {
         letting: {
@@ -304,6 +323,8 @@ export const seedLetters: SeedLetter[] = [
         criteria: { maxOccupants: 2, noPets: true },
         photos: ['living-room-and-kitchen', 'bed-by-the-window', 'outside'],
         photoSeed: 67,
+        point: { lat: 53.272, lng: -9.0583 },
+        showExactAddress: true,
       },
       {
         letting: {
@@ -334,6 +355,8 @@ export const seedLetters: SeedLetter[] = [
         criteria: { maxOccupants: 6, noPets: false },
         photos: ['bed-by-the-window', 'living-room-tall-windows', 'living-room-and-kitchen'],
         photoSeed: 79,
+        point: { lat: 53.26999, lng: -9.10764 },
+        showExactAddress: true,
       },
     ],
   },
@@ -374,6 +397,8 @@ export const seedLetters: SeedLetter[] = [
         criteria: { maxOccupants: 3, noPets: true },
         photos: ['living-room-tall-windows', 'bed-by-the-window', 'living-room-and-kitchen'],
         photoSeed: 83,
+        point: { lat: 51.8944, lng: -8.43866 },
+        showExactAddress: false,
       },
       {
         letting: {
@@ -405,6 +430,8 @@ export const seedLetters: SeedLetter[] = [
         criteria: { maxOccupants: 2, noPets: true },
         photos: ['outside', 'living-room-and-kitchen', 'bed-by-the-window'],
         photoSeed: 97,
+        point: { lat: 51.8971, lng: -8.47488 },
+        showExactAddress: true,
       },
     ],
   },
@@ -420,6 +447,8 @@ export interface SeedReport {
   confirmed: number;
   /** Existing homes whose drawn photos were swapped for photos. */
   photosSwapped: number;
+  /** Existing homes given their own point on the map (M125). */
+  pinsPlaced: number;
 }
 
 function daysFrom(now: Date, days: number): string {
@@ -622,7 +651,7 @@ async function listHome(member: Member, framing: Framing, home: SeedHome, now: D
     tx.select({ homeId: lettings.homeId }).from(lettings).where(eq(lettings.id, lettingId)),
   );
   await saveHomeDetails(member, lettingId, {
-    showExactAddress: 'no',
+    showExactAddress: home.showExactAddress ? 'yes' : 'no',
     accessibility: '',
     ensuites: '',
     berNumber: '',
@@ -632,7 +661,41 @@ async function listHome(member: Member, framing: Framing, home: SeedHome, now: D
   await saveLettingDetails(member, lettingId, { deposit: home.letting.rent! });
   await saveDescription(member, lettingId, home.description);
   await addPhotos(member, lettingId, row!.homeId, framing, home.photos);
+  await placeSeedPin(member, lettingId, home, now);
   return publishListing(member, lettingId, { declare: true }, now);
+}
+
+/**
+ * M125: gives a made-up home its own point, so the test copy's map shows homes where they'd be,
+ * not piled on their area's centre. Only while the point is still the area's: a pin a tester
+ * has placed is theirs. Live listings are published again with it.
+ */
+async function placeSeedPin(
+  member: Member,
+  lettingId: string,
+  home: SeedHome,
+  now: Date,
+): Promise<boolean> {
+  return withOrg(member.organisationId, async (tx) => {
+    const [row] = await tx
+      .select({ id: homes.id, pointSource: homes.pointSource })
+      .from(homes)
+      .innerJoin(lettings, eq(lettings.homeId, homes.id))
+      .where(eq(lettings.id, lettingId));
+    if (!row || row.pointSource !== 'area') return false;
+    await tx
+      .update(homes)
+      .set({
+        latitude: home.point.lat,
+        longitude: home.point.lng,
+        pointSource: 'seed',
+        pointSetAt: now,
+        showExactAddress: home.showExactAddress,
+      })
+      .where(eq(homes.id, row.id));
+    await republishIfPublic(tx, lettingId, null);
+    return true;
+  });
 }
 
 /** Keeps a seeded home listable: a viewing time ahead, and confirmed as still available. */
@@ -684,6 +747,7 @@ export async function seedTestCopy(now = new Date()): Promise<SeedReport> {
     viewingsAdded: 0,
     confirmed: 0,
     photosSwapped: 0,
+    pinsPlaced: 0,
   };
   const reviewer = await seedReviewer();
   for (const letter of seedLetters) {
@@ -717,6 +781,7 @@ export async function seedTestCopy(now = new Date()): Promise<SeedReport> {
           home,
         );
         if (swapped) report.photosSwapped += 1;
+        if (await placeSeedPin(member, existing.lettingId, home, now)) report.pinsPlaced += 1;
         continue;
       }
       const result = await listHome(member, letter.framing, home, now);

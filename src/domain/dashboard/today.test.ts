@@ -34,6 +34,7 @@ describe('R28: what needs a decision today', () => {
         letting({ id: 'declined', needsNewChoice: true }),
         letting({ id: 'let', status: 'let', rtbDueBy: '2027-01-01' }),
         letting({ id: 'signing', status: 'let', tenancyStep: 'sign_agreement' }),
+        letting({ id: 'unpinned', needsPin: true }),
       ],
     });
     expect(items.map((i) => ('lettingId' in i ? `${i.kind}:${i.lettingId}` : i.kind))).toEqual([
@@ -48,6 +49,7 @@ describe('R28: what needs a decision today', () => {
       'rechoose:declined',
       'shortlist:sooner',
       'shortlist:later',
+      'pin:unpinned',
       'setup:draft',
     ]);
   });

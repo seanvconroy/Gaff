@@ -1,5 +1,6 @@
 import { date, integer, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
-import { tenantPolicy } from './columns';
+import { mapEvents } from '@/domain/map/counts';
+import { staffZonePolicy, tenantPolicy } from './columns';
 import { listings } from './listings';
 import { organisations } from './organisations';
 
@@ -45,4 +46,21 @@ export const listingVisitors = pgTable(
     visitorHash: text().notNull(),
   },
   (t) => [primaryKey({ columns: [t.listingId, t.day, t.visitorHash] }), tenantPolicy()],
+).enableRLS();
+
+/**
+ * M133: how the map is used, by day: opened, shown, failed (and why), its area searched, a shape
+ * drawn, a pin opened. The event and kind are fixed codes (domain/map/counts.ts). No user,
+ * visitor hash, address, area or search is kept. Staff zone; deleted after 13 months.
+ */
+export const mapDailyCounts = pgTable(
+  'map_daily_counts',
+  {
+    /** The Irish calendar day. */
+    day: date({ mode: 'string' }).notNull(),
+    event: text({ enum: mapEvents }).notNull(),
+    kind: text().notNull().default(''),
+    count: integer().notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.event, t.kind] }), staffZonePolicy()],
 ).enableRLS();

@@ -2,9 +2,10 @@ import { eq } from 'drizzle-orm';
 import sharp from 'sharp';
 import { objectStorage } from '@/adapters/storage';
 import { db, withOrg } from '@/db/client';
-import { lettings, staffMembers, users } from '@/db/schema';
+import { homes, lettings, staffMembers, users } from '@/db/schema';
 import { findStaff, type Staff } from '@/server/auth/staff';
 import { saveDescription, saveHomeDetails, saveLettingDetails } from '@/server/listings/editor';
+import { setHomePoint } from '@/server/listings/location';
 import { processMedia } from '@/server/media/process';
 import {
   finishPhotoUpload,
@@ -89,11 +90,15 @@ function uniqueWord(): string {
   return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => letters[b % 20]).join('');
 }
 
-/** A live letting with everything its listing needs, ready to publish. */
+/**
+ * A live letting with everything its listing needs, ready to publish. Its pin is placed where
+ * its area's centre put it (M38), unless `pin` is false.
+ */
 export async function aListableLetting(
   member: Member,
   shades = freshShades(),
   overrides: Partial<Record<string, string>> = {},
+  options: { pin?: boolean } = {},
 ) {
   const { lettingId } = await aLiveLetting(member, overrides);
   const [letting] = await withOrg(member.organisationId, (tx) =>
@@ -105,6 +110,7 @@ export async function aListableLetting(
     outdoorSpace: 'balcony',
     floorAreaSqm: '68',
   });
+  if (options.pin !== false) await placePin(member, lettingId);
   await saveLettingDetails(member, lettingId, { deposit: overrides.rent ?? '1,850' });
   // Each listing's words are its own: copied words hold a listing for review (M29).
   listingCount += 1;
@@ -112,6 +118,28 @@ export async function aListableLetting(
   await saveDescription(member, lettingId, description);
   const photos = await addPhotos(member, letting!.homeId, shades);
   return { lettingId, homeId: letting!.homeId, photos, description };
+}
+
+/** M38: the letter places the pin: by default, where the home's area put its point. */
+export async function placePin(
+  member: Member,
+  lettingId: string,
+  point?: { lat: number; lng: number },
+) {
+  const [home] = await withOrg(member.organisationId, (tx) =>
+    tx
+      .select({ latitude: homes.latitude, longitude: homes.longitude })
+      .from(homes)
+      .innerJoin(lettings, eq(lettings.homeId, homes.id))
+      .where(eq(lettings.id, lettingId)),
+  );
+  const saved = await setHomePoint(
+    member,
+    lettingId,
+    point ?? { lat: home!.latitude!, lng: home!.longitude! },
+  );
+  if (!saved.ok) throw new Error(`The pin wasn't placed: ${saved.error}`);
+  return saved.pin;
 }
 
 export async function aStaffMember(): Promise<Staff> {

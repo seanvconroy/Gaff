@@ -131,6 +131,29 @@ const schema = z
       .enum(['0', '1'])
       .default('0')
       .transform((v) => v === '1'),
+    /**
+     * AU1, AU3 (ADR-0028): Sign in with Google. It shows once both are set. Without them, local
+     * development and tests use a stand-in provider; the test copy and production show nothing.
+     */
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
+    /**
+     * Sign in with Apple: the Services ID, and what signs its client secret: the team, the key's
+     * ID and the key itself (the .p8 file's text). All four, or none.
+     */
+    APPLE_CLIENT_ID: z.string().optional(),
+    APPLE_TEAM_ID: z.string().optional(),
+    APPLE_KEY_ID: z.string().optional(),
+    APPLE_PRIVATE_KEY: z.string().optional(),
+    /** AU6: the domain passkeys belong to: APP_URL's host (the default) or a parent of it. */
+    PASSKEY_RP_ID: z.string().min(1).optional(),
+    /**
+     * AU12: refusing passwords seen in data breaches. "pwned_passwords" asks Have I Been Pwned
+     * with 5 characters of a hash of the password, which identifies nobody; "stand_in" refuses a
+     * short fixed list, for development and tests; "off" skips the check. Production chooses
+     * one of the other two.
+     */
+    PASSWORD_BREACH_CHECK: z.enum(['pwned_passwords', 'stand_in', 'off']).default('stand_in'),
   })
   .superRefine((env, ctx) => {
     if (env.GAFF_ENV === 'production' || env.GAFF_ENV === 'staging') {
@@ -158,6 +181,7 @@ const schema = z
         ['INCOME_PROVIDER', env.INCOME_PROVIDER, 'stand_in'],
         ['STORAGE_PROVIDER', env.STORAGE_PROVIDER, 'local'],
         ['STORAGE_PROVIDER', env.STORAGE_PROVIDER, 'database'],
+        ['PASSWORD_BREACH_CHECK', env.PASSWORD_BREACH_CHECK, 'stand_in'],
       ] as const;
       if (!env.DATA_ENCRYPTION_KEY) {
         ctx.addIssue({
@@ -264,6 +288,34 @@ const schema = z
         path: ['MAP_PROVIDER'],
         message: "MAP_PROVIDER can't be the static stand-in in production",
       });
+    }
+    // AU1 (ADR-0028): a provider is set up completely or not at all, so a missing variable is
+    // caught here and not when someone presses the button.
+    const providers = {
+      Google: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
+      Apple: ['APPLE_CLIENT_ID', 'APPLE_TEAM_ID', 'APPLE_KEY_ID', 'APPLE_PRIVATE_KEY'],
+    } as const;
+    for (const [name, keys] of Object.entries(providers)) {
+      if (!keys.some((key) => env[key])) continue;
+      for (const key of keys) {
+        if (!env[key]) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is required for Sign in with ${name}`,
+          });
+        }
+      }
+    }
+    if (env.PASSKEY_RP_ID) {
+      const host = URL.canParse(env.APP_URL) ? new URL(env.APP_URL).hostname : '';
+      if (host !== env.PASSKEY_RP_ID && !host.endsWith(`.${env.PASSKEY_RP_ID}`)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['PASSKEY_RP_ID'],
+          message: "PASSKEY_RP_ID must be APP_URL's host or a parent domain of it",
+        });
+      }
     }
     if (env.SMS_PROVIDER === 'sinch') {
       for (const key of ['SINCH_SERVICE_PLAN_ID', 'SINCH_API_TOKEN', 'SINCH_FROM'] as const) {

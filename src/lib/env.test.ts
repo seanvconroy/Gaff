@@ -28,6 +28,7 @@ const production = {
   SUPABASE_SERVICE_KEY: 'service-key',
   STRIPE_SECRET_KEY: 'sk_live_test',
   STRIPE_IDENTITY_WEBHOOK_SECRET: 'whsec_test',
+  PASSWORD_BREACH_CHECK: 'pwned_passwords',
 };
 
 describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)', () => {
@@ -189,5 +190,55 @@ describe('P1 (Q37): the Claude API never runs in production', () => {
         ANTHROPIC_API_KEY: 'k',
       }),
     ).toEqual([]);
+  });
+});
+
+describe('AU1, AU6, AU12 (ADR-0028): signing in', () => {
+  it('sets up Google with both of its settings, or neither', () => {
+    expect(environmentProblems({ ...base, GOOGLE_CLIENT_ID: 'id' })).toEqual([
+      'GOOGLE_CLIENT_SECRET',
+    ]);
+    expect(
+      environmentProblems({ ...base, GOOGLE_CLIENT_ID: 'id', GOOGLE_CLIENT_SECRET: 'secret' }),
+    ).toEqual([]);
+  });
+
+  it('sets up Apple with all four of its settings, or none', () => {
+    expect(environmentProblems({ ...base, APPLE_CLIENT_ID: 'ie.gaff.signin' })).toEqual([
+      'APPLE_TEAM_ID',
+      'APPLE_KEY_ID',
+      'APPLE_PRIVATE_KEY',
+    ]);
+    expect(
+      environmentProblems({
+        ...base,
+        APPLE_CLIENT_ID: 'ie.gaff.signin',
+        APPLE_TEAM_ID: 'TEAM123456',
+        APPLE_KEY_ID: 'KEY1234567',
+        APPLE_PRIVATE_KEY: '-----BEGIN PRIVATE KEY-----',
+      }),
+    ).toEqual([]);
+  });
+
+  it('starts production without Google or Apple: their buttons just don’t show', () => {
+    expect(environmentProblems(production)).toEqual([]);
+  });
+
+  it('keeps passkeys on the app’s own domain, or a parent of it', () => {
+    expect(environmentProblems({ ...base, PASSKEY_RP_ID: 'app.gaff.example' })).toEqual([]);
+    expect(environmentProblems({ ...base, PASSKEY_RP_ID: 'gaff.example' })).toEqual([]);
+    expect(environmentProblems({ ...base, PASSKEY_RP_ID: 'evil.example' })).toEqual([
+      'PASSKEY_RP_ID',
+    ]);
+    expect(environmentProblems({ ...base, PASSKEY_RP_ID: 'ff.example' })).toEqual([
+      'PASSKEY_RP_ID',
+    ]);
+  });
+
+  it('makes production choose how breached passwords are checked, never the stand-in', () => {
+    expect(environmentProblems({ ...production, PASSWORD_BREACH_CHECK: undefined })).toEqual([
+      'PASSWORD_BREACH_CHECK',
+    ]);
+    expect(environmentProblems({ ...production, PASSWORD_BREACH_CHECK: 'off' })).toEqual([]);
   });
 });

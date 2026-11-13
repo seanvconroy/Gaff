@@ -1,22 +1,72 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { createAuthMiddleware } from 'better-auth/api';
 import { nextCookies } from 'better-auth/next-js';
 import { emailOTP } from 'better-auth/plugins/email-otp';
 import { magicLink } from 'better-auth/plugins/magic-link';
+import { after } from 'next/server';
 import { emailSender, gaffSender } from '@/adapters/email';
 import { signInEmail } from '@/copy/operator-emails';
 import { signInCodeEmail } from '@/copy/renter-emails';
 import { db } from '@/db/client';
 import { accounts, sessions, users, verifications } from '@/db/schema';
+import { CODE_MINUTES, CODE_TRIES } from '@/domain/auth/codes';
+import { RECENT_SIGN_IN_SECONDS } from '@/domain/auth/recent-sign-in';
+import { methodForPath } from '@/domain/auth/sign-in-methods';
+import { redactForLog } from '@/domain/record/log-redaction';
 import { env } from '@/lib/env';
 import { makeListedTesterStaff } from '@/server/staff/testers';
+import { recordAccountEvent } from './account-events';
+import type { HookContext } from './hook-context';
+import { countPasswordFailures, limitTries } from './limits';
+
+const DAY = 60 * 60 * 24;
 
 /**
- * Operator sign-in with one-time email links (ADR-0013). Accounts live in our own
- * Postgres; no third-party identity service. Built on first use, not at import.
+ * Rule 8: the library's own log lines name email addresses in places, so they all pass through
+ * the redaction first, and only warnings and errors are kept.
+ */
+function redactingLog(
+  level: 'debug' | 'info' | 'warn' | 'error',
+  message: string,
+  ...args: unknown[]
+) {
+  const line = [message, ...args].map(redactForLog).join(' ');
+  if (level === 'error') console.error(`[sign-in] ${line}`);
+  else console.warn(`[sign-in] ${line}`);
+}
+
+/**
+ * Emails go out once the response has, so an answer takes the same time whether or not an
+ * email was sent (AU12: nobody can tell from the timing whether an address has an account).
+ * Not in tests, which read the outbox straight after.
+ */
+function afterResponse(work: Promise<unknown>): void {
+  const quietly = work.catch((error: unknown) =>
+    console.error('[sign-in] background work failed', (error as Error)?.name),
+  );
+  try {
+    after(() => quietly);
+  } catch {
+    // Not inside a request: the work is already under way.
+  }
+}
+
+/** The way in a session is beginning with, from the sign-in call that's making it. */
+function methodOf(ctx: HookContext | null) {
+  if (!ctx) return null;
+  const provider = (ctx.params as { id?: string } | undefined)?.id;
+  return methodForPath(ctx.path ?? '', provider);
+}
+
+/**
+ * Accounts and sign-in, for renters, letters and Gaff's staff alike (M1, ADR-0016), with Better
+ * Auth. How people sign in, and why, is ADR-0028. Accounts live in our own Postgres; no
+ * third-party identity service holds them. Built on first use, not at import.
  */
 function createAuth() {
   const config = env();
+  const inARequest = Boolean(process.env.NEXT_RUNTIME) && config.GAFF_ENV !== 'test';
   return betterAuth({
     appName: 'Gaff',
     baseURL: config.APP_URL,
@@ -29,23 +79,46 @@ function createAuth() {
     advanced: {
       database: { generateId: () => crypto.randomUUID() },
       useSecureCookies: config.APP_URL.startsWith('https://'),
+      ...(inARequest ? { backgroundTasks: { handler: afterResponse } } : {}),
     },
-    session: { expiresIn: 60 * 60 * 24 * 14, updateAge: 60 * 60 * 24 },
-    // The test copy: the founders in TEST_STAFF_EMAILS are testers (staff) once they sign in.
+    logger: { level: 'warn', log: redactingLog },
+    session: {
+      expiresIn: 14 * DAY,
+      updateAge: DAY,
+      // AU7: the library's own "recent sign-in" checks agree with Gaff's.
+      freshAge: RECENT_SIGN_IN_SECONDS,
+      additionalFields: { signInMethod: { type: 'string', required: false, input: false } },
+    },
     databaseHooks: {
       session: {
         create: {
-          after: async (session) => {
+          // AU16, M5: each session remembers the way in it began with.
+          before: async (session, ctx) => ({
+            data: { ...session, signInMethod: methodOf(ctx) },
+          }),
+          after: async (session, ctx) => {
+            // The test copy: the founders in TEST_STAFF_EMAILS are testers (staff) once they
+            // sign in.
             await makeListedTesterStaff(session.userId);
+            const method = methodOf(ctx);
+            if (method) await recordAccountEvent('account.signed_in', session.userId, { method });
           },
         },
       },
     },
     emailAndPassword: { enabled: false },
     telemetry: { enabled: false },
-    // Sign-in attempts are rate limited per IP, except in end-to-end tests, which sign in
-    // many times a minute from one address.
-    rateLimit: { enabled: config.GAFF_ENV !== 'test' },
+    // AU12: the library's own limiter only sees requests that arrive over HTTP, and Gaff's
+    // forms call it in-process. Gaff's limiter (./limits) runs as a hook, which sees both.
+    rateLimit: { enabled: false },
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        await limitTries(ctx);
+      }),
+      after: createAuthMiddleware(async (ctx) => {
+        await countPasswordFailures(ctx);
+      }),
+    },
     plugins: [
       magicLink({
         expiresIn: 15 * 60,
@@ -58,8 +131,8 @@ function createAuth() {
       // Codes are stored hashed, work for 10 minutes and allow 5 tries (tech spec).
       emailOTP({
         otpLength: 6,
-        expiresIn: 10 * 60,
-        allowedAttempts: 5,
+        expiresIn: CODE_MINUTES * 60,
+        allowedAttempts: CODE_TRIES,
         storeOTP: 'hashed',
         sendVerificationOTP: async ({ email, otp }) => {
           await emailSender().send({ to: email, from: gaffSender(), ...signInCodeEmail(otp) });

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Tx } from '@/db/client';
 import { platformEvents } from '@/db/schema';
+import { signInMethods } from '@/domain/auth/sign-in-methods';
 import { selfieConsentVersions } from '@/domain/identity/access';
 import { assertNoPersonalData } from '@/domain/record/personal-data';
 import type { Actor } from './events';
@@ -74,6 +75,21 @@ export const platformEventCatalogue = {
   'ai.budget_warning': z.object({ month: z.iso.date() }),
   /** M86, M87: an alert email went out, with this many homes in it. */
   'alert.sent': z.object({ homes: z.number().int(), frequency: z.enum(['instant', 'daily']) }),
+  /**
+   * AU16 (ADR-0028): signing in, and changing how. The way in is a code. The account is the
+   * event's subject; a failed try names nobody at all.
+   */
+  'account.signed_up': z.object({ method: z.enum(signInMethods) }),
+  'account.signed_in': z.object({ method: z.enum(signInMethods) }),
+  'account.sign_in_failed': z.object({
+    method: z.enum(signInMethods),
+    reason: z.enum(['wrong_password', 'wrong_code', 'paused', 'slow_down', 'not_joined']),
+  }),
+  'account.email_confirmed': z.object({}),
+  'account.method_added': z.object({ method: z.enum(signInMethods) }),
+  'account.method_removed': z.object({ method: z.enum(signInMethods) }),
+  'account.password_changed': z.object({ how: z.enum(['set', 'changed', 'reset']) }),
+  'account.signed_out_elsewhere': z.object({ sessions: z.number().int() }),
 } satisfies Record<string, z.ZodObject>;
 
 export type PlatformEventType = keyof typeof platformEventCatalogue;

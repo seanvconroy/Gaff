@@ -17,6 +17,7 @@ import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
 import {
   aLiveLetting,
   aRenterEnquires,
+  bookAs,
   createTestMember,
   queuedJobs,
   tokenInMessage,
@@ -99,14 +100,14 @@ describe('R12 and R13: booking, with confirmation and reminders', () => {
 
   it('never double-books a one-person slot', async () => {
     const { slots, token } = await setUp();
-    expect((await bookViewing(await token(0), slots[0]!.id)).ok).toBe(true);
-    expect(await bookViewing(await token(1), slots[0]!.id)).toEqual({ ok: false, reason: 'full' });
+    expect((await bookAs(await token(0), slots[0]!.id)).ok).toBe(true);
+    expect(await bookAs(await token(1), slots[0]!.id)).toEqual({ ok: false, reason: 'full' });
   });
 
   it('moves a booking, cancelling the old reminders', async () => {
     const { member, ids, slots, token } = await setUp();
     const t = await token(0);
-    await bookViewing(t, slots[0]!.id);
+    await bookAs(t, slots[0]!.id);
     expect(await bookViewing(t, slots[1]!.id)).toEqual({ ok: true, rescheduled: true });
     const all = await withOrg(member.organisationId, (tx) =>
       tx.select().from(bookings).where(eq(bookings.applicationId, ids[0]!)),
@@ -118,8 +119,9 @@ describe('R12 and R13: booking, with confirmation and reminders', () => {
       ].sort(),
     );
     const reminders = (await messagesFor(member, ids[0]!)).filter((m) => m.kind === 'reminder');
-    expect(reminders.filter((m) => m.status === 'cancelled')).toHaveLength(2);
-    expect(reminders.filter((m) => m.status === 'scheduled')).toHaveLength(2);
+    // Two emails and, with the confirmed mobile, a text, for each booking.
+    expect(reminders.filter((m) => m.status === 'cancelled')).toHaveLength(3);
+    expect(reminders.filter((m) => m.status === 'scheduled')).toHaveLength(3);
   });
 
   it('refuses someone who wasn’t invited', async () => {
@@ -183,7 +185,7 @@ describe('R14: a cancelled place goes to the approved waiting list (Q2)', () => 
   it('offers it to the next person in ranked order, with a 2-hour hold', async () => {
     const { member, ids, slots, token } = await setUp();
     const t = await token(0);
-    await bookViewing(t, slots[0]!.id);
+    await bookAs(t, slots[0]!.id);
     await cancelAndOffer(member, t, slots[0]!.id);
 
     const offers = await offersFor(member);
@@ -206,10 +208,10 @@ describe('R14: a cancelled place goes to the approved waiting list (Q2)', () => 
   it('lets the person offered book that place, and only that place', async () => {
     const { member, ids, slots, token } = await setUp();
     const t = await token(0);
-    await bookViewing(t, slots[0]!.id);
+    await bookAs(t, slots[0]!.id);
     await cancelAndOffer(member, t, slots[0]!.id);
     const offeredToken = await tokenInMessage(member, ids[2]!, 'place_offered');
-    expect(await bookViewing(offeredToken, slots[1]!.id)).toEqual({
+    expect(await bookAs(offeredToken, slots[1]!.id)).toEqual({
       ok: false,
       reason: 'not_invited',
     });
@@ -221,10 +223,10 @@ describe('R14: a cancelled place goes to the approved waiting list (Q2)', () => 
   it('keeps a held place for the person it was offered to', async () => {
     const { member, ids, slots, token } = await setUp();
     const t = await token(0);
-    await bookViewing(t, slots[0]!.id);
+    await bookAs(t, slots[0]!.id);
     await cancelAndOffer(member, t, slots[0]!.id);
     // Someone invited who hasn't booked yet can't take the place held for the waiting list.
-    expect(await bookViewing(await token(1), slots[0]!.id)).toEqual({ ok: false, reason: 'full' });
+    expect(await bookAs(await token(1), slots[0]!.id)).toEqual({ ok: false, reason: 'full' });
     const view = (applicationId: string) =>
       withOrg(member.organisationId, (tx) =>
         slotAvailability(tx, slots[0]!.lettingId, applicationId),
@@ -236,8 +238,8 @@ describe('R14: a cancelled place goes to the approved waiting list (Q2)', () => 
   it('offers two freed places to two different people', async () => {
     const { member, ids, slots, token } = await setUp();
     const [a, b] = [await token(0), await token(1)];
-    await bookViewing(a, slots[0]!.id);
-    await bookViewing(b, slots[1]!.id);
+    await bookAs(a, slots[0]!.id);
+    await bookAs(b, slots[1]!.id);
     await cancelAndOffer(member, a, slots[0]!.id);
     await cancelAndOffer(member, b, slots[1]!.id);
     const offers = await offersFor(member);
@@ -250,10 +252,10 @@ describe('R14: a cancelled place goes to the approved waiting list (Q2)', () => 
   it('puts someone from the waiting list back on it if they cancel', async () => {
     const { member, ids, slots, token } = await setUp();
     const t = await token(0);
-    await bookViewing(t, slots[0]!.id);
+    await bookAs(t, slots[0]!.id);
     await cancelAndOffer(member, t, slots[0]!.id);
     const offeredToken = await tokenInMessage(member, ids[2]!, 'place_offered');
-    await bookViewing(offeredToken, slots[0]!.id);
+    await bookAs(offeredToken, slots[0]!.id);
     expect(await cancelViewing(offeredToken)).toEqual({ ok: true });
     const [renter] = await withOrg(member.organisationId, (tx) =>
       tx.select().from(applications).where(eq(applications.id, ids[2]!)),
@@ -264,7 +266,7 @@ describe('R14: a cancelled place goes to the approved waiting list (Q2)', () => 
   it('moves on to the next person when a hold runs out', async () => {
     const { member, ids, slots, token } = await setUp();
     const t = await token(0);
-    await bookViewing(t, slots[0]!.id);
+    await bookAs(t, slots[0]!.id);
     await cancelAndOffer(member, t, slots[0]!.id);
     const [first] = await offersFor(member);
     await expireOffer({ organisationId: member.organisationId, offerId: first!.id });

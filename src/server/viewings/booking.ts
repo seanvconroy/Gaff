@@ -83,14 +83,13 @@ export async function currentBooking(tx: Tx, applicationId: string) {
 
 export type BookResult =
   | { ok: true; rescheduled: boolean }
-  | { ok: false; reason: 'invalid_link' | 'not_invited' | 'full' | 'too_late' };
+  | { ok: false; reason: 'invalid_link' | 'not_invited' | 'full' | 'too_late' | 'mobile_needed' };
 
 /**
  * R12: a renter books (or moves) their viewing from their private link. The slot row is locked
  * while its places are counted, so two people can't take the last place. R13: confirmation and
- * reminders are queued in the same transaction. P16: the text reminder goes only to a mobile
- * the renter confirmed with a code (`confirmBookingCode`), and someone without one can still
- * book.
+ * reminders are queued in the same transaction. P16 (Q60): a new booking needs the mobile the
+ * renter confirmed with a code (`confirmBookingCode`), which gets the text reminder.
  */
 export async function bookViewing(token: string, slotId: string): Promise<BookResult> {
   const link = await resolveAccessLink(token, 'renter');
@@ -141,6 +140,8 @@ export async function bookViewing(token: string, slotId: string): Promise<BookRe
     const open = await openOffers(tx, { slotId });
     const existing = await currentBooking(tx, application.id);
     if (existing?.slot.id === slotId) return { ok: true, rescheduled: false };
+    // P16 (Q60): a new booking needs a mobile confirmed with a text code. Moving one doesn't.
+    if (!existing && !application.mobileConfirmedAt) return { ok: false, reason: 'mobile_needed' };
     // R14: a place held for someone on the waiting list isn't free for anyone else.
     const held = heldForOthers(open, application.id);
     if (placesLeft({ capacity: slot.capacity, booked: booked + held }) === 0) {

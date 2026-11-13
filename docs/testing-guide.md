@@ -22,7 +22,7 @@ Search engines never see it, but anyone with the address can open it, so **use m
 - **Replying to an email doesn't reach Gaff yet.** To write back, use the link in the email, or sign in and open **Your homes**. Each email says so at the bottom.
 - **Texts aren't sent yet.** When Gaff would text you a code, it shows the code on the screen instead.
 - **The AI** is a simple stand-in that answers only from the home's facts. The real one (Claude, in the EU) comes later.
-- **ID and income checks** open a test page where you choose the result, standing in for Stripe Identity. Try a failure once to see how it's worded. Everyone checks their ID once, and it's kept on their Gaff profile: a renter who's chosen again isn't asked again.
+- **ID and income checks** open a test page where you choose the result, standing in for Stripe Identity. Try a failure once to see how it's worded. Everyone checks their ID once, with a selfie, and it's kept on their Gaff profile: a renter who's chosen again isn't asked again. After three failed tries, give more on https://gaff-test.vercel.app/staff/checks.
 - **Signing** uses Gaff's typed-name signature.
 - **Money:** Gaff never takes any. It shows the letter's bank details; you press a button to say the money arrived.
 - **Made-up people** (the seeded letters, test enquiries, a referee or landlord at `example.ie`) get their email in the **outbox** instead, a page only testers can open.
@@ -54,7 +54,7 @@ The made-up letters don't answer beyond the AI, so for the full journey, enquire
 2. Choose **Ourselves: we are landlords letting our own homes** (the quickest way), or **Other people: we are a letting agency** to try the agency checks (section 7).
 3. **Get checked:** **Settings**, then **Checks** under "Your account".
    - Enter a made-up mobile, like `087 555 0123`, and press **Text me a code**. The code shows on the screen.
-   - Tick the box to agree to the selfie, press **Check my ID with a selfie**, then **The ID and selfie match** on the test page. Or try **Check my ID without a selfie**: your first listing then waits for a person at Gaff (you, as testers, on https://gaff-test.vercel.app/staff/listings).
+   - Press **Agree and check my ID**, then **The ID and selfie match** on the test page. Your lettings can't start taking enquiries until you've done both.
 4. **Add a letting**, in three short steps: the home (a made-up street in a real area, so search finds it, like `Terenure, Dublin 6W`, `Salthill, Galway city` or `Douglas, Cork city`, and the rent), its key facts, then any advert links.
 5. Add a **viewing time** in the next few days, set the **criteria** (how many people, pets), **check the rent**, and **Start taking enquiries**.
 6. Open **Listing**: the home's details, the deposit, a description and at least three photos. Photos from your phone's camera roll are fine.
@@ -73,14 +73,14 @@ One of you is the letter (💻), the other the renter (📱).
 
 ### Viewings
 
-5. 📱 Open the **Book a viewing** email, pick a time, and give a mobile: the code to confirm it shows on the screen. Or press **Book without a mobile**, and the letter sees "No mobile confirmed" on **Attendance**.
+5. 📱 Open the **Book a viewing** email, pick a time, and give a mobile: the code to confirm it shows on the screen. A viewing can't be booked without one.
 6. 💻 On **Attendance**, press **Start the viewings now** (so you don't have to wait), then mark who came.
 
 ### Applying, choosing and checks
 
 7. 📱 Open the **Apply** email and apply, with a made-up take-home income, like 5,200 a month.
 8. 💻 On **Applications**, compare the applicants side by side and choose a **preferred applicant** and a **backup**.
-9. 📱 Open the checks email. Confirm your email with the code Gaff sends, then check your ID (and income) on the test page, and name a referee: use the other person's real email to see the reference request, or a made-up `example.ie` address (it goes to the outbox). 💻 The applicant's card says "Checked by Gaff on …" with the name on the ID. If the renter checked without a selfie, **Tenancy** asks you to see their photo ID first.
+9. 📱 Open the checks email. Confirm your email with the code Gaff sends, then check your ID (and income) on the test page, and name a referee: use the other person's real email to see the reference request, or a made-up `example.ie` address (it goes to the outbox). 💻 The applicant's card says "Checked by Gaff on …" with the name on the ID.
 10. Agencies only: 💻 add the landlord's name and email and ask them to approve. A made-up landlord's email goes to the outbox.
 
 ### The offer and the tenancy

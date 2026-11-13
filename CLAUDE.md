@@ -21,7 +21,7 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
 2. **Staged data.** Collect renter data only at its stage (PRD workflow table), and share it with a letter only at its stage:
    - before viewing: contact details and self-declared answers;
    - at applications: employment and income;
-   - for the preferred applicant and one backup only: identity, work and income documents, and references. Identity is checked once, by Gaff with Stripe Identity, and kept on the renter's profile for their next home; Gaff keeps only the result and the verified name (Q48);
+   - for the preferred applicant and one backup only: identity, work and income documents, and references. Identity is checked once, by Gaff with Stripe Identity (a photo ID and a live selfie, with no other way through), and kept on the renter's profile for their next home; Gaff keeps only the result and the verified name (Q48, Q60). Letters verify the same way before their first letting goes live;
    - for RTB registration only: the PPSN. Documents may show it, but Gaff never reads it out or records it (Q50).
 
    Ask only what the operator's criteria need. Never ask for documents before an applicant is chosen (DPC guidance).

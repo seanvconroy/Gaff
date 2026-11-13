@@ -14,7 +14,7 @@ import { recordEvent } from '@/server/record/events';
 import { letterReadiness } from '@/server/verification/readiness';
 import { loadListing, readyPhotos, type ListingContext } from './context';
 import { removePublicListing, saveRevision, writePublicListing } from './project';
-import { needsFirstListingReview, riskSignals, type RiskReason } from './risk';
+import { riskSignals, type RiskReason } from './risk';
 import { recordWordingEvents } from './wording-events';
 import { unfairWording } from './wording-check';
 
@@ -69,7 +69,6 @@ export async function publishListing(
   if (problems.length > 0) return { outcome: 'problems', problems };
 
   const reasons = await riskSignals(context, now);
-  if (await needsFirstListingReview(member.userId)) reasons.push('first_listing_review');
   // ADR-0023, P12: the AI's wording check, after the word list. Null means it couldn't run.
   const wording = await unfairWording(member.organisationId, context.listing.description ?? '');
   if (wording && wording.length > 0) reasons.push('unfair_wording');

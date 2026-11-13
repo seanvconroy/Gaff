@@ -142,7 +142,11 @@ describe('ADR-0006: the event log', () => {
 
 describe('onboarding', () => {
   it('creates the organisation, an admin membership, a Gaff address, the record and (M23) the licence check', async () => {
-    const member = await createTestMember({ organisation: 'Halcyon Lettings', kind: 'agency' });
+    const member = await createTestMember({
+      organisation: 'Halcyon Lettings',
+      kind: 'agency',
+      verified: false,
+    });
     expect(member).toMatchObject({ role: 'admin', organisationKind: 'agency', name: 'Ann Power' });
     const [organisation] = await db()
       .select()

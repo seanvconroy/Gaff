@@ -32,7 +32,9 @@ async function publicRow(lettingId: string, organisationId: string) {
 
 describe('M48: publishing a listing', () => {
   it('names what’s missing, then goes live with its public copy, a revision and an event', async () => {
-    const unchecked = await createTestMember({ kind: 'landlord' });
+    // Q60: a letter is verified before any letting goes live, so what's left at publishing is an
+    // agency's licences, which a person at Gaff checks.
+    const unchecked = await createTestMember({ kind: 'agency' });
     const { lettingId: blocked } = await aListableLetting(unchecked);
     const refused = await publishListing(unchecked, blocked, { declare: false });
     expect(refused.outcome).toBe('problems');

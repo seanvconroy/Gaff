@@ -18,18 +18,13 @@ import {
   refreshCopies,
   startIdentity,
 } from '@/server/identity/identity';
-import { inPersonIdentity, recordIdSeenInPerson } from '@/server/identity/in-person';
-import {
-  claimApplication,
-  renterIdentityOffline,
-  startRenterIdentity,
-} from '@/server/identity/renter';
-import { confirmIdentityByStaff, offlineIdentityQueue } from '@/server/identity/staff';
-import { heldListings, resolveHold } from '@/server/listings/holds';
+import { claimApplication, startRenterIdentity } from '@/server/identity/renter';
+import { allowMoreTries, outOfTries } from '@/server/identity/staff';
+import { NotVerifiedError } from '@/server/lettings/go-live';
 import { publishListing } from '@/server/listings/publish';
-import { identityOffline } from '@/server/verification/identity';
 import { letterReadiness } from '@/server/verification/readiness';
 import {
+  aLiveLetting,
   createTestMember,
   peopleWhoApplied,
   queuedJobs,
@@ -72,12 +67,9 @@ async function identityCheckOf(member: Member, applicationId: string) {
 async function renterChecks(
   token: string,
   userId: string,
-  options: { selfie: boolean; first?: string; last?: string },
+  options: { first?: string; last?: string } = {},
 ) {
-  const started = await startRenterIdentity(token, userId, {
-    selfie: options.selfie,
-    consented: options.selfie,
-  });
+  const started = await startRenterIdentity(token, userId, { consented: true });
   if (!('redirectUrl' in started)) throw new Error(`not started: ${started.problem}`);
   const checkId = checkIdIn(started.redirectUrl);
   await recordIdentityOutcome({
@@ -91,6 +83,13 @@ async function renterChecks(
   return checkId;
 }
 
+/** A letter who hasn't verified yet starts their check, with their agreement. */
+async function startsTheirCheck(member: Member) {
+  const started = await startIdentity(member.userId, { consented: true, returnTo: 'letter' });
+  if (!('redirectUrl' in started)) throw new Error(`not started: ${started.problem}`);
+  return checkIdIn(started.redirectUrl);
+}
+
 describe('P15, P16, P29: a chosen renter checks their identity once', () => {
   it('P16: only the application’s own email claims it', async () => {
     const { token, email } = await chosenRenter();
@@ -100,9 +99,9 @@ describe('P15, P16, P29: a chosen renter checks their identity once', () => {
     expect(await claimApplication(token, renter)).toBe(true);
     // Once claimed, it's theirs: another account with the same address can't take it over.
     expect(await claimApplication(token, { ...someoneElse, email })).toBe(false);
-    expect(
-      await startRenterIdentity(token, someoneElse.id, { selfie: false, consented: false }),
-    ).toEqual({ problem: 'not_yours' });
+    expect(await startRenterIdentity(token, someoneElse.id, { consented: true })).toEqual({
+      problem: 'not_yours',
+    });
   });
 
   it('P15, P21, P23: the letter sees that it’s checked and the verified name, nothing else', async () => {
@@ -110,16 +109,10 @@ describe('P15, P16, P29: a chosen renter checks their identity once', () => {
     const renter = await anAccount(email);
     await claimApplication(token, renter);
     expect((await identityCheckOf(member, ids[0]!)).status).toBe('to_do');
-    await renterChecks(token, renter.id, { selfie: true });
+    await renterChecks(token, renter.id);
 
     const check = await identityCheckOf(member, ids[0]!);
-    expect(check).toMatchObject({
-      status: 'passed',
-      verifiedName: 'Renter 1',
-      selfie: true,
-      inPersonNeeded: false,
-      nameDiffers: false,
-    });
+    expect(check).toMatchObject({ status: 'passed', verifiedName: 'Renter 1', nameDiffers: false });
     expect(check.checkedAt).toBeInstanceOf(Date);
     // The backup, who hasn't checked, is untouched; nobody else has an identity check at all.
     expect((await identityCheckOf(member, ids[1]!)).status).toBe('to_do');
@@ -144,7 +137,7 @@ describe('P15, P16, P29: a chosen renter checks their identity once', () => {
     const first = await chosenRenter();
     const renter = await anAccount(first.email);
     await claimApplication(first.token, renter);
-    await renterChecks(first.token, renter.id, { selfie: true });
+    await renterChecks(first.token, renter.id);
 
     // The same person, chosen by a different letter for a different home.
     const second = await chosenRenter();
@@ -159,9 +152,9 @@ describe('P15, P16, P29: a chosen renter checks their identity once', () => {
       status: 'passed',
       verifiedName: 'Renter 1',
     });
-    expect(
-      await startIdentity(renter.id, { selfie: true, consented: true, returnTo: 'renter' }),
-    ).toEqual({ problem: 'checked' });
+    expect(await startIdentity(renter.id, { consented: true, returnTo: 'renter' })).toEqual({
+      problem: 'checked',
+    });
     // Each letter sees only their own application: the first letting's checks stay with it.
     const theirs = await withOrg(second.member.organisationId, (tx) =>
       tx.select().from(checks).where(eq(checks.applicationId, first.ids[0]!)),
@@ -173,7 +166,7 @@ describe('P15, P16, P29: a chosen renter checks their identity once', () => {
     const { member, ids, token, email } = await chosenRenter();
     const renter = await anAccount(email);
     await claimApplication(token, renter);
-    await renterChecks(token, renter.id, { selfie: true, first: 'Áine', last: 'Ní Bhriain' });
+    await renterChecks(token, renter.id, { first: 'Áine', last: 'Ní Bhriain' });
     expect(await identityCheckOf(member, ids[0]!)).toMatchObject({
       status: 'passed',
       nameDiffers: true,
@@ -181,59 +174,23 @@ describe('P15, P16, P29: a chosen renter checks their identity once', () => {
   });
 });
 
-describe('P18 to P20, P25, P27: other ways to check', () => {
-  it('P19, P27: without a selfie, the letter sees their photo ID before the agreement', async () => {
-    const { member, ids, token, email } = await chosenRenter();
-    const renter = await anAccount(email);
-    await claimApplication(token, renter);
-    await renterChecks(token, renter.id, { selfie: false });
-    expect(await identityCheckOf(member, ids[0]!)).toMatchObject({
-      status: 'passed',
-      selfie: false,
-      inPersonNeeded: true,
+describe('P17, P18, P25, Q60: a live selfie, with no other way through', () => {
+  it('P18: a check starts only with the person’s agreement, and always asks for a selfie', async () => {
+    const member = await createTestMember({ kind: 'landlord', verified: false });
+    expect(await startIdentity(member.userId, { consented: false, returnTo: 'letter' })).toEqual({
+      problem: 'consent_needed',
     });
-    expect(await inPersonIdentity(member, ids[0]!)).toEqual({
-      needed: true,
-      why: 'no_selfie',
-      seen: null,
-    });
-
-    await expect(recordIdSeenInPerson(member, ids[0]!, ' ')).rejects.toThrow(/name on their/);
-    await recordIdSeenInPerson(member, ids[0]!, 'Renter One');
-    const seen = await inPersonIdentity(member, ids[0]!);
-    expect(seen?.seen?.name).toBe('Renter One');
-    expect((await identityCheckOf(member, ids[0]!)).seenInPerson?.name).toBe('Renter One');
-    const logged = await withOrg(member.organisationId, (tx) =>
-      tx.select().from(events).where(eq(events.type, 'check.recorded_in_person')),
+    const checkId = await startsTheirCheck(member);
+    const [row] = await withRenter(member.userId, (tx) =>
+      tx.select().from(identityChecks).where(eq(identityChecks.id, checkId)),
     );
-    expect(logged).toHaveLength(1);
-    expect(logged[0]!.actorId).toBe(member.userId);
-    expect(JSON.stringify(logged[0]!.data)).not.toContain('Renter');
-    // One letter's sighting stays with that letting: the person's own record is unchanged.
-    expect(await identityOf(renter.id)).toMatchObject({ status: 'verified', selfie: false });
+    expect(row).toMatchObject({ selfie: true, consentVersion: 'selfie_consent_v2' });
+    expect(row!.consentedAt).toBeInstanceOf(Date);
   });
 
-  it('P20: an ID that can’t be checked online: the renter carries on, and the letter sees it', async () => {
-    const { member, ids, token, email } = await chosenRenter();
-    const renter = await anAccount(email);
-    await claimApplication(token, renter);
-    expect(await renterIdentityOffline(token, renter.id)).toBe(true);
-    expect(await identityCheckOf(member, ids[0]!)).toMatchObject({
-      status: 'passed',
-      inPersonNeeded: true,
-    });
-    expect((await identityCheckOf(member, ids[0]!)).verifiedName).toBeUndefined();
-    expect(await inPersonIdentity(member, ids[0]!)).toMatchObject({ needed: true, why: 'offline' });
-  });
-
-  it('P18: declining Stripe’s own consent leads to the check without a selfie, not a failure', async () => {
-    const member = await createTestMember({ kind: 'landlord' });
-    const started = await startIdentity(member.userId, {
-      selfie: true,
-      consented: true,
-      returnTo: 'letter',
-    });
-    const checkId = checkIdIn((started as { redirectUrl: string }).redirectUrl);
+  it('P18: declining Stripe’s own consent screen doesn’t count as a try', async () => {
+    const member = await createTestMember({ kind: 'landlord', verified: false });
+    const checkId = await startsTheirCheck(member);
     await recordIdentityOutcome({
       checkId,
       userId: member.userId,
@@ -241,85 +198,115 @@ describe('P18 to P20, P25, P27: other ways to check', () => {
     });
     expect(await identityOf(member.userId)).toMatchObject({
       status: 'not_verified',
-      selfie: false,
+      selfie: true,
       attempts: 0,
       attemptsLeft: 3,
     });
-    const consented = await withSystem((tx) =>
+    const logged = await withSystem((tx) =>
       tx.select().from(platformEvents).where(eq(platformEvents.subjectId, checkId)),
     );
-    expect(consented.map((e) => e.type)).toEqual(
+    expect(logged.map((e) => e.type)).toEqual(
       expect.arrayContaining(['identity.consented', 'identity.started', 'identity.decided']),
     );
-    for (const event of consented) expect(JSON.stringify(event.data)).not.toMatch(/Mary|Walsh/);
+    for (const event of logged) expect(JSON.stringify(event.data)).not.toMatch(/Mary|Walsh/);
   });
 
-  it('P25: three tries at most, then “can’t be checked online”', async () => {
-    const member = await createTestMember({ kind: 'landlord' });
+  it('P25: after three tries, a person at Gaff can give three more', async () => {
+    const member = await createTestMember({ kind: 'landlord', verified: false });
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       await checkIdentity(member.userId, {
         returnTo: 'letter',
         outcome: { status: 'failed', reason: 'document' },
       });
     }
-    expect(await identityOf(member.userId)).toMatchObject({ status: 'offline', attempts: 3 });
-    expect(
-      await startIdentity(member.userId, { selfie: false, consented: false, returnTo: 'letter' }),
-    ).toEqual({ problem: 'no_attempts_left' });
+    expect(await identityOf(member.userId)).toMatchObject({ status: 'not_verified', attempts: 3 });
+    expect(await startIdentity(member.userId, { consented: true, returnTo: 'letter' })).toEqual({
+      problem: 'no_attempts_left',
+    });
+
+    const staff = await aStaffMember();
+    const stuck = await outOfTries(staff);
+    expect(stuck.find((p) => p.userId === member.userId)).toMatchObject({ reason: 'document' });
+    await allowMoreTries(staff, member.userId);
+    expect(await identityOf(member.userId)).toMatchObject({ attempts: 0, attemptsLeft: 3 });
+    expect((await outOfTries(staff)).map((p) => p.userId)).not.toContain(member.userId);
+    await expect(allowMoreTries(staff, member.userId)).rejects.toThrow(/tries left/);
+    const given = await withSystem((tx) =>
+      tx.select().from(platformEvents).where(eq(platformEvents.type, 'identity.more_tries')),
+    );
+    expect(given.some((e) => e.actorId === staff.userId)).toBe(true);
+    await checkIdentity(member.userId, { returnTo: 'letter' });
+    expect((await letterReadiness(member)).missing).not.toContain('identity');
+  });
+
+  it('Q60: a check recorded without a selfie before the standard is done again, with one', async () => {
+    const member = await createTestMember({ kind: 'landlord', verified: false });
+    await withRenter(member.userId, (tx) =>
+      tx.insert(identityChecks).values({
+        userId: member.userId,
+        status: 'verified',
+        selfie: false,
+        provider: 'stand_in',
+        attempts: 1,
+        checkedAt: new Date(),
+      }),
+    );
+    await refreshCopies(member.userId);
+    expect((await letterReadiness(member)).missing).toContain('identity');
+    await checkIdentity(member.userId, { returnTo: 'letter' });
+    expect(await identityOf(member.userId)).toMatchObject({ status: 'verified', selfie: true });
+    expect((await letterReadiness(member)).missing).not.toContain('identity');
   });
 
   it('P26: a Stripe session is redacted 30 days after its result; the stand-in has none', async () => {
-    const member = await createTestMember({ kind: 'landlord' });
-    const started = await startIdentity(member.userId, {
-      selfie: false,
-      consented: false,
-      returnTo: 'letter',
-    });
-    const checkId = checkIdIn((started as { redirectUrl: string }).redirectUrl);
+    const member = await createTestMember({ kind: 'landlord', verified: false });
+    const checkId = await startsTheirCheck(member);
     await withRenter(member.userId, (tx) =>
       tx
         .update(identityChecks)
         .set({ provider: 'stripe', providerRef: `vs_test_${checkId.slice(0, 8)}` })
         .where(eq(identityChecks.id, checkId)),
     );
-    const now = new Date();
     await recordIdentityOutcome({
       checkId,
       userId: member.userId,
       outcome: { status: 'passed', verifiedName: { first: 'Mary', last: 'Walsh' } },
-      now,
     });
-    const jobs = await queuedJobs('redact_identity');
-    expect(jobs).toContainEqual(expect.objectContaining({ userId: member.userId, checkId }));
+    expect(await queuedJobs('redact_identity')).toContainEqual(
+      expect.objectContaining({ userId: member.userId, checkId }),
+    );
   });
 });
 
-describe('P15, P20, P24, Q55: letters', () => {
-  it('Q55: a letter whose ID can’t be checked online waits for a person at Gaff', async () => {
-    const member = await createTestMember({ kind: 'landlord', name: 'Nóra Ward' });
-    await identityOffline(member);
-    expect((await letterReadiness(member)).missing).toContain('identity');
-    const staff = await aStaffMember();
-    const queue = await offlineIdentityQueue(staff);
-    expect(queue.map((q) => q.userId)).toContain(member.userId);
+describe('P15, P24, Q60: letters verify before their first letting goes live', () => {
+  it('P15, Q60: a letting can’t start taking enquiries until the letter is verified', async () => {
+    const member = await createTestMember({ verified: false });
+    await expect(aLiveLetting(member)).rejects.toBeInstanceOf(NotVerifiedError);
+    await withRenter(member.userId, async (tx) => {
+      const { phoneConfirmations } = await import('@/db/schema');
+      await tx.insert(phoneConfirmations).values({
+        userId: member.userId,
+        phone: '+353870001122',
+        confirmedPhone: '+353870001122',
+        confirmedAt: new Date(),
+      });
+    });
+    await expect(aLiveLetting(member)).rejects.toBeInstanceOf(NotVerifiedError);
+    await checkIdentity(member.userId, { returnTo: 'letter' });
+    const { lettingId } = await aLiveLetting(member);
+    expect(lettingId).toBeTruthy();
+  });
 
-    await expect(
-      confirmIdentityByStaff(staff, member.userId, { first: 'Nóra', last: '' }),
-    ).rejects.toThrow(/first and last name/);
-    await confirmIdentityByStaff(staff, member.userId, { first: 'Nóra', last: 'Ward' });
-    expect((await letterReadiness(member)).missing).not.toContain('identity');
-    expect((await offlineIdentityQueue(staff)).map((q) => q.userId)).not.toContain(member.userId);
-    const [copy] = await withOrg(member.organisationId, (tx) =>
-      tx
-        .select()
-        .from(letterChecks)
-        .where(and(eq(letterChecks.userId, member.userId), eq(letterChecks.method, 'id_document'))),
-    );
-    expect(copy).toMatchObject({ status: 'passed', verifiedName: 'Nóra Ward' });
+  it('P15: a verified landlord’s first listing goes live at once', async () => {
+    const member = await aCheckedLandlord();
+    const { lettingId } = await aListableLetting(member);
+    expect(await publishListing(member, lettingId, { declare: true })).toMatchObject({
+      outcome: 'live',
+    });
   });
 
   it('Q48: a landlord’s check moved over keeps its name, sealed onto their record when needed', async () => {
-    const member = await createTestMember({ kind: 'landlord' });
+    const member = await createTestMember({ kind: 'landlord', verified: false });
     // As migration 0036 leaves it: the person's record without a name, the workspace's copy with one.
     await withRenter(member.userId, (tx) =>
       tx.insert(identityChecks).values({
@@ -372,30 +359,5 @@ describe('P15, P20, P24, Q55: letters', () => {
     });
     const member = (await findMember(id))!;
     expect((await letterReadiness(member)).missing).not.toContain('identity');
-  });
-
-  it('P19: a letter checked without a selfie has their first listing reviewed, then not', async () => {
-    const member = await aCheckedLandlord({ selfie: false });
-    const first = await aListableLetting(member);
-    const held = await publishListing(member, first.lettingId, { declare: true });
-    expect(held).toEqual({ outcome: 'held', reasons: ['first_listing_review'] });
-
-    // Once a person at Gaff has let one go live, the next goes live at once.
-    const staff = await aStaffMember();
-    const hold = (await heldListings(staff)).find((h) => h.lettingId === first.lettingId)!;
-    expect(hold.reasons).toEqual(['first_listing_review']);
-    await resolveHold(staff, hold.holdId, { outcome: 'released' });
-    const second = await aListableLetting(member);
-    expect(await publishListing(member, second.lettingId, { declare: true })).toMatchObject({
-      outcome: 'live',
-    });
-  });
-
-  it('P19: checked with a selfie, the first listing goes live at once', async () => {
-    const member = await aCheckedLandlord();
-    const { lettingId } = await aListableLetting(member);
-    expect(await publishListing(member, lettingId, { declare: true })).toMatchObject({
-      outcome: 'live',
-    });
   });
 });

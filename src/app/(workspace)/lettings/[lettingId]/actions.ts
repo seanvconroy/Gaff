@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { requireMember } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { closeLetting } from '@/server/lettings/close';
-import { startTakingEnquiries } from '@/server/lettings/go-live';
+import { NotVerifiedError, startTakingEnquiries } from '@/server/lettings/go-live';
 
 export async function goLiveAction(lettingId: string): Promise<void> {
   const member = await requireMember();
@@ -13,7 +13,9 @@ export async function goLiveAction(lettingId: string): Promise<void> {
     await startTakingEnquiries(member, lettingId);
   } catch (error) {
     if (!(error instanceof UserFacingError)) throw error;
-    redirect(`/lettings/${lettingId}?problem=setup`);
+    redirect(
+      `/lettings/${lettingId}?problem=${error instanceof NotVerifiedError ? 'verify' : 'setup'}`,
+    );
   }
   revalidatePath(`/lettings/${lettingId}`, 'layout');
   redirect(`/lettings/${lettingId}?saved=live`);

@@ -4,8 +4,8 @@ import { withOrg } from '@/db/client';
 import { applications, bookings, decisions, events, viewingSlots } from '@/db/schema';
 import { inviteToView } from '@/server/shortlist/invite';
 import { attendanceFor, markAttendance } from '@/server/viewings/attendance';
-import { bookViewing, cancelViewing } from '@/server/viewings/booking';
-import { aLiveLetting, aRenterEnquires, createTestMember, tokenInMessage } from './helpers';
+import { cancelViewing } from '@/server/viewings/booking';
+import { aLiveLetting, aRenterEnquires, bookAs, createTestMember, tokenInMessage } from './helpers';
 
 /** A live letting where one invited renter has booked the first slot. */
 async function aBookedViewing() {
@@ -22,7 +22,7 @@ async function aBookedViewing() {
       .limit(1),
   );
   const token = await tokenInMessage(member, applicationId, 'invitation');
-  expect((await bookViewing(token, slot!.id)).ok).toBe(true);
+  expect((await bookAs(token, slot!.id)).ok).toBe(true);
   const [booking] = await withOrg(member.organisationId, (tx) =>
     tx.select().from(bookings).where(eq(bookings.applicationId, applicationId)),
   );

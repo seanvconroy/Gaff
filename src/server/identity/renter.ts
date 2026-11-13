@@ -3,13 +3,7 @@ import { withOrg } from '@/db/client';
 import { applications, checks } from '@/db/schema';
 import { normaliseEmail } from '@/domain/enquiries/parse';
 import { resolveAccessLink } from '@/server/access/links';
-import {
-  chooseOffline,
-  identityWithName,
-  refreshCopies,
-  shareIdentity,
-  startIdentity,
-} from './identity';
+import { identityWithName, refreshCopies, shareIdentity, startIdentity } from './identity';
 
 const CHOSEN = ['preferred', 'backup'];
 
@@ -74,16 +68,10 @@ export async function isApplicationsRenter(token: string, userId: string | null)
 export async function startRenterIdentity(
   token: string,
   userId: string,
-  input: { selfie: boolean; consented: boolean },
+  input: { consented: boolean },
 ) {
   if (!(await isApplicationsRenter(token, userId))) return { problem: 'not_yours' as const };
   return startIdentity(userId, { ...input, returnTo: 'renter' });
-}
-
-export async function renterIdentityOffline(token: string, userId: string): Promise<boolean> {
-  if (!(await isApplicationsRenter(token, userId))) return false;
-  await chooseOffline(userId);
-  return true;
 }
 
 /**

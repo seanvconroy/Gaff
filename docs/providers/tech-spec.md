@@ -7,8 +7,8 @@ Draft, 8 November 2026, revised the same day after Sean's review · CTO · goes 
 The stand-ins are replaced inside the existing monolith, behind ports that already exist or are renamed. No new service runs alongside the app, and no vendor beyond those already approved is needed at launch. The work adds:
 
 - a Claude adapter for both the Claude API (test copy) and Claude on Bedrock in Dublin (production), with four tasks, usage logging, a budget and evals;
-- **one identity check per person**, with Stripe Identity, kept in the person's own zone. Renters check the first time they're chosen, letters before their first listing. Each workspace gets a copy for its badges, and each application gets one when the renter is chosen;
-- **a mobile confirmed by text code to book a viewing**, using the code logic letters already have;
+- **one identity check per person**, a photo ID and a live selfie with Stripe Identity, with no other way through (Q60), kept in the person's own zone. Renters check the first time they're chosen, letters before their first letting goes live. Each workspace gets a copy for its badges, and each application gets one when the renter is chosen;
+- **a mobile confirmed by text code, required to book a viewing**, using the code logic letters already have;
 - **one checks page for chosen renters**: identity (once), work and income documents, and referees, shared in one step;
 - **work and income documents**: uploaded straight to private storage, read and checked by Claude, encrypted, and deleted on schedule. Statements of other income never reach letters;
 - no open banking at launch. "Confirm with your bank" (Tink) is sketched as a later option.
@@ -25,7 +25,7 @@ Everything in [architecture.md](../architecture.md), the ADRs and the [marketpla
 | 4 | Refusals and failures | A refusal, timeout or invalid output falls back to people. No server-side model fallback | Rule 1 and P5; evals cover exactly the model that runs; Bedrock doesn't offer server-side fallback | 0025 |
 | 5 | Identity belongs to the person | One `identity_checks` row per person, in the renter zone (ADR-0017), with copies into `letter_checks` for each workspace and into `checks` for each application when the renter is chosen | Q48: checked once and reused; the person owns it; letters get copies only at their stage (rule 2) | 0026 |
 | 6 | When renters check | The first time a letter chooses them as the preferred applicant or the backup, on the same page as their documents and referees, whatever the source of their enquiry. Before then, a confirmed email to enquire and a confirmed mobile to book a viewing | Q48: the moment identity matters, one rule for Gaff, Daft and MyHome renters, the DPC's guidance, and about €2.50 a letting instead of €1.25 a sign-up | 0026 |
-| 7 | The non-biometric alternative | Stripe's document check without a selfie, then "seen in person" by the letter for a chosen renter, or a person at Gaff reviewing a letter's first listing. "Can't be checked online" leads to the same in-person step | EU law, and Stripe's own guidance, call for an alternative to biometrics; nobody is shut out by the document they hold | 0026 |
+| 7 | One standard, no alternative | A photo ID and a live selfie for everyone. No check without a selfie, no "can't be checked online", no seeing ID in person. A person at Gaff can give more tries after three | Q60: one verification standard, and stick to it. Whether consent holds, and the Equal Status Acts, are for the solicitor (Q61) | 0026 |
 | 8 | Work and income | Documents chosen by how the renter earns, read and checked by Claude. No income estimate, no score, no ratio. Statements of other income are read by Gaff alone | Q49; the Irish norm; rule 3 | 0026 |
 | 9 | Documents | Uploaded straight to private storage, then checked, read and encrypted by a job, as photos are (ADR-0021). The renter's and the letter's copies are separate objects with their own deletion dates | Vercel's 4.5 MB request limit; the photo pipeline already works this way; the two copies have different reasons to exist (Q25) | 0026 |
 | 10 | Open banking | Not at launch. A later "Confirm with your bank" checks payslips against payments, through Tink, keeping only the outcome | Rare in Ireland, enterprise terms, credit unions can't be connected, and Sean doesn't want an income estimate | 0026 |
@@ -34,8 +34,8 @@ Everything in [architecture.md](../architecture.md), the ADRs and the [marketpla
 
 ```
 Booking a viewing (r/[token])     Renter's checks page (r/[token])               Letter's Applications page
-   │ mobile + text code             │ identity (once), upload, confirm, share        │ see the pack, open documents,
-   ▼                                ▼                                                ▼ record "seen in person"
+   │ mobile + text code             │ identity (once), upload, confirm, share        │ see the pack, open documents
+   ▼                                ▼                                                ▼
 server/viewings              server/identity ──► ports/identity ──► adapters/identity/stripe ──► Stripe Identity (hosted)
                                    │   copies at stage: letter_checks (workspace badges), checks (application, when chosen)
                                    ▼
@@ -60,15 +60,15 @@ src/adapters/ai/fake.ts             deterministic stand-in (tests, local)
 src/domain/ai/                      budget maths, price table, output validators (pure)
 src/server/ai/usage.ts              logs each call, enforces the budget, kill switches
 src/ports/identity.ts               was ports/letter-identity.ts, now for every person
-src/adapters/identity/stripe.ts     was adapters/letter-identity/stripe.ts, with or without a selfie
+src/adapters/identity/stripe.ts     was adapters/letter-identity/stripe.ts, now always with a selfie
 src/adapters/identity/index.ts      Stripe, or the stand-in page at /dev/identity (development and
                                       the test copy)
 src/domain/identity/                names.ts (does a name match?), access.ts (is a chosen renter's
                                       identity done? may this letter publish yet?)
 src/copy/identity.ts                what each person sees about the check
-src/server/identity/                identity.ts (start, consent, outcome, webhook, redaction, "can't
-                                      be checked online", copies to workspaces and applications),
-                                      renter.ts, in-person.ts, staff.ts
+src/server/identity/                identity.ts (start, consent, outcome, webhook, redaction, copies
+                                      to workspaces and applications), renter.ts, staff.ts (more
+                                      tries)
 src/domain/documents/               requests.ts (what's asked, by how someone earns), checks.ts
                                       (recency, names, flags), pay.ts (pay periods to a month)
 src/server/documents/               upload, read, confirm, share, view, keep, delete
@@ -147,24 +147,24 @@ Results are saved under `tests/evals/results/` with the prompt version and model
 | Column | Notes |
 | --- | --- |
 | `user_id` | Primary key |
-| `status` | `pending` (a Stripe session is open), `verified`, `not_verified` (the last attempt failed; fewer than three tries), `offline` ("can't be checked online", chosen or after three tries) |
-| `selfie` | Whether the selfie was checked |
+| `status` | `pending` (a Stripe session is open), `verified`, `not_verified` (the last attempt failed). `offline` remains only for checks recorded before Q60 |
+| `selfie` | Whether the selfie was checked: always, since Q60. A check recorded without one has to be done again |
 | `verified_name_sealed` | First and last name from Stripe, sealed (`src/lib/crypto.ts`) |
-| `provider`, `provider_ref` | `stripe` (`stand_in` in development and on the test copy, or `staff` once a person at Gaff has seen the ID, Q55), and the VerificationSession, reused across a person's retries as Stripe advises |
-| `attempts`, `reason` | Up to three; Gaff's reason code from Stripe's (`document`, `face_mismatch`, `gave_up`) |
+| `provider`, `provider_ref` | `stripe` (`stand_in` in development and on the test copy), and the VerificationSession, reused across a person's retries as Stripe advises |
+| `attempts`, `reason` | Up to three, until a person at Gaff gives more (`identity.more_tries`); Gaff's reason code from Stripe's (`document`, `face_mismatch`, `gave_up`) |
 | `consent_version`, `consented_at` | The selfie consent wording the person agreed to (P18) |
-| `checked_at`, `checked_by`, `provider_redacted_at` | The result's date; the person at Gaff who saw the ID (Q55); when Stripe was asked to redact |
+| `checked_at`, `provider_redacted_at` | The result's date; when Stripe was asked to redact |
 
-`domain/identity/access.ts` decides what's done, with unit tests: a chosen renter's identity is done when the status is `verified`, or `offline` with the letter's in-person record to come before the agreement (P27). A letter's listing may go live under `missingChecks` (M22) when they're `verified`, with the first listing held for review if `selfie` is false (P19). A letter who's `offline` stays in the staff queue until a person at Gaff checks them (Q55).
+`domain/identity/access.ts` decides what's done, with unit tests: identity is checked when the status is `verified` with a selfie (Q60). A letter's letting may start taking enquiries, and a listing go live under `missingChecks` (M22), only once their mobile and identity are checked (`startTakingEnquiries` refuses otherwise). Someone out of tries appears on `/staff/checks`, where a person at Gaff can give three more.
 
 ### Starting a check
 
-1. Gaff's page explains the check (P18). For a selfie check, the person ticks the consent box (not ticked by default), which records `consent_version` and `consented_at` with an `identity.consented` event. "Check without a selfie" and "My ID can't be checked online" are links on the same page, with equal weight.
-2. `startIdentity` (`server/identity/identity.ts`) creates or reuses the person's VerificationSession: `type=document`; `options.document.require_matching_selfie` true or false; `require_live_capture=true`; `allowed_types` passport, driving licence and ID card; `return_url` to a letter's Settings, or for a renter to `/identity/done`, which shows nothing private, so their private link is never given to Stripe. `metadata[user_id]` and `metadata[check_id]` are opaque IDs, never names. The idempotency key is the check ID and the attempt number.
+1. Gaff's page explains the check (P18), with the consent wording next to one button, "Agree and check my ID". Pressing it records `consent_version` and `consented_at` with an `identity.consented` event.
+2. `startIdentity` (`server/identity/identity.ts`) creates or reuses the person's VerificationSession: `type=document`; `options.document.require_matching_selfie` true; `require_live_capture=true`; `allowed_types` passport, driving licence and ID card; `return_url` to a letter's Settings, or for a renter to `/identity/done`, which shows nothing private, so their private link is never given to Stripe. `metadata[user_id]` and `metadata[check_id]` are opaque IDs, never names. The idempotency key is the check ID and the attempt number.
 3. Stripe's hosted page does the rest, and offers a laptop user to carry on on their phone. No Stripe script loads on Gaff's pages (M103).
 4. The webhook (`/api/webhooks/stripe-identity`, one route for everyone) verifies the signature, loads the check inside `withRenter(metadata.user_id)`, checks the session belongs to it, and asks Stripe for the session's state rather than trusting the payload (P54). The return page also asks, so the person rarely waits for the webhook.
 5. With the secret key only, Gaff reads `status`, `last_error.code` and `verified_outputs.first_name` and `last_name`. It never expands `dob`, `id_number` or images, which need a restricted key Gaff doesn't have.
-6. `consent_declined` moves the person to the check without a selfie (P18). A failed attempt shows the reason in plain words and offers another try, up to three, then "can't be checked online" (P25).
+6. `consent_declined` doesn't count as one of the person's tries (P18). A failed attempt shows the reason in plain words and offers another try, up to three; after that, the person replies to any email from Gaff, and a person at Gaff gives three more (P25).
 7. `redact_identity` runs 30 days after the result and redacts the session, as for landlords today; the webhook listens for `identity.verification_session.redacted`.
 
 ### When renters check
@@ -178,13 +178,12 @@ The same way for every renter, wherever they enquired:
 
 ### A confirmed mobile to book a viewing
 
-The booking page (`BookingSection`) asks for a mobile number, as today, but now sends a text code and books the slot only once it's confirmed (P16). The code rules in `domain/verification/mobile.ts` (expiry, attempts and daily sends) are reused by `server/viewings/mobile.ts`, with the code hashed and keyed to the application, so renters from Daft and MyHome need no account to book. The confirmed number becomes the application's `phone_e164`, with `mobile_confirmed_at`, and also gets the 2-hour text reminder (R13, changing Q12). On the test copy the code shows on screen until Sinch is set up (N3). "Book without a mobile" books the slot without one, and the letter's attendance list shows "No mobile confirmed".
+The booking page (`BookingSection`) asks for a mobile number, as today, but now sends a text code and books the slot only once it's confirmed (P16). The code rules in `domain/verification/mobile.ts` (expiry, attempts and daily sends) are reused by `server/viewings/mobile.ts`, with the code hashed and keyed to the application, so renters from Daft and MyHome need no account to book. The confirmed number becomes the application's `phone_e164`, with `mobile_confirmed_at`, and also gets the 2-hour text reminder (R13, changing Q12). On the test copy the code shows on screen until Sinch is set up (N3). A new booking needs the confirmed mobile (`bookViewing` refuses with `mobile_needed`); moving a booking doesn't ask again.
 
 ### Copies at each stage
 
 - **Workspaces.** When a person is verified, or creates or joins a workspace already verified, `refreshCopies` (`server/identity/identity.ts`) writes or refreshes their `letter_checks` row for each of their workspaces (`method=id_document`, `passed`, the verified name, `checkedAt`). The row keeps no `providerRef`: the session belongs to the person's own record. Badges (M26) and readiness (M22) keep reading `letter_checks`, so nothing changes for them. Agents now need identity too (`missingChecks` adds `identity` for agency members). The staff licence queue shows the agent's verified name next to the register's (P24).
-- **Applications.** When a renter is chosen, their checks are created as today (R18). The identity check is `to_do`, or filled from their record if they've checked before, or as soon as they do: `passed`, with or without a selfie, or with `inPersonNeeded` for `offline`. The sealed result also says whether the verified name differs from the one they gave (P22). The event is `identity.shared`. Until the one "Share" step arrives with documents (P39), it reaches the letter as soon as it's checked, with the `checks` data group (M11, M12).
-- **Seen in person (P27).** For a check without a selfie, or `offline`, the Tenancy page asks the letter to record that they saw an original photo ID, and the name on it, before sending the agreement. The application's check records `recordedBy` and the date, with `check.recorded_in_person`. The person's own record isn't changed: one letter's sighting stays with that letting.
+- **Applications.** When a renter is chosen, their checks are created as today (R18). The identity check is `to_do`, or filled from their record if they've checked before, or as soon as they do: `passed`, with the verified name and the date. The sealed result also says whether the verified name differs from the one they gave (P22). The event is `identity.shared`. Until the one "Share" step arrives with documents (P39), it reaches the letter as soon as it's checked, with the `checks` data group (M11, M12).
 
 ### Moving the landlords' check over
 
@@ -261,13 +260,13 @@ It needs Tink's enterprise terms for Income Check, its confirmed Irish bank list
 | --- | --- |
 | `identity_checks` (new, renter zone, `renterPolicy`) | As above |
 | `letter_checks` | `id_document` rows become copies of the person's record: no `providerRef` or `providerRedactedAt` for new rows. Migrated as above |
-| `checks` | The identity check's sealed result gains `selfie`, `inPersonNeeded` and `nameDiffers`, and, once the letter has seen the photo ID in person, the name on it and the date; `check.recorded_in_person` records who. The `income` kind holds the shared documents' summary: `documentsSharedAt` and the flags |
-| `applications` | `mobile_confirmed_at`, and the booking's text code (hashed, with its expiry and attempts), cleared once confirmed. The number is the existing `phone_e164`; `sms_reminders` follows the confirmed number (Q12) |
+| `checks` | The identity check's sealed result holds the verified name, `nameDiffers` and the date. The `income` kind holds the shared documents' summary: `documentsSharedAt` and the flags |
+| `applications` | `mobile_confirmed_at`, and the booking's text code (hashed, with its expiry and attempts), cleared once confirmed (migration 0036). The number is the existing `phone_e164`; `sms_reminders` follows the confirmed number (Q12) |
 | `renter_documents` (new, renter zone, `renterPolicy`) | `user_id`, `kind` (`payslip`, `contract`, `employer_letter`, `revenue_statement`, `accountant_letter`, `other_income`), `storage_key` (null once deleted), `content_type`, `bytes`, `pages`, `status` (`processing`, `ready`, `deleted`), `reading_sealed`, `flags`, `document_date`, `corrected_by_renter`, `keep`, `delete_after`, `deleted_at` |
 | `check_documents` (new, organisation zone, `tenantPolicy`) | `check_id`, `application_id`, `kind` (`other_income` has no file), `storage_key`, `reading_sealed`, `flags`, `document_date`, `corrected_by_renter`, `delete_after`, `deleted_at` |
 | `ai_calls` (new, platform zone) | As above. No organisation data beyond the ID |
-| `listing_holds` | `reasons` adds `unfair_wording`, and `first_listing_review` for a letter checked without a selfie (P19). New `wording_findings` (jsonb): the phrase from the letter's own words, the ground, why and a rewording, shown to the letter and to staff. Not personal data, so not sealed |
-| Events | `booking.mobile_code_sent`, `booking.mobile_confirmed`, `identity.consented`, `identity.started`, `identity.decided`, `identity.offline`, `identity.redacted`, `identity.shared` (a workspace's copy keeps `letter_check.decided`), `check.recorded_in_person`, `document.uploaded`, `document.read`, `document.confirmed`, `documents.shared`, `document.viewed`, `document.deleted`, `listing.description_drafted`, `listing.wording_flagged`; platform: `ai.budget_warning`. IDs, codes, numbers and dates only, checked by the compliance suite. Person-zone events carry no organisation |
+| `listing_holds` | `reasons` adds `unfair_wording`. New `wording_findings` (jsonb): the phrase from the letter's own words, the ground, why and a rewording, shown to the letter and to staff. Not personal data, so not sealed |
+| Events | `booking.mobile_code_sent`, `booking.mobile_confirmed`, `identity.consented`, `identity.started`, `identity.decided`, `identity.redacted`, `identity.more_tries`, `identity.shared` (a workspace's copy keeps `letter_check.decided`), `document.uploaded`, `document.read`, `document.confirmed`, `documents.shared`, `document.viewed`, `document.deleted`, `listing.description_drafted`, `listing.wording_flagged`; platform: `ai.budget_warning`. IDs, codes, numbers and dates only, checked by the compliance suite. Person-zone events carry no organisation |
 
 ## Privacy and retention
 
@@ -295,8 +294,8 @@ It needs Tink's enterprise terms for Income Check, its confirmed Irish bank list
 
 ## Testing
 
-- **Unit:** `names.ts` (fadas, Ó and O', Mc and Mac, middle names, married names), `access.ts` (each status and setting), `requests.ts`, `checks.ts` (each flag at its boundary), `pay.ts`, the AI validators (a phrase not in the input, a fact ID that doesn't exist, a number not in the facts, a PPS number or IBAN in a reading, a payer on other income), the budget maths, the Stripe adapter with a mocked `fetch` (with and without a selfie, `consent_declined`, retries on one session).
-- **Integration:** each use case with the fake AI and the stand-in provider: the mobile code at booking (with and without a mobile), consent, attempts, "can't be checked online", copies to workspaces when verified and on joining, sharing to an application, seen in person, redaction, the migration from `letter_checks`, uploads and readings, sharing, deletion of each copy on its date, other income never reaching the organisation zone, and events without personal data.
+- **Unit:** `names.ts` (fadas, Ó and O', Mc and Mac, middle names, married names), `access.ts` (each status and setting), `requests.ts`, `checks.ts` (each flag at its boundary), `pay.ts`, the AI validators (a phrase not in the input, a fact ID that doesn't exist, a number not in the facts, a PPS number or IBAN in a reading, a payer on other income), the budget maths, the Stripe adapter with a mocked `fetch` (a selfie always, `consent_declined`, retries on one session).
+- **Integration:** each use case with the fake AI and the stand-in provider: the mobile code at booking (and no new booking without it), consent, attempts and more tries, an old check without a selfie done again, letters verified before a letting goes live, copies to workspaces when verified and on joining, sharing to an application, redaction, the migration from `letter_checks`, uploads and readings, sharing, deletion of each copy on its date, other income never reaching the organisation zone, and events without personal data.
 - **End to end:** booking a viewing with a text code on a phone; a chosen renter checking their identity, uploading, confirming and sharing on one page; a Daft renter doing the same; the same renter chosen again, with identity already done; the letter's pack and opening a payslip; an agent's identity and licence; axe on every page; the existing journeys keep passing.
 - **Compliance:** no column can hold a date of birth, document number, transactions or a payer of other income (a schema test); event payloads; no third-party scripts; production refuses `AI_PROVIDER=anthropic`, `IDENTITY_PROVIDER=stand_in` and the database storage provider; no route serves an `other_income` document.
 - **Evals:** above, before every prompt or model change.
@@ -308,7 +307,7 @@ It needs Tink's enterprise terms for Income Check, its confirmed Irish bank list
 | --- | --- | --- | --- |
 | 1 | The Claude adapter on both clients, usage logging, budget, kill switches; answers on the real model; their evals | P1 to P9, P56 | An Anthropic API key on the test copy |
 | 2 | Drafted descriptions and the wording check, with evals | P10 to P14 | — |
-| 3 | Identity per person: the record, Stripe with and without a selfie, consent, "can't be checked online", the checks page and reuse on a later letting, the mobile code at booking, copies to workspaces and applications, agents, seen in person, redaction, the migration | P15 to P29 | Stripe test keys and the webhook on the test copy; a test-mode spike with Irish documents first |
+| 3 | Identity per person: the record, Stripe with a live selfie and no other way through (Q60), consent, more tries, the checks page and reuse on a later letting, the mobile code to book, letters verified before a letting goes live, copies to workspaces and applications, agents, redaction, the migration | P15 to P29 | Stripe test keys and the webhook on the test copy; a test-mode spike with Irish documents first |
 | 4 | Documents: what's asked, upload, reading, flags, confirming, sharing, the letter's viewer, keeping, deletion; their evals | P30 to P41 | — |
 | 5 | The letter's pack and fairness words; character references and guarantors; measures and alerts | P42 to P49, P58, P59 | — |
 | 6 | Production readiness: Bedrock in Dublin and its evals, Stripe's live keys and DPA, the privacy notice, the DPIA, the solicitor's answers | P50 to P55, P57 | AWS account; solicitor; Stripe |
@@ -332,8 +331,8 @@ AI figures are estimates at Claude Opus 5.5's list price ($4 and $20 per million
 | --- | --- |
 | A chosen renter doesn't finish their checks in time | One page, about five minutes; the existing reminders and chasers; the backup is checked at the same time (R18); the letter decides |
 | Fake bookings and no-shows at viewings | A confirmed mobile to book, and text reminders (P16) |
-| Stripe reads its terms as excluding housing | Gaff checks its own users, the same way for everyone, and the result never decides who gets a home. Daft uses Stripe Identity the same way. "Seen in person" works without Stripe, and another provider fits behind the same port (with approval, rule 10) |
-| Stripe doesn't accept an Irish document (passport card, driving licence, Irish Residence Permit) | A spike in test mode with each type before milestone 3 ships; "can't be checked online" means nobody is shut out |
+| Stripe reads its terms as excluding housing | Gaff checks its own users, the same way for everyone, and the result never decides who gets a home. Daft uses Stripe Identity the same way. Another provider fits behind the same port (with approval, rule 10) |
+| Stripe doesn't accept an Irish document (passport card, driving licence, Irish Residence Permit), or someone can't pass the selfie | A spike in test mode with each type before real people use it. There's no other way through for now (Q60): a person at Gaff can give more tries, and the share who can't get through is measured (P58) and brings Q61 back |
 | Identity costs grow with sign-ups | The cost per new person in the weekly view; three attempts at most; ask Stripe for volume pricing after the beta |
 | Forged payslips, the most common referencing fraud in the UK | Every renter's identity is checked, and documents must be in that name; the employer reference is a separate check; personal-email referees are flagged; Gaff says it can't detect forgeries. "Confirm with your bank" (P60) is ready to build |
 | A work document shows something the letter shouldn't weigh, such as maternity pay | The reminder to letters (P47); statements of other income never reach them (P33) |

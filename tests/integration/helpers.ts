@@ -5,9 +5,18 @@ import { findMember, type Member } from '@/server/auth/member';
 export type { Member };
 import { createOrganisation } from '@/server/organisations/create-organisation';
 
-/** A signed-up operator with their own organisation, isolated from every other test. */
+/**
+ * A signed-up operator with their own organisation, isolated from every other test. P15 (Q60):
+ * verified by default, with a confirmed mobile and a checked ID, so their lettings can go
+ * live; `verified: false` for tests of verifying itself.
+ */
 export async function createTestMember(
-  overrides: { name?: string; organisation?: string; kind?: 'agency' | 'landlord' } = {},
+  overrides: {
+    name?: string;
+    organisation?: string;
+    kind?: 'agency' | 'landlord';
+    verified?: boolean;
+  } = {},
 ): Promise<Member> {
   const id = crypto.randomUUID();
   await db()
@@ -20,9 +29,60 @@ export async function createTestMember(
     kind,
     psraLicenceNumber: kind === 'agency' ? '001234' : undefined,
   });
+  if (overrides.verified !== false) await verifyLetter(id);
   const member = await findMember(id);
   if (!member) throw new Error('test member was not created');
   return member;
+}
+
+/** Q60: a letter's confirmed mobile and checked ID, through the stand-in. */
+async function verifyLetter(userId: string): Promise<void> {
+  const { withRenter } = await import('@/db/client');
+  const { phoneConfirmations } = await import('@/db/schema');
+  const { checkIdentity } = await import('./identity-helpers');
+  const phone = `+35387${String(Math.random()).slice(2, 9)}`;
+  await withRenter(userId, (tx) =>
+    tx
+      .insert(phoneConfirmations)
+      .values({ userId, phone, confirmedPhone: phone, confirmedAt: new Date() }),
+  );
+  await checkIdentity(userId, { returnTo: 'letter' });
+}
+
+/** P16: the newest text code sent to a mobile, from the development outbox. */
+export async function lastSmsCode(e164: string): Promise<string> {
+  const { and, desc, eq, like } = await import('drizzle-orm');
+  const { devOutbox } = await import('@/db/schema');
+  const [sms] = await db()
+    .select({ text: devOutbox.text })
+    .from(devOutbox)
+    .where(and(eq(devOutbox.toAddress, e164), like(devOutbox.text, '%Gaff code%')))
+    .orderBy(desc(devOutbox.createdAt))
+    .limit(1);
+  const code = sms ? /(\d{6})/.exec(sms.text)?.[1] : undefined;
+  if (!code) throw new Error(`No code has been texted to ${e164}`);
+  return code;
+}
+
+/** P16 (Q60): the renter confirms a mobile with the texted code, as booking needs. */
+export async function confirmBookingMobile(
+  token: string,
+  mobile = `087${String(Math.random()).slice(2, 9)}`,
+): Promise<string> {
+  const { confirmBookingCode, sendBookingCode } = await import('@/server/viewings/mobile');
+  const sent = await sendBookingCode(token, mobile);
+  if (!sent.ok) throw new Error(`no code sent: ${sent.problem}`);
+  const e164 = `+353${mobile.replace(/\s/g, '').slice(1)}`;
+  const confirmed = await confirmBookingCode(token, await lastSmsCode(e164));
+  if (!confirmed.ok) throw new Error(`mobile not confirmed: ${confirmed.problem}`);
+  return e164;
+}
+
+/** R12: books a viewing as a renter would, confirming a mobile first (P16). */
+export async function bookAs(token: string, slotId: string) {
+  const { bookViewing } = await import('@/server/viewings/booking');
+  await confirmBookingMobile(token);
+  return bookViewing(token, slotId);
 }
 
 /** The database's own message for a failed query (Drizzle wraps it as the error's cause). */
@@ -180,7 +240,6 @@ export async function peopleWhoApplied(
   const { withOrg } = await import('@/db/client');
   const { bookings, viewingSlots } = await import('@/db/schema');
   const { inviteToView } = await import('@/server/shortlist/invite');
-  const { bookViewing } = await import('@/server/viewings/booking');
   const { markAttendance } = await import('@/server/viewings/attendance');
   const { submitApplication } = await import('@/server/applications/apply');
   const { lettingId } = await aLiveLetting(member);
@@ -198,7 +257,7 @@ export async function peopleWhoApplied(
   );
   for (const [i, id] of ids.entries()) {
     const token = await tokenInMessage(member, id, 'invitation');
-    const booked = await bookViewing(token, slots[i]!.id);
+    const booked = await bookAs(token, slots[i]!.id);
     if (!booked.ok) throw new Error(`booking failed: ${JSON.stringify(booked)}`);
   }
   await withOrg(member.organisationId, (tx) =>

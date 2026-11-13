@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { renterIdentity } from '@/domain/identity/access';
+import { identityStage } from '@/domain/identity/access';
 import { currentUser } from '@/server/auth/member';
 import { identityOf } from '@/server/identity/identity';
 import { Outcome } from '@/ui/Outcome';
@@ -15,10 +15,10 @@ export const dynamic = 'force-dynamic';
 export default async function IdentityDonePage() {
   const user = await currentUser();
   const identity = user ? await identityOf(user.id) : null;
-  const where = renterIdentity(identity);
+  const where = identityStage(identity);
   return (
     <RenterShell operatorName="Gaff">
-      {where === 'checked' || where === 'in_person' ? (
+      {where === 'checked' ? (
         <Outcome tone="success" title="Thanks, your ID is checked" headingLevel={1}>
           <p>
             It’s kept on your Gaff profile, so you won’t be asked again. Go back to the link in our
@@ -28,8 +28,8 @@ export default async function IdentityDonePage() {
       ) : identity?.status === 'not_verified' ? (
         <Outcome tone="warning" title="That didn’t work this time" headingLevel={1}>
           <p>
-            Go back to the link in our email to try again, check without a selfie, or tell us your
-            ID can’t be checked online.
+            Go back to the link in our email to try again. After three tries, reply to our email and
+            a person at Gaff will give you more tries.
           </p>
         </Outcome>
       ) : (

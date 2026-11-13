@@ -290,10 +290,8 @@ export const eventCatalogue = {
   'identity.shared': z.object({
     applicationId: z.uuid(),
     checkId: z.uuid(),
-    outcome: z.enum(['checked', 'in_person']),
+    outcome: z.enum(['checked']),
   }),
-  /** P27: the letter saw an original photo ID when they met the renter. */
-  'check.recorded_in_person': z.object({ applicationId: z.uuid(), checkId: z.uuid() }),
   /** M16: an admin invited a colleague; a colleague joined; one was removed. */
   'member.invited': z.object({
     invitationId: z.uuid(),
@@ -315,7 +313,6 @@ export const eventCatalogue = {
         'description_copied',
         'new_account_burst',
         'unfair_wording',
-        'first_listing_review',
       ]),
     ),
   }),

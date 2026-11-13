@@ -9,10 +9,7 @@ import { recordDecision } from '@/server/decisions/record-decision';
 import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
 
-/**
- * R15: everyone booked to view a letting, in time order, with whether they came, and (P16)
- * whether they confirmed a mobile.
- */
+/** R15: everyone booked to view a letting, in time order, with whether they came. */
 export async function attendanceFor(member: Member, lettingId: string) {
   return withOrg(member.organisationId, (tx) =>
     tx
@@ -22,8 +19,6 @@ export async function attendanceFor(member: Member, lettingId: string) {
         slotId: viewingSlots.id,
         startsAt: viewingSlots.startsAt,
         name: applications.fullName,
-        // P16: the letter sees who booked without confirming a mobile.
-        mobileConfirmedAt: applications.mobileConfirmedAt,
       })
       .from(bookings)
       .innerJoin(viewingSlots, eq(viewingSlots.id, bookings.slotId))

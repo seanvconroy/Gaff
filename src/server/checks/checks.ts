@@ -123,10 +123,6 @@ export type CheckSummary = {
   requestedAt: Date | null;
   remindersSent: number;
   verifiedName?: string;
-  /** P19, P27: checked with a selfie; or to be seen in person, and whether it has been. */
-  selfie?: boolean;
-  inPersonNeeded?: boolean;
-  seenInPerson?: { name: string; at: Date };
   /** P22: the verified name isn't the name they gave. Shown in words, never as a failure. */
   nameDiffers?: boolean;
   checkedAt?: Date;
@@ -158,15 +154,7 @@ export async function checkResultsFor(
     if (opened && row.kind === 'identity') {
       if (opened.verifiedName) summary.verifiedName = String(opened.verifiedName);
       summary.nameDiffers = opened.nameDiffers === true;
-      summary.selfie = opened.selfie !== false;
-      summary.inPersonNeeded = opened.inPersonNeeded === true;
       if (opened.checkedAt) summary.checkedAt = new Date(String(opened.checkedAt));
-      if (opened.seenName && opened.seenAt) {
-        summary.seenInPerson = {
-          name: String(opened.seenName),
-          at: new Date(String(opened.seenAt)),
-        };
-      }
     }
     if (opened && row.kind === 'income')
       summary.monthlyIncomeCents = Number(opened.monthlyIncomeCents);

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireStaff } from '@/server/auth/staff';
 import { UserFacingError } from '@/server/errors';
-import { confirmIdentityByStaff } from '@/server/identity/staff';
+import { allowMoreTries } from '@/server/identity/staff';
 import { decideLicenceCheck, type LicenceDecision } from '@/server/verification/licence';
 
 const decisions: Record<string, LicenceDecision> = {
@@ -28,14 +28,11 @@ export async function decideAction(checkId: string, formData: FormData): Promise
   redirect('/staff/checks?saved=1');
 }
 
-/** Q55: a person at Gaff saw a letter's original ID another way, and records the name on it. */
-export async function confirmIdentityAction(userId: string, formData: FormData): Promise<void> {
+/** P25 (Q60): a person at Gaff gives someone Stripe couldn't verify three more tries. */
+export async function moreTriesAction(userId: string): Promise<void> {
   const staff = await requireStaff();
   try {
-    await confirmIdentityByStaff(staff, userId, {
-      first: String(formData.get('firstName') ?? ''),
-      last: String(formData.get('lastName') ?? ''),
-    });
+    await allowMoreTries(staff, userId);
   } catch (error) {
     if (!(error instanceof UserFacingError)) throw error;
   }

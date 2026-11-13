@@ -6,11 +6,10 @@ import { recordActiveMinute } from '@/server/dashboard/activity';
 import { dashboardFor } from '@/server/dashboard/dashboard';
 import { setUsualTimes } from '@/server/organisations/usual-times';
 import { inviteToView } from '@/server/shortlist/invite';
-import { bookViewing } from '@/server/viewings/booking';
 import { UserFacingError } from '@/server/errors';
 import { createLetting } from '@/server/lettings/create-letting';
 import { aLetting } from '../fixtures/lettings';
-import { aLiveLetting, aRenterEnquires, createTestMember, tokenInMessage } from './helpers';
+import { aLiveLetting, aRenterEnquires, bookAs, createTestMember, tokenInMessage } from './helpers';
 
 describe('R28: the dashboard', () => {
   it('lists who to decide on, and people to mark once their viewing starts', async () => {
@@ -29,7 +28,7 @@ describe('R28: the dashboard', () => {
     const [slot] = await withOrg(member.organisationId, (tx) =>
       tx.select().from(viewingSlots).where(eq(viewingSlots.lettingId, lettingId)).limit(1),
     );
-    await bookViewing(await tokenInMessage(member, first, 'invitation'), slot!.id);
+    await bookAs(await tokenInMessage(member, first, 'invitation'), slot!.id);
     board = await dashboardFor(member);
     expect(board.today).toEqual([]);
 

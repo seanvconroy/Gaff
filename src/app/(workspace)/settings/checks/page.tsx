@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { identityStage } from '@/domain/identity/access';
 import { maskMobile } from '@/domain/verification/mobile';
 import { badgeWords, missingCheckWords, type CheckRecord } from '@/domain/verification/readiness';
 import { requireMember } from '@/server/auth/member';
@@ -9,7 +10,7 @@ import { IdentityChoices } from '@/ui/IdentityChoices';
 import { Card, PageHeader, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { StatusPill } from '@/ui/StatusPill';
-import { identityOfflineAction, startIdentityAction } from './actions';
+import { startIdentityAction } from './actions';
 import { MobileForm } from './MobileForm';
 
 export const metadata: Metadata = { title: 'Checks' };
@@ -46,6 +47,7 @@ export default async function ChecksPage({
   const member = await requireMember();
   const readiness = await letterReadiness(member);
   const own = await identityOf(member.userId);
+  const stage = identityStage(own);
   const idCheck = readiness.member.find((c) => c.method === 'id_document');
   const agencyLicence = readiness.organisation.find((c) => c.method === 'psra_register');
   const ownLicence = readiness.member.find((c) => c.method === 'psra_register');
@@ -113,28 +115,14 @@ export default async function ChecksPage({
           <p>
             <CheckStatus check={idCheck} />
           </p>
-          {own?.status === 'verified' ? (
-            <p>
-              Checked once, for every workspace you’re in and any home you rent through Gaff.
-              {own.selfie
-                ? ''
-                : ' A person at Gaff looks at your first listing before it goes live.'}
-            </p>
-          ) : own?.status === 'offline' ? (
-            <Notice tone="info" title="A person at Gaff will check your ID with you">
-              <p>
-                We’ll contact you within one working day to arrange it. Your homes can go live once
-                it’s done.
-              </p>
-            </Notice>
-          ) : own?.status === 'pending' ? (
+          {stage === 'checked' ? (
+            <p>Checked once, for every workspace you’re in and any home you rent through Gaff.</p>
+          ) : stage === 'started' ? (
             <p>We’re waiting for the result. If you didn’t finish, you can start again below.</p>
           ) : null}
-          {own?.status !== 'verified' && own?.status !== 'offline' ? (
+          {stage !== 'checked' ? (
             <IdentityChoices
-              audience="letter"
               startAction={startIdentityAction}
-              offlineAction={identityOfflineAction}
               attemptsLeft={own?.attemptsLeft ?? 3}
               reason={own?.status === 'not_verified' ? own.reason : null}
             />

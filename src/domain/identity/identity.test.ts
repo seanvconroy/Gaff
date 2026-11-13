@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  MAX_ATTEMPTS,
-  firstListingNeedsReview,
-  isChecked,
-  mayAttempt,
-  renterIdentity,
-} from './access';
+import { MAX_ATTEMPTS, identityStage, isChecked, mayAttempt } from './access';
 import { fullName, nameMatch, normaliseName } from './names';
 
 describe('P22: names that differ for ordinary reasons still match', () => {
@@ -38,7 +32,7 @@ describe('P22: names that differ for ordinary reasons still match', () => {
   });
 });
 
-describe('P15 to P29: what each identity status allows', () => {
+describe('P15 to P29, Q60: one identity check, with a live selfie', () => {
   const record = (
     status: 'pending' | 'verified' | 'not_verified' | 'offline',
     selfie = true,
@@ -49,33 +43,30 @@ describe('P15 to P29: what each identity status allows', () => {
     attempts,
   });
 
-  it('P29: someone checked is never asked again', () => {
-    expect(isChecked(record('verified'))).toBe(true);
-    expect(mayAttempt(record('verified'))).toBe(false);
+  it('P17, Q60: checked means a photo ID and a live selfie', () => {
+    expect(isChecked(record('verified', true))).toBe(true);
+    expect(isChecked(record('verified', false))).toBe(false);
+    expect(isChecked(record('offline'))).toBe(false);
+    expect(isChecked(null)).toBe(false);
   });
 
-  it('P25: three attempts at most, then the other route', () => {
+  it('P29: someone checked is never asked again', () => {
+    expect(mayAttempt(record('verified', true))).toBe(false);
+    expect(identityStage(record('verified', true))).toBe('checked');
+  });
+
+  it('P25: three attempts at most, until a person at Gaff gives more', () => {
     expect(mayAttempt(null)).toBe(true);
     expect(mayAttempt(record('not_verified', true, MAX_ATTEMPTS - 1))).toBe(true);
     expect(mayAttempt(record('not_verified', true, MAX_ATTEMPTS))).toBe(false);
-    expect(mayAttempt(record('offline'))).toBe(false);
+    expect(identityStage(record('not_verified', true, MAX_ATTEMPTS))).toBe('no_tries_left');
+    expect(identityStage(record('pending', true, 1))).toBe('started');
+    expect(identityStage(null)).toBe('to_do');
   });
 
-  it('P19, P20, P27: without a selfie, or offline, the letter sees the ID in person', () => {
-    expect(renterIdentity(record('verified', true))).toBe('checked');
-    expect(renterIdentity(record('verified', false))).toBe('in_person');
-    expect(renterIdentity(record('offline'))).toBe('in_person');
-    expect(renterIdentity(record('pending'))).toBe('started');
-    expect(renterIdentity(null)).toBe('to_do');
-  });
-
-  it('P19: a letter checked without a selfie has their first listing reviewed', () => {
-    expect(firstListingNeedsReview(record('verified', false))).toBe(true);
-    expect(firstListingNeedsReview(record('verified', true))).toBe(false);
-    expect(firstListingNeedsReview(null)).toBe(false);
-  });
-
-  it('P19, Q55: not when a person at Gaff saw their ID another way', () => {
-    expect(firstListingNeedsReview({ ...record('verified', false), byPerson: true })).toBe(false);
+  it('Q60: a check recorded without a selfie, or offline, is done again with one', () => {
+    expect(identityStage(record('verified', false, 1))).toBe('to_do');
+    expect(identityStage(record('offline', false, 0))).toBe('to_do');
+    expect(mayAttempt(record('verified', false, 1))).toBe(true);
   });
 });

@@ -80,7 +80,7 @@ describe('M3: confirming a mobile', () => {
 
 describe('M22, M24, P15: a letter’s identity, checked once as a person', () => {
   it('starts the check, records the result and the name only, and is then ready', async () => {
-    const member = await createTestMember({ kind: 'landlord' });
+    const member = await createTestMember({ kind: 'landlord', verified: false });
     expect((await letterReadiness(member)).missing).toEqual(['mobile', 'identity']);
     await confirmAMobile(member);
     const checkId = await checkIdentity(member.userId, { returnTo: 'letter' });
@@ -102,22 +102,22 @@ describe('M22, M24, P15: a letter’s identity, checked once as a person', () =>
   });
 
   it('P15: agents check their identity too', async () => {
-    const agent = await createTestMember({ kind: 'agency' });
+    const agent = await createTestMember({ kind: 'agency', verified: false });
     expect((await letterReadiness(agent)).missing).toContain('identity');
     await checkIdentity(agent.userId, { returnTo: 'letter' });
     expect((await letterReadiness(agent)).missing).not.toContain('identity');
   });
 
-  it('P18: a selfie needs the person’s explicit agreement first', async () => {
-    const member = await createTestMember({ kind: 'landlord' });
-    await expect(startIdentityCheck(member, { selfie: true, consented: false })).rejects.toThrow(
+  it('P18: the selfie needs the person’s explicit agreement first', async () => {
+    const member = await createTestMember({ kind: 'landlord', verified: false });
+    await expect(startIdentityCheck(member, { consented: false })).rejects.toThrow(
       /agree to the selfie/,
     );
   });
 
   it('ignores webhooks for sessions that aren’t the check’s own', async () => {
-    const member = await createTestMember({ kind: 'landlord' });
-    const { redirectUrl } = await startIdentityCheck(member, { selfie: true, consented: true });
+    const member = await createTestMember({ kind: 'landlord', verified: false });
+    const { redirectUrl } = await startIdentityCheck(member, { consented: true });
     const checkId = checkIdIn(redirectUrl);
     expect(
       await handleIdentityEvent({
@@ -134,7 +134,6 @@ describe('M22, M24, P15: a letter’s identity, checked once as a person', () =>
 
   it('M30: the payment account must be in the checked name', async () => {
     const member = await createTestMember({ kind: 'landlord' });
-    await checkIdentity(member.userId, { returnTo: 'letter' });
     const iban = 'IE29AIBK93115212345678';
     const wrong = await setPaymentAccount(member, { accountName: 'John Smith', iban });
     expect(wrong).toMatchObject({
@@ -149,7 +148,7 @@ describe('M22, M24, P15: a letter’s identity, checked once as a person', () =>
 
 describe('M23, M105: licences checked by a person at Gaff', () => {
   it('an agency’s licence goes to the queue when it signs up, and staff decide it', async () => {
-    const agency = await createTestMember({ kind: 'agency' });
+    const agency = await createTestMember({ kind: 'agency', verified: false });
     const staff = await aStaffMember();
     const queued = (await licenceQueue(staff)).find(
       (q) => q.organisationId === agency.organisationId,

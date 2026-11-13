@@ -8,6 +8,7 @@ import {
   gaffAddress,
   goLiveThroughUi,
   linkInEmail,
+  bookFirstTime,
   linkInEmailStarting,
   latestSmsCode,
   screenshot,
@@ -128,8 +129,7 @@ test('R10, R11, R12, R13, R14: a person decides who views; renters book, move an
   await expect(ciaran.page.getByRole('radio')).toHaveCount(1);
   await expectAccessible(ciaran.page);
   await screenshot(ciaran.page, '30-renter-place-offered');
-  await ciaran.page.getByRole('radio').check();
-  await ciaran.page.getByRole('button', { name: 'Book without a mobile' }).click();
+  await bookFirstTime(ciaran.page);
   await expect(ciaran.page.getByText('You’re booked')).toBeVisible();
   await ciaran.context.close();
 

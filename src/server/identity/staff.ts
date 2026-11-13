@@ -1,92 +1,71 @@
-import { and, asc, eq } from 'drizzle-orm';
-import { scopeToOrg, withStaff, withSystem } from '@/db/client';
-import { identityChecks, letterChecks, memberships, organisations, users } from '@/db/schema';
-import { sealJson } from '@/lib/crypto';
+import { and, asc, eq, gte, ne } from 'drizzle-orm';
+import { withSystem } from '@/db/client';
+import { identityChecks, users } from '@/db/schema';
+import { MAX_ATTEMPTS, isChecked } from '@/domain/identity/access';
+import type { IdentityReason } from '@/ports/identity';
 import type { Staff } from '@/server/auth/staff';
 import { UserFacingError } from '@/server/errors';
 import { recordPlatformEvent } from '@/server/record/platform-events';
-import { refreshCopies } from './identity';
 
-export interface OfflineIdentity {
+export interface OutOfTries {
   userId: string;
   name: string;
   email: string;
-  organisationName: string;
-  waitingSince: Date;
+  reason: IdentityReason | null;
+  since: Date;
 }
 
 /**
- * P20, Q55: letters whose ID can't be checked online, waiting for a person at Gaff to see the
- * original another way (a short video call, once the founders choose the tool). Renters never
- * wait here: the letter who chooses them sees their ID in person (P27).
+ * P25 (Q60): people, renters or letters, whose ID Stripe couldn't verify in three tries. There's
+ * no other way through, so a person at Gaff can give them more tries. Only someone with a
+ * `Staff` record can ask: it reads across people, so it runs as the system.
  */
-export async function offlineIdentityQueue(staff: Staff): Promise<OfflineIdentity[]> {
-  return withStaff(staff.userId, async (tx) => {
-    const rows = await tx
+export async function outOfTries(staff: Staff): Promise<OutOfTries[]> {
+  void staff;
+  const rows = await withSystem((tx) =>
+    tx
       .select({
-        userId: letterChecks.userId,
-        organisationName: organisations.name,
-        waitingSince: letterChecks.updatedAt,
+        userId: identityChecks.userId,
+        status: identityChecks.status,
+        selfie: identityChecks.selfie,
+        attempts: identityChecks.attempts,
+        reason: identityChecks.reason,
+        since: identityChecks.updatedAt,
         name: users.name,
         email: users.email,
       })
-      .from(letterChecks)
-      .innerJoin(organisations, eq(organisations.id, letterChecks.organisationId))
-      .innerJoin(users, eq(users.id, letterChecks.userId))
-      .where(and(eq(letterChecks.method, 'id_document'), eq(letterChecks.status, 'needs_review')))
-      .orderBy(asc(letterChecks.updatedAt));
-    const seen = new Set<string>();
-    return rows.flatMap((row) => {
-      if (!row.userId || seen.has(row.userId)) return [];
-      seen.add(row.userId);
-      return [{ ...row, userId: row.userId }];
-    });
-  });
+      .from(identityChecks)
+      .innerJoin(users, eq(users.id, identityChecks.userId))
+      .where(and(gte(identityChecks.attempts, MAX_ATTEMPTS), ne(identityChecks.status, 'pending')))
+      .orderBy(asc(identityChecks.updatedAt)),
+  );
+  return rows
+    .filter((row) => !isChecked(row))
+    .map(({ userId, name, email, reason, since }) => ({ userId, name, email, reason, since }));
 }
 
-/**
- * Q55: a person at Gaff saw the original ID, and records the name on it. The person's own check
- * becomes checked, without a selfie, and every workspace they're in gets the copy.
- */
-export async function confirmIdentityByStaff(
-  staff: Staff,
-  userId: string,
-  name: { first: string; last: string },
-  now = new Date(),
-): Promise<void> {
-  const first = name.first.trim().slice(0, 60);
-  const last = name.last.trim().slice(0, 60);
-  if (!first || !last) throw new UserFacingError('Enter the first and last name on the ID.');
-  const updated = await withSystem(async (tx) => {
-    const [member] = await tx
-      .select({ organisationId: memberships.organisationId })
-      .from(memberships)
-      .where(eq(memberships.userId, userId))
-      .limit(1);
-    if (!member) return null;
-    await scopeToOrg(tx, member.organisationId);
+/** P25: a person at Gaff gives someone three more tries with Stripe, and it's logged. */
+export async function allowMoreTries(staff: Staff, userId: string): Promise<void> {
+  const given = await withSystem(async (tx) => {
     const [row] = await tx
+      .select()
+      .from(identityChecks)
+      .where(eq(identityChecks.userId, userId))
+      .for('update');
+    if (!row || isChecked(row) || row.status === 'pending' || row.attempts < MAX_ATTEMPTS) {
+      return null;
+    }
+    await tx
       .update(identityChecks)
-      .set({
-        status: 'verified',
-        selfie: false,
-        provider: 'staff',
-        verifiedNameSealed: sealJson({ first, last }),
-        reason: null,
-        checkedAt: now,
-        checkedBy: staff.userId,
-      })
-      .where(and(eq(identityChecks.userId, userId), eq(identityChecks.status, 'offline')))
-      .returning({ id: identityChecks.id });
-    if (!row) return null;
+      .set({ status: 'not_verified', attempts: 0 })
+      .where(eq(identityChecks.id, row.id));
     await recordPlatformEvent(tx, {
-      type: 'identity.decided',
+      type: 'identity.more_tries',
       actor: { type: 'staff', userId: staff.userId },
       subject: { type: 'identity_check', id: row.id },
-      data: { checkId: row.id, outcome: 'verified', selfie: false },
+      data: { checkId: row.id },
     });
-    return row;
+    return row.id;
   });
-  if (!updated) throw new UserFacingError('Someone has already recorded that check.');
-  await refreshCopies(userId, now);
+  if (!given) throw new UserFacingError('They still have tries left, or they’re already checked.');
 }

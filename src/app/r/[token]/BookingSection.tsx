@@ -16,6 +16,7 @@ const problems: Record<string, string> = {
   full: 'Sorry, that time has just been taken. Please choose another.',
   too_late: 'That time is about to start, so it can’t be booked now. Please choose another.',
   not_invited: 'This viewing can’t be booked from this link.',
+  mobile: 'Confirm your mobile first: we’ll text you a code.',
   link: 'This link isn’t working any more. Reply to our email and we’ll help.',
 };
 

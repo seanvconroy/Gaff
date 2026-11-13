@@ -7,8 +7,7 @@ import { UserFacingError } from '@/server/errors';
 import { setIncomeRule } from '@/server/organisations/income-rule';
 import { inviteToView } from '@/server/shortlist/invite';
 import { markAttendance } from '@/server/viewings/attendance';
-import { bookViewing } from '@/server/viewings/booking';
-import { aLiveLetting, aRenterEnquires, createTestMember, tokenInMessage } from './helpers';
+import { aLiveLetting, aRenterEnquires, bookAs, createTestMember, tokenInMessage } from './helpers';
 
 /** A renter who booked the first slot, which started five minutes ago. */
 async function aViewingUnderWay() {
@@ -25,7 +24,7 @@ async function aViewingUnderWay() {
       .limit(1),
   );
   const token = await tokenInMessage(member, applicationId, 'invitation');
-  await bookViewing(token, slot!.id);
+  await bookAs(token, slot!.id);
   const endsAt = new Date(Date.now() + 10 * 60_000);
   await withOrg(member.organisationId, (tx) =>
     tx

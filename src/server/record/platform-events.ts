@@ -63,11 +63,12 @@ export const platformEventCatalogue = {
   }),
   'identity.decided': z.object({
     checkId: z.uuid(),
-    outcome: z.enum(['verified', 'not_verified', 'offline']),
+    outcome: z.enum(['verified', 'not_verified']),
     selfie: z.boolean().optional(),
     reason: z.enum(['document', 'face_mismatch', 'gave_up']).optional(),
   }),
-  'identity.offline': z.object({ checkId: z.uuid() }),
+  /** P25: a person at Gaff gave someone three more tries with Stripe. */
+  'identity.more_tries': z.object({ checkId: z.uuid() }),
   'identity.redacted': z.object({ checkId: z.uuid() }),
   /** P4: the month's AI spend passed 80% of the budget, and Gaff's admins were told. */
   'ai.budget_warning': z.object({ month: z.iso.date() }),

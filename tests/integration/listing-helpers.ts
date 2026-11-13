@@ -11,11 +11,7 @@ import {
   startDevelopmentPhotoUpload,
   startHomePhotoUpload,
 } from '@/server/media/upload';
-import { checkIdentity } from './identity-helpers';
 import { createTestMember, aLiveLetting, type Member } from './helpers';
-import { sendMobileCode } from '@/server/verification/mobile';
-import { withRenter } from '@/db/client';
-import { phoneConfirmations } from '@/db/schema';
 
 /**
  * A synthetic photo: a coarse grid of colours from a seeded random sequence, enlarged. Different
@@ -66,18 +62,9 @@ export async function addPhotos(
   return ids;
 }
 
-/** A private landlord whose mobile and identity Gaff has checked (M22). */
-export async function aCheckedLandlord(options: { selfie?: boolean } = {}): Promise<Member> {
-  const member = await createTestMember({ kind: 'landlord' });
-  await sendMobileCode(member.userId, `087${String(Math.random()).slice(2, 9)}`);
-  await withRenter(member.userId, (tx) =>
-    tx
-      .update(phoneConfirmations)
-      .set({ confirmedPhone: '+353870000000', confirmedAt: new Date() })
-      .where(eq(phoneConfirmations.userId, member.userId)),
-  );
-  await checkIdentity(member.userId, { returnTo: 'letter', selfie: options.selfie ?? true });
-  return member;
+/** A private landlord whose mobile and identity Gaff has checked (M22, Q60). */
+export async function aCheckedLandlord(): Promise<Member> {
+  return createTestMember({ kind: 'landlord' });
 }
 
 export const A_DESCRIPTION =

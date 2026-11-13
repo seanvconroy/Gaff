@@ -1,6 +1,7 @@
 import { devices, expect, test } from '@playwright/test';
 import { daftEnquiry } from '../fixtures/emails';
 import {
+  bookFirstTime,
   createLettingThroughUi,
   expectAccessible,
   expectNoSidewaysScroll,
@@ -52,16 +53,13 @@ test('R15: the operator marks who came, on a phone, with one tap per person', as
   });
   const renter = await phone.newPage();
   await renter.goto(invitation);
-  await renter.getByRole('radio').first().check();
-  await renter.getByRole('button', { name: 'Book without a mobile' }).click();
+  await bookFirstTime(renter);
   await expect(renter.getByText('You’re booked')).toBeVisible();
 
   // Before the viewing, the operator sees when they can mark it.
   await page.setViewportSize({ width: 412, height: 915 });
   await page.goto(`${lettingUrl}/attendance`);
   await expect(page.getByText(/^Mark from \d/)).toBeVisible();
-  // P16: the letter sees who booked without confirming a mobile.
-  await expect(page.getByText('No mobile confirmed')).toBeVisible();
 
   // On the day, at the door.
   await startViewingsNow('4 Harbour View', operator);

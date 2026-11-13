@@ -34,11 +34,8 @@ test('M3, M22, M24: a private landlord confirms their mobile and their identity'
   await page.getByRole('button', { name: 'Confirm my number' }).click();
   await expect(page.getByText('Your mobile number is confirmed.')).toBeVisible();
 
-  // P18: the selfie needs a clear yes first; checking without one is an equal choice.
-  await page.getByRole('button', { name: 'Check my ID with a selfie' }).click();
-  await expect(
-    page.getByText('Tick the box to agree to the selfie, or check your ID without a selfie.'),
-  ).toBeVisible();
+  // P18 (Q60): the check is explained, then agreed to with one button; a selfie is required.
+  await expect(page.getByRole('button', { name: /without a selfie/ })).toHaveCount(0);
   await checkIdWithSelfie(page);
   await expect(page.getByText('You’re checked')).toBeVisible();
   await expect(page.getByText(/Identity checked by Gaff on \d+ \w+/)).toBeVisible();

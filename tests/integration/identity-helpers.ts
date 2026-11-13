@@ -11,16 +11,10 @@ export function checkIdIn(redirectUrl: string): string {
 /** Starts a person's check through the stand-in and records what "Stripe" found. */
 export async function checkIdentity(
   userId: string,
-  options: {
-    selfie?: boolean;
-    returnTo?: 'renter' | 'letter';
-    outcome?: IdentityOutcome;
-  } = {},
+  options: { returnTo?: 'renter' | 'letter'; outcome?: IdentityOutcome } = {},
 ): Promise<string> {
-  const selfie = options.selfie ?? true;
   const started = await startIdentity(userId, {
-    selfie,
-    consented: selfie,
+    consented: true,
     returnTo: options.returnTo ?? 'renter',
   });
   if (!('redirectUrl' in started)) throw new Error(`The check didn't start: ${started.problem}`);

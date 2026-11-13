@@ -6,6 +6,7 @@ import {
   buildPublicListing,
   listingSlug,
   listingTitle,
+  streetOf,
   type ProjectionInput,
 } from './projection';
 
@@ -78,6 +79,10 @@ describe('ADR-0017: the public projection of a listing', () => {
     expect(addressShown({ ...input.home, showExactAddress: true })).toBe(
       'Apartment 4, 12 Ranelagh Road, Ranelagh, Dublin 6',
     );
+    // Every kind of unit is taken off with its number: a studio's too.
+    expect(streetOf('Studio 5, 12 Canal View')).toBe('Canal View');
+    expect(streetOf('Flat 2, 31 Orchard Row')).toBe('Orchard Row');
+    expect(streetOf('19a Millbrook Avenue')).toBe('Millbrook Avenue');
     const row = buildPublicListing(input);
     const moved = distanceMetres(
       { lat: row.latitude, lng: row.longitude },

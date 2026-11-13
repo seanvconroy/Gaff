@@ -116,7 +116,7 @@ export function addressShown(
 /** "Apartment 4, 12 Ranelagh Road" → "Ranelagh Road": the street, without the home's number. */
 export function streetOf(addressLine1: string): string {
   return addressLine1
-    .replace(/^(apartment|apt\.?|flat|unit|no\.?)\s*[\w-]+,?\s*/i, '')
+    .replace(/^(apartment|apt\.?|flat|unit|studio|no\.?)\s*[\w-]+,?\s*/i, '')
     .replace(/^\d+[a-z]?\s*,?\s*/i, '')
     .trim();
 }

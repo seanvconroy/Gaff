@@ -17,6 +17,7 @@ import { checksOf } from '@/server/checks/checks';
 import { offerOf } from '@/server/offers/offer';
 import { inventoryOf } from '@/server/tenancy/movein';
 import { currentBooking, slotAvailability } from '@/server/viewings/booking';
+import { renterAddress } from '@/server/lettings/address';
 
 /** R9: what a renter's private link shows: their application, the home and the questions. */
 export async function loadRenterPage(token: string) {
@@ -75,7 +76,10 @@ export async function loadRenterPage(token: string) {
           }
         : null;
     const inventory = tenancy?.inventorySharedAt ? await inventoryOf(tx, tenancy.id) : [];
+    // M38: before an invitation, only the street, if the letter chose that.
+    const address = await renterAddress(tx, row.letting, row.application.status);
     return {
+      address,
       inventory,
       payTo,
       tenancy: tenancy ?? null,

@@ -66,6 +66,19 @@ describe('Compliance: the first reply (R7)', () => {
     );
   });
 
+  it('M28: says no money is asked for before a tenancy agreement is signed', () => {
+    expect(body).toContain(
+      'You’ll never be asked for money before you sign a tenancy agreement. If anyone asks, don’t send any, and reply to let us know.',
+    );
+  });
+
+  it('M76: thanks a renter who already answered on Gaff, and doesn’t ask again', () => {
+    const answered = firstReply({ ...input, answered: true }, now).body;
+    expect(answered).toContain('Thanks for answering the questions.');
+    expect(answered).not.toContain('please answer a few quick questions');
+    expect(answered).toContain('https://app.gaff.test/r/abc');
+  });
+
   it('asks nothing when the criteria need no answers', () => {
     expect(firstReply({ ...input, questionsUrl: null }, now).body).toContain(
       'You don’t need to do anything else for now.',

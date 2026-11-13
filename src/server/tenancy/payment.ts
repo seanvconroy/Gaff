@@ -15,6 +15,8 @@ import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
+import { accountInName } from '@/domain/verification/names';
+import { agencyLicenceChecked, checkedNames } from '@/server/verification/readiness';
 
 /**
  * R23: where tenants pay: the operator's own account (rule 5). Only an admin can change it, and
@@ -30,6 +32,31 @@ export async function setPaymentAccount(
     const errors: Record<string, string> = {};
     for (const issue of parsed.error.issues) errors[String(issue.path[0])] ??= issue.message;
     return { ok: false, errors };
+  }
+  // M30: once Gaff has checked who the letter is, the account must be in that name.
+  const [organisation] = await withOrg(member.organisationId, (tx) =>
+    tx
+      .select({
+        name: organisations.name,
+        legalName: organisations.legalName,
+        kind: organisations.kind,
+      })
+      .from(organisations)
+      .where(eq(organisations.id, member.organisationId)),
+  );
+  const names =
+    organisation!.kind === 'agency'
+      ? (await agencyLicenceChecked(member.organisationId))
+        ? [organisation!.name, organisation!.legalName].filter((n): n is string => Boolean(n))
+        : []
+      : await checkedNames(member.organisationId);
+  if (names.length > 0 && !accountInName(parsed.data.accountName, names)) {
+    return {
+      ok: false,
+      errors: {
+        accountName: `The account needs to be in the name Gaff checked: ${names.join(' or ')}. Renters’ banks check the name when they pay.`,
+      },
+    };
   }
   await withOrg(member.organisationId, async (tx) => {
     await tx

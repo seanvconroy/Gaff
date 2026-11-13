@@ -1,6 +1,6 @@
 # Sign-in and accounts: product requirements
 
-Draft, 8 November 2026, for Sean to agree. The technical design is in [auth-tech-spec.md](auth-tech-spec.md), and the decision record is [ADR-0015](adr/0015-operator-sign-in-methods.md) (proposed). Requirement IDs start with **AU**, so they don't clash with the main PRD's R1 to R31.
+Draft, 8 November 2026, for Sean to agree. The technical design is in [auth-tech-spec.md](auth-tech-spec.md), and the decision record is [ADR-0028](adr/0028-sign-in-methods.md) (proposed). Requirement IDs start with **AU**, so they don't clash with the main PRD's R1 to R31.
 
 ## Summary
 
@@ -252,7 +252,7 @@ The solicitor confirms the data protection position before phase 3 (Gaff is the 
 **Decided by Sean, 8 November 2026:**
 
 - Operators now; renters in a later phase, with profiles.
-- Build on Better Auth, not Clerk. See ADR-0015 for why.
+- Build on Better Auth, not Clerk. See ADR-0028 for why.
 - Google and Apple, not Microsoft, for now.
 - Phase 1 includes team invitations, email codes and passkeys. Two-step verification moves to phase 2.
 

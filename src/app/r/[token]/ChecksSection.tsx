@@ -6,6 +6,7 @@ import { StepCard, type StepState } from '@/ui/StepCard';
 import { SubmitButton } from '@/ui/SubmitButton';
 import styles from '../renter.module.css';
 import { startCheckAction } from './check-actions';
+import { IdentityStep, type RenterIdentityView } from './IdentityStep';
 import { RefereesForm } from './RefereesForm';
 
 type Check = {
@@ -18,8 +19,6 @@ type Check = {
 };
 
 const notPassed: Record<string, string> = {
-  document: 'The check couldn’t confirm your ID document.',
-  face_mismatch: 'The check couldn’t match your selfie to your ID.',
   no_regular_income: 'The check couldn’t find a regular income in your account.',
   gave_up: 'The check wasn’t finished.',
 };
@@ -43,12 +42,18 @@ export function ChecksSection({
   checks,
   providers,
   problem,
+  identity,
+  code,
+  identityProblem,
 }: {
   token: string;
   operatorName: string;
   checks: Check[];
-  providers: { identity: boolean; income: boolean };
+  providers: { income: boolean };
   problem?: string;
+  identity: RenterIdentityView;
+  code?: string;
+  identityProblem?: string;
 }) {
   const find = (kind: CheckKind) => checks.find((c) => c.kind === kind);
   const order: CheckKind[] = ['identity', 'income', 'landlord_reference'];
@@ -62,12 +67,7 @@ export function ChecksSection({
   const stateOf = (kind: CheckKind, done: boolean): StepState =>
     done ? 'done' : next === kind ? 'current' : 'todo';
 
-  const providerCheck = (
-    kind: 'identity' | 'income',
-    number: number,
-    title: string,
-    what: string,
-  ) => {
+  const providerCheck = (kind: 'income', number: number, title: string, what: string) => {
     const check = find(kind);
     if (!check) return null;
     const done = check.status === 'passed';
@@ -104,17 +104,13 @@ export function ChecksSection({
           <p className={styles.muted}>If you didn’t finish, you can start again.</p>
         ) : null}
         {!done && providers[kind] ? (
-          <form action={startCheckAction.bind(null, token, kind)}>
+          <form action={startCheckAction.bind(null, token)}>
             <SubmitButton
               variant={next === kind ? 'primary' : 'secondary'}
               fullWidth
               pendingLabel="Opening…"
             >
-              {check.status === 'to_do'
-                ? kind === 'identity'
-                  ? 'Check my ID'
-                  : 'Check my income'
-                : 'Try again'}
+              {check.status === 'to_do' ? 'Check my income' : 'Try again'}
             </SubmitButton>
           </form>
         ) : null}
@@ -142,12 +138,16 @@ export function ChecksSection({
           <p>{problems[problem]}</p>
         </Notice>
       ) : null}
-      {providerCheck(
-        'identity',
-        1,
-        'Your ID',
-        'Take a photo of your passport or driving licence, and a selfie. A secure ID service checks they match. Gaff keeps only whether it worked and the name on your ID, never the photos.',
-      )}
+      {find('identity') ? (
+        <IdentityStep
+          token={token}
+          operatorName={operatorName}
+          state={stateOf('identity', false)}
+          identity={identity}
+          code={code}
+          problem={identityProblem}
+        />
+      ) : null}
       {providerCheck(
         'income',
         2,

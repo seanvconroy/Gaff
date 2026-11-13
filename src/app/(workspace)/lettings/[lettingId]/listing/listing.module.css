@@ -1,0 +1,56 @@
+.grid {
+  display: grid;
+  gap: var(--space-6);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.saved {
+  color: var(--color-ink-muted);
+}
+
+.count {
+  color: var(--color-ink-muted);
+}
+
+.checklist {
+  display: grid;
+  gap: var(--space-2);
+  padding-left: var(--space-6);
+}
+
+.photos {
+  display: grid;
+  gap: var(--space-6);
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  padding: 0;
+  list-style: none;
+}
+
+.photo {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.thumb {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface-2);
+}
+
+.uploadLabel {
+  font-weight: var(--type-title-weight);
+}
+
+.upload {
+  min-height: 44px;
+}
+
+.descriptionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}

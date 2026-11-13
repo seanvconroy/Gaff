@@ -1,194 +1,124 @@
 # Testing Gaff end to end
 
-This walks one home from the first enquiry to a signed tenancy and a closed letting. You play everyone:
-- the operator, on your laptop;
-- three renters, a referee and the landlord, on your phone.
+This is for the two of you to test Gaff together: one of you as a **letter** (a landlord or an agent), the other as a **renter**, then swap. Everything works as it will for real: you sign in with your own email, the emails arrive in your own inbox, and the links in them open the real pages.
 
-It takes about 45 minutes. **Use made-up details only**: the test copy shows every email on one page.
+It takes about an hour for the whole journey, or 15 minutes for a first look.
 
 ## 1. Open the test copy
 
-It's running at **https://gaff-test.vercel.app**:
-- the app is on Vercel, in Dublin;
-- the database is on Supabase, in Ireland.
+**https://gaff-test.vercel.app**, on your laptop or your phone. No Vercel sign-in, nothing to install.
 
-**Vercel's sign-in protects it.** The first time you open it on your laptop and on your phone, sign in with your Vercel account. After that it's just the app. Only you can open it.
+A banner at the top of every page says it's the **test copy**. It has made-up homes from three made-up letters, so there's something to search from the start:
+- **Halcyon Lettings**, an agency in Dublin: Ranelagh, Rathmines, Drumcondra and Portobello;
+- **Wren & Weir Lettings**, an agency in Galway: Salthill, the city centre and Knocknacarra;
+- **Siobhán**, a private landlord in Cork: Ballintemple and the city centre.
 
-To run it on your own computer instead, see [Running it locally](#running-it-locally) at the end.
+Search engines never see it, but anyone with the address can open it, so **use made-up names and phone numbers**. Use your real email address: that's where Gaff sends things.
 
-## 2. How the renter side works
+## 2. What's real and what's a stand-in
 
-Renters, referees and landlords never sign in and never download anything. Gaff emails each person a **private link**, and everything they do happens on the page behind it:
-- answering the pre-viewing questions;
-- booking, moving or cancelling a viewing;
-- applying;
-- doing the checks;
-- accepting the offer;
-- signing the agreement;
-- seeing the payment details;
-- giving a PPS number;
-- confirming the inventory.
+- **Real:** every screen, rule and decision; every email to you; timers, reminders and deletion dates; the record of each letting.
+- **Emails** come from `avondale-square.com`, a domain borrowed until Gaff has its own. Check your spam folder the first time, and mark them as not spam.
+- **Replying to an email doesn't reach Gaff yet.** To write back, use the link in the email, or sign in and open **Your homes**. Each email says so at the bottom.
+- **Texts aren't sent yet.** When Gaff would text you a code, it shows the code on the screen instead.
+- **The AI** is a simple stand-in that answers only from the home's facts. The real one (Claude, in the EU) comes later.
+- **ID and income checks** open a test page where you choose the result, standing in for Stripe Identity. Try a failure once to see how it's worded. Everyone checks their ID once, with a selfie, and it's kept on their Gaff profile: a renter who's chosen again isn't asked again. After three failed tries, give more on https://gaff-test.vercel.app/staff/checks.
+- **Signing** uses Gaff's typed-name signature.
+- **Money:** Gaff never takes any. It shows the letter's bank details; you press a button to say the money arrived.
+- **Made-up people** (the seeded letters, test enquiries, a referee or landlord at `example.ie`) get their email in the **outbox** instead, a page only testers can open.
 
-In the test copy, nothing is really sent. Every email and text appears on the **Outbox** page instead: **https://gaff-test.vercel.app/dev/outbox**.
+## 3. Become testers (2 minutes, once)
 
-To be a renter:
-1. Open the Outbox **on your phone**.
-2. Find the newest email addressed to that renter (each shows who it's to).
-3. Tap its link.
+Testers can open the outbox, the test inbox, and Gaff's own staff pages (licence checks and reports).
 
-That page is exactly what the renter would see. Refresh the Outbox to see new emails.
+1. **Sean:** sign in at https://gaff-test.vercel.app/sign-in with your own email. You're a tester from the first sign-in.
+2. **Your partner:** sign in once too, with the email they'll test with.
+3. **Sean:** open https://gaff-test.vercel.app/staff/testers, enter your partner's email and press **Add tester**.
 
-## 3. What's real and what's a stand-in
+If you want a second renter account, use a "+" address, like `you+renter@gmail.com`: Gmail delivers it to the same inbox, and Gaff treats it as a different person.
 
-- **Real:** every screen, rule, decision, message, timer, deletion date and record.
-- **Stand-ins:**
-  - **Emails and texts** go to the Outbox instead of being sent.
-  - **Daft and MyHome enquiries** are pasted into the **test inbox**: https://gaff-test.vercel.app/dev/inbound.
-  - **The AI** is a simple stand-in that answers from the home's facts. The real one (Claude, in the EU) comes later.
-  - **ID and income checks** go to a test page where you choose the result. Real providers need your approval.
-  - **Signing** uses Gaff's own typed-name signature. The solicitor confirms whether that's enough (Q23).
-- **Test tool:** the Attendance tab has a **Start the viewings now** button, so you don't have to wait for the real viewing time. It never appears in production.
-- **Timing:** emails usually appear within a few seconds. Timed messages, such as reminders and deadlines, can arrive up to a minute after their time.
+## 4. A first look as a renter (15 minutes, on a phone)
 
-## 4. The walk-through
+1. Open https://gaff-test.vercel.app. You land on **homes to rent**. Type a place, a street or a landmark, such as `Dublin 6`, `Kinsale`, `Highfield Road` or `UCD`, and choose a suggestion.
+2. Try Rent, Beds and Move in, then **Filters** for the rest, and the order (cheapest, newest). On a phone, **Map** shows the homes on a map. Open a home: photos, facts, the map area, who's letting it and what Gaff has checked about them.
+3. **Save** a home, and press **Save search** to get alerts. You'll need to sign in: Gaff emails you a link.
+4. **Enquire** about a home: your name and email, then the 6-digit code Gaff emails you, then the letter's questions and a message. Ask something the facts answer, like "Is there parking?" or "When are the bins collected?".
+5. Within a minute, the AI's first reply arrives **by email** and in **Your homes**. It says it's an AI assistant and how to reach a person.
+6. Look at **Your homes**, **Saved**, **Alerts** and **Who has my details**. Withdraw an enquiry if you like.
 
-Each step says where to do it: 💻 for your laptop, as the operator; 📱 for your phone, as whoever the step names.
+The made-up letters don't answer beyond the AI, so for the full journey, enquire about each other's homes (section 6).
 
-### Set up (stage 1)
+## 5. Listing a home as a letter (20 minutes, on a laptop)
 
-1. 💻 Open https://gaff-test.vercel.app and **sign in** with any made-up email, for example `ann@halcyon.test`. Open the sign-in link from the Outbox.
-2. 💻 Set up the workspace as **an agency**, with PSRA licence `001234`.
-3. 💻 In **Settings**:
-   - check the income rule (2.5 times the rent by default);
-   - set your usual times, for example 6 hours a letting and 30 days to let;
-   - set **Where tenants pay**: any name, and the test IBAN `IE29 AIBK 9311 5212 3456 78`.
-4. 💻 **Add a letting:**
-   - address `12 Ranelagh Road`, area `Ranelagh, Dublin 6`, rent `1850`;
-   - available a month from now; a 2-bed furnished apartment;
-   - Daft advert `https://www.daft.ie/for-rent/apartment-12-ranelagh-road-ranelagh-dublin-6/123456`.
-5. 💻 Add a viewing time for **tomorrow, 6pm to 7pm**, with 15-minute slots.
-6. 💻 Set the criteria (for example up to 3 people, no pets), check the rent, then **Start taking enquiries**.
+1. **Sign in** with your own email and choose **Set up a letting workspace**.
+2. Choose **Ourselves: we are landlords letting our own homes** (the quickest way), or **Other people: we are a letting agency** to try the agency checks (section 7).
+3. **Get checked:** **Settings**, then **Checks** under "Your account".
+   - Enter a made-up mobile, like `087 555 0123`, and press **Text me a code**. The code shows on the screen.
+   - Press **Agree and check my ID**, then **The ID and selfie match** on the test page. Your lettings can't start taking enquiries until you've done both.
+4. **Add a letting**, in three short steps: the home (a made-up street in a real area, so search finds it, like `Terenure, Dublin 6W`, `Salthill, Galway city` or `Douglas, Cork city`, and the rent), its key facts, then any advert links.
+5. Add a **viewing time** in the next few days, set the **criteria** (how many people, pets), **check the rent**, and **Start taking enquiries**.
+6. Open **Listing**: the home's details, the deposit, a description and at least three photos. Photos from your phone's camera roll are fine.
+7. Tick the declaration and press **Publish this listing**. It's live: search for its area as a renter and it's there. Anyone with an alert for that area gets an email.
 
-### Enquiries and the shortlist (stages 2 and 3)
+## 6. The whole journey, together (40 minutes)
 
-7. 💻 **Send three enquiries.** Copy your Gaff address from **Settings**. Open the test inbox and send each enquiry below. For each one:
-   - **To:** your Gaff address;
-   - **From:** leave it as `Daft.ie <noreply@daft.ie>`;
-   - **Subject:** `New enquiry: 12 Ranelagh Road, Ranelagh, Dublin 6`;
-   - **Reply-To** and **Body:** as below.
+One of you is the letter (💻), the other the renter (📱).
 
-   **Renter 1.** Reply-To: `Aoife Byrne <aoife@example.ie>`
+### Enquiries and the shortlist
 
-   ```text
-   You have a new enquiry about your ad.
+1. 📱 Find the letter's home and **enquire**, as in section 4.
+2. 💻 Open the letting. The enquiry is on **Enquiries**, marked "Gaff". To have more than one renter to choose from, press **Add test enquiries**: five made-up renters enquire, as if from Daft and MyHome, and most answer the questions.
+3. 💻 Check **Approvals** (AI answers waiting for you) and **Questions** (anything only a person can answer).
+4. 💻 **Shortlist:** the renters ranked by the criteria and when they enquired. Tick the real renter and one or two made-up ones, and press **Send invitations**. The next few go on the waiting list.
 
-   Property: 12 Ranelagh Road, Ranelagh, Dublin 6
-   Ad: https://www.daft.ie/for-rent/apartment-12-ranelagh-road-ranelagh-dublin-6/123456
+### Viewings
 
-   Name: Aoife Byrne
-   Email: aoife@example.ie
-   Phone: 087 123 4567
+5. 📱 Open the **Book a viewing** email, pick a time, and give a mobile: the code to confirm it shows on the screen. A viewing can't be booked without one.
+6. 💻 On **Attendance**, press **Start the viewings now** (so you don't have to wait), then mark who came.
 
-   Message:
-   Hi, is the apartment still available? Is there parking?
-   ```
+### Applying, choosing and checks
 
-   **Renter 2.** Reply-To: `Ciarán Ó Súilleabháin <ciaran@example.ie>`
+7. 📱 Open the **Apply** email and apply, with a made-up take-home income, like 5,200 a month.
+8. 💻 On **Applications**, compare the applicants side by side and choose a **preferred applicant** and a **backup**.
+9. 📱 Open the checks email. Confirm your email with the code Gaff sends, then check your ID (and income) on the test page, and name a referee: use the other person's real email to see the reference request, or a made-up `example.ie` address (it goes to the outbox). 💻 The applicant's card says "Checked by Gaff on …" with the name on the ID.
+10. Agencies only: 💻 add the landlord's name and email and ask them to approve. A made-up landlord's email goes to the outbox.
 
-   ```text
-   You have a new enquiry about your ad.
+### The offer and the tenancy
 
-   Property: 12 Ranelagh Road, Ranelagh, Dublin 6
-   Ad: https://www.daft.ie/for-rent/apartment-12-ranelagh-road-ranelagh-dublin-6/123456
+11. 💻 Make the **offer**. 📱 Open the offer email and accept it. Everyone else gets an outcome email.
+12. 💻 On **Tenancy**, send the agreement. 📱 Read and sign it. 💻 Sign it for the landlord.
+13. 💻 Ask the tenant to pay. 📱 See the bank details and amounts. 💻 Press **It's in our account**.
+14. 📱 Give a made-up PPS number, like `1234567T`. 💻 Open the RTB registration pack and mark the tenancy registered. The PPS number is deleted then.
+15. 💻 Tick off the keys, add an inventory item with a photo and share it. 📱 Confirm it's a fair record.
+16. 💻 **Finish** and close the letting, then look over the **Timeline**: every step, and no personal details.
 
-   Name: Ciarán Ó Súilleabháin
-   Email: ciaran@example.ie
-   Phone: 086 765 4321
+Then swap roles.
 
-   Message:
-   Hello, could I view it this week?
-   ```
+## 7. The agency route, and Gaff's own pages
 
-   **Renter 3.** Reply-To: `Nora Walsh <nora@example.ie>`
+- **Agencies** give a PSRA licence number for the agency, and each agent gives their own. Gaff staff check each one on the public register. As testers, you are Gaff staff: open https://gaff-test.vercel.app/staff/checks and press **Matches the register**. Use made-up numbers like `004321`.
+- **Reports:** on any home, **Report this listing**. Then open https://gaff-test.vercel.app/staff/review to decide it. An appeal always goes to someone else, so the other tester decides it.
+- **The outbox** (https://gaff-test.vercel.app/dev/outbox) shows the made-up people's emails and every text. Open a made-up renter's links there to play them: book their viewing, apply, accept.
+- **The test inbox** (https://gaff-test.vercel.app/dev/inbound) sends an email to a letter's Gaff address, as Daft or MyHome would.
+- **Signing in as a made-up letter:** sign in as `ann@halcyon-lettings.example`, `cian@wren-weir.example` or `siobhan@daly-homes.example`, then open the sign-in link from the outbox. You'll see their homes and any enquiries.
 
-   ```text
-   You have a new enquiry about your ad.
+## 8. Good to know
 
-   Property: 12 Ranelagh Road, Ranelagh, Dublin 6
-   Ad: https://www.daft.ie/for-rent/apartment-12-ranelagh-road-ranelagh-dublin-6/123456
+- **On a phone**, the workspace's menu is a bar at the bottom. Developments open from **Listings**.
+- **Timing:** emails arrive within seconds; timed things (reminders, deadlines, chasers) up to a minute after their time.
+- **Limits:** the email account sends up to 100 emails a day. That's plenty for two testers, but if emails stop arriving, it's probably the limit; it resets at midnight.
+- **The made-up homes** stay listed: each deploy tops up their viewing times. Your own homes and enquiries stay until you close them.
+- **Sign-in links** work for 15 minutes, and codes for 10.
 
-   Name: Nora Walsh
-   Email: nora@example.ie
-   Phone: 085 555 0199
-
-   Message:
-   Hi, is it still available? When could I move in?
-   ```
-
-8. 💻 **Check the replies:**
-   - The Outbox shows a first reply to each renter, saying it's an AI assistant.
-   - **Approvals** has the AI's answer about parking, for you to approve.
-   - **Questions** has anything only you can answer.
-9. 📱 **As each renter:** open their first reply in the Outbox ("Your enquiry about 12 Ranelagh Road"), tap the link and answer the questions.
-10. 💻 **Decide who views:** on **Shortlist**, invite renters 1 and 2, with renter 3 on the waiting list, then send.
-
-### Viewings (stage 4)
-
-11. 📱 **As renters 1 and 2:** open each "Book a viewing" email and book a time. Add a mobile number for a text reminder; the text appears in the Outbox too.
-12. 📱 **As renter 1:** cancel the booking. Then **as renter 3**, look for "A viewing place has opened up" in the Outbox and take the place. Renter 1 can book again.
-13. 💻 **Mark who came:** on **Attendance**, press **Start the viewings now**, then mark the renters who booked as **Came**.
-
-### Applications, checks and the offer (stages 5 to 7)
-
-14. 📱 **As each renter who came:** open the "Apply for 12 Ranelagh Road" email and apply, with a take-home income, for example 5,200 and 4,800 a month.
-15. 💻 **Choose:** on **Applications**, compare them side by side, then choose a preferred applicant and a backup.
-16. 📱 **As the preferred renter:** open the checks email.
-    - Do the ID check and the income check. The test page lets you choose the result; try a failure once to see how it's worded.
-    - Name a last landlord as a referee, for example `mary@example.ie`.
-17. 📱 **As the referee:** open the reference request in the Outbox and answer it.
-18. **Landlord approval:**
-    - 💻 on **Applications**, add the landlord's name and email (for example `landlord@example.ie`), then ask them to approve;
-    - 📱 as the landlord, open the summary from the Outbox and approve both.
-19. **Offer:**
-    - 💻 make the offer, and tick the box to offer it to the backup if it isn't accepted;
-    - 📱 as the preferred renter, open the offer email and accept it.
-
-    Everyone else gets an outcome email straight away.
-
-### Tenancy and closing (stages 8 and 9)
-
-20. **Agreement:**
-    - 💻 on the **Tenancy** tab, send the agreement;
-    - 📱 as the tenant, read and sign it;
-    - 💻 then sign it yourself, for the landlord.
-
-    You can also try **Signing on paper instead?**.
-21. **Payment:**
-    - 💻 on the **Tenancy** tab, ask the tenant to pay;
-    - 📱 as the tenant, open the payment email and see your bank details and the amounts;
-    - 💻 back on the Tenancy tab, press **It's in our account**, as if the money has arrived.
-22. **RTB registration:**
-    - 📱 as the tenant, open any of their emails and give a PPS number on the page (try `1234567T`);
-    - 💻 open the **RTB registration pack** and the **rent-setting pack**, then mark the tenancy as registered.
-
-    The PPS number is deleted then.
-23. **Moving in:**
-    - 💻 tick off the keys, add an inventory item with a photo, and share the inventory;
-    - 📱 as the tenant, confirm it's a fair record.
-
-    If you sign in on your phone too, you can take the photo with its camera.
-24. 💻 **Finish:** finish and close the letting. Your dashboard shows **let in N days** against your usual time.
-25. 💻 **The record:** look over the **Timeline**, which has every step and no personal details. Press **Share with the landlord**, then open the landlord's link.
-
-## 5. Feedback
+## 9. Feedback
 
 For anything that's wrong, unclear or slow, note four things:
-- the step number;
-- the screen;
+- where you were (the step, or the page);
+- what you did;
 - what you expected;
 - what you saw.
 
-Words matter too: if a sentence doesn't sound like you, say so. I'll turn each note into a change, and every change goes live on the test copy on its own.
+Words matter too: if a sentence doesn't sound right, say so. Each note becomes a change, and changes go live on the test copy when they're deployed.
 
 ## Running it locally
 
@@ -198,6 +128,7 @@ You need Node 22, pnpm and Docker. The commands are in `CLAUDE.md` under Command
 cp .env.example .env            # then set AUTH_SECRET to 32 or more random characters
 docker compose up -d
 pnpm install && pnpm db:migrate
-pnpm dev                         # http://localhost:3000
-pnpm worker                      # in a second window: sends the emails and runs the timers
+pnpm db:seed                    # optional: the test copy's made-up letters and homes
+pnpm dev                        # http://localhost:3000; every email lands in /dev/outbox
+pnpm worker                     # in a second window: sends the emails and runs the timers
 ```

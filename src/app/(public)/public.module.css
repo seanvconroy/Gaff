@@ -1,0 +1,159 @@
+/* Public pages (M109): phone first, surface-1, a space-4 gutter, never below body size. */
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-surface-1);
+}
+
+.skip {
+  position: absolute;
+  left: var(--space-4);
+  top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-surface-1);
+  border-radius: var(--radius-sm);
+  transform: translateY(-200%);
+}
+
+.skip:focus {
+  transform: none;
+}
+
+.bar {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.barInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--space-2) var(--space-4);
+}
+
+.nav,
+.footerNav {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-4);
+}
+
+.nav a,
+.footerNav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-ink);
+  font-weight: var(--type-title-weight);
+}
+
+@media (width < 744px) {
+  .nav .wideOnly {
+    display: none;
+  }
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-12);
+}
+
+.footer {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-12);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-ink-muted);
+}
+
+.footer p {
+  margin: 0;
+}
+
+.saveForm {
+  display: inline-flex;
+}
+
+.save {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font-size: var(--type-body-size);
+  cursor: pointer;
+}
+
+.save[aria-pressed='true'] {
+  color: var(--color-atlantic-text);
+  border-color: var(--color-atlantic-text);
+}
+
+.save:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* M60: the heart on a result card's photo: a white circle, 44px. */
+.saveIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background-color: var(--color-surface-1);
+  border: 0;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-overlay);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.saveIcon:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ADR-0027: search pages use the whole width, for the list and map side by side. */
+.main:has([data-wide-page]) {
+  max-width: none;
+  padding: 0;
+}
+
+.shell:has([data-wide-page]) .barInner {
+  max-width: none;
+  padding-inline: var(--space-6);
+}
+
+/* M57: on phones and tablets, the map view is one screen tall: the map fills what's below the
+   search bar, with no footer and no page scroll, so its cards and the List button sit on it. */
+@media (width < 1128px) {
+  .shell:has([data-view='map'][data-map]) {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .shell:has([data-view='map'][data-map]) .main {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .shell:has([data-view='map'][data-map]) .footer {
+    display: none;
+  }
+}

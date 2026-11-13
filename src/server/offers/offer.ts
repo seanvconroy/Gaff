@@ -27,6 +27,7 @@ import type { Member } from '@/server/auth/member';
 import { recordDecision } from '@/server/decisions/record-decision';
 import { UserFacingError } from '@/server/errors';
 import { enqueue } from '@/server/jobs/enqueue';
+import { followLetting } from '@/server/listings/follow';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent, type Actor } from '@/server/record/events';
 import { createTenancy } from '@/server/tenancy/tenancy';
@@ -359,6 +360,8 @@ export async function respondToOffer(
       .set({ status: 'let', stage: 'tenancy' })
       .where(eq(lettings.id, offer.lettingId))
       .returning();
+    // M50: the listing says "Let agreed" from now on.
+    await followLetting(tx, offer.lettingId, 'offer_accepted');
     // Nothing more goes out about viewings or places for anyone else.
     const future = await tx
       .select({ id: bookings.id })

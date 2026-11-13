@@ -13,6 +13,9 @@ export function mailgunSender(config: { apiKey: string; domain: string }): Email
       form.set('subject', email.subject);
       form.set('text', email.text);
       if (email.replyTo) form.set('h:Reply-To', email.replyTo);
+      for (const [name, value] of Object.entries(email.headers ?? {})) {
+        if (value) form.set(`h:${name}`, value);
+      }
       // No open or click tracking: it would follow renters around (ADR-0005).
       form.set('o:tracking', 'no');
       const response = await fetch(`${MAILGUN_EU_API}/${config.domain}/messages`, {

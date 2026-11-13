@@ -7,6 +7,8 @@ export interface OutgoingEmail {
   text: string;
   /** The same for every retry of one message, so a provider that supports it sends it once. */
   idempotencyKey?: string;
+  /** Only List-Unsubscribe and List-Unsubscribe-Post, for alerts (M86, RFC 8058). */
+  headers?: Partial<Record<'List-Unsubscribe' | 'List-Unsubscribe-Post', string>>;
 }
 
 export interface EmailSender {

@@ -5,6 +5,9 @@ import { describeCriteria, type Criteria } from '@/domain/criteria/criteria';
 import { formatDate, formatEuro, formatRent } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 
+/** Where an enquiry came from (R6, M83). */
+const portalNames: Record<string, string> = { daft: 'Daft', myhome: 'MyHome', gaff: 'Gaff' };
+
 export interface TimelineEntry {
   id: number;
   at: Date;
@@ -95,13 +98,15 @@ export function describeEvent(
     case 'enquiry.received':
       return {
         what: 'Enquiry received',
-        detail: `Via ${data.portal === 'daft' ? 'Daft' : 'MyHome'}`,
+        detail: `Via ${portalNames[String(data.portal)] ?? 'a portal'}`,
       };
     case 'enquiry.repeated':
       return {
         what: 'The same renter enquired again',
-        detail: `Via ${data.portal === 'daft' ? 'Daft' : 'MyHome'}. Kept as one enquiry.`,
+        detail: `Via ${portalNames[String(data.portal)] ?? 'a portal'}. Kept as one enquiry.`,
       };
+    case 'enquiry.withdrawn':
+      return { what: 'A renter withdrew their enquiry' };
     case 'reply.received':
       return { what: 'Reply received' };
     case 'message.sent':

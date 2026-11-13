@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { environmentProblems, withPlatformDefaults } from './env';
+import { environmentProblems, readEnvironment, withPlatformDefaults } from './env';
 
 const base = {
   DATABASE_URL: 'postgres://gaff:gaff@localhost:5432/gaff',
@@ -18,11 +18,16 @@ const production = {
   SINCH_API_TOKEN: 't',
   SINCH_FROM: 'Gaff',
   AI_PROVIDER: 'bedrock',
-  IDENTITY_PROVIDER: 'none',
+  IDENTITY_PROVIDER: 'stripe',
   INCOME_PROVIDER: 'none',
   DATA_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
   DEV_TOOLS: '0',
   CRON_SECRET: 'c'.repeat(32),
+  STORAGE_PROVIDER: 'supabase',
+  SUPABASE_URL: 'https://project.supabase.co',
+  SUPABASE_SERVICE_KEY: 'service-key',
+  STRIPE_SECRET_KEY: 'sk_live_test',
+  STRIPE_IDENTITY_WEBHOOK_SECRET: 'whsec_test',
 };
 
 describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)', () => {
@@ -38,6 +43,24 @@ describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)'
       'INCOME_PROVIDER',
     ]);
     expect(environmentProblems({ ...production, DEV_TOOLS: '1' })).toEqual(['DEV_TOOLS']);
+    expect(environmentProblems({ ...production, STORAGE_PROVIDER: 'local' })).toEqual([
+      'STORAGE_PROVIDER',
+    ]);
+    expect(environmentProblems({ ...production, STORAGE_PROVIDER: 'database' })).toEqual([
+      'STORAGE_PROVIDER',
+    ]);
+    expect(environmentProblems({ ...production, TEST_EMAIL_RECIPIENTS: '@example.com' })).toEqual([
+      'TEST_EMAIL_RECIPIENTS',
+    ]);
+    expect(environmentProblems({ ...production, TEST_STAFF_EMAILS: 'a@example.com' })).toEqual([
+      'TEST_STAFF_EMAILS',
+    ]);
+    expect(environmentProblems({ ...production, SUPABASE_SERVICE_KEY: undefined })).toEqual([
+      'SUPABASE_SERVICE_KEY',
+    ]);
+    expect(environmentProblems({ ...production, STRIPE_SECRET_KEY: undefined })).toEqual([
+      'STRIPE_SECRET_KEY',
+    ]);
     expect(environmentProblems({ ...production, DATA_ENCRYPTION_KEY: undefined })).toEqual([
       'DATA_ENCRYPTION_KEY',
     ]);
@@ -99,7 +122,39 @@ describe('Hosting on Vercel (ADR-0014)', () => {
     expect(environmentProblems({ ...testCopy, CRON_SECRET: undefined })).toEqual(['CRON_SECRET']);
   });
 
-  it('needs the API key and webhook secret for Resend', () => {
+  it('ADR-0027: shows the test copy the stand-in map until Google Maps is set up, and production none', () => {
+    const testCopy = {
+      ...vercel,
+      DATABASE_URL: base.DATABASE_URL,
+      AUTH_SECRET: base.AUTH_SECRET,
+      CRON_SECRET: 'c'.repeat(32),
+      GAFF_ENV: 'staging',
+    };
+    expect(readEnvironment(testCopy).MAP_PROVIDER).toBe('static');
+    expect(readEnvironment({ ...production, MARKETPLACE_PUBLIC: '1' }).MAP_PROVIDER).toBe('none');
+    const google = { MAP_PROVIDER: 'google', GOOGLE_MAPS_API_KEY: 'key', GOOGLE_MAPS_MAP_ID: 'id' };
+    expect(readEnvironment({ ...testCopy, ...google }).MAP_PROVIDER).toBe('google');
+    expect(
+      environmentProblems({ ...production, MARKETPLACE_PUBLIC: '1', MAP_PROVIDER: 'static' }),
+    ).toEqual(['MAP_PROVIDER']);
+  });
+
+  it('sends real email from the test copy with only a Resend API key, and keeps photos in the database', () => {
+    const testCopy = {
+      ...vercel,
+      DATABASE_URL: base.DATABASE_URL,
+      AUTH_SECRET: base.AUTH_SECRET,
+      CRON_SECRET: 'c'.repeat(32),
+      GAFF_ENV: 'staging',
+      EMAIL_PROVIDER: 'resend',
+      STORAGE_PROVIDER: 'database',
+      TEST_STAFF_EMAILS: 'tester@example.com',
+    };
+    expect(environmentProblems(testCopy)).toEqual(['RESEND_API_KEY']);
+    expect(environmentProblems({ ...testCopy, RESEND_API_KEY: 're_x' })).toEqual([]);
+  });
+
+  it('needs the API key and webhook secret for Resend in production', () => {
     expect(
       environmentProblems({ ...production, EMAIL_PROVIDER: 'resend', RESEND_API_KEY: 're_x' }),
     ).toEqual(['RESEND_WEBHOOK_SECRET']);
@@ -109,6 +164,29 @@ describe('Hosting on Vercel (ADR-0014)', () => {
         EMAIL_PROVIDER: 'resend',
         RESEND_API_KEY: 're_x',
         RESEND_WEBHOOK_SECRET: 'whsec_x',
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe('P1 (Q37): the Claude API never runs in production', () => {
+  it('refuses the Claude API, and its key, in production', () => {
+    expect(
+      environmentProblems({ ...production, AI_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'k' }),
+    ).toEqual(['AI_PROVIDER', 'ANTHROPIC_API_KEY']);
+    expect(environmentProblems({ ...production, AI_PROVIDER: 'fake' })).toEqual(['AI_PROVIDER']);
+  });
+
+  it('allows the Claude API on the test copy, with its key', () => {
+    expect(
+      environmentProblems({ ...base, GAFF_ENV: 'development', AI_PROVIDER: 'anthropic' }),
+    ).toEqual(['ANTHROPIC_API_KEY']);
+    expect(
+      environmentProblems({
+        ...base,
+        GAFF_ENV: 'development',
+        AI_PROVIDER: 'anthropic',
+        ANTHROPIC_API_KEY: 'k',
       }),
     ).toEqual([]);
   });

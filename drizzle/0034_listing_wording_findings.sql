@@ -1,0 +1,1 @@
+ALTER TABLE "listing_holds" ADD COLUMN "wording_findings" jsonb;

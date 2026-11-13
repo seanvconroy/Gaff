@@ -19,6 +19,8 @@ import { recordDecision } from '@/server/decisions/record-decision';
 import { UserFacingError } from '@/server/errors';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
+import { followLetting } from '@/server/listings/follow';
+import { renterAddress } from '@/server/lettings/address';
 
 /**
  * R26 (basic): a person closes a letting as let or withdrawn. It ends everyone's chances, so
@@ -66,6 +68,8 @@ export async function closeLetting(
       .update(lettings)
       .set({ status: outcome, stage: 'close', closedAt: new Date() })
       .where(eq(lettings.id, lettingId));
+    // M50: the listing closes with the letting.
+    await followLetting(tx, lettingId, outcome === 'let' ? 'let' : 'withdrawn');
     await tx
       .update(applications)
       .set({ deleteAfter })
@@ -125,7 +129,7 @@ export async function closeLetting(
         ...lettingClosedEmail({
           renterName: person.fullName,
           operatorName: organisation!.name,
-          address: letting.addressLine1,
+          address: await renterAddress(tx, letting, person.status),
           area: letting.area,
           outcome,
           deleteOn: deleteAfter,

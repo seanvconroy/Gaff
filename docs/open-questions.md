@@ -108,6 +108,8 @@ The pre-viewing page asks only the questions for criteria the operator has set. 
 
 **Decision:** Adopted (CTO, 31 October 2026).
 
+**Changed (Sean, 8 November 2026, Q48):** renters confirm a mobile number with a text code to book a viewing, and that number gets the 2-hour text reminder. A renter without a mobile can still book, and the letter sees that no mobile was confirmed.
+
 ### Q13. Who approves messages in approve-before-send mode (R29)?
 
 **Proposal:** the operator approves, in Gaff. The mode is on by default for each new organisation, and the organisation's admin switches it off. Gaff staff never approve or send messages on an operator's behalf, which keeps Gaff as software, not a letting agent.
@@ -241,3 +243,282 @@ The PRD asks for data hosted in the EU, and the build turned that into "EU only"
 - the AI disclosure (EU AI Act Article 50);
 - the caps on the deposit and advance rent;
 - Gaff never holding money.
+
+## F. The marketplace
+
+Raised on 7 November 2026 with the [marketplace PRD](marketplace/prd.md) and [technical specification](marketplace/tech-spec.md). Sean took Q27 to Q30. Q31 to Q36 are open, with proposals. Q57 to Q59 (the search redesign) are in section G.
+
+### Q27. When does the marketplace go live?
+
+The business plan puts the marketplace third (the tool, then renters, then the marketplace), because Irish challenger portals that went after listings first closed, sold to Daft's owner or stayed small.
+
+**Decision (Sean, 7 November 2026):** everything at once. Listings, search and renter profiles open together as soon as they're built, and Gaff competes for renters from day one. The business plan needs updating to match. The CTO recommends a letter beta for 3 to 4 weeks before the public launch, so renters find homes on day one; it doesn't gate the launch. Confirmed by Sean on 7 November 2026, when he approved the build.
+
+### Q28. Which kinds of rental?
+
+**Decision (Sean, 7 November 2026):** whole homes let on a tenancy, including homes in developments and build-to-rent. No room shares, student accommodation, short lets, commercial or parking.
+
+### Q29. How are letters checked before their homes go live?
+
+**Decision (Sean, 7 November 2026):** agencies and each of their agents are matched against the PSRA public register. Private landlords pass a document-and-selfie ID check before their first home goes live. Gaff keeps only the result, the verified name and the date (Q19). **Stripe Identity approved by Sean on 7 November 2026** for this use only; its DPA terms and the privacy notice are on the [launch checklist](launch-checklist.md).
+
+### Q30. Can a letter pay to rank higher?
+
+**Decision (Sean, 7 November 2026):** never. Listings are free, and results are ordered by fit and freshness only. Revenue comes from the letting workflow and partner services. A compliance test fails if ranking ever takes a payment input.
+
+### Q31. The budget to bring renters in
+
+Launching everything at once (Q27) means Gaff has to bring renters in from day one.
+
+**Proposal:** set a launch budget and a target cost per active renter, and review them weekly with the liquidity numbers.
+
+**Decision:** open (founders).
+
+### Q32. Is the workflow free during launch?
+
+Every Gaff enquiry starts the workflow, so a free listing comes with it.
+
+**Proposal:** the workflow is free for every letter until a date the founders set, then priced as in the business plan (per letting, or a monthly plan for landlords with many homes).
+
+**Decision:** open (founders).
+
+### Q33. Listing defaults
+
+**Proposal:** at least 3 photos to publish. Letters confirm a home is still available every 14 days, and the listing is paused if they don't answer within 3 days.
+
+**Decision:** open (founders). The build uses these as configuration.
+
+### Q34. Partner services for renters
+
+**Proposal:** none at launch. Later, only services a renter chooses for themselves, such as utilities or insurance, that never cost anything to secure a home and never change their chances. That needs the solicitor's view.
+
+**Decision:** open (founders).
+
+### Q35. "Ready to move": renters verifying their identity in advance
+
+**Proposal:** later. A renter could verify their identity once, at Gaff's cost, with the result shared only if they become the preferred applicant or backup. It needs the solicitor's view on staged data first.
+
+**Superseded (Sean, 8 November 2026) by Q48:** every renter checks their identity once, the first time they're chosen, and it's kept on their profile for every later home.
+
+### Q36. Questions for the solicitor before launch (**Solicitor**)
+
+- Liability for publishing ads under section 12 of the Equal Status Acts, after the WRC's 2019 Daft decision, and whether blocking checks and review are enough.
+- Which Digital Services Act duties apply while Gaff is a micro or small enterprise, and which apply as it grows.
+- Data protection roles: controller for renter accounts, profiles, alerts and checks on letters; processor for letters' copies. The lawful bases, and the DPIA.
+- The wording of check badges and "No other fees".
+- Saying on every listing that housing supports such as HAP are accepted.
+- Using the PSRA register to check licences, and what to do when it doesn't match.
+- Whether handling enquiries for private landlords' listings changes the PSRA licensing question in the PRD.
+- Terms for private landlords, who may be consumers.
+- Retention for reports: proposed 6 months after a case closes.
+- The BER display against SEAI's current guidelines.
+- Google Maps on renter pages: the notice Google's terms require in Gaff's terms, the privacy notice, and whether the map needs a tap before it loads (search redesign PRD S2).
+- Using OpenStreetMap data in the place index: keeping OSM rows separate (a collective database) and publishing the build method (ODbL 4.6).
+
+## G. Replacing the stand-ins
+
+Raised on 8 November 2026 with the [providers PRD](providers/prd.md) and [technical specification](providers/tech-spec.md). Sean took Q37 to Q41 the same day. After reviewing the first draft, he also took Q44 and Q48 to Q50, which supersede Q38 and Q40 and change Q39 and Q12. Q46, Q47 and Q51 are closed. Q42, Q43, Q45 and Q52 to Q56 are open, with proposals.
+
+### Q37. Where does the AI run?
+
+The Claude API offers only global or US inference and stores data at rest in the US. Claude in Amazon Bedrock runs Claude Opus 5.5 in Dublin (`eu-west-1`).
+
+**Decision (Sean, 8 November 2026):** the test copy and development use the Claude API, with the founders' credits, on made-up data and the founders' own test messages. Production uses Claude on Bedrock in Dublin. Real renters' data never reaches the Claude API. See [ADR-0025](adr/0025-ai-provider-and-tasks.md).
+
+### Q38. How are chosen renters' identities checked?
+
+**Decision (Sean, 8 November 2026):** Stripe Identity (a document and a selfie), or the renter shows an original photo ID to the letter in person, and the letter records it.
+
+**Superseded the same day by Q48:** renters still check when they're chosen, but only once ever, and it's kept on their Gaff profile. The in-person step stays for chosen renters checked without a selfie, or whose ID can't be checked online.
+
+### Q39. Which open banking provider?
+
+Plaid supports Ireland for transactions, but its income product isn't offered in Ireland yet, it stores European data in the US, and its EU plans need a minimum commitment. Tink's Income Check lists Ireland and processes in the EU. TrueLayer is authorised by the Central Bank of Ireland and keeps data in Ireland and the UK, but has no income report.
+
+**Decision (Sean, 8 November 2026):** Tink, with TrueLayer as the backup behind the same port. Revisit Plaid if its income product reaches Ireland.
+
+**Changed the same day (Q49):** no open banking at launch. Tink stays approved for a later, optional "Confirm with your bank" (Q56).
+
+### Q40. Can renters prove income without connecting a bank?
+
+**Decision (Sean, 8 November 2026):** yes, by uploading recent payslips (or an employer's letter) with the PPS number covered.
+
+**Superseded the same day by Q49 and Q50:** payslips are one of the documents asked for, read without an income estimate, and the PPS number may stay showing.
+
+### Q41. Which AI tasks come in this phase?
+
+**Decision (Sean, 8 November 2026):** answers to renters' questions (R8, already built), drafted listing descriptions (M45) and the unfair-wording check (ADR-0023), plus reading documents (Q49). Holding letters' messages that ask for money before a viewing (M28) waits.
+
+### Q42. HAP and affordability (**Solicitor, founders**)
+
+**HAP, in plain words.** The Housing Assistance Payment is how councils help people on lower incomes rent a home privately. The renter finds the home, and the council pays the rent to the landlord directly, every month. The renter pays the council a weekly contribution based on their income, usually far less than the rent.
+
+**Why it matters for Gaff:**
+- The council's part never passes through the renter's hands, so it isn't on their payslips or in their bank account. Their documents make them look less able to pay than they are.
+- An income rule such as "take-home pay of 2.5 times the rent" (Q18) therefore fails most people on HAP, even though the council pays most of the rent, and pays it reliably.
+- Refusing someone because they get HAP, rent supplement or any social welfare payment is unlawful (the housing assistance ground in the Equal Status Acts). So is a rule that puts them at a disadvantage without a good reason (indirect discrimination). WRC awards reach the €15,000 maximum.
+- Gaff can't ask whether someone gets HAP (rule 3), so it can't simply apply the rule differently for them.
+
+**Today:** the application's hint says to include housing support in household income (Q17), and nothing records it. That helps, but it isn't clear what amount someone on HAP should add, and the rule still compares the whole rent with their income.
+
+**The question:** how should a letter judge, fairly, whether someone can afford the home, when the council may pay most of the rent and Gaff can't ask?
+
+**Options:**
+1. **Keep today's approach:** housing support counts as income, declared without a label, and letters are reminded that it counts.
+2. **Apply the rule only to what the renter pays:** any renter can say "part of my rent will be paid to the landlord directly", without naming the scheme, and the rule compares their income with the rest. Fairer, but close to asking about HAP.
+3. **No income rule at all:** letters judge the evidence, as they now do at the checks stage. The simplest and fairest, but letters like a clear rule.
+
+**Proposal:** ask the solicitor which of these is lawful and fair, then decide with the founders before launch. Until then, option 1 stands.
+
+### Q43. Asking the backup at the same time (**Solicitor**)
+
+The DPC ties ID and financial documents to "those who will be entering into a tenancy". This covers the identity check, work and income documents and references. Payslips showing a PPS number would reach the letter for both renters.
+
+**Proposal:** keep asking both together (R18), which saves days if the preferred applicant drops out, if the solicitor agrees it's proportionate. Otherwise, ask the backup only when they're promoted.
+
+### Q44. Do Stripe's terms allow checking renters? (**Sean, Stripe**)
+
+Stripe's service terms appear to forbid using Identity "as a factor in determining any person's eligibility for … housing". Stripe's docs say that applies to US credit-reporting activity.
+
+**Decision (Sean, 8 November 2026):** don't wait for Stripe's confirmation. Gaff checks its own users' identity to prevent fraud, the same way for everyone, and the result never decides who gets a home. Daft uses Stripe Identity in the same way.
+
+### Q45. Is consent to the selfie freely given? (**Solicitor**)
+
+The DPC considers consent rarely freely given between landlord and tenant, and checking identity is part of being offered a home.
+
+**Proposal:** yes. Gaff asks, not the letter, for the person's own profile. Checking without a selfie is equally prominent, needs no reason and carries no penalty. The check itself rests on Gaff's legitimate interest in preventing fraud, so only the selfie relies on consent.
+
+**Reopened (8 November 2026) by Q60:** the selfie is now required, with no check without one, so agreeing to it is a condition of being offered a home through Gaff. Is explicit consent still valid, or is another basis needed? With Q61.
+
+### Q46. Open banking at offer stage (**Solicitor**)
+
+**Closed (8 November 2026):** there's no open banking at launch (Q49). The question returns with "Confirm with your bank" (Q56).
+
+### Q47. Renters whose bank can't be connected
+
+**Closed (8 November 2026):** nobody needs to connect a bank (Q49).
+
+### Q48. Who checks their identity, and when?
+
+**Decision (Sean, 8 November 2026, revised the same day on the CTO's recommendation):** everyone, once, with Stripe Identity, kept on their Gaff profile and reused for every later home and every workspace.
+- **Renters** check the first time a letter chooses them as the preferred applicant or the backup, wherever they enquired (Gaff, Daft or MyHome), on one page with their documents and referees. Sean first chose "before their first enquiry". He moved it because that's when identity matters, because a renter could skip an earlier check by enquiring on Daft, because early requests for ID look like a scam to renters, and because it matches the DPC's guidance and costs far less.
+- **Before a renter is chosen,** they confirm their email with a code to enquire, and their mobile with a text code to book a viewing (changing Q12).
+- **Letters** (private landlords and agents) check before their first listing goes live.
+- A renter's result reaches only the letters who choose them, and ranking never reads it.
+- Checking without a selfie is an equal choice. A chosen renter checked that way, or whose ID can't be checked online, shows their ID to the letter in person. A letter checked without a selfie has their first listing reviewed by a person at Gaff.
+- Supersedes Q38, Q35 ("Ready to move") and M14. Changes rule 2 (identity kept on the profile for next time) and rule 10 (Stripe Identity for everyone). See [ADR-0026](adr/0026-identity-and-documents.md).
+- Cost: about €1.25 per person, once; at most about €2.50 a letting for renters.
+
+**Revised (Sean, 8 November 2026) by Q60:** the selfie is required, with no other ways through. Letters verify before their first letting goes live, including a letting that takes enquiries from Daft and MyHome. Renters' timing is unchanged, and banked to come back to (Q61).
+
+### Q49. How do chosen renters show their work and income?
+
+**Decision (Sean, 8 November 2026, on the CTO's recommendation):**
+- the documents Irish letters already ask for, chosen by how the renter earns: payslips (or a contract for a new job) and an employer's reference or letter; a Revenue Notice of Assessment or an accountant's letter; or statements of other income;
+- no bank statements, apart from a savings statement showing only the balance, for someone living on savings;
+- references from their last landlord, or a character reference for someone who hasn't rented before or is new to Ireland, and from their employer if they have one;
+- Claude reads each one, and Gaff checks it's the kind asked for, recent, and in the verified name. The renter confirms and shares everything, identity included, in one step, and can keep the documents and referees' details for their next application;
+- statements of other income never reach letters: Gaff tells the letter only the amount, how often and the date;
+- no income estimate, score or ratio: the letter reads the evidence and decides;
+- no open banking at launch, and "Confirm with your bank" later (Q56).
+
+### Q50. Payslips that show a PPS number
+
+**Decision (Sean, 8 November 2026):** accepted as they are. Gaff suggests covering the number, never reads it out or records it, and deletes the document on schedule. Rule 2 says so.
+
+### Q51. Checking every renter's identity before their first enquiry (**Solicitor**)
+
+**Closed (8 November 2026):** renters now check their identity when they're chosen (Q48), which is what the DPC's guidance expects.
+
+### Q52. Statements of other income (**Solicitor**)
+
+Pension, social welfare and maintenance statements can show age, disability, family status or the housing assistance ground.
+
+**Proposal:** Gaff reads them, tells the letter only the amount, how often and the date, and deletes them once the renter confirms. Gaff is the controller for that reading.
+
+### Q53. Can a letter ask for more than the standard set?
+
+For example, bank statements or two years of accounts.
+
+**Proposal:** no. The same set on every letting, reviewed by the solicitor, just as criteria come from a fixed list (rule 3).
+
+**Decision:** open (founders).
+
+### Q54. Joint tenants
+
+**Proposal:** soon after launch, each adult who'll sign the agreement joins the application with their own profile, identity and documents. Until then, the lead renter's documents and the household income they gave.
+
+**Decision:** open (founders).
+
+### Q55. A letter whose ID can't be checked online
+
+**Proposal:** a short video call with a person at Gaff, who sees the original document, using a tool the founders approve (rule 10). Only the result is recorded.
+
+**Decision (Sean, 8 November 2026, Q60):** no other way for now: Gaff relies on Stripe Identity. Someone Stripe can't verify after three tries can ask a person at Gaff for more tries.
+
+### Q56. When to build "Confirm with your bank"
+
+An optional, read-only check through Tink that the pay on a renter's payslips arrives in their account, keeping only the outcome. Forged payslips are the most common fraud in UK tenant referencing.
+
+**Proposal:** when a forged document is found on Gaff, or letters ask for it.
+
+**Decision:** open (founders).
+
+## H. The renter search redesign
+
+Raised on 8 November 2026, after Sean found that typing "Kinsale" or "Highfield Road" suggested nothing. The [search redesign PRD](marketplace/search-redesign/prd.md) and [technical specification](marketplace/search-redesign/tech-spec.md) follow from these decisions; [ADR-0027](adr/0027-places-index-on-google-maps.md) records Q57 and Q58.
+
+### Q57. What suggests places as renters type?
+
+Airbnb uses Google Places; Zillow, Rightmove and Daft use their own index of places. Google's EEA terms, which apply because Gaff is billed in Ireland, forbid showing Places content "on, next to, or ... visually associated with any map, including a Google Map", except in Google's own Places UI Kit widget.
+
+**Decision (Sean, 8 November 2026):** Gaff's own index of every county, town, village, area, Dublin district, Eircode area, townland, street and landmark in Ireland, built from open data, in Gaff's own dropdown (Zillow's model). Sean first chose Google, like Airbnb, then chose this once the EEA terms were clear.
+
+### Q58. Which map?
+
+**Decision (Sean, 8 November 2026):** Google Maps, through the Maps JavaScript API, showing only Gaff's own content. **Google Maps Platform approved by Sean on 8 November 2026** for that use only (rule 10). Google acts as an independent controller under its Controller-Controller Data Protection Terms and offers no EU region; transfers rely on the EU–US Data Privacy Framework. The privacy notice, Gaff's terms and the DPIA are on the [launch checklist](launch-checklist.md). This replaces the marketplace tech spec's self-hosted MapLibre map.
+
+### Q59. Which layout, and how does it ship?
+
+**Decision (Sean, 8 November 2026):** Zillow's filter bar (Where, Rent, Beds, Move in, Filters, Save search) with Airbnb's polish, and list and map side by side. Everything ships in one release, the map included, behind a flag until the release checks pass.
+
+## I. Profile verification
+
+Raised on 8 November 2026, after Sean reviewed identity once per person (providers milestone 3): "We should have profile verification standards, and stick to them."
+
+### Q60. One verification standard, with no opt-outs
+
+**Decision (Sean, 8 November 2026, on the CTO's recommendation after looking at the market):** every Gaff profile, renter or letter, is verified the same way, once, and kept for good:
+- **email**, confirmed with a code;
+- **mobile**, confirmed with a text code;
+- **identity**: a photo ID and a live selfie, matched by Stripe Identity, so the person who owns the profile is the person on the ID.
+
+**When:**
+- **Letters** (landlords and agents) verify before their first letting goes live: a listing on Gaff, or a letting taking enquiries from Daft and MyHome. They can set up before then.
+- **Renters** confirm their email to enquire, their mobile to book a viewing, and their identity when a letter chooses them as the preferred applicant or the backup, before an offer.
+
+**No other ways through:** no check without a selfie, no "can't be checked online", no video call (Q55), no letter seeing ID in person, and no first-listing review. Someone Stripe can't verify after three tries can ask a person at Gaff for more tries.
+
+**The market, as found on 8 November 2026:** Airbnb checks hosts before they list and guests before they book (required worldwide since mid-2023, and the ID isn't shown to the other side). Zillow checks landlords before they see applicants' screening reports, and renters when they apply. In the UK, a renter's identity is checked at referencing, after the landlord accepts them, and before the tenancy (Right to Rent); OpenRent's earlier "Verified Tenant" is optional. SpareRoom's check is optional. Daft has added Stripe Identity for some features. Nobody checks renters' identity to enquire. The DPC says to collect only what's needed to arrange a viewing, and has said landlords shouldn't seek photo ID from prospective tenants before a lease is signed.
+
+Sean first asked for renters to verify before their first enquiry, then chose this timing the same day. Replaces P19, P20 and P27, and the choice without a selfie in P18.
+
+### Q61. When should renters verify? (**Founders, solicitor**)
+
+Built as Q60 for now; to come back to once the measures (P58) show how it works.
+
+| | When chosen (built) | Before their first viewing | Before their first enquiry |
+| --- | --- | --- | --- |
+| Who's verified | The two chosen, before an offer | Everyone who views | Everyone whose enquiry a letter acts on |
+| Friction | The least: two a letting, once each | Once invited, when they're keen | The most: every renter, before they can ask anything |
+| Daft and MyHome | Asked only once chosen | Asked only once invited | Their enquiries wait for an ID request from Gaff, which can look like a scam |
+| Stripe's cost (€1.25 a person, once) | Two a letting at most | Everyone who views | Everyone who enquires |
+| The DPC's guidance | Closest: checks for those entering a tenancy | Photo ID before a viewing | Photo ID from everyone who enquires |
+| The market | Zillow, UK referencing | Airbnb, by analogy with booking | Nobody |
+
+**For the solicitor:**
+- Is a required selfie, with no other way through, valid explicit consent under GDPR Article 9, or is another basis needed (Q45)?
+- Gaff checks identity, not the letter, and shares only the result and the verified name. Is that consistent with the DPC's position on photo ID before a lease is signed?
+- Does a renter Stripe can't verify, who then can't be offered a home, have a claim under the Equal Status Acts (a document Stripe doesn't read, or a disability)? Is a person granting more tries enough human review under Article 22?
+
+**Decision:** open (founders, with the solicitor's answers).

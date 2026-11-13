@@ -13,6 +13,8 @@ import styles from './letting.module.css';
  */
 const tabs = [
   { key: 'overview', label: 'Overview', path: '', from: 'setup' },
+  // M37 to M52: the marketplace listing is written while the letting is set up.
+  { key: 'listing', label: 'Listing', path: '/listing', from: 'setup' },
   { key: 'enquiries', label: 'Enquiries', path: '/enquiries', from: 'enquiries' },
   { key: 'shortlist', label: 'Shortlist', path: '/shortlist', from: 'enquiries' },
   { key: 'attendance', label: 'Attendance', path: '/attendance', from: 'viewings' },

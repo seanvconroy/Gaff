@@ -15,7 +15,13 @@ import {
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import type { RenterAnswers } from '@/domain/criteria/answers';
 import { users } from './auth';
-import { createdAt, tenantPolicy, updatedAt } from './columns';
+import {
+  createdAt,
+  renterReadsOwnApplication,
+  renterReadsOwnMessages,
+  tenantPolicy,
+  updatedAt,
+} from './columns';
 import { lettingFacts, lettings, viewingSlots } from './lettings';
 import { organisations } from './organisations';
 
@@ -117,6 +123,17 @@ export const applications = pgTable(
     status: applicationStatus().notNull().default('enquired'),
     /** R13 (Q12): the renter gave a mobile number for text reminders when they booked. */
     smsReminders: boolean().notNull().default(false),
+    /**
+     * P16 (Q48): the mobile confirmed by text code to book a viewing, and the code while it's
+     * open (hashed, as for letters' mobiles, M3). Cleared with the rest of the personal data.
+     */
+    mobileConfirmedAt: timestamp({ withTimezone: true }),
+    mobilePending: text(),
+    mobileCodeHash: text(),
+    mobileCodeExpiresAt: timestamp({ withTimezone: true }),
+    mobileCodeAttempts: integer().notNull().default(0),
+    mobileCodesToday: integer().notNull().default(0),
+    mobileCodeSentAt: timestamp({ withTimezone: true }),
     /** R16, stage 5 only: how they mainly earn, and household take-home income (cents). */
     earning: text({ enum: ['employed', 'self_employed', 'other'] }),
     monthlyIncomeCents: integer(),
@@ -127,13 +144,19 @@ export const applications = pgTable(
     answersAt: timestamp({ withTimezone: true }),
     deleteAfter: date({ mode: 'string' }),
     personalDataDeletedAt: timestamp({ withTimezone: true }),
+    /** M76, M79: the renter's Gaff account, when they enquired on Gaff or saved it there. */
+    renterUserId: text().references(() => users.id),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
     uniqueIndex('applications_letting_email_idx').on(t.lettingId, t.emailNormalised),
     index('applications_letting_idx').on(t.organisationId, t.lettingId, t.firstEnquiredAt),
+    index('applications_renter_idx')
+      .on(t.renterUserId)
+      .where(sql`renter_user_id is not null`),
     tenantPolicy(),
+    renterReadsOwnApplication(),
   ],
 ).enableRLS();
 
@@ -151,7 +174,8 @@ export const messages = pgTable(
       .references(() => lettings.id),
     applicationId: uuid().references(() => applications.id),
     direction: text({ enum: ['inbound', 'outbound'] }).notNull(),
-    channel: text({ enum: ['email', 'sms'] }).notNull(),
+    /** "app": written in Gaff by a signed-in renter (M80). */
+    channel: text({ enum: ['email', 'sms', 'app'] }).notNull(),
     kind: text().notNull(),
     templateKey: text(),
     author: text({ enum: ['renter', 'template', 'ai', 'person'] }).notNull(),
@@ -191,7 +215,9 @@ export const messages = pgTable(
   (t) => [
     index('messages_letting_idx').on(t.organisationId, t.lettingId, t.createdAt),
     index('messages_outbox_idx').on(t.status, t.sendAt),
+    index('messages_application_idx').on(t.applicationId, t.createdAt),
     tenantPolicy(),
+    renterReadsOwnMessages(),
   ],
 ).enableRLS();
 

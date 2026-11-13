@@ -1,5 +1,5 @@
 import { and, eq, inArray } from 'drizzle-orm';
-import { identityProvider, incomeProvider } from '@/adapters/checks';
+import { incomeProvider } from '@/adapters/checks';
 import { withOrg, withSystem, type Tx } from '@/db/client';
 import { applications, checks, lettings, messages, organisations } from '@/db/schema';
 import {
@@ -20,8 +20,9 @@ import {
 } from '@/domain/checks/checks';
 import { openJson, sealJson } from '@/lib/crypto';
 import { env } from '@/lib/env';
-import type { IdentityResult, IncomeResult } from '@/ports/checks';
+import type { IncomeResult } from '@/ports/checks';
 import { createAccessLink, resolveAccessLink } from '@/server/access/links';
+import { shareProfileIdentity } from '@/server/identity/renter';
 import { enqueue } from '@/server/jobs/enqueue';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
@@ -64,6 +65,8 @@ export async function requestChecks(
         completedAt: check.status === 'not_needed' ? new Date() : null,
       })),
     );
+    // P29: a renter who checked their identity before has nothing more to do for it.
+    await shareProfileIdentity(tx, applicationId);
     const token = await createAccessLink(tx, {
       organisationId: input.organisationId,
       purpose: 'renter',
@@ -120,6 +123,9 @@ export type CheckSummary = {
   requestedAt: Date | null;
   remindersSent: number;
   verifiedName?: string;
+  /** P22: the verified name isn't the name they gave. Shown in words, never as a failure. */
+  nameDiffers?: boolean;
+  checkedAt?: Date;
   monthlyIncomeCents?: number;
   summary?: string;
 };
@@ -145,7 +151,11 @@ export async function checkResultsFor(
       requestedAt: row.requestedAt,
       remindersSent: row.remindersSent,
     };
-    if (opened && row.kind === 'identity') summary.verifiedName = String(opened.verifiedName);
+    if (opened && row.kind === 'identity') {
+      if (opened.verifiedName) summary.verifiedName = String(opened.verifiedName);
+      summary.nameDiffers = opened.nameDiffers === true;
+      if (opened.checkedAt) summary.checkedAt = new Date(String(opened.checkedAt));
+    }
     if (opened && row.kind === 'income')
       summary.monthlyIncomeCents = Number(opened.monthlyIncomeCents);
     if (opened && (row.kind === 'landlord_reference' || row.kind === 'employer_reference')) {
@@ -163,12 +173,13 @@ async function chosenRenter(token: string) {
 }
 
 /**
- * R18: the renter starts their ID or income check. They go to the provider, and come back to a
- * page that says it's done. Their private link is never given to the provider.
+ * R18: the renter starts their income check. They go to the provider, and come back to a page
+ * that says it's done. Their private link is never given to the provider. (Identity is checked
+ * once per person, in `server/identity`.)
  */
 export async function startProviderCheck(
   token: string,
-  kind: 'identity' | 'income',
+  kind: 'income',
 ): Promise<{ redirectUrl: string } | { problem: 'link' | 'not_chosen' | 'done' | 'no_provider' }> {
   const found = await chosenRenter(token);
   if (!found) return { problem: 'link' };
@@ -184,7 +195,7 @@ export async function startProviderCheck(
   if (!check || !(CHOSEN as readonly string[]).includes(check.status))
     return { problem: 'not_chosen' };
   if (check.check.status === 'passed') return { problem: 'done' };
-  const provider = kind === 'identity' ? identityProvider() : incomeProvider();
+  const provider = incomeProvider();
   if (!provider) return { problem: 'no_provider' };
   const started = await provider.start({
     checkId: check.check.id,
@@ -195,7 +206,7 @@ export async function startProviderCheck(
       .update(checks)
       .set({
         status: 'in_progress',
-        provider: kind === 'identity' ? env().IDENTITY_PROVIDER : env().INCOME_PROVIDER,
+        provider: env().INCOME_PROVIDER,
         providerRef: started.providerRef,
         requestedAt: new Date(),
         reason: null,
@@ -214,13 +225,10 @@ export async function startProviderCheck(
 }
 
 /**
- * R18: a provider's result arrives (for real providers, from a signed webhook). Only the
- * result is kept, sealed: the verified name, or the confirmed monthly income.
+ * R18: the income provider's result arrives. Only the result is kept, sealed: the confirmed
+ * monthly income.
  */
-export async function recordProviderResult(
-  checkId: string,
-  outcome: { kind: 'identity'; result: IdentityResult } | { kind: 'income'; result: IncomeResult },
-): Promise<void> {
+export async function recordProviderResult(checkId: string, result: IncomeResult): Promise<void> {
   const [found] = await withSystem((tx) =>
     tx
       .select({
@@ -231,16 +239,12 @@ export async function recordProviderResult(
       .from(checks)
       .where(eq(checks.id, checkId)),
   );
-  if (!found || found.kind !== outcome.kind) return;
-  const passed = outcome.kind === 'identity' ? outcome.result.verified : outcome.result.confirmed;
-  const sealed = !passed
-    ? null
-    : outcome.kind === 'identity' && outcome.result.verified
-      ? sealJson({ verifiedName: outcome.result.verifiedName })
-      : outcome.kind === 'income' && outcome.result.confirmed
-        ? sealJson({ monthlyIncomeCents: outcome.result.monthlyIncomeCents })
-        : null;
-  const reason = passed ? null : (outcome.result as { reason: string }).reason;
+  if (!found || found.kind !== 'income') return;
+  const passed = result.confirmed;
+  const sealed = result.confirmed
+    ? sealJson({ monthlyIncomeCents: result.monthlyIncomeCents })
+    : null;
+  const reason = result.confirmed ? null : result.reason;
   await withOrg(found.organisationId, async (tx) => {
     await tx
       .update(checks)

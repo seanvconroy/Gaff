@@ -64,3 +64,55 @@ export function withSystem<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
 export async function scopeToOrg(tx: Tx, organisationId: string): Promise<void> {
   await tx.execute(sql`select set_config('app.org_id', ${organisationId}, true)`);
 }
+
+/**
+ * Runs fn in a transaction scoped to one renter's own rows (the renter zone, ADR-0017).
+ * Organisation data stays invisible, except the renter's own applications where a policy
+ * allows it. Callers pass the id of a signed-in renter, never one taken from a request.
+ */
+export function withRenter<T>(userId: string, fn: (tx: Tx) => Promise<T>): Promise<T> {
+  return db().transaction(async (tx) => {
+    await tx.execute(sql`select set_config('app.user_id', ${userId}, true)`);
+    return fn(tx);
+  });
+}
+
+/**
+ * Runs fn in a read-only transaction with no organisation or renter: only public tables
+ * (ADR-0017) return rows. For public pages: search, listings, areas, agencies.
+ */
+export function withPublic<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
+  return db().transaction(async (tx) => {
+    await tx.execute(sql`set transaction read only`);
+    return fn(tx);
+  });
+}
+
+/**
+ * Runs fn as Gaff staff (ADR-0017): staff policies let them review rows across organisations,
+ * such as letter checks (M105). Pass the id from a signed-in Staff (src/server/auth/staff).
+ */
+export function withStaff<T>(staffUserId: string, fn: (tx: Tx) => Promise<T>): Promise<T> {
+  return db().transaction(async (tx) => {
+    await tx.execute(sql`select set_config('app.role', 'staff', true)`);
+    await tx.execute(sql`select set_config('app.user_id', ${staffUserId}, true)`);
+    return fn(tx);
+  });
+}
+
+/**
+ * Runs fn as both one organisation and one renter, so an enquiry's application (organisation
+ * zone) and the record of what the renter shared (renter zone) commit together (ADR-0017).
+ * Only the enquiry use cases may use it.
+ */
+export function withEnquiry<T>(
+  organisationId: string,
+  userId: string,
+  fn: (tx: Tx) => Promise<T>,
+): Promise<T> {
+  return db().transaction(async (tx) => {
+    await tx.execute(sql`select set_config('app.org_id', ${organisationId}, true)`);
+    await tx.execute(sql`select set_config('app.user_id', ${userId}, true)`);
+    return fn(tx);
+  });
+}

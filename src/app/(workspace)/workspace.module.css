@@ -204,6 +204,10 @@
     gap: 0;
   }
 
+  .wideOnly {
+    display: none;
+  }
+
   .navLink {
     flex-direction: column;
     justify-content: center;

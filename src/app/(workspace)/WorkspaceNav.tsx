@@ -1,7 +1,9 @@
 'use client';
 
 import {
+  Building2,
   House,
+  Images,
   Inbox,
   type LucideIcon,
   MessageCircleQuestionMark,
@@ -12,8 +14,24 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './workspace.module.css';
 
-const items: Array<{ href: string; label: string; Icon: LucideIcon; current: RegExp }> = [
+const items: Array<{
+  href: string;
+  label: string;
+  Icon: LucideIcon;
+  current: RegExp;
+  wideOnly?: boolean;
+}> = [
   { href: '/', label: 'Lettings', Icon: House, current: /^\/($|lettings(\/|$))/ },
+  // M91, M32: the marketplace's listings and developments.
+  { href: '/listings', label: 'Listings', Icon: Images, current: /^\/listings(\/|$)/ },
+  {
+    href: '/developments',
+    label: 'Developments',
+    Icon: Building2,
+    current: /^\/developments(\/|$)/,
+    // Six fit a phone's bottom bar; on a phone, developments open from Listings.
+    wideOnly: true,
+  },
   { href: '/approvals', label: 'Approvals', Icon: Sparkles, current: /^\/approvals(\/|$)/ },
   {
     href: '/questions',
@@ -34,8 +52,8 @@ export function WorkspaceNav() {
   return (
     <nav aria-label="Workspace" className={styles.nav} data-bottom-bar="">
       <ul className={styles.navList}>
-        {items.map(({ href, label, Icon, current }) => (
-          <li key={href}>
+        {items.map(({ href, label, Icon, current, wideOnly }) => (
+          <li key={href} className={wideOnly ? styles.wideOnly : undefined}>
             <Link
               href={href}
               className={styles.navLink}

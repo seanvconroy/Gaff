@@ -1,6 +1,7 @@
 import { devices, expect, type Browser, type Page } from '@playwright/test';
 import { daftEnquiry, myhomeEnquiry } from '../fixtures/emails';
 import {
+  bookFirstTime,
   createLettingThroughUi,
   gaffAddress,
   goLiveThroughUi,
@@ -51,8 +52,7 @@ export async function twoPeopleWhoCame(browser: Browser, page: Page) {
       links[email] = await linkInEmail(email, 'Book a viewing: 12 Ranelagh Road');
     }).toPass({ timeout: 20_000 });
     const renter = await onPhone(browser, links[email]!);
-    await renter.page.getByRole('radio').first().check();
-    await renter.page.getByRole('button', { name: 'Book this time' }).click();
+    await bookFirstTime(renter.page);
     await expect(renter.page.getByText('You’re booked')).toBeVisible();
     await renter.context.close();
   }

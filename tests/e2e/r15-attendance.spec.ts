@@ -1,6 +1,7 @@
 import { devices, expect, test } from '@playwright/test';
 import { daftEnquiry } from '../fixtures/emails';
 import {
+  bookFirstTime,
   createLettingThroughUi,
   expectAccessible,
   expectNoSidewaysScroll,
@@ -52,8 +53,7 @@ test('R15: the operator marks who came, on a phone, with one tap per person', as
   });
   const renter = await phone.newPage();
   await renter.goto(invitation);
-  await renter.getByRole('radio').first().check();
-  await renter.getByRole('button', { name: 'Book this time' }).click();
+  await bookFirstTime(renter);
   await expect(renter.getByText('You’re booked')).toBeVisible();
 
   // Before the viewing, the operator sees when they can mark it.

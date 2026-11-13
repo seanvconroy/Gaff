@@ -2,13 +2,28 @@ import { mkdirSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page } from '@playwright/test';
 import pg from 'pg';
+import sharp from 'sharp';
 import { E2E_DATABASE_URL } from '../../playwright.config';
 
-/** WCAG 2.2 AA (PRD non-functional requirements; design system). */
+/**
+ * WCAG 2.2 AA (PRD non-functional requirements; design system). Next.js swaps the <title> just
+ * after a client-side navigation, so a check that lands in that moment sees none: it checks
+ * again once the page has its title. A page with no title at all still fails.
+ */
 export async function expectAccessible(page: Page): Promise<void> {
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
-    .analyze();
+  // Next.js streams a dynamic page's metadata, so its <title> can land just after the content.
+  // Every page has one; wait for it rather than let axe race it.
+  await page.waitForFunction(() => document.title.trim().length > 0, null, { timeout: 5_000 });
+  const analyse = () =>
+    new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+      .analyze();
+  let results = await analyse();
+  // A client-side navigation can still swap the title while axe runs: check again once it's back.
+  if (results.violations.some((v) => v.id === 'document-title')) {
+    await expect(page).toHaveTitle(/\S/);
+    results = await analyse();
+  }
   const summary = results.violations.map(
     (v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(' ')).join(', ')})`,
   );
@@ -98,13 +113,40 @@ export async function latestLinkFor(email: string): Promise<string> {
   return link;
 }
 
+/** The newest email to this address, from the development outbox. */
+export async function latestEmailFor(email: string): Promise<{ subject: string; text: string }> {
+  const rows = await query<{ subject: string; text: string }>(
+    'select subject, text from dev_outbox where to_address = $1 order by created_at desc limit 1',
+    [email],
+  );
+  return rows[0] ?? { subject: '', text: '' };
+}
+
+/** M76: the 6-digit code last emailed to this address (from the development outbox). */
+export async function latestCodeFor(email: string): Promise<string> {
+  const rows = await query<{ subject: string }>(
+    'select subject from dev_outbox where to_address = $1 order by created_at desc limit 1',
+    [email],
+  );
+  const code = rows[0]?.subject.match(/\b\d{6}\b/)?.[0];
+  if (!code) throw new Error(`No code has been sent to ${email}`);
+  return code;
+}
+
 /** Signs in through the real email-link flow. */
 export async function signIn(page: Page, email: string): Promise<void> {
   await page.goto('/sign-in');
-  await page.getByLabel('Work email').fill(email);
+  await page.getByLabel('Your email address').fill(email);
   await page.getByRole('button', { name: 'Email me a sign-in link' }).click();
   await expect(page.getByText('Check your email')).toBeVisible();
   await page.goto(await latestLinkFor(email));
+}
+
+/** M1: one account for renting and letting; a new account says which it's for first. */
+export async function chooseLetting(page: Page): Promise<void> {
+  await expect(page).toHaveURL(/\/welcome$/);
+  await page.getByRole('link', { name: 'Set up a letting workspace' }).click();
+  await expect(page.getByRole('heading', { name: 'Set up your workspace' })).toBeVisible();
 }
 
 let counter = 0;
@@ -120,13 +162,16 @@ export async function signUpOperator(
 ): Promise<string> {
   const email = uniqueEmail();
   await signIn(page, email);
-  await expect(page).toHaveURL(/\/welcome$/);
+  await chooseLetting(page);
   await page.getByLabel('Your name').fill('Ann Power');
   await page.getByLabel('Other people: we are a letting agency').check();
   await page.getByLabel('Name of your agency or business').fill(organisation);
   await page.getByLabel('PSRA licence number').fill('001234');
   await page.getByRole('button', { name: 'Set up my workspace' }).click();
   await expect(page.getByRole('heading', { name: 'Your lettings' })).toBeVisible();
+  // P15 (Q60): a letter verifies before any letting goes live.
+  await getChecked(page);
+  await page.goto('/');
   const client = new pg.Client({ connectionString: E2E_DATABASE_URL });
   await client.connect();
   try {
@@ -151,6 +196,9 @@ export function isoDateInDays(days: number): string {
   return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
+/** The marketplace journeys' name for isoDateInDays. */
+export const inDays = isoDateInDays;
+
 /** A letting made by createLettingThroughUi is available, so its tenancy starts, this far ahead. */
 export const AVAILABLE_IN_DAYS = 30;
 
@@ -162,10 +210,11 @@ export async function createLettingThroughUi(
   page: Page,
   address = '12 Ranelagh Road',
   daftUrl = '',
+  area = 'Ranelagh, Dublin 6',
 ): Promise<void> {
   await page.goto('/lettings/new');
   await page.getByLabel('Address', { exact: true }).fill(address);
-  await page.getByLabel('Area').fill('Ranelagh, Dublin 6');
+  await page.getByLabel('Area').fill(area);
   await page.getByLabel('Rent a month').fill('1850');
   await page.getByLabel('Available from').fill(isoDateInDays(AVAILABLE_IN_DAYS));
   await page.getByRole('button', { name: 'Continue' }).click();
@@ -287,4 +336,136 @@ export async function startViewingsNow(addressLine1: string, operatorEmail: stri
   } finally {
     await client.end();
   }
+}
+
+/** M3: the newest SMS code texted to a number (the fake SMS sender uses the outbox). */
+export async function latestSmsCode(phone: string): Promise<string> {
+  const rows = await query<{ text: string }>(
+    `select text from dev_outbox where to_address = $1 and subject = 'SMS'
+     order by created_at desc limit 1`,
+    [phone],
+  );
+  const code = rows[0]?.text.match(/\b(\d{6})\b/)?.[1];
+  if (!code) throw new Error(`No code has been texted to ${phone}`);
+  return code;
+}
+
+/** Makes an existing account a Gaff staff member. The app has no way to do this, on purpose. */
+export async function makeStaff(
+  email: string,
+  role: 'reviewer' | 'admin' = 'reviewer',
+): Promise<void> {
+  await query(
+    `insert into staff_members (user_id, role) select id, $2 from users where email = $1
+     on conflict do nothing`,
+    [email, role],
+  );
+}
+
+/** Signs up a private landlord letting their own homes; returns their email. */
+export async function signUpLandlord(page: Page, name = 'Mary Walsh'): Promise<string> {
+  const email = uniqueEmail('mary');
+  await signIn(page, email);
+  await chooseLetting(page);
+  await page.getByLabel('Your name').fill(name);
+  await page.getByLabel('Ourselves: we are landlords letting our own homes').check();
+  await page.getByLabel('Name of your agency or business').fill(name);
+  await page.getByRole('button', { name: 'Set up my workspace' }).click();
+  await expect(page.getByRole('heading', { name: 'Your lettings' })).toBeVisible();
+  return email;
+}
+
+/** Synthetic photos: a coarse random grid each, so no two look copied (M29). */
+export async function photoFiles(count: number): Promise<string[]> {
+  mkdirSync('test-results/photos', { recursive: true });
+  const files: string[] = [];
+  for (let n = 0; n < count; n++) {
+    const grid = Buffer.alloc(12 * 9 * 3);
+    for (let i = 0; i < grid.length; i++) grid[i] = Math.floor(Math.random() * 256);
+    const path = `test-results/photos/home-${Date.now()}-${n}.jpg`;
+    await sharp(grid, { raw: { width: 12, height: 9, channels: 3 } })
+      .resize(1200, 900, { kernel: 'nearest' })
+      .jpeg()
+      .toFile(path);
+    files.push(path);
+  }
+  return files;
+}
+
+/** M3, M22, M24: confirms the landlord's mobile and identity through the real screens. */
+export async function getChecked(page: Page): Promise<void> {
+  await page.goto('/settings/checks');
+  const mobile = `087${String(Date.now()).slice(-7)}`;
+  await page.getByLabel('Your mobile number').fill(mobile);
+  await page.getByRole('button', { name: 'Text me a code' }).click();
+  await expect(page.getByText(/We’ve texted a 6-digit code/)).toBeVisible();
+  await page
+    .getByLabel('The code from the text')
+    .fill(await latestSmsCode(`+353${mobile.slice(1)}`));
+  await page.getByRole('button', { name: 'Confirm my number' }).click();
+  await checkIdWithSelfie(page);
+  // An agency's licences wait for a person at Gaff, so look for the ID itself.
+  await expect(
+    page.getByText(
+      'Checked once, for every workspace you’re in and any home you rent through Gaff.',
+    ),
+  ).toBeVisible();
+}
+
+/** P17, P18 (Q60): agrees to the selfie check, then passes the stand-in for Stripe Identity. */
+export async function checkIdWithSelfie(page: Page): Promise<void> {
+  await expect(
+    page.getByText(
+      'By pressing the button, you agree to Stripe comparing your selfie with the photo on your ID.',
+    ),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Agree and check my ID' }).click();
+  await expect(page.getByRole('heading', { name: 'Stand-in identity check' })).toBeVisible();
+  await page.getByRole('button', { name: 'The ID and selfie match' }).click();
+}
+
+let mobiles = 0;
+/** A made-up Irish mobile no other journey in the run has used. */
+export function uniqueMobile(): string {
+  mobiles += 1;
+  return `086${String((Date.now() + mobiles * 7919) % 10_000_000).padStart(7, '0')}`;
+}
+
+/**
+ * R12, P16 (Q60): books the first free time from a renter's private page, confirming their
+ * mobile with the texted code, as every new booking needs.
+ */
+export async function bookFirstTime(page: Page, mobile = uniqueMobile()): Promise<void> {
+  await page.getByRole('radio').first().check();
+  await page.getByLabel('Your mobile number').fill(mobile);
+  await page.getByRole('button', { name: 'Text me a code' }).click();
+  await expect(page.getByText(/We’ve texted a 6-digit code to 0\d\d •••/)).toBeVisible();
+  const e164 = `+353${mobile.replace(/\s/g, '').slice(1)}`;
+  await page.getByLabel('The code from the text').fill(await latestSmsCode(e164));
+  await page.getByRole('button', { name: 'Confirm and book' }).click();
+}
+
+/** Fills in everything a listing needs, through the listing editor. */
+export async function completeListing(page: Page, description: string): Promise<void> {
+  await page.getByRole('link', { name: 'Listing', exact: true }).click();
+  await expect(page.getByText('Draft: renters can’t see it yet')).toBeVisible();
+  await page.getByLabel('Only the street and area').check();
+  await page.getByLabel('Heating').selectOption('gas');
+  await page.getByLabel('Outdoor space').selectOption('balcony');
+  await page.getByLabel('Floor area in square metres').fill('68');
+  await page.getByRole('button', { name: 'Save the home’s details' }).click();
+  await expect(page.getByText('Saved.').first()).toBeVisible();
+
+  await page.getByLabel('Deposit').fill('1850');
+  await page.getByRole('button', { name: 'Save the price and enquiries' }).click();
+
+  await page.getByLabel('Describe the home').fill(description);
+  await page.getByRole('button', { name: 'Save the description' }).click();
+
+  await page.getByLabel('Add photos').setInputFiles(await photoFiles(3));
+  await expect(page.getByText(/3 added/)).toBeVisible({ timeout: 20_000 });
+  await expect(async () => {
+    await page.reload();
+    await expect(page.getByRole('img', { name: 'Photo of the home' })).toHaveCount(3);
+  }).toPass({ timeout: 30_000 });
 }

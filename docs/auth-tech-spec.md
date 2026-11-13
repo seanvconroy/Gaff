@@ -1,6 +1,6 @@
 # Sign-in and accounts: technical specification
 
-Draft, 8 November 2026. It builds [auth-prd.md](auth-prd.md) (AU1 to AU16), and phases 2 and 3 are sketched at the end. The decision is recorded in [ADR-0015](adr/0015-operator-sign-in-methods.md) (proposed). It is written against the versions Gaff pins: `better-auth` 1.7.14, Next.js 16 and Drizzle 0.45. The library behaviour it depends on most was checked in that version's source: account linking, email codes, rate limiting, hooks, Apple's form post and generic OAuth providers.
+Draft, 8 November 2026. It builds [auth-prd.md](auth-prd.md) (AU1 to AU16), and phases 2 and 3 are sketched at the end. The decision is recorded in [ADR-0028](adr/0028-sign-in-methods.md) (proposed). It is written against the versions Gaff pins: `better-auth` 1.7.14, Next.js 16 and Drizzle 0.45. The library behaviour it depends on most was checked in that version's source: account linking, email codes, rate limiting, hooks, Apple's form post and generic OAuth providers.
 
 ## 1. Decision in brief
 
@@ -615,8 +615,8 @@ One requirement at a time, each tested in order: the domain rules, then the use 
 
 - **`CLAUDE.md` rule 10:** add Google and Apple (identity, operator sign-in) and Pwned Passwords (receives no personal data) to the approved list, once the founders approve. In "Architecture", operators sign in with Better Auth (Google, Apple, password, passkeys, email codes).
 - **ADRs:**
-  - ADR-0013: "Operator sign-in superseded by ADR-0015". Its renter and landlord part stays.
-  - `docs/adr/README.md`: ADR-0015 accepted.
+  - ADR-0013: "Operator sign-in superseded by ADR-0028". Its renter and landlord part stays.
+  - `docs/adr/README.md`: ADR-0028 accepted.
 - **`docs/architecture.md`:** the Sign-in row; `passkeys`, `invitations`, `auth_limits` and `auth_events` in the data model; Google, Apple and Pwned Passwords in Services and providers.
 - **`docs/launch-checklist.md`:** Google's OAuth client and branding; Apple's enrolment, Services ID, key and email relay; the new variables; the manual pass in §14.
 - **`docs/open-questions.md`:**

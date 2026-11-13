@@ -14,12 +14,33 @@ const schema = z
     AUTH_SECRET: z.string().min(32, 'AUTH_SECRET must be at least 32 characters'),
     EMAIL_PROVIDER: z.enum(['dev', 'resend', 'mailgun']).default('dev'),
     SMS_PROVIDER: z.enum(['fake', 'sinch']).default('fake'),
-    AI_PROVIDER: z.enum(['fake', 'bedrock']).default('fake'),
     /**
-     * R18: ID and income checks. "stand_in" is a development page where a tester picks the
-     * result; "none" means no provider is connected yet, so the operator arranges the check.
+     * Q37 (ADR-0025): the Claude API on the test copy and in development, with the founders'
+     * credits and made-up data only; Claude on Bedrock in Dublin in production; "fake" for tests.
      */
-    IDENTITY_PROVIDER: z.enum(['none', 'stand_in']).default('stand_in'),
+    AI_PROVIDER: z.enum(['fake', 'anthropic', 'bedrock']).default('fake'),
+    /** The Claude API's key: the test copy and development only, never production (Q37). */
+    ANTHROPIC_API_KEY: z.string().optional(),
+    /** P2: one model for every task. Bedrock adds the "anthropic." prefix itself. */
+    AI_MODEL: z.string().default('claude-opus-5-5'),
+    /** P4: the month's AI spend, in US dollars as both providers bill it. Past it, people answer. */
+    AI_MONTHLY_BUDGET_USD: z.coerce.number().min(0).default(100),
+    /** P8: tasks switched off without a deploy, such as "description,wording". */
+    AI_TASKS_OFF: z
+      .string()
+      .default('')
+      .transform((v) =>
+        v
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean),
+      ),
+    /**
+     * Q48 (ADR-0026): everyone's identity, once per person: Stripe Identity, or a development
+     * page where a tester picks the result. Production refuses the stand-in.
+     */
+    IDENTITY_PROVIDER: z.enum(['stand_in', 'stripe']).default('stand_in'),
+    /** R18: the income check's stand-in, until work and income documents replace it (P30). */
     INCOME_PROVIDER: z.enum(['none', 'stand_in']).default('stand_in'),
     /** ADR-0005: key for check results, encrypted in the application. 32 bytes, base64. */
     DATA_ENCRYPTION_KEY: z
@@ -28,17 +49,36 @@ const schema = z
       .optional(),
     INBOUND_DOMAIN: z.string().min(3).default('in.gaff.test'),
     MAIL_FROM_DOMAIN: z.string().min(3).default('mail.gaff.test'),
-    /** Resend (ADR-0014): sending, and the signing secret of the email.received webhook. */
+    /** M86: alerts' own sending subdomain, such as alerts.gaff.ie. Falls back to MAIL_FROM_DOMAIN. */
+    ALERTS_MAIL_FROM_DOMAIN: z.string().min(3).optional(),
+    /** M101: the Digital Services Act contact point for users and authorities. */
+    CONTACT_EMAIL: z.email().optional(),
+    /** M87: new homes within this many seconds go in one alert email (2 minutes; less in tests). */
+    ALERT_GROUP_SECONDS: z.coerce.number().int().min(0).max(600).default(120),
+    /**
+     * Resend (ADR-0014): sending, and the signing secret of the email.received webhook. Without
+     * the secret, Gaff sends but doesn't receive: replies by email and forwarded enquiries wait
+     * until receiving is set up (the test copy, open question N2).
+     */
     RESEND_API_KEY: z.string().optional(),
     RESEND_WEBHOOK_SECRET: z.string().optional(),
+    /**
+     * The test copy only: real email goes to these people alone (addresses, or "@domain" for a
+     * whole domain; "+tags" don't matter), and everyone else's to the outbox. Unset, real email
+     * goes to everyone except made-up addresses (example.com, .test and the like). Never in
+     * production.
+     */
+    TEST_EMAIL_RECIPIENTS: z.string().optional(),
+    /** The test copy only: these people are Gaff staff (admins) as soon as they sign in. */
+    TEST_STAFF_EMAILS: z.string().optional(),
     MAILGUN_API_KEY: z.string().optional(),
     MAILGUN_DOMAIN: z.string().optional(),
     MAILGUN_WEBHOOK_SIGNING_KEY: z.string().optional(),
     SINCH_SERVICE_PLAN_ID: z.string().optional(),
     SINCH_API_TOKEN: z.string().optional(),
     SINCH_FROM: z.string().optional(),
+    /** Claude on Bedrock's region: Dublin, in-region (Q37). */
     AWS_REGION: z.string().default('eu-west-1'),
-    BEDROCK_MODEL_ID: z.string().default('anthropic.claude-opus-5-5'),
     RETENTION_PERSONAL_DAYS: z.coerce.number().int().positive().default(30),
     RETENTION_RECORD_MONTHS: z.coerce.number().int().positive().default(12),
     /**
@@ -57,8 +97,40 @@ const schema = z
       .transform((v) => v === '1'),
     /** ADR-0014: the minute tick (Supabase Cron) and Vercel Cron send it to /api/cron/tick. */
     CRON_SECRET: z.string().min(16, 'CRON_SECRET must be at least 16 characters').optional(),
+    /**
+     * ADR-0027: the map on search pages. "google" is Google Maps (the Maps JavaScript API only,
+     * with a key restricted to Gaff's domains); "static" draws pins on a plain grid, for tests,
+     * development and the test copy without a key; "none" shows the list alone. Production
+     * needs "google".
+     */
+    MAP_PROVIDER: z.enum(['google', 'static', 'none']).optional(),
+    GOOGLE_MAPS_API_KEY: z.string().optional(),
+    GOOGLE_MAPS_MAP_ID: z.string().optional(),
+    GOOGLE_MAPS_MAP_ID_DARK: z.string().optional(),
     /** Supabase's CA certificate (PEM), so the database's certificate is verified. */
     DATABASE_CA_CERT: z.string().optional(),
+    /**
+     * M43 (tech spec, decision 7): where listing photos live. "local" is files on disk, served by
+     * /api/dev/storage, for development and tests; "database" keeps them in Postgres, for the
+     * test copy, where functions have no disk; production uses Supabase Storage.
+     */
+    STORAGE_PROVIDER: z.enum(['local', 'database', 'supabase']).default('local'),
+    LOCAL_STORAGE_DIR: z.string().optional(),
+    SUPABASE_URL: z.string().url().optional(),
+    /** Server only: signs uploads and writes photos. Never sent to a browser. */
+    SUPABASE_SERVICE_KEY: z.string().optional(),
+    STORAGE_UPLOADS_BUCKET: z.string().default('uploads'),
+    STORAGE_MEDIA_BUCKET: z.string().default('listing-photos'),
+    STRIPE_SECRET_KEY: z.string().optional(),
+    STRIPE_IDENTITY_WEBHOOK_SECRET: z.string().optional(),
+    /**
+     * The marketplace's public side (ADR-0015): renter sign-up, search and public pages. Off until
+     * launch; on for the letter beta's invited organisations through their own flag.
+     */
+    MARKETPLACE_PUBLIC: z
+      .enum(['0', '1'])
+      .default('0')
+      .transform((v) => v === '1'),
   })
   .superRefine((env, ctx) => {
     if (env.GAFF_ENV === 'production' || env.GAFF_ENV === 'staging') {
@@ -84,12 +156,38 @@ const schema = z
         ['AI_PROVIDER', env.AI_PROVIDER, 'fake'],
         ['IDENTITY_PROVIDER', env.IDENTITY_PROVIDER, 'stand_in'],
         ['INCOME_PROVIDER', env.INCOME_PROVIDER, 'stand_in'],
+        ['STORAGE_PROVIDER', env.STORAGE_PROVIDER, 'local'],
+        ['STORAGE_PROVIDER', env.STORAGE_PROVIDER, 'database'],
       ] as const;
       if (!env.DATA_ENCRYPTION_KEY) {
         ctx.addIssue({
           code: 'custom',
           path: ['DATA_ENCRYPTION_KEY'],
           message: 'DATA_ENCRYPTION_KEY is required in production',
+        });
+      }
+      for (const key of ['TEST_EMAIL_RECIPIENTS', 'TEST_STAFF_EMAILS'] as const) {
+        if (env[key]) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is for the test copy only`,
+          });
+        }
+      }
+      if (env.AI_PROVIDER === 'anthropic') {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['AI_PROVIDER'],
+          message:
+            'The Claude API is for the test copy only: production uses Bedrock in Dublin (Q37)',
+        });
+      }
+      if (env.ANTHROPIC_API_KEY) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['ANTHROPIC_API_KEY'],
+          message: 'ANTHROPIC_API_KEY is for the test copy and development only (Q37)',
         });
       }
       for (const [key, value, standIn] of standIns) {
@@ -103,7 +201,12 @@ const schema = z
       }
     }
     if (env.EMAIL_PROVIDER === 'resend') {
-      for (const key of ['RESEND_API_KEY', 'RESEND_WEBHOOK_SECRET'] as const) {
+      // Production receives replies and forwarded enquiries, so it needs the webhook's secret.
+      const keys =
+        env.GAFF_ENV === 'production'
+          ? (['RESEND_API_KEY', 'RESEND_WEBHOOK_SECRET'] as const)
+          : (['RESEND_API_KEY'] as const);
+      for (const key of keys) {
         if (!env[key])
           ctx.addIssue({ code: 'custom', path: [key], message: `${key} is required for Resend` });
       }
@@ -118,6 +221,50 @@ const schema = z
           ctx.addIssue({ code: 'custom', path: [key], message: `${key} is required for Mailgun` });
       }
     }
+    if (env.AI_PROVIDER === 'anthropic' && !env.ANTHROPIC_API_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['ANTHROPIC_API_KEY'],
+        message: 'ANTHROPIC_API_KEY is required for the Claude API',
+      });
+    }
+    if (env.IDENTITY_PROVIDER === 'stripe') {
+      for (const key of ['STRIPE_SECRET_KEY', 'STRIPE_IDENTITY_WEBHOOK_SECRET'] as const) {
+        if (!env[key])
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is required for Stripe Identity`,
+          });
+      }
+    }
+    if (env.STORAGE_PROVIDER === 'supabase') {
+      for (const key of ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY'] as const) {
+        if (!env[key])
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is required for Supabase Storage`,
+          });
+      }
+    }
+    if (env.MAP_PROVIDER === 'google') {
+      for (const key of ['GOOGLE_MAPS_API_KEY', 'GOOGLE_MAPS_MAP_ID'] as const) {
+        if (!env[key])
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is required for Google Maps`,
+          });
+      }
+    }
+    if (env.GAFF_ENV === 'production' && env.MARKETPLACE_PUBLIC && env.MAP_PROVIDER === 'static') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['MAP_PROVIDER'],
+        message: "MAP_PROVIDER can't be the static stand-in in production",
+      });
+    }
     if (env.SMS_PROVIDER === 'sinch') {
       for (const key of ['SINCH_SERVICE_PLAN_ID', 'SINCH_API_TOKEN', 'SINCH_FROM'] as const) {
         if (!env[key])
@@ -128,6 +275,10 @@ const schema = z
   .transform((env) => ({
     ...env,
     DEV_TOOLS: env.DEV_TOOLS === undefined ? env.GAFF_ENV === 'staging' : env.DEV_TOOLS === '1',
+    // Without a choice: the stand-in map everywhere but production (the test copy too, until
+    // Google Maps is set up there), and in production the list alone until it is.
+    MAP_PROVIDER:
+      env.MAP_PROVIDER ?? (env.GAFF_ENV === 'production' ? ('none' as const) : ('static' as const)),
   }));
 
 export type Env = z.infer<typeof schema>;
@@ -159,17 +310,26 @@ export function environmentProblems(source: Source): string[] {
   return parsed.success ? [] : parsed.error.issues.map((i) => i.path.join('.'));
 }
 
-let cached: Env | undefined;
-
-export function env(): Env {
-  if (cached) return cached;
-  const parsed = schema.safeParse(withPlatformDefaults(process.env));
+/** The settings these variables make, with the platform's defaults. Throws on a problem. */
+export function readEnvironment(source: Source): Env {
+  const parsed = schema.safeParse(withPlatformDefaults(source));
   if (!parsed.success) {
     const problems = parsed.error.issues
       .map((i) => `  ${i.path.join('.')}: ${i.message}`)
       .join('\n');
     throw new Error(`Environment is not configured correctly:\n${problems}`);
   }
-  cached = parsed.data;
+  return parsed.data;
+}
+
+let cached: Env | undefined;
+
+export function env(): Env {
+  cached ??= readEnvironment(process.env);
   return cached;
+}
+
+/** Tests that change a setting read the environment again, then put it back. */
+export function resetEnvForTests(): void {
+  cached = undefined;
 }

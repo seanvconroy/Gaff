@@ -1,0 +1,24 @@
+/* Plain pages of words, such as "How we order results": a readable measure. */
+.prose {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 680px;
+}
+
+.prose h1,
+.prose h2,
+.prose p {
+  margin: 0;
+}
+
+.prose h2 {
+  margin-top: var(--space-4);
+}
+
+.prose ol,
+.prose ul {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding-left: var(--space-6);
+}

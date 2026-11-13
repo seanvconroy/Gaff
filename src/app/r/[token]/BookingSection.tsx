@@ -1,12 +1,13 @@
 import { bookableSlots, placesLeft } from '@/domain/viewings/booking';
+import { maskMobile } from '@/domain/verification/mobile';
 import { formatDate, formatDateTime, formatTime } from '@/lib/format';
 import type { loadRenterPage } from '@/server/renter/answers';
-import { TextField } from '@/ui/Field';
 import { Card, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { SubmitButton } from '@/ui/SubmitButton';
 import styles from '../renter.module.css';
-import { bookAction, cancelAction } from './booking-actions';
+import { cancelAction, chooseTimeAction, confirmBookingAction } from './booking-actions';
+import { BookingForm, type BookingDay } from './BookingForm';
 
 type Page = NonNullable<Awaited<ReturnType<typeof loadRenterPage>>>;
 
@@ -14,12 +15,12 @@ const problems: Record<string, string> = {
   choose: 'Choose a time first.',
   full: 'Sorry, that time has just been taken. Please choose another.',
   too_late: 'That time is about to start, so it can’t be booked now. Please choose another.',
-  phone: 'That mobile number doesn’t look right. Check it, or leave it blank.',
   not_invited: 'This viewing can’t be booked from this link.',
+  mobile: 'Confirm your mobile first: we’ll text you a code.',
   link: 'This link isn’t working any more. Reply to our email and we’ll help.',
 };
 
-/** R12: choose a time, or change or cancel it. Phone-first, one thing to do. */
+/** R12, P16: choose a time, or change or cancel it. Phone-first, one thing to do. */
 export function BookingSection({
   page,
   token,
@@ -30,8 +31,25 @@ export function BookingSection({
   problem?: string;
 }) {
   const available = bookableSlots(page.slots, new Date());
-  const days = [...new Set(available.map((s) => formatDate(s.startsAt)))];
+  const bookingDays: BookingDay[] = [...new Set(available.map((s) => formatDate(s.startsAt)))].map(
+    (day) => ({
+      day,
+      slots: available
+        .filter((s) => formatDate(s.startsAt) === day)
+        .map((slot) => ({
+          id: slot.id,
+          time: formatTime(slot.startsAt),
+          when: formatDateTime(slot.startsAt),
+          places: slot.capacity > 1 ? `Group viewing, ${placesLeft(slot)} places left` : null,
+        })),
+    }),
+  );
   const { booking, offer } = page;
+  // P16: a mobile confirmed for this application gets the reminder without a new code.
+  const confirmedMobile =
+    page.application.mobileConfirmedAt && page.application.phoneE164
+      ? maskMobile(page.application.phoneE164)
+      : null;
   return (
     <Stack gap={6}>
       {problem && problems[problem] ? (
@@ -71,56 +89,13 @@ export function BookingSection({
         </Notice>
       ) : null}
       {available.length > 0 ? (
-        <form action={bookAction.bind(null, token)}>
-          <Stack gap={6}>
-            <div className={styles.sectionHead}>
-              <h2 className="type-title">
-                {booking ? 'Change to another time' : 'Choose a time to view'}
-              </h2>
-              <p>
-                {booking
-                  ? 'Pick a new time, and your old one goes to someone else.'
-                  : 'Pick a time that suits you. We’ll email you to confirm it straight away, and remind you the day before.'}
-              </p>
-            </div>
-            {days.map((day) => (
-              <fieldset key={day} className={styles.day}>
-                <legend className="type-title">{day}</legend>
-                <div className={styles.slots}>
-                  {available
-                    .filter((s) => formatDate(s.startsAt) === day)
-                    .map((slot) => (
-                      <label key={slot.id} className={styles.slot}>
-                        <input type="radio" name="slotId" value={slot.id} />
-                        <span className={styles.slotText}>
-                          <span className={styles.slotTime}>{formatTime(slot.startsAt)}</span>
-                          {slot.capacity > 1 ? (
-                            <span className={styles.muted}>
-                              Group viewing, {placesLeft(slot)} places left
-                            </span>
-                          ) : null}
-                        </span>
-                      </label>
-                    ))}
-                </div>
-              </fieldset>
-            ))}
-            {!booking ? (
-              <TextField
-                name="mobile"
-                label="Mobile number for a text reminder"
-                hint="We’ll text you two hours before. Leave it blank if you’d rather not."
-                optional
-                type="tel"
-                autoComplete="tel"
-                inputMode="tel"
-              />
-            ) : null}
-            <SubmitButton fullWidth pendingLabel="Booking…">
-              {booking ? 'Move my viewing' : 'Book this time'}
-            </SubmitButton>
-          </Stack>
-        </form>
+        <BookingForm
+          days={bookingDays}
+          moving={Boolean(booking)}
+          confirmedMobile={confirmedMobile}
+          choose={chooseTimeAction.bind(null, token)}
+          confirm={confirmBookingAction.bind(null, token)}
+        />
       ) : null}
     </Stack>
   );

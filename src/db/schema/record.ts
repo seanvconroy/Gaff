@@ -1,9 +1,27 @@
-import { bigint, index, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import {
+  bigint,
+  index,
+  jsonb,
+  pgEnum,
+  pgPolicy,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { users } from './auth';
 import { createdAt, tenantPolicy } from './columns';
 import { organisations } from './organisations';
 
-export const actorType = pgEnum('actor_type', ['person', 'ai', 'system', 'renter', 'landlord']);
+export const actorType = pgEnum('actor_type', [
+  'person',
+  'ai',
+  'system',
+  'renter',
+  'landlord',
+  'staff',
+]);
 
 /**
  * The append-only log behind each letting's record (R27, ADR-0006). A trigger blocks
@@ -49,4 +67,32 @@ export const decisions = pgTable(
     basis: jsonb().$type<Record<string, unknown>>().notNull().default({}),
   },
   (t) => [index('decisions_letting_idx').on(t.organisationId, t.lettingId), tenantPolicy()],
+).enableRLS();
+
+/**
+ * Events outside any organisation (ADR-0017): a renter's own account, Gaff staff's decisions on
+ * platform matters. The same rule as events: IDs, codes, numbers and dates only (ADR-0006), and
+ * append-only. Anyone may add one; only staff and system jobs may read them.
+ */
+export const platformEvents = pgTable(
+  'platform_events',
+  {
+    id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+    occurredAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    actorType: actorType().notNull(),
+    actorId: text(),
+    type: text().notNull(),
+    subjectType: text(),
+    subjectId: text(),
+    data: jsonb().$type<Record<string, unknown>>().notNull().default({}),
+  },
+  (t) => [
+    index('platform_events_subject_idx').on(t.subjectType, t.subjectId, t.occurredAt),
+    pgPolicy('platform_append', { as: 'permissive', for: 'insert', withCheck: sql`true` }),
+    pgPolicy('staff_read', {
+      as: 'permissive',
+      for: 'select',
+      using: sql`current_setting('app.role', true) = 'staff' or current_setting('app.rls_bypass', true) = 'on'`,
+    }),
+  ],
 ).enableRLS();

@@ -8,7 +8,7 @@ import { Notice } from '@/ui/Notice';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { requestSignInLink } from './actions';
 
-export function SignInForm({ devOutbox }: { devOutbox: boolean }) {
+export function SignInForm({ devOutbox, next }: { devOutbox: boolean; next?: string }) {
   const [state, action] = useActionState(requestSignInLink, emptyFormState);
 
   if (state.message === 'sent') {
@@ -32,6 +32,7 @@ export function SignInForm({ devOutbox }: { devOutbox: boolean }) {
   return (
     <form key={state.attempt ?? 'first'} action={action} noValidate>
       <Stack gap={6}>
+        {next ? <input type="hidden" name="next" value={next} /> : null}
         {state.message ? (
           <Notice tone="danger" role="alert">
             <p>{state.message}</p>
@@ -39,7 +40,7 @@ export function SignInForm({ devOutbox }: { devOutbox: boolean }) {
         ) : null}
         <TextField
           name="email"
-          label="Work email"
+          label="Your email address"
           type="email"
           autoComplete="email"
           inputMode="email"

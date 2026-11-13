@@ -14,7 +14,7 @@ export default async function CheckDonePage({
   searchParams: Promise<{ kind?: string }>;
 }) {
   const { kind } = await searchParams;
-  const what = kind === 'income' ? 'income check' : kind === 'identity' ? 'ID check' : 'check';
+  const what = kind === 'income' ? 'income check' : 'check';
   return (
     <RenterShell operatorName="Gaff">
       <Outcome tone="success" title={`Thanks, that’s your ${what} done`} headingLevel={1}>

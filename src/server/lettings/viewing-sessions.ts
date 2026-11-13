@@ -5,6 +5,7 @@ import { overlaps, slotsFor, type ViewingSession } from '@/domain/viewings/viewi
 import { formatDateTime } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
+import { republishIfPublic } from '@/server/listings/editor';
 import { recordEvent } from '@/server/record/events';
 
 /** R1: adds a viewing session to a letting and creates its bookable slots. */
@@ -73,6 +74,8 @@ export async function addViewingSession(
         places: slots.reduce((sum, slot) => sum + slot.capacity, 0),
       },
     });
+    // M47: a live listing shows the next viewing times.
+    await republishIfPublic(tx, lettingId, member.userId);
     return { sessionId };
   });
 }
@@ -97,5 +100,6 @@ export async function removeViewingSession(
       subject: { type: 'viewing_session', id: sessionId },
       data: { sessionId },
     });
+    await republishIfPublic(tx, lettingId, member.userId);
   });
 }

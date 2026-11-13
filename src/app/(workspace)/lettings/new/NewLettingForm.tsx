@@ -43,7 +43,18 @@ function firstStepWithError(errors: Record<string, string>): number | null {
  * facts, then the optional advert links and landlord. Each step is checked with the same rules
  * the server uses before moving on; anything the server still finds sends you back to that step.
  */
-export function NewLettingForm({ forAgency, today }: { forAgency: boolean; today: string }) {
+/** M33: a home in a development starts with the development's address. */
+type Development = { id: string; name: string; addressLine1: string; area: string; county: string };
+
+export function NewLettingForm({
+  forAgency,
+  today,
+  development,
+}: {
+  forAgency: boolean;
+  today: string;
+  development?: Development;
+}) {
   const [state, action] = useActionState(createLettingAction, emptyFormState);
   // After a failed save the form remounts with what was typed (selects included).
   return (
@@ -53,6 +64,7 @@ export function NewLettingForm({ forAgency, today }: { forAgency: boolean; today
       action={action}
       forAgency={forAgency}
       today={today}
+      development={development}
     />
   );
 }
@@ -62,13 +74,23 @@ function Wizard({
   action,
   forAgency,
   today,
+  development,
 }: {
   state: FormState;
   action: (formData: FormData) => void;
   forAgency: boolean;
   today: string;
+  development?: Development;
 }) {
-  const v = state.values ?? {};
+  const v: Record<string, string> =
+    state.values ??
+    (development
+      ? {
+          addressLine1: `, ${development.addressLine1}`,
+          area: development.area,
+          county: development.county,
+        }
+      : {});
   const titles = ['The home', 'Key facts', forAgency ? 'Adverts and landlord' : 'Adverts'];
   const last = titles.length - 1;
   const [step, setStep] = useState(() => firstStepWithError(state.errors ?? {}) ?? 0);
@@ -131,6 +153,7 @@ function Wizard({
         }
       }}
     >
+      {development ? <input type="hidden" name="developmentId" value={development.id} /> : null}
       <StepIndicator steps={titles} current={step} onSelect={goTo} />
 
       {anyErrors || state.message ? (

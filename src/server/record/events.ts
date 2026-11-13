@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Tx } from '@/db/client';
 import { events } from '@/db/schema';
 import { assertNoPersonalData } from '@/domain/record/personal-data';
+import { withdrawableStatuses } from '@/domain/enquiries/marketplace';
 
 /**
  * Every event type and the shape of its payload (ADR-0006). Payload fields must be IDs,
@@ -47,9 +48,20 @@ export const eventCatalogue = {
   }),
   'email.dismissed': z.object({ inboundEmailId: z.uuid() }),
   /** R6: a new renter enquired. */
-  'enquiry.received': z.object({ applicationId: z.uuid(), portal: z.enum(['daft', 'myhome']) }),
+  'enquiry.received': z.object({
+    applicationId: z.uuid(),
+    portal: z.enum(['daft', 'myhome', 'gaff']),
+  }),
   /** R6: the same renter enquired again (maybe on the other portal): merged, not duplicated. */
-  'enquiry.repeated': z.object({ applicationId: z.uuid(), portal: z.enum(['daft', 'myhome']) }),
+  'enquiry.repeated': z.object({
+    applicationId: z.uuid(),
+    portal: z.enum(['daft', 'myhome', 'gaff']),
+  }),
+  /** M81: the renter withdrew their enquiry; their details follow the retention rules. */
+  'enquiry.withdrawn': z.object({
+    applicationId: z.uuid(),
+    from: z.enum(withdrawableStatuses),
+  }),
   'reply.received': z.object({ applicationId: z.uuid(), messageId: z.uuid() }),
   /** R9: the renter answered the pre-viewing questions (which ones isn't personal; the answers are). */
   'application.answered': z.object({
@@ -103,6 +115,9 @@ export const eventCatalogue = {
   'settings.approve_before_send': z.object({ on: z.boolean() }),
   'viewing.booked': z.object({ bookingId: z.uuid(), slotId: z.uuid(), rescheduled: z.boolean() }),
   'viewing.cancelled': z.object({ bookingId: z.uuid(), slotId: z.uuid() }),
+  /** P16: a renter asked for a text code to book a viewing, and confirmed their mobile. */
+  'booking.mobile_code_sent': z.object({ applicationId: z.uuid() }),
+  'booking.mobile_confirmed': z.object({ applicationId: z.uuid() }),
   /** R15: a person marked whether someone came (a 'mark_attendance' decision). */
   'viewing.attendance_marked': z.object({
     decisionId: z.uuid(),
@@ -245,6 +260,134 @@ export const eventCatalogue = {
     maxOccupants: z.number().int().optional(),
     noPets: z.boolean(),
   }),
+  /** M43: a photo was added to a home or development, then checked and resized. */
+  'photo.added': z.object({
+    mediaId: z.uuid(),
+    kind: z.enum(['photo', 'floor_plan', 'logo', 'agent_photo']),
+  }),
+  'photo.processed': z.object({
+    mediaId: z.uuid(),
+    outcome: z.enum(['ready', 'rejected']),
+    reason: z.enum(['not_an_image', 'too_small', 'unreadable', 'missing']).optional(),
+  }),
+  /** M22 to M27: a check on a letter was started, and decided by a provider or a person. */
+  'letter_check.requested': z.object({
+    checkId: z.uuid(),
+    method: z.enum(['mobile', 'id_document', 'psra_register']),
+    ofAgent: z.boolean(),
+  }),
+  'letter_check.decided': z.object({
+    checkId: z.uuid(),
+    method: z.enum(['mobile', 'id_document', 'psra_register']),
+    outcome: z.enum(['passed', 'failed', 'needs_review']),
+    reason: z
+      .enum(['name_differs', 'not_current', 'not_found', 'document', 'face_mismatch', 'gave_up'])
+      .optional(),
+  }),
+  /** M24: the ID-check provider was asked to delete its copy of the documents. */
+  'letter_check.provider_redacted': z.object({ checkId: z.uuid() }),
+  /** P23, P29: a chosen renter's own identity check, copied to their application. */
+  'identity.shared': z.object({
+    applicationId: z.uuid(),
+    checkId: z.uuid(),
+    outcome: z.enum(['checked']),
+  }),
+  /** M16: an admin invited a colleague; a colleague joined; one was removed. */
+  'member.invited': z.object({
+    invitationId: z.uuid(),
+    role: z.enum(['admin', 'negotiator']),
+  }),
+  'member.removed': z.object({ role: z.enum(['admin', 'negotiator']) }),
+  /** M17, M18: the public profile of the organisation, or a member's own, changed. */
+  'profile.updated': z.object({ whose: z.enum(['organisation', 'member']) }),
+  /** M48 to M52: a listing was published, held for review, changed status or was confirmed. */
+  'listing.published': z.object({ listingId: z.uuid(), revision: z.number().int() }),
+  'listing.edited': z.object({ listingId: z.uuid(), revision: z.number().int() }),
+  'listing.held': z.object({
+    listingId: z.uuid(),
+    reasons: z.array(
+      z.enum([
+        'photo_reused',
+        'rent_far_below',
+        'scam_wording',
+        'description_copied',
+        'new_account_burst',
+        'unfair_wording',
+      ]),
+    ),
+  }),
+  /** ADR-0023, P13: the AI flagged wording in a listing; counts and grounds only. */
+  'listing.wording_flagged': z.object({
+    listingId: z.uuid(),
+    findings: z.number().int(),
+    grounds: z.array(
+      z.enum([
+        'gender',
+        'civil_status',
+        'family_status',
+        'sexual_orientation',
+        'religion',
+        'age',
+        'disability',
+        'race',
+        'traveller_community',
+        'housing_assistance',
+      ]),
+    ),
+  }),
+  /** M45, P10: the AI drafted a description; whether it passed Gaff's checks, and if not why. */
+  'listing.description_drafted': z.object({
+    listingId: z.uuid(),
+    accepted: z.boolean(),
+    problem: z
+      .enum([
+        'unavailable',
+        'too_short',
+        'too_long',
+        'listing_text',
+        'unknown_fact',
+        'number_not_in_facts',
+      ])
+      .optional(),
+  }),
+  /** M32 to M35: developments and the homes added to them. */
+  'development.created': z.object({ developmentId: z.uuid() }),
+  'development.updated': z.object({ developmentId: z.uuid() }),
+  'development.published': z.object({ developmentId: z.uuid() }),
+  'development.homes_added': z.object({ developmentId: z.uuid(), homes: z.number().int() }),
+  'listing.hold_resolved': z.object({
+    listingId: z.uuid(),
+    outcome: z.enum(['released', 'removed']),
+    reason: z
+      .enum(['scam', 'discrimination', 'misleading', 'duplicate', 'offensive', 'other'])
+      .optional(),
+  }),
+  'listing.status_changed': z.object({
+    listingId: z.uuid(),
+    from: z.enum([
+      'draft',
+      'in_review',
+      'live',
+      'paused',
+      'enquiries_closed',
+      'let_agreed',
+      'let',
+      'withdrawn',
+    ]),
+    to: z.enum([
+      'draft',
+      'in_review',
+      'live',
+      'paused',
+      'enquiries_closed',
+      'let_agreed',
+      'let',
+      'withdrawn',
+    ]),
+    because: z.enum(['letter', 'letting', 'freshness', 'review', 'enquiry_limit']),
+  }),
+  'listing.confirmed': z.object({ listingId: z.uuid() }),
+  'listing.declared': z.object({ homeId: z.uuid(), wordingVersion: z.enum(['m25-v1']) }),
 } satisfies Record<string, z.ZodObject>;
 
 export type EventType = keyof typeof eventCatalogue;
@@ -255,7 +398,8 @@ export type Actor =
   | { type: 'ai' }
   | { type: 'system' }
   | { type: 'renter'; applicationId: string }
-  | { type: 'landlord'; landlordId: string };
+  | { type: 'landlord'; landlordId: string }
+  | { type: 'staff'; userId: string };
 
 function actorId(actor: Actor): string | null {
   switch (actor.type) {
@@ -265,6 +409,8 @@ function actorId(actor: Actor): string | null {
       return actor.applicationId;
     case 'landlord':
       return actor.landlordId;
+    case 'staff':
+      return actor.userId;
     default:
       return null;
   }

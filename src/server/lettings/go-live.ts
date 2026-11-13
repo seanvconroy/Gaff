@@ -8,16 +8,29 @@ import { recordDecision } from '@/server/decisions/record-decision';
 import { UserFacingError } from '@/server/errors';
 import { queueWaitingFirstReplies } from '@/server/enquiries/first-reply';
 import { recordEvent } from '@/server/record/events';
+import { letterReadiness } from '@/server/verification/readiness';
 import { getLetting } from './queries';
+
+/** P15 (Q60): the letter hasn't confirmed their mobile and checked their ID yet. */
+export class NotVerifiedError extends UserFacingError {
+  constructor() {
+    super('Confirm your mobile and check your ID first, in Settings, Checks.');
+  }
+}
 
 /**
  * Stage 1: the operator confirms the facts, rent and criteria (PRD workflow). Only then does
  * Gaff start answering enquiries for the home. Recorded as a person's decision (ADR-0007).
+ * P15 (Q60): a letter verifies before their first letting goes live, whether it takes
+ * enquiries from Daft and MyHome or is listed on Gaff, so no renter hears from an unverified
+ * letter.
  */
 export async function startTakingEnquiries(member: Member, lettingId: string): Promise<void> {
   const detail = await getLetting(member, lettingId);
   if (!detail) throw new UserFacingError('We couldn’t find that letting.');
   if (detail.letting.stage !== 'setup') return;
+  const { missing } = await letterReadiness(member);
+  if (missing.includes('mobile') || missing.includes('identity')) throw new NotVerifiedError();
   if (!readyToTakeEnquiries(detail.setup)) {
     throw new UserFacingError(
       'Finish setting up first: viewing times, criteria and the rent check.',

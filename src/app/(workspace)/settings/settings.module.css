@@ -79,3 +79,9 @@
     padding: var(--space-4);
   }
 }
+
+.links {
+  display: grid;
+  gap: var(--space-3);
+  padding-left: var(--space-6);
+}

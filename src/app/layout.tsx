@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import '@/styles/tokens.css';
 import '@/styles/fonts.css';
 import '@/styles/base.css';
+import { TestCopyBanner } from '@/ui/TestCopyBanner';
 
 export const metadata: Metadata = {
   title: { default: 'Gaff', template: '%s · Gaff' },
@@ -34,7 +35,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           crossOrigin="anonymous"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {process.env.GAFF_ENV === 'staging' ? <TestCopyBanner /> : null}
+        {children}
+      </body>
     </html>
   );
 }

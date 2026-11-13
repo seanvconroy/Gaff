@@ -3,6 +3,7 @@ import { stayChoices } from '@/domain/criteria/answers';
 import { formatDate, formatEuro, irishToday } from '@/lib/format';
 import { formatRatio, minimumIncomeCents } from '@/domain/applications/apply';
 import { loadRenterPage } from '@/server/renter/answers';
+import { renterIdentityView } from '@/server/identity/view';
 import { env } from '@/lib/env';
 import { Card, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
@@ -49,6 +50,8 @@ export default async function RenterPage({
     offer_problem?: string;
     accepted?: string;
     declined?: string;
+    code?: string;
+    identity_problem?: string;
   }>;
 }) {
   const { token } = await params;
@@ -63,6 +66,8 @@ export default async function RenterPage({
     referees,
     decline,
     offer_problem,
+    code,
+    identity_problem,
   } = await searchParams;
   const page = await loadRenterPage(token);
   if (!page) {
@@ -74,7 +79,8 @@ export default async function RenterPage({
       </RenterShell>
     );
   }
-  const { application, letting, organisation, questions, firstViewing, canChange, offer } = page;
+  const { application, letting, organisation, questions, firstViewing, canChange, offer, address } =
+    page;
   const status = application.status;
   const closed = letting.status === 'let' || letting.status === 'withdrawn';
   const canBook =
@@ -86,7 +92,7 @@ export default async function RenterPage({
     return (
       <RenterShell operatorName={organisation.name}>
         <Stack gap={6}>
-          <HomeSummary letting={letting} />
+          <HomeSummary letting={letting} address={address} />
           <Outcome
             tone="info"
             title={
@@ -126,7 +132,7 @@ export default async function RenterPage({
   return (
     <RenterShell operatorName={organisation.name}>
       <Stack gap={8}>
-        <HomeSummary letting={letting} />
+        <HomeSummary letting={letting} address={address} />
 
         {booked ? (
           <Notice
@@ -158,9 +164,7 @@ export default async function RenterPage({
           <section className={styles.section} aria-labelledby="apply-heading">
             <div className={styles.sectionHead}>
               <h2 id="apply-heading" className="type-title">
-                {status === 'applied'
-                  ? 'Change your application'
-                  : `Apply for ${letting.addressLine1}`}
+                {status === 'applied' ? 'Change your application' : `Apply for ${address}`}
               </h2>
               <p>
                 {status === 'applied'
@@ -213,11 +217,11 @@ export default async function RenterPage({
               token={token}
               operatorName={organisation.name}
               checks={page.checks}
-              providers={{
-                identity: env().IDENTITY_PROVIDER !== 'none',
-                income: env().INCOME_PROVIDER !== 'none',
-              }}
+              providers={{ income: env().INCOME_PROVIDER !== 'none' }}
               problem={check_problem}
+              identity={await renterIdentityView(token, application.email)}
+              code={code}
+              identityProblem={identity_problem}
             />
           </>
         ) : null}
@@ -226,7 +230,7 @@ export default async function RenterPage({
           <OfferSection
             token={token}
             operatorName={organisation.name}
-            address={letting.addressLine1}
+            address={address}
             offer={page.homeOffer}
             confirmDecline={Boolean(decline)}
             problem={offer_problem}

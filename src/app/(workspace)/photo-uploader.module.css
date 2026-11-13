@@ -1,0 +1,11 @@
+.uploadLabel {
+  font-weight: var(--type-title-weight);
+}
+
+.upload {
+  min-height: 44px;
+}
+
+.saved {
+  color: var(--color-ink-muted);
+}

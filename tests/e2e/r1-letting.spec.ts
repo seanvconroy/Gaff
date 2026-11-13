@@ -85,9 +85,10 @@ test('R1: an operator creates a letting with viewing times', async ({ page }) =>
   await expect(page.getByText('Step 1 of 9 · Set up')).toBeVisible();
   await expect(page.getByText('€1,850 a month')).toBeVisible();
   await expect(page.getByText('14 places to book.')).toBeVisible();
-  // Set-up shows only the letting's overview and its timeline; the rest appear as it moves on.
+  // Set-up shows the letting's overview, its listing on Gaff (M37) and its timeline; the rest
+  // appear as it moves on.
   const tabs = page.getByRole('navigation', { name: 'Letting' });
-  await expect(tabs.getByRole('link')).toHaveText(['Overview', 'Timeline']);
+  await expect(tabs.getByRole('link')).toHaveText(['Overview', 'Listing', 'Timeline']);
   await expectAccessible(page);
   await screenshot(page, '08-letting-overview');
 

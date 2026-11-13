@@ -43,7 +43,7 @@ The operator's job breaks into the steps the workflow follows:
 1. Answer everyone who enquires, often hundreds of people per home in Dublin.
 2. Pick who should view, fairly and lawfully.
 3. Fill viewings without back-and-forth or no-shows.
-4. Choose the best applicant and check them out: identity, affordability, references.
+4. Choose the best applicant and check them out: identity (checked once by Gaff), work and income, references.
 5. Get the landlord's approval, make the offer, and tell everyone else.
 6. Sign the tenancy, take the deposit and first rent, and register with the RTB.
 7. Keep a record they can stand over if challenged.
@@ -71,7 +71,7 @@ A letting runs through nine stages. Renters share more only as they move forward
 | 3. Shortlist | Sorts enquirers against the criteria and says why | **Operator approves who is invited to view** | None new |
 | 4. Viewings | Invites, lets renters book, sends reminders, fills cancellations from a waitlist | Operator shows the home | Booking time, attendance |
 | 5. Applications | Invites viewers to apply; collects self-declared employment and income | **Operator and landlord choose a preferred applicant and a backup** | Self-declared employment and income |
-| 6. Checks | Verifies identity and affordability, requests and chases references | Operator reviews the results | Verification results and references, preferred applicant and backup only |
+| 6. Checks | Checks identity (once per renter, reused after), reads and checks work and income documents, requests and chases references | Operator reviews the results | Identity result, documents and references, preferred applicant and backup only |
 | 7. Offer | Sends the landlord a one-page summary; sends the offer; tells every other applicant | **Landlord approves; renter accepts** | None new |
 | 8. Tenancy set-up | Prepares the tenancy agreement for e-signing, the payment request, the rent-setting pack and the RTB registration pack | **Both sides sign**; operator confirms payment and submits the RTB registration | PPSN for RTB registration; signature |
 | 9. Close | Deletes unsuccessful applicants' data on schedule, archives the letting record, reports time and days saved | None | Renter chooses whether to keep a Gaff profile |
@@ -93,13 +93,13 @@ A letting runs through nine stages. Renters share more only as they move forward
 | R9 | Enquiries | Renter answers the pre-viewing questions on a mobile page, no account needed | Must |
 | R10 | Shortlist | Gaff ranks enquirers against the criteria, then by enquiry time, and shows the reason for each position | Must |
 | R11 | Shortlist | Operator approves invitations in one action; nobody is rejected without a person's approval | Must |
-| R12 | Viewings | Booked slots or capped group viewings; renters self-book, reschedule or cancel | Must |
+| R12 | Viewings | Booked slots or capped group viewings; renters self-book, reschedule or cancel, confirming their mobile with a text code to book (Q48) | Must |
 | R13 | Viewings | Email confirmation and reminders the day before and two hours before; SMS reminder | Must |
 | R14 | Viewings | Cancellations are offered to the waitlist automatically | Must |
 | R15 | Viewings | Operator marks attendance on a phone in one tap per person | Should |
 | R16 | Applications | After a viewing, attendees get an apply link; the application reuses everything already given | Must |
 | R17 | Applications | Operator sees applicants side by side and picks a preferred applicant and a backup | Must |
-| R18 | Checks | Identity, affordability and reference checks run only for the preferred applicant and backup, with the renter's knowledge (see Checks) | Must |
+| R18 | Checks | Identity, work and income documents and references are asked for only from the preferred applicant and backup, on one page, with the renter's knowledge. Identity is checked once and reused for later homes (see Checks) | Must |
 | R19 | Offer | Landlord gets a one-page summary by link and approves or declines without an account | Must |
 | R20 | Offer | The offer goes to the chosen renter with a deadline to accept; on expiry, the backup is offered | Must |
 | R21 | Offer | Every other applicant gets a prompt, polite outcome message | Must |
@@ -116,19 +116,19 @@ A letting runs through nine stages. Renters share more only as they move forward
 
 ## Checks on the chosen applicant
 
-Gaff runs identity, affordability and reference checks, but only on the preferred applicant and one backup. The Data Protection Commission has found that collecting documents from every applicant before an offer is excessive, so this design is both lawful and lighter for renters.
+Gaff runs identity, work and income, and reference checks, but only on the preferred applicant and one backup. The Data Protection Commission has found that collecting documents from every applicant before an offer is excessive, so this design is both lawful and lighter for renters. Identity is checked once, the first time a renter is chosen, and kept on their Gaff profile for their next home ([providers PRD](providers/prd.md), Q48).
 
 | Check | How it works in the MVP | What Gaff keeps |
 | --- | --- | --- |
-| Identity | The renter photographs an ID document and takes a selfie; a verification provider confirms they match and the document is genuine | A "verified" result, the name and date of birth; not the document image |
-| Affordability | Option A: the renter connects their bank read-only through open banking and the provider confirms regular income. Option B: the renter uploads recent payslips and Gaff reads them | Verified monthly income and the result against the operator's rule; not the bank statements |
+| Identity | Checked once, the first time the renter is chosen, and kept on their Gaff profile: Stripe Identity checks an ID document, and a selfie with consent. Without a selfie, or if the ID can't be checked online, the letter sees the ID in person | The result, the verified name and the date; never the document, the selfie or the date of birth (Q19) |
+| Work and income | The documents Irish letters already ask for, by how the renter earns: payslips and an employer's reference, a Revenue statement or an accountant's letter, or statements of other income. Gaff reads them and checks they're recent and in the renter's name; the letter reads the evidence. No income estimate | What each document shows; the documents themselves until the tenancy starts. Statements of other income are read by Gaff and never shown to the letter |
 | References | Gaff emails the previous landlord and employer a short form, chases twice, and flags if no answer | The answers, until the tenancy starts, then deleted |
-| Guarantor | If affordability fails, the renter can add a guarantor, who goes through the same identity and affordability checks | As above |
+| Guarantor | The renter can add a guarantor, who checks their identity and shares their own documents the same way | As above |
 
 **Fairness rules**
 
 - The affordability rule is set by the operator, the same for everyone, and shown to the renter in advance.
-- Housing Assistance Payment (HAP) and other housing supports count towards affordability. Refusing someone because they receive housing assistance is unlawful under the Equal Status Acts.
+- Housing Assistance Payment (HAP) and other housing supports count towards affordability. Refusing someone because they receive housing assistance, rent supplement or any social welfare payment is unlawful under the Equal Status Acts. How affordability should work when the council pays most of the rent is open (Q42).
 - A failed check is never an automatic refusal. It is shown to the operator with the reason, and the renter can explain or add a guarantor.
 - No credit checks. Landlords cannot access the Central Credit Register, and a full credit report at this stage would very probably be excessive.
 
@@ -136,7 +136,7 @@ Gaff runs identity, affordability and reference checks, but only on the preferre
 
 - Each check is explained before it starts: who sees the result and when it is deleted.
 - Checks are free to the renter; the operator's fee per letting covers them.
-- A renter who passes can keep the verified result in their Gaff profile and reuse it for the next home they apply for through Gaff. This is the seed of the renter side of the marketplace.
+- A renter's identity check stays on their Gaff profile, and they can keep their documents for the next home they apply for through Gaff, until they go out of date. This is the seed of the renter side of the marketplace.
 
 ## Compliance requirements
 
@@ -169,18 +169,18 @@ The AI writes almost every message, so one wrong fact or unfair sort damages the
 
 ## Integrations and providers to evaluate
 
-Gaff builds the workflow and buys the regulated or commodity parts. The candidates below are a shortlist to compare on price, Irish coverage and EU data handling; none is chosen yet.
+Gaff builds the workflow and buys the regulated or commodity parts. The candidates below are a shortlist to compare on price, Irish coverage and EU data handling. Those chosen since are marked; the rest are in [open-questions.md](open-questions.md) (Q26).
 
 | Need | Approach in the MVP | Candidates to evaluate |
 | --- | --- | --- |
 | Receiving enquiries | A Gaff inbound address per operator; parse Daft and MyHome email formats | Postmark, SendGrid, Mailgun |
 | Sending email | From the operator's own domain once verified, otherwise a Gaff address | Same as above |
 | SMS and WhatsApp | Viewing reminders by SMS; WhatsApp later | Twilio, Bird |
-| Identity verification | Document and selfie check for the chosen applicant | Stripe Identity, Onfido, Veriff |
-| Affordability | Read-only open banking income check, payslips as fallback | TrueLayer, Tink, Yapily, Plaid (check coverage of AIB, Bank of Ireland, PTSB and Revolut) |
+| Identity verification | Document and selfie check for every person, once, on their Gaff profile | Stripe Identity (chosen, Q48) |
+| Work and income | Documents read by the AI; optional bank confirmation later | Claude (chosen, Q41); Tink later (Q56) |
 | E-signature | Tenancy agreement signed by all parties | Dropbox Sign, DocuSign, Yousign |
 | Payments | A payment request to the landlord's or agent's own account; Gaff never holds money | IBAN request first; open banking payment to the landlord's account later, after legal review |
-| AI | Message drafting, ranking explanations, reading payslips | Claude via the API |
+| AI | Message drafting, ranking explanations, reading documents | Claude via the API |
 | Agents' software | Not in the MVP | Acquaint, Reapit and others, after pilots |
 
 ## Data model and non-functional requirements
@@ -192,11 +192,11 @@ The core objects mirror the workflow, and every change to them writes an event t
 | Organisation | An agency or portfolio landlord; its users, sending domain, templates and affordability rule |
 | Letting | One home to let: facts, rent check, comparables, criteria, viewing times, stage |
 | Landlord | The owner's contact details and approvals |
-| Renter profile | Owned by the renter: contact details, self-declared answers, verified results they chose to keep |
+| Renter profile | Owned by the renter: contact details, self-declared answers, their identity check, and documents they chose to keep |
 | Application | A renter's application to one letting, with its status at each stage |
 | Message | Every inbound and outbound message, with sender, channel and whether the AI or a person wrote it |
 | Viewing | Slot or group viewing, bookings, waitlist and attendance |
-| Check | Identity, affordability or reference: provider, result, expiry and deletion date |
+| Check | Identity (a copy of the person's own check), work and income, or reference: result, documents and deletion date |
 | Decision | Who decided what, when, and on which criteria |
 | Tenancy pack | Agreement, signatures, payment request, rent-setting pack and RTB registration pack |
 | Event | The append-only log behind the letting's record |
@@ -215,7 +215,7 @@ The core objects mirror the workflow, and every change to them writes an event t
 These wait until the pilots prove agents will pay:
 
 - Creating or posting adverts on Daft, MyHome or elsewhere
-- A Gaff search site or marketplace for renters
+- A Gaff search site or marketplace for renters (now proposed in the [marketplace PRD](marketplace/prd.md), awaiting approval)
 - Answering phone calls
 - Holding deposits or collecting rent
 - Property management after move-in: maintenance, rent reviews, renewals
@@ -245,7 +245,7 @@ For Sean and Ann:
 - [ ] Which 3 to 5 operators run the pilots, and who goes first
 - [ ] Price per letting for the pilots (€79 to test; €50 is the floor in the go/stop test)
 - [ ] The default affordability rule offered to operators
-- [ ] Providers for identity, open banking, e-signature, email and SMS
+- [x] Providers for identity, open banking, e-signature, email and SMS: Stripe Identity (Q48), no open banking at launch (Q49), Gaff's own signature (Q23), Resend and Sinch (Q26)
 - [ ] Whether "Gaff" stays the name
 - [ ] How many hours a week each of us puts in, which sets the timing
 
@@ -255,7 +255,7 @@ For a solicitor, before the first pilot letting:
 - [ ] Gaff's data protection roles: processor for operators, controller for renter profiles, or both; and the impact assessment
 - [ ] Lawful basis for renters keeping and reusing a verified profile
 - [ ] Whether ranking enquirers against criteria, with a person approving, satisfies GDPR Article 22
-- [ ] Whether open banking affordability checks at offer stage are proportionate
+- [x] Whether open banking affordability checks at offer stage are proportionate: none at launch (Q46, Q49)
 - [ ] Review of the criteria list, the offer and outcome templates, and the tenancy agreement template
 - [ ] Collecting the PPSN for RTB registration, and the registration deadline
 

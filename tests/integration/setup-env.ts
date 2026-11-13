@@ -6,3 +6,8 @@ process.env.AUTH_SECRET ??= 'test-secret-that-is-at-least-32-characters-long';
 process.env.EMAIL_PROVIDER = 'dev';
 process.env.SMS_PROVIDER = 'fake';
 process.env.AI_PROVIDER = 'fake';
+// M43: photos are files in a throwaway folder (STORAGE_PROVIDER=local).
+process.env.STORAGE_PROVIDER = 'local';
+process.env.LOCAL_STORAGE_DIR ??= `${process.env.TMPDIR ?? '/tmp'}/gaff-test-storage`;
+// The test tools (made-up enquiries, starting viewings now), as on the test copy.
+process.env.DEV_TOOLS = '1';

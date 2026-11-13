@@ -46,12 +46,18 @@ export function RenterShell({
 /** The home this page is about: its address as the title, then where, how much and when. */
 export function HomeSummary({
   letting,
+  address,
 }: {
   letting: { addressLine1: string; area: string; monthlyRentCents: number; availableFrom: string };
+  /**
+   * The address as this renter may see it (M38): only the street until they're invited to view,
+   * when the letter shows only the street and area.
+   */
+  address?: string;
 }) {
   return (
     <div className={styles.home}>
-      <h1 className="type-display-mobile">{letting.addressLine1}</h1>
+      <h1 className="type-display-mobile">{address ?? letting.addressLine1}</h1>
       <p className={styles.homeArea}>{letting.area}</p>
       <p className={styles.homeFacts}>
         <span>{formatRent(letting.monthlyRentCents)}</span>

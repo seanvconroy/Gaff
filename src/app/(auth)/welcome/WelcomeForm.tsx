@@ -6,7 +6,7 @@ import { ChoiceGroup, TextField } from '@/ui/Field';
 import { Stack } from '@/ui/Layout';
 import { SubmitButton } from '@/ui/SubmitButton';
 import styles from './welcome.module.css';
-import { setUpOrganisation } from './actions';
+import { setUpOrganisation, startRentingAction } from './actions';
 
 export function WelcomeForm({ defaultName }: { defaultName: string }) {
   const [state, action] = useActionState(setUpOrganisation, emptyFormState);
@@ -57,6 +57,29 @@ export function WelcomeForm({ defaultName }: { defaultName: string }) {
         <SubmitButton fullWidth pendingLabel="Setting up…">
           Set up my workspace
         </SubmitButton>
+      </Stack>
+    </form>
+  );
+}
+
+/** M1: renting needs only a first name to start; the rest comes when they enquire. */
+export function RentingForm({ defaultName }: { defaultName: string }) {
+  const [state, action] = useActionState(startRentingAction, emptyFormState);
+  return (
+    <form key={state.attempt ?? 'first'} action={action} noValidate>
+      <Stack gap={4}>
+        <TextField
+          name="givenName"
+          label="Your first name"
+          autoComplete="given-name"
+          defaultValue={state.values?.givenName ?? defaultName}
+          error={state.errors?.givenName}
+        />
+        <div>
+          <SubmitButton variant="secondary" pendingLabel="Starting…">
+            Start looking
+          </SubmitButton>
+        </div>
       </Stack>
     </form>
   );

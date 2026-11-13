@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { db } from '@/db/client';
 import { organisations } from '@/db/schema';
@@ -81,6 +82,29 @@ export default async function SettingsPage({
       ) : null}
 
       <div className={styles.sections}>
+        <Section
+          id="account-heading"
+          title="Your account"
+          description={
+            <p>
+              What Gaff has checked about you, which renters see on your listings, and who works
+              with you.
+            </p>
+          }
+        >
+          <ul className={styles.links}>
+            <li>
+              <Link href="/settings/checks">Checks: what renters see Gaff has checked</Link>
+            </li>
+            <li>
+              <Link href="/settings/profile">Profile: your name and details on listings</Link>
+            </li>
+            <li>
+              <Link href="/settings/team">Team: your colleagues, and inviting more</Link>
+            </li>
+          </ul>
+        </Section>
+
         <Section
           id="address-heading"
           title="Your Gaff address"

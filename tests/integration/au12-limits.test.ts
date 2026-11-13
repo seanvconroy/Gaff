@@ -158,18 +158,3 @@ describe('AU12: limits on signing in', () => {
     expect(await triesSoFar('new', who, 60)).toBe(1);
   });
 });
-
-describe('AU12: the sign-in form, which had no limit at all', () => {
-  it('limits sign-in emails asked for through the form’s own call', async () => {
-    const address = from(`form-${unique()}`);
-    const ask = () =>
-      refusalOf(
-        auth().api.signInMagicLink({
-          body: { email: anEmail(), callbackURL: '/' },
-          headers: address,
-        }),
-      );
-    for (let i = 0; i < perAddress.send_code.max; i++) expect(await ask()).toBeNull();
-    expect(await ask()).toBe(SLOW_DOWN);
-  });
-});

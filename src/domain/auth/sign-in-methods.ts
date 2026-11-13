@@ -18,6 +18,8 @@ export const methodWords: Record<SignInMethod, string> = {
 export function methodForPath(path: string, providerId?: string): SignInMethod | null {
   switch (path) {
     case '/sign-in/email':
+    // A new account made with a password. No session begins here: the email is confirmed first.
+    case '/sign-up/email':
       return 'password';
     case '/sign-in/email-otp':
     case '/email-otp/verify-email':

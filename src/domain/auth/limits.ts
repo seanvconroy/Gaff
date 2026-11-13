@@ -29,6 +29,12 @@ export const perEmail: Partial<Record<LimitedStep, Limit>> = {
 };
 
 /**
+ * New passwords checked against known breaches, from one address. Checked before the step's own
+ * limit, so choosing a password that's refused doesn't use up the tries for signing up.
+ */
+export const PASSWORD_CHECKS: Limit = { max: 20, windowSeconds: 60 };
+
+/**
  * Wrong passwords for one email, from anywhere. Past this, password sign-in pauses for that
  * email until the window ends. Email codes still work, so nobody can lock someone out.
  */
@@ -38,7 +44,6 @@ const steps: Record<string, LimitedStep> = {
   '/sign-in/email': 'password',
   '/sign-up/email': 'sign_up',
   '/email-otp/send-verification-otp': 'send_code',
-  '/sign-in/magic-link': 'send_code',
   '/email-otp/request-password-reset': 'send_code',
   '/forget-password/email-otp': 'send_code',
   '/send-verification-email': 'send_code',

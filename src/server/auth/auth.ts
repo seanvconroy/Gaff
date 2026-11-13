@@ -3,22 +3,21 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { createAuthMiddleware } from 'better-auth/api';
 import { nextCookies } from 'better-auth/next-js';
 import { emailOTP } from 'better-auth/plugins/email-otp';
-import { magicLink } from 'better-auth/plugins/magic-link';
 import { after } from 'next/server';
-import { emailSender, gaffSender } from '@/adapters/email';
-import { signInEmail } from '@/copy/operator-emails';
-import { signInCodeEmail } from '@/copy/renter-emails';
 import { db } from '@/db/client';
 import { accounts, sessions, users, verifications } from '@/db/schema';
 import { CODE_MINUTES, CODE_TRIES } from '@/domain/auth/codes';
+import { PASSWORD_MAX, PASSWORD_MIN } from '@/domain/auth/password-rules';
 import { RECENT_SIGN_IN_SECONDS } from '@/domain/auth/recent-sign-in';
 import { methodForPath } from '@/domain/auth/sign-in-methods';
 import { redactForLog } from '@/domain/record/log-redaction';
 import { env } from '@/lib/env';
 import { makeListedTesterStaff } from '@/server/staff/testers';
 import { recordAccountEvent } from './account-events';
+import { sendAccountExists, sendCode, sendPasswordChanged } from './emails';
 import type { HookContext } from './hook-context';
 import { countPasswordFailures, limitTries } from './limits';
+import { checkNewPassword } from './passwords';
 
 const DAY = 60 * 60 * 24;
 
@@ -90,6 +89,15 @@ function createAuth() {
       additionalFields: { signInMethod: { type: 'string', required: false, input: false } },
     },
     databaseHooks: {
+      user: {
+        create: {
+          // AU16: a new account, and the way it was made.
+          after: async (user, ctx) => {
+            const method = methodOf(ctx);
+            if (method) await recordAccountEvent('account.signed_up', user.id, { method });
+          },
+        },
+      },
       session: {
         create: {
           // AU16, M5: each session remembers the way in it began with.
@@ -106,13 +114,37 @@ function createAuth() {
         },
       },
     },
-    emailAndPassword: { enabled: false },
+    // AU1, AU2: a password account can't be used until a code confirms its email. That also
+    // makes a second sign-up for the same address answer exactly like a first one.
+    emailAndPassword: {
+      enabled: true,
+      requireEmailVerification: true,
+      minPasswordLength: PASSWORD_MIN,
+      maxPasswordLength: PASSWORD_MAX,
+      // AU5: a reset signs every device out.
+      revokeSessionsOnPasswordReset: true,
+      onExistingUserSignUp: async ({ user }) => {
+        await sendAccountExists(user.email);
+      },
+      onPasswordReset: async ({ user }) => {
+        await sendPasswordChanged(user.email, 'reset');
+        await recordAccountEvent('account.password_changed', user.id, { how: 'reset' });
+      },
+    },
+    emailVerification: {
+      sendOnSignUp: true,
+      // The right password for an account nobody confirmed: a new code goes out.
+      sendOnSignIn: true,
+      autoSignInAfterVerification: true,
+    },
     telemetry: { enabled: false },
     // AU12: the library's own limiter only sees requests that arrive over HTTP, and Gaff's
     // forms call it in-process. Gaff's limiter (./limits) runs as a hook, which sees both.
     rateLimit: { enabled: false },
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
+        // The password first: one that's refused shouldn't use up the step's tries.
+        await checkNewPassword(ctx);
         await limitTries(ctx);
       }),
       after: createAuthMiddleware(async (ctx) => {
@@ -120,23 +152,16 @@ function createAuth() {
       }),
     },
     plugins: [
-      magicLink({
-        expiresIn: 15 * 60,
-        storeToken: 'hashed',
-        sendMagicLink: async ({ email, url }) => {
-          await emailSender().send({ to: email, from: gaffSender(), ...signInEmail(url) });
-        },
-      }),
-      // M76: renters confirm their email with a 6-digit code without leaving the enquiry sheet.
-      // Codes are stored hashed, work for 10 minutes and allow 5 tries (tech spec).
+      // AU2, AU3, AU5, M76: 6-digit codes by email, to sign in, to confirm a new account's email
+      // and to reset a password. Codes, not links: an email scanner can't use one up, and it
+      // works when the email is read on another device. Stored hashed; 10 minutes; 5 tries.
       emailOTP({
         otpLength: 6,
         expiresIn: CODE_MINUTES * 60,
         allowedAttempts: CODE_TRIES,
         storeOTP: 'hashed',
-        sendVerificationOTP: async ({ email, otp }) => {
-          await emailSender().send({ to: email, from: gaffSender(), ...signInCodeEmail(otp) });
-        },
+        overrideDefaultEmailVerification: true,
+        sendVerificationOTP: sendCode,
       }),
       nextCookies(),
     ],

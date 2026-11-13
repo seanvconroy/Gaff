@@ -90,6 +90,23 @@ function room(limit: Limit): Limit {
 export const SLOW_DOWN = 'SLOW_DOWN';
 export const PASSWORD_PAUSED = 'PASSWORD_PAUSED';
 
+const slowDown = () =>
+  new APIError('TOO_MANY_REQUESTS', {
+    code: SLOW_DOWN,
+    message: 'Too many tries. Wait a minute, then try again.',
+  });
+
+/** Counts a try from this request's address against a limit of its own, and refuses past it. */
+export async function limitFromAddress(
+  scope: string,
+  headers: Headers | undefined | null,
+  limit: Limit,
+): Promise<void> {
+  const allowed = room(limit);
+  const hits = await countTry(`address:${scope}`, clientAddress(headers), allowed.windowSeconds);
+  if (overLimit(hits, allowed)) throw slowDown();
+}
+
 const emailIn = (body: unknown): string | null => {
   const email = (body as { email?: unknown } | undefined)?.email;
   return typeof email === 'string' && email.trim() ? email.trim().toLowerCase() : null;
@@ -106,9 +123,10 @@ export async function limitTries(ctx: HookContext): Promise<void> {
     if (step === 'provider' && ctx.request?.method === 'GET') {
       return ctx.redirect(new URL('/sign-in?error=slow_down', env().APP_URL).toString());
     }
+    if (code === SLOW_DOWN) return slowDown();
     return new APIError('TOO_MANY_REQUESTS', {
       code,
-      message: 'Too many tries. Wait a minute, then try again.',
+      message: 'Too many tries for this email. Use a code, or wait 15 minutes.',
     });
   };
 

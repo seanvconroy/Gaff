@@ -4,6 +4,7 @@ import { methodForPath, methodWords } from './sign-in-methods';
 describe('AU16: which way someone signed in', () => {
   it('reads the method from the sign-in call', () => {
     expect(methodForPath('/sign-in/email')).toBe('password');
+    expect(methodForPath('/sign-up/email')).toBe('password');
     expect(methodForPath('/sign-in/email-otp')).toBe('email_code');
     expect(methodForPath('/email-otp/verify-email')).toBe('email_code');
     expect(methodForPath('/passkey/verify-authentication')).toBe('passkey');

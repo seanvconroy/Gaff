@@ -1,36 +1,60 @@
 'use client';
 
+import Link from 'next/link';
 import { useActionState } from 'react';
-import { emptyFormState } from '@/lib/forms';
+import { useFormStatus } from 'react-dom';
+import { emptyFormState, type FormState } from '@/lib/forms';
+import { buttonClass } from '@/ui/Button';
 import { TextField } from '@/ui/Field';
 import { Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
-import { SubmitButton } from '@/ui/SubmitButton';
-import { requestSignInLink } from './actions';
+import { PasswordField } from '@/ui/PasswordField';
+import { emailMeACode, signInAction } from './actions';
 
-export function SignInForm({ devOutbox, next }: { devOutbox: boolean; next?: string }) {
-  const [state, action] = useActionState(requestSignInLink, emptyFormState);
+type Action = (formData: FormData) => void;
 
-  if (state.message === 'sent') {
-    return (
-      <Stack gap={4}>
-        <Notice tone="success" title="Check your email" role="status">
-          <p>
-            We&apos;ve sent a sign-in link to {state.values?.email}. It works once, for the next 15
-            minutes.
-          </p>
-        </Notice>
-        {devOutbox ? (
-          <p>
-            Developing locally? Open the link from the <a href="/dev/outbox">development outbox</a>.
-          </p>
-        ) : null}
-      </Stack>
-    );
-  }
+/** The two ways to send the form: each says what it's doing, and neither can be pressed twice. */
+function Buttons({ sendCode }: { sendCode: Action }) {
+  const { pending, action } = useFormStatus();
+  const sendingCode = pending && action === sendCode;
+  const signingIn = pending && !sendingCode;
+  return (
+    <Stack gap={3}>
+      <button
+        type="submit"
+        className={buttonClass('primary', true)}
+        aria-disabled={pending}
+        disabled={pending}
+      >
+        {signingIn ? 'Signing in…' : 'Sign in'}
+      </button>
+      <button
+        type="submit"
+        formAction={sendCode}
+        className={buttonClass('secondary', true)}
+        aria-disabled={pending}
+        disabled={pending}
+      >
+        {sendingCode ? 'Sending your code…' : 'Email me a code instead'}
+      </button>
+    </Stack>
+  );
+}
+
+const newest = (a: FormState, b: FormState) => ((a.attempt ?? 0) >= (b.attempt ?? 0) ? a : b);
+
+/**
+ * AU3: sign in with an email and password, or ask for a 6-digit code instead, from the same
+ * form. `next` brings someone back to what they were doing; `fixedEmail` is an invitation's.
+ */
+export function SignInForm({ next, fixedEmail }: { next?: string; fixedEmail?: string }) {
+  const [signInState, signIn] = useActionState(signInAction, emptyFormState);
+  const [codeState, sendCode] = useActionState(emailMeACode, emptyFormState);
+  const state = newest(signInState, codeState);
+  const forgot = next ? `/forgot-password?next=${encodeURIComponent(next)}` : '/forgot-password';
 
   return (
-    <form key={state.attempt ?? 'first'} action={action} noValidate>
+    <form key={state.attempt ?? 'first'} action={signIn} noValidate>
       <Stack gap={6}>
         {next ? <input type="hidden" name="next" value={next} /> : null}
         {state.message ? (
@@ -42,14 +66,26 @@ export function SignInForm({ devOutbox, next }: { devOutbox: boolean; next?: str
           name="email"
           label="Your email address"
           type="email"
-          autoComplete="email"
+          autoComplete="username"
           inputMode="email"
-          defaultValue={state.values?.email}
+          autoCapitalize="none"
+          spellCheck={false}
+          defaultValue={state.values?.email ?? fixedEmail}
+          readOnly={Boolean(fixedEmail)}
           error={state.errors?.email}
         />
-        <SubmitButton fullWidth pendingLabel="Sending your link…">
-          Email me a sign-in link
-        </SubmitButton>
+        <Stack gap={2}>
+          <PasswordField
+            name="password"
+            label="Password"
+            kind="current"
+            error={state.errors?.password}
+          />
+          <p>
+            <Link href={forgot}>Forgot your password?</Link>
+          </p>
+        </Stack>
+        <Buttons sendCode={sendCode} />
       </Stack>
     </form>
   );

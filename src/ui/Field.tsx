@@ -247,3 +247,9 @@ export function ChoiceGroup({
     </fieldset>
   );
 }
+
+/**
+ * The parts of a field, for a control that needs more than TextField gives (PasswordField's
+ * Show button): the same label above, the same error and hint below, the same ids.
+ */
+export const fieldParts = { ids, describedBy, Label, Messages };

@@ -133,13 +133,21 @@ export async function latestCodeFor(email: string): Promise<string> {
   return code;
 }
 
-/** Signs in through the real email-link flow. */
+/** AU3: types the 6-digit code Gaff emailed, on the page that asks for it. */
+export async function enterEmailedCode(page: Page, email: string): Promise<void> {
+  await expect(page.getByLabel('6-digit code')).toBeVisible();
+  await page.getByLabel('6-digit code').fill(await latestCodeFor(email));
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByLabel('6-digit code')).toBeHidden();
+}
+
+/** Signs in the way a person does without a password: an email, then the code Gaff sends. */
 export async function signIn(page: Page, email: string): Promise<void> {
   await page.goto('/sign-in');
   await page.getByLabel('Your email address').fill(email);
-  await page.getByRole('button', { name: 'Email me a sign-in link' }).click();
-  await expect(page.getByText('Check your email')).toBeVisible();
-  await page.goto(await latestLinkFor(email));
+  await page.getByRole('button', { name: 'Email me a code instead' }).click();
+  await expect(page.getByRole('heading', { name: 'Enter your code' })).toBeVisible();
+  await enterEmailedCode(page, email);
 }
 
 /** M1: one account for renting and letting; a new account says which it's for first. */

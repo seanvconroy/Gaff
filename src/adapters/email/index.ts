@@ -41,7 +41,7 @@ export function emailSender(): EmailSender {
   });
 }
 
-/** Gaff's own sender, for operator email such as sign-in links. */
+/** Gaff's own sender, for email about a person's own account, such as sign-in codes. */
 export function gaffSender(): { name: string; address: string } {
   return { name: 'Gaff', address: `no-reply@${env().MAIL_FROM_DOMAIN}` };
 }

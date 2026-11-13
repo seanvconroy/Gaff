@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
   expectAccessible,
+  enterEmailedCode,
   latestLinkFor,
   checkIdWithSelfie,
   latestSmsCode,
@@ -64,9 +65,8 @@ test('M16, M18, M23, M105: an agency invites an agent, and Gaff staff check both
   ).toBeVisible();
   await expectAccessible(agent);
   await agent.getByLabel('Your email address').fill(agentEmail);
-  await agent.getByRole('button', { name: 'Email me a sign-in link' }).click();
-  await expect(agent.getByText('Check your email')).toBeVisible();
-  await agent.goto(await latestLinkFor(agentEmail));
+  await agent.getByRole('button', { name: 'Email me a code instead' }).click();
+  await enterEmailedCode(agent, agentEmail);
   await agent.getByRole('button', { name: 'Join Larkspur Lettings' }).click();
   await expect(agent.getByRole('heading', { name: 'Profile' })).toBeVisible();
   await agent.getByLabel('Your name, as renters see it').fill('Aoife Byrne');

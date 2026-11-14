@@ -1,26 +1,12 @@
-import { expect, test, type Page } from '@playwright/test';
-import { expectAccessible, latestEmailFor, screenshot, signIn } from './support';
-
-let counter = 0;
-/** A made-up address at a domain the provider hosts, so it can vouch for it. */
-function madeUp(domain: string): string {
-  counter += 1;
-  return `gaff.test.${Date.now()}.${counter}@${domain}`;
-}
-
-/** The stand-in for a provider's own sign-in page: choose who to be, and what it says. */
-async function chooseAt(
-  page: Page,
-  provider: 'Google' | 'Apple',
-  email: string,
-  options: { tick?: string; untick?: string } = {},
-): Promise<void> {
-  await expect(page.getByRole('heading', { name: `Stand-in for ${provider}` })).toBeVisible();
-  await page.getByLabel(`Email address of the ${provider} account`).fill(email);
-  if (options.tick) await page.getByLabel(options.tick).check();
-  if (options.untick) await page.getByLabel(options.untick).uncheck();
-  await page.getByRole('button', { name: 'Continue as this person' }).click();
-}
+import { expect, test } from '@playwright/test';
+import {
+  chooseAtProvider as chooseAt,
+  expectAccessible,
+  latestEmailFor,
+  madeUpAt as madeUp,
+  screenshot,
+  signIn,
+} from './support';
 
 test('AU1, AU3: someone signs in with Google, and has an account with no code to type', async ({
   page,

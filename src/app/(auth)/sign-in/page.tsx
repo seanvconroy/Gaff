@@ -33,7 +33,7 @@ export default async function SignInPage({
           <p>{problemWords(problem, from)}</p>
         </Notice>
       ) : null}
-      <ProviderButtons next={next} />
+      <ProviderButtons next={next} passkeys passkeyAutofill />
       <SignInForm next={next} />
       <p>
         New to Gaff? <Link href={signUp}>Create an account</Link>

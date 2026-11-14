@@ -32,6 +32,9 @@
   background-color: var(--color-surface-1);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+
+  /* Email addresses are shown on these pages, and a long one has nowhere to break. */
+  overflow-wrap: anywhere;
 }
 
 .footer {

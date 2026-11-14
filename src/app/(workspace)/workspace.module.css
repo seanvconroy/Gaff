@@ -116,7 +116,8 @@
   font-weight: var(--type-title-weight);
 }
 
-.signOut {
+.signOut,
+.accountLink {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -130,15 +131,18 @@
   font-size: var(--type-body-sm-size);
   line-height: var(--type-body-sm-line);
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
   transition: background-color var(--motion-fast) var(--ease-standard);
 }
 
-.signOut:hover {
+.signOut:hover,
+.accountLink:hover {
   background-color: var(--color-nav-active);
 }
 
-.signOut:focus-visible {
+.signOut:focus-visible,
+.accountLink:focus-visible {
   outline-color: var(--color-nav-focus);
 }
 
@@ -175,9 +179,27 @@
   }
 
   .account {
-    display: block;
+    display: flex;
+    gap: var(--space-1);
+    align-items: center;
     margin-top: 0;
     padding: 0;
+  }
+
+  /* In the top bar there's room for the icon only; the words stay for screen readers. */
+  .accountLink {
+    justify-content: center;
+    width: auto;
+    min-width: 44px;
+  }
+
+  .accountLinkWords {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .who {

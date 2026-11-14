@@ -1,4 +1,5 @@
-import { LogOut } from 'lucide-react';
+import { KeyRound, LogOut } from 'lucide-react';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { requireStaff } from '@/server/auth/staff';
 import { testersAllowed } from '@/server/staff/testers';
@@ -29,6 +30,10 @@ export default async function StaffLayout({ children }: { children: ReactNode })
               <span className="visually-hidden"> · </span>
               <span>Gaff staff</span>
             </p>
+            <Link href="/account/security" className={styles.accountLink}>
+              <KeyRound size={18} strokeWidth={1.75} aria-hidden="true" />
+              <span className={styles.accountLinkWords}>How you sign in</span>
+            </Link>
             <form action={signOut}>
               <button type="submit" className={styles.signOut}>
                 <LogOut size={18} strokeWidth={1.75} aria-hidden="true" />

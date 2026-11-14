@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hostsThisEmail, isPrivateRelay } from './email-authority';
+import { canDisconnect, hostsThisEmail, isPrivateRelay } from './email-authority';
 
 describe('AU4: a provider vouches only for addresses it hosts', () => {
   it('Google hosts Gmail addresses', () => {
@@ -73,5 +73,18 @@ describe('AU4: a provider vouches only for addresses it hosts', () => {
   it('knows a Hide My Email address', () => {
     expect(isPrivateRelay('x7k2m9@privaterelay.appleid.com')).toBe(true);
     expect(isPrivateRelay('ann@icloud.com')).toBe(false);
+  });
+});
+
+describe('AU7: disconnecting Google or Apple', () => {
+  it('lets a provider go when a code by email still reaches the person', () => {
+    expect(canDisconnect('google', 'ann@gmail.com')).toBe(true);
+    expect(canDisconnect('apple', 'ann@icloud.com')).toBe(true);
+    expect(canDisconnect('google', 'x7k2@privaterelay.appleid.com')).toBe(true);
+  });
+
+  it('keeps Apple on an account whose address Apple made, because nobody knows it by heart', () => {
+    expect(canDisconnect('apple', 'x7k2@privaterelay.appleid.com')).toBe(false);
+    expect(canDisconnect('apple', 'X7K2@PrivateRelay.AppleID.com')).toBe(false);
   });
 });

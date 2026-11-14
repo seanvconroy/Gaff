@@ -87,8 +87,8 @@ export default async function SettingsPage({
           title="Your account"
           description={
             <p>
-              What Gaff has checked about you, which renters see on your listings, and who works
-              with you.
+              What Gaff has checked about you, which renters see on your listings, who works with
+              you, and how you sign in.
             </p>
           }
         >
@@ -101,6 +101,11 @@ export default async function SettingsPage({
             </li>
             <li>
               <Link href="/settings/team">Team: your colleagues, and inviting more</Link>
+            </li>
+            <li>
+              <Link href="/account/security">
+                How you sign in: your password, Google, Apple, passkeys and devices
+              </Link>
             </li>
           </ul>
         </Section>

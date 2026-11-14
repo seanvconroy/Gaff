@@ -14,10 +14,23 @@ import { emailMeACode, signInAction } from './actions';
 type Action = (formData: FormData) => void;
 
 /** The two ways to send the form: each says what it's doing, and neither can be pressed twice. */
-function Buttons({ sendCode }: { sendCode: Action }) {
+function Buttons({ sendCode, password }: { sendCode: Action; password: boolean }) {
   const { pending, action } = useFormStatus();
-  const sendingCode = pending && action === sendCode;
+  const sendingCode = pending && (action === sendCode || !password);
   const signingIn = pending && !sendingCode;
+  // An account with no password: the code is the one way to send this form.
+  if (!password) {
+    return (
+      <button
+        type="submit"
+        className={buttonClass('primary', true)}
+        aria-disabled={pending}
+        disabled={pending}
+      >
+        {sendingCode ? 'Sending your code…' : 'Email me a code'}
+      </button>
+    );
+  }
   return (
     <Stack gap={3}>
       <button
@@ -47,14 +60,23 @@ const newest = (a: FormState, b: FormState) => ((a.attempt ?? 0) >= (b.attempt ?
  * AU3: sign in with an email and password, or ask for a 6-digit code instead, from the same
  * form. `next` brings someone back to what they were doing; `fixedEmail` is an invitation's.
  */
-export function SignInForm({ next, fixedEmail }: { next?: string; fixedEmail?: string }) {
+export function SignInForm({
+  next,
+  fixedEmail,
+  password = true,
+}: {
+  next?: string;
+  fixedEmail?: string;
+  /** False for an account that has no password: only the code is offered. */
+  password?: boolean;
+}) {
   const [signInState, signIn] = useActionState(signInAction, emptyFormState);
   const [codeState, sendCode] = useActionState(emailMeACode, emptyFormState);
   const state = newest(signInState, codeState);
   const forgot = next ? `/forgot-password?next=${encodeURIComponent(next)}` : '/forgot-password';
 
   return (
-    <form key={state.attempt ?? 'first'} action={signIn} noValidate>
+    <form key={state.attempt ?? 'first'} action={password ? signIn : sendCode} noValidate>
       <Stack gap={6}>
         {next ? <input type="hidden" name="next" value={next} /> : null}
         {state.message ? (
@@ -66,7 +88,8 @@ export function SignInForm({ next, fixedEmail }: { next?: string; fixedEmail?: s
           name="email"
           label="Your email address"
           type="email"
-          autoComplete="username"
+          // "webauthn" lets the browser offer a passkey in this box's suggestions (AU6).
+          autoComplete={fixedEmail ? 'username' : 'username webauthn'}
           inputMode="email"
           autoCapitalize="none"
           spellCheck={false}
@@ -74,18 +97,20 @@ export function SignInForm({ next, fixedEmail }: { next?: string; fixedEmail?: s
           readOnly={Boolean(fixedEmail)}
           error={state.errors?.email}
         />
-        <Stack gap={2}>
-          <PasswordField
-            name="password"
-            label="Password"
-            kind="current"
-            error={state.errors?.password}
-          />
-          <p>
-            <Link href={forgot}>Forgot your password?</Link>
-          </p>
-        </Stack>
-        <Buttons sendCode={sendCode} />
+        {password ? (
+          <Stack gap={2}>
+            <PasswordField
+              name="password"
+              label="Password"
+              kind="current"
+              error={state.errors?.password}
+            />
+            <p>
+              <Link href={forgot}>Forgot your password?</Link>
+            </p>
+          </Stack>
+        ) : null}
+        <Buttons sendCode={sendCode} password={password} />
       </Stack>
     </form>
   );

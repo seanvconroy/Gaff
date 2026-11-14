@@ -22,6 +22,12 @@ export interface Member {
   readonly [memberBrand]: true;
 }
 
+/** The signed-in person and this browser's session, or null. */
+export async function currentSession() {
+  const requestHeaders = await headers();
+  return auth().api.getSession({ headers: requestHeaders });
+}
+
 export async function currentUser() {
   // Read the request before anything else: it marks the page as one rendered per request, so
   // the build never tries to render it ahead of time, without the app's settings.

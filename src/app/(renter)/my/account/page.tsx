@@ -24,6 +24,19 @@ export default async function AccountPage({
     <Stack gap={8}>
       <PageHeader title="Your account" lead={`Signed in as ${user.email}`} />
 
+      <section aria-labelledby="sign-in-heading" className={styles.section}>
+        <h2 id="sign-in-heading" className="type-heading">
+          How you sign in
+        </h2>
+        <p>
+          Add a password or a passkey, connect Google or Apple, and see the devices you’re signed in
+          on.
+        </p>
+        <p>
+          <Link href="/account/security">Change how you sign in</Link>
+        </p>
+      </section>
+
       <section aria-labelledby="download-heading" className={styles.section}>
         <h2 id="download-heading" className="type-heading">
           Your data

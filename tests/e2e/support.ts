@@ -150,6 +150,74 @@ export async function signIn(page: Page, email: string): Promise<void> {
   await enterEmailedCode(page, email);
 }
 
+let madeUpCount = 0;
+/** A made-up address at a domain of your choosing: one Google hosts, say, so it can vouch for it. */
+export function madeUpAt(domain: string): string {
+  madeUpCount += 1;
+  return `gaff.test.${Date.now()}.${madeUpCount}@${domain}`;
+}
+
+/** The stand-in for Google's or Apple's own sign-in page: choose who to be, and what it says. */
+export async function chooseAtProvider(
+  page: Page,
+  provider: 'Google' | 'Apple',
+  email: string,
+  options: { tick?: string; untick?: string } = {},
+): Promise<void> {
+  await expect(page.getByRole('heading', { name: `Stand-in for ${provider}` })).toBeVisible();
+  await page.getByLabel(`Email address of the ${provider} account`).fill(email);
+  if (options.tick) await page.getByLabel(options.tick).check();
+  if (options.untick) await page.getByLabel(options.untick).uncheck();
+  await page.getByRole('button', { name: 'Continue as this person' }).click();
+}
+
+/**
+ * Test-only time travel: makes this person's sign-in look as if it happened this long ago
+ * (AU7: changing how you sign in needs a sign-in in the last hour).
+ */
+export async function ageSignIn(email: string, minutes: number): Promise<void> {
+  await query(
+    `update sessions set created_at = now() - make_interval(mins => $2)
+     where user_id = (select id from users where email = $1)`,
+    [email, minutes],
+  );
+}
+
+/**
+ * AU6: Chrome's own stand-in for Face ID, a fingerprint or a security key. It makes passkeys
+ * and uses them without a prompt, for this page. `synced` is a passkey kept in a password
+ * manager; otherwise it stays on the one device.
+ */
+export async function addPasskeyDevice(page: Page, synced = true): Promise<void> {
+  const client = await page.context().newCDPSession(page);
+  await client.send('WebAuthn.enable');
+  await client.send('WebAuthn.addVirtualAuthenticator', {
+    options: {
+      protocol: 'ctap2',
+      transport: 'internal',
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+      defaultBackupEligibility: synced,
+      defaultBackupState: synced,
+    },
+  });
+}
+
+/**
+ * AU6: a browser that can't offer passkeys in the email box's suggestions, so only the button
+ * starts one. Chrome's stand-in device answers a suggestion request the moment it's made, as if
+ * the person had picked their passkey from the list; this is for testing the button on its own.
+ */
+export async function passkeysByButtonOnly(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    if (window.PublicKeyCredential) {
+      window.PublicKeyCredential.isConditionalMediationAvailable = async () => false;
+    }
+  });
+}
+
 /** M1: one account for renting and letting; a new account says which it's for first. */
 export async function chooseLetting(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/welcome$/);

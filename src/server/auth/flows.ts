@@ -4,10 +4,12 @@ import { db } from '@/db/client';
 import { users } from '@/db/schema';
 import type { SocialProvider } from '@/domain/auth/email-authority';
 import type { PasswordProblem } from '@/domain/auth/password-rules';
+import { signedInRecently } from '@/domain/auth/recent-sign-in';
 import { recordAccountEvent } from './account-events';
 import { auth } from './auth';
+import { sendPasswordChanged } from './emails';
 import { PASSWORD_PAUSED, refusal } from './limits';
-import { passwordRefusal } from './passwords';
+import { newPasswordProblem, passwordRefusal } from './passwords';
 import { dropPendingSignUp, isPendingSignUp } from './pending-sign-up';
 
 /**
@@ -221,4 +223,59 @@ export async function startProvider(
     if (!(error instanceof APIError)) throw error;
     return 'failed';
   }
+}
+
+export type PasswordChange =
+  'done' | 'signed_out' | 'recent_sign_in_needed' | 'wrong_current' | 'slow_down' | PasswordProblem;
+
+/**
+ * AU7: adds a password to an account that has none, such as one made with Google or a code.
+ * It needs a sign-in in the last hour, and the same rules as any new password. The owner is
+ * emailed.
+ */
+export async function addPassword(newPassword: string, headers: Headers): Promise<PasswordChange> {
+  const session = await auth().api.getSession({ headers });
+  if (!session) return 'signed_out';
+  if (!signedInRecently(new Date(session.session.createdAt), new Date())) {
+    return 'recent_sign_in_needed';
+  }
+  const problem = await newPasswordProblem(newPassword, session.user.email, headers);
+  if (problem) return problem;
+  try {
+    await auth().api.setPassword({ body: { newPassword }, headers });
+  } catch (error) {
+    if (!(error instanceof APIError)) throw error;
+    // It already has one: changing it needs the current password.
+    return 'wrong_current';
+  }
+  await recordAccountEvent('account.password_changed', session.user.id, { how: 'set' });
+  await sendPasswordChanged(session.user.email, 'set');
+  return 'done';
+}
+
+/**
+ * AU7: changes a password, given the current one. Every other device is signed out, and the
+ * owner is emailed.
+ */
+export async function changePassword(
+  input: { current: string; next: string },
+  headers: Headers,
+): Promise<PasswordChange> {
+  const session = await auth().api.getSession({ headers });
+  if (!session) return 'signed_out';
+  try {
+    await auth().api.changePassword({
+      body: { currentPassword: input.current, newPassword: input.next, revokeOtherSessions: true },
+      headers,
+    });
+  } catch (error) {
+    const password = passwordRefusal(error);
+    if (password) return password;
+    if (refusal(error)) return 'slow_down';
+    if (!(error instanceof APIError)) throw error;
+    return 'wrong_current';
+  }
+  await recordAccountEvent('account.password_changed', session.user.id, { how: 'changed' });
+  await sendPasswordChanged(session.user.email, 'changed');
+  return 'done';
 }

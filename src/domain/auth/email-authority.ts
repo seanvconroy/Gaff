@@ -56,3 +56,12 @@ export function hostsThisEmail(provider: SocialProvider, claims: EmailClaims): b
 export function isPrivateRelay(email: string): boolean {
   return domainOf(email) === APPLE_RELAY_DOMAIN;
 }
+
+/**
+ * AU7: whether a provider can be disconnected from an account. Apple can't be while the
+ * account's address is one Apple made (Hide My Email): nobody knows that address by heart to
+ * ask for a code, so Apple is the way in.
+ */
+export function canDisconnect(provider: SocialProvider, accountEmail: string): boolean {
+  return !(provider === 'apple' && isPrivateRelay(accountEmail));
+}

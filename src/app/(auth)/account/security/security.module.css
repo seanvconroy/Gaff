@@ -1,0 +1,54 @@
+/* "How you sign in": rows of a name, a line about it, and what can be done, between hairlines. */
+.section {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.rows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.row:last-child {
+  padding-bottom: 0;
+}
+
+.what {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.name {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  font-weight: var(--type-title-weight);
+  overflow-wrap: anywhere;
+}
+
+.detail {
+  color: var(--color-ink-muted);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.rename {
+  display: grid;
+  gap: var(--space-3);
+}

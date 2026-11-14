@@ -1,14 +1,16 @@
+import { getAuthenticatorName, passkey } from '@better-auth/passkey';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { createAuthMiddleware } from 'better-auth/api';
+import { APIError, createAuthMiddleware, getSessionFromCtx } from 'better-auth/api';
 import { nextCookies } from 'better-auth/next-js';
 import { emailOTP } from 'better-auth/plugins/email-otp';
 import { genericOAuth } from 'better-auth/plugins/generic-oauth';
 import { eq } from 'drizzle-orm';
 import { after } from 'next/server';
 import { db } from '@/db/client';
-import { accounts, sessions, users, verifications } from '@/db/schema';
+import { accounts, passkeys, sessions, users, verifications } from '@/db/schema';
 import { CODE_MINUTES, CODE_TRIES } from '@/domain/auth/codes';
+import { passkeyName } from '@/domain/auth/passkeys';
 import { PASSWORD_MAX, PASSWORD_MIN } from '@/domain/auth/password-rules';
 import { RECENT_SIGN_IN_SECONDS } from '@/domain/auth/recent-sign-in';
 import { methodForPath } from '@/domain/auth/sign-in-methods';
@@ -23,6 +25,7 @@ import { checkProviderIdentity, prepareForProvider } from './identity';
 import { countPasswordFailures, limitTries } from './limits';
 import { checkNewPassword } from './passwords';
 import { providerModes } from './providers';
+import { requireRecentForChanges } from './recent';
 import { standInProviders } from './stand-in-provider';
 
 const DAY = 60 * 60 * 24;
@@ -106,6 +109,32 @@ async function providerJoined(account: { providerId: string; userId: string }): 
 }
 
 /**
+ * AU8: a browser holds one session. Signing in again from a browser that's already signed in,
+ * to confirm it's you or as someone else, ends the session it had, so "Signed-in devices"
+ * doesn't fill with copies of the same one.
+ */
+async function endPreviousSession(newToken: string, ctx: HookContext | null): Promise<void> {
+  if (!ctx) return;
+  const previous = await getSessionFromCtx(ctx).catch(() => null);
+  const token = previous?.session.token;
+  if (token && token !== newToken) await ctx.context.internalAdapter.deleteSession(token);
+}
+
+/** AU11, AU16: a passkey was added: it's recorded, and the owner is emailed. */
+async function passkeyAdded(userId: string): Promise<void> {
+  await recordAccountEvent('account.method_added', userId, { method: 'passkey' });
+  const [user] = await db().select({ email: users.email }).from(users).where(eq(users.id, userId));
+  if (user) await sendMethodAdded(user.email, 'passkey');
+}
+
+/** AU16: a passkey was removed. */
+async function passkeyRemoved(ctx: HookContext): Promise<void> {
+  if (ctx.path !== '/passkey/delete-passkey' || ctx.context.returned instanceof APIError) return;
+  const userId = ctx.context.session?.user.id;
+  if (userId) await recordAccountEvent('account.method_removed', userId, { method: 'passkey' });
+}
+
+/**
  * Accounts and sign-in, for renters, letters and Gaff's staff alike (M1, ADR-0016), with Better
  * Auth. How people sign in, and why, is ADR-0028. Accounts live in our own Postgres; no
  * third-party identity service holds them. Built on first use, not at import.
@@ -124,7 +153,7 @@ function createAuth() {
     database: drizzleAdapter(db(), {
       provider: 'pg',
       usePlural: true,
-      schema: { users, sessions, accounts, verifications },
+      schema: { users, sessions, accounts, verifications, passkeys },
     }),
     advanced: {
       database: { generateId: () => crypto.randomUUID() },
@@ -214,6 +243,7 @@ function createAuth() {
             await makeListedTesterStaff(session.userId);
             const method = methodOf(ctx);
             if (method) await recordAccountEvent('account.signed_in', session.userId, { method });
+            await endPreviousSession(session.token, ctx);
           },
         },
       },
@@ -250,9 +280,11 @@ function createAuth() {
         // The password first: one that's refused shouldn't use up the step's tries.
         await checkNewPassword(ctx);
         await limitTries(ctx);
+        await requireRecentForChanges(ctx);
       }),
       after: createAuthMiddleware(async (ctx) => {
         await countPasswordFailures(ctx);
+        await passkeyRemoved(ctx);
       }),
     },
     plugins: [
@@ -266,6 +298,24 @@ function createAuth() {
         storeOTP: 'hashed',
         overrideDefaultEmailVerification: true,
         sendVerificationOTP: sendCode,
+      }),
+      // AU6, M5, M6: passkeys (Face ID, Touch ID, Windows Hello, a security key). They belong
+      // to this site alone, so a look-alike site can't ask for one. Kept on the device or in a
+      // password manager ("residentKey"), so signing in needs no email. Adding one needs a
+      // sign-in in the last hour, which the plugin checks against session.freshAge.
+      passkey({
+        rpID: config.PASSKEY_RP_ID ?? new URL(config.APP_URL).hostname,
+        rpName: 'Gaff',
+        origin: new URL(config.APP_URL).origin,
+        authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' },
+        registration: {
+          afterVerification: async ({ user, verification }) => {
+            await passkeyAdded(user.id);
+            return {
+              name: passkeyName(getAuthenticatorName(verification.registrationInfo?.aaguid)),
+            };
+          },
+        },
       }),
       // Local development and tests: a page of Gaff's own plays Google and Apple. Everywhere
       // else the list is empty, and this does nothing.

@@ -15,6 +15,7 @@ import {
 } from '@/server/listings/editor';
 import { draftListingDescription } from '@/server/listings/description';
 import { confirmAvailable } from '@/server/listings/freshness';
+import { describePin, setHomePoint, type PinSaved } from '@/server/listings/location';
 import { setPaused } from '@/server/listings/manage';
 import { publishListing } from '@/server/listings/publish';
 import { finishPhotoUpload, startHomePhotoUpload } from '@/server/media/upload';
@@ -63,6 +64,26 @@ export async function descriptionAction(
   if (!saved.ok) return invalid(saved.errors, values);
   revalidatePath(page(lettingId));
   return { message: 'saved', values };
+}
+
+/** M38: the letter saves the home's pin. The point is checked on the server (Zod, in Ireland). */
+export async function savePinAction(
+  lettingId: string,
+  point: { lat: number; lng: number },
+): Promise<PinSaved> {
+  const member = await requireMember();
+  const saved = await setHomePoint(member, lettingId, point);
+  if (saved.ok) revalidatePath(page(lettingId));
+  return saved;
+}
+
+/** M38: where the pin is, in words, as the letter moves it. Nothing is saved. */
+export async function describePinAction(
+  lettingId: string,
+  point: { lat: number; lng: number },
+): Promise<string | null> {
+  const member = await requireMember();
+  return describePin(member, lettingId, point);
 }
 
 /** M45, P10: a description drafted by the AI from the facts, for the letter to edit and save. */

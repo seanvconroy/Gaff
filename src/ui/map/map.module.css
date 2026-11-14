@@ -1,0 +1,131 @@
+/* M38: the map a letter places their home's pin on. */
+.picker {
+  position: relative;
+  height: 360px;
+  overflow: hidden;
+  background-color: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.pickerMap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.googlePicker {
+  width: 100%;
+  height: 100%;
+}
+
+.pickerSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.land {
+  fill: var(--color-surface-2);
+}
+
+.gridLine {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+/* The stand-in draws the streets around the pin from Gaff's own place index. */
+.pickerStreet {
+  fill: none;
+  stroke: var(--color-surface-1);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pickerStreetName {
+  fill: var(--color-ink-muted);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-sm-size);
+  text-anchor: middle;
+}
+
+/* The pin: navy, with its tip on the point. */
+.pickerPin {
+  cursor: grab;
+}
+
+.pickerPin path,
+.homePin path {
+  fill: var(--color-navy);
+  stroke: var(--color-surface-1);
+  stroke-width: 2;
+}
+
+.pickerPin circle,
+.homePin circle {
+  fill: var(--color-surface-1);
+}
+
+.pickerPin .hitArea {
+  fill: transparent;
+  stroke: none;
+}
+
+.pickerPin:focus {
+  outline: none;
+}
+
+.pickerPin:focus-visible path {
+  stroke: var(--color-focus);
+  stroke-width: 4;
+}
+
+.homePin {
+  display: block;
+  overflow: visible;
+  cursor: grab;
+}
+
+.zoom {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: grid;
+  overflow: hidden;
+  background-color: var(--color-surface-1);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-overlay);
+}
+
+.zoom button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background: none;
+  border: 0;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.zoom button + button {
+  border-top: 1px solid var(--color-border);
+}
+
+.zoom button:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -3px;
+}
+
+.attribution {
+  position: absolute;
+  bottom: var(--space-2);
+  left: var(--space-3);
+  margin: 0;
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+}

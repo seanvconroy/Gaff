@@ -6,7 +6,7 @@ import { developments, homes, lettings, places } from '@/db/schema';
 import { streetOf } from '@/domain/listings/projection';
 import { isOnMap, pinInArea, placeAt } from '@/domain/map/pin';
 import type { Gazetteer, Place } from '@/domain/places/gazetteer';
-import { inIreland, type Point } from '@/domain/places/geo';
+import { distanceMetres, inIreland, type Point } from '@/domain/places/geo';
 import { approximateLocation } from '@/domain/places/locate';
 import { normalise } from '@/domain/places/normalise';
 import { streetAt, streetForAddress, streetName } from '@/domain/places/street';
@@ -95,9 +95,21 @@ export interface PinState {
   addressArea: string;
   pinPlace: string | null;
   development: { name: string; others: number } | null;
+  /**
+   * The streets around the point, for the stand-in map to draw (it has no map of its own).
+   * Empty unless asked for.
+   */
+  streets: Array<{ name: string; line: Point[][] }>;
 }
 
-async function pinState(tx: Tx, context: ListingContext): Promise<PinState> {
+/** The streets the stand-in map draws: the nearest few dozen, so the pin can be placed by eye. */
+const STAND_IN_STREETS = 80;
+
+async function pinState(
+  tx: Tx,
+  context: ListingContext,
+  options: { streets?: boolean } = {},
+): Promise<PinState> {
   const { home } = context;
   const g = await loadGazetteer([], tx);
   const area = addressArea(home, g);
@@ -115,7 +127,9 @@ async function pinState(tx: Tx, context: ListingContext): Promise<PinState> {
         )
       : null;
   const point = placed ?? onStreet?.point ?? approximateLocation(home, g).point;
-  const where = await whereIs(tx, home.county, point, g);
+  const near = await streetsNear(tx, home.county, point);
+  const street = streetAt(point, near);
+  const where = { street: street?.name ?? null, place: placeAt(point, g.places)?.name ?? null };
   let development: PinState['development'] = null;
   if (home.developmentId) {
     const [row] = await tx
@@ -144,14 +158,25 @@ async function pinState(tx: Tx, context: ListingContext): Promise<PinState> {
     addressArea: area?.name ?? home.area,
     pinPlace: where.place,
     development,
+    streets: options.streets
+      ? near
+          .filter((s) => s.line?.length)
+          .sort((a, b) => distanceMetres(a.centre, point) - distanceMetres(b.centre, point))
+          .slice(0, STAND_IN_STREETS)
+          .map((s) => ({ name: s.name, line: s.line! }))
+      : [],
   };
 }
 
 /** What the listing editor's "Where it is" section shows. */
-export async function pinFor(member: Member, lettingId: string): Promise<PinState | null> {
+export async function pinFor(
+  member: Member,
+  lettingId: string,
+  options: { streets?: boolean } = {},
+): Promise<PinState | null> {
   return withOrg(member.organisationId, async (tx) => {
     const context = await loadListing(tx, lettingId);
-    return context ? pinState(tx, context) : null;
+    return context ? pinState(tx, context, options) : null;
   });
 }
 

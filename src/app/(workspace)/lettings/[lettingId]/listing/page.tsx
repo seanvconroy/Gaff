@@ -7,7 +7,10 @@ import { describeCriteria } from '@/domain/criteria/criteria';
 import { statusWords, isPublic } from '@/domain/listings/lifecycle';
 import { DECLARATION, type Section } from '@/domain/listings/publish-checks';
 import { mediaKeys } from '@/domain/media/photos';
+import { pinWords } from '@/copy/map';
 import { formatDate, formatRent } from '@/lib/format';
+import { mapSettings } from '@/lib/map';
+import { pinFor } from '@/server/listings/location';
 import { requireMember } from '@/server/auth/member';
 import { listingStats } from '@/server/listings/stats';
 import { loadListing } from '@/server/listings/context';
@@ -22,6 +25,7 @@ import { LettingHeader } from '../LettingHeader';
 import { finishUploadAction, liveAction, photoAction, startUploadAction } from './actions';
 import { openWordingFindings } from '@/server/listings/wording';
 import { DescriptionForm, HomeDetailsForm, LettingDetailsForm, PublishForm } from './ListingForms';
+import { LocationPicker } from './LocationPicker';
 import { PhotoUploader } from '../../../PhotoUploader';
 import styles from './listing.module.css';
 
@@ -83,6 +87,9 @@ export default async function ListingPage({
   const editable = status !== 'let' && status !== 'withdrawn';
   const flagged =
     status === 'in_review' ? await openWordingFindings(member.organisationId, listing.id) : [];
+  // M38: the pin, and (for the stand-in map, which has none of its own) the streets around it.
+  const map = mapSettings();
+  const pin = map ? await pinFor(member, lettingId, { streets: map.provider === 'static' }) : null;
 
   return (
     <Stack gap={8}>
@@ -256,6 +263,24 @@ export default async function ListingPage({
             berCertificateDate: home.berCertificateDate ?? '',
           }}
         />
+      </Card>
+
+      <Card labelledBy="location">
+        <h2 id="location" className="type-title">
+          {pinWords.heading}
+        </h2>
+        {!map ? (
+          <p>{pinWords.switchedOff}</p>
+        ) : pin && editable ? (
+          <LocationPicker
+            lettingId={lettingId}
+            settings={map}
+            pin={pin}
+            hidden={!home.showExactAddress}
+          />
+        ) : pin ? (
+          <p>{pin.placed ? pin.where : pinWords.notPlaced}</p>
+        ) : null}
       </Card>
 
       <Card labelledBy="price">

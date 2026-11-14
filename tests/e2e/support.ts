@@ -445,6 +445,15 @@ export async function bookFirstTime(page: Page, mobile = uniqueMobile()): Promis
   await page.getByRole('button', { name: 'Confirm and book' }).click();
 }
 
+/**
+ * M38: on the listing editor, the letter keeps the pin where it starts (on the address's street,
+ * or in the middle of its area) and saves it. A listing can't go live without a placed pin.
+ */
+export async function placePin(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Save the location' }).click();
+  await expect(page.getByText('Saved. Renters see the home here on the map.')).toBeVisible();
+}
+
 /** Fills in everything a listing needs, through the listing editor. */
 export async function completeListing(page: Page, description: string): Promise<void> {
   await page.getByRole('link', { name: 'Listing', exact: true }).click();
@@ -455,6 +464,7 @@ export async function completeListing(page: Page, description: string): Promise<
   await page.getByLabel('Floor area in square metres').fill('68');
   await page.getByRole('button', { name: 'Save the home’s details' }).click();
   await expect(page.getByText('Saved.').first()).toBeVisible();
+  await placePin(page);
 
   await page.getByLabel('Deposit').fill('1850');
   await page.getByRole('button', { name: 'Save the price and enquiries' }).click();

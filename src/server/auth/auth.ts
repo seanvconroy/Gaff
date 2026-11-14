@@ -9,6 +9,7 @@ import { eq } from 'drizzle-orm';
 import { after } from 'next/server';
 import { db } from '@/db/client';
 import { accounts, passkeys, sessions, users, verifications } from '@/db/schema';
+import { openToBrowsers } from '@/domain/auth/browser-routes';
 import { CODE_MINUTES, CODE_TRIES } from '@/domain/auth/codes';
 import { passkeyName } from '@/domain/auth/passkeys';
 import { PASSWORD_MAX, PASSWORD_MIN } from '@/domain/auth/password-rules';
@@ -118,6 +119,17 @@ async function endPreviousSession(newToken: string, ctx: HookContext | null): Pr
   const previous = await getSessionFromCtx(ctx).catch(() => null);
   const token = previous?.session.token;
   if (token && token !== newToken) await ctx.context.internalAdapter.deleteSession(token);
+}
+
+/**
+ * AU12: only a few of the library's routes are for browsers (src/domain/auth/browser-routes).
+ * A call that arrives over HTTP for any other is answered as if the route weren't there. Gaff's
+ * own server code calls the library without a request, and isn't stopped.
+ */
+function closedToBrowsers(ctx: HookContext): void {
+  if (!ctx.request) return;
+  if (openToBrowsers(ctx.path ?? '')) return;
+  throw new APIError('NOT_FOUND', { code: 'NOT_FOUND', message: 'Not found' });
 }
 
 /** AU11, AU16: a passkey was added: it's recorded, and the owner is emailed. */
@@ -277,6 +289,7 @@ function createAuth() {
     rateLimit: { enabled: false },
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
+        closedToBrowsers(ctx);
         // The password first: one that's refused shouldn't use up the step's tries.
         await checkNewPassword(ctx);
         await limitTries(ctx);

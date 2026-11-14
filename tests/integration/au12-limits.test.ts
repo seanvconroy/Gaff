@@ -1,8 +1,10 @@
 import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { db } from '@/db/client';
-import { perAddress, perEmail } from '@/domain/auth/limits';
+import { PASSWORD_FAILURES, perAddress, perEmail } from '@/domain/auth/limits';
 import { auth } from '@/server/auth/auth';
+import { addPassword, changePassword, signInWithPassword } from '@/server/auth/flows';
+import { Jar, signInByCode } from './provider-helpers';
 import {
   clientAddress,
   countTry,
@@ -114,23 +116,18 @@ describe('AU12: limits on signing in', () => {
   });
 
   it('limits requests that arrive over HTTP too', async () => {
+    // A route browsers call for themselves: the challenge for a passkey sign-in.
     const address = `http-${unique()}`;
-    const send = async () => {
+    const ask = async () => {
       const response = await auth().handler(
-        new Request('http://localhost:3000/api/auth/email-otp/send-verification-otp', {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'x-forwarded-for': address,
-            origin: 'http://localhost:3000',
-          },
-          body: JSON.stringify({ email: anEmail(), type: 'sign-in' }),
+        new Request('http://localhost:3000/api/auth/passkey/generate-authenticate-options', {
+          headers: { 'x-forwarded-for': address },
         }),
       );
       return response.status;
     };
-    for (let i = 0; i < perAddress.send_code.max; i++) expect(await send()).toBe(200);
-    expect(await send()).toBe(429);
+    for (let i = 0; i < perAddress.passkey_options.max; i++) expect(await ask()).toBe(200);
+    expect(await ask()).toBe(429);
   });
 
   it('never limits reading the session, which every page does', async () => {
@@ -156,5 +153,157 @@ describe('AU12: limits on signing in', () => {
     expect(await sweepLimits()).toBeGreaterThanOrEqual(1);
     expect(await triesSoFar('old', who, 10 * 24 * 60 * 60)).toBe(0);
     expect(await triesSoFar('new', who, 60)).toBe(1);
+  });
+});
+
+describe('AU12: a session that’s signed in can’t be used to guess its owner’s password', () => {
+  const GOOD = 'the bins go out on tuesday';
+  const NEXT = 'a different sentence entirely';
+
+  async function someoneWithAPassword() {
+    const email = anEmail();
+    const jar = await signInByCode(email);
+    expect(await addPassword(GOOD, jar.headers())).toBe('done');
+    return { email, jar };
+  }
+
+  it('slows guesses at the current password from one address', async () => {
+    const { jar } = await someoneWithAPassword();
+    const address = unique();
+    const guess = (n: number) =>
+      changePassword({ current: `not the password ${n}`, next: NEXT }, jar.headers(address));
+    for (let i = 0; i < perAddress.password.max; i += 1) {
+      expect(await guess(i)).toBe('wrong_current');
+    }
+    expect(await guess(99)).toBe('slow_down');
+  });
+
+  it('pauses password checks for the account after 10 wrong tries, wherever they come from', async () => {
+    const { email, jar } = await someoneWithAPassword();
+    // Each guess from another address, so only the count for the account stops them.
+    for (let i = 0; i < PASSWORD_FAILURES.max; i += 1) {
+      expect(
+        await changePassword({ current: `not the password ${i}`, next: NEXT }, jar.headers()),
+      ).toBe('wrong_current');
+    }
+    // Now even the right password isn't checked, here or at sign-in.
+    expect(await changePassword({ current: GOOD, next: NEXT }, jar.headers())).toBe('paused');
+    expect(await signInWithPassword({ email, password: GOOD }, from(unique()))).toEqual({
+      outcome: 'paused',
+    });
+    // The password is unchanged, and a code still gets its owner in.
+    expect((await signInByCode(email)).signedIn).toBe(true);
+  });
+
+  it('limits the library’s own password check the same way', async () => {
+    const { jar } = await someoneWithAPassword();
+    const address = unique();
+    const check = () =>
+      refusalOf(
+        auth().api.verifyPassword({
+          body: { password: 'not the password at all' },
+          headers: jar.headers(address),
+        }),
+      );
+    for (let i = 0; i < perAddress.password.max; i += 1) {
+      expect(await check()).toMatch(/^other: /);
+    }
+    expect(await check()).toBe(SLOW_DOWN);
+  });
+
+  it('a right password clears the count, so a few slips over a day never add up', async () => {
+    const { email, jar } = await someoneWithAPassword();
+    for (let i = 0; i < 3; i += 1) {
+      expect(await changePassword({ current: `a slip ${i}`, next: NEXT }, jar.headers())).toBe(
+        'wrong_current',
+      );
+    }
+    expect(await changePassword({ current: GOOD, next: NEXT }, jar.headers())).toBe('done');
+    expect(await triesSoFar('password_failures', email, PASSWORD_FAILURES.windowSeconds)).toBe(0);
+  });
+});
+
+describe('AU12: only a few of the library’s routes are for browsers', () => {
+  const APP = process.env.APP_URL ?? 'http://localhost:3000';
+  const GOOD = 'the bins go out on tuesday';
+
+  function post(path: string, body: unknown, jar = new Jar()): Promise<Response> {
+    const headers = jar.headers();
+    headers.set('content-type', 'application/json');
+    headers.set('origin', APP);
+    return auth().handler(
+      new Request(`${APP}/api/auth${path}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+      }),
+    );
+  }
+  const get = (path: string, jar = new Jar()) =>
+    auth().handler(new Request(`${APP}/api/auth${path}`, { headers: jar.headers() }));
+
+  it('answers “not found” over HTTP for the routes Gaff’s own forms and pages use', async () => {
+    const email = anEmail();
+    const jar = await signInByCode(email);
+    expect(await addPassword(GOOD, jar.headers())).toBe('done');
+    const stranger = anEmail();
+
+    const calls: [string, unknown][] = [
+      ['/sign-up/email', { email: stranger, password: GOOD, name: 'Someone' }],
+      ['/sign-in/email', { email, password: GOOD }],
+      ['/sign-in/email-otp', { email, otp: '000000' }],
+      ['/email-otp/send-verification-otp', { email: stranger, type: 'sign-in' }],
+      ['/change-password', { currentPassword: GOOD, newPassword: 'a different sentence entirely' }],
+      ['/verify-password', { password: GOOD }],
+      ['/link-social', { provider: 'google' }],
+      ['/unlink-account', { accountId: 'anything' }],
+      ['/passkey/delete-passkey', { id: 'anything' }],
+      ['/passkey/update-passkey', { id: 'anything', name: 'x' }],
+      ['/revoke-other-sessions', {}],
+      ['/sign-out', {}],
+    ];
+    for (const [path, body] of calls) {
+      expect([path, (await post(path, body, jar)).status]).toEqual([path, 404]);
+    }
+
+    // Nothing happened: the person is still signed in, their password is the same, and no
+    // account or code was made for the stranger's address.
+    expect((await auth().api.getSession({ headers: jar.headers() }))?.user.email).toBe(email);
+    expect(await signInWithPassword({ email, password: GOOD }, from(unique()))).toEqual({
+      outcome: 'signed_in',
+    });
+    const made = await db().execute(sql`select 1 from users where email = ${stranger}`);
+    expect(made.rows).toEqual([]);
+  });
+
+  it('keeps routes Gaff doesn’t use at all closed too', async () => {
+    const email = anEmail();
+    const jar = await signInByCode(email);
+    const calls: [string, unknown][] = [
+      // A browser can't rename the account, or say how its session began (M5).
+      ['/update-user', { name: 'Someone Else' }],
+      ['/update-session', { signInMethod: 'passkey' }],
+      ['/change-email', { newEmail: anEmail() }],
+      ['/email-otp/request-email-change', { newEmail: anEmail() }],
+      ['/delete-user', {}],
+      ['/request-password-reset', { email }],
+    ];
+    for (const [path, body] of calls) {
+      expect([path, (await post(path, body, jar)).status]).toEqual([path, 404]);
+    }
+    const session = await auth().api.getSession({ headers: jar.headers() });
+    expect(session?.user).toMatchObject({ email, name: expect.not.stringContaining('Someone') });
+    expect(session?.session).toMatchObject({ signInMethod: 'email_code' });
+  });
+
+  it('still answers what only a browser can do: passkeys, and coming back from a provider', async () => {
+    const jar = await signInByCode(anEmail());
+    expect((await get('/get-session', jar)).status).toBe(200);
+    expect((await get('/passkey/generate-authenticate-options')).status).toBe(200);
+    expect((await get('/passkey/generate-register-options', jar)).status).toBe(200);
+    // A provider's answer with nothing in it is turned away by the library itself, not as
+    // "not found": the route is there.
+    const back = await get('/callback/google?error=access_denied&state=none');
+    expect(back.status).not.toBe(404);
   });
 });

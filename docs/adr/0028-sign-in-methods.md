@@ -54,6 +54,7 @@ The product requirements are in [auth-prd.md](../auth-prd.md), and the design is
 **Limits and housekeeping:**
 
 - Gaff's own limiter covers every auth call, in-process or over HTTP. Its keys are hashed, so no addresses or emails are stored.
+- Only the library's routes that a browser needs answer over HTTP: coming back from Google or Apple, and passkeys. Gaff's forms reach the rest from its own server code, where their rules, emails and events are. A route a later version adds is closed until it's listed.
 - Better Auth's logger is quietened and redacted, so no personal data reaches the logs.
 - The nightly job deletes ended sessions, used-up codes, lapsed invitations and sign-ups nobody confirmed (rule 9).
 - Gaff keeps no Google or Apple tokens and no photos.

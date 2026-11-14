@@ -226,7 +226,13 @@ export async function startProvider(
 }
 
 export type PasswordChange =
-  'done' | 'signed_out' | 'recent_sign_in_needed' | 'wrong_current' | 'slow_down' | PasswordProblem;
+  | 'done'
+  | 'signed_out'
+  | 'recent_sign_in_needed'
+  | 'wrong_current'
+  | 'slow_down'
+  | 'paused'
+  | PasswordProblem;
 
 /**
  * AU7: adds a password to an account that has none, such as one made with Google or a code.
@@ -271,7 +277,10 @@ export async function changePassword(
   } catch (error) {
     const password = passwordRefusal(error);
     if (password) return password;
-    if (refusal(error)) return 'slow_down';
+    const refused = refusal(error);
+    // Ten wrong tries at the current password: password checks pause, as at sign-in.
+    if (refused === PASSWORD_PAUSED) return 'paused';
+    if (refused) return 'slow_down';
     if (!(error instanceof APIError)) throw error;
     return 'wrong_current';
   }

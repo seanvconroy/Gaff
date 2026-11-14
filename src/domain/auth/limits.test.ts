@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { overLimit, PASSWORD_FAILURES, perAddress, perEmail, scaled, stepForPath } from './limits';
+import {
+  checksCurrentPassword,
+  overLimit,
+  PASSWORD_FAILURES,
+  perAddress,
+  perEmail,
+  scaled,
+  stepForPath,
+} from './limits';
 
 describe('AU12: limits on signing in', () => {
   it('knows which step each sign-in call is', () => {
@@ -37,5 +45,20 @@ describe('AU12: limits on signing in', () => {
   it('can be loosened for end-to-end runs, which sign in constantly from one address', () => {
     expect(scaled(perAddress.password, 100)).toEqual({ max: 500, windowSeconds: 60 });
     expect(scaled(perAddress.password, 1)).toEqual(perAddress.password);
+  });
+});
+
+describe('AU12: guessing a password from a session that’s already signed in', () => {
+  it('limits the routes that take the current password like signing in with one', () => {
+    for (const path of ['/change-password', '/verify-password']) {
+      expect(stepForPath(path)).toBe('password');
+      expect(checksCurrentPassword(path)).toBe(true);
+    }
+  });
+
+  it('doesn’t treat signing in, or anything else, as one of them', () => {
+    for (const path of ['/sign-in/email', '/sign-up/email', '/get-session', '']) {
+      expect(checksCurrentPassword(path)).toBe(false);
+    }
   });
 });

@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
-import { APIError } from 'better-auth/api';
+import { APIError, getSessionFromCtx } from 'better-auth/api';
 import { sql } from 'drizzle-orm';
 import { db } from '@/db/client';
 import {
+  checksCurrentPassword,
   type Limit,
   overLimit,
   PASSWORD_FAILURES,
@@ -113,6 +114,20 @@ const emailIn = (body: unknown): string | null => {
 };
 
 /**
+ * Whose account a try is against: the email in the form, or, where someone signed in gives
+ * their current password (changing it), the account they're signed in to. So a session left
+ * open can't be used to guess its owner's password any faster than a stranger could.
+ */
+async function accountTried(ctx: HookContext): Promise<string | null> {
+  const typed = emailIn(ctx.body);
+  if (typed) return typed;
+  if (!checksCurrentPassword(ctx.path ?? '')) return null;
+  const session = await getSessionFromCtx(ctx).catch(() => null);
+  const email = session?.user.email;
+  return typeof email === 'string' && email ? email.trim().toLowerCase() : null;
+}
+
+/**
  * Before any sign-in step: count the try, and refuse it past the limit. Coming back from Google
  * or Apple is a page load, so that one is sent to the sign-in page with a plain line.
  */
@@ -135,7 +150,7 @@ export async function limitTries(ctx: HookContext): Promise<void> {
   const fromAddress = await countTry(`address:${step}`, address, addressLimit.windowSeconds);
   if (overLimit(fromAddress, addressLimit)) throw refuse(SLOW_DOWN);
 
-  const email = emailIn(ctx.body);
+  const email = await accountTried(ctx);
   if (!email) return;
   const emailLimit = perEmail[step];
   if (emailLimit) {
@@ -150,17 +165,20 @@ export async function limitTries(ctx: HookContext): Promise<void> {
   }
 }
 
+const WRONG_PASSWORD = new Set(['INVALID_EMAIL_OR_PASSWORD', 'INVALID_PASSWORD']);
+
 /**
- * After a password sign-in: a wrong password counts towards the pause for that email, whether
- * or not the email has an account; a right one clears the count.
+ * After a password is checked, signing in or changing it: a wrong one counts towards the pause
+ * for that email, whether or not the email has an account; a right one clears the count.
  */
 export async function countPasswordFailures(ctx: HookContext): Promise<void> {
-  if (ctx.path !== '/sign-in/email') return;
-  const email = emailIn(ctx.body);
+  const path = ctx.path ?? '';
+  if (path !== '/sign-in/email' && !checksCurrentPassword(path)) return;
+  const email = await accountTried(ctx);
   if (!email) return;
   const returned = ctx.context.returned;
   if (returned instanceof APIError) {
-    if (returned.body?.code === 'INVALID_EMAIL_OR_PASSWORD') {
+    if (WRONG_PASSWORD.has(String(returned.body?.code))) {
       await countTry('password_failures', email, room(PASSWORD_FAILURES).windowSeconds);
     }
     return;

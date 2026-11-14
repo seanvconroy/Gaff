@@ -359,6 +359,25 @@ describe('M5: Gaff staff sign in with a passkey', () => {
     }
   });
 
+  it('never takes a browser’s word for how its session began', async () => {
+    const { jar } = await aSignedInPerson();
+    const sessionOf = async () => (await auth().api.getSession({ headers: jar.headers() }))!;
+    await addSoftwarePasskey(jar);
+    expect(await staffAccessOf(await sessionOf(), true)).toBe('needs_passkey_sign_in');
+
+    // The library has a route for changing a session's own fields. This one isn't theirs to set.
+    expect(
+      await refusedBecause(
+        auth().api.updateSession({
+          body: { signInMethod: 'passkey' } as Record<string, unknown>,
+          headers: jar.headers(),
+        }),
+      ),
+    ).not.toBe('allowed');
+    expect((await sessionOf()).session).toMatchObject({ signInMethod: 'email_code' });
+    expect(await staffAccessOf(await sessionOf(), true)).toBe('needs_passkey_sign_in');
+  });
+
   it('sends staff to add a passkey, then to sign in with it, and lets them in for 8 hours', async () => {
     const { jar, userId } = await aSignedInPerson();
     const sessionOf = async () => (await auth().api.getSession({ headers: jar.headers() }))!;

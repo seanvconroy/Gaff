@@ -47,6 +47,12 @@ function passwordAnswer(result: PasswordChange, done: string): FormState {
       return invalid({ current: 'That isn’t your current password. Try again.' }, {});
     case 'slow_down':
       return invalid({}, {}, 'That’s a lot of tries. Wait a minute, then try again.');
+    case 'paused':
+      return invalid(
+        {},
+        {},
+        'That’s a lot of tries at your current password. Wait 15 minutes, then try again. If you’ve forgotten it, sign out and choose “Forgot your password?”.',
+      );
     default:
       return invalid({ password: passwordMessages[result] }, {});
   }

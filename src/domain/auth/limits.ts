@@ -40,8 +40,21 @@ export const PASSWORD_CHECKS: Limit = { max: 20, windowSeconds: 60 };
  */
 export const PASSWORD_FAILURES: Limit = { max: 10, windowSeconds: 900 };
 
+/**
+ * Routes where someone already signed in gives their account's current password. They're
+ * limited like signing in with one, or a session left open could be used to guess it.
+ */
+const currentPasswordPaths = new Set(['/change-password', '/verify-password']);
+
+/** Whether a route checks the current password of the person who's signed in. */
+export function checksCurrentPassword(path: string): boolean {
+  return currentPasswordPaths.has(path);
+}
+
 const steps: Record<string, LimitedStep> = {
   '/sign-in/email': 'password',
+  '/change-password': 'password',
+  '/verify-password': 'password',
   '/sign-up/email': 'sign_up',
   '/email-otp/send-verification-otp': 'send_code',
   '/email-otp/request-password-reset': 'send_code',

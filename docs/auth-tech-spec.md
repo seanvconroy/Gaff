@@ -41,7 +41,7 @@ How the requirements in [auth-prd.md](auth-prd.md) are built. The decision recor
 | `account.accountLinking` | on; `trustedProviders: []`; `allowDifferentEmails`; `allowUnlinkingAll`; `updateAccountOnSignIn: false` | Trust comes from who hosts the address (section 5.6), never from a provider's name. A code by email always works, so any other way in can go |
 | `user.validateUserInfo` | `checkProviderIdentity` | The gate for every Google or Apple sign-in, sign-up and connection |
 | `databaseHooks` | tokens stripped from `accounts`; events and emails on sign-up, sign-in and a provider joining; the browser's previous session ended | AU14, AU11, AU16, AU8 |
-| `hooks.before` | `checkNewPassword`, `limitTries`, `requireRecentForChanges` | Run for in-process and HTTP calls alike |
+| `hooks.before` | `closedToBrowsers`, `checkNewPassword`, `limitTries`, `requireRecentForChanges` | Run for in-process and HTTP calls alike. The first closes every route a browser doesn't need (section 8) |
 | `hooks.after` | `countPasswordFailures`, `passkeyRemoved` | |
 | `rateLimit` | off | Replaced by Gaff's limiter, which sees every call |
 | `logger` | `warn`, through `redactForLog` | The library logs email addresses at `info` |
@@ -53,6 +53,8 @@ Things learned from the library's source that the design relies on:
 - `setPassword` is a server-only call with no route, so path-based hooks never see it. `addPassword()` in `flows.ts` checks the session, the hour and the password rules itself.
 - `signUpEmail` with `requireEmailVerification` answers a duplicate with a made-up user and calls `onExistingUserSignUp`, which is where "You already have a Gaff account" is sent.
 - `unlinkAccount` and adding a passkey use the library's `freshSessionMiddleware`; connecting a provider and removing a passkey don't, so `recent.ts` covers those two.
+- A field declared with `input: false` (the session's `signInMethod`) can't be set through the library's `update-session` route, which the staff rule relies on. That route is closed to browsers as well.
+- The library's change-email and delete-user routes are off unless switched on, and they aren't.
 - Apple answers with a form post, which the library turns into a GET so the cookies come with it. The content security policy allows forms to post to `accounts.google.com` and `appleid.apple.com`.
 
 ## 4. Data model
@@ -156,7 +158,7 @@ Changing how you sign in needs a sign-in in the last hour (`src/domain/auth/rece
 
 | Step | From one network address, a minute | For one email |
 | --- | --- | --- |
-| Password sign-in | 5 | 10 wrong in 15 minutes pauses password sign-in for 15 minutes |
+| Password sign-in, and giving the current password to change it | 5 | 10 wrong in 15 minutes pauses password checks for 15 minutes |
 | Sign-up | 3 | 3 in 10 minutes |
 | Sending a code (sign-in, confirm, reset) | 5 | 5 an hour |
 | Checking a code | 10 | 5 tries per code, by the library |
@@ -168,6 +170,7 @@ Changing how you sign in needs a sign-in in the last hour (`src/domain/auth/rece
 
 - The address is the first entry of `x-forwarded-for`, which Vercel sets itself.
 - A wrong-password pause never blocks codes, so nobody can lock someone else out of their account.
+- Changing a password counts against the account that's signed in, so a session left open can't be used to guess its owner's password.
 - End-to-end runs sign in constantly from one address, so `GAFF_ENV=test` multiplies the room by 100. Integration tests use the real numbers.
 
 ## 7. Emails (AU11)
@@ -179,6 +182,8 @@ Changing how you sign in needs a sign-in in the last hour (`src/domain/auth/rece
 | Risk | What stops it | Tested in |
 | --- | --- | --- |
 | Guessing passwords or codes at speed | Limits per address and per email; a pause per email; 5 tries per code | `au12-limits`, `au1-accounts` |
+| Guessing a password from a session that's already signed in | The same limits and pause on the routes that take the current password | `au12-limits` |
+| Calling the library's routes directly, past the forms' rules, emails and events | Only the routes a browser needs answer over HTTP: coming back from Google or Apple, and passkeys (`src/domain/auth/browser-routes.ts`). The rest, and any a later version adds, answer "not found" | `au12-limits`, `browser-routes.test` |
 | Filling someone's inbox | 5 codes an hour to one address; 30 invitations an hour from one workspace | `au12-limits`, `m2-team` |
 | Finding out who has an account | The same screens and words for known and unknown emails; emails go out after the response, so its timing says little | `au1-accounts` |
 | Registering someone's address and waiting for them to confirm it | Unconfirmed sign-ups are replaced, and lose their password when the address is proved another way | `au1-accounts`, `au4-providers` |
@@ -189,7 +194,7 @@ Changing how you sign in needs a sign-in in the last hour (`src/domain/auth/rece
 | A forwarded invitation | Accepted only by the invited, confirmed email | `m2-team`, `au9-team.spec` |
 | An open redirect after sign-in | `safeNext()` takes only paths on Gaff | `safe-next.test` |
 | Tokens or personal data leaking into logs and events | Tokens never stored; logs redacted; events hold codes and IDs | `au4-providers`, `log-redaction.test`, the event catalogue's compliance test |
-| Staff tools reached with a phished code | A passkey sign-in, in production | `au6-passkeys`, `staff-access.test` |
+| Staff tools reached with a phished code | A passkey sign-in, in production. A browser can't say how its own session began | `au6-passkeys`, `staff-access.test` |
 
 Forms posted without JavaScript carry an `Origin` header only if the page's referrer policy allows one, and Next.js refuses a server action without it. The site's policy is `no-referrer`; the sign-in pages set `same-origin`. Forms elsewhere in the app still need JavaScript in production for this reason ([status.md](status.md), known issues).
 
@@ -232,7 +237,7 @@ Both wait for the founders' approval (Q64). Then:
 
 ```
 src/domain/auth/            pure rules, each with unit tests
-  limits · codes · recent-sign-in · sign-in-methods · password-rules · safe-next
+  limits · browser-routes · codes · recent-sign-in · sign-in-methods · password-rules · safe-next
   email-authority · sign-in-problems · passkeys · devices · staff-access · housekeeping
 src/domain/organisations/   invitation · team-rules
 src/server/auth/
@@ -286,7 +291,7 @@ Two-step verification (the library's `twoFactor` plugin; passkeys count), securi
 
 | Risk | Mitigation |
 | --- | --- |
-| A Better Auth upgrade changes behaviour the hooks rely on | Both packages are pinned to one exact version; the integration tests exercise the library's own routes, not mocks |
+| A Better Auth upgrade changes behaviour the hooks rely on, or adds routes | Both packages are pinned to one exact version; the integration tests exercise the library's own routes, not mocks; a new route is closed to browsers until it's listed |
 | The domain changes after people have passkeys | Decide the domain first (Q69); set `PASSKEY_RP_ID` to the registrable domain |
 | Apple's relay drops Gaff's emails | Register the sending domains with Apple (section 11); a code by email is the fallback for every account |
 | The breach check's service is slow or down | 2-second timeout, then the password is allowed: the check never blocks a sign-up |

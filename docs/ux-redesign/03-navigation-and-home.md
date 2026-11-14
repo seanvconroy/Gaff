@@ -40,9 +40,25 @@ The same four destinations serve an agency agent, an agency admin and a private 
 
 **UX-NV-7.** A private landlord with one home sees the same four destinations. Lettings opens straight on that home's page, with no list of one. `[P1, P10]`
 
-**UX-NV-8.** The account menu holds, in this order: the person's name and current context with a switcher (if they have more than one, see [section 2](02-accounts-and-sign-in.md)); Profile; Agency settings and Team (agency contexts only; admins can change them, agents can view the team); Help; Sign out. `[P3]`
+**UX-NV-8.** The account menu holds, in this order: the person's name and current context with a switcher (see [section 2](02-accounts-and-sign-in.md#switching-roles)); Profile; Agency settings and Team (agency contexts only; admins can change them, agents can view the team); Help; Sign out. A person who only lets homes sees "Find a home to rent" there, and a person who only rents sees "List a home". `[P3 · Q28]`
 
 Why a top bar and not a sidebar: with four destinations a sidebar spends a column of every desktop screen on four words. A top bar gives the calendar and the letting page their full width, matches the phone's tab bar one for one, and removes the layout that put the menu in the vertical middle of the page. It is also the pattern Airbnb uses for hosts, which this market already knows.
+
+## Navigation for renters
+
+A signed-in renter has three destinations. Each is specified in [section 5](05-renter-owner-referee-flows.md#the-renters-home).
+
+| Destination | Its one purpose |
+| --- | --- |
+| **Search** | "What's out there?" |
+| **Saved** | "What did I like?" |
+| **Enquiries** | "Where do I stand, and what do I need to do?" |
+
+**UX-NV-19.** The renter's side uses the same bar as the letting side: bottom tabs on a phone, a top bar on a desktop, the avatar at the top right. Only the destinations differ. `[P11, P12 · Q34]`
+
+**UX-NV-20.** A signed-out visitor sees a header with the wordmark, "List a home" and "Sign in", and can search and open any home. Nothing in the header changes place when they sign in: "Sign in" becomes their avatar. `[P6, P10]`
+
+**UX-NV-21.** Enquiries carries a count when something needs the renter. `[P5]`
 
 ### Navigation by user
 
@@ -51,15 +67,15 @@ Why a top bar and not a sidebar: with four destinations a sidebar spends a colum
 | Agency agent | Bottom tabs: Today, Lettings, Calendar, Inbox | Top bar, same four | Today and Lettings default to "Mine" |
 | Agency admin | Same | Same | Today and Lettings have a "Mine / Everyone" switch. Team and agency settings in the account menu |
 | Private landlord | Same | Same | No "Mine / Everyone". With one home, Lettings opens that home |
-| Renter, no account | No navigation. One page per home, reached by private link | Same | The page is the status of their application and its one next step |
-| Renter with a profile (Phase 2) | Bottom tabs: Homes, Viewings, Inbox, Profile | Top bar, same four | Phase 3 adds Search as the first tab |
+| Anyone, signed out | A header: the wordmark, "List a home", "Sign in". Search below | Same | The public site ([section 5](05-renter-owner-referee-flows.md#the-public-site)) |
+| Renter, no account | The public site, plus one page per home they've asked about, by private link | Same | That page is where they stand and their one next step |
+| Renter, signed in | Bottom tabs: Search, Saved, Enquiries | Top bar, same three | Opens on Enquiries when something needs them, otherwise Search |
 | Owner, no account | No navigation. One page per home, by private link | Same | |
-| Owner with a profile (Phase 2) | One list, "Your homes", then the same page per home | Same | No tab bar until they have a second role |
 | Referee | No navigation. One form | Same | Never has an account |
 
 ### Moving between roles
 
-A person can hold more than one role: an agent who also lets their own flat, a landlord who is also renting. The account menu lists each context they have, and tapping one switches to it. The destinations change to that context's set. This is Airbnb's "Switch to hosting", placed in the menu because most Gaff users have one context and should never see a switcher. Detail is in [section 2](02-accounts-and-sign-in.md).
+A person can hold more than one role: an agent who is also looking for a home, a landlord who is also renting. The account menu lists each context they have, and tapping one switches to it. The destinations change to that side's set. Where there are just two, it reads "Switch to letting" or "Switch to renting", as Airbnb's does for hosting and travelling. Detail is in [section 2](02-accounts-and-sign-in.md#switching-roles).
 
 ## Today: the home screen
 
@@ -106,13 +122,13 @@ Today answers one question: what needs me? It has at most four blocks, in a fixe
 
 ### How Today differs by user
 
-| | Agency agent | Agency admin | Private landlord | Renter with a profile (Phase 2) |
+| | Agency agent | Agency admin | Private landlord | Renter, signed in |
 | --- | --- | --- | --- | --- |
-| Screen name | Today | Today | Today | Homes |
+| Screen name | Today | Today | Today | Enquiries |
 | Scope | Homes they lead | "Mine" by default; "Everyone" shows all homes, with each row's lead agent | Their own homes | Homes they've enquired about |
 | Needs you | Their tasks | Theirs, plus in "Everyone": anything waiting more than one working day on any agent | Their tasks | Their one next step per home ("Book a viewing", "Answer by Sunday") |
-| Setup checklist | Add a letting; Forward enquiries (if they do it themselves) | Add a letting; Forward enquiries; Confirm the agency; Invite your team | Add your home; Forward enquiries | None |
-| Empty state action | Add a letting | Add a letting, then Invite your team | Add your home | "When you enquire about a home run with Gaff, it appears here" |
+| Setup checklist | Add a letting | Add a letting; Invite your team | Add your home | None |
+| Empty state action | Add a letting | Add a letting, then Invite your team | Add your home | "Homes you ask to view appear here." with "Search homes" |
 | Results | On close | On close, and a monthly line for the agency | On close | None |
 
 **UX-HM-11.** An admin's "Everyone" view is read-first. It shows each waiting item with its lead agent's name. An admin can open and do any task, and the record shows who did it. `[P5 · DJ1]`
@@ -158,8 +174,8 @@ One place for every conversation.
 
 **UX-NV-18.** Inbox is also where an operator writes to a renter or an owner themselves. A message a person writes is sent as written and marked as theirs. `[P6]`
 
-## What's deferred
+## What's later
 
-- Search across homes and people (Phase 2, once pilots have enough homes to need it).
-- Notification settings beyond on and off for email (Phase 2).
-- The renter's and owner's signed-in navigation (Phase 2; see [section 12](12-phasing-and-decisions.md)).
+- Search across an operator's own homes and people (once pilots have enough homes to need it).
+- Notification settings beyond on and off for email.
+- An owner's signed-in navigation (see [section 12](12-phasing-and-decisions.md#later)).

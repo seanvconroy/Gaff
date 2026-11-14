@@ -10,7 +10,7 @@ Requirement IDs: `UX-DS`. This is direction for the design work, not the finishe
 | --- | --- |
 | Dated | A soft serif (Fraunces) for every title, on a cream page, reads as heritage. Navy panels and uppercase eyebrow labels add to it |
 | Harsh neutrals | Cream on cream: the page, the cards and the fills are three close tints of the same warm beige, held apart by brown hairlines. There's no white for anything to sit on |
-| Brand colours | Dusty navy and a muted blue carry no energy and sit close to the blues other property sites use |
+| The palette | Three close creams and a dusty navy give everything the same weight. The blue is liked; it needs a cleaner ground and a cleaner cut |
 | Inconsistent | Controls at two heights (44 and 48), one-off field widths, buttons in three styles used for the same job, outlined buttons standing in for the primary |
 | Not premium | Borders around everything, no photography, no depth, no motion, small type in the workspace |
 
@@ -18,11 +18,11 @@ Requirement IDs: `UX-DS`. This is direction for the design work, not the finishe
 
 | Area | Today (A4, Navy and Atlantic) | Direction |
 | --- | --- | --- |
-| Ground | Warm cream page, cream cards | A white page. One quiet warm grey for fills |
-| Primary action | Navy | Near-black ink |
-| Brand colour | Navy blocks and an Atlantic blue accent | One accent, used sparingly. Recommended: a deep violet, working name Heather |
+| Ground | Warm cream page, cream cards | A white page. One quiet cool grey for fills |
+| Primary action | Navy | Ink: a blue-black, close to today's navy but crisper |
+| Brand colour | Navy blocks and a dusty Atlantic blue accent | One accent, used sparingly: Atlantic blue, re-cut cleaner and a little deeper |
 | Token names | Named by hue: `navy`, `atlantic`, `sky` | Named by role: `brand`, `brand-text`, `brand-bg` |
-| Type | Fraunces for titles, DM Sans for the rest | One family for everything. Fraunces is retired |
+| Type | Fraunces for titles, DM Sans for the rest | One family for everything on screen. Fraunces stays only in the wordmark |
 | Depth | "Borders, not shadows" | Flat by default. One soft shadow for things that float |
 | Control height | 44px in the workspace, 48px on private pages | 48px everywhere |
 | Corners | 6px inputs, 10px buttons, 16px cards | 12px controls, 16px cards, 24px sheets |
@@ -38,29 +38,32 @@ Everything else in `docs/design-system.md` stays: the voice, status colours alwa
 
 ### Character
 
-Gaff should feel like a calm, capable person who has done this a hundred times: quiet, clear, a little warm. It should look premium because of space, good type, real photographs of homes and precise alignment, not because of decoration. Its own identity comes from four things: the wordmark, one colour nobody else in Irish property uses, the plain Irish voice, and the "what happens next" line that ends every screen.
+Gaff should feel like a calm, capable person who has done this a hundred times: quiet, clear, a little warm. It should look premium because of space, good type, real photographs of homes and precise alignment, not because of decoration. Its own identity comes from four things: the wordmark, whose two "f"s read as a key; a calm Atlantic blue on white; the plain Irish voice; and the "what happens next" line that ends every screen.
 
 ### Colour
 
-**Recommendation: ink, white, and one accent.**
+**Decision (Q29): neutral and an off-blue, refined. Ink, white, and one accent: Atlantic blue.**
 
-Homes provide the colour, through their photographs. The interface around them is white and near-black. One brand colour marks what belongs to Gaff: the wordmark, progress, the selected state, links, and the work the assistant did.
+The founder likes the neutral-and-blue idea and doesn't like how it looks today. The problem isn't the blue. It's what surrounds it: cream on cream, with a navy that reads as heavy. So the blue stays and everything around it gets cleaner.
 
-The accent has to keep clear of the status colours (green for done, amber for attention, red for something wrong) and of teal, which is information. It should also be far from the two palettes already tried and replaced (forest green with brick, then navy with Atlantic blue) and from the reference brands (Airbnb's pink-red, Revolut's blue). That leaves violet. A deep, slightly warm violet is distinct, passes contrast for text on white, and has an Irish reference that isn't a cliché: heather on a hillside.
+- **The ground is white**, with one cool grey for quiet fills. Homes provide the colour, through their photographs.
+- **Ink is a blue-black.** It replaces navy for text and for the main button. It keeps the family feeling and is crisper.
+- **Atlantic blue is the one accent**, re-cut a little deeper and cleaner so it holds up on white. It marks what belongs to Gaff: the wordmark's full stop, progress, the selected state, links, and the work the assistant did.
+- **Status colours keep clear of it**: green for done, amber for attention, red for something wrong, teal for information.
 
 | Role (new token) | Starting value, light | Replaces | Use |
 | --- | --- | --- | --- |
 | `surface-0` | `#ffffff` | Cream `#f7f3ec` | The page |
 | `surface-1` | `#ffffff` | `#fffdf9` | Cards and inputs. Held off the page by a hairline or a shadow, not a tint |
-| `surface-2` | `#f6f5f2` | `#ede6da` | Quiet fills: a selected row, the "what happens next" panel, skeletons |
-| `ink` | `#1b1b1f` | `#18223a` | Text, icons, and the primary button's fill |
-| `ink-muted` | `#5e5e66` | `#4a5262` | Secondary text |
-| `border` | `#e4e2dd` | `#d8cfc0` | Hairlines. Decorative |
-| `border-strong` | `#8b8b93` | `#847b6f` | The edge of inputs and secondary buttons |
+| `surface-2` | `#f4f5f7` | `#ede6da` | Quiet fills: a selected row, the "what happens next" panel, skeletons |
+| `ink` | `#131a2a` | `#18223a` | Text, icons, and the primary button's fill |
+| `ink-muted` | `#566074` | `#4a5262` | Secondary text |
+| `border` | `#e2e5ea` | `#d8cfc0` | Hairlines. Decorative |
+| `border-strong` | `#848c9b` | `#847b6f` | The edge of inputs and secondary buttons |
 | `primary` | `{ink}` | Navy `#1b2a4a` | The one main button on a screen |
-| `brand` | `#5b47c9` | `atlantic`, `navy` | The accent: wordmark, progress, selection |
-| `brand-text` | `#5b47c9` | `atlantic-text` | Links and the focus ring |
-| `brand-bg` | `#efedf9` | `sky` | The tint behind a selected choice or a brand moment |
+| `brand` | `#3a5fa8` | `atlantic` `#4a6fa5`, `navy` | The accent: wordmark, progress, selection |
+| `brand-text` | `#3a5fa8` | `atlantic-text` | Links and the focus ring |
+| `brand-bg` | `#ebf0f8` | `sky` | The tint behind a selected choice or a brand moment |
 | `ai`, `ai-bg` | `{brand-text}`, `{brand-bg}` | Teal, as `info` | Anything Gaff's assistant wrote. The assistant's work carries Gaff's colour |
 | Status colours | Kept, with their tints re-cut for a white ground | | As today |
 | `nav-*` | Removed | Navy navigation tokens | Navigation is white and uses the ordinary tokens |
@@ -69,10 +72,10 @@ Contrast of the starting values (text needs 4.5:1, edges and focus rings 3:1):
 
 | Pair | Ratio |
 | --- | --- |
-| `ink` on white / on `surface-2` | 17.2 / 15.8 |
-| `ink-muted` on white / on `surface-2` / on `brand-bg` | 6.4 / 5.9 / 5.6 |
-| `brand-text` on white / on `surface-2` / on `brand-bg` | 6.6 / 6.0 / 5.7 |
-| White on `brand` | 6.6 |
+| `ink` on white / on `surface-2` / on `brand-bg` | 17.4 / 15.9 / 15.2 |
+| `ink-muted` on white / on `surface-2` / on `brand-bg` | 6.3 / 5.8 / 5.5 |
+| `brand-text` on white / on `surface-2` / on `brand-bg` | 6.2 / 5.7 / 5.4 |
+| White on `brand` | 6.2 |
 | `border-strong` on white / on `surface-2` | 3.4 / 3.1 |
 
 **UX-DS-1.** The page ground is white. Fills use one neutral. No screen stacks tinted cards on a tinted page. `[P12]`
@@ -85,13 +88,13 @@ Contrast of the starting values (text needs 4.5:1, edges and focus rings 3:1):
 
 **UX-DS-5.** Every text and background pair used is added to the contrast list in `docs/design-tokens.json` and tested in both themes before any screen uses it, as today. `[CLAUDE.md conventions]`
 
-**UX-DS-6.** The final accent is chosen by putting three candidates on the same four real screens (Today, a letting, the renter's booking page, sign-in): Heather as recommended, a clear cobalt blue, and ink alone with no accent. The founders pick by looking. This takes half a day and is the first task of the design-system work package. `[P12]`
+**UX-DS-6.** The accent is one token. The founders look at it on real screens when the first wave of screens is built, and either keep it or change that one value ([OQ-6](12-phasing-and-decisions.md#still-open)). Nothing else depends on the choice. `[P12 · Q29]`
 
 ### Type
 
-**Recommendation: one family for everything. Keep DM Sans. Retire Fraunces.**
+**Decision: one family for everything on screen, DM Sans. Fraunces stays only in the wordmark.**
 
-A single clean sans at confident sizes is what makes Airbnb and Revolut read as modern. DM Sans is already self-hosted with optical sizes, is warm without being quirky, and is clear at 16px for people who don't read screens all day. Keeping it limits the change to removing the serif. If the logo work produces a better-fitting family, it is swapped in the token file.
+A single clean sans at confident sizes is what makes Airbnb and Revolut read as modern. DM Sans is already self-hosted with optical sizes, is warm without being quirky, and is clear at 16px for people who don't read screens all day. Keeping it limits the change to removing the serif from titles. A serif wordmark over a clean sans interface is a classic pairing, and it lets the wordmark stand out as the one piece of character on the screen.
 
 | Style | Size / line | Weight | Use | Change |
 | --- | --- | --- | --- | --- |
@@ -111,13 +114,17 @@ A single clean sans at confident sizes is what makes Airbnb and Revolut read as 
 
 ### The wordmark
 
-"gaff." in Fraunces goes with the serif. A wordmark in the new family, lowercase, with the full stop in the brand colour, stands in until a logo is commissioned. The name may still change (an open decision in `docs/prd.md`), so nothing here depends on it.
+**Decision (Q29): the wordmark stays exactly as it is.** "gaff." in Fraunces, where the two letters "f" join and read as a key. It is the brand's one distinctive mark, and nothing in this redesign redraws it.
+
+**UX-DS-22.** The wordmark is one image asset, drawn from today's lettering, with its full stop in the brand colour. It is used at the top left of the product, on the public site, in emails and on private pages, and is never set in live text. `[P12 · Q29]`
+
+**UX-DS-23.** The key made by the two "f"s is kept clear at every size, down to 20px high. When an app icon or a browser icon is needed, it's made from that key. `[P12]`
 
 ### Photography and illustration
 
 **UX-DS-10.** A home's cover photo appears wherever the home is named as a destination: the Lettings list, the letting's header, the renter's and owner's pages. Photos are shown at a fixed 3:2 ratio with 16px corners. A home without photos shows a neutral placeholder with a house icon, never a broken image. `[P12]`
 
-**UX-DS-11.** Empty states use an icon in a tinted circle. There is no illustration set in Phase 1. `[P4]`
+**UX-DS-11.** Empty states use an icon in a tinted circle. There is no illustration set in the MVP. `[P4]`
 
 ## Space, shape and depth
 
@@ -188,7 +195,11 @@ Every component adapts between phone and desktop. "Status" says whether it exist
 | **Toast** | "Saved", "Copied", "Sent", with Undo where it applies | Above the tab bar | Bottom left | New |
 | **Skeleton** | Loading | | | New |
 | **Copy button** | An IBAN, a reference, an address | | | Exists |
-| **Avatar and badge** | A person, an agency; "Verified" (Phase 3) | | | New |
+| **Avatar and badge** | A person, an agency; "Identity verified" | | | New |
+| **Search box with chips** | Renter search; asking who's enquired | Full width; chips scroll sideways | Centred, up to 720px | New |
+| **Gallery** | A home's photos | Swipe; tap for full screen | A grid of five; click for full screen | New |
+| **Action card** | The one action on a home's page | Fixed to the foot of the screen | Fixed to the right of the content | New |
+| **Map** | Where a home is; search results | Behind a "Map" button | Beside the list | New |
 | **Sign-in buttons** | Google, Apple | The providers' own required styles | Same | New |
 
 **UX-DS-16.** Every screen in this PRD is built only from these components. A screen that needs something else adds it here first. `[P12]`
@@ -252,6 +263,26 @@ Kept from today: on private pages, a quiet panel ends each task with the next st
 
 **UX-DS-20.** Motion shows where something came from or that something finished. Nothing bounces, loops or decorates. With reduced motion on, every duration is zero, as today. `[P12]`
 
+## One design
+
+Decided (Q34): one design for a phone, a desktop and a future app. Not three.
+
+**UX-DS-24.** Every screen is designed at phone width (390px) first. The desktop version is the same screen with more room: wider columns, things side by side, a fixed card where the phone has a fixed bar. `[P11 · Q34]`
+
+**UX-DS-25.** A task has the same steps, in the same order, with the same words, at every width. No flow, step or feature exists on one and not the other. `[P11 · Q34]`
+
+**UX-DS-26.** Where a desktop offers a quicker way (dragging on the calendar, a keyboard shortcut), the ordinary way is still there, and it's the one a phone and an app use. `[P10, P11]`
+
+**UX-DS-27.** Each adaptive component has exactly two layouts, below and above 900px. A screen never needs its own breakpoint. `[P12]`
+
+### Words of caution
+
+Decided (Q46): Gaff doesn't hedge on screen.
+
+**UX-DS-28.** A line of caution, reassurance or legal comfort is shown only when the law needs it at that moment, or it stops a real mistake about to happen. It is one line. Anything longer sits behind "How this works" or in the terms and the privacy notice, which are accepted once at sign-in. `[P4 · Q46]`
+
+**UX-DS-29.** No screen carries a standing disclaimer, a "Please note", or a sentence that only protects Gaff. Each such line in the current product is removed or moved behind a link. `[P4 · Q46]`
+
 ## Accessibility
 
 Unchanged in standard, restated because the look is changing: WCAG 2.2 AA on every page in both themes; a visible 2px focus ring in `brand-text` on every interactive element; status never by colour alone; 44px targets; 16px minimum on private pages; text sized in rem; every end-to-end test runs axe.
@@ -260,11 +291,11 @@ Unchanged in standard, restated because the look is changing: WCAG 2.2 AA on eve
 
 ## Dark theme
 
-The token file keeps generating both themes, and the contrast tests keep covering both. Phase 1 is designed and reviewed in light. Dark follows from the tokens and gets its founder review after the pilots start.
+The token file keeps generating both themes, and the contrast tests keep covering both. The MVP is designed and reviewed in light. Dark follows from the tokens and gets its founder review after the pilots start.
 
 ## Ready for a native app
 
-No native app is built now ([section 12](12-phasing-and-decisions.md), D-5). The system is made ready for one:
+No native app is built now, and one is wanted later (Q34). The system is made ready for it:
 
 - Tokens stay in one platform-neutral JSON file that can generate values for iOS and Android as it does for CSS.
 - Components are specified here by behaviour and size, not by CSS.
@@ -278,4 +309,4 @@ No native app is built now ([section 12](12-phasing-and-decisions.md), D-5). The
 - `docs/design-tokens.json` changes values and renames brand tokens by role. `pnpm tokens` regenerates the CSS. The contrast list is rebuilt.
 - `docs/design-system.md` is rewritten once the accent is chosen.
 - `src/ui` gains the new components above. The sidebar layout, `StageTracker`, `StageMeter` and `StepIndicator` are replaced.
-- Fraunces is removed from `public/fonts`.
+- The wordmark becomes an image asset, so Fraunces is no longer loaded as a font.

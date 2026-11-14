@@ -41,11 +41,11 @@ These rules apply to every flow below and are not repeated in each.
 | 4 | **Rent and date** | "Rent a month" and "Available from" | Next | Both confirmed in step 2 |
 | 5 | **The home** | Type of home and bedrooms as taps. Bathrooms, furnishing, BER and parking offered, not required | Next | Confirmed in step 2 |
 | 6 | **Photos** | A drop area and "Choose photos". Uploaded photos as a grid to reorder. The first is the cover | Next (or "Skip for now") | Photos were attached in step 1 |
-| 7 | **Who it suits** | The four criteria as rows, each off until tapped: move-in date, length of stay, most people, pets | Next (or "No preferences") | Never |
+| 7 | **Letting details** | Four rows, each off until tapped: available from, length of stay, most people, pets. One house rule to switch on: no smoking indoors. A preview of the line renters will see | Next (or "Nothing to add") | Never |
 | 8 | **Has this home been let before?** | The rent check, one question per screen. Most people answer one to three | Next | Never |
-| 9 | **Ready to go live** | The renter's view of the home, one line on what Gaff will now do, and anything still held (an agency being confirmed) | Start taking enquiries | Never |
+| 9 | **Ready to go live** | The home's page as renters will see it, and "On gaff.ie" with "Change". Anything still to do first, each asked once: a number renters can call (agencies); "Confirm it's you" (private landlords) | Start taking enquiries | Never |
 
-After step 9 the user lands on the letting's page. If their enquiries aren't yet forwarded to Gaff, the page's one task is "Send your enquiries to Gaff" (see [Forwarding enquiries](#forwarding-enquiries)).
+After step 9 one more screen asks a single question: "Is it advertised anywhere else?" with Daft, MyHome and No as choices. Daft or MyHome leads to [Forwarding enquiries](#forwarding-enquiries), if it isn't already set up. Then the user lands on the letting's page.
 
 **UX-LT-1.** Adding a letting starts with one input that accepts pasted text, typed description, and attached files (PDF, Word, images). There is one primary button. `[P7, P13, P2 · R1]`
 
@@ -57,27 +57,37 @@ After step 9 the user lands on the letting's page. If their enquiries aren't yet
 
 **UX-LT-5.** After the review, the user sees only the steps that still need an answer. A complete import goes from step 2 to step 7. `[P7, P3]`
 
-**UX-LT-6.** If pasted or uploaded text says who the home would suit ("professionals only", "no HAP", "would suit a working couple"), Gaff leaves that line out of the facts and says so once, on the review screen: "Gaff left out 1 line. Adverts can't say who a home suits. Why?" The link explains in three sentences. `[rule 3 · R2]`
+**UX-LT-6.** If pasted or uploaded text says who the home would suit ("professionals only", "no HAP", "would suit a working couple"), Gaff leaves that line out of the facts and the description, and says so once, on the review screen: "Gaff left out 1 line. Adverts can't say who a home suits. Why?" The link explains in three sentences. `[rule 3 · R2]`
 
 **UX-LT-7.** Text the user types or pastes is treated as information, never as instructions to the assistant. Names, phone numbers and email addresses are removed before text goes to the model. `[rule 7]`
 
-**UX-LT-8.** If the user pastes a Daft or MyHome link, Gaff keeps it to match enquiries to this home and does not fetch the page. The screen says: "Got it. Gaff will use this link to match enquiries. Paste the advert's text too, and Gaff will fill in the details." `[P7 · R6; see portal terms below]`
+**UX-LT-8.** If the user pastes a Daft or MyHome link, Gaff keeps it to match enquiries to this home and does not fetch the page: the portals' terms don't allow it (Q31). The screen says: "Got it. Gaff will use this link to match enquiries. Paste the advert's text too, and Gaff will fill in the details." `[P7 · R6, Q31]`
 
 **UX-LT-9.** The address step is one search field that accepts an Eircode or a typed address and returns the full postal address. A link, "Enter it myself", opens the manual fields. An address without an Eircode is accepted. `[P6, P7]`
 
-**UX-LT-10.** Photos are uploaded by drag and drop, by choosing files, or from a phone's library. Gaff stores its own copy, removes location and camera data, and resizes for display. Up to 30 photos. They can be reordered by dragging, and by "Move earlier" and "Move later" in each photo's menu. One line under the grid: "Only add photos you're allowed to use." `[P6, P10]`
+**UX-LT-10.** Photos are uploaded by drag and drop, by choosing files, or from a phone's library. Gaff stores its own copy, removes location and camera data, and resizes for display. Up to 30 photos. They can be reordered by dragging, and by "Move earlier" and "Move later" in each photo's menu. There is no warning line about rights: the terms cover it (Q46). `[P6, P10]`
 
-**UX-LT-11.** "Who it suits" offers only the four fixed criteria. Each is a row that's off until tapped, then asks for one value. There is no free text. Under the pets row: "Assistance dogs are always welcome." A link, "Why only these four?", explains in three sentences. `[rule 3 · R2]`
+**UX-LT-11.** "Letting details" offers only the four fixed criteria. Each is a row that's off until tapped, then asks for one value. There is no free text. One house rule can be switched on below them, "No smoking indoors": it's shown to renters and isn't used to rank anyone. The preview shows the line renters will see, such as "No pets (assistance dogs always welcome)". A link, "Why only these?", explains in three sentences. `[rule 3 · R2, Q36]`
 
 **UX-LT-12.** The rent check never asks for the rent again. It asks one question per screen, and asks a question only when an earlier answer makes it apply. A first-time letting is one tap. `[P2, P7 · R3]`
 
 **UX-LT-13.** The rent check's result is its own screen: either "You can set the rent at market level" or "The rent cap applies", with one sentence of why. If the asking rent is above what the rules allow, the screen's one action is to change the rent, in a field on that screen, with the most the rules allow shown. "About these rules" holds the detail and the rules version. `[P1, P3 · R3]`
 
-**UX-LT-14.** What a letting needs to go live is exactly: an address, a rent, an available-from date, a type and bedroom count, a finished rent check, and (for an agency) a confirmed agency. Nothing else blocks go-live. `[P8]`
+**UX-LT-14.** A letting needs exactly these to go live: an address, a rent, an available-from date, a type and bedroom count, a finished rent check, and a confirmed lister (an agency's confirmation, or a private landlord's verified identity). To be shown on Gaff it also needs a BER and one photo. Nothing else blocks go-live. `[P8 · Q47]`
 
 **UX-LT-15.** Going live is a person's decision, recorded as today (`confirm_setup`). `[rule 1 · R27]`
 
 **UX-LT-16.** A letting can also be started from an enquiry. When enquiries arrive for a home Gaff doesn't know, Today says "New enquiries for 12 Ranelagh Road. Set it up?" Accepting opens step 1 with the address and advert link filled in from the enquiry email. `[P7, P9 · R6]`
+
+### Showing the home on Gaff
+
+**UX-LT-21.** A home that goes live is shown on gaff.ie, where renters can find it and ask to view ([section 5](05-renter-owner-referee-flows.md#a-homes-page)). This is on unless the operator switches it off at the go-live step or later in Home. A home that isn't shown still runs on Gaff, taking enquiries from Daft and MyHome. `[P7 · Q27]`
+
+**UX-LT-22.** The home's page is made from what's already there: photos, address, rent, facts, letting details, the description and the BER. Going live asks for nothing extra except a missing BER or a first photo. `[P7, P8]`
+
+**UX-LT-23.** A home that was let through Gaff before can be let again in one step. "Let it again" opens the review screen with everything filled in from last time: photos, facts, letting details, and the last rent and its date for the rent check. The operator changes what's new and goes live. `[P7 · AJ2]`
+
+**UX-LT-24.** Any live letting has "Send a test enquiry" in its menu until its first real enquiry arrives. It shows the operator what a renter gets. `[P9]`
 
 ### What's deferred, and to when
 
@@ -86,20 +96,22 @@ After step 9 the user lands on the letting's page. If their enquiries aren't yet
 | Viewing times | Offered right after go-live, and prompted on Today once people have answered | Not needed for Gaff to reply to enquiries |
 | Owner's name and email | Prompted once after go-live. Required at the offer | Needed for the owner's approval |
 | Advert links | Read from the pasted advert or the first enquiry. Asked only if matching fails | Gaff can usually find them |
-| Three comparable rents | A task on the letting from go-live. Required before the offer is sent | The offer states the rent, and the tenant's rent pack needs them |
+| Three comparable rents | Gaff finds them if it can (Q41). Otherwise a task on the letting from go-live. Required before the offer is sent | The offer states the rent, and the tenant's rent pack needs them |
 | Where tenants pay | The payment step of the first tenancy | Not needed until money is requested |
+| A number renters can call | Agencies: once, at their first go-live. Private landlords: optional then, and required before they request payment | Renters can ring if they'd rather (Q43), and a tenant must be able to check bank details by phone |
 
 ### The import route, and portal terms
 
-Daft's and MyHome's terms restrict automated collection from their sites. Daft's advertiser terms say the advertiser owns the adverts they post. So an operator can give Gaff their own advert, but Gaff fetching it from the portal is a different act.
+Daft's and MyHome's terms restrict automated collection from their sites, so Gaff doesn't fetch adverts from them (Q31). Daft's advertiser terms say the advertiser owns the adverts they post, so an operator can give Gaff their own advert. Every route below is one of those two things: the operator handing over their own material, or Gaff reusing what it already holds.
 
-| Route | Phase | Status |
+| Route | In the MVP | Notes |
 | --- | --- | --- |
-| Paste the advert's text | 1 | Recommended. The operator copies their own words |
-| Upload a brochure, screenshots or photos | 1 | Recommended |
-| Describe the home in their own words | 1 | Recommended |
-| Start from the first forwarded enquiry | 1 | Recommended. The email was sent to the operator |
-| Paste a link and Gaff fetches the advert | Not before legal review | Flagged. Needs the solicitor's view, or permission from the portal ([section 12](12-phasing-and-decisions.md), OQ-6) |
+| Paste the advert's text | Yes | The operator copies their own words |
+| Upload a brochure, screenshots or photos | Yes | |
+| Describe the home in their own words | Yes | |
+| Start from the first forwarded enquiry | Yes | The email was sent to the operator |
+| Let a home again | Yes | Everything from the last time, to review (UX-LT-23) |
+| Paste a link and Gaff fetches the advert | No | Only with the portal's written permission |
 | A feed from the portal or the agent's software | Later | Needs a partnership |
 
 ### States
@@ -115,7 +127,7 @@ Daft's and MyHome's terms restrict automated collection from their sites. Daft's
 
 ## Forwarding enquiries
 
-Gaff does nothing until enquiries reach it. This is the step that most decides whether a new account gets any value, so it gets its own short flow, done once per account.
+A home shown on Gaff gets enquiries with no set-up at all. An operator who also advertises on Daft or MyHome sends those enquiries to Gaff with one forwarding rule. Most pilot operators will, so this short flow, done once per account, decides whether they see the product work.
 
 | # | Screen | Asks or shows | Primary action |
 | --- | --- | --- | --- |
@@ -130,7 +142,7 @@ Gaff does nothing until enquiries reach it. This is the step that most decides w
 
 **UX-LT-19.** The flow ends with a test enquiry the user can see answered. This is the product's first "it works" moment and is offered again from the setup checklist until done. `[P9, P14]`
 
-**UX-LT-20.** A letting that is live with no forwarding in place says so as its one task. It never sits silently waiting. `[P5]`
+**UX-LT-20.** A letting that's advertised on Daft or MyHome with no forwarding in place says so as its one task. It never sits silently waiting. `[P5]`
 
 ## A letting's page
 
@@ -172,7 +184,7 @@ The nine stages remain in the data and the record. People see four parts, becaus
 
 **UX-LP-4.** No fact appears twice on the page. `[P4]`
 
-**UX-LP-5.** The menu holds: Change the home's details; Share with the owner; Share with a colleague; History; Stop taking enquiries; Close this letting. `[P3]`
+**UX-LP-5.** The menu holds: See it on Gaff; Change the home's details; Share with the owner; Share with a colleague; History; Stop taking enquiries; Close this letting. A closed letting's menu has "Let it again". `[P3]`
 
 **UX-LP-6.** History is the full record (today's Timeline): every message, booking and decision, newest first, with a filter for decisions only. It opens from the menu and from "See everything" under What's happening. `[P3 · R27]`
 
@@ -206,15 +218,17 @@ The nine stages remain in the data and the record. People see four parts, becaus
 
 **UX-LP-10.** On a phone the list is cards. On a desktop it's a table with the same content. Neither scrolls sideways. `[P11]`
 
+**UX-LP-15.** People has one box: "Ask about who's enquired". An operator can type "Who can move in before Christmas?" and Gaff turns it into filter chips on the four answers. The same chips can be set by tapping. Asked about anything else, Gaff says: "Gaff can sort people only by what you asked everyone: move-in date, length of stay, number of people and pets." It never names a best person. `[P13 · rule 1, rule 3, Q36]`
+
 ### Home
 
-**UX-LP-11.** Home shows the home as renters see it, with "Change" on each part: photos, facts, who it suits, viewing times (which opens Calendar on this home), the rent check, comparable rents, where it's advertised, and the owner. `[P1]`
+**UX-LP-11.** Home shows the home as renters see it, with "Change" on each part: photos, description, facts, letting details, viewing times (which opens Calendar on this home), the rent check, comparable rents, where it's advertised (Gaff, Daft, MyHome), and the owner. `[P1]`
 
 **UX-LP-12.** Facts can be changed at any time; today they can't be edited after creation. A changed fact is used in answers from then on. `[P10 · R8]`
 
-**UX-LP-13.** Who it suits can be changed until invitations are sent. After that the page says why it's locked: "You've invited people on these, so they can't change now. That keeps it fair." `[rule 3 · R2]`
+**UX-LP-13.** Letting details can be changed until invitations are sent. After that the page says why they're locked: "You've invited people on these, so they can't change now. That keeps it fair." `[rule 3 · R2]`
 
-**UX-LP-14.** Comparable rents are entered one home at a time. The area and type start filled in from this home. The user types the rent, the bedrooms and, if they have it, the date. A button opens the RTB's register in a new tab. `[P7, P2 · R4]`
+**UX-LP-14.** If Gaff can read the RTB's Rent Register ([OQ-2](12-phasing-and-decisions.md#still-open)), it suggests three comparable homes and the operator confirms them. If it can't, they're entered one home at a time: the area and type start filled in from this home, and the user types the rent, the bedrooms and, if they have it, the date. A button opens the RTB's register in a new tab. `[P7, P2 · R4, Q41]`
 
 ## Viewings and the calendar
 
@@ -267,7 +281,7 @@ A line under the fields updates as they change: "4 places, Thursday 19 November,
 
 **UX-VW-7.** A new time that overlaps another viewing the same person leads shows a warning at the time fields. It doesn't block. `[P10]`
 
-**UX-VW-8.** Each viewing time has "Add to my calendar", which downloads a standard calendar file. Two-way sync with Google and Microsoft calendars follows in Phase 2. `[P6 · R31]`
+**UX-VW-8.** Each viewing time has "Add to my calendar", which downloads a standard calendar file. Two-way sync with Google and Microsoft calendars comes later. `[P6 · R31]`
 
 **UX-VW-9.** All dates and times are in Irish format and Irish time, as everywhere in Gaff. No screen uses the browser's built-in date or time control. `[P12]`
 
@@ -380,7 +394,7 @@ The letting's page shows one tenancy step at a time as its task. The full list o
 | --- | --- | --- | --- |
 | 1 | Send the agreement | The agreement, filled in from the offer, to read. "Use our own agreement" behind a link | The owner's name, if missing |
 | 2 | Sign the agreement | Appears when the tenant has signed. The agreement and one field to type a name. "We signed on paper" behind a link | Nothing |
-| 3 | Ask for the deposit and first month's rent | Amounts, a pay-by date and a reference, filled in | Where tenants pay: a name and an IBAN, with re-confirmation that it's them |
+| 3 | Ask for the deposit and first month's rent | Amounts, a pay-by date and a reference, filled in | Where tenants pay: a name and an IBAN, with re-confirmation that it's them. A number the tenant can ring, if there isn't one |
 | 4 | Mark the payment received | One button | Nothing |
 | 5 | Register with the RTB | Everything the RTB's form needs, in two columns, each value with a copy button; the deadline; a button to the RTB's site; then "I've registered it" | Nothing |
 | 6 | Hand over the keys | The move-in checklist and the inventory, room by room | Nothing |
@@ -420,7 +434,7 @@ Reached from the account menu. A list of rows, each opening one page with one sa
 | Where tenants pay | Name and IBAN. Shown once it's been set | Admins and private landlords |
 | Agreement | Gaff's standard agreement or your own | Admins and private landlords |
 | Team | Members and invites | Admins (agents can view) |
-| The agency | Name renters see, licence, confirmation status | Admins |
+| The agency | Name renters see, the number they can call, licence, confirmation status | Admins |
 
 **UX-ST-1.** Settings is a list of rows. Each opens a page with one subject and one save button. `[P2, P12]`
 

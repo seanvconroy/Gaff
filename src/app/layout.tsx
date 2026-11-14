@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import '@/styles/tokens.css';
 import '@/styles/fonts.css';
 import '@/styles/base.css';
+import { MapBoundary } from '@/ui/map/MapBoundary';
 import { TestCopyBanner } from '@/ui/TestCopyBanner';
 
 export const metadata: Metadata = {
@@ -37,6 +38,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         {process.env.GAFF_ENV === 'staging' ? <TestCopyBanner /> : null}
+        {/* ADR-0027: a page with Google's map is always entered, and left, with a new document. */}
+        <MapBoundary />
         {children}
       </body>
     </html>

@@ -100,6 +100,48 @@ describe('M103: no third-party advertising or tracking', () => {
     expect(loader).toMatch(/disableUsageAttribution\b/);
   });
 
+  it('M119: the build that gives the map’s pages Google’s policy also makes them documents of their own', async () => {
+    // Google's script runs only in a document loaded for a map page, and goes when the page
+    // does: one build setting decides the header rules and the full page loads between them.
+    const built = async (settings: Record<string, string>) => {
+      vi.stubEnv('NODE_ENV', 'production');
+      for (const [key, value] of Object.entries(settings)) vi.stubEnv(key, value);
+      vi.resetModules();
+      try {
+        const config = (await import('../../next.config')).default;
+        return config.env?.NEXT_PUBLIC_GOOGLE_MAP_PAGES;
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    };
+    expect(await built({ MAP_PROVIDER: 'google' })).toBe('1');
+    expect(await built({ MAP_PROVIDER: 'google', VERCEL_ENV: 'preview' })).toBe('');
+    expect(await built({ MAP_PROVIDER: 'static' })).toBe('');
+    expect(await built({ MAP_PROVIDER: 'none' })).toBe('');
+    // The header rules name the map's pages from the same list the pages' scripts use.
+    const { mapPageSources } = await import('../../src/lib/map-pages');
+    const policies = await productionPolicies({ MAP_PROVIDER: 'google' });
+    expect(policies.slice(1).map((p) => p.source)).toEqual([...mapPageSources]);
+    // The boundary is in the root layout, so it's there on every page.
+    expect(readFileSync('src/app/layout.tsx', 'utf8')).toMatch(/<MapBoundary \/>/);
+  });
+
+  it('M119: Google’s map is used only on the map’s pages', () => {
+    // A map anywhere else would have Google's script refused: add the page to
+    // src/lib/map-pages.ts first, and to the privacy notice.
+    const mapPages = [
+      join('src', 'app', '(public)', 'to-rent'),
+      join('src', 'app', '(workspace)', 'lettings', '[lettingId]', 'listing'),
+    ];
+    const users = sourceFiles(join('src', 'app')).filter((file) =>
+      /from '@\/ui\/map\/(GoogleLoader|GooglePinMap|PinPicker)'|from '.*\/(SearchMap|GoogleMap)'/.test(
+        readFileSync(file, 'utf8'),
+      ),
+    );
+    expect(users.length).toBeGreaterThan(1);
+    expect(users.filter((file) => !mapPages.some((page) => file.startsWith(page)))).toEqual([]);
+  });
+
   it('M132: a preview copy keeps the policy without Google, whatever its settings say', async () => {
     const policies = await productionPolicies({ MAP_PROVIDER: 'google', VERCEL_ENV: 'preview' });
     expect(policies.map((p) => p.source)).toEqual(['/:path*']);

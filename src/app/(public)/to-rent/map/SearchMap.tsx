@@ -22,6 +22,7 @@ import { areaPath, baseArea } from '@/domain/search/places';
 import { readBBox, searchQuery, writeBBox } from '@/domain/search/url';
 import type { MapSettings } from '@/lib/map';
 import { countMap, openKind } from '@/ui/map/count';
+import { reloading } from '@/ui/map/MapBoundary';
 import { usePageScheme } from '@/ui/map/useScheme';
 import { useSearchNavigation } from '../navigation';
 import { hrefFor, type ClientSearch } from '../state';
@@ -117,6 +118,8 @@ export function SearchMap({ settings, search }: { settings: MapSettings; search:
       if (!entries.some((entry) => entry.isIntersecting)) return;
       observer.disconnect();
       cancel = whenQuiet(() => {
+        // A page swapped in from one without the map loads again first (MapBoundary).
+        if (reloading()) return;
         setStage('loading');
         countMap('opened', openKind());
       });

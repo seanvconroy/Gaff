@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { mapPageSources } from './src/lib/map-pages';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -41,10 +42,11 @@ const storageOrigin = process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_UR
 // page's own. Every other page keeps the policy without Google, and every page, these included,
 // keeps `Referrer-Policy: no-referrer`: Google's script is told the site's origin and nothing
 // more (auth_referrer_policy=origin, src/ui/map/GoogleLoader.tsx).
+// A policy comes with its document, so going between these pages and any other is a full page
+// load (src/lib/map-pages.ts, src/ui/map/MapBoundary.tsx): the same build setting turns that on.
 // Preview copies show the stand-in map (src/lib/env.ts), so they keep the policy without Google.
 const googleMaps = process.env.MAP_PROVIDER === 'google' && process.env.VERCEL_ENV !== 'preview';
 const google = 'https://*.googleapis.com https://*.gstatic.com *.google.com';
-const mapPages = ['/to-rent/:path*', '/lettings/:lettingId/listing'];
 
 function contentSecurityPolicy(maps: boolean): string {
   const join = (...parts: string[]) => parts.filter(Boolean).join(' ');
@@ -76,6 +78,8 @@ const nextConfig: NextConfig = {
   // R25: inventory photos are uploaded through a server action, each under 4 MB, inside
   // Vercel's 4.5 MB limit for a whole request (ADR-0014).
   experimental: { serverActions: { bodySizeLimit: '4.5mb' } },
+  // Built into the pages' scripts, so they know which policy this build's documents carry.
+  env: { NEXT_PUBLIC_GOOGLE_MAP_PAGES: googleMaps ? '1' : '' },
   async headers() {
     const headers = isProduction
       ? [
@@ -87,7 +91,7 @@ const nextConfig: NextConfig = {
     // The later rule wins for the same header, so the map's pages get the map's policy.
     const withMap =
       isProduction && googleMaps
-        ? mapPages.map((source) => ({
+        ? mapPageSources.map((source) => ({
             source,
             headers: [{ key: 'Content-Security-Policy', value: contentSecurityPolicy(true) }],
           }))

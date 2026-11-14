@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
+import { openPage } from '@/ui/map/MapBoundary';
 import styles from '../search.module.css';
 
 export interface CarouselPhoto {
@@ -56,7 +57,8 @@ export function PhotoCarousel({
           const el = event.currentTarget;
           setIndex(Math.round(el.scrollLeft / Math.max(1, el.clientWidth)));
         }}
-        onClick={() => router.push(href)}
+        // The home's page has no map: it opens in a document of its own (MapBoundary).
+        onClick={() => openPage(router, href)}
       >
         {photos.map((photo, i) => (
           <li key={photo.src} className={styles.stripItem}>

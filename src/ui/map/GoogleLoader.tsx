@@ -5,6 +5,7 @@ import { APIProvider, useApiIsLoaded, useMap } from '@vis.gl/react-google-maps';
 import { useCallback, useEffect, type ReactNode } from 'react';
 import type { MapFailure } from '@/domain/map/counts';
 import type { MapSettings } from '@/lib/map';
+import { documentShowsMaps, reloading } from './MapBoundary';
 
 /**
  * ADR-0027: loads Google's Maps JavaScript API, and notices every way it can fail (M120), so
@@ -19,6 +20,9 @@ import type { MapSettings } from '@/lib/map';
  *
  * Google is told only the site's origin when it authorises the key (`auth_referrer_policy`),
  * never the page's address: the address names the place a renter searched (M119).
+ *
+ * The script is asked for only in a document loaded for a page that shows the map: any other
+ * document's content security policy would refuse it (MapBoundary).
  */
 
 export type GoogleSettings = Extract<MapSettings, { provider: 'google' }>;
@@ -63,6 +67,14 @@ export function GoogleLoader({
     };
   }, [onFailed]);
   const onError = useCallback(() => onFailed('script'), [onFailed]);
+  // A page swapped in from one without the map is about to load again, with its own document:
+  // nothing is asked of Google until then. A map on a page that isn't one of the map's pages
+  // (src/lib/map-pages.ts) can't load at all, and says so.
+  const allowed = documentShowsMaps();
+  useEffect(() => {
+    if (!allowed && !reloading()) onFailed('script');
+  }, [allowed, onFailed]);
+  if (!allowed) return null;
   return (
     <APIProvider
       apiKey={settings.apiKey}

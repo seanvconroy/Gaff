@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { mapEnv } from '../../playwright.google.config';
+import { isMapPage } from '../../src/lib/map-pages';
 import {
   createLettingThroughUi,
   expectAccessible,
@@ -46,14 +47,23 @@ test('M136: this is the map’s build: only the map’s pages let Google in, and
   // The listing editor, where a letter places a home's pin (M38), has the same policy.
   const editor = await headersOf('/lettings/00000000-0000-4000-8000-000000000000/listing');
   expect(editor.policy).toBe(search.policy);
-  for (const path of ['/', '/sign-in', '/lettings', '/map-and-place-data']) {
-    const other = await headersOf(path);
-    expect(other.policy, path).toContain("default-src 'self'");
-    expect(other.policy, path).not.toMatch(/google|gstatic/);
-    expect(other.referrer, path).toBe('no-referrer');
+  // The pages the header rules name are the pages the scripts treat as the map's (M119).
+  for (const path of [
+    '/to-rent',
+    '/to-rent/dublin/rathmines',
+    '/lettings/00000000-0000-4000-8000-000000000000/listing',
+    '/',
+    '/sign-in',
+    '/lettings',
+    '/lettings/00000000-0000-4000-8000-000000000000/enquiries',
+    '/home/no-such-home',
+    '/map-and-place-data',
+  ]) {
+    const page = await headersOf(path);
+    expect(page.policy, path).toContain("default-src 'self'");
+    expect(/google|gstatic/.test(page.policy), path).toBe(isMapPage(path));
+    expect(page.referrer, path).toBe('no-referrer');
   }
-  expect(search.referrer).toBe('no-referrer');
-  expect(editor.referrer).toBe('no-referrer');
 });
 
 test.describe('on a phone', () => {

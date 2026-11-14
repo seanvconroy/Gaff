@@ -1,0 +1,105 @@
+name: The real map
+
+# M136: Google's real map, in a production build (playwright.google.config.ts, tests/google).
+# - Every night, on the quarterly channel (what production loads) and the weekly one (what the
+#   next quarter will bring).
+# - By hand from the Actions tab, before a release that changes the map.
+# - When a push changes the map's code or these tests: the quarterly channel only.
+#
+# The tests of the map itself need the test run's own key (docs/deploy.md, "The search map"):
+# the GOOGLE_MAPS_TEST_KEY secret, restricted to http://localhost:3100 and to the Maps JavaScript
+# API, with a daily cap of 100 map loads. Without it they're skipped, and the run says so. The
+# other tests need no key: nothing leaves for Google before the map is wanted, every way the map
+# can fail ends in Gaff's sentence, and the map's pages are entered and left with new documents.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 03:23 UTC, every night.
+    - cron: '23 3 * * *'
+  push:
+    paths:
+      - .github/workflows/map.yml
+      - playwright.google.config.ts
+      - tests/google/**
+      - next.config.ts
+      - src/lib/map.ts
+      - src/lib/map-pages.ts
+      - src/ui/map/**
+      - src/domain/map/**
+      - src/app/(public)/to-rent/map/**
+      - src/app/(workspace)/lettings/*/listing/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: map-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  map:
+    name: Google's map (${{ matrix.channel }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: ${{ fromJSON(github.event_name == 'push' && '["quarterly"]' || '["quarterly","weekly"]') }}
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Synthetic data only. The app role is not a superuser, so row-level security applies.
+      E2E_DATABASE_URL: postgres://gaff:gaff@localhost:5432/gaff_e2e
+      NEXT_TELEMETRY_DISABLED: '1'
+      GOOGLE_MAPS_VERSION: ${{ matrix.channel }}
+      # A browser key: it's in every page that shows the map, so its restrictions and its cap
+      # are what protect it. It's a secret here so that logs don't print it.
+      GOOGLE_MAPS_TEST_KEY: ${{ secrets.GOOGLE_MAPS_TEST_KEY }}
+      GOOGLE_MAPS_TEST_MAP_ID: ${{ vars.GOOGLE_MAPS_TEST_MAP_ID }}
+      GOOGLE_MAPS_TEST_MAP_ID_DARK: ${{ vars.GOOGLE_MAPS_TEST_MAP_ID_DARK }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Create the app database role
+        run: psql postgres://postgres:postgres@localhost:5432/postgres -c "create role gaff login password 'gaff' createdb nosuperuser nobypassrls"
+      - run: pnpm build:map
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Say whether this run has its key
+        run: |
+          if [ -z "$GOOGLE_MAPS_TEST_KEY" ]; then
+            echo "::warning title=No Google key::GOOGLE_MAPS_TEST_KEY isn't set, so the tests of the map itself are skipped. Only the tests that need no key ran (docs/deploy.md, The search map)."
+          fi
+      - run: pnpm test:map
+      # For a person to look over: they aren't compared, because Google's map changes.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: map-screenshots-${{ matrix.channel }}
+          path: screenshots/google/
+          if-no-files-found: ignore
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: map-report-${{ matrix.channel }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

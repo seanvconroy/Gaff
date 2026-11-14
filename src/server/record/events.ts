@@ -298,6 +298,13 @@ export const eventCatalogue = {
     role: z.enum(['admin', 'negotiator']),
   }),
   'member.removed': z.object({ role: z.enum(['admin', 'negotiator']) }),
+  /** AU9, AU10: an invitation was sent again or cancelled; a colleague's role was changed. */
+  'member.invitation_resent': z.object({
+    invitationId: z.uuid(),
+    role: z.enum(['admin', 'negotiator']),
+  }),
+  'member.invitation_cancelled': z.object({ invitationId: z.uuid() }),
+  'member.role_changed': z.object({ role: z.enum(['admin', 'negotiator']) }),
   /** M17, M18: the public profile of the organisation, or a member's own, changed. */
   'profile.updated': z.object({ whose: z.enum(['organisation', 'member']) }),
   /** M48 to M52: a listing was published, held for review, changed status or was confirmed. */

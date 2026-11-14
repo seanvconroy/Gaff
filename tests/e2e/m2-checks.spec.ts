@@ -64,8 +64,9 @@ test('M16, M18, M23, M105: an agency invites an agent, and Gaff staff check both
     agent.getByRole('heading', { name: 'Join Larkspur Lettings on Gaff' }),
   ).toBeVisible();
   await expectAccessible(agent);
-  await agent.getByLabel('Your email address').fill(agentEmail);
-  await agent.getByRole('button', { name: 'Email me a code instead' }).click();
+  // AU9: the invitation is for the address it was sent to, so that's already filled in.
+  await expect(agent.getByLabel('Your email address')).toHaveValue(agentEmail);
+  await agent.getByRole('button', { name: 'Email me a code' }).click();
   await enterEmailedCode(agent, agentEmail);
   await agent.getByRole('button', { name: 'Join Larkspur Lettings' }).click();
   await expect(agent.getByRole('heading', { name: 'Profile' })).toBeVisible();

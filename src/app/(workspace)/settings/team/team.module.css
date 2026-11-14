@@ -1,0 +1,6 @@
+/* What an admin can do for a row: buttons side by side, wrapping on a narrow screen. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+}

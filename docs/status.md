@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 7 November 2026 (UX review and redesign across every flow, on A4, Navy and Atlantic).
+Last updated: 14 November 2026 (UX redesign PRD drafted for the founders; no code changed).
 
 ## Done
 
@@ -79,6 +79,7 @@ Last updated: 7 November 2026 (UX review and redesign across every flow, on A4, 
 
 ## Next
 
+- **UX redesign PRD (draft, for the founders to decide):** [ux-redesign/](ux-redesign/README.md). It answers the founder's feedback on the 13 November screens: a person-first account model and new sign-in, four destinations with Today as home, adding a letting by pasting the advert, a calendar for viewings, a three-block letting page, matching within the fair-letting rules, a new design-system direction, and Phase 1 split into 21 work packages. Nothing is built from it until the scope decisions and open questions in [section 12](ux-redesign/12-phasing-and-decisions.md) are answered. `prd.md` stays the source of truth until then.
 - **Deploy the test copy** on Vercel and Supabase ([deploy.md](deploy.md), about 20 minutes).
 - **Your end-to-end test** (see [testing-guide.md](testing-guide.md)), then feedback and iteration.
 - **Before the first pilot:** everything in [launch-checklist.md](launch-checklist.md), including the providers for ID and income checks (stand-ins today) and the solicitor’s answers on electronic signing (Q23) and the agreement wording.

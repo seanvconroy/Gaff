@@ -46,12 +46,15 @@
     grid-template-columns: minmax(0, 58fr) minmax(0, 42fr);
   }
 
+  /* M136: the whole map fits the first screen, with the map provider's logo and terms along
+     its bottom edge. It starts below the page's header and the search bar, then sticks under
+     the bar as the header scrolls away. */
   .layout[data-map] .mapColumn {
     position: sticky;
     top: calc(var(--space-16) + var(--space-8));
     display: block;
     align-self: start;
-    height: calc(100vh - var(--space-16) - var(--space-16));
+    height: calc(100vh - var(--space-16) - var(--space-16) - var(--space-12));
   }
 }
 

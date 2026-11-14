@@ -86,6 +86,17 @@ export async function sendAKeyGoogleRefuses(page: Page): Promise<void> {
 }
 
 /**
+ * Google's answer about the key is held back. It comes with the first call for the map's
+ * viewport, so the map and Gaff's pins are up before Google refuses and takes its map apart.
+ */
+export async function holdGooglesAnswer(page: Page, ms: number): Promise<void> {
+  await page.route(/MapsJsInternalService\/GetViewportInfo/, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+    await route.continue().catch(() => undefined);
+  });
+}
+
+/**
  * No key reaches Google, which then draws its development-mode map: darkened tiles under its
  * own dialog. It's what Google shows a site with no billing, and it calls no hook.
  */
@@ -150,37 +161,41 @@ export async function pinsInMap(page: Page): Promise<Record<string, { x: number;
 
 /**
  * M136: Google's logo and its terms line are on screen, and nothing of Gaff's covers them
- * (Google's terms for showing its map).
+ * (Google's terms for showing its map). Google draws them a moment after the map itself, so
+ * this waits for them.
  */
 export async function expectAttributionClear(page: Page, within: Locator): Promise<void> {
-  const found = await within.evaluate((root) => {
-    const marks = [
-      ...root.querySelectorAll<HTMLElement>(
-        'a[href*="maps.google.com/maps"], a[href*="google.com/intl"][href*="terms"]',
-      ),
-    ];
-    const seen: string[] = [];
-    const problems: string[] = [];
-    for (const mark of marks) {
-      const rect = mark.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) continue;
-      const name = mark.getAttribute('aria-label') || mark.textContent?.trim() || 'Google';
-      seen.push(name);
-      const x = rect.x + rect.width / 2;
-      const y = rect.y + rect.height / 2;
-      if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) {
-        problems.push(`${name}: off the screen`);
-        continue;
+  await expect(async () => {
+    const found = await within.evaluate((root) => {
+      const marks = [
+        ...root.querySelectorAll<HTMLElement>(
+          'a[href*="maps.google.com/maps"], a[href*="google.com/intl"][href*="terms"]',
+        ),
+      ];
+      const seen: string[] = [];
+      const problems: string[] = [];
+      for (const mark of marks) {
+        const rect = mark.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) continue;
+        const name = mark.getAttribute('aria-label') || mark.textContent?.trim() || 'Google';
+        seen.push(name);
+        if (rect.left < 0 || rect.top < 0 || rect.right > innerWidth || rect.bottom > innerHeight) {
+          problems.push(`${name}: off the screen`);
+          continue;
+        }
+        const top = document.elementFromPoint(
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2,
+        );
+        if (!top || !(mark.contains(top) || top.contains(mark) || top.closest('.gm-style'))) {
+          problems.push(`${name}: under ${top?.tagName.toLowerCase()}.${top?.className}`);
+        }
       }
-      const top = document.elementFromPoint(x, y);
-      if (!top || !(mark.contains(top) || top.contains(mark) || top.closest('.gm-style'))) {
-        problems.push(`${name}: under ${top?.tagName.toLowerCase()}.${top?.className}`);
-      }
-    }
-    return { seen, problems };
-  });
-  expect(found.seen.length, 'Google’s logo and terms').toBeGreaterThanOrEqual(2);
-  expect(found.problems, 'Google’s attribution is covered').toEqual([]);
+      return { seen, problems };
+    });
+    expect(found.seen.length, 'Google’s logo and terms').toBeGreaterThanOrEqual(2);
+    expect(found.problems, 'Google’s attribution is covered').toEqual([]);
+  }).toPass({ timeout: 10_000 });
 }
 
 /**

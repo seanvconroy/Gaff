@@ -5,6 +5,7 @@ import {
   saysVerified,
   type SocialProvider,
 } from '@/domain/auth/email-authority';
+import { recordAccountEvent } from './account-events';
 import type { HookContext } from './hook-context';
 import { dropPendingSignUp } from './pending-sign-up';
 
@@ -61,6 +62,18 @@ interface IdentityCheck {
 }
 
 /**
+ * AU16: a provider sign-in that couldn't be joined to an account is counted, with the provider
+ * and nothing about the person, so the founders can see how often the rule gets in the way.
+ */
+async function notJoined(provider: SocialProvider, error: string): Promise<{ error: string }> {
+  await recordAccountEvent('account.sign_in_failed', null, {
+    method: provider,
+    reason: 'not_joined',
+  });
+  return { error };
+}
+
+/**
  * Better Auth asks this before it makes an account, joins a provider to one, or signs a
  * connected person in. The answer is a code for the sign-in page to put into words
  * (src/domain/auth/sign-in-problems).
@@ -76,12 +89,12 @@ export async function checkProviderIdentity(
   if (source.action === 'sign-in') return;
 
   const claims = claimsOf(source.oauth?.profile);
-  if (!saysVerified(claims)) return { error: 'email_not_verified' };
+  if (!saysVerified(claims)) return notJoined(provider, 'email_not_verified');
   if (hostsThisEmail(provider, claims)) return;
 
-  if (source.action === 'create-user') return { error: 'confirm_email_first' };
+  if (source.action === 'create-user') return notJoined(provider, 'confirm_email_first');
   // Joining an account the provider can't vouch for: only for the person signed in to it.
   const session = await getSessionFromCtx(ctx).catch(() => null);
   if (session?.user.id && session.user.id === user.id) return;
-  return { error: 'account_not_linked' };
+  return notJoined(provider, 'account_not_linked');
 }

@@ -137,7 +137,30 @@ describe('AU1, AU3: signing in with Google or Apple', () => {
   });
 });
 
+/** AU16: how many provider sign-ins couldn't be joined to an account. They name nobody. */
+async function notJoinedCount(provider: 'google' | 'apple'): Promise<number> {
+  const rows = await withSystem((tx) =>
+    tx
+      .select({ data: platformEvents.data, subjectId: platformEvents.subjectId })
+      .from(platformEvents)
+      .where(eq(platformEvents.type, 'account.sign_in_failed')),
+  );
+  const matching = rows.filter(
+    (row) =>
+      (row.data as { reason?: string; method?: string }).reason === 'not_joined' &&
+      (row.data as { method?: string }).method === provider,
+  );
+  expect(matching.every((row) => row.subjectId === null)).toBe(true);
+  return matching.length;
+}
+
 describe('AU4: one person, one account, and never joined on a guess', () => {
+  it('AU16: counts a sign-in that couldn’t be joined, by provider, naming nobody', async () => {
+    const before = await notJoinedCount('google');
+    expect((await continueWith('google', { email: work() })).error).toBe('confirm_email_first');
+    expect(await notJoinedCount('google')).toBeGreaterThan(before);
+  });
+
   it('asks for a code first when the provider doesn’t host a new address', async () => {
     // A Google account made with a work address that Google doesn't run, and an Apple ID that's
     // a Gmail address: each provider checked the address once, and can't say whose it is now.

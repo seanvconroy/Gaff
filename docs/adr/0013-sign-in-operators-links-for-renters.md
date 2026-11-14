@@ -1,6 +1,6 @@
 # ADR-0013: Operators sign in by email link; renters and landlords use private links
 
-- Status: Accepted
+- Status: Accepted The email link for operators was replaced by [ADR-0028](0028-sign-in-methods.md) on 14 November 2026; private links for renters and landlords are unchanged.
 - Date: 2026-10-31
 
 ## Context

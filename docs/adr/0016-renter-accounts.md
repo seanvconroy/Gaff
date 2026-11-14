@@ -1,6 +1,6 @@
 # ADR-0016: Renter accounts, alongside private links
 
-- Status: Accepted (amends ADR-0013)
+- Status: Accepted (amends ADR-0013). The ways to sign in were widened by [ADR-0028](0028-sign-in-methods.md) on 14 November 2026: a password, a passkey, Google and Apple as well as a code, and no sign-in links.
 - Date: 2026-11-07
 
 ## Context

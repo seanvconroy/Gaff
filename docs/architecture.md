@@ -70,7 +70,7 @@ The web framework, the email provider and the AI provider can each be swapped wi
 | Validation and dates | Zod for every input; date-fns with Europe/Dublin | [0001](adr/0001-modular-monolith-typescript-nextjs.md) |
 | Testing | Vitest, real Postgres, Playwright with axe, compliance suite, AI evals | [0012](adr/0012-testing-and-ci.md) |
 | CI | GitHub Actions; synthetic data only | [0012](adr/0012-testing-and-ci.md) |
-| Sign-in | Operators: email link (Better Auth, data in our DB). Renters and landlords: private links, no accounts | [0013](adr/0013-sign-in-operators-links-for-renters.md) |
+| Sign-in | One account per person. Google, Apple, a password, a passkey or a 6-digit code by email (Better Auth, data in our DB), with Gaff's own limiter and rules for joining them to one account. Private links for renters and landlords need no account | [0013](adr/0013-sign-in-operators-links-for-renters.md), [0016](adr/0016-renter-accounts.md), [0028](adr/0028-sign-in-methods.md) |
 
 ## Where the PRD's rules live
 
@@ -100,7 +100,8 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 | Table | Holds | Personal data? |
 | --- | --- | --- |
 | `organisations` | Agency or portfolio landlord: name, kind, PSRA licence number (agencies), Gaff inbound address, sending identity, approve-before-send flag, pilot baselines | No |
-| `users`, `sessions`, `memberships` | Operator accounts (Better Auth tables) and their role in an organisation (admin or negotiator) | Operator staff |
+| `users`, `sessions`, `accounts`, `passkeys`, `memberships` | Accounts (Better Auth tables): each way in, with a passkey's public half only and no Google or Apple tokens; and a person's role in an organisation (admin or negotiator) | Account holders |
+| `auth_limits` | The sign-in limiter's counters, keyed by a hash | No |
 | `landlords` | Owner's name and contact details, when an agent lets for them | Yes |
 | `lettings` | Address, rent, available from, key facts, photos link, advert links, criteria (typed), stage, status | No |
 | `letting_facts` | Facts the AI may answer from, each with an ID: set-up facts and operator answers | No (screened) |
@@ -255,5 +256,5 @@ Chosen by the CTO on 31 October 2026; hosting and email changed on 1 November 20
 | AI | Claude on Amazon Bedrock, EU geographic routing | Keeps prompts and outputs in EU regions; Anthropic's own API currently offers global or US-only processing | The model is offered in the EU profile; Bedrock DPA; invocation logging off |
 | Email in and out | Resend (Mailgun EU as an alternative) | The founders already use it; sends and receives with signed webhooks | DPA; Data Privacy Framework (data stored in the US); DKIM and SPF on our domains; open and click tracking off |
 | SMS | Sinch, EU region | EU company (it owns Mailgun), EU API region | DPA; Irish sender ID rules; price |
-| Operator sign-in | Better Auth (a library, not a service) | Accounts stay in our database; no third-party identity provider | None: open source, runs inside Gaff |
+| Sign-in | Better Auth and its passkey package (libraries, not services) | Accounts stay in our database. Google and Apple only confirm who someone is, once approved (Q64) | None for the libraries: open source, run inside Gaff |
 | CI | GitHub Actions | Already where the repo lives | Synthetic data only, so no personal data |

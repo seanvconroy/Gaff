@@ -182,13 +182,13 @@ Anyone can report a listing from its page, without an account, and Gaff acknowle
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| M1 | One account per person, for renting, letting or both. Sign in with a one-time code or link sent by email. No passwords | Must |
+| M1 | One account per person, for renting, letting or both. Sign in with a one-time code or link sent by email. No passwords. *Amended on 14 November 2026 ([sign-in PRD](../auth-prd.md), Q63): a password, a passkey, Google and Apple are ways in too, and a code by email always works* | Must |
 | M2 | Renters can enquire without signing up first: confirming their email with a 6-digit code in the enquiry sheet creates the account | Must |
 | M3 | Letters confirm a mobile number by SMS code before their first listing goes live. Renters can add a mobile for viewing reminders; it's optional (Q12) | Must |
 | M4 | Renters who came through Daft or MyHome can save their applications to an account from any Gaff message or page, after confirming the same email | Must |
-| M5 | Gaff staff sign in with a passkey | Must |
-| M6 | Anyone can add a passkey for quicker sign-in | Should |
-| M7 | Sign in with Apple or Google (each needs approval as an identity provider, rule 10) | Later |
+| M5 | Gaff staff sign in with a passkey. *Built on 14 November 2026: required in production (Q73)* | Must |
+| M6 | Anyone can add a passkey for quicker sign-in. *Built on 14 November 2026 (AU6)* | Should |
+| M7 | Sign in with Apple or Google (each needs approval as an identity provider, rule 10). *Built on 14 November 2026, and off until approved (Q64)* | Later |
 
 ### B. The renter's profile
 

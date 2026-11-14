@@ -11,6 +11,7 @@ Gaff is where homes in Ireland are let. Letters (private landlords, and agents w
 - **Before the first pilot:** `docs/launch-checklist.md`.
 - **Competitor teardowns:** `docs/competitors/` (reference only).
 - **Marketplace (approved 7 November 2026):** `docs/marketplace/prd.md` (requirement IDs M1, M2…) and `docs/marketplace/tech-spec.md`. The product rules below apply to it in full.
+- **Sign-in and accounts (built 14 November 2026):** `docs/auth-prd.md` (requirement IDs AU1, AU2…) and `docs/auth-tech-spec.md`, with ADR-0028: Google, Apple, a password, a passkey or a code by email, on one account. The calls to revisit are Q62 to Q74.
 - **Replacing the stand-ins (draft, 8 November 2026):** `docs/providers/prd.md` (requirement IDs P1, P2…) and `docs/providers/tech-spec.md`: the real AI, identity checks for everyone, and work and income documents for chosen renters.
 
 ## Product rules: never break these
@@ -57,6 +58,10 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
     - later, Tink, for an optional read-only "Confirm with your bank", with TrueLayer as the backup (Q39, Q56);
     - later, Stripe, only to charge operators.
 
+    Built, and off until the founders approve them (Q64, Q65, ADR-0028). Don't turn them on, or treat them as approved, before then:
+    - Google and Apple, only to sign people in. They pass Gaff a name and an email; Gaff sends them nothing about lettings and keeps no tokens or photos;
+    - Have I Been Pwned's Pwned Passwords, to refuse breached passwords. It receives 5 characters of a hash of the password, and no personal data.
+
 ## Voice: every word renters see
 
 - Plain, warm Irish English. Short sentences. No jargon, no exclamation marks, no blame.
@@ -76,6 +81,7 @@ A TypeScript modular monolith: one Next.js app on Vercel (Dublin) and one Postgr
 - `src/app/`: Next.js routes, kept thin. Workspace pages are in `(workspace)`, renter pages in `r/[token]` and landlord pages in `l/[token]`.
 - `src/jobs/`: background tasks (graphile-worker), the local worker, and the time-boxed runner used by the cron tick.
 - `src/ports/` and `src/adapters/`: email, SMS and AI behind interfaces. There are local stand-ins (dev outbox, fake SMS, fake AI) and real EU providers.
+- `src/server/auth/`: sign-in, with Better Auth. Gaff's limiter, password rules and rules for joining Google or Apple to an account run as hooks around it, so they apply however it's called (ADR-0028). Pages call `flows.ts` and `security.ts`, not the library. Locally, a stand-in page plays Google and Apple.
 - `src/db/`: Drizzle schema and migrations.
   - Every tenant table has `organisation_id` and the `tenantPolicy()` row-level security policy.
   - Reach tenant data only through `withOrg()`. Use `withSystem()` only for cross-organisation jobs.
@@ -113,7 +119,7 @@ Local set-up uses Postgres 16 with a non-superuser `gaff` role, so row-level sec
 cp .env.example .env   # then set AUTH_SECRET
 pnpm install
 pnpm db:migrate        # apply migrations (also forces RLS, installs the job queue)
-pnpm dev               # http://localhost:3000; sign-in links appear at /dev/outbox
+pnpm dev               # http://localhost:3000; sign-in codes appear at /dev/outbox
 pnpm worker            # background jobs
 ```
 

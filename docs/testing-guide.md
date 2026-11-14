@@ -41,7 +41,7 @@ If you want a second renter account, use a "+" address, like `you+renter@gmail.c
 
 1. Open https://gaff-test.vercel.app. You land on **homes to rent**. Type a place, a street or a landmark, such as `Dublin 6`, `Kinsale`, `Highfield Road` or `UCD`, and choose a suggestion.
 2. Try Rent, Beds and Move in, then **Filters** for the rest, and the order (cheapest, newest). On a phone, **Map** shows the homes on a map. Open a home: photos, facts, the map area, who's letting it and what Gaff has checked about them.
-3. **Save** a home, and press **Save search** to get alerts. You'll need to sign in: Gaff emails you a link.
+3. **Save** a home, and press **Save search** to get alerts. You'll need to sign in: choose **Email me a code instead**, and Gaff emails you a 6-digit code.
 4. **Enquire** about a home: your name and email, then the 6-digit code Gaff emails you, then the letter's questions and a message. Ask something the facts answer, like "Is there parking?" or "When are the bins collected?".
 5. Within a minute, the AI's first reply arrives **by email** and in **Your homes**. It says it's an AI assistant and how to reach a person.
 6. Look at **Your homes**, **Saved**, **Alerts** and **Who has my details**. Withdraw an enquiry if you like.
@@ -100,7 +100,7 @@ Then swap roles.
 - **Reports:** on any home, **Report this listing**. Then open https://gaff-test.vercel.app/staff/review to decide it. An appeal always goes to someone else, so the other tester decides it.
 - **The outbox** (https://gaff-test.vercel.app/dev/outbox) shows the made-up people's emails and every text. Open a made-up renter's links there to play them: book their viewing, apply, accept.
 - **The test inbox** (https://gaff-test.vercel.app/dev/inbound) sends an email to a letter's Gaff address, as Daft or MyHome would.
-- **Signing in as a made-up letter:** sign in as `ann@halcyon-lettings.example`, `cian@wren-weir.example` or `siobhan@daly-homes.example`, then open the sign-in link from the outbox. You'll see their homes and any enquiries.
+- **Signing in as a made-up letter:** sign in as `ann@halcyon-lettings.example`, `cian@wren-weir.example` or `siobhan@daly-homes.example`, choose **Email me a code instead**, and read the code in the outbox (it's in the email's subject). You'll see their homes and any enquiries.
 
 ## 8. Good to know
 
@@ -108,7 +108,7 @@ Then swap roles.
 - **Timing:** emails arrive within seconds; timed things (reminders, deadlines, chasers) up to a minute after their time.
 - **Limits:** the email account sends up to 100 emails a day. That's plenty for two testers, but if emails stop arriving, it's probably the limit; it resets at midnight.
 - **The made-up homes** stay listed: each deploy tops up their viewing times. Your own homes and enquiries stay until you close them.
-- **Sign-in links** work for 15 minutes, and codes for 10.
+- **Signing in:** a 6-digit code by email always works, for 10 minutes. You can also create an account with a password, and add a password or a passkey (Face ID, Touch ID, Windows Hello) under **How you sign in**: from **Settings** as a letter, **Your account** as a renter, or the key in the staff pages. Google and Apple don't show on the test copy until they're set up.
 
 ## 9. Feedback
 

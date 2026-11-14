@@ -22,6 +22,10 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] **Privacy notice and DPIA** cover Stripe Identity for everyone (biometric data), renters' documents and the AI tasks (P50, P51), and the solicitor has answered Q42, Q43, Q45, Q52 and Q61 (a required selfie with no other way through: GDPR consent, the DPC's guidance and the Equal Status Acts).
 - [ ] **Google Maps Platform (Q58, ADR-0027):** a billing account in Gaff's name, with budget alerts at 50%, 80% and 100% of the monthly budget (search redesign PRD S1) and a daily quota cap on map loads. Separate API keys for production and the test copy, each restricted to Gaff's domains (HTTP referrers) and to the Maps JavaScript API only. Light and dark Map IDs, styled from the tokens. Accept the Controller-Controller Data Protection Terms, and record that Google offers no EU region (transfers under the EU–US Data Privacy Framework).
 - [x] **Place index (ADR-0027):** built from OpenStreetMap and committed (8 November 2026; the **Build the place index** workflow rebuilds and checks it every quarter).
+- [ ] **Sign in with Google (Q64):** approved under rule 10; a Google Cloud project in Gaff's name; a consent screen with the privacy notice and terms; one OAuth client each for production and the test copy; `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set ([auth-tech-spec.md](auth-tech-spec.md), section 11). Until then the button doesn't show.
+- [ ] **Sign in with Apple (Q64, Q68):** approved under rule 10; an Apple Developer account in Gaff's name; a Services ID, a key and the return address; the four `APPLE_…` settings; and Gaff's sending domains registered with Apple, so emails reach people who use Hide My Email.
+- [ ] **Passwords seen in breaches (Q65):** approve Have I Been Pwned's Pwned Passwords and set `PASSWORD_BREACH_CHECK=pwned_passwords`, or set it to `off`. Production won't start without one or the other.
+- [ ] **Passkeys (Q69):** `PASSKEY_RP_ID` set to the domain Gaff will keep, before anyone adds a passkey. It can't change afterwards.
 - [ ] **`pg_trgm` on the production database** ([deploy.md](deploy.md), step 7). It's on for the test copy (`gaff-test`, in `public`).
 - [ ] **GitHub:** push access and Actions enabled for CI.
 
@@ -37,6 +41,7 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] Fixed answers on protected grounds (Q7)
 - [ ] Message templates in `src/copy/templates/`: first reply (with AI disclosure; version 2 adds the M28 line that no money is asked for before signing, and thanks renters who answered on Gaff), holding message, invitation, waiting list, booking confirmation, reminders (email and SMS), place offered, letting closed, and later offer and outcome
 - [ ] Privacy notice for renters (GDPR Article 14)
+- [ ] Sign-in (Q70): a privacy notice and terms for everyone with an account, naming Google and Apple (if approved), the breached-password check, and that sign-in sets only strictly necessary cookies; the fixed emails in `src/copy/account-emails.ts` and the team invitation in `src/copy/verification.ts`
 - [ ] Google Maps on renter pages: Gaff's terms carry Google's notice (Google Maps Additional Terms of Service and Privacy Policy), the privacy notice names Google Maps, and the DPIA covers it, including whether the map needs a tap before it loads (search redesign PRD S2)
 - [ ] OpenStreetMap data in the place index: OSM rows kept separate, the build method published, and the wording of the "Map and place data" credits page (`/map-and-place-data`, drafted) (ODbL)
 - [ ] Collecting the PPSN for RTB registration (optional, sealed, deleted once registered; no date of birth, Q24), and the registration deadline
@@ -45,7 +50,7 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 ## Operations
 
 - [ ] DPIA completed
-- [ ] Retention job running in production (daily, 02:30 UTC), with its log checked: personal details on their date, references at tenancy start, the anonymous record after 12 months
+- [ ] Retention job running in production (daily, 02:30 UTC), with its log checked: personal details on their date, references at tenancy start, the anonymous record after 12 months, and sign-in's leftovers (ended sessions, used-up codes, unconfirmed sign-ups after 7 days, lapsed invitations; AU14)
 - [ ] `DATA_ENCRYPTION_KEY` set in production (32 random bytes, base64), and stored safely: check results and PPS numbers can’t be read without it
 - [ ] `DATABASE_CA_CERT` set in production, so the database's certificate is checked
 - [ ] The job tick running every minute (Supabase, Integrations, Cron: `gaff-tick`), and the daily call (`gaff-daily`, and Vercel's daily cron), with `CRON_SECRET` set
@@ -77,6 +82,6 @@ The [marketplace PRD](marketplace/prd.md) was approved for build on 7 November 2
 - [ ] DPIA updated for renter accounts, profiles, alerts and checks on letters
 - [ ] Supabase Storage: a private bucket for uploads and a public bucket for listing photos, behind the CDN
 - [ ] The weekly PSRA register import running, with its log checked
-- [ ] Gaff staff added with `pnpm staff:add` (they sign in once first), with passkeys, and review cover for the first weeks after launch
+- [ ] Gaff staff added with `pnpm staff:add` (they sign in once first). Each adds a passkey under “How you sign in”, with someone who knows them present, before production asks for it (M5, Q73). Review cover for the first weeks after launch
 - [ ] Stripe Identity's webhook (`identity.verification_session.*`) pointing at `/api/webhooks/stripe-identity`, with `IDENTITY_PROVIDER=stripe`, `STRIPE_SECRET_KEY` and `STRIPE_IDENTITY_WEBHOOK_SECRET` set
 - [ ] The licence queue (`/staff/checks`) worked every working day, until the PSRA register's weekly file is matched automatically

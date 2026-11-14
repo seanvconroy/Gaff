@@ -522,3 +522,114 @@ Built as Q60 for now; to come back to once the measures (P58) show how it works.
 - Does a renter Stripe can't verify, who then can't be offered a home, have a claim under the Equal Status Acts (a document Stripe doesn't read, or a disability)? Is a person granting more tries enough human review under Article 22?
 
 **Decision:** open (founders, with the solicitor's answers).
+
+## J. Sign-in and accounts
+
+Raised from 8 to 14 November 2026, while building sign-in with Google, Apple, passwords, passkeys and codes ([PRD](auth-prd.md), [tech spec](auth-tech-spec.md), [ADR-0028](adr/0028-sign-in-methods.md)). On 13 November Sean asked for it to be built, with the CTO's best judgement on what was open, and for those calls to be noted so the founders can come back to them. They are all here. Each says what was decided, why, and what would change it.
+
+### Q62. Which line is it built on?
+
+The first PRD and spec were written against `claude/gaff-mvp`, the repository's default branch on GitHub. It turned out to be 50 commits behind: the marketplace, renter accounts and team invitations are on `claude/epic-ride-0ha68s`, which is also what the test copy deploys.
+
+**Decision (CTO, 13 November 2026):** built on `claude/epic-ride-0ha68s`, merged into the working branch. The PRD, spec and ADR were then revised to fit the real product.
+
+**For the founders:** make the product line the repository's default branch, so new work starts in the right place. Until then, anything started from the default branch starts from a month-old product.
+
+### Q63. One sign-in for everyone, and passwords after M1 said "No passwords"
+
+M1 says: "Sign in with a one-time code or link sent by email. No passwords." Sean asked for email and password on 8 November, and "operators, then renters". But a renter's account and a letter's are the same account (ADR-0016), so there is no operator-only sign-in to build.
+
+**Decision (CTO, 13 November 2026):**
+- One sign-in page for renters, letters and staff, with every way in, passwords included. M1 is amended, and M7 (Google and Apple) is brought forward.
+- "Then renters" is honoured where renters start without an account: the enquiry sheet (M76) and the chosen renter's page (P16) still ask for a code and nothing else. A renter never needs a password, and never needs an account for a step on a private link.
+
+**What would change it:** if the founders want renters kept to codes, Google, Apple and passkeys, the password box can be hidden for accounts with no workspace. The first draft planned that (AU30); it was dropped because one account can be both.
+
+### Q64. Google and Apple as ways to sign in (**Founders, solicitor**; rule 10)
+
+M7 said each "needs approval as an identity provider". What they do: confirm who someone is, and pass Gaff a name and an email address. Gaff sends them nothing about lettings, and keeps no tokens and no photo. Each is an independent controller for its own sign-in service, with no EU-only region.
+
+**Decision (CTO, 13 November 2026):** built, and off until approved. The buttons appear only when a provider's keys are set (`GOOGLE_CLIENT_ID`, `APPLE_CLIENT_ID` and their partners); neither production nor the test copy has them. In development and tests a stand-in page plays both.
+
+**For the founders and the solicitor:** approve each under rule 10 or not; name them in the privacy notice with the basis for the transfer; give Google's and Apple's consent screens links to the privacy notice and terms (Q70).
+
+### Q65. The breached-password check (**Founders**; rule 10)
+
+Passwords seen in data breaches are refused (AU12, and NIST's guidance). The check asks Have I Been Pwned's Pwned Passwords service with the first 5 characters of a SHA-1 hash of the password. The service answers with every breached hash that starts that way, and Gaff looks for the match itself. It receives no email, no account, and nothing that identifies a person or a password. It's a US service.
+
+**Decision (CTO, 13 November 2026):** built behind `PASSWORD_BREACH_CHECK`. Development, tests and the test copy use a stand-in (a short fixed list). Production won't start on the stand-in: it must be set to `pwned_passwords` or `off`. If the service is slow or down, the password is allowed.
+
+**For the founders:** approve it, or run without the check. Recommendation: approve. No personal data leaves Gaff.
+
+### Q66. When may Google or Apple join an account that already exists?
+
+Both providers call an address "verified" if they checked it once, even one they don't run: a Google account can be made with a work address. If Gaff joined on that, someone who once controlled an address, or who made a Google account for someone else's, could walk into their Gaff account.
+
+**Decision (CTO, 13 November 2026):** a provider is taken at its word only for addresses it hosts (Gmail and Google Workspace; iCloud and Hide My Email). For any other address, a new person is asked to use a code the first time, and an existing account is joined only by its owner, signed in, from "How you sign in". This is Google's own guidance for joining accounts.
+
+**What would change it:** if support shows people stuck here (a work address on Microsoft 365 with a Google account is the likely case), the code could be asked for on the spot, in the middle of the Google sign-in, instead of sending the person back to the sign-in page. Sign-in events show how often it happens: `account.sign_in_failed` with the reason `not_joined`.
+
+### Q67. Sign-in events and rule 8's "same transaction"
+
+Rule 8: use cases write an event in the same transaction as the change. Better Auth writes users, sessions and passkeys itself, in its own calls.
+
+**Decision (CTO, 13 November 2026):** sign-in events are written by hooks, just after the library's write, to `platform_events`, with no personal data. If the event's write fails, the sign-in has still happened. This is the one documented exception; team events (invited, joined, role changed, removed) are in the same transaction as their change.
+
+**What would change it:** if these events come to matter as evidence, not only as measures, the library's writes can be wrapped in a transaction Gaff controls.
+
+### Q68. Who owns the Apple Developer account? (**Founders**)
+
+Sign in with Apple needs an Apple Developer account in Gaff's name: enrolling as a company needs a D-U-N-S number and costs $99 a year. Someone must hold it, and its key.
+
+**Decision:** open (founders). Nothing is blocked: Apple stays off until it's set up.
+
+### Q69. Which domain do passkeys belong to? (**Founders**)
+
+A passkey is made for one domain, for good. If Gaff's address changes afterwards (from one subdomain to another, or to a different domain), every passkey made before stops working, and people fall back to a code.
+
+**Decision (CTO, 14 November 2026):** `PASSKEY_RP_ID` defaults to the app's own host. Before the first real passkey, set it to the domain Gaff will keep (for example the main domain, so `app.` and `www.` both work).
+
+**For the founders:** this waits on the domain choice (N2, [launch-checklist.md](launch-checklist.md)). Passkeys made on the test copy belong to the test copy's address and don't carry over.
+
+### Q70. Privacy notice, terms and cookies for people with accounts (**Solicitor**)
+
+- Google's and Apple's consent screens must link to a privacy notice and terms.
+- "Create an account" has no line about either, because the documents for account holders don't exist yet.
+- The notice should say: Google and Apple can be used to sign in, and what Gaff gets from them (a name and an email); that passwords are checked against known breaches without leaving Gaff in a form anyone could read (Q65); and that sign-in sets only strictly necessary cookies (the session, and three that last minutes while a sign-in is under way).
+- The security emails and the invitation are fixed templates, for review with the others.
+
+**Decision:** open (solicitor, with the terms and notice in Q36).
+
+### Q71. Teams: one workspace per person, and what happens to someone who's removed
+
+**Decision (CTO, 13 to 14 November 2026):**
+- **One workspace per person**, as before, until AU25 adds a switcher. Someone already on a team is told so when they open another team's invitation.
+- **An invitation is for the invited email.** The person signs in as that address, by any method. A second invitation to the same address replaces the first.
+- **Removing someone ends their access at once** (every page checks who's on the team), but doesn't sign them out of their own account or email them. The first draft said "signs them out everywhere"; their account is their own, and they may rent with it.
+- **Nobody changes their own place on a team.** Another admin does, so an admin can't lock the team out by a slip.
+
+**What would change it:** an email to the person removed ("You've left Halcyon Lettings on Gaff") is easy to add, with the solicitor's wording.
+
+### Q72. What wasn't built, and why
+
+**Decision (CTO, 14 November 2026):**
+- **"Last used" on the sign-in page (AU15).** It needs something kept on the device between visits, which isn't strictly necessary, so the cookie rules (the ePrivacy Regulations, and the DPC's guidance) ask for consent. Gaff sets only necessary cookies and has no consent banner. To revisit if one is ever added.
+- **A prompt to add a passkey after signing in.** It needs somewhere to remember "not now". Passkeys are added from "How you sign in".
+- **Pending invitations on the welcome page.** The emailed link is the way in. Showing them means looking up invitations by email across every workspace, which nothing does today.
+- **An email on a new device** (AU22), and two-step verification (AU20): phase 2.
+
+### Q73. Staff passkeys (M5)
+
+**Decision (CTO, 14 November 2026):**
+- In production, Gaff's own tools open only on a passkey sign-in from the last 8 hours. On the test copy the rule is off, because the founders' testers are staff there.
+- A staff member adds their own passkey, after signing in another way. So the first passkey is only as strong as that sign-in.
+
+**For the founders:** before launch, each staff member adds a passkey while someone who knows them watches, or is given a hardware key. `pnpm staff:add` is still how someone becomes staff.
+
+### Q74. Accounts nobody uses (**Founders, solicitor**)
+
+The first draft deleted accounts with no workspace after 30 days without use. On the real product those are renters' accounts, kept "only while the renter chooses to keep it" (rule 9, Q25), and a renter can delete theirs at any time (M13).
+
+**Decision (CTO, 14 November 2026):** the nightly job deletes only what nobody owns: sign-ups never confirmed within 7 days, ended sessions, used-up codes and lapsed invitations. Confirmed accounts stay until their owner deletes them.
+
+**For the founders and the solicitor:** should an account unused for a long time (2 years was proposed in the first draft) be deleted, after a warning email? It belongs with the retention period for renter profiles (Q25).

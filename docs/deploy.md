@@ -83,7 +83,7 @@ The test copy deploys the branch `claude/epic-ride-0ha68s` as production. To hav
    | `"database": "XX000"` | The user name should be `gaff.` followed by your project's reference. |
    | `"database": "42P01"` | The tables aren't there. Check the build log for the migration step. |
 
-2. **Sign in.** Open the app and sign in with your own email. The link arrives in your inbox; check spam the first time.
+2. **Sign in.** Open the app, enter your own email and choose **Email me a code instead**. The code arrives in your inbox; check spam the first time.
 3. **The daily job.** In Vercel, **Settings**, then **Cron Jobs**, shows `/api/cron/daily` once a day.
 
 ## 4. The minute tick (Supabase)
@@ -157,6 +157,19 @@ The Where box suggests places from Gaff's own place index, the `places` table ([
 - **Attribution.** The data is © OpenStreetMap contributors (ODbL 1.0); the Where box says so under its suggestions.
 - **Misses.** What renters typed that matched nothing is counted by day in `place_misses`, with no digits, user or device, and deleted after 30 days. The most common misses are the places to add as aliases.
 
+## 8. Sign-in settings (optional)
+
+Sign-in works with none of these: a code by email, a password and passkeys need no settings. ([auth-tech-spec.md](auth-tech-spec.md), sections 10 and 11.)
+
+| Name | Value |
+| --- | --- |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Sign in with Google. Both, or neither. The button shows once they're set. Needs the founders' approval first (Q64) |
+| `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` | Sign in with Apple. All four, or none (sensitive). Needs the founders' approval, and an Apple Developer account (Q64, Q68) |
+| `PASSKEY_RP_ID` | The domain passkeys belong to. Leave it unset on the test copy. For production, set it to the domain Gaff will keep, before anyone adds a passkey: it can't change afterwards (Q69) |
+| `PASSWORD_BREACH_CHECK` | `pwned_passwords` to refuse passwords seen in data breaches, or `off`. Unset, the test copy refuses a short fixed list. Production must choose one of the two (Q65) |
+
+In the Google and Apple consoles, the address they send people back to is `https://<the app's domain>/api/auth/callback/google` and `…/callback/apple`.
+
 ## Good to know
 
 - **Who can open what.** In **Settings**, **Deployment Protection**, Vercel Authentication covers **preview deployments only**: the test copy itself is open, so both testers can use it on any device, and previews (which share its database) stay private. The Outbox and test inbox are for testers only, and the Outbox holds only made-up people's mail. The test copy is never indexed: every page says `noindex` and `robots.txt` disallows everything.
@@ -191,6 +204,7 @@ Before the first real renter (see [launch-checklist.md](launch-checklist.md)):
   | `IDENTITY_PROVIDER` | `stripe`, with `STRIPE_SECRET_KEY` and `STRIPE_IDENTITY_WEBHOOK_SECRET` (Q48) |
   | `INCOME_PROVIDER` | `none`, until work and income documents replace the income check (P30) |
   | `STORAGE_PROVIDER`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | as in [step 5](#5-listing-photos-supabase-storage) |
+  | `PASSWORD_BREACH_CHECK`, `PASSKEY_RP_ID` | as in [step 8](#8-sign-in-settings-optional): production won't start until the first is chosen |
 
   Production refuses to start with a stand-in or without the encryption key.
 - **Resend:**

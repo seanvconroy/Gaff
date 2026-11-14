@@ -15,6 +15,7 @@ import { sweepAiCalls } from '@/server/ai/usage';
 import { checkLiveListingWording } from '@/server/listings/wording';
 import { refreshPlaceCounts } from '@/server/places/places';
 import { sweepMarketplace } from '@/server/retention/marketplace';
+import { sweepSignIn } from '@/server/retention/sign-in';
 import { sweepPersonalData } from '@/server/retention/sweep';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
 
@@ -77,6 +78,10 @@ export const taskList: TaskList = {
       `Retention: ${marketplace.visitorDays} visitor hashes, ${marketplace.closedPages} closed listing pages, ${marketplace.alertDeliveries} alert deliveries, ${marketplace.reports} reports and ${marketplace.placeMisses} place misses removed.`,
     );
     console.log(`Retention: ${await sweepAiCalls()} AI usage rows over 12 months old deleted.`);
+    const signIn = await sweepSignIn();
+    console.log(
+      `Retention: ${signIn.sessions} ended sessions, ${signIn.codes} used-up codes, ${signIn.pendingSignUps} unconfirmed sign-ups, ${signIn.invitations} lapsed invitations and ${signIn.limits} sign-in counters deleted.`,
+    );
   },
   reference_overdue: async (payload) => {
     await markReferenceOverdue(

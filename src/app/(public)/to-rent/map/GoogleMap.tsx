@@ -126,8 +126,10 @@ function Pins({
     const made = new MarkerClusterer({
       map,
       renderer: clusterRenderer,
+      // Pins are pills about 80px wide, so homes closer than that on screen share a cluster
+      // (the radius is in the units of a 512px tile: twice the pixels on Google's 256px ones).
       // Past zoom 17 every pin shows on its own; homes at one point already share a pin.
-      algorithm: new SuperClusterAlgorithm({ radius: 72, maxZoom: 17 }),
+      algorithm: new SuperClusterAlgorithm({ radius: 150, maxZoom: 17 }),
     });
     const listener = google.maps.event.addListener(made, 'clusteringend', () =>
       setPass((pass) => pass + 1),
@@ -234,11 +236,18 @@ function Camera({ fit, onMoved }: Pick<MapProviderProps, 'fit' | 'onMoved'>) {
   const gestureAt = useRef<number | null>(null);
   const pageMoveAt = useRef<number | null>(null);
 
+  // Only a new fit moves the map: `fit.id` changes when the page asks for one, and never
+  // because the search changed in some other way.
+  const { id, box } = fit;
+  const asked = useRef(box);
+  useEffect(() => {
+    asked.current = box;
+  }, [box]);
   useEffect(() => {
     if (!map) return;
     pageMoveAt.current = performance.now();
-    map.fitBounds(literal(fit.box), FIT_PADDING);
-  }, [map, fit]);
+    map.fitBounds(literal(asked.current), FIT_PADDING);
+  }, [map, id]);
 
   useEffect(() => {
     if (!map) return;

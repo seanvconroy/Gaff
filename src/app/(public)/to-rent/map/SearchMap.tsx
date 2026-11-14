@@ -128,12 +128,16 @@ export function SearchMap({ settings, search }: { settings: MapSettings; search:
     };
   }, []);
 
-  // M127: the map fits the search's area when the area changes, and at no other time.
+  // M127: the map fits the search's area when the area changes, and at no other time. `fit`
+  // is a new object only when a fit is wanted: the providers move the map when it changes.
   const key = cameraKey(search.area);
-  const [fit, setFit] = useState(() => ({ id: 0, key, box: startBox(search.area) }));
-  if (fit.key !== key) {
-    const refit = shouldFit(fit.key, search.area, renterBox);
-    setFit({ id: refit ? fit.id + 1 : fit.id, key, box: refit ? startBox(search.area) : fit.box });
+  const [fit, setFit] = useState(() => ({ id: 0, box: startBox(search.area) }));
+  const [fittedKey, setFittedKey] = useState(key);
+  if (fittedKey !== key) {
+    setFittedKey(key);
+    if (shouldFit(fittedKey, search.area, renterBox)) {
+      setFit({ id: fit.id + 1, box: startBox(search.area) });
+    }
   }
 
   const path = areaPath(search.area);

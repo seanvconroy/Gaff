@@ -1,8 +1,10 @@
 # Gaff MVP: product requirements
 
-Draft, 31 October 2026 · Sean Conroy
+Draft, 31 October 2026 · Sean Conroy. Scope updated 14 November 2026.
 
 ## Summary
+
+**Scope, updated 14 November 2026 (Q27 to Q48 in [open-questions.md](open-questions.md)).** The MVP is now one product for both sides. It runs a letting for agencies and for landlords with one home or many. And it lets renters find those homes on Gaff, ask to view, and keep a profile with a verified identity they can reuse. How every screen works is in [ux-redesign/](ux-redesign/README.md), whose requirements start `UX-`. R1 to R31 below still hold. The pilot is free (Q33), so willingness to pay is tested when a price is introduced, not during the pilot.
 
 The Gaff MVP is an AI assistant that runs a whole letting, from the first Daft enquiry to a signed tenancy, for letting agents and landlords with several homes. People make the decisions that matter: who views, who is offered the home, and what is signed. Gaff does everything else, inside Irish law, and renters use it free.
 
@@ -33,9 +35,9 @@ Four people touch a letting. Only the first pays; the renter's experience decide
 
 | User | Who they are | Their job, in their words |
 | --- | --- | --- |
-| Letting operator (pays) | A letting agent's negotiator, or the person who lets homes for a portfolio landlord | "When I have a home to let, get a good tenant signed fast, with little of my time and no legal risk." |
+| Letting operator (pays) | A letting agent's negotiator, the person who lets homes for a portfolio landlord, or a landlord letting their own home | "When I have a home to let, get a good tenant signed fast, with little of my time and no legal risk." |
 | Landlord | The owner, when an agent lets for them | "Let my home at the right rent to someone reliable, and keep me in the loop without phone calls." |
-| Renter (free) | Anyone who enquires about the home | "Give me a fair shot and a quick answer, without handing my documents to every agent." |
+| Renter (free) | Anyone looking for a home: they find it on Gaff, or enquire from Daft or MyHome | "Give me a fair shot and a quick answer, without handing my documents to every agent." |
 | Referee | A previous landlord or employer | "Let me answer a reference request in two minutes." |
 
 The operator's job breaks into the steps the workflow follows:
@@ -54,7 +56,7 @@ Seven rules decide every product choice; when a feature breaks one, the feature 
 
 1. **AI does the work; people decide.** Gaff asks for three decisions: who views, who is offered the home, and what is signed. It never rejects or chooses a tenant on its own.
 2. **Compliance is the flow, not a setting.** Data is asked for in stages, criteria are applied the same way to everyone, and every step is logged.
-3. **Alongside Daft.** Operators keep advertising exactly as they do now; Gaff starts when the enquiry email arrives.
+3. **Alongside Daft.** Operators keep advertising exactly as they do now; Gaff starts when the enquiry email arrives. Homes let through Gaff are also shown on Gaff, where renters can ask to view directly (Q27).
 4. **Gaff is software, not a letting agent.** The licensed agent, or the landlord letting their own home, runs the letting and makes every decision. Gaff never holds deposits or rent.
 5. **Renters never pay.** Irish law bars seeking any payment to secure a tenancy beyond the deposit and first rent, so checks are paid for by the operator.
 6. **The renter owns their profile.** Their details are shared with an operator only for a home they apply to, and documents only once they are the chosen applicant.
@@ -215,12 +217,12 @@ The core objects mirror the workflow, and every change to them writes an event t
 These wait until the pilots prove agents will pay:
 
 - Creating or posting adverts on Daft, MyHome or elsewhere
-- A Gaff search site or marketplace for renters
 - Answering phone calls
 - Holding deposits or collecting rent
 - Property management after move-in: maintenance, rent reviews, renewals
 - Credit checks
-- Native mobile apps
+- Native mobile apps (wanted later; the design is made ready for one, Q34)
+- Billing inside the product (the pilot is free, Q33)
 - Links to agents' own software
 - Homes for sale
 - Languages other than English
@@ -243,10 +245,10 @@ The MVP is the whole workflow, built in four slices so a real letting can run th
 For Sean and Ann:
 
 - [ ] Which 3 to 5 operators run the pilots, and who goes first
-- [ ] Price per letting for the pilots (€79 to test; €50 is the floor in the go/stop test)
+- [x] Price per letting for the pilots: free (Q33). The price (€79 to test; €50 is the floor in the go/stop test) is set with the sales effort
 - [ ] The default affordability rule offered to operators
 - [ ] Providers for identity, open banking, e-signature, email and SMS
-- [ ] Whether "Gaff" stays the name
+- [x] Whether "Gaff" stays the name: yes, with gaff.ie and the current wordmark (Q29)
 - [ ] How many hours a week each of us puts in, which sets the timing
 
 For a solicitor, before the first pilot letting:

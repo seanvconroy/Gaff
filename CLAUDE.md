@@ -1,8 +1,9 @@
 # Gaff
 
-Gaff runs the letting of a home for Irish letting agents and portfolio landlords, from the first Daft or MyHome enquiry to a signed tenancy. The AI does the work. People make three decisions: who views, who is offered the home, and what is signed. Renters use it free.
+Gaff runs the letting of a home in Ireland, from the first enquiry to a signed tenancy, for letting agents and for landlords with one home or many. Renters find homes on Gaff, or arrive from Daft or MyHome, and use it free. The AI does the work. People make three decisions: who views, who is offered the home, and what is signed.
 
 - **What to build:** `docs/prd.md` is the source of truth. Requirement IDs (R1, R2…) come from it.
+- **How every screen should work and look (the redesign, being built now):** `docs/ux-redesign/`. Its requirement IDs start `UX-`. See "Building the UX redesign" below.
 - **How it looks and sounds:** `docs/design-system.md` and `docs/design-tokens.json`.
 - **How it's built:** `docs/architecture.md` and the ADRs in `docs/adr/`.
 - **Decisions on PRD questions:** `docs/open-questions.md`.
@@ -22,6 +23,8 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
 
    Ask only what the operator's criteria need. Never ask for documents before an applicant is chosen (DPC guidance).
 
+   A verified identity is kept on a person's own profile only if they choose, and then reused (Q35). It is checked the first time a step needs it and never before: as a chosen applicant or backup, or as a private landlord putting a first home live (Q47). An operator sees a renter's only at the checks stage, with the renter's yes each time. Keep the result, the name and the date; never an image, document details, country or date of birth.
+
 3. **No protected grounds.** Never ask about, store, infer or use any of these:
    - gender, civil status, family status, sexual orientation, religion or age;
    - disability, race or nationality;
@@ -29,6 +32,8 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
    - receiving housing assistance (HAP).
 
    Criteria come only from the fixed list (move-in date, length of stay, maximum occupants, pets). There are no free-text criteria. Assistance dogs never count as pets. HAP counts as income. Ranking reads only criteria answers and enquiry time (Equal Status Acts).
+
+   Gaff never recommends a person. It shows who meets what was asked ("Meets 3 of 4") and a person chooses (Q36). A home's public page is built from facts and the fixed criteria, its description passes the protected-ground check, and nothing is labelled "who it suits". A renter's profile has no photo and no free text, and no operator can browse profiles.
 
 4. **Renters never pay.** No fee or charge of any kind from a renter, including for checks. The only payments are the deposit and first month's rent, each capped at one month's rent, paid to the landlord's or agent's own account.
 5. **Gaff never holds money.** No integration that receives funds. Gaff is software operated by a licensed agent (PSRA licence) or by a landlord letting their own homes.
@@ -45,17 +50,28 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
     - its EU region, wherever it has one;
     - a lawful basis for anything outside the EU (the EU–US Data Privacy Framework or standard contractual clauses), named in the privacy notice.
 
-    Approved so far (Q26, ADR-0014): Vercel (functions in Dublin), Supabase (Ireland), Resend (email), Claude on Amazon Bedrock (EU), Sinch (EU), Mailgun (EU, as an alternative), and later Stripe, only to charge operators.
+    Approved so far (Q26, ADR-0014): Vercel (functions in Dublin), Supabase (Ireland), Resend (email), Claude on Amazon Bedrock (EU), Sinch (EU), Mailgun (EU, as an alternative), and later Stripe, only to charge operators. Added on 14 November 2026: Google and Apple, for sign-in only (Q30); Autoaddress, for address search, once its DPA is signed (Q40). Every vendor sits behind an interface with a local stand-in, so nothing needs a real account to build.
 
 ## Voice: every word renters see
 
 - Plain, warm Irish English. Short sentences. No jargon, no exclamation marks, no blame.
 - Every message and screen ends with what happens next, and when.
+- No disclaimers. A line of caution appears only when the law needs it at that moment or it stops a real mistake (Q46).
 - Name homes by their address, not an ID.
 - Write dates as "Thursday 6 November, 6pm" (use `src/lib/format.ts`) and money as "€1,850 a month".
 - The AI says it is an AI assistant in its first message.
 - A renter who fails a check is shown in `warning` with a plain reason, never `danger`.
 - Renter-facing copy and message templates live in `src/copy/`.
+
+## Building the UX redesign
+
+The founder agreed the redesign on 14 November 2026. The decisions are Q27 to Q48 in `docs/open-questions.md`. The MVP is two-sided: running a letting, and finding and applying for a home.
+
+- When asked to build a wave or a work package of the UX redesign, follow `docs/ux-redesign/13-work-packages.md`: its "How a wave is built" steps, its "Rules for every package", and the brief for each package. Read the sections each brief lists before writing code.
+- Use sub-agents, one per work package, each in its own worktree, when the request asks for them. Integration and end-to-end tests share one database and one port, so run those one at a time.
+- Open the pull request into the default branch, `claude/gaff-mvp`.
+- One design: build each screen at phone width first, with the same steps and words at every width.
+- Where this file's conventions name today's tokens and sizes (`navy`, `atlantic`, 44px controls, the sidebar), the redesign's design system replaces them when work package WP-2 lands. That package updates this file.
 
 ## Architecture
 

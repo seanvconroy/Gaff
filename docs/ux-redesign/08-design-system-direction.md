@@ -237,7 +237,7 @@ An icon, one sentence saying what will appear here and when, and at most one but
 
 ### Checklists
 
-A card on Today: a ring showing "2 of 4", the next step's name and one line of why, and one primary button. Finished steps collapse to a tick and a name. The card can't be dismissed and disappears when complete, with a one-line "You're all set" the first time. No more than five steps.
+A card on Today: a ring showing "2 of 3", the next step's name and one line of why, and one primary button. Finished steps collapse to a tick and a name. The card can't be dismissed and disappears when complete, with a one-line "You're all set" the first time. No more than five steps.
 
 ### Calendars
 

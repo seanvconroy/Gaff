@@ -83,7 +83,7 @@ Today answers one question: what needs me? It has at most four blocks, in a fixe
 
 | Order | Block | Shows | Appears when |
 | --- | --- | --- | --- |
-| 1 | **Setup checklist** | A progress ring ("2 of 4") and the next unfinished step with one button | Until setup is complete, then never again |
+| 1 | **Setup checklist** | A progress ring ("2 of 3") and the next unfinished step with one button | Until setup is complete, then never again |
 | 2 | **Needs you** | One row per thing waiting on this person, most urgent first | Anything is waiting |
 | 3 | **Viewings today** | Each viewing today: time, address, how many are booked | There's a viewing today |
 | 4 | **While you were away** | One line: what Gaff did since the last visit ("Gaff answered 38 enquiries and booked 12 viewings since Tuesday") | Gaff did something since the last visit |
@@ -127,7 +127,7 @@ Today answers one question: what needs me? It has at most four blocks, in a fixe
 | Screen name | Today | Today | Today | Enquiries |
 | Scope | Homes they lead | "Mine" by default; "Everyone" shows all homes, with each row's lead agent | Their own homes | Homes they've enquired about |
 | Needs you | Their tasks | Theirs, plus in "Everyone": anything waiting more than one working day on any agent | Their tasks | Their one next step per home ("Book a viewing", "Answer by Sunday") |
-| Setup checklist | Add a letting | Add a letting; Invite your team | Add your home | None |
+| Setup checklist | Add a letting | Add a letting; send Daft and MyHome enquiries to Gaff, if they advertise there; invite your team | Add your home; send Daft and MyHome enquiries to Gaff, if they advertise there | None |
 | Empty state action | Add a letting | Add a letting, then Invite your team | Add your home | "Homes you ask to view appear here." with "Search homes" |
 | Results | On close | On close, and a monthly line for the agency | On close | None |
 

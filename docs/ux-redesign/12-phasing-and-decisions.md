@@ -84,11 +84,11 @@ None of these holds up the build. Each has a recommendation and an owner.
 | # | Question | Recommendation | Who | When it matters |
 | --- | --- | --- | --- | --- |
 | OQ-1 | Must Gaff check each agent's own PSRA licence, as well as the agency's? | Not for the pilots (Q38). Leave room for it on the member's profile | Solicitor | Before selling widely |
-| OQ-2 | Can software read the RTB's Rent Register within its terms, so Gaff can find comparable rents? | Find out as the first task of the tenancy work package. If yes, build the lookup. If no, the operator types three, with the area and type filled in | Build, then founders | Wave 4 |
+| OQ-2 | Can software read the RTB's Rent Register within its terms, so Gaff can find comparable rents? | Find out as the first task of the tenancy work package. If yes, build the lookup. If no, the operator types three, with the area and type filled in | Build, then founders | Wave 3A |
 | OQ-3 | Confirm Veriff for identity checks, and choose the open-banking provider for income checks | Veriff (Q48). The income provider is already on the launch checklist | Founders | Before the first real check. The build uses stand-ins until then |
 | OQ-4 | Pricing, and when Gaff asks for payment details | After the pilot. When it comes: ask before the first offer on the first paid letting, and charge when the home is let | Founders | After the pilot |
 | OQ-5 | Should a renter be able to verify their identity before anyone has chosen them? | No, for now. It collects identity data before a stage needs it. Revisit with the solicitor if renters ask for it | Solicitor | Later |
 | OQ-6 | Is the accent right? | See it on real screens after wave 1, then keep or change one token | Founders | After wave 1 |
-| OQ-7 | A map beside the search results | Build it with Gaff's own copy of OpenStreetMap, so no map provider is involved. If that proves impractical, ship the list without a map | Build | Wave 4 |
+| OQ-7 | A map beside the search results | Build it with Gaff's own copy of OpenStreetMap, so no map provider is involved. If that proves impractical, ship the list without a map | Build | Wave 3B |
 | OQ-8 | The legal checks before real users | The list in [section 11](11-compliance-and-vendors.md#before-real-users): terms for a marketplace, the privacy notice, a way to report a listing, whether showing homes changes the PSRA position, consent wording for kept results, and the matching design | Solicitor | Before the first real renter |
 | OQ-9 | The dark theme | Design and review in light. Review dark after the pilots start | Founders | After the pilots start |

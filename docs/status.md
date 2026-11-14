@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 14 November 2026 (UX redesign PRD drafted for the founders; no code changed).
+Last updated: 14 November 2026 (UX redesign agreed with the founder and ready to build; no code changed yet).
 
 ## Done
 
@@ -79,7 +79,17 @@ Last updated: 14 November 2026 (UX redesign PRD drafted for the founders; no cod
 
 ## Next
 
-- **UX redesign PRD (draft, for the founders to decide):** [ux-redesign/](ux-redesign/README.md). It answers the founder's feedback on the 13 November screens: a person-first account model and new sign-in, four destinations with Today as home, adding a letting by pasting the advert, a calendar for viewings, a three-block letting page, matching within the fair-letting rules, a new design-system direction, and Phase 1 split into 21 work packages. Nothing is built from it until the scope decisions and open questions in [section 12](ux-redesign/12-phasing-and-decisions.md) are answered. `prd.md` stays the source of truth until then.
+- **Build the UX redesign.** The founder agreed it on 14 November 2026 (Q27 to Q48 in [open-questions.md](open-questions.md)). The MVP is now two-sided: running a letting, and finding and applying for a home. The plan is [ux-redesign/](ux-redesign/README.md); the steps to build it are [ux-redesign/BUILD.md](ux-redesign/BUILD.md). Each wave updates its row here.
+
+  | Wave | Packages | Status |
+  | --- | --- | --- |
+  | 0. Foundations | WP-1 funnel events and baselines; WP-2 design system | Not started |
+  | 1. Frame, sign-in and accounts | WP-3 shell and navigation; WP-4 sign-in; WP-5 accounts and first run; WP-6 the page frame | Not started |
+  | 2A. Running a letting, part 1 | WP-7 Today and Lettings; WP-8 Inbox; WP-9 adding a letting; WP-10 reading an advert; WP-11 forwarding | Not started |
+  | 2B. Inside a letting, for renters | WP-12 the renter's pages; WP-13 owner and referee pages; WP-14 profile and the renter's home | Not started |
+  | 3A. Running a letting, part 2 | WP-15 a letting's page; WP-16 calendar; WP-17 decisions and the offer; WP-18 tenancy, close and settings; WP-19 teams | Not started |
+  | 3B. The marketplace | WP-20 homes on Gaff; WP-21 search; WP-22 asking to view; WP-23 saved homes and alerts | Not started |
+  | 4. Trust, fit and finish | WP-24 a verified identity; WP-25 fit; WP-26 trust and Gaff's internal page; WP-27 activation; WP-28 the end-to-end pass | Not started |
 - **Deploy the test copy** on Vercel and Supabase ([deploy.md](deploy.md), about 20 minutes).
 - **Your end-to-end test** (see [testing-guide.md](testing-guide.md)), then feedback and iteration.
 - **Before the first pilot:** everything in [launch-checklist.md](launch-checklist.md), including the providers for ID and income checks (stand-ins today) and the solicitor’s answers on electronic signing (Q23) and the agreement wording.

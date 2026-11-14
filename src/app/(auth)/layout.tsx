@@ -17,7 +17,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     // Comfortable density: 48px controls, as on the private pages.
     <div className={styles.page} data-density="comfortable">
       <header className={styles.header}>
-        <Wordmark href="/sign-in" />
+        {/* Home: a letter's lettings, a renter's homes, or the front door for anyone signed out. */}
+        <Wordmark />
       </header>
       <main className={styles.main}>
         <div className={styles.card}>{children}</div>

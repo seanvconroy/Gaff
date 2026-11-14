@@ -98,6 +98,8 @@ export async function confirmAvailableByLink(
  */
 export async function sweepFreshness(
   now = new Date(),
+  /** Limits the sweep to one organisation (for support, and for tests running side by side). */
+  onlyOrganisationId?: string,
 ): Promise<{ reminded: number; paused: number }> {
   const policy = defaultFreshness;
   const dueBefore = new Date(now.getTime() - policy.confirmEveryDays * 86_400_000);
@@ -112,7 +114,13 @@ export async function sweepFreshness(
         assignedTo: listings.assignedTo,
       })
       .from(listings)
-      .where(and(eq(listings.status, 'live'), lt(listings.confirmedAt, dueBefore))),
+      .where(
+        and(
+          eq(listings.status, 'live'),
+          lt(listings.confirmedAt, dueBefore),
+          onlyOrganisationId ? eq(listings.organisationId, onlyOrganisationId) : undefined,
+        ),
+      ),
   );
   let reminded = 0;
   let paused = 0;

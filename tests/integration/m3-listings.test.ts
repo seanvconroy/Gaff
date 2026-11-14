@@ -163,7 +163,10 @@ describe('M49, M50, M52: a listing stays fresh and follows its letting', () => {
     const published = (await publicRow(lettingId, member.organisationId)).listing.confirmedAt!;
 
     const later = (days: number) => new Date(published.getTime() + days * day);
-    expect((await sweepFreshness(later(15))).reminded).toBeGreaterThanOrEqual(1);
+    // The sweep works across every organisation, and other test files' listings are live in
+    // this database: with the clock moved on and no limit, it would pause theirs too.
+    const sweep = (now: Date) => sweepFreshness(now, member.organisationId);
+    expect((await sweep(later(15))).reminded).toBe(1);
     const [reminder] = await db()
       .select({ text: devOutbox.text })
       .from(devOutbox)
@@ -176,7 +179,7 @@ describe('M49, M50, M52: a listing stays fresh and follows its letting', () => {
     const [, organisationId, listingId, token] =
       /\/listings\/confirm\/([^/]+)\/([^/]+)\/([A-Za-z0-9_-]+)/.exec(reminder!.text)!;
 
-    await sweepFreshness(later(18));
+    expect((await sweep(later(18))).paused).toBe(1);
     expect((await publicRow(lettingId, member.organisationId)).listing.status).toBe('paused');
     expect((await publicRow(lettingId, member.organisationId)).row).toBeNull();
 

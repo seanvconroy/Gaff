@@ -1,5 +1,7 @@
 # Sign-in and accounts: product requirements
 
+> **Being built, and being revised (14 November 2026).** This was drafted against `claude/gaff-mvp`, the repository's default branch, which turned out to be 50 commits behind the product: the marketplace, renter accounts (ADR-0016) and team invitations (M16) already exist on `claude/epic-ride-0ha68s`. The build is on that line, so some of what follows is out of date: sign-in is one page for renters, letters and staff, not operators only, and invitations are fitted, not built. [status.md](status.md) says what's built so far. This document is brought up to date when the build is finished.
+
 Draft, 8 November 2026, for Sean to agree. The technical design is in [auth-tech-spec.md](auth-tech-spec.md), and the decision record is [ADR-0028](adr/0028-sign-in-methods.md) (proposed). Requirement IDs start with **AU**, so they don't clash with the main PRD's R1 to R31.
 
 ## Summary

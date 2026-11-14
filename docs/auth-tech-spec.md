@@ -1,5 +1,7 @@
 # Sign-in and accounts: technical specification
 
+> **Being built, and being revised (14 November 2026).** This was drafted against `claude/gaff-mvp`, the repository's default branch, which turned out to be 50 commits behind the product: the marketplace, renter accounts (ADR-0016) and team invitations (M16) already exist on `claude/epic-ride-0ha68s`. The build is on that line, so some of what follows is out of date: sign-in is one page for renters, letters and staff, not operators only, and invitations are fitted, not built. [status.md](status.md) says what's built so far. This document is brought up to date when the build is finished.
+
 Draft, 8 November 2026. It builds [auth-prd.md](auth-prd.md) (AU1 to AU16), and phases 2 and 3 are sketched at the end. The decision is recorded in [ADR-0028](adr/0028-sign-in-methods.md) (proposed). It is written against the versions Gaff pins: `better-auth` 1.7.14, Next.js 16 and Drizzle 0.45. The library behaviour it depends on most was checked in that version's source: account linking, email codes, rate limiting, hooks, Apple's form post and generic OAuth providers.
 
 ## 1. Decision in brief

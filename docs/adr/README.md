@@ -28,6 +28,7 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0025](0025-ai-provider-and-tasks.md) | Where the AI runs, and the tasks it does | Proposed (amends 0009) |
 | [0026](0026-identity-and-documents.md) | Identity once per person, and documents for chosen renters | Proposed (amends 0022) |
 | [0027](0027-places-index-on-google-maps.md) | Renter search uses our own place index, on Google Maps | Accepted (replaces the marketplace tech spec's self-hosted map, planned as 0020) |
+| [0028](0028-googles-script-only-on-map-pages.md) | Google's script runs only in documents loaded for the map's pages | Accepted in the live map's build; the navigation cost is the founders' to confirm (S11) |
 
 ## Template
 

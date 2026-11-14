@@ -1,6 +1,6 @@
 # Gaff marketplace: product requirements
 
-Approved for build by Sean on 7 November 2026 · requirements M1 to M124 (M56 to M61 amended and M113 to M124 added on 8 November 2026 by the [search redesign](search-redesign/prd.md))
+Approved for build by Sean on 7 November 2026 · requirements M1 to M137 (M56 to M61 amended and M113 to M124 added on 8 November 2026 by the [search redesign](search-redesign/prd.md); M38, M117, M119 and M120 amended and M125 to M137 added on 14 November 2026 by [the live map](map/prd.md))
 
 ## Summary
 
@@ -244,7 +244,7 @@ Anyone can report a listing from its page, without an account, and Gaff acknowle
 | ID | Requirement | Priority |
 | --- | --- | --- |
 | M37 | A first-time letter can create and publish a listing in under 5 minutes (median), on a phone or a laptop: one page in sections, saved as they go, with a preview before publishing | Must |
-| M38 | The address is found by Eircode or address search and confirmed with a pin on a map. The letter chooses whether renters see the exact address or only the street and area. The Eircode is never shown | Must |
+| M38 | The letter places the home's pin on Google's map in the listing editor. It starts on the address's street, from Gaff's place index, or at the area's centre; the letter drags it, taps the map, or moves it with the arrow keys. No address or geocoding service is used. The letter chooses whether renters see the exact address or only the street and area. The Eircode is never shown | Must |
 | M39 | Required facts, each marked required: property type, bedrooms, bathrooms, rent a month, deposit (capped at one month's rent, rule 4), available from, furnishing, BER, heating, pets, parking and outdoor space. Optional facts, each marked optional: floor area, BER number, floor and lift, en-suites, broadband, accessibility features (step-free entrance, lift, ground-floor bedroom, level-access shower), appliances and bills included | Must |
 | M40 | BER: the letter enters the rating, and the certificate date if they have it. Gaff shows it on the right scale (certificates issued before 24 May 2026 use the old scale) or as "BER exempt", following SEAI's advertising guidelines | Must |
 | M41 | Setting the rent includes the rent check (R3) and RTB comparables (R4). Gaff says which rule applies, and warns before a rent above the recorded cap goes live | Must |
@@ -281,14 +281,27 @@ Anyone can report a listing from its page, without an account, and Gaff acknowle
 | M114 | Recent searches: the last 5 for signed-in renters (kept with their account); this visit's for everyone else | Should |
 | M115 | Applied filters as chips, each removable, with "Clear all" | Must |
 | M116 | On larger screens, results update as soon as a filter changes; on phones, a sheet shows "Show 23 homes" with a live count | Must |
-| M117 | Map pins show the rent; a card and its pin light each other up; clusters show a count; a pin opens a mini card | Must |
+| M117 | Map pins show the rent. A card and its pin light each other up, by hover or by keyboard focus. Clusters show a count. A pin opens a mini card. Homes at one point share a pin ("3 homes") that lists them. Every pin is at least 44px tall to tap | Must |
 | M118 | The search bar stays at the top as the page scrolls | Must |
-| M119 | Google's map loads only when it's on screen, so renters' devices don't call Google otherwise; Google's attribution is always visible | Must |
-| M120 | When the map can't load, the list still works and says so | Must |
+| M119 | Google's map loads only when it's on screen, after the results, and never for search-engine robots. Renters' devices don't call Google otherwise. Google receives only what drawing the map needs, never what the renter searched for or typed, or who they are. Google's script runs only on pages that show the map, and goes when the renter leaves them. Google's attribution is always visible | Must |
+| M120 | When the map can't load, for any reason (a blocker, the network, the key, billing, the daily cap, no map within 10 seconds, or an error in the map's own code), the list still works and says so in Gaff's words, never with Google's error box | Must |
 | M121 | Popular places in the Where box, and home counts beside areas | Should |
 | M122 | A histogram of rents in the Rent filter | Should |
 | M123 | Search several areas at once ("Rathmines, Ranelagh") | Later |
 | M124 | Places renters couldn't find are counted, with no user, device or digits kept, so the place index can be improved | Must |
+| M125 | Every pin is at the home's real point: the letter's pin, or a point within about 150 m when the letter shows only the street and area. No home is pinned at an area's centre. A home without a placed pin is in the list, but not on the map | Must |
+| M126 | If the letter's pin is outside the area in the home's address, Gaff asks them to check it before the listing goes live. It never stops them | Should |
+| M127 | The map moves by itself only when the search area changes. Changing a filter, the sort or the page keeps the renter's view. Resizing the window, turning a phone or tablet, or a phone's toolbar never counts as the renter moving the map | Must |
+| M128 | Everything done by dragging on the map can be done without dragging (WCAG 2.2, 2.5.7): pan and zoom buttons, and drawing an area by tapping its corners | Must |
+| M129 | The map's style comes from Gaff's tokens. Businesses are hidden and transport stays. Pins and clusters always suit the map beneath them | Must |
+| M130 | The map is dark when the renter uses Gaff in dark: from their device's setting today, and from Gaff's own when it has one | Should |
+| M131 | While the map loads, its space is held, and it appears once it's drawn, so nothing jumps and the unstyled map never flashes | Should |
+| M132 | Spending on Google Maps is capped: a monthly budget with alerts at 50%, 80% and 100%, a daily cap on map loads in each environment, one map reused across a visit's searches, and no map for robots or preview copies | Must |
+| M133 | Gaff counts by day, with nothing about the renter or their device, how often the map opens, appears, fails (and why), searches its area, has a shape drawn, and has a pin opened, beside Google's billed map loads | Must |
+| M134 | If the DPIA finds that Google's script reads or stores anything on the device that showing the map doesn't need, the map on larger screens waits for one tap, remembered for the visit or on the account. On phones, tapping Map is that tap | Must, if S2 needs it |
+| M135 | The founders can turn the map off, leaving the list, within minutes and without a code change. The daily cap turns it off by itself until the next day | Must |
+| M136 | The real map is tested every night and before each release, in a production build: it appears, shows pins and Google's attribution, keeps the content security policy, calls Google only once it's on screen, and falls back as M120 says | Must |
+| M137 | When the map shows a street or area outline from Gaff's place index, it credits OpenStreetMap, without covering Google's attribution | Should |
 
 ### H. The listing page
 

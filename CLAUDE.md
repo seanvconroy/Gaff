@@ -11,6 +11,7 @@ Gaff is where homes in Ireland are let. Letters (private landlords, and agents w
 - **Before the first pilot:** `docs/launch-checklist.md`.
 - **Competitor teardowns:** `docs/competitors/` (reference only).
 - **Marketplace (approved 7 November 2026):** `docs/marketplace/prd.md` (requirement IDs M1, M2…) and `docs/marketplace/tech-spec.md`. The product rules below apply to it in full.
+- **The live map (built 13 and 14 November 2026, release to come):** `docs/marketplace/map/prd.md` (requirement IDs M125 to M137) and `docs/marketplace/map/tech-spec.md`: Google's map in place of the stand-in, and the letter's pin. The runbook is step 6 of `docs/deploy.md`.
 - **Replacing the stand-ins (draft, 8 November 2026):** `docs/providers/prd.md` (requirement IDs P1, P2…) and `docs/providers/tech-spec.md`: the real AI, identity checks for everyone, and work and income documents for chosen renters.
 
 ## Product rules: never break these
@@ -124,6 +125,7 @@ pnpm worker            # background jobs
 | `pnpm test:int`                    | Integration tests against `gaff_test` (recreated each run)                                             |
 | `pnpm build && pnpm test:e2e`      | Playwright journeys with axe, against `gaff_e2e`; screenshots in `screenshots/`                        |
 | `E2E_JOBS=vercel pnpm test:e2e`    | The same journeys with jobs run as on Vercel: no worker, runs after requests and a frequent tick       |
+| `pnpm build:map && pnpm test:map`  | Google's real map, in a production build (`tests/google`). Run `pnpm build` afterwards                 |
 | `pnpm tokens`                      | Regenerate `src/styles/tokens.css` and `tokens.ts` after changing `docs/design-tokens.json`            |
 | `pnpm db:generate --name=<change>` | New migration from schema changes                                                                      |
 | `pnpm format`                      | Prettier and Stylelint fixes                                                                           |

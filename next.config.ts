@@ -43,7 +43,7 @@ const storageOrigin = process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_UR
 // keeps `Referrer-Policy: no-referrer`: Google's script is told the site's origin and nothing
 // more (auth_referrer_policy=origin, src/ui/map/GoogleLoader.tsx).
 // A policy comes with its document, so going between these pages and any other is a full page
-// load (src/lib/map-pages.ts, src/ui/map/MapBoundary.tsx): the same build setting turns that on.
+// load (src/lib/map-pages.ts, src/ui/map/MapBoundary.tsx, ADR-0028): the same build setting turns that on.
 // Preview copies show the stand-in map (src/lib/env.ts), so they keep the policy without Google.
 const googleMaps = process.env.MAP_PROVIDER === 'google' && process.env.VERCEL_ENV !== 'preview';
 const google = 'https://*.googleapis.com https://*.gstatic.com *.google.com';

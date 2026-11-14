@@ -1,40 +1,65 @@
 # The live map: technical specification
 
-Draft, 8 November 2026 · CTO · goes with the [PRD](prd.md) (M125 to M137; amends M38, M117, M119 and M120) · builds on the [search redesign technical specification](../search-redesign/tech-spec.md) and [ADR-0027](../../adr/0027-places-index-on-google-maps.md)
+Draft, 8 November 2026 · built 13 and 14 November 2026, and amended here with what the build found ([As built](#as-built-14-november-2026), [Findings](#findings)) · CTO · goes with the [PRD](prd.md) (M125 to M137; amends M38, M117, M119 and M120) · builds on the [search redesign technical specification](../search-redesign/tech-spec.md) and [ADR-0027](../../adr/0027-places-index-on-google-maps.md)
 
 ## Summary
 
 The map is built. This work makes it real and ready for renters. It stays inside the monolith, with no new vendor and no new service:
 
-- **a week of spikes** on a development key, for the answers only Google's real script can give;
+- **spikes,** for the answers only Google's real script can give. No key was to hand, so the build read Google's script and ran it without one; what still needs a real key is listed under [Findings](#findings);
 - **a hardened provider:** every failure caught; a camera that moves only when it should; one clusterer per map; same-point pins; bigger, keyboard-friendly pins; the theme; a loading state; and drawing without dragging;
 - **real points:** the letter's map pin (M38), points that record where they came from, and realistic points for the test copy;
-- **headers per page:** Google's content security policy, and a referrer policy Google's key restriction can work with, only on pages that show a Google map;
+- **headers per page:** Google's content security policy only on pages that show a Google map, and those pages entered and left with a full page load, so Google's script runs nowhere else;
 - **spending and counts:** daily caps and budget alerts, no map for robots or previews, and first-party counts;
 - **a real-map test run,** every night and before each release, beside the stand-in runs on every change;
 - **a runbook** for setting up, watching, turning off and rotating.
 
 Everything in the search redesign's technical specification still holds unless this document says otherwise.
 
+## As built (14 November 2026)
+
+Steps 1 to 8 of the [delivery plan](#delivery-plan) are built. Where this section and the rest of the document differ, this section is right; the tables and sections below have been amended to match, and say where.
+
+**What changed from the plan, and why**
+
+- **No frame, and no change to the referrer policy** (decisions 7 and 8). Google's script is told to send the site's origin alone. Every page keeps `no-referrer`.
+- **Full page loads into and out of the map's pages** (decision 12). This was the build's main finding, and it came from the real-map run, not from reading: reached by an in-app link, the search and the listing editor showed "The map isn't available right now", because the document they arrived in carried another page's policy.
+- **Nothing thrown inside the map takes the page with it** (decision 1). Also from the real-map run: a refused key, landing while pins waited to go on a map that was still starting, replaced the whole page with "This page couldn't load". An error boundary now wraps the map on the search and in the listing editor, and a fifth failure count, `error`, says when it was needed.
+- **Failure is also read from the map's own element** (decision 1), because Google's development-mode map draws tiles and calls no hook.
+- **The pin's check uses the area's centre and reach** (M126). The place index holds no boundaries and there is no `listing_places` table, so a pin counts as inside its address's area within the area's radius plus 250 metres. The words for where a pin is come from the place it sits deepest inside.
+- **The picker has move buttons** as well as the arrow keys, so a pin can be moved a step at a time by touch. A development's homes share its pin until they have their own.
+- **Views are held to Ireland** (`clampToIreland`, and the map's own `restriction`) in place of a minimum zoom.
+- **The test copy's addresses stay made up.** Each made-up home's point is on a real street's centre line in its area, and two in three show their address in full.
+- **Google is told nothing it doesn't need:** no extra libraries, and none of the map library's own usage tags.
+- **The real-map run is its own build and run** (decision 11), with tests that need no key and tests that need one.
+
+**What isn't done**
+
+- Nothing has run with a real key. The tests that need one (`tests/google/map.spec.ts`) were checked against Google's real script in its keyless development mode. Two things rest on Google's documentation alone: that a key restricted to a website accepts the origin-only setting, and what a project over its cap looks like ([deploy.md](../../deploy.md) has the first-time check).
+- Spikes C, D and G, and the parts of A that need other browsers ([Findings](#findings)).
+- The manual check list below, the records (privacy notice, terms, DPIA) and the release itself: step 9.
+
 ## Decisions
 
 | # | Decision | Choice | Why |
 | --- | --- | --- | --- |
-| 1 | Detecting failure | Three signals: the script's load error (`APIProvider`'s `onError`), Google's `gm_authFailure` hook, and a watchdog that fails the map if Google hasn't drawn it (no first `tilesloaded`) within 10 seconds | Google documents `gm_authFailure` for key problems only. Over the cap, Google logs `OverQuotaMapError` to the console, with no documented hook. The watchdog catches whatever's left, including a content security policy block |
+| 1 | Detecting failure | Five signals: the script's load error (`APIProvider`'s `onError`); Google's `gm_authFailure` hook; a watch on the map's own element for Google's error views; two watchdogs (no script in 20 seconds, no first `tilesloaded` in 10); and an error boundary round the map. _Amended in the build_ | Google calls `gm_authFailure` for a refused key only. In development mode (no billing, and by Google's documentation the daily cap) it draws tiles under its own dialog and calls nothing, and the tiles defeat the watchdog: so the element is watched. When Google refuses a key it takes its map apart and its markers throw as they're removed: so the boundary |
 | 2 | Google's script version | The quarterly channel in production and on the test copy. The nightly test run also tries the weekly channel | Fewer surprises in production, and a warning of the next quarter's changes |
-| 3 | The dark map | `colorScheme`, set from Gaff's theme when the map is created, on one Map ID whose style has light and dark variants, if spike D shows Map IDs support that. Otherwise today's two Map IDs | Google applies `colorScheme` only when a map is created |
+| 3 | The dark map | `colorScheme`, set when the map is created, with a second Map ID for the dark style (`GOOGLE_MAPS_MAP_ID_DARK`). Without one, the map and its pins stay light in both themes. The map follows the page's theme (`data-theme`, then the device): Gaff has no theme chooser of its own yet. _Amended in the build: spike D needs the console, so one Map ID with both styles is still untried_ | Google applies `colorScheme` only when a map is created |
 | 4 | Clustering | One `MarkerClusterer` per map, created in an effect and removed in its cleanup. Homes at one point are grouped in domain code first. Hovering changes a pin's look, never the clusters | Today's clusterer outlives its map, and every hover re-clusters every pin |
 | 5 | The camera | It fits only when the search area's key changes. A move counts as the renter's only when one of their gestures started it | Filter changes and resizes mustn't move the map or search its area |
 | 6 | Drawing | Screen points converted with an `OverlayView`'s projection; tilt and rotation off; a mode for tapping corners | Correct on any map; WCAG 2.5.7 |
-| 7 | Headers | Pages that show a Google map get Google's content security policy and, if spike B shows it's needed, `Referrer-Policy: strict-origin`. Every other page is unchanged | Private links still never leak. Google's website restriction can check the origin |
-| 8 | The page's address | If spike A shows Google's script sends Google the page's address, the map runs in a same-origin frame at a fixed address, `/to-rent/map-frame`, and talks to the page with `postMessage` | The only reliable way to keep the search, including accessibility features, from Google |
+| 7 | Headers | Pages that show a Google map get Google's content security policy. Every page, these included, keeps `Referrer-Policy: no-referrer`. _Amended in the build: `strict-origin` isn't needed_ | The script tells Google the site's origin itself (`auth_referrer_policy=origin`), so nothing rests on the Referer header |
+| 8 | The page's address | No frame. `auth_referrer_policy=origin` makes Google's script send the site's origin where it would send the page's address. _Amended in the build_ | Read in Google's script and seen in its requests: by default it sends the origin and path (which names the place searched, though not the filters); with the setting, the origin alone |
 | 9 | Points | `homes.point_source` records where each point came from. Only the letter's points (and the test copy's seeded points) go on the map | M125 |
 | 10 | Counts | A small `map_daily_counts` table, written through the existing beacon route | M133, with no cookies and no visitor hash |
-| 11 | Testing the real map | A `google` Playwright project, run nightly and before each release, with a key restricted to the test server's address and a tiny daily cap | Real behaviour, without a Google key in every pull request |
+| 11 | Testing the real map | A run of its own (`pnpm build:map && pnpm test:map`: `playwright.google.config.ts`, `tests/google`), nightly on the quarterly and weekly channels, on demand, and when the map's code changes. Its key is restricted to `http://localhost:3100`, with a daily cap of 100. Tests that need no key always run. _Amended in the build: a separate build, because the headers are set when the app is built_ | Real behaviour, without a Google key in every pull request |
+| 12 | Where Google's script runs | Only in a document loaded for a page that shows the map (`src/lib/map-pages.ts`). Going between a map page and any other page is a full page load, in both directions (`src/ui/map/MapBoundary.tsx`). _Added in the build_ | A content security policy comes with its document, and in-app links swap pages without one. Reached by a link, the search or the listing editor had Google's script refused; left by a link, they took Google's script and the looser policy on to pages where people enter personal details |
+| 13 | The map's height | 48px shorter on larger screens, so the whole map is on the first screen. _Added in the build_ | Its bottom 30px, with Google's logo and terms, sat below the first screen until the page was scrolled |
 
 ## Week one: spikes
 
-On a development key restricted to `http://localhost:3000/*` and the Maps JavaScript API, in a production build (`pnpm build && pnpm start`), so the content security policy applies. Each spike ends with a few lines under [Findings](#findings).
+Planned on a development key, in a production build, so the content security policy applies. No key was to hand during the build, so the spikes were done as far as they can be without one: by reading Google's script, and by running it through the app's production build with no key, with a key Google refuses, and with Google's hosts blocked. [Findings](#findings) says what each settled and what is still open.
 
 | # | Question | How | Decides |
 | --- | --- | --- | --- |
@@ -48,18 +73,34 @@ On a development key restricted to `http://localhost:3000/*` and the Maps JavaSc
 
 ### Findings
 
-Empty until the spikes run. Each finding records the date, the browser and what was seen, and links the decision it settles.
+Seen on 13 and 14 November 2026, in Google's script on the quarterly channel (version 3.65.14a), run in Chromium through the app's production build with its content security policy. Three ways: with no key, which gives Google's development-mode map (darkened tiles under its own dialog); with a key Google refuses; and with Google's hosts blocked. The tests in `tests/google` repeat most of these every night.
+
+| Spike | What was found | Settles | Still open |
+| --- | --- | --- | --- |
+| A | Requests go to `maps.googleapis.com` and `maps.gstatic.com`; Google's font stylesheets are refused by Gaff's policy, and the map's buttons still draw. By default the script sends Google the page's origin and path, without the query string; with `auth_referrer_policy=origin`, the origin alone. No request carries the page's address or anything searched. Google's own data calls carry the browser's `Origin` header, and one image (Google's cursor) carries a `Referer` with the origin alone, the browser's default for a style set by script. The script sets and reads no cookie of Gaff's site, and writes nothing lasting to the device: it tests `sessionStorage` with a key it removes at once, and otherwise only reads keys of its own | Decision 8: no frame. The PRD's finding 5 is corrected: it was the place in the path that reached Google, not the filters | A browser signed in to Google, Safari on iOS and Chrome on Android, for S2 and the DPIA |
+| B | Not needed: nothing rests on the Referer header (spike A) | Decision 7 | That a key restricted to a website accepts the origin-only setting: the first-time check in [deploy.md](../../deploy.md) |
+| C | Not tried. The policy is the one in Google's guide | | Whether the map works without `'unsafe-eval'` |
+| D | Not tried: it needs a Map ID in Google's console | | Decision 3 stays at two Map IDs until it is |
+| E | Blocked hosts: the script's load error, at once. A refused key: `gm_authFailure`, a fraction of a second after the map's first call for its viewport, and Google takes its map apart. No key: tiles, Google's dialog, and no hook at all. Each ends in Gaff's sentence within a second or two | Decision 1 | A project over its cap, and one with billing off: by Google's documentation they look like the keyless map |
+| F | Not needed: there is no frame | Decision 8 | |
+| G | Not measured. The cluster radius (150, in the clusterer's 512px-tile units) comes from the pin's width, checked by eye on Google's real tiles | | 2,000 pins on a mid-range phone, before release |
+
+Two things nobody had asked a spike about, both found by running the real map through the app:
+
+- **A content security policy belongs to a document, not a page** (decision 12).
+- **Google's markers throw when removed from a map Google has taken apart** (decision 1). It needs the refusal to land while markers wait for the map's configuration, a tenth of a second wide. The test holds that configuration back, and then it happens every time.
 
 ## Code layout
 
 | Path | What changes |
 | --- | --- |
-| `src/app/(public)/to-rent/map/GoogleMap.tsx` | Split into `google/Loader.tsx` (the provider, failure detection and the watchdog), `google/Camera.tsx`, `google/Pins.tsx` (the clusterer, raised pins and same-point pins), `google/AreaOutline.tsx` and `google/DrawLayer.tsx` |
+| `src/app/(public)/to-rent/map/GoogleMap.tsx` | The camera, the pins (one clusterer per map, raised pins, same-point pins), the area's outline and the draw layer, as components in one file |
+| `src/ui/map/` | New, shared by the search map and the picker: `GoogleLoader.tsx` (the one place Google's script is loaded, and every failure signal), `MapErrorBoundary.tsx`, `MapBoundary.tsx` (decision 12), `PinPicker.tsx` and `GooglePinMap.tsx` (the letter's pin), `count.ts` and `useScheme.ts` |
+| `src/lib/map-pages.ts`, `src/lib/map.ts` | New: the list of the map's pages, used by the header rules and by the pages' scripts; and which map this deployment shows |
 | `src/app/(public)/to-rent/map/SearchMap.tsx` | Load timing, the theme, counts, failure kinds, and the same-point list in the mini card |
 | `src/app/(public)/to-rent/map/StaticMap.tsx` | Same-point pins, drawing by tapping corners, and the same gesture rules, so the stand-in keeps behaving like the real map in tests |
 | `src/app/(public)/to-rent/map/map.module.css` | The pin's hit area and `border-strong` edge, the focus ring, raised pins, the fade-in, and pins that follow the map's scheme |
-| `src/app/(public)/to-rent/map-frame/` | New, only if decision 8 applies: the frame page and its side of the messages |
-| `src/domain/map/` | New, pure and unit-tested: `points.ts` (grouping by point), `camera.ts` (the area key, and when to fit), `gestures.ts` (whose move it was), `theme.ts`, and `messages.ts` (the frame's messages, as Zod schemas) |
+| `src/domain/map/` | New, pure and unit-tested: `points.ts` (grouping by point), `camera.ts` (the area key, when to fit, and views held to Ireland), `gestures.ts` (whose move it was), `theme.ts`, `draw.ts` (taps, corners and shapes), `pin.ts` (nudging, the area check, the place a point is in) and `counts.ts` (the codes that may be counted) |
 | `src/domain/places/street.ts` | New: the address's street among candidate streets, by normalised name (`normalise.ts`) |
 | `src/server/listings/location.ts` | New use case: `setHomePoint` |
 | `src/app/(workspace)/lettings/[lettingId]/listing/LocationPicker.tsx` | New: the letter's pin, on the same providers |
@@ -70,8 +111,8 @@ Empty until the spikes run. Each finding records the date, the browser and what 
 | `src/app/(public)/to-rent/SearchPage.tsx` | No map for robots |
 | `next.config.ts` | Headers for map pages |
 | `src/lib/env.ts` | `GOOGLE_MAPS_VERSION`, and the production checks |
-| `tests/e2e/map-google.spec.ts`, `playwright.config.ts`, `.github/workflows/map.yml` | The real-map run |
-| `tests/compliance/no-trackers.test.ts` | The referrer policy, page by page |
+| `playwright.google.config.ts`, `tests/google/`, `.github/workflows/map.yml` | The real-map run: `failures.spec.ts` and `boundary.spec.ts` need no key; `map.spec.ts` needs the test run's key |
+| `tests/compliance/no-trackers.test.ts` | One referrer rule for every page; Google's hosts only on the map's pages; one place loads Google's script; the map is used only on the map's pages; no other Google service |
 | `docs/deploy.md` | The runbook |
 
 ## The provider, hardened
@@ -80,12 +121,13 @@ Empty until the spikes run. Each finding records the date, the browser and what 
 
 - **When it loads:** `SearchMap` mounts the provider once the column is on screen (`IntersectionObserver`), the page's `load` event has fired (the first photos load eagerly, so they're in by then), and the browser is idle (`requestIdleCallback`, with a 2-second timeout). Google's script then never competes with the photos that decide LCP. On phones, the tap on Map already does this.
 - **Robots:** `SearchPage` passes no map settings when `isLikelyBot()` (`src/domain/measurement/views.ts`) matches the request's user agent.
-- **Failures,** each reported once, with its kind:
+- **Failures,** each reported once, with its kind (`src/ui/map/GoogleLoader.tsx`; _amended in the build_):
   - `script`: `APIProvider`'s `onError` (a blocker, the network, the content security policy);
-  - `auth`: `window.gm_authFailure`, set before the script loads and removed on unmount (the key, the allowed websites, billing, an expired key);
-  - `timeout`: no first `tilesloaded` within 10 seconds of creating the map (the cap, an outage, anything else);
-  - `frame`: the frame didn't say it was ready within 10 seconds (decision 8 only).
-- **On a failure,** the provider unmounts, so Google's error box is never seen, and M120's sentence takes its place. The phone's map view keeps the List button.
+  - `auth`: `window.gm_authFailure`, set before the script loads and put back on unmount (the key, the allowed websites, billing, an expired key);
+  - `google`: Google drew its own error where the map should be. Its error box (`.gm-err-container`) or its development-mode dialog (`.dismissButton`) appeared inside the map's element, which a `MutationObserver` watches. Google calls no hook for these, and draws tiles under the dialog, so the watchdog alone would call the map ready;
+  - `timeout`: no script within 20 seconds, or no first `tilesloaded` within 10 seconds of creating the map;
+  - `error`: something inside the map threw. `MapErrorBoundary` wraps the place the map is swapped for its failure words, so it catches what's thrown while the map is drawn and while it's taken away.
+- **On a failure,** the provider unmounts, so Google's error box is never seen, and M120's sentence takes its place. The phone's map view keeps the List button. Unmounting is itself guarded: Google's markers throw when removed from a map Google has taken apart.
 - **Fading in:** the map's element stays transparent until the first `tilesloaded`, then fades in over `motion-fast` with `ease-standard`. With reduced motion it appears at once. The column's background (`surface-2`) holds the space meanwhile, so nothing moves.
 - **Reuse:** `reuseMaps` stays, so moving between searches in a visit doesn't create (and bill) another map. The clusterer, overlays and listeners are removed on unmount, so a reused map starts clean.
 
@@ -153,15 +195,15 @@ Empty until the spikes run. Each finding records the date, the browser and what 
 - **`LocationPicker`** (client) is a new "Where is the home?" section in the listing editor, next to "How much of the address can renters see?". It uses the same provider switch: Google, or the stand-in in tests and development.
 - **Where it starts** (`startPoint`, server side):
   1. take the street from the first line of the address (`streetOf` in `src/domain/listings/projection.ts`) and normalise it;
-  2. find `places` rows of kind `street` with that name in the home's county, whose line passes within 2 km of the area's centre (`src/domain/places/street.ts`);
-  3. start at the nearest one's line, at zoom 17. Otherwise start at the area's centre, at zoom 15.
-- **Moving the pin:** a draggable Advanced Marker (`gmpDraggable`). A tap on the map moves the pin there. With the pin focused, the arrow keys move it by about 10 m, or 50 m with Shift. When it stops, a polite live region names where it is ("The pin is on Highfield Road, Rathgar, Dublin 6"), from the place index: the nearest street within 50 m, and the smallest area that contains the point.
+  2. find `places` rows of kind `street` with that name in the home's county, whose line passes within the area's reach plus 500 metres (`src/domain/places/street.ts`);
+  3. start at the nearest one's line, at zoom 18. Otherwise start at the area's centre, at zoom 15.
+- **Moving the pin:** a draggable Advanced Marker (`gmpDraggable`). A tap on the map moves the pin there. With the pin focused, the arrow keys move it by about 10 m, or 50 m with Shift; four buttons under the map do the same by touch. When it stops, a polite live region names where it is ("The pin is on Highfield Road, Rathgar, Dublin 6"), from the place index: the nearest street within 50 m, and the smallest area that contains the point.
 - **`setHomePoint(member, lettingId, point)`** in `src/server/listings/location.ts`:
   - validates the point with Zod: finite, and inside Ireland (`inIreland`);
   - inside `withOrg()`, writes the point, `point_source = 'letter'` and `point_set_at`, with the event `home.point_set` in the same transaction;
-  - the event's payload is `{ homeId, insideAddressArea }`, never the coordinates: a private landlord's home is personal data (rule 8, ADR-0006);
-  - if the listing is live, projects it again, which rewrites its public point and its `listing_places` rows.
-- **The check (M126):** the point is tested against the boundary of the area in the address (`pointInPolygon` in `src/domain/places/geo.ts`), or against its centre and radius when the area has no boundary. Outside it, the picker asks the letter to confirm, and the letter can keep it.
+  - the event's payload is `{ homeId, check, homes }` (the check's answer, and how many homes took the pin), never the coordinates: a private landlord's home is personal data (rule 8, ADR-0006);
+  - if the listing is live, projects it again, which rewrites its public point. A development's homes without a pin of their own take the pin too, and each of their live listings is projected again.
+- **The check (M126):** the point is tested against the centre and reach of the area in the address: inside its radius, plus 250 metres, since an area's edge isn't a line on the ground (`pinInArea`, `src/domain/map/pin.ts`). The place index holds no boundaries. Outside it, the picker asks the letter to confirm, and the letter can keep it. _Amended in the build._
 - **Publishing** needs `point_source` to be `letter` (or `seed` on the test copy). The publish checklist links to the section: "Place the pin".
 - **Homes already live without a pin** get a task among "what needs a person today" (R28): "Place the pin for 14 Rathmines Road".
 - **The workspace page with the picker** gets the map headers (below), and nothing else in the workspace loads Google.
@@ -169,34 +211,32 @@ Empty until the spikes run. Each finding records the date, the browser and what 
 ### The test copy's homes
 
 - `src/server/dev/seed.ts` gives each made-up home a point on a real street in its area. The points are taken once from the place index and written into the seed, so the seed doesn't need the index, with `point_source = 'seed'`.
-- About a third of the made-up homes hide the exact address, so approximate points are tested too.
-- Street names are real; house numbers are made up, and no point is a real person's home. A unit test checks each seed point is inside its area's bounding box.
+- A third of the made-up homes hide the exact address, so approximate points are tested too.
+- The addresses are made up, street names included, and no point is a real person's home: each sits on a real street's centre line in the home's area. _Amended in the build._
 
-## Headers on map pages (decision 7)
+## Headers on map pages (decisions 7 and 12)
 
-- **`next.config.ts`** builds its header rules from one list of map pages: `/to-rent/:path*`, `/lettings/:lettingId/listing` (the picker), and `/to-rent/map-frame` if decision 8 applies.
-- **On those pages,** when the build has `MAP_PROVIDER=google`:
-  - Google's content security policy, as today, tightened by spike C;
-  - if spike B shows `no-referrer` breaks the key's restriction, `Referrer-Policy: strict-origin`, which sends Google the site's origin, never a path or query.
-- **Every other page** keeps `no-referrer` and the policy without Google. Renters' and landlords' private links (`/r/…`, `/l/…`) never get either.
-- **`tests/compliance/no-trackers.test.ts`** adds: the referrer policy page by page; private links always `no-referrer`; Google's hosts only on map pages.
+_Amended in the build._
+
+- **One list of map pages** (`src/lib/map-pages.ts`): `/to-rent/:path*` and `/lettings/:lettingId/listing` (the picker). `next.config.ts` builds its header rules from it, and the pages' own scripts use the same list.
+- **On those pages,** when the build has `MAP_PROVIDER=google` and isn't a preview copy: Google's content security policy, as in Google's guide. Every other page keeps the policy without Google.
+- **Every page** keeps `Referrer-Policy: no-referrer`, the map's pages included.
+- **A policy comes with its document,** and Next.js swaps pages in place. So, in the same builds, going between a map page and any other page is a full page load (`src/ui/map/MapBoundary.tsx`, in the root layout):
+  - a link across the boundary is followed as a full page load from the start;
+  - a page swapped in across it any other way (a redirect, a button) loads again at once, and Google's script isn't asked for until it has;
+  - within either side, pages swap in place as before.
+- **The cost** is that opening a home from the search, and going back, are full page loads. The other way to keep Google's script to the map alone is the frame decision 8 set aside: it would keep in-place navigation, at the price of running the map's code on both sides of a frame. It stays an option if the page loads prove slow ([next steps](../../next-steps.md)).
+- **`tests/compliance/no-trackers.test.ts`** checks the rules; `tests/google/boundary.spec.ts` checks the behaviour in a browser.
 
 ## Privacy: what Google receives
 
-- **Spike A lists it.** Expected: the device's IP address and browser details with every request to Google; the map's area and zoom in the tile requests; the key; and possibly the page's address, in the calls the script makes to check the key and count usage.
-- **Gaff itself sends Google nothing:** no home IDs, no search, no account.
-- **If the page's address reaches Google (decision 8):** the search page's address carries the search's filters, and one of them (`access`) lists the accessibility features a renter needs. So the map moves into a frame:
-  - `/to-rent/map-frame` renders only the Google provider and has no query string. The search page embeds it in the map column, as `<iframe title="Map of the homes in this search">`;
-  - Gaff's pages all send `frame-ancestors 'none'` and `X-Frame-Options: DENY`. The frame page alone sends `frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN` instead, so Gaff, and only Gaff, can embed it;
-  - the page and the frame talk with `postMessage`. The page accepts a message only from the frame's own window (and from Gaff's origin, unless the frame is sandboxed, when the origin reads `null`), and every message is parsed with a Zod schema (`src/domain/map/messages.ts`):
-    - page to frame: `start` (box and theme), `pins`, `hover`, `choose`, `area` and `draw`;
-    - frame to page: `ready`, `moved` (box, and whether the renter moved it), `hover`, `choose`, `drawn` and `failed` (with its kind);
-  - Draw, the mini card and the row of cards stay in the page, over the frame;
-  - the frame gets Google's headers, and the search page itself goes back to the policy without Google, a gain in its own right;
-  - the frame is sandboxed if spike F shows the map works that way;
-  - the stand-in stays in the page, so the main end-to-end runs don't change, and the real-map run covers the frame.
-- **The DPIA and the privacy notice** record what spike A found; Google's role (an independent controller, under its Controller-Controller Data Protection Terms); the lack of an EU region; and the transfer basis (the EU–US Data Privacy Framework).
-- **ePrivacy (S2):** if spike A finds Google's script reads Google's cookies or stores anything beyond what the map needs, the solicitor decides whether the map on larger screens waits for a tap (M134). The choice is kept in `sessionStorage` for the visit, or as a setting on a signed-in renter's account. Never a cookie: `no-trackers.test.ts` already forbids Gaff's own cookies, other than the sign-in session.
+_Amended in the build: spike A's [findings](#findings) replace what was expected here._
+
+- **What Google receives:** the device's IP address and browser details with every request to Google; the map's area and zoom in the tile requests; the key; and the site's origin. Never the page's address, so never the place a renter searched, their filters (one of which, `access`, lists the accessibility features a renter needs) or a listing's address.
+- **When:** only once the map is wanted (on a phone, when the renter opens it), and only in a document loaded for a page that shows the map. Google's script goes when the page does: it is never loaded where a renter enquires or a letter reads an application.
+- **What goes on the map:** Gaff's own content only. No Google service other than the Maps JavaScript API is called, and no library beyond the map and its markers is loaded.
+- **The DPIA and the privacy notice** record the findings; Google's role (an independent controller, under its Controller-Controller Data Protection Terms); the lack of an EU region; and the transfer basis (the EU–US Data Privacy Framework). Still to look at for them: a browser signed in to Google, and Safari and Android, where Google's own cookies may travel with requests to Google's hosts.
+- **ePrivacy (S2):** the solicitor decides, from the findings, whether the map on larger screens waits for a tap (M134). Nothing found so far points to it: the script stores nothing lasting on the device. M134 isn't built.
 
 ## Spending (M132, M135)
 
@@ -215,11 +255,11 @@ Empty until the spikes run. Each finding records the date, the browser and what 
 
 ## Counts (M133)
 
-- **`map_daily_counts`** `(day, event, kind, count)`, in the staff zone. `kind` is a short code: `phone` or `larger` for opens, and `script`, `auth`, `timeout` or `frame` for failures. No user, visitor hash, IP address, area or search is kept. Rows are deleted after 13 months by the nightly retention job.
+- **`map_daily_counts`** `(day, event, kind, count)`, in the staff zone. `kind` is a short code: `phone` or `larger` for opens, and `script`, `auth`, `google`, `timeout` or `error` for failures. No user, visitor hash, IP address, area or search is kept. Rows are deleted after 13 months by the nightly retention job.
 - **The page** sends `navigator.sendBeacon('/api/v?m=opened&k=larger')`. `/api/v` checks `m` and `k` against fixed lists (Zod), adds one, and ignores robots.
 - **Events:** `opened`, `shown` (the first tiles drawn), `failed`, `area_searched`, `shape_drawn`, `pin_opened` and `group_opened`.
 - **Staff** see a month of counts on a staff page, beside the month's billed map loads, which they copy from Google's console.
-- **A daily check** (a job) emails the CTO when failures pass 5% of opens on a day with 50 opens or more.
+- **A daily check** (a job) emails Gaff's admins when failures pass 5% of opens on a day with 50 opens or more.
 
 ## Testing
 
@@ -231,10 +271,9 @@ Test names start with the requirement ID (`M127: …`).
   - gestures: resizes, a phone's toolbar and the page's own fits never count as the renter's;
   - `resolveTheme`;
   - the street the picker starts on, including streets of one name in different towns;
-  - the minimum zoom against `MAX_BBOX_KM2`;
-  - the frame's message schemas, if it's built.
+  - views held to Ireland, and the pages on each side of the map's boundary (`src/lib/map-pages.test.ts`).
 - **Integration tests:**
-  - `setHomePoint`: row-level security, the event with no coordinates, projecting again, `listing_places`;
+  - `setHomePoint`: row-level security, the event with no coordinates, projecting again, a development's shared pin;
   - points leave out `area` homes, and approximate hidden addresses;
   - `map_daily_counts` takes only the listed codes, and ignores robots.
 - **End to end with the stand-in** (every change, with axe on every state, on a phone and a laptop):
@@ -243,23 +282,25 @@ Test names start with the requirement ID (`M127: …`).
   - drawing by tapping corners;
   - focusing a pin lights up its card;
   - the letter places a pin by dragging, tapping and the arrow keys, and sees the area check;
-  - M120's sentence when the provider fails (a test-only switch makes the stand-in fail).
-- **The real map** (`tests/e2e/map-google.spec.ts`, Playwright project `google`, run by `.github/workflows/map.yml` every night, on demand and before each release):
-  - a production build with `MAP_PROVIDER=google` and the test run's key, restricted to `http://localhost:3000/*` and the Maps JavaScript API, with its cap of 100 a day. The key is a GitHub Actions secret, never available to pull requests from forks;
-  - nothing requests a Google host (`page.on('request')`) while a phone shows the list, or before the map column is on screen and the results have shown; requests start once the renter taps Map;
-  - the map appears (the first `tilesloaded`); price pins are buttons with their names; a pin opens its mini card; a cluster zooms in;
-  - Google's logo and terms are visible, and nothing of ours overlaps them, on a phone and a laptop;
-  - no content security policy violation, other than Google's font;
-  - Google's hosts blocked (`page.route`): M120's sentence; a wrong key: M120's sentence within 10 seconds;
-  - the referrer policy and the key's restriction work together;
-  - screenshots of each state, for a person to look over. They aren't compared pixel by pixel, because Google's map changes.
+  - M120's sentence is tested on Google's real script, where the failures are real (below), not with a switch on the stand-in.
+- **The real map** (`pnpm build:map && pnpm test:map`: `playwright.google.config.ts` and `tests/google`, run by `.github/workflows/map.yml` every night on the quarterly and weekly channels, on demand, and when the map's code changes; _amended in the build_). A production build with `MAP_PROVIDER=google`, the journeys' test database, and the test copy's made-up homes for pins.
+  - **With no key** (`failures.spec.ts`, `boundary.spec.ts`), on Google's real script:
+    - only the map's pages carry Google's policy, and every page sends `no-referrer`;
+    - on a phone, nothing leaves for another site until the renter opens the map; the first request is Google's script, with only the key, the channel, the language, the region and `auth_referrer_policy=origin`;
+    - no request to Google carries the page's address or anything searched;
+    - each failure ends in M120's sentence, its own count, and the list whole: Google's hosts blocked; a script that never answers; a key Google refuses; a key refused while pins wait to go on the map (the page must not go down with it); Google's development-mode map; a map that never finishes starting;
+    - a letter whose browser can't reach Google is told the pin can't be placed, and what to do;
+    - the search and the listing editor are entered, and left, with new documents: Google's script is never refused, and never left behind.
+  - **With the test run's key** (`map.spec.ts`, skipped without it), on a computer, on a phone and in the listing editor: the map draws after the page; pins and clusters are buttons with their names; a pin opens its card; a cluster zooms in; the map stays where the renter leaves it; a filter and a resized window leave it alone; an area is drawn by tapping corners; a pin is placed by tapping, the buttons, the arrow keys and dragging; Google's logo and terms are in sight and uncovered; no content security policy violation other than Google's fonts; nothing of the search reaches Google; axe passes.
+  - The key is a GitHub Actions secret, restricted to `http://localhost:3100` and the Maps JavaScript API, with a cap of 100 map loads a day. Screenshots of each state are kept for a person to look over. They aren't compared pixel by pixel, because Google's map changes.
+  - **Not yet run with a real key:** `map.spec.ts` was checked against Google's script in its keyless development mode, with a stand-in for the key that isn't in the repository.
 - **The manual check list,** before each release that changes the map:
 
 | Area | Check |
 | --- | --- |
 | Browsers | Safari on iOS (the latest and the one before), Chrome on a mid-range Android phone, and Chrome, Edge, Firefox and Safari on a laptop |
 | Screens | 320px, 375px, 744px, 1128px, 1440px and 1920px wide; a tablet in portrait and landscape |
-| Settings | Light and dark, chosen in Gaff and from the device; reduced motion; text zoomed to 200% |
+| Settings | Light and dark, from the device; reduced motion; text zoomed to 200% |
 | Assistive technology | VoiceOver on iOS, NVDA on Windows, and the keyboard alone |
 | Networks | Slow 4G, going offline after the page loads, and an ad blocker that blocks Google (uBlock Origin) |
 | Data | All of Ireland with every test home; a place where homes share a point; a development; a home with its address hidden; a search with no homes |
@@ -267,31 +308,7 @@ Test names start with the requirement ID (`M127: …`).
 
 ## The runbook
 
-[deploy.md](../../deploy.md)'s step 6 becomes a runbook:
-
-1. **Projects and owners (S9):** `gaff-maps-production`, `gaff-maps-test` and `gaff-maps-ci`, under Gaff's billing account, with both founders as owners and the CTO as an editor.
-2. **APIs:** the Maps JavaScript API, and nothing else.
-3. **Keys:** one per project, restricted to websites and to the Maps JavaScript API: production's own domain; the test copy's `https://gaff-test.vercel.app/*`; and, for the test run, `http://localhost:3000/*`. Preview copies have no key.
-4. **Map IDs and styles:** a JavaScript, vector Map ID per project, styled from this table, which comes from `docs/design-tokens.json`. When those tokens change, the styles are updated by hand:
-
-   | Map feature | Token | Light | Dark |
-   | --- | --- | --- | --- |
-   | Land | `surface-2` | `#ede6da` | `#202836` |
-   | Water | `sky` | `#c9d8ea` | `#24334b` |
-   | Roads | `border` | `#d8cfc0` | `#2c3544` |
-   | Labels | `ink-muted` | `#4a5262` | `#b3bccb` |
-   | Label outlines | `surface-1` | `#fffdf9` | `#171d28` |
-   | Businesses and other points of interest | hidden | | |
-   | Transport lines and stations | shown, in Google's colours | | |
-
-5. **Caps and budget:** the daily caps and the budget alerts above.
-6. **Vercel settings,** per environment: `MAP_PROVIDER`, `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_MAP_ID` (and `GOOGLE_MAPS_MAP_ID_DARK` if decision 3 needs it) and `GOOGLE_MAPS_VERSION=quarterly`, then a redeploy.
-7. **Check it:** today's checks, plus no `RefererNotAllowedMapError` in the console, and M120's sentence with the network turned off.
-8. **Turning the map off:** `MAP_PROVIDER=none` and a redeploy. Set it back to `google` to restore.
-9. **Rotating a key:** create a new key with the same restrictions, set it in Vercel and redeploy, check the map, and delete the old key the next day.
-10. **If a key is used elsewhere:** the website restriction turns other sites away in a browser, but a referrer can be faked outside one, so the daily cap is the backstop. If billed loads rise while visits don't, rotate the key.
-11. **Every month:** compare billed loads with the counts, review the caps, and read any notice of changes to Google's terms (Google emails the billing contact).
-12. **Every live home has a pin:** a query in the runbook lists live listings that aren't `on_map`. It should return none.
+[deploy.md](../../deploy.md)'s step 6 is the runbook, as built: the three projects and their keys (each lists its site with no path as well as with `/*`, because Google is told the origin alone); the Map IDs and their styles, from `docs/design-tokens.json`; caps and budget; the Vercel and GitHub settings; what to check; how the map behaves; what each failure count means and what to do; turning the map off (M135); rotating a key; a key used elsewhere; the monthly check; the query for live homes without a pin; and how to run the real-map tests. It also names the two things to check the first time real keys are used.
 
 ## Performance
 
@@ -309,33 +326,35 @@ Test names start with the requirement ID (`M127: …`).
 ## Security
 
 - **The key is public by design.** Its website and API restrictions and the daily cap protect it.
-- **The frame,** if it's built, accepts messages only from the page that embeds it, parses each one with Zod, and can be embedded only by Gaff. It never handles personal data.
-- **`strict-origin`** goes only on map pages, and only if spike B needs it. Private links keep `no-referrer`.
-- **Google's script** runs on the search pages and the picker only, never on renters' or landlords' private pages.
+- **Every page keeps `no-referrer`,** private links and map pages alike.
+- **Google's script** runs on the search pages and the picker only, never on renters' or landlords' private pages, and never in a document that was loaded for another page (decision 12).
+- **The map can't take the page down:** anything thrown inside it ends in M120's sentence (decision 1).
 
 ## Delivery plan
 
-Built in this order, with requirement IDs in commits and tests. S, M and L are as in the marketplace technical specification.
+Built in this order, with requirement IDs in commits and tests. Steps 1 to 8 were built on 13 and 14 November 2026. S, M and L are as in the marketplace technical specification.
 
 | # | Step | Requirements | Size |
 | --- | --- | --- | --- |
-| 1 | Spikes A to G, written up under Findings | M119, M134, ADR-0027 | S |
+| 1 | Spikes A to G, written up under Findings. _Done as far as they go without a key_ | M119, M134, ADR-0027 | S |
 | 2 | The provider: failure detection and the watchdog, the camera and gestures, the clusterer and raised pins, same-point pins, pin size and focus, the controls and limits | M117, M120, M127 | M |
 | 3 | The look: the Map IDs and their styles from the tokens, the theme, the fade-in, pins that follow the map | M129, M130, M131 | S |
 | 4 | Drawing by tapping corners, and the camera control | M128 | S |
 | 5 | Real points: `point_source`, `on_map`, the picker and its check, the seed's points and the task for homes without a pin | M38, M125, M126 | M |
-| 6 | Headers per page; the frame, if decision 8 applies | M119 | S (M with the frame) |
+| 6 | Headers per page, and full page loads across the map's boundary. _No frame_ | M119 | S |
 | 7 | Spending and counts: robots, caps, the budget, `map_daily_counts`, the staff page, the daily check | M132, M133, M135 | S |
 | 8 | The real-map run, the manual check list and the runbook; the OpenStreetMap credit | M136, M137 | M |
-| 9 | Release: the test copy on Google, the founders' walkthrough, the records (privacy notice, terms, DPIA), then production | All | S |
+| 9 | Release: the keys and the first run with one, the test copy on Google, the founders' walkthrough, the manual check list, the records (privacy notice, terms, DPIA), then production. _Not started: it needs the founders_ | All | S |
 
 ## Risks
 
 | Risk | Answer |
 | --- | --- |
-| Google's script needs consent under ePrivacy | Spike A, then S2. M134 is designed and small |
-| The page's address takes the search to Google | Spike A, then the frame (decision 8) |
-| `no-referrer` breaks the key | Spike B, then `strict-origin` on map pages only |
+| Google's script needs consent under ePrivacy | Spike A found nothing lasting stored on the device; S2 is the solicitor's. M134 is designed and small |
+| The page's address takes the search to Google | Settled: Google is told the origin alone, and a nightly test checks every request |
+| A key restricted to a website refuses the origin-only setting | Google documents that it works when the key lists the site with no path. Checked the first time a real key is used; `strict-origin` on map pages is the fallback |
+| Full page loads into and out of the search feel slow | Measured at release. The frame (decision 8) is the way back to in-place navigation |
+| Google changes the inside of its script | Three tests lean on it (the call that carries the key's answer, the map-configuration call, and the classes of Google's error views). The weekly-channel run fails first, a quarter ahead |
 | The cap is reached at a busy time | M120's sentence and the list. Alerts come before the cap, and the cap is reset from real traffic after two weeks |
 | Costs grow | Caps, the budget, no map for robots or previews, and reuse. MapLibre is still possible behind `MAP_PROVIDER` (ADR-0027) |
 | Google changes its script or terms | The quarterly channel; the nightly run on the weekly channel; Google's notices to the billing contact; the monthly check |

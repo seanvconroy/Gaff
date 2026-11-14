@@ -1,6 +1,6 @@
 # The live map: product requirements
 
-Draft for the founders, 8 November 2026 · requirements M125 to M137, and amendments to M38, M117, M119 and M120 in the [marketplace PRD](../prd.md) · goes with the [technical specification](tech-spec.md) · builds on the [search redesign PRD](../search-redesign/prd.md) and [ADR-0027](../../adr/0027-places-index-on-google-maps.md)
+Draft for the founders, 8 November 2026 · built on 13 and 14 November 2026, except the release: [where the gates stand](#where-the-gates-stand-14-november-2026), and what the build changed, are marked below · requirements M125 to M137, and amendments to M38, M117, M119 and M120 in the [marketplace PRD](../prd.md) · goes with the [technical specification](tech-spec.md) · builds on the [search redesign PRD](../search-redesign/prd.md) and [ADR-0027](../../adr/0027-places-index-on-google-maps.md)
 
 ## Summary
 
@@ -30,13 +30,13 @@ From the test copy (the screenshot shared on 8 November 2026), the code in `src/
 | 2 | Homes sit at their area's centre (`approximateLocation` in `src/domain/places/locate.ts`). The letter's pin (M38) isn't built, and the test copy's made-up homes have no points of their own | On a real map, each area's homes would pile up on one spot, often in a park or the middle of a road | The screenshot: nine homes in three clusters; the code |
 | 3 | Only a failure to load Google's script is caught. A wrong key, a blocked website, billing or the daily cap make Google draw its own grey error box | The renter sees Google's error instead of our sentence, and the cap (our cost control) would look like a broken site | The code (`APIProvider`'s `onError` only) |
 | 4 | Every page sends `Referrer-Policy: no-referrer` (`next.config.ts`). The key's website restriction checks where requests come from | The real map may fail everywhere once the key is restricted, as the deploy guide says it must be | The code; to confirm in the spike |
-| 5 | Google's script may send Google the page's address, and the search's filters are in it, including accessibility features | Google could learn what a renter searched for, not just where they looked | To confirm in the spike |
+| 5 | Google's script sends Google the page's address without its query: the place a renter searched, though not their filters. _Corrected in the build, which read and ran Google's script_ | Google could learn where a renter is looking for a home | Settled: Google is now told the site's address alone |
 | 6 | The map refits to the search's starting box after every navigation, because it reacts to a new box object each time | Changing a filter throws away the renter's zoom. A map-area search refits to its own box, and can creep outwards | The code (`Camera` in `GoogleMap.tsx`); to confirm |
 | 7 | Every move after the first counts as the renter's | Resizing the window, turning a tablet, or a phone's toolbar can switch the search to "Map area" | The code; to confirm |
 | 8 | Hovering a card re-clusters every pin. The clusterer is never removed from a map that's reused | Jank with many pins, and leftover clusters after coming back to a search | The code; the leftovers to confirm |
 | 9 | Homes at the same point stack, and the top pin hides the others. Developments (M32) put many homes at one point | Renters can't reach some homes from the map | The code |
 | 10 | Pins are about 34px tall and edged in the decorative `border`. Focusing a pin with the keyboard doesn't light up its card. The stand-in gets both right | Hard to tap on a phone, and the two providers behave differently | `map.module.css`, `GoogleMap.tsx` |
-| 11 | The dark map follows the device only, not the theme chosen in Gaff, and the pins don't follow the map | A light map with dark pins, or the reverse | The code |
+| 11 | The pins don't follow the map's theme. (Gaff has no theme chooser of its own yet, so "dark" means the device's setting) | A light map with dark pins, or the reverse | Fixed in the build: the pins follow the map |
 | 12 | Drawing needs a drag. The only ways to move the map are dragging and the keyboard | Fails WCAG 2.2's 2.5.7, Dragging Movements (AA) | The code |
 | 13 | Google's zoom buttons keep their default corner, at the bottom right, where the phone's row of cards sits | The zoom buttons may be hidden on phones | The code; to confirm |
 | 14 | On larger screens, Google's script starts as soon as the page's code has loaded and the map column is on screen, while the first photos may still be loading | It competes with the first photos, which decide LCP | The code |
@@ -130,7 +130,7 @@ As in the [search redesign](../search-redesign/prd.md#the-map-m57-m117-m119-m120
   - land in `surface-2`, water in `sky` (a quiet Atlantic tint), roads in `border`, and labels in `ink-muted`;
   - businesses and other points of interest hidden, so homes stand out; transport lines and stations kept;
   - signed off by design on a phone and a laptop, in both themes.
-- **Dark (M130):** when a renter uses Gaff in dark, chosen in Gaff or from their device, the map is dark too, and pins and clusters use the dark tokens. If the dark style isn't ready for launch (S7), the map stays light in both themes, and its pins stay light with it.
+- **Dark (M130):** when a renter's device is set to dark, the map is dark too (and it will follow Gaff's own theme setting when there is one), and pins and clusters use the dark tokens. If the dark style isn't ready for launch (S7), the map stays light in both themes, and its pins stay light with it.
 - **One accent:** the searched area's outline stays the screen's Atlantic accent.
 - **Controls:** Draw at the top left, pan and zoom at the top right, and Google's logo and terms along the bottom, never covered. On the phone's map view, the row of cards stays clear of Google's logo and terms.
 - **Credits (M137):** when the map shows a street or area outline from Gaff's place index, a small "Places © OpenStreetMap" credit sits beside Google's, without covering it.
@@ -170,7 +170,7 @@ If the DPIA finds that Google's script reads or stores something on the renter's
 
 ### Privacy (M119)
 
-While a map is on screen, Google receives the device's internet address, browser details, the map's area and zoom, and the site's own address without the page (for example `https://app.gaff.ie`). It never receives the search's filters or words, the renter's account, or which homes they open. The spike confirms what Google's script sends. If it sends more, the [technical specification](tech-spec.md#privacy-what-google-receives) says how the page holds the rest back.
+While a map is on screen, Google receives the device's internet address, browser details, the map's area and zoom, and the site's own address without the page (for example `https://app.gaff.ie`). It never receives the page's address, the search's filters or words, the renter's account, or which homes they open. The build confirmed this on Google's real script, and a nightly test checks every request. Google's script runs only on the search pages and the listing editor: going to or from them is a full page load, so the script is never loaded on a page where someone enters personal details ([technical specification](tech-spec.md#privacy-what-google-receives)).
 
 ### Counts (M133)
 
@@ -225,7 +225,7 @@ The map reaches production only when every gate is passed. The test copy gets th
 
 ## Requirements
 
-The marketplace PRD's sections F and G are updated to match once the founders approve this draft.
+The marketplace PRD's sections F and G carry these, as amended, since the build (14 November 2026).
 
 ### Amended
 
@@ -233,8 +233,8 @@ The marketplace PRD's sections F and G are updated to match once the founders ap
 | --- | --- | --- |
 | M38 | The letter places the home's pin on Google's map in the listing editor. It starts on the address's street, from Gaff's place index, or at the area's centre; the letter drags it, taps the map, or moves it with the arrow keys. No address or geocoding service is used. The letter chooses whether renters see the exact address or only the street and area. The Eircode is never shown | Must |
 | M117 | Map pins show the rent. A card and its pin light each other up, by hover or by keyboard focus. Clusters show a count. A pin opens a mini card. Homes at one point share a pin ("3 homes") that lists them. Every pin is at least 44px tall to tap | Must |
-| M119 | Google's map loads only when it's on screen, after the results, and never for search-engine robots. Renters' devices don't call Google otherwise. Google receives only what drawing the map needs, never what the renter searched for or typed, or who they are. Google's attribution is always visible | Must |
-| M120 | When the map can't load, for any reason (a blocker, the network, the key, billing, the daily cap, or no map within 10 seconds), the list still works and says so in Gaff's words, never with Google's error box | Must |
+| M119 | Google's map loads only when it's on screen, after the results, and never for search-engine robots. Renters' devices don't call Google otherwise. Google receives only what drawing the map needs, never what the renter searched for or typed, or who they are. Google's script runs only on pages that show the map, and goes when the renter leaves them. Google's attribution is always visible | Must |
+| M120 | When the map can't load, for any reason (a blocker, the network, the key, billing, the daily cap, no map within 10 seconds, or an error in the map's own code), the list still works and says so in Gaff's words, never with Google's error box | Must |
 
 ### New
 
@@ -245,7 +245,7 @@ The marketplace PRD's sections F and G are updated to match once the founders ap
 | M127 | The map moves by itself only when the search area changes. Changing a filter, the sort or the page keeps the renter's view. Resizing the window, turning a phone or tablet, or a phone's toolbar never counts as the renter moving the map | Must |
 | M128 | Everything done by dragging on the map can be done without dragging (WCAG 2.2, 2.5.7): pan and zoom buttons, and drawing an area by tapping its corners | Must |
 | M129 | The map's style comes from Gaff's tokens. Businesses are hidden and transport stays. Pins and clusters always suit the map beneath them | Must |
-| M130 | The map is dark when the renter uses Gaff in dark, chosen in Gaff or from their device | Should |
+| M130 | The map is dark when the renter uses Gaff in dark: from their device's setting today, and from Gaff's own when it has one | Should |
 | M131 | While the map loads, its space is held, and it appears once it's drawn, so nothing jumps and the unstyled map never flashes | Should |
 | M132 | Spending on Google Maps is capped: a monthly budget with alerts at 50%, 80% and 100%, a daily cap on map loads in each environment, one map reused across a visit's searches, and no map for robots or preview copies | Must |
 | M133 | Gaff counts by day, with nothing about the renter or their device, how often the map opens, appears, fails (and why), searches its area, has a shape drawn, and has a pin opened, beside Google's billed map loads | Must |
@@ -262,6 +262,22 @@ The marketplace PRD's sections F and G are updated to match once the founders ap
 4. **Production** gets its own project, key, Map ID, budget and cap, then `MAP_PROVIDER=google`, with the marketplace's launch or before it.
 5. **For the first two weeks,** someone looks every day at spending, map loads against visits, and failures; after that, every week. The cap is reset from real traffic at the end of the two weeks.
 
+### Where the gates stand (14 November 2026)
+
+| Gate | Stands | What's left |
+| --- | --- | --- |
+| 1 | Partly | Done without a key: what Google's script sends, stores and fetches; the referrer; how failures show. Left: a tighter content security policy, dark styling in one Map ID, a project over its cap, and other browsers |
+| 2, 3 | Open | The solicitor and the founders. The findings are ready for the DPIA |
+| 4 | Open | S1, then the projects, keys and caps in the runbook |
+| 5 | Open | The styles are specified from the tokens; they're made in Google's console |
+| 6 | Built | The runbook's check, on each copy, once pins are placed |
+| 7 | Passed on Google's real script | Every failure kind, every night. The cap and billing-off rest on Google's documentation until tried with a key |
+| 8 | Passed | Nightly, and in the compliance tests |
+| 9 | Open | Needs the real map on a phone, and S11 |
+| 10 | Partly | axe passes on the map's states, on the stand-in and on Google's real script. VoiceOver and NVDA are left |
+| 11, 13 | Open | Need the real map on the test copy |
+| 12 | Passed | [deploy.md](../../deploy.md), step 6 |
+
 ## Open questions
 
 | # | Question | Proposal | Who |
@@ -269,11 +285,12 @@ The marketplace PRD's sections F and G are updated to match once the founders ap
 | S1 | The monthly budget for Google Maps (still open) | €300 a month, with a daily cap of 1,500 map loads in production. A month at the cap is 45,000 loads: 10,000 free, then about $7 per 1,000, about $245 in all. Most phone visits never load the map, so most loads come from laptops | Founders |
 | S2 | Does the map need a "Show the map" tap first? (still open) | On phones, no: tapping Map is the request. On larger screens, decide after spike A and the DPIA. M134 is designed and small | Solicitor, CTO |
 | S5 | Homes without a placed pin: leave them off the map, or show them at their area? | Leave them off (M125). In production every listing has a pin before it goes live | Founders |
-| S6 | If Google's script sends Google the page's address, do we keep the search out of it? | Yes. The map runs in a frame with a fixed address ([technical specification](tech-spec.md#privacy-what-google-receives)). It's the only reliable way to keep filters such as accessibility features from Google | CTO, solicitor |
-| S7 | A dark map at launch? | Yes, if spike D shows one Map ID can carry light and dark styles, or with a second Map ID. Design signs off both | Design |
-| S8 | Google's camera control (pan arrows and zoom) on every screen size? | Yes, at the top right. It's the simplest way to meet 2.5.7, and it replaces the zoom buttons | Design |
+| S6 | If Google's script sends Google the page's address, do we keep the search out of it? | Answered in the build: yes, and without the frame. Google's script has a setting to send the site's address alone, and Gaff uses it | CTO |
+| S7 | A dark map at launch? | Yes, with a second Map ID for the dark style, which is how it's built. One Map ID carrying both styles is still to try in Google's console. Design signs off both | Design |
+| S8 | Google's camera control (pan arrows and zoom) on every screen size? | Yes, at the top right. It's the simplest way to meet 2.5.7, and it replaces the zoom buttons. Built this way | Design |
 | S9 | Who owns the Google Cloud projects and the billing account? | Gaff's company billing account. Both founders as owners and the CTO as an editor, so no one person's account is the only way in | Founders |
 | S10 | A pin outside its address's area: warn the letter only, or hold the listing for a person at Gaff? | Warn only (M126). If pins turn out to be unreliable, the check can hold the listing for a person at Gaff, as the wording check does (M97) | Founders |
+| S11 | Opening a home from the search, and going back, are now full page loads, so that Google's script stays on the map's pages alone. Keep it that way? (new, from the build) | Yes for launch: it's simple and it can't leak. Measure how it feels on a phone at gate 9. If it's slow, the map moves into a frame, which keeps Google to the map and brings in-place navigation back, for about a week's work | Founders, CTO |
 
 ## Sources
 

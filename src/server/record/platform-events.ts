@@ -72,6 +72,12 @@ export const platformEventCatalogue = {
   'identity.redacted': z.object({ checkId: z.uuid() }),
   /** P4: the month's AI spend passed 80% of the budget, and Gaff's admins were told. */
   'ai.budget_warning': z.object({ month: z.iso.date() }),
+  /** M133: a day's map failures passed 1 in 20 opens, and Gaff's admins were told. */
+  'map.failures_warning': z.object({
+    day: z.iso.date(),
+    opened: z.number().int(),
+    failed: z.number().int(),
+  }),
   /** M86, M87: an alert email went out, with this many homes in it. */
   'alert.sent': z.object({ homes: z.number().int(), frequency: z.enum(['instant', 'daily']) }),
 } satisfies Record<string, z.ZodObject>;

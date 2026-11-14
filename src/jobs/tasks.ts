@@ -13,6 +13,7 @@ import { sendRtbReminder } from '@/server/tenancy/rtb';
 import { matchListing, sendAlerts, sendDailyAlerts } from '@/server/alerts/match';
 import { sweepAiCalls } from '@/server/ai/usage';
 import { checkLiveListingWording } from '@/server/listings/wording';
+import { checkMapFailures, sweepMapCounts } from '@/server/measurement/map-counts';
 import { refreshPlaceCounts } from '@/server/places/places';
 import { sweepMarketplace } from '@/server/retention/marketplace';
 import { sweepPersonalData } from '@/server/retention/sweep';
@@ -33,6 +34,8 @@ export const CRONTAB = [
   '0 7,8 * * * alerts_daily ?fill=1h',
   // M121: the counts of homes beside places, again nightly in case a change was missed.
   '45 2 * * * places_count ?fill=1d',
+  // M133: each morning, whether the map failed for more than 1 in 20 of yesterday's opens.
+  '20 7 * * * map_failures_check ?fill=1d',
 ].join('\n');
 
 /** Every background task. Tasks are thin: they call use cases in src/server. */
@@ -61,6 +64,10 @@ export const taskList: TaskList = {
     const sent = await sendDailyAlerts();
     if (sent) console.log(`Alerts: ${sent} homes sent in daily emails.`);
   },
+  map_failures_check: async () => {
+    const told = await checkMapFailures();
+    if (told === 'told') console.log('Map: yesterday’s failures were worth a look; admins told.');
+  },
   // M121: queued when a listing goes live, comes down or moves (src/server/listings/project.ts).
   places_count: async () => {
     const { places } = await refreshPlaceCounts();
@@ -77,6 +84,7 @@ export const taskList: TaskList = {
       `Retention: ${marketplace.visitorDays} visitor hashes, ${marketplace.closedPages} closed listing pages, ${marketplace.alertDeliveries} alert deliveries, ${marketplace.reports} reports and ${marketplace.placeMisses} place misses removed.`,
     );
     console.log(`Retention: ${await sweepAiCalls()} AI usage rows over 12 months old deleted.`);
+    console.log(`Retention: ${await sweepMapCounts()} map counts over 13 months old deleted.`);
   },
   reference_overdue: async (payload) => {
     await markReferenceOverdue(

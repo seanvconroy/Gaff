@@ -1,8 +1,10 @@
 import { Info } from 'lucide-react';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { after } from 'next/server';
 import { mapWords } from '@/copy/map';
 import { homesCount, wideningWords } from '@/copy/search';
+import { isLikelyBot } from '@/domain/measurement/views';
 import { hasAreaPage } from '@/domain/places/gazetteer';
 import {
   areaPath,
@@ -104,7 +106,9 @@ export async function SearchPage({
   const base = baseArea(area);
   const place = 'place' in base && base.place && hasAreaPage(base.place) ? base.place : null;
   const nearby = place ? nearbyPlaces(place, g) : [];
-  const map = mapSettings();
+  // M132: search-engine robots get the list alone: a robot that browses like a laptop would
+  // otherwise cost a map load each.
+  const map = isLikelyBot((await headers()).get('user-agent')) ? null : mapSettings();
   const heading = `${homesCount(results.total)} ${areaPhrase(area)}`;
   const client: ClientSearch = {
     area,

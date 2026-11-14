@@ -38,7 +38,8 @@ const storageOrigin = process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_UR
 // M57, ADR-0027: the search pages load Google's map when MAP_PROVIDER is google, so they also
 // allow the hosts Google's CSP guide lists for the Maps JavaScript API. Not its fonts: the map's
 // buttons use the page's own. Every other page keeps the policy without Google.
-const googleMaps = process.env.MAP_PROVIDER === 'google';
+// Preview copies show the stand-in map (src/lib/env.ts), so they keep the policy without Google.
+const googleMaps = process.env.MAP_PROVIDER === 'google' && process.env.VERCEL_ENV !== 'preview';
 const google = 'https://*.googleapis.com https://*.gstatic.com *.google.com';
 
 function contentSecurityPolicy(maps: boolean): string {

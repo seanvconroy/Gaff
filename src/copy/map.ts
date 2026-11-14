@@ -80,13 +80,37 @@ export function shapeProblem(problem: Extract<DrawnShape, { ok: false }>['proble
 export const MAP_UNAVAILABLE =
   'The map isn’t available right now. Every home is still in the list.';
 
-/** Staff see why the map failed, in their own words (M133). */
+/** M133: why the map failed, for Gaff's own staff. */
 export const failureWords: Record<MapFailure, string> = {
   script: 'Google’s script didn’t arrive (a blocker, the network or the security policy)',
   auth: 'Google refused the key (the key, the allowed websites or billing)',
   google: 'Google drew its own error (the daily cap, or billing)',
   timeout: 'No map appeared in time',
 };
+
+/** M133: the email Gaff's admins get when a day's failures are worth a look. Numbers only. */
+export function mapFailuresEmail(day: {
+  opened: number;
+  failed: number;
+  byKind: Record<MapFailure, number>;
+}): { subject: string; text: string } {
+  const why = (Object.entries(day.byKind) as Array<[MapFailure, number]>)
+    .filter(([, count]) => count > 0)
+    .map(([kind, count]) => `- ${count}: ${failureWords[kind]}`);
+  return {
+    subject: `The map couldn’t load ${day.failed} times yesterday`,
+    text: [
+      `Yesterday the search map was opened ${day.opened} times and couldn’t load ${day.failed} times. Renters saw the list, with a line saying the map wasn’t available.`,
+      '',
+      'Why:',
+      ...why,
+      '',
+      'A blocker in a renter’s own browser shows as the script not arriving. Anything about the key, billing or the daily cap is ours to fix: the steps are in docs/deploy.md, under "The search map".',
+      '',
+      'The counts for the last month are at /staff/map.',
+    ].join('\n'),
+  };
+}
 
 /** M38: the letter's pin. */
 export const pinWords = {

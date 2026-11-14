@@ -304,6 +304,11 @@ export function withPlatformDefaults(source: Source): Source {
     APP_URL: source.APP_URL || (host ? `https://${host}` : undefined),
     GAFF_ENV: source.GAFF_ENV || 'production',
     RUN_JOBS_AFTER_REQUESTS: source.RUN_JOBS_AFTER_REQUESTS || '1',
+    // M132: a preview copy shows the stand-in map. Its address isn't one Google's key allows,
+    // and nobody's look at a preview should be billed as a map load.
+    ...(source.VERCEL_ENV === 'preview' && source.MAP_PROVIDER === 'google'
+      ? { MAP_PROVIDER: 'static' }
+      : {}),
   };
 }
 

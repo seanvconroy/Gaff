@@ -143,6 +143,10 @@ describe('Hosting on Vercel (ADR-0014)', () => {
     expect(
       environmentProblems({ ...production, MARKETPLACE_PUBLIC: '1', MAP_PROVIDER: 'static' }),
     ).toEqual(['MAP_PROVIDER']);
+    // M132: a preview copy shows the stand-in, whatever the test copy's settings say.
+    expect(readEnvironment({ ...testCopy, ...google, VERCEL_ENV: 'preview' }).MAP_PROVIDER).toBe(
+      'static',
+    );
   });
 
   it('sends real email from the test copy with only a Resend API key, and keeps photos in the database', () => {

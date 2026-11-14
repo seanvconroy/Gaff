@@ -1,6 +1,6 @@
 'use client';
 
-import { Flag, Images, Mail, ShieldCheck, Users, type LucideIcon } from 'lucide-react';
+import { Flag, Images, Mail, Map, ShieldCheck, Users, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from '../(workspace)/workspace.module.css';
@@ -15,6 +15,7 @@ export function StaffNav({ testCopy, admin }: { testCopy: boolean; admin: boolea
     { href: '/staff/checks', label: 'Checks', Icon: ShieldCheck },
     { href: '/staff/listings', label: 'Listings', Icon: Images },
     { href: '/staff/review', label: 'Reports', Icon: Flag },
+    { href: '/staff/map', label: 'Map', Icon: Map },
     ...(testCopy ? [{ href: '/dev/outbox', label: 'Outbox', Icon: Mail }] : []),
     ...(testCopy && admin ? [{ href: '/staff/testers', label: 'Testers', Icon: Users }] : []),
   ];

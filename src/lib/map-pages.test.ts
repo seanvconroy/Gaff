@@ -4,7 +4,7 @@ import { crossesMapBoundary, isMapPage, mapPageSources } from './map-pages';
 /** Next.js's path patterns, as far as these rules use them: `:name` and a trailing `:name*`. */
 function matches(source: string, pathname: string): boolean {
   const pattern = source.replace(/\/:[A-Za-z]+\*$/, '(?:/.*)?').replace(/:[A-Za-z]+/g, '[^/]+');
-  return new RegExp(`^${pattern}/?$`).test(pathname);
+  return new RegExp(`^${pattern}/?$`, 'i').test(pathname);
 }
 
 describe('M119: the pages that show Google’s map', () => {
@@ -14,6 +14,8 @@ describe('M119: the pages that show Google’s map', () => {
     '/to-rent/dublin',
     '/to-rent/dublin/rathmines',
     '/to-rent/near/highfield-road-rathgar',
+    // Next.js matches header rules without regard to case, so this gets the policy too.
+    '/To-Rent/dublin',
     '/lettings/0b0e0f2a-5f0e-4d0a-9d55-0f5a0e3f5a11/listing',
   ];
   const otherPages = [

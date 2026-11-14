@@ -14,9 +14,12 @@
 /** The map's pages, as next.config.ts's header rules name them. */
 export const mapPageSources = ['/to-rent/:path*', '/lettings/:lettingId/listing'] as const;
 
-/** Whether a page shows the map: the same pages as `mapPageSources`. */
+/**
+ * Whether a page shows the map: the same pages as `mapPageSources`, matched as Next.js matches
+ * its header rules, without regard to case.
+ */
 export function isMapPage(pathname: string): boolean {
-  const path = pathname.replace(/\/+$/, '');
+  const path = pathname.replace(/\/+$/, '').toLowerCase();
   return (
     path === '/to-rent' || path.startsWith('/to-rent/') || /^\/lettings\/[^/]+\/listing$/.test(path)
   );

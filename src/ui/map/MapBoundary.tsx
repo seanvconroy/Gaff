@@ -19,8 +19,23 @@ import { crossesMapBoundary, isMapPage } from '@/lib/map-pages';
 /** Set by next.config.ts with the header rules, so the two can't disagree. */
 const on = process.env.NEXT_PUBLIC_GOOGLE_MAP_PAGES === '1';
 
-/** The page this document was loaded for. Its content security policy came with it. */
-const loadedFor = typeof window === 'undefined' ? null : window.location.pathname;
+/**
+ * The page this document was loaded for. Its content security policy came with it. Read from the
+ * document's own navigation entry, which keeps the address the document arrived with (after any
+ * redirect) however the address bar has moved since: a Back pressed before this script ran has
+ * already changed `location`.
+ */
+function documentPath(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const [entry] = performance.getEntriesByType('navigation');
+    if (entry?.name) return new URL(entry.name).pathname;
+  } catch {
+    // An old browser, or an address it can't read: the address bar is the next best thing.
+  }
+  return window.location.pathname;
+}
+const loadedFor = documentPath();
 
 /** Whether this document may load Google's script: it was loaded for a page that shows the map. */
 export function documentShowsMaps(): boolean {

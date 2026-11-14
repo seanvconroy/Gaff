@@ -434,7 +434,7 @@ export function SearchMap({ settings, search }: { settings: MapSettings; search:
         />
       ) : null}
 
-      {chosenGroup && chosenGroup.homes.length > 1 ? (
+      {stage !== 'ready' ? null : chosenGroup && chosenGroup.homes.length > 1 ? (
         <article
           className={styles.miniCard}
           data-list

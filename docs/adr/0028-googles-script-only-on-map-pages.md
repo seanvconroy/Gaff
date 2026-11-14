@@ -19,7 +19,7 @@ Neither had been seen, because every test used the stand-in map, and the earlier
 **Google's script runs only in a document that was loaded for a page that shows the map, and goes when the page does.** In a build with Google's map, going between a map page and any other page is a full page load, in both directions.
 
 - `src/lib/map-pages.ts` is the one list of the map's pages: the search pages and the listing editor. The header rules and the pages' own scripts both use it, and one build setting turns both on.
-- `src/ui/map/MapBoundary.tsx`, in the root layout:
+- `src/ui/map/MapBoundary.tsx`, in the root layout, knows the page its document was loaded for from the browser's own record of the navigation (not the address bar, which in-app navigation moves), and:
   - follows a link across the boundary as a full page load from the start;
   - loads a page again if it was swapped in across the boundary any other way (a redirect, a button);
   - and holds Google's script back until the page has its own document.

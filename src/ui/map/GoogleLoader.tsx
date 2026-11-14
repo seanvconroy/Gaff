@@ -36,6 +36,16 @@ const GOOGLE_ERROR_VIEWS = '.gm-err-container, .dismissButton';
 
 const NO_LIBRARIES: string[] = [];
 
+/** Maps that have drawn once. One kept for the next search (`reuseMaps`) is already drawn. */
+const drawnMaps = new WeakSet<object>();
+
+/**
+ * Google has refused this document's map (the key, billing, the cap). Its script says so once
+ * and keeps the map it took apart, so the next search page in the same document is told at once,
+ * not left to wait for a map that can't draw.
+ */
+let refused: Extract<MapFailure, 'auth' | 'google'> | null = null;
+
 type AuthHook = Window & { gm_authFailure?: () => void };
 
 function ScriptWatch({ onFailed }: { onFailed: (kind: MapFailure) => void }) {
@@ -61,7 +71,10 @@ export function GoogleLoader({
   useEffect(() => {
     const hook = window as AuthHook;
     const before = hook.gm_authFailure;
-    hook.gm_authFailure = () => onFailed('auth');
+    hook.gm_authFailure = () => {
+      refused = 'auth';
+      onFailed('auth');
+    };
     return () => {
       hook.gm_authFailure = before;
     };
@@ -71,10 +84,12 @@ export function GoogleLoader({
   // nothing is asked of Google until then. A map on a page that isn't one of the map's pages
   // (src/lib/map-pages.ts) can't load at all, and says so.
   const allowed = documentShowsMaps();
+  const already = refused;
   useEffect(() => {
-    if (!allowed && !reloading()) onFailed('script');
-  }, [allowed, onFailed]);
-  if (!allowed) return null;
+    if (already) onFailed(already);
+    else if (!allowed && !reloading()) onFailed('script');
+  }, [already, allowed, onFailed]);
+  if (already || !allowed) return null;
   return (
     <APIProvider
       apiKey={settings.apiKey}
@@ -115,29 +130,49 @@ export function MapWatch({
     const check = () => {
       if (failed || !googleError()) return;
       failed = true;
+      refused = 'google';
       onFailed('google');
     };
     const observer = new MutationObserver(check);
     observer.observe(element, { childList: true, subtree: true });
     check();
-    const tiles = map.addListener('tilesloaded', () => {
+    const ready = () => {
       if (drawn || failed) return;
       drawn = true;
+      drawnMaps.add(map);
       // Google's dialog can arrive with the tiles: give it a moment before calling the map ready.
       requestAnimationFrame(() => {
         check();
         if (!failed) onReady();
       });
-    });
-    const watchdog = setTimeout(() => {
-      if (drawn || failed) return;
+    };
+    const tiles = map.addListener('tilesloaded', ready);
+    // A map kept from an earlier search has drawn already, and may have no new tiles to load.
+    if (drawnMaps.has(map)) ready();
+
+    // The watchdog only counts time the map could be drawing: a tab nobody is looking at draws
+    // nothing, so a map opened in one gets its 10 seconds once it's looked at.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const expired = () => {
+      timer = undefined;
+      if (drawn || failed || document.hidden) return;
       failed = true;
       onFailed('timeout');
-    }, TILES_TIMEOUT_MS);
+    };
+    const arm = () => {
+      clearTimeout(timer);
+      timer = setTimeout(expired, TILES_TIMEOUT_MS);
+    };
+    const looked = () => {
+      if (!document.hidden && !drawn && !failed) arm();
+    };
+    document.addEventListener('visibilitychange', looked);
+    arm();
     return () => {
       observer.disconnect();
       tiles.remove();
-      clearTimeout(watchdog);
+      document.removeEventListener('visibilitychange', looked);
+      clearTimeout(timer);
     };
   }, [map, onReady, onFailed]);
   return null;

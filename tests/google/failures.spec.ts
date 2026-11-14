@@ -149,6 +149,15 @@ test('M120: a key Google refuses ends in Gaff’s sentence, not Google’s error
   expectOnlyTheOriginSent(seen, SEARCHED);
   await expectAccessible(page);
   await screenshot(page, 'google/failed-key');
+
+  // The next search, in the same document: Google's script won't say it again, so Gaff does,
+  // at once, and doesn't wait 10 seconds for a map that can't draw.
+  await page.getByRole('button', { name: 'Clear where' }).click();
+  await expect(page).toHaveURL(/\/to-rent(\?|$)/);
+  await expect(page.getByText(UNAVAILABLE)).toBeVisible({ timeout: 4000 });
+  await expect(page.getByRole('main').getByRole('article').first()).toBeVisible();
+  await expect(page.getByText('This page couldn’t load')).toHaveCount(0);
+  expect(seen.errors).toEqual([]);
 });
 
 /** The page is whole: its heading, every home in the list, and nothing thrown. */
@@ -194,6 +203,39 @@ test('M120: a map that never finishes starting is given up on after 10 seconds, 
   await expect(page.getByText(UNAVAILABLE)).toBeVisible({ timeout: 30_000 });
   expect(seen.counted.filter((count) => count.startsWith('failed'))).toEqual(['failed:timeout']);
   await expectPageWhole(page, seen.errors);
+  releaseConfig();
+  releaseViewport();
+});
+
+test('M120: a map opened in a tab nobody is looking at is given its 10 seconds once it’s looked at', async ({
+  page,
+}) => {
+  // A browser draws nothing in a hidden tab, and timers still run there: so a map opened in the
+  // background (a home's listing opened in a new tab, say) mustn't be given up on unseen.
+  const seen = watch(page);
+  await page.addInitScript(() => {
+    let hidden = true;
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
+    (window as { lookAtTheTab?: () => void }).lookAtTheTab = () => {
+      hidden = false;
+      document.dispatchEvent(new Event('visibilitychange'));
+    };
+  });
+  const releaseConfig = await holdBack(page, GOOGLE_MAP_CONFIG);
+  const releaseViewport = await holdBack(page, GOOGLE_VIEWPORT);
+  await page.goto(COUNTY);
+  await expect(mapStage(page)).toHaveAttribute('data-stage', 'loading');
+  // Well past the 10 seconds: still waiting, and nothing counted as failed.
+  await page.waitForTimeout(13_000);
+  await expect(mapStage(page)).toHaveAttribute('data-stage', 'loading');
+  expect(seen.counted.filter((count) => count.startsWith('failed'))).toEqual([]);
+
+  // Looked at: the 10 seconds start now.
+  await page.evaluate(() => (window as { lookAtTheTab?: () => void }).lookAtTheTab!());
+  await page.waitForTimeout(5000);
+  await expect(mapStage(page)).toHaveAttribute('data-stage', 'loading');
+  await expect(page.getByText(UNAVAILABLE)).toBeVisible({ timeout: 15_000 });
+  expect(seen.counted.filter((count) => count.startsWith('failed'))).toEqual(['failed:timeout']);
   releaseConfig();
   releaseViewport();
 });

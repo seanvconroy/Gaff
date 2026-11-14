@@ -241,3 +241,119 @@ The PRD asks for data hosted in the EU, and the build turned that into "EU only"
 - the AI disclosure (EU AI Act Article 50);
 - the caps on the deposit and advance rent;
 - Gaff never holding money.
+
+## F. The UX redesign and the two-sided MVP
+
+Decided by Sean on 14 November 2026, in answer to the UX redesign PRD ([ux-redesign/](ux-redesign/README.md)). Where Sean left the choice to the CTO role, the entry says "delegated". Items a solicitor reviews before launch are marked **Solicitor**; none of them holds up the build.
+
+### Q27. What the MVP covers (the PRD's "Out of scope" list vs a product for both sides)
+
+**Decision (Sean):** the MVP is a full two-sided product.
+- **Letting side:** agencies, landlords with several homes, and private landlords with one home.
+- **Renter side:** search homes let through Gaff, ask to view inside Gaff, and keep a profile.
+- Operators can still advertise on Daft and MyHome. Those enquiries arrive by forwarding, as now.
+- The sales effort stays on the letting side.
+- The PRD's out-of-scope list loses "A Gaff search site or marketplace for renters". Still out: posting adverts to Daft or MyHome, native apps, answering phone calls, holding money.
+
+### Q28. One person, one profile
+
+**Decision (Sean):** one person has one profile and can hold several roles: agent in an agency, private landlord, renter. An agent can look for a home, or let one of their own, on the same profile.
+
+### Q29. Name, wordmark and colour
+
+**Decision (Sean):** the name is Gaff and the domain will be gaff.ie. The wordmark stays as it is: the two letters "f" read as a key. Colour stays neutral with an off-blue, refined from today's. **Delegated:** the accent is a cleaner Atlantic blue (`#3a5fa8` to start) on a white ground with cool greys. Sean will revisit it once it's on real screens.
+
+### Q30. Sign-in
+
+**Decision (Sean):** Google, Apple, or a six-digit code by email, with a passkey offered afterwards. Google and Apple are approved for sign-in only. Both are named in the privacy notice. This replaces the email link in ADR-0013 for people with accounts; private links for renters, owners and referees stay.
+
+### Q31. Importing an advert
+
+**Decision (Sean):** Gaff doesn't fetch pages from Daft or MyHome, because their terms don't allow it. Adding a letting is made as easy as it can be without that: paste the advert's text, upload it, describe the home, start from an enquiry, or let a home again.
+
+### Q32. Confirming an agency
+
+The PSRA register is public, so picking an agency from it proves nothing about the person. What Gaff confirms is one thing: that the person who claimed the agency works there. Without it, anyone could message renters in an agency's name and put their own bank account on a deposit request.
+
+**Decision (Sean):** keep it simple. Pilot agencies are invited by a founder, and the invitation is the confirmation. An agency that signs up by itself is confirmed once by a founder, in one press, before its first home goes live. Every later member is vouched for by an admin's invite.
+
+### Q33. Price during the pilot
+
+**Decision (Sean):** free. There is no billing in the product. Pricing and billing are defined later, with the sales effort.
+
+### Q34. One design for phone, desktop and a future app
+
+**Decision (Sean):** no native app yet, but one is wanted later. There is one design: the same flows, steps and components on a phone, a desktop and a future app. Screens are designed at phone width first and given more room on a desktop.
+
+### Q35. A verified identity that's reused (adds to Q19 and Q25)
+
+**Decision (Sean, detail delegated):**
+- A person verifies their identity once. The result is kept on their profile and reused in every role.
+- It has no fixed expiry. It lasts while the profile does: until the person deletes it, or after 2 years without use (Q25). A person whose name has changed can do it again.
+- Gaff keeps the result, the verified name and the date. It keeps no image, document number, document type, issuing country or date of birth (Q19).
+- The check happens the first time a step needs it: when a renter is the chosen applicant or the backup, or when a private landlord puts their first home live (Q47). Renters are never invited to verify before they're chosen.
+- An operator sees it only at the checks stage, for a renter they've chosen, and only when the renter says yes that time. Nobody can see who is verified before choosing.
+- A confirmed income is kept for 3 months, because incomes change. References are never reused: the referee was told who would see their answers.
+
+**Solicitor:** the consent wording.
+
+### Q36. Matching and fit (the redesign's first open question)
+
+**Decision (delegated, on Sean's steer: objective, never subjective):**
+- Gaff shows whether a person meets what was asked, as a count with the detail ("Meets 3 of 4"). It never recommends, scores or ranks a person by anything else.
+- What an operator can ask stays the fixed four: move-in date, length of stay, most people, pets. One house rule is added, "No smoking indoors", as a term of the tenancy that isn't used in ranking.
+- Gaff writes the "Letting details" line renters see, from those four. Nobody can type who a home would suit.
+- A renter sees their answers beside the letting details, without judgement, and is never stopped.
+- An operator can ask Gaff about who's enquired in plain words. The answer is always a filter on the four answers.
+
+**Solicitor:** reviews this with the criteria list (Q9).
+
+### Q37. Conversational AI
+
+**Decision (Sean):** not for account set-up. Use it where loose words become structure: adding a letting, a renter saying what they're looking for, and an operator asking who fits.
+
+### Q38. Agents' own PSRA licences
+
+**Decision (Sean):** not checked for the pilots. Left open to come back to. **Solicitor.**
+
+### Q39. Gaff's copy of the PSRA register
+
+**Decision (delegated):** Gaff keeps the entries for businesses licensed to let, because that's all the lookup needs, refreshes them weekly, and credits the PSRA as its re-use terms ask. It's added to the DPIA.
+
+### Q40. Address lookup provider
+
+**Decision (delegated):** Autoaddress, an Irish provider licensed for Eircode data. Before real addresses go through it, the founders sign its DPA and confirm where it's hosted ([launch-checklist.md](launch-checklist.md)).
+
+### Q41. Comparable rents (R4)
+
+**Decision (delegated):** the rent check stays before a home goes live. The three comparable rents are needed before the offer, not before go-live. If the RTB's Rent Register can be read by software within its terms, Gaff finds them and the operator confirms. If not, the operator types three, with the area and type filled in. Finding out is the first task of that work package.
+
+### Q42. An owner declines a tenant
+
+**Decision (delegated):** the owner's page takes no written reason, and the agent's screen gets no extra warning line. The agent is told at once and talks to the owner.
+
+### Q43. A phone number for renters
+
+**Decision (Sean):** as on Daft and Rightmove. The main action is to ask to view through Gaff. A phone number is there for anyone who'd rather call.
+
+### Q44. Who in an agency sees which lettings
+
+**Decision (Sean):** every member sees every letting, for now.
+
+### Q45. Gaff's brand on an agency's pages
+
+**Decision (Sean):** Gaff isn't white-label. Renter pages carry Gaff's brand with the agency's name. Gaff never prompts an agency's owners or a referee to use Gaff themselves.
+
+### Q46. Disclaimers
+
+**Decision (Sean):** no line of caution or legal comfort is shown unless the law needs it at that moment or it stops a real mistake. Everything else sits in the terms or behind one "How this works" link. The line about only adding photos you may use is removed.
+
+### Q47. Private landlords verify their identity before their first home goes live
+
+Gaff now shows homes to the public and shows renters where to pay a deposit. A private landlord has no licence to check.
+
+**Decision (CTO, for Sean to confirm):** a private landlord verifies their identity once, at the go-live step of their first home. It takes about two minutes and is never asked again (Q35). Renters see "Identity verified" beside the landlord's first name. Agencies are confirmed through their licence (Q32) and don't do this.
+
+### Q48. The identity check provider
+
+**Recommendation (CTO, for the founders to confirm):** Veriff, an EU company with self-serve pricing. Before real checks run, the founders confirm in writing that data stays in the EU and sign its DPA. Until then the build uses the stand-in provider, as now.

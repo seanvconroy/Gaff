@@ -59,7 +59,10 @@ function contentSecurityPolicy(maps: boolean): string {
     ...(maps ? ['frame-src *.google.com', 'worker-src blob:'] : []),
     "frame-ancestors 'none'",
     "base-uri 'self'",
-    "form-action 'self'",
+    // AU1 (ADR-0028): "Continue with Google" and "Continue with Apple" are forms whose answer
+    // sends the browser on to the provider, and Chrome applies form-action to where a form's
+    // answer redirects, not just where it posts.
+    "form-action 'self' https://accounts.google.com https://appleid.apple.com",
     "object-src 'none'",
   ].join('; ');
 }

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { safeNext } from '@/domain/auth/safe-next';
 import { PageHeader, Stack } from '@/ui/Layout';
+import { ProviderButtons } from '../ProviderButtons';
 import { SignUpForm } from './SignUpForm';
 
 export const metadata: Metadata = { title: 'Create an account' };
@@ -18,11 +19,10 @@ export default async function SignUpPage({
   const signIn = next ? `/sign-in?next=${encodeURIComponent(next)}` : '/sign-in';
   return (
     <Stack gap={6}>
-      <PageHeader
-        title="Create an account"
-        lead="Next, we’ll email you a 6-digit code to confirm your address."
-      />
+      <PageHeader title="Create an account" />
+      <ProviderButtons next={next} />
       <SignUpForm next={next} />
+      <p>With a password, we’ll email you a 6-digit code next, to confirm your address.</p>
       <p>
         Already have an account? <Link href={signIn}>Sign in</Link>
       </p>

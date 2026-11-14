@@ -1,0 +1,5 @@
+/* A provider's mark beside its name: a touch larger than the text, never squashed. */
+.mark {
+  width: var(--space-5);
+  height: var(--space-5);
+}

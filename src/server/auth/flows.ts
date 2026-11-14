@@ -2,6 +2,7 @@ import { APIError } from 'better-auth/api';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { users } from '@/db/schema';
+import type { SocialProvider } from '@/domain/auth/email-authority';
 import type { PasswordProblem } from '@/domain/auth/password-rules';
 import { recordAccountEvent } from './account-events';
 import { auth } from './auth';
@@ -195,4 +196,29 @@ export async function resetPassword(
     headers,
   );
   return signedIn.outcome === 'signed_in' ? 'reset' : 'slow_down';
+}
+
+/**
+ * AU1, AU3: starts "Continue with Google" or "Continue with Apple", and answers with the
+ * provider's address to send the person to. They come back to `next`, or to the sign-in page
+ * with a code saying what went wrong (src/domain/auth/sign-in-problems).
+ */
+export async function startProvider(
+  provider: SocialProvider,
+  next: string,
+  headers: Headers,
+): Promise<{ url: string } | 'slow_down' | 'failed'> {
+  const back = new URLSearchParams({ provider });
+  if (next !== '/') back.set('next', next);
+  try {
+    const started = await auth().api.signInSocial({
+      body: { provider, callbackURL: next, errorCallbackURL: `/sign-in?${back}` },
+      headers,
+    });
+    return started.url ? { url: started.url } : 'failed';
+  } catch (error) {
+    if (refusal(error)) return 'slow_down';
+    if (!(error instanceof APIError)) throw error;
+    return 'failed';
+  }
 }

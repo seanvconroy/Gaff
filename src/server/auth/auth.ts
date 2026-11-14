@@ -3,6 +3,8 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { createAuthMiddleware } from 'better-auth/api';
 import { nextCookies } from 'better-auth/next-js';
 import { emailOTP } from 'better-auth/plugins/email-otp';
+import { genericOAuth } from 'better-auth/plugins/generic-oauth';
+import { eq } from 'drizzle-orm';
 import { after } from 'next/server';
 import { db } from '@/db/client';
 import { accounts, sessions, users, verifications } from '@/db/schema';
@@ -14,10 +16,14 @@ import { redactForLog } from '@/domain/record/log-redaction';
 import { env } from '@/lib/env';
 import { makeListedTesterStaff } from '@/server/staff/testers';
 import { recordAccountEvent } from './account-events';
-import { sendAccountExists, sendCode, sendPasswordChanged } from './emails';
+import { appleClientSecret } from './apple-client-secret';
+import { sendAccountExists, sendCode, sendMethodAdded, sendPasswordChanged } from './emails';
 import type { HookContext } from './hook-context';
+import { checkProviderIdentity, prepareForProvider } from './identity';
 import { countPasswordFailures, limitTries } from './limits';
 import { checkNewPassword } from './passwords';
+import { providerModes } from './providers';
+import { standInProviders } from './stand-in-provider';
 
 const DAY = 60 * 60 * 24;
 
@@ -59,6 +65,47 @@ function methodOf(ctx: HookContext | null) {
 }
 
 /**
+ * AU14: Gaff never calls Google or Apple once someone is signed in, so their tokens are
+ * dropped before an account row is written. Only the provider's ID for the person is kept.
+ */
+function withoutTokens<T extends Record<string, unknown>>(account: T): T {
+  return {
+    ...account,
+    accessToken: null,
+    refreshToken: null,
+    idToken: null,
+    accessTokenExpiresAt: null,
+    refreshTokenExpiresAt: null,
+    scope: null,
+  };
+}
+
+/** Accounts just made by signing in with Google or Apple, so that isn't also news of a change. */
+const madeByProvider = new Map<string, number>();
+
+function rememberMadeByProvider(userId: string): void {
+  const now = Date.now();
+  for (const [id, at] of madeByProvider) if (now - at > 10_000) madeByProvider.delete(id);
+  madeByProvider.set(userId, now);
+}
+
+/**
+ * AU11, AU16: Google or Apple was joined to an account that already existed: it's recorded,
+ * and the owner is emailed, in case it wasn't them.
+ */
+async function providerJoined(account: { providerId: string; userId: string }): Promise<void> {
+  const method = account.providerId;
+  if (method !== 'google' && method !== 'apple') return;
+  if (madeByProvider.has(account.userId)) return;
+  await recordAccountEvent('account.method_added', account.userId, { method });
+  const [user] = await db()
+    .select({ email: users.email })
+    .from(users)
+    .where(eq(users.id, account.userId));
+  if (user) await sendMethodAdded(user.email, method);
+}
+
+/**
  * Accounts and sign-in, for renters, letters and Gaff's staff alike (M1, ADR-0016), with Better
  * Auth. How people sign in, and why, is ADR-0028. Accounts live in our own Postgres; no
  * third-party identity service holds them. Built on first use, not at import.
@@ -66,10 +113,14 @@ function methodOf(ctx: HookContext | null) {
 function createAuth() {
   const config = env();
   const inARequest = Boolean(process.env.NEXT_RUNTIME) && config.GAFF_ENV !== 'test';
+  const modes = providerModes(config);
+  const standIns = (['google', 'apple'] as const).filter((p) => modes[p] === 'stand_in');
   return betterAuth({
     appName: 'Gaff',
     baseURL: config.APP_URL,
     secret: config.AUTH_SECRET,
+    // Apple sends people back with a form post from its own pages.
+    trustedOrigins: modes.apple === 'live' ? ['https://appleid.apple.com'] : [],
     database: drizzleAdapter(db(), {
       provider: 'pg',
       usePlural: true,
@@ -88,15 +139,68 @@ function createAuth() {
       freshAge: RECENT_SIGN_IN_SECONDS,
       additionalFields: { signInMethod: { type: 'string', required: false, input: false } },
     },
+    // AU1, AU3: Sign in with Google and with Apple, where they're set up (./providers).
+    socialProviders: {
+      ...(modes.google === 'live'
+        ? {
+            google: {
+              clientId: config.GOOGLE_CLIENT_ID!,
+              clientSecret: config.GOOGLE_CLIENT_SECRET!,
+              // Someone with several Google accounts chooses which.
+              prompt: 'select_account' as const,
+              mapProfileToUser: (profile: object) => prepareForProvider('google', profile),
+            },
+          }
+        : {}),
+      ...(modes.apple === 'live'
+        ? {
+            apple: {
+              clientId: config.APPLE_CLIENT_ID!,
+              clientSecret: appleClientSecret({
+                teamId: config.APPLE_TEAM_ID!,
+                clientId: config.APPLE_CLIENT_ID!,
+                keyId: config.APPLE_KEY_ID!,
+                privateKey: config.APPLE_PRIVATE_KEY!,
+              }),
+              mapProfileToUser: (profile: object) => prepareForProvider('apple', profile),
+            },
+          }
+        : {}),
+    },
+    account: {
+      // AU14: nothing of the provider's is refreshed or kept at each sign-in.
+      updateAccountOnSignIn: false,
+      accountLinking: {
+        enabled: true,
+        // Trust comes from who hosts the email address (./identity), never a provider's name.
+        trustedProviders: [],
+        // AU7: someone signed in can connect a Google or Apple account under another address.
+        allowDifferentEmails: true,
+        // A code by email always works, so any other way in can be removed.
+        allowUnlinkingAll: true,
+      },
+    },
+    // AU4: the rules for joining a Google or Apple sign-in to an account.
+    user: { validateUserInfo: checkProviderIdentity },
     databaseHooks: {
       user: {
         create: {
           // AU16: a new account, and the way it was made.
           after: async (user, ctx) => {
             const method = methodOf(ctx);
+            if (method === 'google' || method === 'apple') rememberMadeByProvider(user.id);
             if (method) await recordAccountEvent('account.signed_up', user.id, { method });
           },
         },
+      },
+      account: {
+        create: {
+          before: async (account) => ({ data: withoutTokens(account) }),
+          after: async (account) => {
+            await providerJoined(account);
+          },
+        },
+        update: { before: async (account) => ({ data: withoutTokens(account) }) },
       },
       session: {
         create: {
@@ -163,14 +267,22 @@ function createAuth() {
         overrideDefaultEmailVerification: true,
         sendVerificationOTP: sendCode,
       }),
+      // Local development and tests: a page of Gaff's own plays Google and Apple. Everywhere
+      // else the list is empty, and this does nothing.
+      genericOAuth({ config: standInProviders(standIns) }),
       nextCookies(),
     ],
   });
 }
 
-let instance: ReturnType<typeof createAuth> | undefined;
+let built: { auth: ReturnType<typeof createAuth>; at: number } | undefined;
+
+/** The client secret made for Apple lasts 150 days; a set-up this old is built again. */
+const REBUILD_AFTER_MS = 30 * DAY * 1000;
 
 export function auth() {
-  instance ??= createAuth();
-  return instance;
+  if (!built || Date.now() - built.at > REBUILD_AFTER_MS) {
+    built = { auth: createAuth(), at: Date.now() };
+  }
+  return built.auth;
 }

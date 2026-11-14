@@ -10,9 +10,11 @@ import {
   signUpLandlord,
 } from '../e2e/support';
 import {
+  COUNTY,
   SEARCH,
   blockOtherSites,
   expectOnlyTheOriginSent,
+  holdGooglesAnswer,
   mapStage,
   phone,
   sendAKeyGoogleRefuses,
@@ -145,6 +147,33 @@ test('M120: a key Google refuses ends in Gaff’s sentence, not Google’s error
   expectOnlyTheOriginSent(seen, SEARCHED);
   await expectAccessible(page);
   await screenshot(page, 'google/failed-key');
+});
+
+test('M120: a key refused once the pins are on the map takes the map away, never the page', async ({
+  page,
+}) => {
+  // When Google refuses a key it takes its own map apart, and its markers throw as Gaff
+  // removes them. That once took the whole page with it, list and all.
+  const seen = watch(page);
+  await sendAKeyGoogleRefuses(page);
+  await holdGooglesAnswer(page, 4000);
+  await page.goto(COUNTY);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('4 homes');
+  // The pins are up, close enough at this zoom to share a ring, before Google answers.
+  const map = page.getByRole('complementary', { name: 'Map' });
+  await expect(map.getByRole('button', { name: /^\d+ homes here: zoom in$/ }).first()).toBeVisible({
+    timeout: 15_000,
+  });
+  expect(seen.counted.filter((count) => count.startsWith('failed'))).toEqual([]);
+
+  await expect(page.getByText(UNAVAILABLE)).toBeVisible({ timeout: 30_000 });
+  expect(seen.counted.filter((count) => count.startsWith('failed'))).toEqual(['failed:auth']);
+  // The page is whole: its heading, every home in the list, and nothing thrown.
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('4 homes');
+  await expect(page.getByRole('main').getByRole('article')).toHaveCount(4);
+  await expect(page.getByText('This page couldn’t load')).toHaveCount(0);
+  expect(seen.errors).toEqual([]);
+  await expectAccessible(page);
 });
 
 test('M120: Google’s development-mode map (no billing) ends in Gaff’s sentence too', async ({

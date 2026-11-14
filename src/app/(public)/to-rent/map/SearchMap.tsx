@@ -23,6 +23,7 @@ import { readBBox, searchQuery, writeBBox } from '@/domain/search/url';
 import type { MapSettings } from '@/lib/map';
 import { countMap, openKind } from '@/ui/map/count';
 import { reloading } from '@/ui/map/MapBoundary';
+import { MapErrorBoundary } from '@/ui/map/MapErrorBoundary';
 import { usePageScheme } from '@/ui/map/useScheme';
 import { useSearchNavigation } from '../navigation';
 import { hrefFor, type ClientSearch } from '../state';
@@ -284,6 +285,8 @@ export function SearchMap({ settings, search }: { settings: MapSettings; search:
     setStage('failed');
     countMap('failed', kind);
   }, []);
+  /** Something inside the map threw: the same sentence, and the list carries on. */
+  const onError = useCallback(() => onFailed('error'), [onFailed]);
 
   const chosenGroup = groupOf(groups, chosen);
   const alone = chosenGroup?.homes.length === 1 ? chosenGroup.homes[0]! : null;
@@ -311,6 +314,11 @@ export function SearchMap({ settings, search }: { settings: MapSettings; search:
     onReady,
     onFailed,
   };
+  const unavailable = (
+    <div className={styles.failed} role="status">
+      <p>{MAP_UNAVAILABLE}</p>
+    </div>
+  );
   const shapeOn = search.area.kind === 'shape';
   // M128: while drawing, the note says how, and how far along the corners are.
   const note = drawing ? drawingNote(corners.length) : problem;
@@ -325,19 +333,19 @@ export function SearchMap({ settings, search }: { settings: MapSettings; search:
       data-stage={stage}
       data-provider={settings.provider}
     >
-      {failed ? (
-        <div className={styles.failed} role="status">
-          <p>{MAP_UNAVAILABLE}</p>
-        </div>
-      ) : shown ? (
-        <div className={styles.canvas}>
-          {settings.provider === 'google' ? (
-            <GoogleMap {...providerProps} settings={settings} />
-          ) : (
-            <StaticMap {...providerProps} />
-          )}
-        </div>
-      ) : null}
+      <MapErrorBoundary fallback={unavailable} onError={onError}>
+        {failed ? (
+          unavailable
+        ) : shown ? (
+          <div className={styles.canvas}>
+            {settings.provider === 'google' ? (
+              <GoogleMap {...providerProps} settings={settings} />
+            ) : (
+              <StaticMap {...providerProps} />
+            )}
+          </div>
+        ) : null}
+      </MapErrorBoundary>
       {stage === 'loading' ? (
         <p className="visually-hidden" role="status">
           {mapWords.loading}

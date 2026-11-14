@@ -28,9 +28,10 @@ export type OpenKind = (typeof openKinds)[number];
  * - `script`: Google's script didn't arrive (a blocker, the network, the content security policy);
  * - `auth`: Google refused the key (the key, the allowed websites, billing);
  * - `google`: Google drew its own error in place of the map (the daily cap, or billing);
- * - `timeout`: no map appeared in time.
+ * - `timeout`: no map appeared in time;
+ * - `error`: the map's code threw an error (a change in Google's script, or a bug in Gaff's).
  */
-export const failureKinds = ['script', 'auth', 'google', 'timeout'] as const;
+export const failureKinds = ['script', 'auth', 'google', 'timeout', 'error'] as const;
 export type MapFailure = (typeof failureKinds)[number];
 
 const kindsFor: Record<MapEvent, readonly string[]> = {

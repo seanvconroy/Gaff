@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { failuresNeedALook, readCount } from './counts';
+import { failureKinds, failuresNeedALook, readCount } from './counts';
 
 describe('M133: the map is counted by fixed codes only', () => {
   it('takes the events and kinds on the list', () => {
@@ -8,6 +8,13 @@ describe('M133: the map is counted by fixed codes only', () => {
     expect(readCount('failed', 'auth')).toEqual({ event: 'failed', kind: 'auth' });
     expect(readCount('pin_opened', null)).toEqual({ event: 'pin_opened', kind: '' });
     expect(readCount('area_searched', '')).toEqual({ event: 'area_searched', kind: '' });
+  });
+
+  it('M120: counts every way the map can fail, an error thrown inside it included', () => {
+    expect([...failureKinds]).toEqual(['script', 'auth', 'google', 'timeout', 'error']);
+    for (const kind of failureKinds) {
+      expect(readCount('failed', kind)).toEqual({ event: 'failed', kind });
+    }
   });
 
   it('ignores anything else, so nothing a renter typed or searched can be stored', () => {

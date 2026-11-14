@@ -9,6 +9,7 @@ import type { MapSettings } from '@/lib/map';
 import type { PinState } from '@/server/listings/location';
 import { Button } from '@/ui/Button';
 import { Stack } from '@/ui/Layout';
+import { MapErrorBoundary } from '@/ui/map/MapErrorBoundary';
 import { PinPicker } from '@/ui/map/PinPicker';
 import { Notice } from '@/ui/Notice';
 import { describePinAction, savePinAction } from './actions';
@@ -86,76 +87,81 @@ export function LocationPicker({
       setJustSaved(true);
     });
 
-  if (failed) {
-    return (
-      <Notice tone="warning" role="status">
-        <p>{pinWords.unavailable}</p>
-      </Notice>
-    );
-  }
-
+  const unavailable = (
+    <Notice tone="warning" role="status">
+      <p>{pinWords.unavailable}</p>
+    </Notice>
+  );
   const start = pin.placed ? '' : pinStartWords(pin.from, pin.streetName);
+  // The boundary stays while the map goes: anything Google's script throws on its way out
+  // ends in the same words, and the rest of the listing carries on (M120).
   return (
-    <Stack gap={4}>
-      <p>{hidden ? pinWords.introHidden : pinWords.intro}</p>
-      {start ? <p>{start}</p> : null}
-      {pin.development ? (
-        <p>{developmentPinWords(pin.development.name, pin.development.others)}</p>
-      ) : null}
-      <PinPicker
-        settings={settings}
-        point={point}
-        close={pin.from !== 'area'}
-        streets={pin.streets}
-        label={pinWords.mapLabel}
-        pinLabel={pinWords.pin}
-        describedBy="pin-keys"
-        onMove={onMove}
-        onFailed={onFailed}
-      />
-      <p role="status" className={styles.pinWhere}>
-        {where}
-      </p>
-      <div className={styles.pinMoves} role="group" aria-label="Move the pin a step">
-        {moves.map(({ direction, label, Icon }) => (
-          <button
-            key={direction}
-            type="button"
-            className={styles.pinMove}
-            aria-label={label}
-            onClick={() => onMove(nudge(point, direction, NUDGE_METRES))}
-          >
-            <Icon size={20} strokeWidth={2} aria-hidden="true" />
-          </button>
-        ))}
-        <p id="pin-keys" className={styles.pinHint}>
-          {pinWords.keyboard}
-        </p>
-      </div>
-      {problem ? (
-        <Notice tone="danger" role="alert">
-          <p>{problem}</p>
-        </Notice>
-      ) : null}
-      {!moved && pin.placed && pin.check === 'outside' ? (
-        <Notice tone="warning" role="status">
-          <p>{pinOutsideWords(pin.addressArea, pin.pinPlace)}</p>
-        </Notice>
-      ) : null}
-      <div className={styles.pinSave}>
-        <Button onClick={save} disabled={saving}>
-          {saving ? pinWords.saving : pinWords.save}
-        </Button>
-        <p role="status" className={styles.saved}>
-          {justSaved
-            ? pinWords.saved
-            : moved
-              ? pinWords.moved
-              : pin.placed
-                ? ''
-                : pinWords.notPlaced}
-        </p>
-      </div>
-    </Stack>
+    <MapErrorBoundary fallback={unavailable} onError={onFailed}>
+      {failed ? (
+        unavailable
+      ) : (
+        <Stack gap={4}>
+          <p>{hidden ? pinWords.introHidden : pinWords.intro}</p>
+          {start ? <p>{start}</p> : null}
+          {pin.development ? (
+            <p>{developmentPinWords(pin.development.name, pin.development.others)}</p>
+          ) : null}
+          <PinPicker
+            settings={settings}
+            point={point}
+            close={pin.from !== 'area'}
+            streets={pin.streets}
+            label={pinWords.mapLabel}
+            pinLabel={pinWords.pin}
+            describedBy="pin-keys"
+            onMove={onMove}
+            onFailed={onFailed}
+          />
+          <p role="status" className={styles.pinWhere}>
+            {where}
+          </p>
+          <div className={styles.pinMoves} role="group" aria-label="Move the pin a step">
+            {moves.map(({ direction, label, Icon }) => (
+              <button
+                key={direction}
+                type="button"
+                className={styles.pinMove}
+                aria-label={label}
+                onClick={() => onMove(nudge(point, direction, NUDGE_METRES))}
+              >
+                <Icon size={20} strokeWidth={2} aria-hidden="true" />
+              </button>
+            ))}
+            <p id="pin-keys" className={styles.pinHint}>
+              {pinWords.keyboard}
+            </p>
+          </div>
+          {problem ? (
+            <Notice tone="danger" role="alert">
+              <p>{problem}</p>
+            </Notice>
+          ) : null}
+          {!moved && pin.placed && pin.check === 'outside' ? (
+            <Notice tone="warning" role="status">
+              <p>{pinOutsideWords(pin.addressArea, pin.pinPlace)}</p>
+            </Notice>
+          ) : null}
+          <div className={styles.pinSave}>
+            <Button onClick={save} disabled={saving}>
+              {saving ? pinWords.saving : pinWords.save}
+            </Button>
+            <p role="status" className={styles.saved}>
+              {justSaved
+                ? pinWords.saved
+                : moved
+                  ? pinWords.moved
+                  : pin.placed
+                    ? ''
+                    : pinWords.notPlaced}
+            </p>
+          </div>
+        </Stack>
+      )}
+    </MapErrorBoundary>
   );
 }

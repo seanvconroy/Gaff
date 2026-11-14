@@ -86,6 +86,7 @@ export const failureWords: Record<MapFailure, string> = {
   auth: 'Google refused the key (the key, the allowed websites or billing)',
   google: 'Google drew its own error (the daily cap, or billing)',
   timeout: 'No map appeared in time',
+  error: 'The map’s code hit an error (a change in Google’s script, or a bug in Gaff’s)',
 };
 
 /** M133: the email Gaff's admins get when a day's failures are worth a look. Numbers only. */

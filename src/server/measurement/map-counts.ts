@@ -62,7 +62,7 @@ const emptyDay = (day: string): MapDay => ({
   day,
   opened: { phone: 0, larger: 0 },
   shown: 0,
-  failed: { script: 0, auth: 0, google: 0, timeout: 0 },
+  failed: { script: 0, auth: 0, google: 0, timeout: 0, error: 0 },
   areaSearches: 0,
   shapes: 0,
   pins: 0,

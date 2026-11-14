@@ -136,10 +136,16 @@ function Pins({
     );
     clusterer.current = made;
     return () => {
-      listener.remove();
-      made.clearMarkers(true);
-      made.setMap(null);
       clusterer.current = null;
+      // When Google refuses a key it takes its own map apart, and its markers then throw as
+      // they're removed: there's nothing left to tidy.
+      try {
+        listener.remove();
+        made.clearMarkers(true);
+        made.setMap(null);
+      } catch {
+        // The map is going either way.
+      }
     };
   }, [map]);
 

@@ -110,6 +110,18 @@ describe('design tokens (ADR-0011)', () => {
     expect(readFileSync('src/styles/tokens.ts', 'utf8')).toBe(renderTypeScript(tokens));
   });
 
+  it('M129: a map keeps a scheme of its own, whatever the page’s theme', () => {
+    const css = renderCss(tokens);
+    for (const theme of ['light', 'dark'] as const) {
+      const block = new RegExp(`\\[data-map-scheme="${theme}"\\] \\{([^}]*)\\}`).exec(css);
+      expect(block, theme).not.toBeNull();
+      expect(block![1]).toContain(`color-scheme: ${theme};`);
+      for (const [name, value] of Object.entries(tokens.colors)) {
+        expect(block![1]).toContain(`--color-${name}: ${value[theme]};`);
+      }
+    }
+  });
+
   it('type sizes are in rem, so they follow the reader’s text size', () => {
     expect(pxToRem('16px')).toBe('1rem');
     expect(pxToRem('13px')).toBe('0.8125rem');

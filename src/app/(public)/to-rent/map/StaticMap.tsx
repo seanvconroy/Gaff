@@ -2,160 +2,246 @@
 
 import { Minus, Plus } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { clusterName, mapWords, pinLabel, pinName } from '@/copy/map';
+import { closesShape, isTap, type Press } from '@/domain/map/draw';
+import { groupOf, homesIn, type PinGroup } from '@/domain/map/points';
 import type { BBox, Point } from '@/domain/places/geo';
-import { pinLabel, type MapPin, type MapProviderProps } from './types';
+import type { MapProviderProps } from './types';
 import styles from './map.module.css';
 
 /**
  * ADR-0027: the stand-in map for tests and development without a Google key (MAP_PROVIDER=
- * static). Plain SVG on a grid, with the same behaviour as the real map: pins with the rent,
- * clusters, zoom, dragging to search the area in view, drawing an outline, and the searched
- * area drawn on it. Never in production.
+ * static). Plain SVG on a grid, drawn at the size of its box, with the same behaviour as the
+ * real map: pins with the rent, pins for homes that share a point, clusters, zoom, dragging to
+ * search the area in view, drawing an outline by dragging or by tapping its corners, and the
+ * searched area drawn on it. It fits a search only when asked to, and a change of size is never
+ * the renter's move (M127). Never in production.
  */
 
-const W = 1000;
-const H = 700;
-const CLUSTER_PX = 80;
+const CLUSTER_PX = 72;
+const FIT_PADDING = 24;
+/** The least a view shows: a few streets. */
+const MIN_SPAN = 0.004;
 
-/** A view with the map's shape, around a box (with a little room). */
-function fitView(box: BBox): BBox {
-  const midLat = (box.minLat + box.maxLat) / 2;
-  const midLng = (box.minLng + box.maxLng) / 2;
-  const cos = Math.cos((midLat * Math.PI) / 180);
-  let latSpan = Math.max(0.004, (box.maxLat - box.minLat) * 1.15);
-  let lngSpan = Math.max(0.004, (box.maxLng - box.minLng) * 1.15);
-  if (lngSpan * cos * H > latSpan * W) latSpan = (lngSpan * cos * H) / W;
-  else lngSpan = (latSpan * W) / (H * cos);
+interface Size {
+  w: number;
+  h: number;
+}
+
+/** The middle of the view, and how many degrees of latitude one pixel covers. */
+interface Camera {
+  lat: number;
+  lng: number;
+  scale: number;
+}
+
+const cosAt = (lat: number) => Math.cos((lat * Math.PI) / 180);
+
+function cameraFor(box: BBox, size: Size): Camera {
+  const lat = (box.minLat + box.maxLat) / 2;
+  const lng = (box.minLng + box.maxLng) / 2;
+  const tall = Math.max(MIN_SPAN, box.maxLat - box.minLat);
+  const wide = Math.max(MIN_SPAN, box.maxLng - box.minLng) * cosAt(lat);
   return {
-    minLat: midLat - latSpan / 2,
-    maxLat: midLat + latSpan / 2,
-    minLng: midLng - lngSpan / 2,
-    maxLng: midLng + lngSpan / 2,
+    lat,
+    lng,
+    scale: Math.max(
+      tall / Math.max(1, size.h - 2 * FIT_PADDING),
+      wide / Math.max(1, size.w - 2 * FIT_PADDING),
+    ),
   };
 }
 
-function zoom(view: BBox, factor: number, at?: Point): BBox {
-  const c = at ?? { lat: (view.minLat + view.maxLat) / 2, lng: (view.minLng + view.maxLng) / 2 };
+function boxOf(camera: Camera, size: Size): BBox {
+  const dLat = (camera.scale * size.h) / 2;
+  const dLng = (camera.scale * size.w) / 2 / cosAt(camera.lat);
   return {
-    minLat: c.lat - (c.lat - view.minLat) * factor,
-    maxLat: c.lat + (view.maxLat - c.lat) * factor,
-    minLng: c.lng - (c.lng - view.minLng) * factor,
-    maxLng: c.lng + (view.maxLng - c.lng) * factor,
+    minLat: camera.lat - dLat,
+    maxLat: camera.lat + dLat,
+    minLng: camera.lng - dLng,
+    maxLng: camera.lng + dLng,
   };
 }
 
 export function StaticMap({
-  startBox,
-  pins,
+  fit,
+  groups,
   hovered,
   chosen,
   onHover,
   onChoose,
   onMoved,
   drawing,
+  corners,
+  onCorner,
   onDrawn,
   area,
+  onReady,
 }: MapProviderProps) {
-  const [view, setView] = useState(() => fitView(startBox));
+  const root = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<Size | null>(null);
+  const [at, setAt] = useState<{ fitId: number; camera: Camera } | null>(null);
   const [outline, setOutline] = useState<Point[]>([]);
-  const svg = useRef<SVGSVGElement>(null);
-  const drag = useRef<{ x: number; y: number; view: BBox } | null>(null);
+  /** While the renter drags: the view follows the pointer, and the page hears when they let go. */
+  const [dragging, setDragging] = useState<Camera | null>(null);
+  const drag = useRef<{ x: number; y: number; camera: Camera; to: Camera | null } | null>(null);
+  const press = useRef<Press | null>(null);
+  /** Set by the renter's own moves, just before the view changes (M127). */
+  const byRenter = useRef(false);
+  const callbacks = useRef({ onMoved, onReady });
 
-  const x = (lng: number) => ((lng - view.minLng) / (view.maxLng - view.minLng)) * W;
-  const y = (lat: number) => ((view.maxLat - lat) / (view.maxLat - view.minLat)) * H;
-
-  /** Screen pixels to map units, then to a point. */
-  function pointAt(event: PointerEvent<SVGSVGElement>): Point {
-    const rect = svg.current!.getBoundingClientRect();
-    // The map fills its box ("slice"), so the larger scale applies.
-    const scale = Math.max(rect.width / W, rect.height / H);
-    const offsetX = (rect.width - W * scale) / 2;
-    const offsetY = (rect.height - H * scale) / 2;
-    const ux = (event.clientX - rect.left - offsetX) / scale;
-    const uy = (event.clientY - rect.top - offsetY) / scale;
-    return {
-      lng: view.minLng + (ux / W) * (view.maxLng - view.minLng),
-      lat: view.maxLat - (uy / H) * (view.maxLat - view.minLat),
-    };
-  }
-
-  // The page's own view (a new search remounts this map) isn't the renter's move.
   useEffect(() => {
-    onMoved(view, false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    callbacks.current = { onMoved, onReady };
+  });
+
+  useEffect(() => {
+    const element = root.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry!.contentRect;
+      if (width > 0 && height > 0) setSize({ w: Math.round(width), h: Math.round(height) });
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
   }, []);
 
-  const move = (next: BBox) => {
-    setView(next);
-    onMoved(next, true);
+  // M127: the map fits a search when the page asks (a new `fit`), and at no other time.
+  if (size && (!at || at.fitId !== fit.id)) {
+    setAt({ fitId: fit.id, camera: cameraFor(fit.box, size) });
+  }
+  const settled = at?.camera ?? null;
+  const camera = dragging ?? settled;
+  const ready = settled !== null;
+
+  useEffect(() => {
+    if (ready) callbacks.current.onReady();
+  }, [ready]);
+
+  // Every change of view is told to the page: the renter's own moves, the page's fits, and a
+  // change of size, which is never the renter's.
+  useEffect(() => {
+    if (!settled || !size) return;
+    callbacks.current.onMoved(boxOf(settled, size), byRenter.current);
+    byRenter.current = false;
+  }, [settled, size]);
+
+  const move = (next: Camera) => {
+    byRenter.current = true;
+    setAt((current) => (current ? { ...current, camera: next } : current));
   };
 
   const clusters = useMemo(() => {
-    const groups: Array<{ x: number; y: number; pins: MapPin[] }> = [];
-    for (const pin of pins) {
-      const px = x(pin.lng);
-      const py = y(pin.lat);
-      const near = groups.find((g) => Math.hypot(g.x - px, g.y - py) < CLUSTER_PX);
-      if (near && !near.pins.some((p) => p.id === chosen || p.id === hovered)) {
-        near.pins.push(pin);
-      } else {
-        groups.push({ x: px, y: py, pins: [pin] });
-      }
+    if (!camera || !size) return [];
+    const found: Array<{ x: number; y: number; groups: PinGroup[] }> = [];
+    for (const group of groups) {
+      const x = size.w / 2 + ((group.lng - camera.lng) * cosAt(camera.lat)) / camera.scale;
+      const y = size.h / 2 - (group.lat - camera.lat) / camera.scale;
+      const near = found.find((c) => Math.hypot(c.x - x, c.y - y) < CLUSTER_PX);
+      if (near) near.groups.push(group);
+      else found.push({ x, y, groups: [group] });
     }
-    return groups;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pins, view, chosen, hovered]);
+    return found;
+  }, [groups, camera, size]);
 
-  const metresToUnits = (m: number, lat: number) =>
-    (m / (111_320 * Math.cos((lat * Math.PI) / 180))) * (W / (view.maxLng - view.minLng));
+  if (!camera || !size) return <div ref={root} className={styles.staticMap} />;
+
+  const px = (point: Point) => ({
+    x: size.w / 2 + ((point.lng - camera.lng) * cosAt(camera.lat)) / camera.scale,
+    y: size.h / 2 - (point.lat - camera.lat) / camera.scale,
+  });
+  const pointAt = (x: number, y: number): Point => ({
+    lat: camera.lat - (y - size.h / 2) * camera.scale,
+    lng: camera.lng + ((x - size.w / 2) * camera.scale) / cosAt(camera.lat),
+  });
+  const where_ = (event: PointerEvent<SVGSVGElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  };
+  const metres = (m: number) => m / 111_320 / camera.scale;
+  const path = (points: readonly Point[]) =>
+    points
+      .map((point) => {
+        const p = px(point);
+        return `${p.x},${p.y}`;
+      })
+      .join(' ');
+  const zoom = (factor: number, around?: Point) => {
+    const centre = around ?? camera;
+    move({
+      lat: centre.lat - (centre.lat - camera.lat) * factor,
+      lng: centre.lng - (centre.lng - camera.lng) * factor,
+      scale: camera.scale * factor,
+    });
+  };
+
+  // The home being looked at, when its pin is inside a cluster: shown above the cluster.
+  const lit = [groupOf(groups, chosen), groupOf(groups, hovered)].filter(
+    (group, i, all): group is PinGroup => group !== null && all.indexOf(group) === i,
+  );
+  const raised = lit.filter((group) =>
+    clusters.some((c) => c.groups.length > 1 && c.groups.includes(group)),
+  );
+  const isLit = (group: PinGroup) => lit.includes(group);
+  const pinWidth = (label: string) => Math.max(64, label.length * 10 + 28);
 
   return (
-    <div className={styles.staticMap}>
+    <div ref={root} className={styles.staticMap}>
       <svg
-        ref={svg}
-        viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="xMidYMid slice"
+        width={size.w}
+        height={size.h}
         className={styles.staticSvg}
         data-drawing={drawing || undefined}
         role="group"
-        aria-label="Map of the homes in this search"
+        aria-label={mapWords.label}
         onPointerDown={(event) => {
+          const where = where_(event);
           if (drawing) {
             event.currentTarget.setPointerCapture(event.pointerId);
-            setOutline([pointAt(event)]);
+            press.current = { ...where, at: event.timeStamp };
+            setOutline([pointAt(where.x, where.y)]);
           } else if (
             event.target === event.currentTarget ||
             (event.target as Element).tagName === 'rect'
           ) {
-            drag.current = { x: event.clientX, y: event.clientY, view };
+            drag.current = { ...where, camera, to: null };
           }
         }}
         onPointerMove={(event) => {
-          if (drawing && outline.length) {
-            setOutline((o) => [...o, pointAt(event)]);
+          const where = where_(event);
+          if (drawing && press.current) {
+            setOutline((points) => [...points, pointAt(where.x, where.y)]);
           } else if (drag.current) {
-            const rect = svg.current!.getBoundingClientRect();
-            const start = drag.current.view;
-            const dx =
-              ((event.clientX - drag.current.x) / rect.width) * (start.maxLng - start.minLng);
-            const dy =
-              ((event.clientY - drag.current.y) / rect.height) * (start.maxLat - start.minLat);
-            setView({
-              minLat: start.minLat + dy,
-              maxLat: start.maxLat + dy,
-              minLng: start.minLng - dx,
-              maxLng: start.maxLng - dx,
-            });
+            const start = drag.current;
+            // The page hears of the move when the drag ends, as when a real map comes to rest.
+            start.to = {
+              ...start.camera,
+              lat: start.camera.lat + (where.y - start.y) * start.camera.scale,
+              lng:
+                start.camera.lng -
+                ((where.x - start.x) * start.camera.scale) / cosAt(start.camera.lat),
+            };
+            setDragging(start.to);
           }
         }}
-        onPointerUp={() => {
-          if (drawing && outline.length) {
-            onDrawn(outline);
+        onPointerUp={(event) => {
+          const where = where_(event);
+          if (drawing && press.current) {
+            const down = press.current;
+            press.current = null;
+            const drawn = outline;
             setOutline([]);
+            if (!isTap(down, { ...where, at: event.timeStamp })) {
+              onDrawn(drawn);
+            } else if (corners[0] && closesShape(corners.length, px(corners[0]), where)) {
+              onDrawn(corners);
+            } else {
+              onCorner(pointAt(where.x, where.y));
+            }
           } else if (drag.current) {
-            const moved = drag.current.view !== view;
+            const { to } = drag.current;
             drag.current = null;
-            if (moved) onMoved(view, true);
+            setDragging(null);
+            if (to) move(to);
           }
         }}
       >
@@ -164,104 +250,136 @@ export function StaticMap({
             <path d="M 50 0 L 0 0 0 50" className={styles.gridLine} />
           </pattern>
         </defs>
-        <rect width={W} height={H} className={styles.land} />
-        <rect width={W} height={H} fill="url(#static-grid)" />
+        <rect width={size.w} height={size.h} className={styles.land} />
+        <rect width={size.w} height={size.h} fill="url(#static-grid)" />
         {area.kind === 'radius' ? (
           <circle
-            cx={x(area.centre.lng)}
-            cy={y(area.centre.lat)}
-            r={metresToUnits(area.radiusMetres, area.centre.lat)}
+            cx={px(area.centre).x}
+            cy={px(area.centre).y}
+            r={metres(area.radiusMetres)}
             className={styles.outline}
           />
         ) : null}
         {area.kind === 'near' && area.place.line
           ? area.place.line.map((run, i) => (
-              <polyline
-                key={i}
-                points={run.map((p) => `${x(p.lng)},${y(p.lat)}`).join(' ')}
-                className={styles.street}
-              />
+              <polyline key={i} points={path(run)} className={styles.street} />
             ))
           : null}
         {area.kind === 'near' ? (
           <circle
-            cx={x(area.place.centre.lng)}
-            cy={y(area.place.centre.lat)}
-            r={metresToUnits(area.withinKm * 1000, area.place.centre.lat)}
+            cx={px(area.place.centre).x}
+            cy={px(area.place.centre).y}
+            r={metres(area.withinKm * 1000)}
             className={styles.outline}
           />
         ) : null}
         {area.kind === 'shape' ? (
-          <polygon
-            points={area.polygon.map((p) => `${x(p.lng)},${y(p.lat)}`).join(' ')}
-            className={styles.outline}
-          />
+          <polygon points={path(area.polygon)} className={styles.outline} />
         ) : null}
-        {outline.length > 1 ? (
-          <polyline
-            points={outline.map((p) => `${x(p.lng)},${y(p.lat)}`).join(' ')}
-            className={styles.drawn}
-          />
+        {outline.length > 1 ? <polyline points={path(outline)} className={styles.drawn} /> : null}
+        {corners.length > 0 ? (
+          <g aria-hidden="true">
+            <polyline points={path(corners)} className={styles.drawn} />
+            {corners.map((corner, i) => (
+              <circle
+                key={i}
+                cx={px(corner).x}
+                cy={px(corner).y}
+                r={i === 0 ? 8 : 5}
+                className={styles.corner}
+              />
+            ))}
+          </g>
         ) : null}
-        {clusters.map((group) =>
-          group.pins.length > 1 ? (
+        {clusters.map((cluster) => {
+          if (cluster.groups.length > 1) {
+            const homes = homesIn(cluster.groups);
+            const middle = { lat: cluster.groups[0]!.lat, lng: cluster.groups[0]!.lng };
+            return (
+              <g
+                key={cluster.groups.map((g) => g.key).join('-')}
+                transform={`translate(${cluster.x} ${cluster.y})`}
+                className={styles.staticCluster}
+                role="button"
+                tabIndex={0}
+                aria-label={clusterName(homes)}
+                onClick={() => zoom(0.5, middle)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    zoom(0.5, middle);
+                  }
+                }}
+              >
+                <circle r={24} />
+                <text textAnchor="middle" dominantBaseline="central">
+                  {homes}
+                </text>
+              </g>
+            );
+          }
+          const group = cluster.groups[0]!;
+          const label = pinLabel(group);
+          const width = pinWidth(label);
+          const first = group.homes[0]!.id;
+          return (
             <g
-              key={group.pins.map((p) => p.id).join('-')}
-              transform={`translate(${group.x} ${group.y})`}
-              className={styles.staticCluster}
-              role="button"
-              tabIndex={0}
-              aria-label={`${group.pins.length} homes here: zoom in`}
-              onClick={() =>
-                move(zoom(view, 0.5, { lat: group.pins[0]!.lat, lng: group.pins[0]!.lng }))
-              }
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  move(zoom(view, 0.5, { lat: group.pins[0]!.lat, lng: group.pins[0]!.lng }));
-                }
-              }}
-            >
-              <circle r={30} />
-              <text textAnchor="middle" dominantBaseline="central" fontSize={26}>
-                {group.pins.length}
-              </text>
-            </g>
-          ) : (
-            <g
-              key={group.pins[0]!.id}
-              transform={`translate(${group.x} ${group.y})`}
+              key={group.key}
+              transform={`translate(${cluster.x} ${cluster.y})`}
               className={styles.staticPin}
-              data-on={group.pins[0]!.id === chosen || group.pins[0]!.id === hovered || undefined}
+              data-on={isLit(group) || undefined}
+              data-homes={group.homes.length}
               role="button"
               tabIndex={0}
-              aria-label={`${pinLabel(group.pins[0]!.rentCents)} a month, ${group.pins[0]!.title}`}
-              aria-pressed={group.pins[0]!.id === chosen}
-              onClick={() => onChoose(group.pins[0]!.id)}
+              aria-label={pinName(group)}
+              aria-pressed={group.homes.some((home) => home.id === chosen)}
+              onClick={() => onChoose(group)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
-                  onChoose(group.pins[0]!.id);
+                  onChoose(group);
                 }
               }}
-              onPointerEnter={() => onHover(group.pins[0]!.id)}
+              onPointerEnter={() => onHover(first)}
               onPointerLeave={() => onHover(null)}
-              onFocus={() => onHover(group.pins[0]!.id)}
+              onFocus={() => onHover(first)}
               onBlur={() => onHover(null)}
             >
-              <rect x={-58} y={-22} width={116} height={44} rx={22} />
-              <text textAnchor="middle" dominantBaseline="central" fontSize={24}>
-                {pinLabel(group.pins[0]!.rentCents)}
+              {/* M117: 44px to tap, though the pill looks smaller. */}
+              <rect x={-width / 2} y={-22} width={width} height={44} className={styles.hitArea} />
+              <rect x={-width / 2} y={-17} width={width} height={34} rx={17} />
+              <text textAnchor="middle" dominantBaseline="central">
+                {label}
               </text>
             </g>
-          ),
-        )}
+          );
+        })}
+        {raised.map((group) => {
+          const label = pinLabel(group);
+          const width = pinWidth(label);
+          const p = px(group);
+          return (
+            <g
+              key={`raised-${group.key}`}
+              transform={`translate(${p.x} ${p.y - 34})`}
+              className={styles.staticPin}
+              data-on
+              data-raised
+              aria-hidden="true"
+            >
+              <rect x={-width / 2} y={-17} width={width} height={34} rx={17} />
+              <text textAnchor="middle" dominantBaseline="central">
+                {label}
+              </text>
+            </g>
+          );
+        })}
       </svg>
       <div className={styles.zoom}>
-        <button type="button" aria-label="Zoom in" onClick={() => move(zoom(view, 0.5))}>
+        <button type="button" aria-label={mapWords.zoomIn} onClick={() => zoom(0.5)}>
           <Plus size={20} strokeWidth={2} aria-hidden="true" />
         </button>
-        <button type="button" aria-label="Zoom out" onClick={() => move(zoom(view, 2))}>
+        <button type="button" aria-label={mapWords.zoomOut} onClick={() => zoom(2)}>
           <Minus size={20} strokeWidth={2} aria-hidden="true" />
         </button>
       </div>

@@ -23,7 +23,12 @@ export function pinName(group: PinGroup): string {
   if (group.homes.length === 1) {
     return `${pinPrice(group.fromRentCents)} a month, ${group.homes[0]!.title}`;
   }
-  return `${group.homes.length} homes here, from ${pinPrice(group.fromRentCents)} a month`;
+  return `${homesHere(group.homes.length)}, from ${pinPrice(group.fromRentCents)} a month`;
+}
+
+/** The heading of the list a shared pin opens: "3 homes here". */
+export function homesHere(homes: number): string {
+  return `${homes} homes here`;
 }
 
 export function clusterName(homes: number): string {
@@ -118,7 +123,10 @@ export function pinStartWords(from: 'pin' | 'street' | 'area', streetName: strin
 
 /** "The pin is on Highfield Road, in Rathgar.": where the pin is, for everyone and screen readers. */
 export function pinWhere(where: { street: string | null; place: string | null }): string {
-  if (where.street && where.place) return `The pin is on ${where.street}, in ${where.place}.`;
+  // Some main streets carry their village's name: "on Ranelagh" says it all.
+  if (where.street && where.place && where.street !== where.place) {
+    return `The pin is on ${where.street}, in ${where.place}.`;
+  }
   if (where.street) return `The pin is on ${where.street}.`;
   if (where.place) return `The pin is in ${where.place}.`;
   return 'The pin isn’t on a street or in an area Gaff knows.';

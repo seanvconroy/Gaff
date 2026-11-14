@@ -536,10 +536,11 @@
   min-height: 44px;
 }
 
-/* M57: the floating Map and List button, on phones and tablets. */
+/* M57: the floating Map and List button, on phones and tablets. It sits clear of the map's
+   attribution along the bottom edge (M119). */
 .mapToggle {
   position: fixed;
-  bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+  bottom: calc(var(--space-8) + env(safe-area-inset-bottom));
   left: 50%;
   z-index: 15;
   display: inline-flex;

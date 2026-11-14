@@ -266,6 +266,11 @@ export function renderCss(tokens: ResolvedTokens): string {
     '',
   );
   lines.push(':root[data-theme="dark"] {', ...themeBlock(tokens, 'dark'), '}', '');
+  // M129: a map has a scheme of its own, which its pins follow whatever the page's theme: a
+  // light map on a dark page keeps light pins.
+  for (const theme of ['light', 'dark'] as const) {
+    lines.push(`[data-map-scheme="${theme}"] {`, ...themeBlock(tokens, theme), '}', '');
+  }
 
   // Reduced motion: every duration drops to 0ms, so nothing animates.
   const durations = Object.entries(tokens.motion).filter(([, value]) => DURATION.test(value));

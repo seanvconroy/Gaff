@@ -134,6 +134,12 @@ describe('Hosting on Vercel (ADR-0014)', () => {
     expect(readEnvironment({ ...production, MARKETPLACE_PUBLIC: '1' }).MAP_PROVIDER).toBe('none');
     const google = { MAP_PROVIDER: 'google', GOOGLE_MAPS_API_KEY: 'key', GOOGLE_MAPS_MAP_ID: 'id' };
     expect(readEnvironment({ ...testCopy, ...google }).MAP_PROVIDER).toBe('google');
+    // Google's quarterly channel unless another is chosen: it changes least often.
+    expect(readEnvironment({ ...testCopy, ...google }).GOOGLE_MAPS_VERSION).toBe('quarterly');
+    expect(
+      readEnvironment({ ...testCopy, ...google, GOOGLE_MAPS_VERSION: 'weekly' })
+        .GOOGLE_MAPS_VERSION,
+    ).toBe('weekly');
     expect(
       environmentProblems({ ...production, MARKETPLACE_PUBLIC: '1', MAP_PROVIDER: 'static' }),
     ).toEqual(['MAP_PROVIDER']);

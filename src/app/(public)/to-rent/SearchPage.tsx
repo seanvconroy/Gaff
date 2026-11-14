@@ -1,9 +1,9 @@
 import { Info } from 'lucide-react';
 import Link from 'next/link';
 import { after } from 'next/server';
+import { mapWords } from '@/copy/map';
 import { homesCount, wideningWords } from '@/copy/search';
 import { hasAreaPage } from '@/domain/places/gazetteer';
-import { bboxAround, IRELAND, type BBox } from '@/domain/places/geo';
 import {
   areaPath,
   areaPhrase,
@@ -15,6 +15,7 @@ import {
 import { itemListStructuredData, jsonForScript } from '@/domain/search/structured-data';
 import { searchHref, searchQuery } from '@/domain/search/url';
 import { env } from '@/lib/env';
+import { mapSettings } from '@/lib/map';
 import { formatDate } from '@/lib/format';
 import { savedAmong } from '@/server/alerts/saved-homes';
 import { isSearchSaved } from '@/server/alerts/searches';
@@ -26,7 +27,7 @@ import { Notice } from '@/ui/Notice';
 import { saveSearchAction } from '../actions';
 import { SaveSearch } from './bar/SaveSearch';
 import { SearchBar } from './bar/SearchBar';
-import { SearchMap, type MapSettings } from './map/SearchMap';
+import { SearchMap } from './map/SearchMap';
 import { MapToggle } from './map/MapToggle';
 import { PendingRegion, SearchNavigationProvider } from './navigation';
 import type { SearchRequest } from './query';
@@ -63,37 +64,6 @@ function rememberable(area: SearchArea): boolean {
     area.kind === 'radius' ||
     area.kind === 'near'
   );
-}
-
-/** Where the map starts: the place and its distance, the map area or shape, or Ireland. */
-function startBox(area: SearchArea): BBox {
-  switch (area.kind) {
-    case 'radius':
-    case 'near':
-    case 'map':
-    case 'shape':
-      return area.box;
-    case 'county':
-      return bboxAround(area.place.centre, area.place.radiusMetres);
-    case 'routing_key':
-      return area.place ? bboxAround(area.place.centre, area.place.radiusMetres) : IRELAND;
-    case 'everywhere':
-      return IRELAND;
-  }
-}
-
-function mapSettings(): MapSettings | null {
-  const config = env();
-  if (config.MAP_PROVIDER === 'none') return null;
-  if (config.MAP_PROVIDER === 'google') {
-    return {
-      provider: 'google',
-      apiKey: config.GOOGLE_MAPS_API_KEY,
-      mapId: config.GOOGLE_MAPS_MAP_ID,
-      ...(config.GOOGLE_MAPS_MAP_ID_DARK ? { mapIdDark: config.GOOGLE_MAPS_MAP_ID_DARK } : {}),
-    };
-  }
-  return { provider: 'static' };
 }
 
 /**
@@ -298,9 +268,9 @@ export async function SearchPage({
           {map ? (
             <aside className={styles.mapColumn} aria-label="Map">
               <a href="#after-map" className={styles.skipMap}>
-                Skip the map
+                {mapWords.skip}
               </a>
-              <SearchMap settings={map} search={client} startBox={startBox(area)} />
+              <SearchMap settings={map} search={client} />
             </aside>
           ) : null}
         </div>

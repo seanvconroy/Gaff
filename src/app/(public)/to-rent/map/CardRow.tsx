@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
-import { pinLabel, type MapCard, type MapPin } from './types';
+import { mapWords, pinPrice } from '@/copy/map';
+import type { PinGroup } from '@/domain/map/points';
+import type { MapCard } from './types';
 import styles from './map.module.css';
 
 /** The row holds the first homes in view; the map's pins still show them all. */
@@ -13,17 +15,20 @@ const SETTLE_MS = 150;
 /**
  * M57, M117: on phones and tablets, the homes on the map as a row of cards to swipe along its
  * foot, kept in step with the pins. Tapping a pin brings its card into view; the card a swipe
- * stops on lights up its pin. Each card loads its photo once it's on screen.
+ * stops on lights up its pin. Homes that share a pin sit side by side, and are all marked when
+ * their pin is chosen. Each card loads its photo once it's on screen.
  */
 export function CardRow({
-  pins,
+  groups,
   chosen,
+  chosenGroup,
   onChoose,
   cards,
   requestCard,
 }: {
-  pins: MapPin[];
+  groups: PinGroup[];
   chosen: string | null;
+  chosenGroup: PinGroup | null;
   onChoose: (id: string) => void;
   cards: Record<string, MapCard | null>;
   requestCard: (id: string) => void;
@@ -31,7 +36,8 @@ export function CardRow({
   const row = useRef<HTMLUListElement>(null);
   const swiped = useRef(false);
   const settle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const shown = pins.slice(0, MAX_ROW_CARDS);
+  const shown = groups.flatMap((group) => group.homes).slice(0, MAX_ROW_CARDS);
+  const sharing = chosenGroup && chosenGroup.homes.length > 1 ? chosenGroup.homes : [];
 
   // A pin was chosen on the map: bring its card into view (not when a swipe chose it).
   useEffect(() => {
@@ -63,7 +69,7 @@ export function CardRow({
     );
     el.querySelectorAll('[data-id]').forEach((item) => observer.observe(item));
     return () => observer.disconnect();
-  }, [pins, requestCard]);
+  }, [groups, requestCard]);
 
   useEffect(() => () => clearTimeout(settle.current), []);
 
@@ -72,7 +78,7 @@ export function CardRow({
     <ul
       ref={row}
       className={styles.row}
-      aria-label="Homes on the map"
+      aria-label={mapWords.homesOnTheMap}
       onScroll={() => {
         clearTimeout(settle.current);
         settle.current = setTimeout(() => {
@@ -102,6 +108,7 @@ export function CardRow({
             data-id={pin.id}
             className={styles.rowItem}
             aria-current={pin.id === chosen ? 'true' : undefined}
+            data-same-point={sharing.includes(pin) || undefined}
           >
             {card?.photo ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -118,7 +125,7 @@ export function CardRow({
               <span className={styles.rowPhoto} />
             )}
             <span className={styles.rowBody}>
-              <span className={styles.miniRent}>{pinLabel(pin.rentCents)} a month</span>
+              <span className={styles.miniRent}>{pinPrice(pin.rentCents)} a month</span>
               <Link href={`/home/${pin.slug}`} className={styles.miniLink}>
                 {pin.title}
               </Link>

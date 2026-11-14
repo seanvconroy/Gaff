@@ -106,7 +106,10 @@ const schema = z
     MAP_PROVIDER: z.enum(['google', 'static', 'none']).optional(),
     GOOGLE_MAPS_API_KEY: z.string().optional(),
     GOOGLE_MAPS_MAP_ID: z.string().optional(),
+    /** M130: a Map ID styled dark. It can be the light one, if its style has both. */
     GOOGLE_MAPS_MAP_ID_DARK: z.string().optional(),
+    /** Google's release channel for the Maps JavaScript API: quarterly changes least often. */
+    GOOGLE_MAPS_VERSION: z.enum(['weekly', 'quarterly']).default('quarterly'),
     /** Supabase's CA certificate (PEM), so the database's certificate is verified. */
     DATABASE_CA_CERT: z.string().optional(),
     /**

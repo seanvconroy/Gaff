@@ -8,6 +8,23 @@
   border-radius: var(--radius-lg);
 }
 
+/* M131: the map's space is held from the start, and the map fades in once it has drawn, so
+   nothing jumps and its unstyled first frame is never seen. With reduced motion the durations
+   are 0ms, and it simply appears. */
+.canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.map[data-stage='loading'] .canvas {
+  opacity: 0;
+}
+
+.map[data-stage='ready'] .canvas {
+  opacity: 1;
+  transition: opacity var(--motion-base) var(--ease-standard);
+}
+
 .googleMap {
   width: 100%;
   height: 100%;
@@ -55,9 +72,20 @@
   cursor: pointer;
 }
 
+.controlRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
 .control[aria-pressed='true'] {
   background-color: var(--color-navy);
   color: var(--color-nav-ink);
+}
+
+.control:disabled {
+  color: var(--color-ink-muted);
+  cursor: not-allowed;
 }
 
 .control:focus-visible {
@@ -73,12 +101,29 @@
   box-shadow: var(--shadow-overlay);
 }
 
-/* A price pin: a white pill; the home being looked at is navy. */
+/* M137: the credit for the streets and areas drawn on the map, under Gaff's own controls and
+   clear of Google's attribution along the bottom. */
+.placesCredit {
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  background-color: var(--color-surface-1);
+  border-radius: var(--radius-sm);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.placesCredit a {
+  color: var(--color-ink);
+}
+
+/* A price pin: a white pill, edged so it stands out from the map (3:1); the home being looked
+   at is navy. */
 .pin {
+  position: relative;
   display: inline-block;
   padding: var(--space-1) var(--space-3);
   background-color: var(--color-surface-1);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-overlay);
   color: var(--color-ink);
@@ -90,10 +135,32 @@
   cursor: pointer;
 }
 
+/* M117: 44px to tap, though the pill looks smaller. */
+.pin::before {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 44px;
+  content: '';
+  transform: translateY(-50%);
+}
+
 .pin[data-on] {
   background-color: var(--color-navy);
   border-color: var(--color-navy);
   color: var(--color-nav-ink);
+}
+
+/* The home being looked at, shown above the cluster it's in: a picture, not a second button. */
+.pin[data-raised] {
+  pointer-events: none;
+}
+
+/* Gaff's focus ring on the pin whose marker has the keyboard's focus. */
+:global(gmp-advanced-marker):focus-visible .pin {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .cluster {
@@ -131,6 +198,13 @@
   stroke: var(--color-atlantic);
   stroke-width: 3;
   stroke-dasharray: 8 6;
+}
+
+/* M128: the corners tapped so far; the first is bigger, to tap again and finish. */
+.corner {
+  fill: var(--color-surface-1);
+  stroke: var(--color-atlantic);
+  stroke-width: 3;
 }
 
 /* The chosen home's mini card, at the bottom of the map. */
@@ -204,6 +278,39 @@
   color: var(--color-ink-muted);
 }
 
+/* M117: the homes that share a pin, each a row that opens its page. */
+.miniCard[data-list] .miniBody {
+  flex: 1;
+  padding: var(--space-3) var(--space-12) var(--space-3) var(--space-4);
+}
+
+.miniList {
+  display: grid;
+  max-height: 240px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.miniList li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.miniRow {
+  display: grid;
+  align-content: center;
+  min-height: 48px;
+  padding: var(--space-2) 0;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.miniRow:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -3px;
+}
+
 .miniClose {
   position: absolute;
   top: var(--space-1);
@@ -231,7 +338,7 @@
 .row {
   position: absolute;
   right: 0;
-  bottom: calc(var(--space-6) + 48px + var(--space-4) + env(safe-area-inset-bottom));
+  bottom: calc(var(--space-8) + 48px + var(--space-4) + env(safe-area-inset-bottom));
   left: 0;
   z-index: 6;
   display: flex;
@@ -255,6 +362,12 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-overlay);
   scroll-snap-align: center;
+}
+
+/* M117: the cards of homes that share the chosen pin. */
+.rowItem[data-same-point] {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: -2px;
 }
 
 /* The card whose pin is chosen: the 2px primary edge of a chosen choice card. */
@@ -343,14 +456,25 @@
   stroke-width: 1;
 }
 
+/* M117: 44px to tap, though the pill looks smaller. */
+.staticPin rect.hitArea {
+  fill: transparent;
+  stroke: none;
+}
+
+.staticPin[data-raised] {
+  pointer-events: none;
+}
+
 .staticPin text,
 .staticCluster text {
   fill: var(--color-ink);
   font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
   font-weight: var(--type-title-weight);
 }
 
-.staticPin[data-on] rect {
+.staticPin[data-on] rect:not(.hitArea) {
   fill: var(--color-navy);
   stroke: var(--color-navy);
 }
@@ -370,7 +494,7 @@
   cursor: pointer;
 }
 
-.staticPin:focus-visible rect,
+.staticPin:focus-visible rect:not(.hitArea),
 .staticCluster:focus-visible circle {
   stroke: var(--color-focus);
   stroke-width: 4;

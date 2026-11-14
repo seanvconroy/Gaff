@@ -56,11 +56,39 @@ describe('M126: a pin outside the address’s area is worth a check', () => {
     expect(pinInArea(g.bySlug('kinsale')!.centre, rathgar)).toBe(false);
   });
 
-  it('names the smallest area that holds a point, before its Dublin district', () => {
+  it('names the area a point sits deepest inside, before its Dublin district', () => {
     expect(placeAt(onHighfieldRoad, g.places)?.name).toBe('Rathgar');
+    // Areas overlap: a point beside Rathmines' centre is in Rathmines, whichever areas reach it.
+    const besideRathmines = nudge(rathmines.centre, 'west', 180);
+    expect(placeAt(besideRathmines, g.places)?.name).toBe('Rathmines');
+    const smallNeighbour = {
+      ...rathmines,
+      slug: 'small-neighbour',
+      name: 'Small neighbour',
+      centre: nudge(rathmines.centre, 'west', 700),
+      radiusMetres: 900,
+    };
+    expect(placeAt(besideRathmines, [...g.places, smallNeighbour])?.name).toBe('Rathmines');
     expect(placeAt(g.bySlug('kinsale')!.centre, g.places)?.name).toBe('Kinsale');
     // The middle of the Irish Sea is nowhere Gaff knows.
     expect(placeAt({ lat: 53.5, lng: -5.4 }, g.places)).toBeNull();
+  });
+
+  it('names the area before the city around it, however near the city’s centre', () => {
+    const cork = g.bySlug('cork-city')!;
+    const point = nudge(cork.centre, 'east', 1500);
+    expect(placeAt(point, [cork])).toBe(cork);
+    // The point is at the area's edge, and well inside the city: the area still says more.
+    const area = {
+      ...cork,
+      slug: 'an-area-in-cork',
+      name: 'An area in Cork',
+      kind: 'area' as const,
+      centre: nudge(point, 'east', 700),
+      radiusMetres: 800,
+    };
+    expect(placeAt(point, [cork, area])?.name).toBe('An area in Cork');
+    expect(placeAt(point, [area, cork])?.name).toBe('An area in Cork');
   });
 
   it('falls back to the Dublin district when no area holds the point', () => {

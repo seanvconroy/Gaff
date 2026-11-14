@@ -65,23 +65,27 @@ export function pinInArea(point: Point, area: Pick<Place, 'centre' | 'radiusMetr
 }
 
 /**
- * The place a point is in, as a letter would say it: the smallest area, town or village that
- * holds it; then a Dublin district; then nothing (the county is already in the address).
+ * The place a point is in, as a letter would say it: the area, town or village it sits deepest
+ * inside (places reach a distance from their centre, and overlap, so the nearest centre for its
+ * size wins: a home beside Rathmines' centre is in Rathmines, though Harold's Cross reaches it
+ * too); then its city; then its Dublin district; then nothing (the county is already in the
+ * address).
  */
 export function placeAt(point: Point, places: readonly Place[]): Place | null {
-  // A named area says more than the postal district around it.
-  const rank = (place: Place) => (place.kind === 'district' ? 1 : 0);
-  let best: Place | null = null;
+  // A named area says more than the city or the postal district around it.
+  const rank = (place: Place) => (place.kind === 'district' ? 2 : place.kind === 'city' ? 1 : 0);
+  let best: { place: Place; depth: number } | null = null;
   for (const place of places) {
-    if (!hasAreaPage(place) || place.kind === 'county') continue;
-    if (distanceMetres(point, place.centre) > place.radiusMetres) continue;
+    if (!hasAreaPage(place) || place.kind === 'county' || place.radiusMetres <= 0) continue;
+    const depth = distanceMetres(point, place.centre) / place.radiusMetres;
+    if (depth > 1) continue;
     if (
       !best ||
-      rank(place) < rank(best) ||
-      (rank(place) === rank(best) && place.radiusMetres < best.radiusMetres)
+      rank(place) < rank(best.place) ||
+      (rank(place) === rank(best.place) && depth < best.depth)
     ) {
-      best = place;
+      best = { place, depth };
     }
   }
-  return best;
+  return best?.place ?? null;
 }

@@ -71,6 +71,9 @@ export function GoogleLoader({
       language="en"
       region="IE"
       authReferrerPolicy="origin"
+      // The library's own usage tags for Google: not needed to draw a map, so not sent.
+      solutionChannel=""
+      disableUsageAttribution
       onError={onError}
     >
       <ScriptWatch onFailed={onFailed} />

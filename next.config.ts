@@ -35,12 +35,16 @@ const noIndex = {
 // listing photos (M43): they upload to, and load from, Supabase Storage when it's set.
 const storageOrigin = process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).origin : '';
 
-// M57, ADR-0027: the search pages load Google's map when MAP_PROVIDER is google, so they also
-// allow the hosts Google's CSP guide lists for the Maps JavaScript API. Not its fonts: the map's
-// buttons use the page's own. Every other page keeps the policy without Google.
+// M57, M38, ADR-0027: the pages that show Google's map when MAP_PROVIDER is google: the search
+// pages, and the listing editor, where a letter places a home's pin. Only they allow the hosts
+// Google's CSP guide lists for the Maps JavaScript API. Not its fonts: the map's buttons use the
+// page's own. Every other page keeps the policy without Google, and every page, these included,
+// keeps `Referrer-Policy: no-referrer`: Google's script is told the site's origin and nothing
+// more (auth_referrer_policy=origin, src/ui/map/GoogleLoader.tsx).
 // Preview copies show the stand-in map (src/lib/env.ts), so they keep the policy without Google.
 const googleMaps = process.env.MAP_PROVIDER === 'google' && process.env.VERCEL_ENV !== 'preview';
 const google = 'https://*.googleapis.com https://*.gstatic.com *.google.com';
+const mapPages = ['/to-rent/:path*', '/lettings/:lettingId/listing'];
 
 function contentSecurityPolicy(maps: boolean): string {
   const join = (...parts: string[]) => parts.filter(Boolean).join(' ');
@@ -80,17 +84,15 @@ const nextConfig: NextConfig = {
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
         ]
       : securityHeaders;
-    // The later rule wins for the same header, so the search pages get the map's policy.
-    const searchPages =
+    // The later rule wins for the same header, so the map's pages get the map's policy.
+    const withMap =
       isProduction && googleMaps
-        ? [
-            {
-              source: '/to-rent/:path*',
-              headers: [{ key: 'Content-Security-Policy', value: contentSecurityPolicy(true) }],
-            },
-          ]
+        ? mapPages.map((source) => ({
+            source,
+            headers: [{ key: 'Content-Security-Policy', value: contentSecurityPolicy(true) }],
+          }))
         : [];
-    return [{ source: '/:path*', headers }, ...searchPages, noIndex];
+    return [{ source: '/:path*', headers }, ...withMap, noIndex];
   },
 };
 

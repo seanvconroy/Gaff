@@ -86,14 +86,23 @@ export async function sendAKeyGoogleRefuses(page: Page): Promise<void> {
 }
 
 /**
- * Google's answer about the key is held back. It comes with the first call for the map's
- * viewport, so the map and Gaff's pins are up before Google refuses and takes its map apart.
+ * Two of Google's calls as its map starts (its script of 13 November 2026):
+ * - the answer about the key comes with the first call for the map's viewport;
+ * - until the map's configuration arrives, markers handed to the map wait to be put on it.
  */
-export async function holdGooglesAnswer(page: Page, ms: number): Promise<void> {
-  await page.route(/MapsJsInternalService\/GetViewportInfo/, async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, ms));
+export const GOOGLE_VIEWPORT = /MapsJsInternalService\/GetViewportInfo/;
+export const GOOGLE_MAP_CONFIG = /mapsjs\/mapConfigs:batchGet/;
+
+/** One of Google's calls is held back for a while, or (with no time) until `release` is called. */
+export async function holdBack(page: Page, call: RegExp, ms?: number): Promise<() => void> {
+  let release = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(call, async (route) => {
+    if (ms === undefined) await held;
+    else await new Promise((resolve) => setTimeout(resolve, ms));
     await route.continue().catch(() => undefined);
   });
+  return release;
 }
 
 /**

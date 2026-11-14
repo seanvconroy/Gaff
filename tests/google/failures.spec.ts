@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { mapEnv } from '../../playwright.google.config';
 import { isMapPage } from '../../src/lib/map-pages';
 import {
@@ -13,8 +13,10 @@ import {
   COUNTY,
   SEARCH,
   blockOtherSites,
+  GOOGLE_MAP_CONFIG,
+  GOOGLE_VIEWPORT,
   expectOnlyTheOriginSent,
-  holdGooglesAnswer,
+  holdBack,
   mapStage,
   phone,
   sendAKeyGoogleRefuses,
@@ -149,31 +151,51 @@ test('M120: a key Google refuses ends in Gaff’s sentence, not Google’s error
   await screenshot(page, 'google/failed-key');
 });
 
-test('M120: a key refused once the pins are on the map takes the map away, never the page', async ({
+/** The page is whole: its heading, every home in the list, and nothing thrown. */
+async function expectPageWhole(page: Page, errors: string[]): Promise<void> {
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('4 homes');
+  await expect(page.getByRole('main').getByRole('article')).toHaveCount(4);
+  await expect(page.getByText('This page couldn’t load')).toHaveCount(0);
+  expect(errors).toEqual([]);
+}
+
+test('M120: a key refused while the pins wait to go on the map takes the map away, never the page', async ({
   page,
 }) => {
-  // When Google refuses a key it takes its own map apart, and its markers throw as Gaff
-  // removes them. That once took the whole page with it, list and all.
+  // Markers handed to a map that's still starting wait for its configuration. When Google then
+  // refuses the key it takes its map apart, and the waiting markers throw as Gaff removes them.
+  // That once took the whole page with it, list and all.
   const seen = watch(page);
   await sendAKeyGoogleRefuses(page);
-  await holdGooglesAnswer(page, 4000);
+  await holdBack(page, GOOGLE_MAP_CONFIG, 8000);
+  await holdBack(page, GOOGLE_VIEWPORT, 3000);
+  const pins = page.waitForResponse((response) => response.url().includes('/api/search/points'));
   await page.goto(COUNTY);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('4 homes');
-  // The pins are up, close enough at this zoom to share a ring, before Google answers.
-  const map = page.getByRole('complementary', { name: 'Map' });
-  await expect(map.getByRole('button', { name: /^\d+ homes here: zoom in$/ }).first()).toBeVisible({
-    timeout: 15_000,
-  });
+  expect((await pins).ok()).toBe(true);
   expect(seen.counted.filter((count) => count.startsWith('failed'))).toEqual([]);
 
   await expect(page.getByText(UNAVAILABLE)).toBeVisible({ timeout: 30_000 });
   expect(seen.counted.filter((count) => count.startsWith('failed'))).toEqual(['failed:auth']);
-  // The page is whole: its heading, every home in the list, and nothing thrown.
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('4 homes');
-  await expect(page.getByRole('main').getByRole('article')).toHaveCount(4);
-  await expect(page.getByText('This page couldn’t load')).toHaveCount(0);
-  expect(seen.errors).toEqual([]);
+  await expectPageWhole(page, seen.errors);
   await expectAccessible(page);
+});
+
+test('M120: a map that never finishes starting is given up on after 10 seconds, and the page is whole', async ({
+  page,
+}) => {
+  // A slow connection: the pins have arrived, and the map hasn't. The same waiting markers.
+  const seen = watch(page);
+  const releaseConfig = await holdBack(page, GOOGLE_MAP_CONFIG);
+  const releaseViewport = await holdBack(page, GOOGLE_VIEWPORT);
+  const pins = page.waitForResponse((response) => response.url().includes('/api/search/points'));
+  await page.goto(COUNTY);
+  expect((await pins).ok()).toBe(true);
+
+  await expect(page.getByText(UNAVAILABLE)).toBeVisible({ timeout: 30_000 });
+  expect(seen.counted.filter((count) => count.startsWith('failed'))).toEqual(['failed:timeout']);
+  await expectPageWhole(page, seen.errors);
+  releaseConfig();
+  releaseViewport();
 });
 
 test('M120: Google’s development-mode map (no billing) ends in Gaff’s sentence too', async ({

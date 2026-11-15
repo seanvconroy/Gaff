@@ -1,8 +1,14 @@
-/* The two packs, side by side. */
+/* The two packs, side by side: links on their own, so each is a full 44px target. */
 .links {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-6);
+  gap: 0 var(--space-6);
+}
+
+.links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-target);
 }
 
 /* R25: the inventory, one row per item, a photo where there is one. */

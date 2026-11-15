@@ -1,0 +1,90 @@
+/*
+ * Sheets, dialogs, menus and pickers (UX-DS-21, UX-DS-27). Below 900px each is a sheet that
+ * slides up from the foot of the screen, with 24px corners. Above 900px a `sheet` is a dialog in
+ * the middle of the page, and a `popover` sits beside its control (placed by Overlay.tsx).
+ */
+.overlay {
+  position: fixed;
+  inset: auto 0 0;
+  width: 100%;
+  max-width: none;
+  max-height: calc(100dvh - var(--space-12));
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--color-surface-1);
+  border: 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: var(--shadow-overlay);
+  color: var(--color-ink);
+}
+
+/* Only when it's open: a closed dialog stays hidden. */
+.overlay[open] {
+  display: flex;
+  animation: slide-up var(--motion-slow) var(--ease-enter);
+}
+
+.overlay::backdrop {
+  background-color: var(--color-overlay);
+  animation: fade-in var(--motion-slow) var(--ease-enter);
+}
+
+/* The dialog element is the scrim's target; this holds everything else, and scrolls. */
+.inner {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (width > 900px) {
+  .overlay[open] {
+    animation-name: fade-in;
+  }
+
+  /* A dialog in the middle of the page. */
+  .sheet {
+    inset: 0;
+    width: min(100% - 2 * var(--space-8), 480px);
+    height: fit-content;
+    max-height: calc(100dvh - 2 * var(--space-12));
+    margin: auto;
+    border-radius: var(--radius-xl);
+  }
+
+  /* Beside its control: Overlay.tsx sets where. No scrim, as nothing else is covered. */
+  .popover {
+    inset: auto;
+    width: max-content;
+    max-width: calc(100% - 2 * var(--space-2));
+    max-height: min(480px, 100dvh - 2 * var(--space-2));
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .popover[open] {
+    animation-duration: var(--motion-fast);
+  }
+
+  .popover::backdrop {
+    background-color: transparent;
+    animation: none;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    translate: 0 100%;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}

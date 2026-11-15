@@ -37,13 +37,13 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 44px;
+  min-height: var(--size-target);
   margin-top: calc(var(--space-4) * -1);
   padding: 0 var(--space-2) 0 0;
   background: none;
   border: 0;
   border-radius: var(--radius-sm);
-  color: var(--color-atlantic-text);
+  color: var(--color-brand-text);
   font-weight: var(--type-title-weight);
   cursor: pointer;
 }
@@ -53,7 +53,7 @@
   text-decoration: underline;
 }
 
-@media (width <= 640px) {
+@media (width <= 900px) {
   .section {
     padding: var(--space-4) 0;
   }

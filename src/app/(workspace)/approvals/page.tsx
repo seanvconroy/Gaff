@@ -30,7 +30,6 @@ export default async function ApprovalsPage({
   return (
     <Stack gap={8}>
       <PageHeader
-        eyebrow={member.organisationName}
         title="Approvals"
         lead={
           on ? (

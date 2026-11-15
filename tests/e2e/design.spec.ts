@@ -15,7 +15,7 @@ const rgb = (hex: string) =>
 const pageColour = (page: Page) =>
   page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 
-test('ADR-0011: the A4 look: a navy sidebar that becomes a bottom bar on a phone, light and dark themes, a focus ring on everything, and no motion when it’s reduced', async ({
+test('UX-DS-1, UX-DS-7: the look: a white page in ink and one blue, one type family, a sidebar that becomes a bottom bar on a phone, light and dark themes, a focus ring on everything, and no motion when it’s reduced', async ({
   page,
 }) => {
   test.slow();
@@ -29,8 +29,39 @@ test('ADR-0011: the A4 look: a navy sidebar that becomes a bottom bar on a phone
   await expect(nav.getByRole('link', { name: 'Approvals' })).not.toHaveAttribute('aria-current');
   await expect(page.getByText('1 thing', { exact: true })).toHaveCSS(
     'color',
-    rgb(tokens.colors['atlantic-text']!.light),
+    rgb(tokens.colors['brand-text']!.light),
   );
+
+  // UX-DS-1: the page is white, and so is the navigation: it uses the ordinary tokens.
+  expect(await pageColour(page)).toBe('rgb(255, 255, 255)');
+  await expect(page.locator('header').filter({ has: nav })).toHaveCSS(
+    'background-color',
+    'rgb(255, 255, 255)',
+  );
+
+  // UX-DS-7: one family. The title is DM Sans, not a serif, and no page loads Fraunces.
+  const title = page.getByRole('heading', { level: 1, name: 'Your lettings' });
+  await expect(title).toHaveCSS('font-family', /^"DM Sans"/);
+  await expect(title).toHaveCSS('font-size', '32px');
+  expect(
+    await page.evaluate(() => [...document.fonts].map((font) => font.family.replace(/"/g, ''))),
+  ).not.toContain('Fraunces');
+
+  // UX-DS-8: no uppercase eyebrow above the title.
+  await expect(page.locator('main header').getByText('Halcyon Lettings')).toHaveCount(0);
+
+  // UX-DS-22: the wordmark is a drawing named "Gaff", with its full stop in the brand colour.
+  const wordmark = page.getByRole('link', { name: 'Gaff', exact: true });
+  await expect(wordmark.getByRole('img', { name: 'Gaff' })).toBeVisible();
+  await expect(wordmark.locator('path').last()).toHaveCSS(
+    'fill',
+    rgb(tokens.colors['brand']!.light),
+  );
+
+  // UX-DS-2, UX-DS-13: the one primary button is ink, and 48px high.
+  const add = page.getByRole('link', { name: 'Add a letting' });
+  await expect(add).toHaveCSS('background-color', rgb(tokens.colors['ink']!.light));
+  expect((await add.boundingBox())!.height).toBe(48);
 
   // Both themes: every interactive element shows a focus ring, including in the sidebar.
   for (const colorScheme of ['light', 'dark'] as const) {

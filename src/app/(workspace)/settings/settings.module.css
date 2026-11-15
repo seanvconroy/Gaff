@@ -64,7 +64,7 @@
 }
 
 .narrow {
-  max-width: 400px;
+  max-width: var(--size-field-medium);
 }
 
 @media (width <= 900px) {
@@ -72,9 +72,7 @@
     grid-template-columns: minmax(0, 1fr);
     padding: var(--space-6) 0;
   }
-}
 
-@media (width <= 640px) {
   .panel {
     padding: var(--space-4);
   }

@@ -1,0 +1,75 @@
+/*
+ * The code input: one real input laid over six boxes. The input takes the typing, the paste and
+ * the autofill; the boxes show the digits. Each box is 48px high, like every control.
+ */
+.code {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: var(--radius-md);
+}
+
+/* Over the boxes and see-through: its text is drawn by the boxes instead. */
+.input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: transparent;
+  border: 0;
+  color: transparent;
+  caret-color: transparent;
+  font-size: var(--type-body-size);
+  cursor: text;
+  opacity: 0;
+}
+
+.boxes {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-target);
+  height: var(--size-control);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-ink);
+  font-size: var(--type-title-size);
+  line-height: var(--type-title-line);
+  font-weight: var(--type-title-weight);
+  font-variant-numeric: tabular-nums;
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+
+/* While typing: the usual focus ring round the whole code, and the next box marked. */
+.code:has(.input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.code:has(.input:focus) .box[data-next] {
+  border-color: var(--color-brand);
+  border-width: 2px;
+}
+
+.code[data-invalid] .box {
+  border-color: var(--color-danger);
+  border-width: 2px;
+}
+
+@media (width > 900px) {
+  .boxes {
+    gap: var(--space-3);
+  }
+
+  .box {
+    width: var(--size-control);
+  }
+}

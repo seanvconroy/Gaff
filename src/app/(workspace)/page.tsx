@@ -33,11 +33,10 @@ export default async function DashboardPage() {
   return (
     <Stack gap={8}>
       <PageHeader
-        eyebrow={member.organisationName}
         title="Your lettings"
         lead={
           homes > 0 && today.length > 0 ? (
-            // The screen's one accent (A4): how many things need a person today.
+            // The screen's one accent: how many things need a person today.
             <>
               <span className={styles.accent}>
                 {today.length} {today.length === 1 ? 'thing' : 'things'}
@@ -50,7 +49,7 @@ export default async function DashboardPage() {
           // One primary action per view: with no lettings yet, it's in the empty state instead.
           homes > 0 ? (
             <ButtonLink href="/lettings/new" variant="primary">
-              <Plus size={18} strokeWidth={2} aria-hidden="true" />
+              <Plus size={20} strokeWidth={2} aria-hidden="true" />
               Add a letting
             </ButtonLink>
           ) : undefined
@@ -63,7 +62,7 @@ export default async function DashboardPage() {
           title="No lettings yet"
           action={
             <ButtonLink href="/lettings/new" variant="primary">
-              <Plus size={18} strokeWidth={2} aria-hidden="true" />
+              <Plus size={20} strokeWidth={2} aria-hidden="true" />
               Add a letting
             </ButtonLink>
           }

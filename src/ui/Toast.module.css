@@ -1,0 +1,100 @@
+/*
+ * Toasts float over the page: surface-1 with the overlay shadow, so the ordinary ink, link and
+ * focus colours hold on them. On a phone: above the tab bar, across the width. On a desktop:
+ * bottom left.
+ */
+.region {
+  position: fixed;
+  z-index: 30;
+  inset-inline: var(--space-4);
+  bottom: calc(var(--size-bar) + var(--space-4) + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  min-height: var(--size-control);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-4);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-overlay);
+  color: var(--color-ink);
+  pointer-events: auto;
+  animation: rise var(--motion-base) var(--ease-enter);
+}
+
+/* Done: the tick is success green, beside the words (never colour alone). */
+.icon {
+  flex: none;
+  color: var(--color-success);
+}
+
+/* A task completing: the tick draws once (its stroke is a little under 24 long). */
+.icon path {
+  stroke-dasharray: 24;
+  animation: draw-tick var(--motion-slow) var(--ease-standard);
+}
+
+.message {
+  flex: 1;
+  min-width: 0;
+  padding-block: var(--space-2);
+  font-weight: var(--type-title-weight);
+}
+
+/* A 44px target that reads as a link: brand-text and underlined. */
+.undo {
+  flex: none;
+  min-width: var(--size-target);
+  min-height: var(--size-target);
+  padding: 0 var(--space-3);
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-brand-text);
+  font-weight: var(--type-title-weight);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+}
+
+.undo:hover {
+  color: var(--color-ink);
+}
+
+/* Inside the toast's rounded edge, so the ring isn't clipped. */
+.undo:focus-visible {
+  outline-offset: -2px;
+}
+
+@media (width > 900px) {
+  .region {
+    inset-inline: var(--space-6) auto;
+    bottom: var(--space-6);
+  }
+
+  .toast {
+    width: auto;
+    min-width: 288px;
+    max-width: 480px;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 var(--space-2);
+  }
+}
+
+@keyframes draw-tick {
+  from {
+    stroke-dashoffset: 24;
+  }
+}

@@ -1,7 +1,7 @@
 import { LogOut } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { requireMember } from '@/server/auth/member';
-import { Wordmark } from '@/ui/Layout';
+import { Wordmark } from '@/ui/Wordmark';
 import { signOut } from './actions';
 import { ActivityTracker } from './ActivityTracker';
 import { WorkspaceNav } from './WorkspaceNav';
@@ -9,7 +9,7 @@ import styles from './workspace.module.css';
 
 export const dynamic = 'force-dynamic';
 
-/** The workspace: a navy sidebar (a top bar and a bottom bar on a phone) beside the page. */
+/** The workspace: a sidebar (a top bar and a bottom bar on a phone) beside the page. */
 export default async function WorkspaceLayout({ children }: { children: ReactNode }) {
   const member = await requireMember();
   return (
@@ -20,7 +20,7 @@ export default async function WorkspaceLayout({ children }: { children: ReactNod
       <header className={styles.side}>
         <div className={styles.sideInner}>
           <div className={styles.brand}>
-            <Wordmark onNavy />
+            <Wordmark />
           </div>
           <WorkspaceNav />
           <div className={styles.account}>
@@ -31,7 +31,7 @@ export default async function WorkspaceLayout({ children }: { children: ReactNod
             </p>
             <form action={signOut}>
               <button type="submit" className={styles.signOut}>
-                <LogOut size={18} strokeWidth={1.75} aria-hidden="true" />
+                <LogOut size={20} strokeWidth={1.75} aria-hidden="true" />
                 Sign out
               </button>
             </form>

@@ -13,8 +13,6 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--type-body-sm-size);
-  line-height: var(--type-body-sm-line);
 }
 
 .table th {
@@ -25,8 +23,6 @@
   font-size: var(--type-label-size);
   line-height: var(--type-label-line);
   font-weight: var(--type-label-weight);
-  letter-spacing: var(--type-label-tracking);
-  text-transform: var(--type-label-transform);
   white-space: nowrap;
 }
 
@@ -44,6 +40,8 @@
 .sub {
   display: block;
   color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
 }
 
 .strong {
@@ -51,7 +49,7 @@
 }
 
 /* On a phone each row is a small card: the column name, then the value. */
-@media (width <= 640px) {
+@media (width <= 900px) {
   .table thead {
     position: absolute;
     width: 1px;

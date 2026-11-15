@@ -1,11 +1,12 @@
 /*
- * The workspace shell (A4): a navy sidebar beside the page on a laptop; on a phone, a navy top
- * bar and a bottom bar. Text on navy uses the nav-ink tokens, and focus rings use nav-focus,
- * because the usual focus colour is too faint there.
+ * The workspace shell: a sidebar beside the page on a laptop; on a phone, a top bar and a bottom
+ * bar. Navigation is white and uses the ordinary tokens (UX-DS-4): the page's own ground, a
+ * hairline, and the quiet fill for the page you're on. Work package WP-3 replaces this sidebar
+ * with the top bar and the tab bar.
  */
 .shell {
   display: grid;
-  grid-template-columns: 208px minmax(0, 1fr);
+  grid-template-columns: 224px minmax(0, 1fr);
   min-height: 100vh;
 }
 
@@ -16,7 +17,7 @@
   top: var(--space-2);
   display: flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--size-target);
   padding: 0 var(--space-3);
   background-color: var(--color-surface-1);
   border-radius: var(--radius-sm);
@@ -27,16 +28,11 @@
   transform: none;
 }
 
-/* It shows over the navy sidebar or top bar. */
-.skip:focus-visible {
-  outline-color: var(--color-nav-focus);
-}
-
-/* The navy column runs the full height of the page; its contents stay in view. */
+/* The column runs the full height of the page; its contents stay in view. */
 .side {
-  background-color: var(--color-nav-bg);
+  background-color: var(--color-surface-0);
   border-right: 1px solid var(--color-border);
-  color: var(--color-nav-ink);
+  color: var(--color-ink);
 }
 
 .sideInner {
@@ -66,12 +62,10 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: 44px;
+  min-height: var(--size-control);
   padding: 0 var(--space-3);
   border-radius: var(--radius-md);
-  color: var(--color-nav-ink-muted);
-  font-size: var(--type-body-sm-size);
-  line-height: var(--type-body-sm-line);
+  color: var(--color-ink-muted);
   text-decoration: none;
   transition-property: background-color, color;
   transition-duration: var(--motion-fast);
@@ -79,21 +73,19 @@
 }
 
 .navLink:hover {
-  background-color: var(--color-nav-active);
+  background-color: var(--color-surface-2);
+  color: var(--color-ink);
 }
 
+/* The page you're on: the quiet fill and ink, and marked for screen readers too. */
 .navLink[aria-current='page'] {
-  background-color: var(--color-nav-active);
-  color: var(--color-nav-ink);
+  background-color: var(--color-surface-2);
+  color: var(--color-ink);
   font-weight: var(--type-title-weight);
 }
 
 .navIcon {
   flex: none;
-}
-
-.navLink:focus-visible {
-  outline-color: var(--color-nav-focus);
 }
 
 .account {
@@ -106,13 +98,15 @@
 .who {
   display: grid;
   padding: 0 var(--space-3);
-  color: var(--color-nav-ink-muted);
+  color: var(--color-ink-muted);
   font-size: var(--type-body-sm-size);
   line-height: var(--type-body-sm-line);
 }
 
 .name {
-  color: var(--color-nav-ink);
+  color: var(--color-ink);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
   font-weight: var(--type-title-weight);
 }
 
@@ -121,30 +115,27 @@
   align-items: center;
   gap: var(--space-3);
   width: 100%;
-  min-height: 44px;
+  min-height: var(--size-control);
   padding: 0 var(--space-3);
   background-color: transparent;
   border: 0;
   border-radius: var(--radius-md);
-  color: var(--color-nav-ink-muted);
-  font-size: var(--type-body-sm-size);
-  line-height: var(--type-body-sm-line);
+  color: var(--color-ink-muted);
   text-align: left;
   cursor: pointer;
-  transition: background-color var(--motion-fast) var(--ease-standard);
+  transition-property: background-color, color;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease-standard);
 }
 
 .signOut:hover {
-  background-color: var(--color-nav-active);
-}
-
-.signOut:focus-visible {
-  outline-color: var(--color-nav-focus);
+  background-color: var(--color-surface-2);
+  color: var(--color-ink);
 }
 
 .main {
   width: 100%;
-  max-width: calc(1120px + 2 * var(--space-8));
+  max-width: calc(var(--size-page) + 2 * var(--space-8));
   margin: 0 auto;
   padding: var(--space-8) var(--space-8) var(--space-16);
 }
@@ -193,8 +184,8 @@
     z-index: 5;
     inset-inline: 0;
     bottom: 0;
-    padding: var(--space-1);
-    background-color: var(--color-nav-bg);
+    padding: 0 var(--space-1);
+    background-color: var(--color-surface-0);
     border-top: 1px solid var(--color-border);
   }
 
@@ -208,12 +199,24 @@
     flex-direction: column;
     justify-content: center;
     gap: var(--space-1);
-    min-height: 56px;
+    min-height: var(--size-bar);
     padding: var(--space-1) 0;
     font-size: var(--type-caption-size);
     line-height: var(--type-caption-line);
+    border-top: 2px solid transparent;
+    border-radius: 0;
     text-align: center;
     overflow-wrap: anywhere;
+  }
+
+  /* On the bar the page you're on is marked by ink, weight and a brand line, not a fill. */
+  .navLink:hover,
+  .navLink[aria-current='page'] {
+    background-color: transparent;
+  }
+
+  .navLink[aria-current='page'] {
+    border-top-color: var(--color-brand);
   }
 
   .main {

@@ -180,9 +180,9 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 
 ## Design tokens drive all styling
 
-1. `docs/design-tokens.json` is the only place colours, fonts, type sizes, spacing, radii, shadows and motion are defined. Today it holds design direction A4, Navy and Atlantic.
-2. `pnpm tokens` validates the file against a schema, resolves references such as `{atlantic-text}`, and generates:
-   - `src/styles/tokens.css`: CSS custom properties (`--color-surface-0`, `--space-4`, `--radius-md`, `--font-display`, `--motion-fast` and so on) for light and dark themes. Dark follows the system setting, and `data-theme` can override it either way. Type sizes are in rem, so they follow the reader's browser text size. Under reduced motion every duration is 0ms. It also generates one class per type style (`.type-heading`, `.type-label` and so on).
+1. `docs/design-tokens.json` is the only place colours, fonts, type sizes, spacing, sizes, radii, shadows and motion are defined. Today it holds the UX redesign's direction: ink, white and Atlantic blue (`docs/design-system.md`).
+2. `pnpm tokens` validates the file against a schema, resolves references such as `{brand-text}`, and generates:
+   - `src/styles/tokens.css`: CSS custom properties (`--color-surface-0`, `--space-4`, `--size-control`, `--radius-md`, `--font-sans`, `--motion-fast` and so on) for light and dark themes. Dark follows the system setting, and `data-theme` can override it either way. Type sizes are in rem, so they follow the reader's browser text size. Under reduced motion every duration is 0ms. It also generates one class per type style (`.type-heading`, `.type-label` and so on).
    - `src/styles/tokens.ts`: typed token names, so components can only ask for tokens that exist.
 3. Components use CSS Modules that reference only `var(--…)`. Stylelint rejects raw colours, font sizes, font families, spacing, radii and shadows. ESLint rejects inline `style` props.
 4. The tokens file lists every text and background pair the screens use, with its contrast in both themes. A test checks each pair meets WCAG AA for its rule (text 4.5:1; large text and accent fills 3:1; edges, controls and focus rings 3:1), that the recorded ratios are right, and that the list covers the pairs the design system promises. A tokens file that breaks WCAG AA fails CI.

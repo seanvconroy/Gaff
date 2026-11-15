@@ -61,7 +61,6 @@ export default async function SettingsPage({
   return (
     <Stack gap={8}>
       <PageHeader
-        eyebrow={member.organisationName}
         title="Settings"
         lead="Where enquiries come in, how much the AI does on its own, and the rules you use for every letting."
       />

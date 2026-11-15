@@ -71,7 +71,7 @@ The founder agreed the redesign on 14 November 2026. The decisions are Q27 to Q4
 - Use sub-agents, one per work package, each in its own worktree, when the request asks for them. Integration and end-to-end tests share one database and one port, so run those one at a time.
 - Open the pull request into the default branch, `claude/gaff-mvp`.
 - One design: build each screen at phone width first, with the same steps and words at every width.
-- Where this file's conventions name today's tokens and sizes (`navy`, `atlantic`, 44px controls, the sidebar), the redesign's design system replaces them when work package WP-2 lands. That package updates this file.
+- The redesign's design system is in (work package WP-2): role-named tokens, one type family, 48px controls and the components in `src/ui`. Every component and its states are on one page, `/dev/ui`, when `DEV_TOOLS` is on. The sidebar stays until work package WP-3 replaces it.
 
 ## Architecture
 
@@ -90,15 +90,22 @@ A TypeScript modular monolith: one Next.js app on Vercel (Dublin) and one Postgr
 ## Conventions
 
 - **Styling:**
-  - Use design tokens only: `var(--color-…)`, `var(--space-…)`, `var(--radius-…)`, `var(--type-…)`, `var(--motion-…)` with `var(--ease-…)`, or the `.type-*` classes.
+  - Use design tokens only: `var(--color-…)`, `var(--space-…)`, `var(--size-…)`, `var(--radius-…)`, `var(--shadow-…)`, `var(--type-…)`, `var(--motion-…)` with `var(--ease-…)`, or the `.type-*` classes. Tokens are named by role (`brand`, `primary`, `surface-2`), never by hue.
   - Use CSS Modules with camelCase class names. No inline `style`. Stylelint and ESLint enforce this.
-  - One primary button per view. One Atlantic accent per screen (`atlantic`, `atlantic-text`). Text on `navy` and in the navigation uses the `nav-ink` tokens, with `nav-focus` rings.
+  - The page is white (`surface-0`), with one grey for quiet fills (`surface-2`). Space and type first, then a hairline, then a shadow. A box is only for something that is one object.
+  - One primary button per view, and it is ink (`primary`). The brand colour (`brand`, `brand-text`, `brand-bg`) appears at most once per screen as an emphasis, plus on selected states, progress and links. Navigation is white and uses the ordinary tokens.
+  - One type family, DM Sans. The wordmark is a drawing (`src/ui/Wordmark`), never live text.
+  - Every button, input, select and choice row is 48px high (`--size-control`), everywhere. An input is `short`, `medium` or the full width of its column.
+  - Every layout changes at one breakpoint, 900px: each adaptive component has exactly two layouts. A test fails on any other width in a media query.
+  - Build screens only from the components in `src/ui`. A missing one is added there, and to section 8 of the redesign, first.
   - Status colour always comes with an icon or words. Pills and notices put the status colour on its `-bg` tint. Anything the AI drafted carries the "Drafted by AI" pill (`ai`, `ai-bg`).
   - A text and background pair that isn't in the contrast list in `docs/design-tokens.json` gets added there first; the token tests check it in both themes.
+  - Motion uses the motion tokens only, and nothing loops, so reduced motion stops it all.
 - **Accessibility:**
-  - WCAG 2.2 AA everywhere. Touch targets are at least 44px.
+  - WCAG 2.2 AA everywhere. Touch targets are at least 44px (`--size-target`).
+  - Anything that opens (a sheet, a menu, a picker) traps and returns focus and closes on Escape: build it on `Sheet`, `Menu` or `Overlay`.
   - Renter pages never go below 16px for anything the renter must read or act on.
-  - Every page in an E2E test gets an axe check.
+  - Every page in an E2E test gets an axe check (`expectAccessible`), which also measures the page's control heights and targets.
 - **Tests first:**
   - For each requirement, write the rule's unit tests, then the code, then the screen with a Playwright test.
   - Start test names with the requirement ID (`R10: …`).

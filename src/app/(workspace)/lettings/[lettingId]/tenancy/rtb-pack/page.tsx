@@ -44,7 +44,7 @@ export default async function RtbPackPage({ params }: { params: Promise<{ lettin
   ];
   return (
     <Stack gap={6}>
-      <h1 className="type-heading">RTB registration pack: {pack.letting.addressLine1}</h1>
+      <h1 className="type-display-mobile">RTB registration pack: {pack.letting.addressLine1}</h1>
       {pack.tenancy.rtbRegisteredAt ? (
         <Notice tone="success" title="Registered" role="status">
           <p>On {formatDate(pack.tenancy.rtbRegisteredAt)}.</p>

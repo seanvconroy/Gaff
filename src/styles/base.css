@@ -40,9 +40,9 @@ ol {
   padding: 0;
 }
 
-/* Links are atlantic-text and underlined in running text, so colour is never the only cue. */
+/* Links are brand-text and underlined in running text, so colour is never the only cue. */
 a {
-  color: var(--color-atlantic-text);
+  color: var(--color-brand-text);
   text-underline-offset: 0.15em;
   transition: color var(--motion-fast) var(--ease-standard);
 }
@@ -63,6 +63,11 @@ a:not([class]):hover {
   html:has([data-bottom-bar]) {
     scroll-padding-bottom: calc(var(--space-16) + var(--space-6));
   }
+}
+
+/* A flow has a fixed footer at every width: keep what has focus above it too. */
+html:has([data-flow-footer]) {
+  scroll-padding-bottom: calc(var(--size-footer) + var(--space-6));
 }
 
 input,

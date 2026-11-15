@@ -1,0 +1,39 @@
+/* The wordmark is a drawing (UX-DS-22). Its link is a full 44px target. */
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-target);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+/*
+ * Nothing is drawn outside the drawing's own box, so nothing needs clipping. Left to clip, a
+ * browser snaps the clip to whole pixels and shaves the foot of the "g" when the wordmark sits
+ * on a fraction of a pixel.
+ */
+.image {
+  display: block;
+  flex: none;
+  width: auto;
+  overflow: visible;
+}
+
+/* The size it has always been: the ink of 28px Fraunces (0.961 of the type size). */
+.regular {
+  height: 1.682rem;
+}
+
+/* The smallest it goes: the key made by the two "f"s stays clear at 20px high (UX-DS-23). */
+.small {
+  height: 1.25rem;
+}
+
+.letters {
+  fill: currentcolor;
+}
+
+/* The full stop is the brand, in either theme. A logotype has no contrast minimum. */
+.fullStop {
+  fill: var(--color-brand);
+}

@@ -3,29 +3,34 @@ import type { ComponentProps, ReactNode } from 'react';
 import styles from './Field.module.css';
 
 /**
- * Form fields. Every control is the same height (44px in the workspace, 48px on the private
- * pages), and a field never stretches to match its neighbour, so a row of fields lines up
- * whatever hints or errors they have. The label sits directly above its control; the error and
- * then the hint sit below it. A group of choices keeps its hint under the question, so it's read
- * before choosing.
+ * Form fields. Every control is 48px high, everywhere (UX-DS-13), and a field never stretches to
+ * match its neighbour, so a row of fields lines up whatever help or errors they have. The label
+ * sits directly above its control; the error and then the help sit below it. A group of choices
+ * keeps its help under the question, so it's read before choosing.
  */
 
-interface FieldBase {
+export interface FieldBase {
   name: string;
   label: ReactNode;
   hint?: ReactNode;
   error?: string;
   optional?: boolean;
-  /** How wide the control is, as a cue to the answer's length (a number, a short code). */
-  width?: 'number' | 'short' | 'medium';
+  /**
+   * One of three widths (UX-DS-14): `short` for about 8 characters (a number, an Eircode),
+   * `medium` for about 16 (a licence number, a date), or, left out, the full column.
+   */
+  width?: 'short' | 'medium';
 }
 
 function ids(name: string) {
   const base = `field-${name.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
-  return { input: base, hint: `${base}-hint`, error: `${base}-error` };
+  return { input: base, label: `${base}-label`, hint: `${base}-hint`, error: `${base}-error` };
 }
 
-function describedBy(name: string, hint: unknown, error: unknown): string | undefined {
+/** The ids a field's parts carry, for a control that is built outside this file. */
+export const fieldIds = ids;
+
+export function describedBy(name: string, hint: unknown, error: unknown): string | undefined {
   const { hint: hintId, error: errorId } = ids(name);
   return [error ? errorId : '', hint ? hintId : ''].filter(Boolean).join(' ') || undefined;
 }
@@ -33,7 +38,7 @@ function describedBy(name: string, hint: unknown, error: unknown): string | unde
 export function FieldError({ id, children }: { id: string; children: ReactNode }) {
   return (
     <p id={id} className={styles.error}>
-      <AlertCircle className={styles.errorIcon} size={18} strokeWidth={1.75} aria-hidden="true" />
+      <AlertCircle className={styles.errorIcon} size={20} strokeWidth={1.75} aria-hidden="true" />
       <span>
         <span className="visually-hidden">Error: </span>
         {children}
@@ -44,7 +49,7 @@ export function FieldError({ id, children }: { id: string; children: ReactNode }
 
 function Label({ name, label, optional }: Pick<FieldBase, 'name' | 'label' | 'optional'>) {
   return (
-    <label htmlFor={ids(name).input} className={styles.label}>
+    <label id={ids(name).label} htmlFor={ids(name).input} className={styles.label}>
       {label}
       {optional ? <span className={styles.optional}> (optional)</span> : null}
     </label>
@@ -74,6 +79,33 @@ function Messages({ name, hint, error }: Pick<FieldBase, 'name' | 'hint' | 'erro
 }
 
 const widthClass = (width: FieldBase['width']) => (width ? styles[width] : '');
+
+/** The class of the one control: 48px high, a 12px corner, a strong edge. */
+export const controlClass = styles.control;
+
+/**
+ * The frame every field shares: the label above, then the control, then the error, then the help
+ * (section 8, "Field"). The control inside takes `fieldIds(name).input` as its id, and
+ * `describedBy(name, hint, error)`.
+ */
+export function FieldFrame({
+  name,
+  label,
+  hint,
+  error,
+  optional,
+  width,
+  children,
+}: FieldBase & { children: ReactNode }) {
+  return (
+    <div className={styles.field}>
+      <Label name={name} label={label} optional={optional} />
+      {/* One element, whatever is inside, so a row of fields still lines up. */}
+      <div className={widthClass(width)}>{children}</div>
+      <Messages name={name} hint={hint} error={error} />
+    </div>
+  );
+}
 
 export function TextField({
   name,
@@ -171,7 +203,7 @@ export function SelectField({
             </option>
           ))}
         </select>
-        <ChevronDown className={styles.chevron} size={18} strokeWidth={1.75} aria-hidden="true" />
+        <ChevronDown className={styles.chevron} size={20} strokeWidth={1.75} aria-hidden="true" />
       </span>
       <Messages name={name} hint={hint} error={error} />
     </div>
@@ -179,8 +211,9 @@ export function SelectField({
 }
 
 /**
- * A question with choice cards (radios, or checkboxes). `inline` puts short answers side by side
- * ("Yes" and "No", "24 hours" to "3 days"); longer answers stack.
+ * A question with choice rows (radios, or checkboxes): each row is one target, 48px or taller.
+ * `inline` puts short answers side by side ("Yes" and "No", "24 hours" to "3 days"); longer
+ * answers stack. For a few options that each need an icon and a line of help, use `ChoiceCards`.
  */
 export function ChoiceGroup({
   name,

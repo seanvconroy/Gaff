@@ -19,46 +19,43 @@ const tokens = loadTokens();
 const themes: Theme[] = ['light', 'dark'];
 const surfaces = ['surface-0', 'surface-1', 'surface-2'];
 const tints = ['success-bg', 'warning-bg', 'danger-bg', 'info-bg'];
+type Pair = [fg: string, bg: string, rule: ContrastRule];
 
 /**
- * The pairs the design system promises (docs/design-system.md). The tokens file's contrast list
- * must include each, so a pair can't pass by being left out of the list.
+ * The pairs the design system promises (docs/design-system.md, UX-DS-5). The tokens file's
+ * contrast list must include each, so a pair can't pass by being left out of the list.
  */
-const promised: Array<[fg: string, bg: string, rule: ContrastRule]> = [
+const promised: Pair[] = [
   // Text and secondary text, links, and status words on every surface.
-  ...['ink', 'ink-muted', 'atlantic-text', 'success', 'warning', 'danger', 'info'].flatMap((fg) =>
-    surfaces.map((bg) => [fg, bg, 'text'] as [string, string, ContrastRule]),
+  ...['ink', 'ink-muted', 'brand-text', 'success', 'warning', 'danger', 'info'].flatMap((fg) =>
+    surfaces.map((bg): Pair => [fg, bg, 'text']),
   ),
-  // Control edges and the focus ring on every surface.
-  ...['border-strong', 'focus'].flatMap((fg) =>
-    surfaces.map((bg) => [fg, bg, 'ui'] as [string, string, ContrastRule]),
+  // The brand tint behind a selected choice and the AI label.
+  ...['ink', 'ink-muted', 'brand-text'].map((fg): Pair => [fg, 'brand-bg', 'text']),
+  ['ai', 'ai-bg', 'text'],
+  // Control edges, the accent and the main button as fills or edges, and the focus ring.
+  ...['border-strong', 'brand', 'primary', 'focus'].flatMap((fg) =>
+    surfaces.map((bg): Pair => [fg, bg, 'ui']),
   ),
-  // Buttons, and text on the accent fill (the current stage).
+  ['brand', 'brand-bg', 'ui'],
+  ['focus', 'brand-bg', 'ui'],
+  // Buttons, and text on the accent fill (the current step).
   ['ink-inverse', 'primary', 'text'],
   ['ink-inverse', 'primary-hover', 'text'],
   ['ink-inverse', 'danger', 'text'],
-  ['ink-inverse', 'atlantic', 'text'],
+  ['ink-inverse', 'danger-hover', 'text'],
+  ['ink-inverse', 'brand', 'text'],
   // Status pills and notices: the status colour and ink on its tint, and links in notices.
   ['success', 'success-bg', 'text'],
   ['warning', 'warning-bg', 'text'],
   ['danger', 'danger-bg', 'text'],
   ['info', 'info-bg', 'text'],
-  ['ai', 'ai-bg', 'text'],
-  ...tints.flatMap((bg) => [
-    ['ink', bg, 'text'] as [string, string, ContrastRule],
-    ['atlantic-text', bg, 'text'] as [string, string, ContrastRule],
-    ['focus', bg, 'ui'] as [string, string, ContrastRule],
+  ...tints.flatMap((bg): Pair[] => [
+    ['ink', bg, 'text'],
+    ['ink-muted', bg, 'text'],
+    ['brand-text', bg, 'text'],
+    ['focus', bg, 'ui'],
   ]),
-  // Soft brand fill: text on it is ink.
-  ['ink', 'sky', 'text'],
-  // The navy sidebar and bottom bar.
-  ['nav-ink', 'nav-bg', 'text'],
-  ['nav-ink', 'nav-active', 'text'],
-  ['nav-ink', 'navy', 'text'],
-  ['nav-ink-muted', 'nav-bg', 'text'],
-  ['nav-ink-muted', 'nav-active', 'text'],
-  ['nav-focus', 'nav-bg', 'ui'],
-  ['nav-focus', 'nav-active', 'ui'],
 ];
 
 describe('design tokens (ADR-0011)', () => {
@@ -69,15 +66,94 @@ describe('design tokens (ADR-0011)', () => {
       expect(value.light).toMatch(solid);
       expect(value.dark).toMatch(solid);
     }
-    expect(tokens.colors['focus']).toEqual(tokens.colors['atlantic-text']);
-    expect(tokens.colors['ai']).toEqual(tokens.colors['info']);
-    expect(tokens.colors['nav-bg']!.light).toBe(tokens.colors['navy']!.light);
+    expect(tokens.colors['focus']).toEqual(tokens.colors['brand-text']);
   });
 
-  it('the old brand names are gone, with no aliases left behind', () => {
-    for (const old of ['forest', 'brick', 'brick-text', 'peach']) {
-      expect(Object.keys(tokens.colors)).not.toContain(old);
+  it('UX-DS-1: the page and its cards are white, and fills use one neutral', () => {
+    expect(tokens.colors['surface-0']!.light).toBe('#ffffff');
+    expect(tokens.colors['surface-1']!.light).toBe('#ffffff');
+    expect(tokens.colors['surface-2']!.light).not.toBe('#ffffff');
+    expect(Object.keys(tokens.colors).filter((name) => name.startsWith('surface-'))).toEqual(
+      surfaces,
+    );
+  });
+
+  it('UX-DS-2: the primary button is ink', () => {
+    expect(tokens.colors['primary']).toEqual(tokens.colors['ink']);
+  });
+
+  it('UX-DS-4: tokens are named by role, with no hue names or aliases left behind', () => {
+    const names = Object.keys(tokens.colors);
+    for (const old of ['forest', 'brick', 'brick-text', 'peach', 'navy', 'atlantic', 'sky']) {
+      expect(names).not.toContain(old);
     }
+    expect(names.filter((name) => /^(nav|atlantic)-/.test(name))).toEqual([]);
+    for (const role of ['brand', 'brand-text', 'brand-bg']) expect(names).toContain(role);
+  });
+
+  it('UX-DS-6: the accent is one value: links, focus and the assistant’s colour follow it', () => {
+    for (const follower of ['brand-text', 'focus', 'ai']) {
+      expect(tokens.colors[follower]).toEqual(tokens.colors['brand']);
+    }
+    expect(tokens.colors['ai-bg']).toEqual(tokens.colors['brand-bg']);
+  });
+
+  it('UX-DS-7: one type family, DM Sans, for every style', () => {
+    expect(Object.keys(tokens.families)).toEqual(['sans']);
+    expect(tokens.families['sans']).toMatch(/^'DM Sans'/);
+    expect(tokens.typeStyles.map((style) => style.name)).toEqual([
+      'display',
+      'display-mobile',
+      'title',
+      'heading',
+      'body',
+      'body-sm',
+      'label',
+      'caption',
+    ]);
+    for (const style of tokens.typeStyles) expect(style.family).toBe('sans');
+    expect(renderCss(tokens)).not.toMatch(/Fraunces|Georgia|[^-]serif/);
+  });
+
+  it('UX-DS-22: Fraunces is no longer loaded as a font: the wordmark is a drawing', () => {
+    expect(readFileSync('src/styles/fonts.css', 'utf8')).not.toMatch(/font-family: 'Fraunces'/);
+    expect(readFileSync('src/app/layout.tsx', 'utf8')).not.toMatch(/fraunces/i);
+    expect(readdirSync('public/fonts').filter((name) => /fraunces.*\.woff2$/i.test(name))).toEqual(
+      [],
+    );
+  });
+
+  it('UX-DS-8: no type style is uppercase: the eyebrow label is retired', () => {
+    expect(tokens.typeStyles.filter((style) => style.textTransform)).toEqual([]);
+    expect(renderCss(tokens)).not.toContain('text-transform');
+  });
+
+  it('UX-DS-13, UX-DS-15: one control height of 48px, and targets of 44px', () => {
+    expect(tokens.sizes['size-control']).toBe('48px');
+    expect(tokens.sizes['size-target']).toBe('44px');
+    const css = renderCss(tokens);
+    expect(css).toContain('--size-control: 48px;');
+    expect(css).toContain('--size-target: 44px;');
+  });
+
+  it('UX-DS-14: an input is one of three widths: short, medium or its full column', () => {
+    expect(Object.keys(tokens.sizes).filter((name) => name.startsWith('size-field-'))).toEqual([
+      'size-field-short',
+      'size-field-medium',
+    ]);
+  });
+
+  it('the corners are 8px for chips, 12px for controls, 16px for cards and 24px for sheets', () => {
+    expect(tokens.radius).toMatchObject({
+      'radius-sm': '8px',
+      'radius-md': '12px',
+      'radius-lg': '16px',
+      'radius-xl': '24px',
+    });
+  });
+
+  it('flat by default: one soft shadow for what is raised, and one for overlays', () => {
+    expect(Object.keys(tokens.shadows)).toEqual(['shadow-raised', 'shadow-overlay']);
   });
 
   it('rejects an invalid tokens file with a readable reason', () => {
@@ -115,15 +191,8 @@ describe('design tokens (ADR-0011)', () => {
     expect(pxToRem('13px')).toBe('0.8125rem');
     const css = renderCss(tokens);
     expect(css).toContain('--type-body-size: 1rem;');
-    expect(css).toContain('--type-display-mobile-size: 1.875rem;');
+    expect(css).toContain('--type-display-mobile-size: 1.75rem;');
     expect(css).not.toMatch(/--type-[a-z0-9-]+-(size|line): \d+px/);
-  });
-
-  it('labels are uppercase through their type style', () => {
-    expect(renderCss(tokens)).toMatch(
-      /\.type-label \{[^}]*text-transform: var\(--type-label-transform\);/,
-    );
-    expect(renderCss(tokens)).toContain('--type-label-transform: uppercase;');
   });
 
   it('with reduced motion on, every duration is 0ms and nothing animates', () => {
@@ -135,7 +204,19 @@ describe('design tokens (ADR-0011)', () => {
     for (const [name] of durations) expect(reduced![1]).toContain(`--${name}: 0ms;`);
   });
 
-  it('the contrast list covers every pair the design system promises', () => {
+  it('UX-DS-20: stylesheets take every duration from the motion tokens, so reduced motion stops them all', () => {
+    const untokened: string[] = [];
+    for (const file of appStylesheets()) {
+      const css = readFileSync(file, 'utf8');
+      for (const match of css.matchAll(/(?:transition|animation)[a-z-]*:[^;]*;/g)) {
+        if (/\b\d*\.?\d+m?s\b/.test(match[0])) untokened.push(`${file}: ${match[0]}`);
+      }
+      if (/infinite/.test(css)) untokened.push(`${file}: an animation that loops`);
+    }
+    expect(untokened).toEqual([]);
+  });
+
+  it('UX-DS-5: the contrast list covers every pair the design system promises', () => {
     const listed = new Map(tokens.contrastPairs.map((p) => [`${p.fg}/${p.bg}`, p.rule]));
     const missing = promised
       .filter(([fg, bg, rule]) => {
@@ -161,18 +242,31 @@ describe('design tokens (ADR-0011)', () => {
 
   it('every var(--…) used in the app stylesheets is defined by the tokens', () => {
     const defined = definedCustomProperties(tokens);
-    const cssFiles = walk('src').filter(
-      (file) => file.endsWith('.css') && !file.endsWith('tokens.css'),
-    );
     const missing: string[] = [];
-    for (const file of cssFiles) {
+    for (const file of appStylesheets()) {
       for (const match of readFileSync(file, 'utf8').matchAll(/var\((--[a-z0-9-]+)/g)) {
         if (!defined.has(match[1]!)) missing.push(`${file}: ${match[1]}`);
       }
     }
     expect(missing).toEqual([]);
   });
+
+  it('UX-DS-27: every layout changes at the one breakpoint, 900px, and nowhere else', () => {
+    expect(tokens.breakpoint).toBe('900px');
+    expect(renderTypeScript(tokens)).toContain('export const breakpointPx = 900;');
+    const other: string[] = [];
+    for (const file of appStylesheets()) {
+      for (const match of readFileSync(file, 'utf8').matchAll(/@media[^{]*\bwidth\b[^{]*/g)) {
+        if (!/^@media \(width (<=|>) 900px\) $/.test(match[0])) other.push(`${file}: ${match[0]}`);
+      }
+    }
+    expect(other).toEqual([]);
+  });
 });
+
+function appStylesheets(): string[] {
+  return walk('src').filter((file) => file.endsWith('.css') && !file.endsWith('tokens.css'));
+}
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {

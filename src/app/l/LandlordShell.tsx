@@ -14,7 +14,7 @@ export function LandlordShell({
 }) {
   const initial = organisationName.trim().charAt(0).toUpperCase() || 'G';
   return (
-    // Comfortable density: 48px controls and body-size hints (Field and Button read it).
+    // Comfortable density: body-size help text (Field reads it). Controls are 48px everywhere.
     <div className={styles.page} data-density="comfortable">
       <header className={styles.header}>
         <div className={styles.inner}>

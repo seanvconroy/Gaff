@@ -113,3 +113,13 @@ describe('Hosting on Vercel (ADR-0014)', () => {
     ).toEqual([]);
   });
 });
+
+describe('UX-TS-5: who Gaff’s own team is (STAFF_EMAILS)', () => {
+  it('UX-ME-2: is empty by default, and takes email addresses separated by commas', () => {
+    expect(environmentProblems(base)).toEqual([]);
+    expect(
+      environmentProblems({ ...base, STAFF_EMAILS: 'founder@gaff.test, second@gaff.test' }),
+    ).toEqual([]);
+    expect(environmentProblems({ ...base, STAFF_EMAILS: 'everyone' })).toEqual(['STAFF_EMAILS.0']);
+  });
+});

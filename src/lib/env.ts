@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { staffEmailsSchema } from '@/domain/staff/staff';
 
 /**
  * Environment variables, validated on first use (not at import), so `next build`
@@ -59,6 +60,11 @@ const schema = z
     CRON_SECRET: z.string().min(16, 'CRON_SECRET must be at least 16 characters').optional(),
     /** Supabase's CA certificate (PEM), so the database's certificate is verified. */
     DATABASE_CA_CERT: z.string().optional(),
+    /**
+     * UX-TS-5: the emails of Gaff's own team, separated by commas. Only they can open the
+     * internal pages (/internal). Empty by default: nobody is staff until this is set.
+     */
+    STAFF_EMAILS: staffEmailsSchema,
   })
   .superRefine((env, ctx) => {
     if (env.GAFF_ENV === 'production' || env.GAFF_ENV === 'staging') {

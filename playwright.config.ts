@@ -12,6 +12,9 @@ export const E2E_DATABASE_URL =
 export const vercelJobs = process.env.E2E_JOBS === 'vercel';
 export const E2E_CRON_SECRET = 'e2e-cron-secret-at-least-16-characters';
 
+/** UX-TS-5: the one made-up address on Gaff's own team in end-to-end runs. */
+export const E2E_STAFF_EMAIL = 'founder@staff.gaff.test';
+
 /** Environment for the web server and the worker in end-to-end runs (GAFF_ENV=test). */
 export const e2eEnv = {
   GAFF_ENV: 'test',
@@ -27,6 +30,7 @@ export const e2eEnv = {
   NEXT_TELEMETRY_DISABLED: '1',
   CRON_SECRET: E2E_CRON_SECRET,
   RUN_JOBS_AFTER_REQUESTS: vercelJobs ? '1' : '0',
+  STAFF_EMAILS: E2E_STAFF_EMAIL,
 };
 
 /**

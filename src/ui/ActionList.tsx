@@ -6,7 +6,7 @@ import styles from './ActionList.module.css';
 export type TileTone = 'quiet' | 'ai' | 'warning' | 'success' | 'primary';
 
 /**
- * Hairline rows inside a card, each a whole-row link where it leads somewhere (A4's "Needs you
+ * Hairline rows inside a card, each a whole-row link where it leads somewhere ("Needs you
  * today" list): an icon tile, the words, anything on the right, and a chevron. The same row is
  * used for the dashboard, a letting's set-up checklist and lists of things to do.
  */

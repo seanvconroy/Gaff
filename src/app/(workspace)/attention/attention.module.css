@@ -47,7 +47,7 @@
   align-items: flex-end;
 }
 
-@media (width <= 640px) {
+@media (width <= 900px) {
   .actions {
     grid-template-columns: minmax(0, 1fr);
   }

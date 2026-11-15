@@ -18,7 +18,7 @@
   margin: 0 auto;
 }
 
-/* The agency's initial, in navy: their page, not Gaff's. */
+/* The agency's initial, on ink: their page, not Gaff's. */
 .monogram {
   display: inline-flex;
   flex: none;
@@ -26,12 +26,11 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background-color: var(--color-navy);
+  background-color: var(--color-primary);
   border-radius: var(--radius-pill);
-  color: var(--color-nav-ink);
-  font-family: var(--type-heading-family);
-  font-size: var(--type-title-size);
-  line-height: var(--type-title-line);
+  color: var(--color-ink-inverse);
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
   font-weight: var(--type-heading-weight);
 }
 
@@ -89,10 +88,10 @@
 
 .number dd {
   margin: 0;
-  font-family: var(--type-heading-family);
-  font-size: var(--type-heading-size);
-  line-height: var(--type-heading-line);
-  font-weight: var(--type-heading-weight);
+  font-size: var(--type-display-mobile-size);
+  line-height: var(--type-display-mobile-line);
+  font-weight: var(--type-display-mobile-weight);
+  letter-spacing: var(--type-display-mobile-tracking);
 }
 
 .list {
@@ -122,7 +121,7 @@
   gap: var(--space-1);
 }
 
-@media (width <= 640px) {
+@media (width <= 900px) {
   .entry {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -140,7 +139,7 @@
   display: grid;
   gap: var(--space-1);
   padding: var(--space-3) var(--space-4);
-  background-color: var(--color-surface-0);
+  background-color: var(--color-surface-2);
   border-radius: var(--radius-md);
 }
 

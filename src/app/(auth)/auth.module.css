@@ -1,5 +1,5 @@
-/* Signing in: a single card centred on the cream page. Controls are 48px, as on renter pages
-   (data-density="comfortable" on the layout). */
+/* Signing in: a single card centred on the page. Its help text is body size, as on the private
+   pages (data-density="comfortable" on the layout). */
 .page {
   display: grid;
   grid-template-rows: auto 1fr auto;
@@ -41,7 +41,7 @@
   text-align: center;
 }
 
-@media (width <= 640px) {
+@media (width <= 900px) {
   .card {
     padding: var(--space-6) var(--space-4);
   }

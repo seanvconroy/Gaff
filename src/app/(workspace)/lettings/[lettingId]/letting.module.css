@@ -30,7 +30,7 @@
 .tabCurrent {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--size-target);
   color: var(--color-ink-muted);
   text-decoration: none;
   white-space: nowrap;
@@ -57,7 +57,7 @@
   outline-offset: -2px;
 }
 
-@media (width <= 640px) {
+@media (width <= 900px) {
   .tabList {
     gap: var(--space-5);
   }
@@ -98,7 +98,7 @@
   border-top: 1px solid var(--color-border);
 }
 
-@media (width <= 640px) {
+@media (width <= 900px) {
   .listCardHeader,
   .listCardFooter {
     padding-inline: var(--space-4);
@@ -135,7 +135,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  min-height: 44px;
+  min-height: var(--size-target);
   font-weight: var(--type-title-weight);
   text-decoration: none;
 }
@@ -149,12 +149,12 @@
 .linkButton {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--size-target);
   padding: 0 var(--space-2);
   background: none;
   border: 0;
   border-radius: var(--radius-sm);
-  color: var(--color-atlantic-text);
+  color: var(--color-brand-text);
   font-weight: var(--type-title-weight);
   cursor: pointer;
 }
@@ -190,7 +190,7 @@
   font-weight: var(--type-title-weight);
 }
 
-@media (width <= 640px) {
+@media (width <= 900px) {
   .session {
     padding-inline: var(--space-4);
   }
@@ -255,7 +255,7 @@
   gap: var(--space-1);
 }
 
-@media (width <= 640px) {
+@media (width <= 900px) {
   .entry {
     grid-template-columns: minmax(0, 1fr);
     padding-inline: var(--space-4);
@@ -266,6 +266,6 @@
   width: 22px;
   height: 22px;
   margin: 0;
-  accent-color: var(--color-primary);
+  accent-color: var(--color-brand);
   cursor: pointer;
 }

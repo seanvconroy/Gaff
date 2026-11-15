@@ -26,8 +26,8 @@ const items: Array<{ href: string; label: string; Icon: LucideIcon; current: Reg
 ];
 
 /**
- * The workspace navigation: a navy sidebar on a laptop and a bottom bar on a phone (A4), one
- * element either way. The current page is marked for screen readers as well as by colour.
+ * The workspace navigation: a sidebar on a laptop and a bottom bar on a phone, one element
+ * either way (work package WP-3 replaces it with the top bar and the tab bar). The current page is marked for screen readers as well as by colour.
  */
 export function WorkspaceNav() {
   const pathname = usePathname();

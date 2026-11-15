@@ -1,10 +1,10 @@
-/* The screen's one Atlantic accent. */
+/* The screen's one accent: the brand colour. */
 .accent {
-  color: var(--color-atlantic-text);
+  color: var(--color-brand-text);
   font-weight: var(--type-title-weight);
 }
 
-/* R28 panels, as A4's list: a card with a title row and hairline rows, each a whole-row link. */
+/* R28 panels: a card with a title row and hairline rows, each a whole-row link. */
 .panel {
   background-color: var(--color-surface-1);
   border: 1px solid var(--color-border);
@@ -66,7 +66,7 @@
   line-height: var(--type-body-sm-line);
 }
 
-@media (width <= 640px) {
+@media (width <= 900px) {
   .panelHeading,
   .panelHeader {
     padding-inline: var(--space-4);

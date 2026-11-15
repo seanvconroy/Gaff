@@ -76,7 +76,7 @@
   color: var(--color-ink-muted);
 }
 
-@media (width <= 640px) {
+@media (width <= 900px) {
   .card {
     padding: var(--space-4);
   }

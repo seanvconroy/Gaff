@@ -33,11 +33,10 @@ export default async function DashboardPage() {
   return (
     <Stack gap={8}>
       <PageHeader
-        eyebrow={member.organisationName}
         title="Your lettings"
         lead={
           homes > 0 && today.length > 0 ? (
-            // The screen's one accent (A4): how many things need a person today.
+            // The screen's one accent: how many things need a person today.
             <>
               <span className={styles.accent}>
                 {today.length} {today.length === 1 ? 'thing' : 'things'}

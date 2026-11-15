@@ -71,8 +71,8 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  min-width: 44px;
-  min-height: 48px;
+  min-width: var(--size-target);
+  min-height: var(--size-control);
   padding: var(--space-2) var(--space-4);
   background-color: var(--color-surface-1);
   color: var(--color-ink);
@@ -121,7 +121,7 @@
   color: var(--color-warning);
 }
 
-@media (width <= 640px) {
+@media (width <= 900px) {
   .dayHeading,
   .row {
     padding-inline: var(--space-4);

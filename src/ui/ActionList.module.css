@@ -1,4 +1,4 @@
-/* A4's list rows: hairlines, 20px insets, a whole-row link. */
+/* List rows: hairlines, 20px insets, and the whole row as the link, 64px or taller. */
 .list {
   margin: 0;
   padding: 0;
@@ -18,8 +18,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  min-height: 44px;
-  padding: var(--space-4) var(--space-5);
+  min-height: var(--size-row);
+  padding: var(--space-3) var(--space-5);
   color: var(--color-ink);
   text-decoration: none;
   transition: background-color var(--motion-fast) var(--ease-standard);
@@ -93,7 +93,7 @@ a.row:focus-visible {
   color: var(--color-success);
 }
 
-/* The step to do next: primary, like its button (the page's accent is the stage tracker). */
+/* The step to do next: ink, like its button. */
 .primary {
   background-color: var(--color-primary);
   color: var(--color-ink-inverse);
@@ -129,7 +129,7 @@ a.row:focus-visible {
   color: var(--color-ink-muted);
 }
 
-@media (width <= 640px) {
+@media (width <= 900px) {
   .row {
     flex-wrap: wrap;
     padding-inline: var(--space-4);

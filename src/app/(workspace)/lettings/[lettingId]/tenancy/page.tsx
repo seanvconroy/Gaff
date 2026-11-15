@@ -259,7 +259,7 @@ function PaymentStep({ lettingId, view }: { lettingId: string; view: View }) {
               name="dueDate"
               label="Pay by"
               type="date"
-              width="short"
+              width="medium"
               min={today}
               defaultValue={tenancy.startDate > today ? tenancy.startDate : today}
             />

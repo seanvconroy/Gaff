@@ -38,7 +38,7 @@
   color: var(--color-warning);
 }
 
-@media (width <= 640px) {
+@media (width <= 900px) {
   .outcome {
     padding: var(--space-5) var(--space-4);
   }

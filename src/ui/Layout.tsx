@@ -22,7 +22,7 @@ export function Row({ spread, children }: { spread?: boolean; children: ReactNod
   return <div className={`${styles.row} ${spread ? styles.spread : ''}`}>{children}</div>;
 }
 
-/** Cards, panels and grouped content: surface-1 with a hairline border (no shadows). */
+/** One object, such as a home, a person or a viewing: surface-1 held off the page by a hairline. */
 export function Card({
   as: Tag = 'section',
   labelledBy,
@@ -83,7 +83,7 @@ export function BackLink({ href, children }: { href: string; children: ReactNode
   );
 }
 
-/** Page title (Fraunces), with an optional back link, eyebrow, lead and actions. */
+/** Page title, with an optional back link, a line above it, a lead and actions. */
 export function PageHeader({
   back,
   eyebrow,
@@ -121,22 +121,4 @@ export function Narrow({ children }: { children: ReactNode }) {
 
 export function Muted({ children }: { children: ReactNode }) {
   return <span className={styles.muted}>{children}</span>;
-}
-
-/**
- * "Gaff" is a working name with no logo yet. The A4 wordmark is "gaff." in Fraunces with an
- * Atlantic full stop (a logotype, so the dot is exempt from contrast rules). Screen readers hear
- * "gaff".
- */
-export function Wordmark({ href = '/', onNavy = false }: { href?: string; onNavy?: boolean }) {
-  return (
-    <Link href={href} className={`${styles.wordmark} ${onNavy ? styles.onNavy : ''}`}>
-      <span>
-        gaff
-        <span className={styles.wordmarkDot} aria-hidden="true">
-          .
-        </span>
-      </span>
-    </Link>
-  );
 }

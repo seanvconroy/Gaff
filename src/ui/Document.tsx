@@ -13,7 +13,7 @@ export function DocumentView({
 }) {
   return (
     <article className={styles.document} aria-labelledby="document-title">
-      <h2 id="document-title" className="type-heading">
+      <h2 id="document-title" className="type-title">
         {title}
       </h2>
       {sections.map((section) => (

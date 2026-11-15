@@ -1,7 +1,7 @@
 /*
- * The private pages (renters, referees, tenants): phone first, surface-1, a space-4 gutter, and
- * never below body size. The shell's data-density="comfortable" gives fields and buttons 48px and
- * body-size hints.
+ * The private pages (renters, referees, tenants): phone first, a space-4 gutter, and never below
+ * body size: the shell's data-density="comfortable" sets help text to body. Controls are 48px
+ * here as everywhere.
  */
 .page {
   display: grid;
@@ -29,7 +29,7 @@
   align-items: center;
 }
 
-/* The agency's initial, in navy: their page, not Gaff's. */
+/* The agency's initial, on ink: their page, not Gaff's. */
 .monogram {
   display: inline-flex;
   flex: none;
@@ -37,12 +37,11 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background-color: var(--color-navy);
+  background-color: var(--color-primary);
   border-radius: var(--radius-pill);
-  color: var(--color-nav-ink);
-  font-family: var(--type-heading-family);
-  font-size: var(--type-title-size);
-  line-height: var(--type-title-line);
+  color: var(--color-ink-inverse);
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
   font-weight: var(--type-heading-weight);
 }
 
@@ -158,10 +157,10 @@
 
 /* A total under a list of amounts. */
 .total {
-  font-family: var(--type-heading-family);
-  font-size: var(--type-heading-size);
-  line-height: var(--type-heading-line);
-  font-weight: var(--type-heading-weight);
+  font-size: var(--type-display-mobile-size);
+  line-height: var(--type-display-mobile-line);
+  font-weight: var(--type-display-mobile-weight);
+  letter-spacing: var(--type-display-mobile-tracking);
 }
 
 .big {
@@ -192,12 +191,12 @@
   gap: var(--space-2);
 }
 
-/* Viewing slots (A4): big cards; the chosen one gets a 2px primary edge that grows inwards. */
+/* Viewing slots: big cards; the chosen one gets a 2px brand edge that grows inwards and the tint. */
 .slot {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: 64px;
+  min-height: var(--size-row);
   padding: var(--space-3) var(--space-4);
   background-color: var(--color-surface-1);
   border: 1px solid var(--color-border-strong);
@@ -212,8 +211,9 @@
 
 .slot:has(input:checked) {
   padding: calc(var(--space-3) - 1px) calc(var(--space-4) - 1px);
+  background-color: var(--color-brand-bg);
   border-width: 2px;
-  border-color: var(--color-primary);
+  border-color: var(--color-brand);
 }
 
 .slot:has(input:focus-visible) {
@@ -233,7 +233,7 @@
   width: 22px;
   height: 22px;
   margin: 0;
-  accent-color: var(--color-primary);
+  accent-color: var(--color-brand);
 }
 
 .slotText {

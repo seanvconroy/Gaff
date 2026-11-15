@@ -1,11 +1,10 @@
-/* Buttons are the same height as the fields beside them: 44px in the workspace, 48px on the
-   private pages (data-density="comfortable" on their shell). */
+/* Buttons: one height, 48px, everywhere (UX-DS-13), the same as the fields beside them. */
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  min-height: 44px;
+  min-height: var(--size-control);
   padding: var(--space-2) var(--space-5);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
@@ -25,7 +24,7 @@
   flex: none;
 }
 
-/* The one main action on a screen. */
+/* The one main action on a screen: ink (UX-DS-2). */
 .primary {
   background-color: var(--color-primary);
   color: var(--color-ink-inverse);
@@ -36,6 +35,7 @@
   background-color: var(--color-primary-hover);
 }
 
+/* Never a screen's main action. */
 .secondary {
   background-color: var(--color-surface-1);
   color: var(--color-ink);
@@ -59,16 +59,30 @@
   background-color: var(--color-surface-2);
 }
 
+/* Only for an action that deletes or cancels something. */
+.destructive {
+  background-color: var(--color-danger);
+  color: var(--color-ink-inverse);
+}
+
+.destructive:hover,
+.destructive:active {
+  background-color: var(--color-danger-hover);
+}
+
 .fullWidth {
   width: 100%;
+}
+
+/* At the foot of a task on a phone the button spans the width; on a desktop it fits its label. */
+@media (width <= 900px) {
+  .fullWidthOnPhone {
+    width: 100%;
+  }
 }
 
 .button:disabled,
 .button[aria-disabled='true'] {
   cursor: progress;
   opacity: 0.7;
-}
-
-[data-density='comfortable'] .button {
-  min-height: 48px;
 }

@@ -2,7 +2,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import styles from './Table.module.css';
 
 /**
- * Dense operator table (body-sm), with a quiet header row. On a phone each row becomes a small
+ * An operator table at body size (UX-DS-9), with a quiet header row in sentence case. On a phone each row becomes a small
  * card, with each cell's column name beside it (design system: tables become stacked cards), so
  * nothing scrolls sideways. Rows use `Cell`, which carries its column name for that view.
  */

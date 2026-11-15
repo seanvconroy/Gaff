@@ -45,7 +45,6 @@ export default async function NeedsAttentionPage({
   return (
     <Stack gap={8}>
       <PageHeader
-        eyebrow={member.organisationName}
         title="Needs attention"
         lead="Emails Gaff couldn’t place on its own. Nothing is lost: you decide what each one is."
       />

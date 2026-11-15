@@ -93,7 +93,7 @@ export function AddSessionForm({
           <SelectField
             name="slotMinutes"
             label="Length of each slot"
-            width="short"
+            width="medium"
             defaultValue={v.slotMinutes ?? '15'}
             error={e.slotMinutes}
             options={slotLengths.map((minutes) => ({
@@ -107,7 +107,7 @@ export function AddSessionForm({
             name="capacity"
             label="How many can come"
             hint={`Up to ${MAX_GROUP_CAPACITY}`}
-            width="number"
+            width="short"
             inputMode="numeric"
             defaultValue={v.capacity}
             error={e.capacity}

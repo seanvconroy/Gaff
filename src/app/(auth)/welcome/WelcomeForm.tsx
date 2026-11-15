@@ -48,7 +48,7 @@ export function WelcomeForm({ defaultName }: { defaultName: string }) {
             name="psraLicenceNumber"
             label="PSRA licence number"
             hint="It's on your licence, for example 001234."
-            width="short"
+            width="medium"
             inputMode="numeric"
             defaultValue={values.psraLicenceNumber}
             error={state.errors?.psraLicenceNumber}

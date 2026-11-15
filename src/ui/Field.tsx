@@ -3,11 +3,10 @@ import type { ComponentProps, ReactNode } from 'react';
 import styles from './Field.module.css';
 
 /**
- * Form fields. Every control is the same height (44px in the workspace, 48px on the private
- * pages), and a field never stretches to match its neighbour, so a row of fields lines up
- * whatever hints or errors they have. The label sits directly above its control; the error and
- * then the hint sit below it. A group of choices keeps its hint under the question, so it's read
- * before choosing.
+ * Form fields. Every control is 48px high, everywhere (UX-DS-13), and a field never stretches to
+ * match its neighbour, so a row of fields lines up whatever help or errors they have. The label
+ * sits directly above its control; the error and then the help sit below it. A group of choices
+ * keeps its help under the question, so it's read before choosing.
  */
 
 interface FieldBase {
@@ -16,8 +15,11 @@ interface FieldBase {
   hint?: ReactNode;
   error?: string;
   optional?: boolean;
-  /** How wide the control is, as a cue to the answer's length (a number, a short code). */
-  width?: 'number' | 'short' | 'medium';
+  /**
+   * One of three widths (UX-DS-14): `short` for about 8 characters (a number, an Eircode),
+   * `medium` for about 16 (a licence number, a date), or, left out, the full column.
+   */
+  width?: 'short' | 'medium';
 }
 
 function ids(name: string) {
@@ -179,8 +181,9 @@ export function SelectField({
 }
 
 /**
- * A question with choice cards (radios, or checkboxes). `inline` puts short answers side by side
- * ("Yes" and "No", "24 hours" to "3 days"); longer answers stack.
+ * A question with choice rows (radios, or checkboxes): each row is one target, 48px or taller.
+ * `inline` puts short answers side by side ("Yes" and "No", "24 hours" to "3 days"); longer
+ * answers stack. For a few options that each need an icon and a line of help, use `ChoiceCards`.
  */
 export function ChoiceGroup({
   name,

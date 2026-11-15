@@ -40,9 +40,9 @@ ol {
   padding: 0;
 }
 
-/* Links are atlantic-text and underlined in running text, so colour is never the only cue. */
+/* Links are brand-text and underlined in running text, so colour is never the only cue. */
 a {
-  color: var(--color-atlantic-text);
+  color: var(--color-brand-text);
   text-underline-offset: 0.15em;
   transition: color var(--motion-fast) var(--ease-standard);
 }

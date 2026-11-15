@@ -150,7 +150,7 @@ export default async function ShortlistPage({
                 <TextField
                   name="waitlistSize"
                   label="How many on the waiting list"
-                  width="number"
+                  width="short"
                   inputMode="numeric"
                   defaultValue="10"
                 />

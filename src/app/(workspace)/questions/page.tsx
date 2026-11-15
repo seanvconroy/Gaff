@@ -40,7 +40,6 @@ export default async function QuestionsPage({
   return (
     <Stack gap={8}>
       <PageHeader
-        eyebrow={member.organisationName}
         title="Questions for you"
         lead="Things Gaff couldn’t answer from the facts. Answer once and Gaff remembers it for everyone who asks about that home."
       />

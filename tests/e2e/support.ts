@@ -17,8 +17,8 @@ export async function expectAccessible(page: Page): Promise<void> {
 
 /**
  * Tabs through the page from the top (call it straight after loading). Every stop must show a
- * 2px focus ring: `focus`, or `nav-focus` in the navy navigation, where `focus` is too faint.
- * A radio or checkbox in a choice card shows the ring on its card (design system).
+ * 2px focus ring in `focus`, in the navigation as everywhere else. A radio or checkbox in a
+ * choice row shows the ring on its row (design system).
  */
 export async function expectFocusRings(page: Page): Promise<void> {
   const seen = new Set<string>();
@@ -30,10 +30,8 @@ export async function expectFocusRings(page: Page): Promise<void> {
       if (!el || el === document.body) return null;
       const ringOn = el.matches('label > input') ? el.closest('label')! : el;
       const style = getComputedStyle(ringOn);
-      const inNav = !!el.closest('header:has([data-bottom-bar])') || el.matches('a[href="#main"]');
-      const token = inNav ? '--color-nav-focus' : '--color-focus';
       const probe = document.createElement('i');
-      probe.style.color = `var(${token})`;
+      probe.style.color = 'var(--color-focus)';
       document.body.append(probe);
       const expected = getComputedStyle(probe).color;
       probe.remove();

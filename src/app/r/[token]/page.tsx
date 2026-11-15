@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { stayChoices } from '@/domain/criteria/answers';
 import { formatDate, formatEuro, irishToday } from '@/lib/format';
 import { formatRatio, minimumIncomeCents } from '@/domain/applications/apply';
-import { loadRenterPage } from '@/server/renter/answers';
+import { openRenterPage } from '@/server/renter/answers';
 import { env } from '@/lib/env';
 import { Card, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
@@ -64,7 +64,7 @@ export default async function RenterPage({
     decline,
     offer_problem,
   } = await searchParams;
-  const page = await loadRenterPage(token);
+  const page = await openRenterPage(token);
   if (!page) {
     return (
       <RenterShell operatorName="Gaff">

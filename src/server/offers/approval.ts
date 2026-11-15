@@ -18,6 +18,7 @@ import { createAccessLink, resolveAccessLink } from '@/server/access/links';
 import type { Member } from '@/server/auth/member';
 import { checkResultsFor } from '@/server/checks/checks';
 import { UserFacingError } from '@/server/errors';
+import { noteFunnelStep } from '@/server/funnels/steps';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
 import { rankLetting } from '@/server/shortlist/shortlist';
@@ -261,6 +262,7 @@ export async function loadApprovalSummary(token: string) {
       };
     };
     return {
+      approvalId: approval.id,
       status: approval.status,
       preferredAnswer: approval.preferredAnswer,
       backupAnswer: approval.backupAnswer,
@@ -280,6 +282,16 @@ export async function loadApprovalSummary(token: string) {
       ],
     };
   });
+}
+
+/**
+ * UX-ME-1: the owner opens their approval link. Records that the step was reached, once per
+ * request, and nothing else about the visit.
+ */
+export async function openApprovalSummary(token: string) {
+  const summary = await loadApprovalSummary(token);
+  if (summary) await noteFunnelStep({ step: 'owner.opened', subjectId: summary.approvalId });
+  return summary;
 }
 
 /** R19: the landlord approves or declines each person. Recorded as theirs, with IDs only. */

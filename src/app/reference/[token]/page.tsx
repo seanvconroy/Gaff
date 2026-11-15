@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { questionsFor } from '@/domain/checks/checks';
-import { loadReferenceRequest } from '@/server/checks/checks';
+import { openReferenceRequest } from '@/server/checks/checks';
 import { Card, Stack } from '@/ui/Layout';
 import { Outcome } from '@/ui/Outcome';
 import { RenterShell } from '../../r/RenterShell';
@@ -19,7 +19,7 @@ export default async function ReferencePage({
 }) {
   const { token } = await params;
   const { sent } = await searchParams;
-  const request = await loadReferenceRequest(token);
+  const request = await openReferenceRequest(token);
   if (!request) {
     return (
       <RenterShell operatorName="Gaff">

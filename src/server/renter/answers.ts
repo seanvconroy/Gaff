@@ -10,8 +10,10 @@ import {
 } from '@/db/schema';
 import { renterAnswersSchema, type RenterAnswers } from '@/domain/criteria/answers';
 import { questionsFor } from '@/domain/criteria/criteria';
+import { renterPageStep } from '@/domain/funnels/steps';
 import { bookableSlots } from '@/domain/viewings/booking';
 import { resolveAccessLink } from '@/server/access/links';
+import { noteFunnelStep } from '@/server/funnels/steps';
 import { recordEvent } from '@/server/record/events';
 import { checksOf } from '@/server/checks/checks';
 import { offerOf } from '@/server/offers/offer';
@@ -92,6 +94,25 @@ export async function loadRenterPage(token: string) {
       canChange: row.application.status === 'enquired' && row.letting.status === 'live',
     };
   });
+}
+
+/**
+ * UX-ME-4: the renter opens their page. Records only that they reached the step it shows (the
+ * questions, the viewing times or the application) and when, once: nothing about their device,
+ * where they are or what they do on the page.
+ */
+export async function openRenterPage(token: string) {
+  const page = await loadRenterPage(token);
+  if (!page) return null;
+  // A home that's let or withdrawn shows no task, so there's no step to reach.
+  if (page.letting.status !== 'live') return page;
+  const step = renterPageStep({
+    status: page.application.status,
+    canAnswer: page.canChange && page.questions.length > 0,
+    hasPlaceOffer: page.offer !== null,
+  });
+  if (step) await noteFunnelStep({ step, subjectId: page.application.id });
+  return page;
 }
 
 export type SaveAnswersResult =

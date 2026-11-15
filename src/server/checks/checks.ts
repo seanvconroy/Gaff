@@ -18,10 +18,12 @@ import {
   type CheckKind,
   type CheckStatus,
 } from '@/domain/checks/checks';
+import { checksBack, renterChecksDone } from '@/domain/funnels/steps';
 import { openJson, sealJson } from '@/lib/crypto';
 import { env } from '@/lib/env';
 import type { IdentityResult, IncomeResult } from '@/ports/checks';
 import { createAccessLink, resolveAccessLink } from '@/server/access/links';
+import { noteFunnelStep, recordFunnelStep } from '@/server/funnels/steps';
 import { enqueue } from '@/server/jobs/enqueue';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
@@ -93,6 +95,31 @@ export async function requestChecks(
       subject: { type: 'application', id: applicationId },
       data: { applicationId, checks: planned.filter((c) => c.status === 'to_do').length },
     });
+  }
+}
+
+/**
+ * UX-ME-1: after a check ends or a referee is named, records the funnel steps that completes,
+ * in the same transaction: the renter has done their part ("all three done"), and, for the
+ * preferred applicant, the checks are back. Each is recorded once.
+ */
+async function noteCheckProgress(tx: Tx, applicationId: string): Promise<void> {
+  const rows = await tx
+    .select({
+      kind: checks.kind,
+      status: checks.status,
+      lettingId: checks.lettingId,
+      chosenAs: applications.status,
+    })
+    .from(checks)
+    .innerJoin(applications, eq(applications.id, checks.applicationId))
+    .where(eq(checks.applicationId, applicationId));
+  if (renterChecksDone(rows)) {
+    await recordFunnelStep(tx, { step: 'renter_checks.all_done', subjectId: applicationId });
+  }
+  const [first] = rows;
+  if (first?.chosenAs === 'preferred' && checksBack(rows)) {
+    await recordFunnelStep(tx, { step: 'offer.checks_back', subjectId: first.lettingId });
   }
 }
 
@@ -227,6 +254,7 @@ export async function recordProviderResult(
         organisationId: checks.organisationId,
         kind: checks.kind,
         lettingId: checks.lettingId,
+        applicationId: checks.applicationId,
       })
       .from(checks)
       .where(eq(checks.id, checkId)),
@@ -259,6 +287,7 @@ export async function recordProviderResult(
       subject: { type: 'check', id: checkId },
       data: { checkId, kind: found.kind, outcome: passed ? 'passed' : 'not_passed' },
     });
+    await noteCheckProgress(tx, found.applicationId);
   });
 }
 
@@ -391,6 +420,7 @@ export async function submitReferees(
         data: { checkId: check.id, kind },
       });
     }
+    await noteCheckProgress(tx, row.application.id);
     return { ok: true };
   });
 }
@@ -416,6 +446,7 @@ export async function loadReferenceRequest(token: string) {
       return null;
     }
     return {
+      checkId: row.check.id,
       kind: row.check.kind as ReferenceKind,
       status: row.check.status,
       refereeName: row.check.refereeName,
@@ -423,6 +454,16 @@ export async function loadReferenceRequest(token: string) {
       operatorName: row.operatorName,
     };
   });
+}
+
+/**
+ * UX-ME-1: a referee opens their form. Records that the step was reached, once per request, and
+ * nothing else about the visit.
+ */
+export async function openReferenceRequest(token: string) {
+  const request = await loadReferenceRequest(token);
+  if (request) await noteFunnelStep({ step: 'referee.opened', subjectId: request.checkId });
+  return request;
 }
 
 /** R18: the referee answers. Their answers are sealed; reminders stop. */
@@ -464,6 +505,7 @@ export async function submitReference(
       subject: { type: 'check', id: check.id },
       data: { checkId: check.id, kind: check.kind, outcome: 'answered' },
     });
+    await noteCheckProgress(tx, check.applicationId);
     return { ok: true };
   });
 }
@@ -488,5 +530,6 @@ export async function markReferenceOverdue(input: {
       subject: { type: 'check', id: check.id },
       data: { checkId: check.id, kind: check.kind, outcome: 'no_answer' },
     });
+    await noteCheckProgress(tx, check.applicationId);
   });
 }

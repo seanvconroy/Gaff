@@ -1,0 +1,73 @@
+/* The "more" button: a full 48px control with nothing drawn until it's hovered. */
+.trigger {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-control);
+  height: var(--size-control);
+  padding: 0;
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.trigger:hover,
+.trigger[aria-expanded='true'] {
+  background-color: var(--color-surface-2);
+}
+
+.list {
+  display: grid;
+  min-width: 224px;
+  padding: var(--space-2);
+}
+
+/* Each action is a whole-row target, 48px high. */
+.item {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  min-height: var(--size-control);
+  padding: var(--space-2) var(--space-3);
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.item svg {
+  flex: none;
+  color: var(--color-ink-muted);
+}
+
+.item:hover {
+  background-color: var(--color-surface-2);
+}
+
+/* Inside the rounded panel, so the ring isn't clipped. */
+.item:focus-visible {
+  outline-offset: -2px;
+}
+
+.destructive,
+.destructive svg {
+  color: var(--color-danger);
+}
+
+@media (width <= 900px) {
+  .list {
+    padding: 0 var(--space-3) var(--space-4);
+  }
+}

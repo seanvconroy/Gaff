@@ -65,7 +65,12 @@ export function Overlay({
     const el = dialog.current;
     if (!el) return;
     if (!open) {
-      if (el.open) el.close();
+      if (el.open) {
+        el.close();
+        // Focus returns to what opened it, if the browser hasn't already put it there.
+        const from = opener.current;
+        if (from?.isConnected && document.activeElement !== from) from.focus();
+      }
       return;
     }
     if (!el.open) {
@@ -96,11 +101,10 @@ export function Overlay({
         event.preventDefault();
         onClose();
       }}
-      onClose={() => {
-        // Focus returns to what opened it, if the browser hasn't already put it there.
-        const from = opener.current;
-        if (from?.isConnected && document.activeElement !== from) from.focus();
-        if (open) onClose();
+      // Closed by the browser itself (a form inside it, say): tell the owner. This event arrives a
+      // moment after a close, so one from an earlier close is ignored if it has opened again.
+      onClose={(event) => {
+        if (open && !event.currentTarget.open) onClose();
       }}
       // The scrim is the dialog itself; everything else is inside `inner`.
       onMouseDown={(event) => {

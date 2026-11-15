@@ -1,7 +1,15 @@
 'use client';
 
 import { Calendar, Check, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import { irishToday } from '@/lib/format';
 import {
   addDays,
@@ -72,7 +80,7 @@ function PickerControl({
   empty: boolean;
   icon: ReactNode;
   popup: 'dialog' | 'listbox';
-  buttonRef: React.RefObject<HTMLButtonElement | null>;
+  buttonRef: RefObject<HTMLButtonElement | null>;
   current: string;
   children: ReactNode;
 }) {

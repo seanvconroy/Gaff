@@ -1,0 +1,73 @@
+/* Skeletons: the one quiet fill, in the shape of what's coming. Still, not shimmering. */
+.group {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.label {
+  color: var(--color-ink-muted);
+}
+
+.shapes {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.skeleton {
+  display: block;
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+}
+
+/* A line of body text: its box is the line's height, its ink a little less. */
+.line {
+  height: 1rem;
+  margin-block: var(--space-1);
+}
+
+.title {
+  height: 1.5rem;
+  margin-block: var(--space-1);
+}
+
+.photo {
+  aspect-ratio: 3 / 2;
+  border-radius: var(--radius-lg);
+}
+
+.circle {
+  width: var(--size-control);
+  height: var(--size-control);
+  border-radius: var(--radius-pill);
+}
+
+.control {
+  height: var(--size-control);
+  border-radius: var(--radius-md);
+}
+
+.full {
+  width: 100%;
+}
+
+.long {
+  width: 75%;
+}
+
+.half {
+  width: 50%;
+}
+
+.short {
+  width: 25%;
+}
+
+/* A circle is always its own size. */
+.circle.full,
+.circle.long,
+.circle.half,
+.circle.short {
+  width: var(--size-control);
+}

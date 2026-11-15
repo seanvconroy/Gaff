@@ -17,6 +17,7 @@ import { BACKSTOP_DAYS, isDue } from '@/domain/retention/retention';
 import { recordCutoff } from '@/domain/tenancy/steps';
 import { env } from '@/lib/env';
 import { irishToday } from '@/lib/format';
+import { purgeFunnelEvents } from '@/server/funnels/steps';
 import { recordEvent } from '@/server/record/events';
 
 const DELETED = 'Deleted';
@@ -224,6 +225,9 @@ export async function sweepPersonalData(
       .where(and(inOrg(events), lt(events.occurredAt, cutoff)))
       .returning({ id: events.id });
     await tx.execute(sql`select set_config('app.allow_event_purge', 'off', true)`);
+    // UX-ME-1: funnel events are part of that anonymous record. They belong to no organisation,
+    // so they go when the sweep runs for everyone.
+    if (!onlyOrganisationId) await purgeFunnelEvents(tx, cutoff);
     const oldDecisions = await tx
       .delete(decisions)
       .where(and(inOrg(decisions), lt(decisions.decidedAt, cutoff)))

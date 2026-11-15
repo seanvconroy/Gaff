@@ -87,6 +87,12 @@ export const eventCatalogue = {
     ]),
     channel: z.enum(['email', 'sms']),
     author: z.enum(['template', 'ai', 'person']),
+    /**
+     * UX-ME-1: whose it was, as IDs, so a funnel can count a first reply, an invitation, an
+     * offer or a reference request as delivered for that application or check.
+     */
+    applicationId: z.uuid().nullable().optional(),
+    checkId: z.uuid().nullable().optional(),
   }),
   'message.failed': z.object({ messageId: z.uuid(), attempts: z.number().int() }),
   /** R8: answers drafted for a renter's message: how many by the AI, how many for a person. */

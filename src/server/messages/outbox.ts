@@ -176,6 +176,8 @@ export async function sendMessage(input: {
           kind: message.kind as OutboundKind,
           channel: message.channel,
           author: message.author as 'template' | 'ai' | 'person',
+          applicationId: message.applicationId,
+          checkId: message.checkId,
         },
       });
     });

@@ -1,15 +1,31 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { emptyFormState } from '@/lib/forms';
 import { TextField } from '@/ui/Field';
 import { Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { SubmitButton } from '@/ui/SubmitButton';
-import { requestSignInLink } from './actions';
+import { requestSignInLink, signInScreenOpened } from './actions';
 
-export function SignInForm({ devOutbox }: { devOutbox: boolean }) {
+/**
+ * UX-ME-1: counts the screen as opened once for this try at signing in. Refreshing the page, or
+ * coming back to it with the back button, isn't a new opening, so it isn't counted again.
+ */
+function useScreenOpened(attempt: string): void {
+  useEffect(() => {
+    const [load] = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+    const sameDocument = load ? new URL(load.name).pathname === window.location.pathname : false;
+    if (sameDocument && load?.type !== 'navigate') return;
+    void signInScreenOpened(attempt);
+  }, [attempt]);
+}
+
+export function SignInForm({ devOutbox, attempt }: { devOutbox: boolean; attempt: string }) {
   const [state, action] = useActionState(requestSignInLink, emptyFormState);
+  // The ID this screen opened with stays the same for as long as the screen is up.
+  const [attemptId] = useState(attempt);
+  useScreenOpened(attemptId);
 
   if (state.message === 'sent') {
     return (
@@ -31,6 +47,7 @@ export function SignInForm({ devOutbox }: { devOutbox: boolean }) {
 
   return (
     <form key={state.attempt ?? 'first'} action={action} noValidate>
+      <input type="hidden" name="attempt" value={attemptId} />
       <Stack gap={6}>
         {state.message ? (
           <Notice tone="danger" role="alert">

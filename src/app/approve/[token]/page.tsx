@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { formatRatio } from '@/domain/applications/apply';
 import { formatDate, formatRent } from '@/lib/format';
-import { loadApprovalSummary } from '@/server/offers/approval';
+import { openApprovalSummary, type loadApprovalSummary } from '@/server/offers/approval';
 import { Card, Stack } from '@/ui/Layout';
 import { Outcome } from '@/ui/Outcome';
 import { StatusPill } from '@/ui/StatusPill';
@@ -65,7 +65,7 @@ export default async function ApprovePage({
 }) {
   const { token } = await params;
   const { answered } = await searchParams;
-  const summary = await loadApprovalSummary(token);
+  const summary = await openApprovalSummary(token);
   if (!summary) {
     return (
       <LandlordShell organisationName="Gaff" tagline="Using Gaff">

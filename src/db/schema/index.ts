@@ -8,3 +8,4 @@ export * from './activity';
 export * from './checks';
 export * from './offers';
 export * from './tenancy';
+export * from './funnels';

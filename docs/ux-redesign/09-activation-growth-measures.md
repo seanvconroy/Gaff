@@ -135,3 +135,28 @@ Targets are hypotheses. The first job is to record a baseline for each on the cu
 **UX-ME-5.** Baselines for every funnel are recorded on the current product before the first redesigned screen ships, so each change can be judged. `[P14]`
 
 **UX-ME-6.** Any test of two versions (the order of sign-in methods, import first or form first) is decided on its funnel's measure, with a stated minimum sample. Pilots are small, so most early decisions come from the moderated tests, not from A/B tests. `[P14]`
+
+### Baselines
+
+No baseline has been taken yet. There are no numbers here until someone has run the current product from start to finish.
+
+How a baseline is taken:
+
+1. Put your email in `STAFF_EMAILS` and sign in with it.
+2. Run the current flows end to end, before any redesigned screen ships: sign in and set up, add a letting and go live, send an enquiry, answer as the renter, decide who views, book, apply, choose applicants, do the checks and references, approve as the owner, make and accept the offer, sign, take payment and finish.
+3. Open `/internal/funnels`. Each funnel shows how many reached each step, the share of the step before, and the median time between steps.
+4. Copy the numbers into the table below, with the date.
+
+The numbers are to be copied into this note before the first redesigned screen ships (UX-ME-5). There is no production traffic yet, so a baseline is the founders' own test run. Read the times as the baseline. Read the counts as proof that each step is recorded.
+
+What the page can't show yet:
+
+- **Draft reviewed** (adding a letting). Today, reviewing and going live are one step.
+- **Home** (Today opened, first tap). It isn't recorded until Today is rebuilt.
+- **Flows that aren't built**: import, forwarding, on Gaff, inviting a team, search, asking to view, saved search and profile. Their steps are listed and show dashes.
+- **Active time.** Times are from one step to the next by the clock, not minutes of use.
+
+| Funnel | Date | Reached at each step | Share of the step before | Median time |
+| --- | --- | --- | --- | --- |
+| To be filled in | | | | |
+

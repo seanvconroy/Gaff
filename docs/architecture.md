@@ -118,6 +118,7 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 | `decisions` | Who decided what and when, with a snapshot of the criteria and ranking used | No (IDs only) |
 | `events` | Append-only log behind the timeline and the metrics | **Never** |
 | `activity_minutes` | Operator active minutes per letting, for time saved | Operator staff |
+| `funnel_events` | Funnel steps the record has no event for (UX-ME-1): a step code, an ID, an optional split code and a time, once per step per subject. No `organisation_id`: any use case may add a row, and only `withSystem()` can read them, for Gaff's internal page | **Never** |
 
 ### Later slices (sketch)
 

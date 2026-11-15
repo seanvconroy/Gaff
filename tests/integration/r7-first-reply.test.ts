@@ -82,7 +82,15 @@ describe('R7: the first reply', () => {
       tx.select().from(events).where(eq(events.type, 'message.sent')),
     );
     expect(sentEvents.map((e) => e.data)).toEqual([
-      { messageId: reply!.id, kind: 'first_reply', channel: 'email', author: 'template' },
+      {
+        messageId: reply!.id,
+        kind: 'first_reply',
+        channel: 'email',
+        author: 'template',
+        // UX-ME-1: whose it was, as an ID, so the renter's funnel can count it as delivered.
+        applicationId: outcome.applicationId,
+        checkId: null,
+      },
     ]);
   });
 

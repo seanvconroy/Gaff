@@ -148,6 +148,13 @@
       "when": 1793531288153,
       "tag": "0020_slice3_tenancy",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794769235571,
+      "tag": "0021_ux_me_funnel_events",
+      "breakpoints": true
     }
   ]
 }

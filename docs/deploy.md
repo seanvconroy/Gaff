@@ -46,6 +46,7 @@ It takes about 20 minutes. Production uses the same steps with real providers; s
    | `DATABASE_URL` | the address from step 1.4 |
    | `AUTH_SECRET` | 32 or more random letters and digits |
    | `CRON_SECRET` | another 32 or more random letters and digits |
+   | `STAFF_EMAILS` | the founders' sign-in emails, separated by commas. They can open `/internal/funnels`; nobody else can |
    | `GAFF_ENV` | `staging` |
 
    For the random values, use a password manager's generator, or run `openssl rand -hex 32` in a terminal.

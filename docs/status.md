@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 14 November 2026 (UX redesign agreed with the founder and ready to build; no code changed yet).
+Last updated: 15 November 2026 (wave 0 of the UX redesign built: funnel events, and the new design system).
 
 ## Done
 
@@ -83,7 +83,7 @@ Last updated: 14 November 2026 (UX redesign agreed with the founder and ready to
 
   | Wave | Packages | Status |
   | --- | --- | --- |
-  | 0. Foundations | WP-1 funnel events and baselines; WP-2 design system | Not started |
+  | 0. Foundations | WP-1 funnel events and baselines; WP-2 design system | **Done**, 15 November 2026. See "Wave 0" below |
   | 1. Frame, sign-in and accounts | WP-3 shell and navigation; WP-4 sign-in; WP-5 accounts and first run; WP-6 the page frame | Not started |
   | 2A. Running a letting, part 1 | WP-7 Today and Lettings; WP-8 Inbox; WP-9 adding a letting; WP-10 reading an advert; WP-11 forwarding | Not started |
   | 2B. Inside a letting, for renters | WP-12 the renter's pages; WP-13 owner and referee pages; WP-14 profile and the renter's home | Not started |
@@ -94,6 +94,21 @@ Last updated: 14 November 2026 (UX redesign agreed with the founder and ready to
 - **Your end-to-end test** (see [testing-guide.md](testing-guide.md)), then feedback and iteration.
 - **Before the first pilot:** everything in [launch-checklist.md](launch-checklist.md), including the providers for ID and income checks (stand-ins today) and the solicitor’s answers on electronic signing (Q23) and the agreement wording.
 - **Later:** joint tenants on one agreement; guarantors when affordability isn’t met (renters can explain or add one by replying, today); an e-signature provider if the solicitor wants an advanced signature; renter profiles they can keep and reuse (decided in Q25; a slice of its own after the end-to-end test); an export of the signed agreement, packs and inventory as PDFs; moving the renter pages’ words into `src/copy/`.
+
+## UX redesign, wave 0 (foundations)
+
+| Package | What | Proven by |
+| --- | --- | --- |
+| WP-1: funnel events and baselines (UX-ME-1 to UX-ME-5) | A catalogue of every funnel in section 9 of the redesign, including the ones whose screens aren't built yet. Steps that already had an event in a letting's record reuse it; steps that had none (sign-in, a renter's, referee's or owner's page opened, checks done) go in a new `funnel_events` table, once per subject, with codes, IDs, numbers and dates only. An internal page, `/internal/funnels`, for Gaff's own team (`STAFF_EMAILS`); anyone else gets "not found". Funnel events are deleted with the rest of the anonymous record | `src/domain/funnels/*.test.ts`, `tests/compliance/funnel-events.test.ts`, `tests/integration/ux-me-funnels.test.ts`, `tests/integration/ux-me-staff.test.ts`, `tests/e2e/ux-me-funnels.spec.ts` |
+| WP-2: the design system (UX-DS-1 to UX-DS-29) | Role-named tokens: a white ground, ink for text and the main button, Atlantic blue (`#3a5fa8`) as the one accent, in light and dark, with 64 contrast pairs tested in both. One type family (DM Sans). The wordmark kept exactly, as a drawing taken from today's lettering. Every control 48px high; one breakpoint, 900px. New components: sheet and dialog, menu, toast, skeleton, chips, segmented progress, the flow shell, date and time pickers in Irish format, code input, avatar and badge. Every component on one page, `/dev/ui`. Every journey's accessibility check now also measures control heights and targets | `scripts/tokens/lib.test.ts`, `tests/e2e/ui-components.spec.ts`, `tests/e2e/design.spec.ts`; all 43 journeys |
+
+Left for later packages, on purpose:
+
+- Existing screens keep their structure: the sidebar (now white) until WP-3, the browser's own date and time inputs and the top-of-form error box until the packages that rebuild those forms.
+- Not recorded yet: "draft reviewed" when adding a letting (it isn't a separate step today), the first tap on Today, and time spent inside a decision. Times between steps are clock time, not active minutes.
+- The sign-in screen's "opened" step can be inflated by anyone who calls it repeatedly, and email link scanners count as "page opened". WP-4 rebuilds sign-in.
+- Baselines: nobody has used the product for real, so there are no numbers yet. Run the current flows on the test copy, open `/internal/funnels`, and copy the numbers into the note at the end of section 9 before the first redesigned screen ships.
+- `STAFF_EMAILS` needs setting on the test copy and in production. ADR-0011 still says Fraunces is self-hosted; WP-28 brings the documents up to date.
 
 ## Known issues
 

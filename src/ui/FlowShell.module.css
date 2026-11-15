@@ -1,0 +1,160 @@
+/*
+ * The flow shell. Below 900px: the task fills the screen, with the page's gutter, and the primary
+ * button spans the footer. Above: the same header and footer, round a 640px column.
+ */
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background-color: var(--color-surface-0);
+}
+
+.header {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: calc(var(--size-task) + 2 * var(--space-4));
+  margin: 0 auto;
+  padding: var(--space-2) var(--space-4) var(--space-4);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--size-control);
+}
+
+/* Close or back: a 48px target whose icon lines up with the column's edge. */
+.leave {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-control);
+  height: var(--size-control);
+  margin-inline-start: calc(var(--space-3) * -1);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.leave:hover {
+  background-color: var(--color-surface-2);
+}
+
+.exit {
+  display: flex;
+  margin-inline-start: auto;
+}
+
+/* A quiet text link with a full 44px target. */
+.exitLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-target);
+  padding: 0 var(--space-2);
+  margin-inline-end: calc(var(--space-2) * -1);
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  font-weight: var(--type-title-weight);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.exitLink:hover {
+  color: var(--color-brand-text);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* The fixed footer covers the foot of the page: leave its height, and a little more, clear. */
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: calc(var(--size-task) + 2 * var(--space-4));
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-4) calc(var(--size-footer) + var(--space-8));
+}
+
+/* A step arrives from the right and fades up; Back brings the one before in from the left. */
+.step {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+  animation: step-in var(--motion-base) var(--ease-enter);
+}
+
+.fromLeft {
+  animation-name: step-back;
+}
+
+.footer {
+  position: fixed;
+  z-index: 5;
+  inset-inline: 0;
+  bottom: 0;
+  padding: 0 var(--space-4) env(safe-area-inset-bottom);
+  background-color: var(--color-surface-1);
+  border-top: 1px solid var(--color-border);
+  box-shadow: var(--shadow-raised);
+}
+
+.footerInner {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  max-width: var(--size-task);
+  min-height: var(--size-footer);
+  margin: 0 auto;
+}
+
+.back {
+  flex: none;
+}
+
+/* On a phone the primary button takes all the room Back leaves. */
+.primary {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+@media (width > 900px) {
+  .header {
+    padding-top: var(--space-4);
+  }
+
+  .main {
+    padding-top: var(--space-8);
+  }
+
+  /* Back at the column's left edge, the primary button at its right, each as wide as its words. */
+  .footerInner {
+    justify-content: space-between;
+  }
+
+  .primary {
+    flex: none;
+    margin-inline-start: auto;
+  }
+}
+
+@keyframes step-in {
+  from {
+    opacity: 0;
+    translate: var(--space-6) 0;
+  }
+}
+
+@keyframes step-back {
+  from {
+    opacity: 0;
+    translate: calc(var(--space-6) * -1) 0;
+  }
+}

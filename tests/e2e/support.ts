@@ -6,7 +6,9 @@ import { E2E_DATABASE_URL } from '../../playwright.config';
 
 /**
  * WCAG 2.2 AA (PRD non-functional requirements; design system). The page is checked as it comes
- * to rest: a step or a sheet that is still fading in is waited for first.
+ * to rest: a step or a sheet that is still fading in is waited for first. axe can't measure a
+ * target, so the same check holds the page to the design system's sizes: 44px targets (WCAG
+ * 2.5.8, UX-DS-15) and the one 48px control height (UX-DS-13).
  */
 export async function expectAccessible(page: Page): Promise<void> {
   await settled(page);
@@ -17,6 +19,7 @@ export async function expectAccessible(page: Page): Promise<void> {
     (v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(' ')).join(', ')})`,
   );
   expect(summary, 'accessibility violations').toEqual([]);
+  await expectControlSizes(page);
 }
 
 /** Waits until nothing on the page is still moving or fading (UX-DS-20: all motion is short). */
@@ -82,6 +85,8 @@ export async function expectNoSidewaysScroll(page: Page): Promise<void> {
 export async function expectControlSizes(page: Page): Promise<void> {
   const problems = await page.evaluate(() => {
     const found: string[] = [];
+    // Measuring scrolls each target into view; the page is put back where it was afterwards.
+    const scrolledTo = { left: window.scrollX, top: window.scrollY };
     const name = (el: Element) => {
       const words = el.getAttribute('aria-label') || el.textContent || el.getAttribute('name');
       return `${el.tagName.toLowerCase()} "${(words ?? '').trim().slice(0, 40)}"`;
@@ -135,6 +140,7 @@ export async function expectControlSizes(page: Page): Promise<void> {
       const height = reach(0, -1) + reach(0, 1) + 1;
       if (width < 44 || height < 44) found.push(`${name(el)} has a ${width} by ${height}px target`);
     }
+    window.scrollTo({ ...scrolledTo, behavior: 'instant' });
     return found;
   });
   expect(problems, 'control heights and targets').toEqual([]);

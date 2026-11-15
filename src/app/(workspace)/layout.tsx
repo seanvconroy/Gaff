@@ -31,7 +31,7 @@ export default async function WorkspaceLayout({ children }: { children: ReactNod
             </p>
             <form action={signOut}>
               <button type="submit" className={styles.signOut}>
-                <LogOut size={18} strokeWidth={1.75} aria-hidden="true" />
+                <LogOut size={20} strokeWidth={1.75} aria-hidden="true" />
                 Sign out
               </button>
             </form>

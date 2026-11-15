@@ -43,11 +43,11 @@ export function ActionRow({
 }) {
   const tile = Icon ? (
     <span className={`${styles.tile} ${styles[tone]}`}>
-      <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
+      <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
     </span>
   ) : null;
   const chevron = href ? (
-    <ChevronRight className={styles.chevron} size={18} strokeWidth={1.75} aria-hidden="true" />
+    <ChevronRight className={styles.chevron} size={20} strokeWidth={1.75} aria-hidden="true" />
   ) : null;
   const rest = (
     <>

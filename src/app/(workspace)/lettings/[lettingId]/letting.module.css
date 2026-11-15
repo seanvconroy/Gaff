@@ -269,3 +269,27 @@
   accent-color: var(--color-brand);
   cursor: pointer;
 }
+
+/* A tick box on its own in a table: a 44px target round it that doesn't make the row taller. */
+.tickTarget {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-target);
+  height: var(--size-target);
+  margin: calc((22px - var(--size-target)) / 2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.tickTarget:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+/* Where the target can show the ring, the box doesn't need its own. */
+@supports selector(:has(*)) {
+  .tickTarget input:focus-visible {
+    outline: none;
+  }
+}

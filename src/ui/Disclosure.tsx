@@ -22,7 +22,7 @@ export function Disclosure({
   return (
     <details className={`${styles.details} ${styles[variant]}`} open={open}>
       <summary className={styles.summary}>
-        <ChevronRight className={styles.icon} size={18} strokeWidth={2} aria-hidden="true" />
+        <ChevronRight className={styles.icon} size={20} strokeWidth={2} aria-hidden="true" />
         <span>{summary}</span>
       </summary>
       <div className={styles.content}>{children}</div>

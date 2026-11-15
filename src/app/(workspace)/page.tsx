@@ -49,7 +49,7 @@ export default async function DashboardPage() {
           // One primary action per view: with no lettings yet, it's in the empty state instead.
           homes > 0 ? (
             <ButtonLink href="/lettings/new" variant="primary">
-              <Plus size={18} strokeWidth={2} aria-hidden="true" />
+              <Plus size={20} strokeWidth={2} aria-hidden="true" />
               Add a letting
             </ButtonLink>
           ) : undefined
@@ -62,7 +62,7 @@ export default async function DashboardPage() {
           title="No lettings yet"
           action={
             <ButtonLink href="/lettings/new" variant="primary">
-              <Plus size={18} strokeWidth={2} aria-hidden="true" />
+              <Plus size={20} strokeWidth={2} aria-hidden="true" />
               Add a letting
             </ButtonLink>
           }

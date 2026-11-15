@@ -33,9 +33,9 @@ export function CopyButton({
       }}
     >
       {copied ? (
-        <Check size={18} strokeWidth={2} aria-hidden="true" />
+        <Check size={20} strokeWidth={2} aria-hidden="true" />
       ) : (
-        <Copy size={18} strokeWidth={1.75} aria-hidden="true" />
+        <Copy size={20} strokeWidth={1.75} aria-hidden="true" />
       )}
       <span aria-live="polite">{copied ? 'Copied' : label}</span>
       {what && !copied ? <span className="visually-hidden"> {what}</span> : null}

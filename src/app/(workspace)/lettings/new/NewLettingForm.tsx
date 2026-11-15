@@ -175,7 +175,7 @@ function Wizard({
                     );
                   }}
                 >
-                  <Plus size={18} strokeWidth={2} aria-hidden="true" />
+                  <Plus size={20} strokeWidth={2} aria-hidden="true" />
                   Add a second address line
                 </button>
               </div>

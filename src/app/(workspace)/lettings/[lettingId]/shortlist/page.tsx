@@ -109,14 +109,17 @@ export default async function ShortlistPage({
                   <tr key={row.id}>
                     <Cell label="Invite">
                       {row.status === 'enquired' ? (
-                        <input
-                          type="checkbox"
-                          name="invite"
-                          value={row.id}
-                          defaultChecked={toTick.has(row.id)}
-                          aria-label={`Invite ${row.name}`}
-                          className={styles.tick}
-                        />
+                        // The label is the 44px target round the 22px box (UX-DS-15).
+                        <label className={styles.tickTarget}>
+                          <input
+                            type="checkbox"
+                            name="invite"
+                            value={row.id}
+                            defaultChecked={toTick.has(row.id)}
+                            aria-label={`Invite ${row.name}`}
+                            className={styles.tick}
+                          />
+                        </label>
                       ) : null}
                     </Cell>
                     <Cell label="Rank">{row.position}</Cell>

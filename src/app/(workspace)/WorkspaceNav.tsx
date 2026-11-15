@@ -41,7 +41,7 @@ export function WorkspaceNav() {
               className={styles.navLink}
               aria-current={current.test(pathname) ? 'page' : undefined}
             >
-              <Icon className={styles.navIcon} size={18} strokeWidth={1.75} aria-hidden="true" />
+              <Icon className={styles.navIcon} size={20} strokeWidth={1.75} aria-hidden="true" />
               <span>{label}</span>
             </Link>
           </li>

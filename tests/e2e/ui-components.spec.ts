@@ -2,7 +2,6 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { loadTokens } from '../../scripts/tokens/lib';
 import {
   expectAccessible,
-  expectControlSizes,
   expectFocusRings,
   expectNoSidewaysScroll,
   screenshot,
@@ -84,24 +83,38 @@ test('UX-DS-16: the component page shows every component and its states at 390px
 test('UX-DS-13, UX-DS-15: every button, input and select is 48px high, and nothing has a target under 44px, at both widths', async ({
   page,
 }) => {
+  // expectAccessible measures every control and target on the page (tests/e2e/support.ts), so
+  // every journey holds its own screens to this. Here: the components, and what they open.
   for (const [, viewport] of widths) {
     await open(page, '/dev/ui', viewport);
-    await expectControlSizes(page);
-    // The same holds inside what opens: a menu's actions, the calendar's days, the list of times.
+    await expectAccessible(page);
     await page.getByRole('button', { name: 'More for 12 Ranelagh Road' }).click();
     await expect(page.getByRole('menu')).toBeVisible();
-    await expectControlSizes(page);
+    await expectAccessible(page);
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Viewing date' }).click();
     await expect(page.getByRole('grid')).toBeVisible();
-    await expectControlSizes(page);
+    await expectAccessible(page);
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Until' }).click();
     await expect(page.getByRole('listbox')).toBeVisible();
-    await expectControlSizes(page);
+    await expectAccessible(page);
     await page.keyboard.press('Escape');
     await open(page, '/dev/ui/flow?step=3', viewport);
-    await expectControlSizes(page);
+    await expectAccessible(page);
+
+    // The sizes themselves: a button, a field, a select and a picker are all 48px.
+    await open(page, '/dev/ui', viewport);
+    for (const control of [
+      page.getByRole('button', { name: 'Send invitations' }),
+      page.getByRole('button', { name: 'Not now' }),
+      page.getByLabel('Address', { exact: true }),
+      page.getByLabel('Type of home'),
+      page.getByRole('button', { name: 'Viewing date' }),
+      page.getByRole('button', { name: 'More for 12 Ranelagh Road' }),
+    ]) {
+      expect((await control.boundingBox())!.height).toBe(48);
+    }
   }
 });
 
@@ -160,6 +173,8 @@ test('UX-DS-23: the wordmark is a drawing named "Gaff", and its small size is 20
   const marks = page.getByRole('main').getByRole('img', { name: 'Gaff' });
   await expect(marks).toHaveCount(2);
   expect((await marks.nth(1).boundingBox())!.height).toBeCloseTo(20, 0);
+  // Nothing clips the drawing: a clip snapped to whole pixels would shave the foot of the "g".
+  await expect(marks.first()).toHaveCSS('overflow', 'visible');
   // Its lettering is outlines: no text is set, so no font is needed for it.
   await expect(marks.first().locator('path')).toHaveCount(2);
   expect(await marks.first().textContent()).toBe('');
@@ -204,8 +219,15 @@ test('UX-DS-21: a sheet is a dialog in the middle on a desktop and slides up fro
     await expect(sheet).toBeHidden();
     await expect(opener).toBeFocused();
 
-    // Its own buttons close it too, and focus returns the same way.
+    // Closed and opened again at once, it stays open: the first close's late event can't shut it.
     await page.keyboard.press('Enter');
+    await expect(sheet).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Enter');
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 150)));
+    await expect(sheet).toBeVisible();
+
+    // Its own buttons close it too, and focus returns the same way.
     await sheet.getByRole('button', { name: 'Save the new time' }).click();
     await expect(sheet).toBeHidden();
     await expect(page.getByText('Moved to 6:30pm.')).toBeVisible();

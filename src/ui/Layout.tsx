@@ -77,7 +77,7 @@ export function CardHeader({
 export function BackLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link href={href} className={styles.back}>
-      <ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />
+      <ChevronLeft size={20} strokeWidth={1.75} aria-hidden="true" />
       {children}
     </Link>
   );

@@ -38,7 +38,7 @@ export function describedBy(name: string, hint: unknown, error: unknown): string
 export function FieldError({ id, children }: { id: string; children: ReactNode }) {
   return (
     <p id={id} className={styles.error}>
-      <AlertCircle className={styles.errorIcon} size={18} strokeWidth={1.75} aria-hidden="true" />
+      <AlertCircle className={styles.errorIcon} size={20} strokeWidth={1.75} aria-hidden="true" />
       <span>
         <span className="visually-hidden">Error: </span>
         {children}
@@ -203,7 +203,7 @@ export function SelectField({
             </option>
           ))}
         </select>
-        <ChevronDown className={styles.chevron} size={18} strokeWidth={1.75} aria-hidden="true" />
+        <ChevronDown className={styles.chevron} size={20} strokeWidth={1.75} aria-hidden="true" />
       </span>
       <Messages name={name} hint={hint} error={error} />
     </div>

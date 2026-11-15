@@ -94,7 +94,7 @@ export function TenancySteps({
                 <span
                   className={`${styles.stepIcon} ${step.done ? styles.stepDone : index === now ? styles.stepNow : ''}`}
                 >
-                  <Icon size={18} strokeWidth={2} aria-hidden="true" />
+                  <Icon size={20} strokeWidth={2} aria-hidden="true" />
                 </span>
                 <span className={styles.stepText}>
                   <span className={styles.stepName}>

@@ -59,7 +59,8 @@ test('R26 (basic): a person closes the letting, everyone hears back, and renters
   await expect(
     renter.getByText(/We’ll delete your details from Gaff by \w+day \d+ \w+\./),
   ).toBeVisible();
-  await expect(renter.getByRole('button')).toHaveCount(0);
+  // Nothing is left to do on the page itself; "Talk to a person" stays in the header (rule 6).
+  await expect(renter.getByRole('main').getByRole('button')).toHaveCount(0);
   await expectAccessible(renter);
   await screenshot(renter, '34-renter-closed');
   await phone.close();

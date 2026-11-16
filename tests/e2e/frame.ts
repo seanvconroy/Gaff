@@ -117,8 +117,17 @@ export async function expectTalkToAPerson(
   if (expected.shots) await screenshot(page, expected.shots);
 
   // Focus is inside the sheet, and Tab never leaves it.
-  const inside = () => sheet.evaluate((el) => el.contains(document.activeElement));
-  expect(await inside(), 'focus moved into the sheet').toBe(true);
+  // As for every sheet (UX-DS-21): focus never reaches the page behind. Past the last control a
+  // native dialog hands focus to the browser's own bar, which the page sees as the body.
+  const inside = () =>
+    sheet.evaluate((el) => {
+      const active = document.activeElement;
+      return !active || active === document.body || el.contains(active);
+    });
+  expect(
+    await sheet.evaluate((el) => el.contains(document.activeElement)),
+    'focus moved into the sheet',
+  ).toBe(true);
   for (let i = 0; i < 8; i++) {
     await page.keyboard.press('Tab');
     expect(await inside(), 'focus stays in the sheet').toBe(true);

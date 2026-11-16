@@ -474,8 +474,8 @@ test('UX-SI-3: the email’s button signs in on the same browser, and shows the 
     await expectAccessible(other);
     await screenshot(other, `ux-si-code-shown-${width}`);
     // Nobody is left signed in on the wrong browser, and the code can't be used from it.
-    await other.goto('/');
-    await expect(other).toHaveURL(/\/sign-in$/);
+    await other.goto('/today');
+    await expect(other).toHaveURL(/\/sign-in(\?|$)/);
     expect((await elsewhere.cookies()).some((c) => /session_token/.test(c.name))).toBe(false);
     await elsewhere.close();
 

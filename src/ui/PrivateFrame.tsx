@@ -128,7 +128,7 @@ function HomeBlock({
 }) {
   return (
     <div className={styles.home}>
-      <span className={styles.photo} aria-hidden="true">
+      <span className={styles.photo} data-home-photo aria-hidden="true">
         <House size={24} strokeWidth={1.75} />
       </span>
       <div className={styles.address}>

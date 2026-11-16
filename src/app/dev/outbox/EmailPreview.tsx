@@ -13,10 +13,16 @@ export function EmailPreview({ html, title }: { html: string; title: string }) {
   const [height, setHeight] = useState(480);
   const measure = useCallback(() => {
     const page = frame.current?.contentDocument?.documentElement;
-    if (page && page.scrollHeight > 0) setHeight(page.scrollHeight);
+    // The frame's own hairline, top and bottom, sits inside its height.
+    if (page && page.scrollHeight > 0) setHeight(page.scrollHeight + 2);
   }, []);
   // The frame may have loaded before this component woke up.
   useEffect(measure, [measure]);
+  // A narrower window wraps the email onto more lines, so measure again when the window changes.
+  useEffect(() => {
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [measure]);
   return (
     <iframe
       ref={frame}

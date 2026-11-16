@@ -55,9 +55,7 @@ test('UX-PP-1, UX-PP-3, UX-PP-5, UX-PP-9: the frame for a renter, a tenant, an o
     expect(box.height).toBe(48);
     if (width === 390) expect(box.width).toBe(390 - 2 * 16);
     // The home's picture is a fixed 3:2, with or without a photo in it.
-    const photo = (await page
-      .locator('[class*="PrivateFrame-module"][class*="photo"]')
-      .boundingBox())!;
+    const photo = (await page.locator('[data-home-photo]').boundingBox())!;
     expect(photo.width / photo.height).toBeCloseTo(3 / 2, 2);
     await expectNoSidewaysScroll(page);
     await expectAccessible(page);
@@ -181,7 +179,14 @@ test('UX-PP-3, UX-PP-10, UX-AI-1, UX-AI-2: the first reply is one email with one
       })
       .toBeGreaterThanOrEqual(0);
     await expectNoSidewaysScroll(page);
-    await expectAccessible(page);
+    // The preview is a sandboxed frame no scanner can enter, so the email is checked as a page
+    // of its own: the same markup a mail app is given.
+    const markup = await firstReply.locator('iframe').getAttribute('srcdoc');
+    const mail = await page.context().newPage();
+    await mail.setViewportSize({ width, height: 844 });
+    await mail.setContent(markup!);
+    await expectAccessible(mail);
+    await mail.close();
     await firstReply.scrollIntoViewIfNeeded();
     await firstReply.screenshot({ path: `screenshots/wp6-email-first-reply-${width}.png` });
   }

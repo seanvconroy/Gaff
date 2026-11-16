@@ -96,7 +96,7 @@ async function ownEnquiries(tx: Tx, member: Member): Promise<Set<string>> {
 export async function inboxFor(
   member: Member,
   now: Date = new Date(),
-): Promise<{ conversations: Conversation[]; leads: Map<string, string> }> {
+): Promise<{ conversations: Conversation[]; leads: ReadonlyMap<string, string> }> {
   return withOrg(member.organisationId, async (tx) => {
     const readers = await readersFor(tx, member);
     const own = await ownEnquiries(tx, member);

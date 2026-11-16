@@ -301,30 +301,39 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         .groupBy(activityMinutes.lettingId),
     );
     // R29: answers waiting for a person's approval. Which home and since when; never the words.
+    // UX-NV-13: each is in one conversation, the renter's, so a row about one of them opens it.
     const approvals = await tx
-      .select({ lettingId: messages.lettingId, since: messages.createdAt })
+      .select({
+        lettingId: messages.lettingId,
+        applicationId: messages.applicationId,
+        since: messages.createdAt,
+      })
       .from(messages)
       .where(eq(messages.status, 'awaiting_approval'));
     // R8: questions only a person can answer. The name is cut to a first name before it leaves
-    // here, and the question itself is never read (UX-HM-10).
+    // here, and the question itself is never read (UX-HM-10). A question from someone whose
+    // details were deleted has nobody left to answer: it has no conversation, and isn't counted.
     const questions = (
       await tx
         .select({
           lettingId: operatorQuestions.lettingId,
+          applicationId: operatorQuestions.applicationId,
           since: operatorQuestions.createdAt,
           fullName: applications.fullName,
-          deletedAt: applications.personalDataDeletedAt,
         })
         .from(operatorQuestions)
         .innerJoin(applications, eq(applications.id, operatorQuestions.applicationId))
-        .where(eq(operatorQuestions.status, 'open'))
+        .where(
+          and(eq(operatorQuestions.status, 'open'), isNull(applications.personalDataDeletedAt)),
+        )
     ).map((q) => ({
       lettingId: q.lettingId,
+      applicationId: q.applicationId,
       since: q.since,
-      firstName: q.deletedAt ? null : firstNameOf(q.fullName) || null,
+      firstName: firstNameOf(q.fullName) || null,
     }));
     const attention = await tx
-      .select({ since: inboundEmails.receivedAt })
+      .select({ id: inboundEmails.id, since: inboundEmails.receivedAt })
       .from(inboundEmails)
       .where(eq(inboundEmails.status, 'needs_attention'));
     const [usual] = await tx

@@ -1,0 +1,416 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > a person’s answer 1`] = `
+"Subject: Re: 12 Ranelagh Road
+
+Hello Aoife,
+
+You asked: Is there parking?
+Yes, one space behind the building.
+
+If you have any other questions, just reply to this email.
+
+Ann Power, Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > a place offered to everyone waiting 1`] = `
+"Subject: A viewing place has opened up: 12 Ranelagh Road
+
+Hello Aoife,
+
+A place has opened up to view 12 Ranelagh Road, Ranelagh, Dublin 6, on Saturday 7 November, 6pm.
+
+It’s been offered to everyone on the waiting list, and the first person to book it gets it:
+https://app.gaff.test/r/renter-token
+
+If you can’t make it, there’s nothing to do. Either way, you’ll hear back from us.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > a place offered to one person 1`] = `
+"Subject: A viewing place has opened up: 12 Ranelagh Road
+
+Hello Aoife,
+
+A place has opened up to view 12 Ranelagh Road, Ranelagh, Dublin 6, on Saturday 7 November, 6pm.
+
+It’s yours if you’d like it. Please book by Friday 6 November, 8:40pm here:
+https://app.gaff.test/r/renter-token
+
+If you can’t make it, there’s nothing to do. Either way, you’ll hear back from us.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > agreement ready 1`] = `
+"Subject: 12 Ranelagh Road: your tenancy agreement to sign
+
+Hello Aoife,
+
+Your tenancy agreement for 12 Ranelagh Road, Ranelagh, Dublin 6, is ready. Please read it and sign it here. It takes a few minutes:
+https://app.gaff.test/r/renter-token/agreement
+
+Once you’ve signed, Halcyon Lettings signs too, and you’ll both have a copy. Then Halcyon Lettings will send you how to pay the deposit and first month’s rent.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > agreement signed 1`] = `
+"Subject: 12 Ranelagh Road: your tenancy agreement is signed
+
+Hello Aoife,
+
+Your tenancy agreement for 12 Ranelagh Road is now signed by you and Halcyon Lettings. You can read and save your copy here:
+https://app.gaff.test/r/renter-token/agreement
+
+Next, Halcyon Lettings will send you how to pay the deposit and first month’s rent.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > answer 1`] = `
+"Subject: Re: 12 Ranelagh Road
+
+Hello Aoife,
+
+You asked: Is there a garden?
+Yes, a small back garden.
+
+I’ve passed your other question to a person at Halcyon Lettings. They’ll reply to you by email.
+
+If you have any other questions, just reply to this email.
+
+Halcyon Lettings’ AI assistant"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > booking confirmation 1`] = `
+"Subject: Viewing booked: 12 Ranelagh Road, Saturday 7 November, 6pm
+
+Hello Aoife,
+
+You’re booked to view 12 Ranelagh Road, Ranelagh, Dublin 6, on Saturday 7 November, 6pm.
+
+We’ll remind you the day before. If you can’t make it, please change or cancel your time here, so someone else can have the place:
+https://app.gaff.test/r/renter-token
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > booking moved 1`] = `
+"Subject: Viewing booked: 12 Ranelagh Road, Saturday 7 November, 6pm
+
+Hello Aoife,
+
+Your viewing has moved. It’s now 12 Ranelagh Road, Ranelagh, Dublin 6, on Saturday 7 November, 6pm.
+
+We’ll remind you the day before. If you can’t make it, please change or cancel your time here, so someone else can have the place:
+https://app.gaff.test/r/renter-token
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > checks 1`] = `
+"Subject: 12 Ranelagh Road: a few checks before an offer
+
+Hello Aoife,
+
+Thanks for applying for 12 Ranelagh Road, Ranelagh, Dublin 6. Before making an offer, Halcyon Lettings would like to check three things: your ID, your income and your references.
+
+Each check is free, and you start each one yourself, here. We explain each one first:
+https://app.gaff.test/r/renter-token
+
+Only Halcyon Lettings sees the results. Once Halcyon Lettings has decided who to offer the home to, we’ll email you either way.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > first reply 1`] = `
+"Subject: Your enquiry about 12 Ranelagh Road
+
+Hello Aoife,
+
+Thanks for your enquiry about 12 Ranelagh Road, Ranelagh, Dublin 6.
+
+I’m Halcyon Lettings’ AI assistant. I’ll help with your enquiry, and a person at Halcyon Lettings makes every decision. If you’d rather talk to a person, just reply and say so.
+
+So we can consider you for a viewing, please answer a few quick questions. It takes about a minute, and you don’t need an account:
+https://app.gaff.test/r/renter-token
+
+The rent is €1,850 a month, and the home is available from Tuesday 1 December. Viewings start on Saturday 7 November. If you’re invited, you’ll get a link to book a time that suits you. Either way, you’ll hear back from us.
+
+How we use your details: https://app.gaff.test/privacy/halcyon-lettings
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > first reply, nothing to answer 1`] = `
+"Subject: Your enquiry about 12 Ranelagh Road
+
+Hello Aoife,
+
+Thanks for your enquiry about 12 Ranelagh Road, Ranelagh, Dublin 6.
+
+I’m Halcyon Lettings’ AI assistant. I’ll help with your enquiry, and a person at Halcyon Lettings makes every decision. If you’d rather talk to a person, just reply and say so.
+
+You don’t need to do anything else for now.
+
+The rent is €1,850 a month, and the home is available from Tuesday 1 December. If you’re invited to view, you’ll get a link to book a time that suits you. Either way, you’ll hear back from us.
+
+How we use your details: https://app.gaff.test/privacy/halcyon-lettings
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > holding 1`] = `
+"Subject: Your enquiry about 12 Ranelagh Road
+
+Hello Aoife,
+
+Thanks for your interest in 12 Ranelagh Road. We’ve had a lot of interest, so we can’t invite everyone to view this time. Viewings take place on Saturday 7 November and Monday 9 November.
+
+You’ll hear from us either way once a tenant has been chosen.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > inventory 1`] = `
+"Subject: 12 Ranelagh Road: your move-in inventory
+
+Hello Aoife,
+
+Halcyon Lettings has recorded what’s in 12 Ranelagh Road, and its condition, room by room, with photos. Please look over it here, and confirm it’s a fair record:
+https://app.gaff.test/r/renter-token
+
+If anything isn’t right, reply to this email and Halcyon Lettings will sort it out with you. It’s worth doing in the first week, as it helps when your deposit is returned.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > invitation 1`] = `
+"Subject: Book a viewing: 12 Ranelagh Road
+
+Hello Aoife,
+
+Halcyon Lettings would like to invite you to view 12 Ranelagh Road, Ranelagh, Dublin 6.
+
+Book a time that suits you here. You don’t need an account:
+https://app.gaff.test/r/renter-token
+
+Viewing times:
+- Saturday 7 November, 6pm to 7pm
+- Monday 9 November, 11am to 11:30am
+
+If none of these times work, reply to this email and let us know. We’ll send you a reminder the day before your viewing.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > invitation to apply 1`] = `
+"Subject: Apply for 12 Ranelagh Road
+
+Hello Aoife,
+
+Thanks for coming to view 12 Ranelagh Road, Ranelagh, Dublin 6. If you’d like to live there, you can apply here. It takes a minute, and you don’t need any documents:
+https://app.gaff.test/r/renter-token
+
+Halcyon Lettings will choose who to offer the home to after the viewings, and we’ll email you either way.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > letting closed, let 1`] = `
+"Subject: 12 Ranelagh Road has been let
+
+Hello Aoife,
+
+12 Ranelagh Road, Ranelagh, Dublin 6, has now been let, so Halcyon Lettings has closed enquiries for it. If you’ve agreed to rent it, Halcyon Lettings will be in touch with you directly.
+
+Thank you for your interest. We’ll delete your details from Gaff by Saturday 5 December.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > letting closed, withdrawn 1`] = `
+"Subject: 12 Ranelagh Road is no longer available
+
+Hello Aoife,
+
+Halcyon Lettings has decided not to let 12 Ranelagh Road, Ranelagh, Dublin 6, for now, so enquiries for it are closed.
+
+Thank you for your interest. We’ll delete your details from Gaff by Saturday 5 December.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > offer 1`] = `
+"Subject: An offer: 12 Ranelagh Road
+
+Hello Aoife,
+
+Good news: Halcyon Lettings would like to offer you 12 Ranelagh Road, Ranelagh, Dublin 6.
+
+The rent is €1,850 a month, from Tuesday 1 December. To secure the home, you’d pay a deposit of €1,850 and the first month’s rent of €1,850, directly to Halcyon Lettings. There are no other fees, and nothing is paid through Gaff.
+
+Please accept or decline by Thursday 5 November, 6pm, here:
+https://app.gaff.test/r/renter-token
+
+If you accept, Halcyon Lettings will send you the tenancy agreement to sign, and how to pay. If we don’t hear from you by then, the offer closes.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > offer closed 1`] = `
+"Subject: 12 Ranelagh Road: the offer has closed
+
+Hello Aoife,
+
+The offer for 12 Ranelagh Road, Ranelagh, Dublin 6, wasn’t accepted by Thursday 5 November, 6pm, so it has now closed. Thank you for your interest in the home.
+
+We’ll delete your details from Gaff by Saturday 5 December.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > outcome, applied 1`] = `
+"Subject: 12 Ranelagh Road: an update on your application
+
+Hello Aoife,
+
+Thank you for applying for 12 Ranelagh Road, Ranelagh, Dublin 6. Halcyon Lettings has now let the home to another applicant.
+
+We wish you well with your search. We’ll delete your details from Gaff by Saturday 5 December.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > outcome, enquired only 1`] = `
+"Subject: 12 Ranelagh Road has been let
+
+Hello Aoife,
+
+Thanks for your interest in 12 Ranelagh Road, Ranelagh, Dublin 6. The home has now been let, so Halcyon Lettings has closed enquiries for it.
+
+We wish you well with your search. We’ll delete your details from Gaff by Saturday 5 December.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > owner approval 1`] = `
+"Subject: 12 Ranelagh Road: please approve a tenant
+
+Hello Mary,
+
+Halcyon Lettings has chosen a preferred tenant for 12 Ranelagh Road, Ranelagh, Dublin 6, and a backup. You can see a one-page summary, and approve or decline, here. There’s nothing to sign up for:
+https://app.gaff.test/approve/owner-token
+
+Once you’ve approved, Halcyon Lettings makes the offer, for the home to be available from Tuesday 1 December.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > payment received 1`] = `
+"Subject: 12 Ranelagh Road: payment received
+
+Hello Aoife,
+
+Halcyon Lettings has received your payment of €3,700 for 12 Ranelagh Road. Thank you.
+
+Your tenancy starts on Tuesday 1 December. Halcyon Lettings will be in touch about moving in and the keys.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > payment request 1`] = `
+"Subject: 12 Ranelagh Road: paying the deposit and first month’s rent
+
+Hello Aoife,
+
+To secure 12 Ranelagh Road, please pay €3,700 by Friday 27 November: the deposit of €1,850 and the first month’s rent of €1,850. There are no other fees.
+
+You pay directly to Halcyon Lettings, not to Gaff. To keep the bank details safe, they’re on your page, not in this email:
+https://app.gaff.test/r/renter-token
+
+Before you pay, please check the bank details with Halcyon Lettings by phone. We’ll never send you different details by email.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > reference reminder 1`] = `
+"Subject: Reference for Aoife Byrne
+
+Hello Mary,
+
+A short reminder: Aoife Byrne has applied to rent a home through Halcyon Lettings, and gave your name as a previous landlord. Could you answer a few quick questions? It takes about two minutes, and there’s nothing to sign up for:
+https://app.gaff.test/reference/referee-token
+
+Your answers go only to Halcyon Lettings. They’re deleted once the tenancy starts, or when the letting closes. If you’d rather not give a reference, you can ignore this email.
+
+Halcyon Lettings, using Gaff"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > reference request, employer 1`] = `
+"Subject: Reference for Aoife Byrne
+
+Hello Mary,
+
+Aoife Byrne has applied to rent a home through Halcyon Lettings, and gave your name as their employer. Could you answer a few quick questions? It takes about two minutes, and there’s nothing to sign up for:
+https://app.gaff.test/reference/referee-token
+
+Your answers go only to Halcyon Lettings. They’re deleted once the tenancy starts, or when the letting closes. If you’d rather not give a reference, you can ignore this email.
+
+Halcyon Lettings, using Gaff"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > reference request, landlord 1`] = `
+"Subject: Reference for Aoife Byrne
+
+Hello Mary,
+
+Aoife Byrne has applied to rent a home through Halcyon Lettings, and gave your name as a previous landlord. Could you answer a few quick questions? It takes about two minutes, and there’s nothing to sign up for:
+https://app.gaff.test/reference/referee-token
+
+Your answers go only to Halcyon Lettings. They’re deleted once the tenancy starts, or when the letting closes. If you’d rather not give a reference, you can ignore this email.
+
+Halcyon Lettings, using Gaff"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > reminder, the day before 1`] = `
+"Subject: Reminder: viewing 12 Ranelagh Road, Saturday 7 November, 6pm
+
+Hello Aoife,
+
+A reminder that you’re viewing 12 Ranelagh Road, Ranelagh, Dublin 6, tomorrow at 6pm.
+
+If you can’t make it, please change or cancel your time here, so someone else can have the place:
+https://app.gaff.test/r/renter-token
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > reminder, two hours before 1`] = `
+"Subject: Reminder: viewing 12 Ranelagh Road, Saturday 7 November, 6pm
+
+Hello Aoife,
+
+A reminder that you’re viewing 12 Ranelagh Road, Ranelagh, Dublin 6, today at 6pm.
+
+If you can’t make it, please change or cancel your time here, so someone else can have the place:
+https://app.gaff.test/r/renter-token
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: every template’s subject and text are exactly what they were > waiting list 1`] = `
+"Subject: 12 Ranelagh Road: you’re on the waiting list
+
+Hello Aoife,
+
+Thanks for your interest in 12 Ranelagh Road. The viewings are full for now, so you’re on the waiting list. If a place opens up, we’ll email you straight away with a link to book it.
+
+Either way, you’ll hear back from us.
+
+Halcyon Lettings"
+`;
+
+exports[`Compliance: the words of every fixed message > UX-AI-10: the text reminder is exactly what it was > text reminder 1`] = `"Halcyon Lettings: reminder, you're viewing 12 Ranelagh Road today at 6pm. Can't make it? Change or cancel: https://app.gaff.test/r/renter-token"`;

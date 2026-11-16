@@ -12,6 +12,8 @@ import {
 } from '@/db/schema';
 import { allFunnelReports, type FunnelReport } from '@/domain/funnels/report';
 import { recordCutoff } from '@/domain/tenancy/steps';
+import { claimAgency } from '@/server/accounts/agencies';
+import { ensureOwnHomes } from '@/server/accounts/contexts';
 import { submitApplication } from '@/server/applications/apply';
 import { chooseApplicants } from '@/server/applications/choose';
 import { findMember } from '@/server/auth/member';
@@ -31,7 +33,6 @@ import { noteFunnelStep, purgeFunnelEvents, recordFunnelStep } from '@/server/fu
 import { sendMessage } from '@/server/messages/outbox';
 import { answerApproval, askLandlord, openApprovalSummary } from '@/server/offers/approval';
 import { makeOffer, respondToOffer } from '@/server/offers/offer';
-import { createOrganisation } from '@/server/organisations/create-organisation';
 import { openRenterPage, saveRenterAnswers } from '@/server/renter/answers';
 import { inviteToView } from '@/server/shortlist/invite';
 import { finishLetting } from '@/server/tenancy/close';
@@ -41,8 +42,11 @@ import { markAttendance } from '@/server/viewings/attendance';
 import { bookViewing } from '@/server/viewings/booking';
 import {
   aLiveLetting,
+  aRegisterEntry,
   aRenterEnquires,
   confirmedAgain,
+  confirmForTest,
+  createTestPerson,
   databaseError,
   renterTokenFor,
   tokenInMessage,
@@ -195,29 +199,27 @@ describe('UX-ME-1: funnel events', () => {
 });
 
 /** A new person signs in and sets up, as the screens do it, so both funnels have their steps. */
-async function createMember(kind: 'agency' | 'landlord' = 'agency') {
-  const id = crypto.randomUUID();
+async function createMember(kind: 'agency' | 'private_landlord' = 'agency') {
+  const person = await createTestPerson();
   const attempt = crypto.randomUUID();
-  await db()
-    .insert(users)
-    .values({ id, name: 'pending', email: `${id}@test.gaff.ie`, emailVerified: true });
   await noteSignInScreenOpened(attempt);
   await noteSignInMethodChosen(attempt, 'email_code');
-  await noteSignedIn(attempt, { id }, 'email_code');
-  await createOrganisation(id, {
-    yourName: 'Ann Power',
-    name: `Halcyon ${id.slice(0, 6)}`,
-    kind,
-    psraLicenceNumber: kind === 'agency' ? '001234' : undefined,
-  });
-  const member = await findMember(id);
+  await noteSignedIn(attempt, { id: person.id }, 'email_code');
+  if (kind === 'agency') {
+    const claimed = await claimAgency(person, (await aRegisterEntry()).id);
+    if (claimed.result !== 'created') throw new Error('the agency was not set up');
+    await confirmForTest(claimed.organisationId);
+  } else {
+    await ensureOwnHomes(person);
+  }
+  const member = await findMember(person.id);
   if (!member) throw new Error('test member was not created');
   return Object.assign(member, { attempt });
 }
 
 describe('UX-ME-2: the funnels, from the record’s events and the new steps', () => {
   it('UX-ME-2: signing in again doesn’t start first run again', async () => {
-    const member = await createMember('landlord');
+    const member = await createMember('private_landlord');
     const again = crypto.randomUUID();
     await noteSignInScreenOpened(again);
     await noteSignInMethodChosen(again, 'email_code');
@@ -238,7 +240,7 @@ describe('UX-ME-2: the funnels, from the record’s events and the new steps', (
     });
     expect(reached(reports, 'first_run')).toEqual([1, 1]);
     expect(reports.get('first_run')!.split!.rows).toEqual([
-      { variant: 'landlord', reached: [1, 1] },
+      { variant: 'private_landlord', reached: [1, 1] },
     ]);
     expect(reports.get('first_run')!.steps[1]!.medianMs).toBeGreaterThanOrEqual(0);
   });

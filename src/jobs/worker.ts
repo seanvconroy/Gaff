@@ -1,5 +1,6 @@
 import { run } from 'graphile-worker';
 import { pool } from '@/db/client';
+import { queueRegisterRefreshIfDue } from '@/server/register/refresh';
 import { CRONTAB, taskList } from './tasks';
 
 /**
@@ -16,6 +17,8 @@ async function main(): Promise<void> {
     pollInterval: 2000,
     crontab: CRONTAB,
   });
+  // A new database has no copy of the PSRA register yet: the first load is queued here.
+  await queueRegisterRefreshIfDue();
   console.log('Gaff worker started.');
   await runner.promise;
 }

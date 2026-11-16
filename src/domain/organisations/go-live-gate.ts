@@ -53,7 +53,9 @@ export function isBeingConfirmed(organisation: LettingOrganisation): boolean {
  * the agreement. Only a confirmed agency's: until someone at Gaff has confirmed the agency, the
  * number proves nothing about who is using it (Q32), so it isn't shown in its name.
  */
-export function licenceToShow(organisation: LettingOrganisation): string | null {
+export function licenceToShow(
+  organisation: Pick<LettingOrganisation, 'kind' | 'psraLicenceNumber' | 'confirmedAt'>,
+): string | null {
   if (organisation.kind !== 'agency' || !organisation.confirmedAt) return null;
   return organisation.psraLicenceNumber?.trim() || null;
 }

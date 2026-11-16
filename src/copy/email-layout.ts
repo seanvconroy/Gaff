@@ -136,7 +136,7 @@ function button(url: string, label: string): string {
   ].join('');
 }
 
-function words(input: EmailToLayOut): string {
+function words(input: { body: string; appUrl: string; kind: string; button?: string }): string {
   const blocks = emailBlocks(input.body);
   const main = buttonLink(blocks, input.appUrl);
   let buttonShown = false;
@@ -154,7 +154,10 @@ function words(input: EmailToLayOut): string {
         case 'link':
           if (block.url === main && !buttonShown) {
             buttonShown = true;
-            return button(block.url, emailCopy.button[input.kind] ?? emailCopy.openPage);
+            return button(
+              block.url,
+              input.button ?? emailCopy.button[input.kind] ?? emailCopy.openPage,
+            );
           }
           return `<p style="${paragraph}">${link(block.url, siteName(block.url))}</p>`;
       }
@@ -199,33 +202,21 @@ function assistantMark(listerName: string): string {
   return `<p data-email="assistant" style="margin:0 0 16px;"><span style="display:inline-block;padding:4px 12px;border-radius:999px;background-color:${s.aiBg};font-family:${s.font};font-size:${s.size};line-height:${s.line};font-weight:600;color:${s.ai};">${escape(fromAssistant(listerName))}</span></p>`;
 }
 
-/**
- * Lays a message out. `text` is the message exactly as it was written: the plain-text
- * alternative, which still works on its own, with each web address on its own line.
- */
-export function layOutEmail(input: EmailToLayOut): { html: string; text: string } {
-  const audience = emailAudience(input.kind);
-  const html = [
+function page(subject: string, rows: string[]): string {
+  return [
     '<!doctype html>',
     '<html lang="en-IE">',
     '<head>',
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
     '<meta name="color-scheme" content="light">',
-    `<title>${escape(input.subject)}</title>`,
+    `<title>${escape(subject)}</title>`,
     '</head>',
     `<body style="margin:0;padding:0;background-color:${s.surface};">`,
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${s.surface};">`,
     '<tr><td align="center" style="padding:24px 16px;">',
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:${s.width}px;text-align:left;">`,
-    header(audience, input.lister, input.appUrl),
-    `<tr><td data-email="words" style="padding:24px 0 8px;">`,
-    input.author === 'ai' ? assistantMark(input.lister.name) : '',
-    '<!--words-->',
-    words(input),
-    '<!--/words-->',
-    '</td></tr>',
-    footer(audience, input),
+    ...rows,
     '</table>',
     '</td></tr>',
     '</table>',
@@ -234,5 +225,49 @@ export function layOutEmail(input: EmailToLayOut): { html: string; text: string 
   ]
     .filter(Boolean)
     .join('\n');
+}
+
+/**
+ * Lays a message out. `text` is the message exactly as it was written: the plain-text
+ * alternative, which still works on its own, with each web address on its own line.
+ */
+export function layOutEmail(input: EmailToLayOut): { html: string; text: string } {
+  const audience = emailAudience(input.kind);
+  const html = page(input.subject, [
+    header(audience, input.lister, input.appUrl),
+    `<tr><td data-email="words" style="padding:24px 0 8px;">`,
+    input.author === 'ai' ? assistantMark(input.lister.name) : '',
+    '<!--words-->',
+    words(input),
+    '<!--/words-->',
+    '</td></tr>',
+    footer(audience, input),
+  ]);
+  return { html, text: input.body };
+}
+
+/**
+ * The same layout for an email from Gaff itself to someone who runs lettings: that their agency
+ * is confirmed, an invitation to join it, word about its licence (section 2, "Confirming an
+ * agency"). Gaff's wordmark, the words, one button, and Gaff's name. There is no lister here:
+ * the email is about the reader's own agency, and it comes from Gaff.
+ */
+export function layOutGaffEmail(input: {
+  subject: string;
+  /** The message as written. A web address on a line of its own becomes the button. */
+  body: string;
+  /** What the button says. */
+  button: string;
+  appUrl: string;
+}): { html: string; text: string } {
+  const base = input.appUrl.replace(/\/$/, '');
+  const html = page(input.subject, [
+    `<tr><td data-email="header" style="padding:0 0 16px;border-bottom:1px solid ${s.border};"><img src="${escape(base)}${emailWordmark.path}" width="${emailWordmark.width}" height="${emailWordmark.height}" alt="Gaff" style="display:block;border:0;"></td></tr>`,
+    `<tr><td data-email="words" style="padding:24px 0 8px;">`,
+    '<!--words-->',
+    words({ body: input.body, appUrl: input.appUrl, kind: 'gaff', button: input.button }),
+    '<!--/words-->',
+    '</td></tr>',
+  ]);
   return { html, text: input.body };
 }

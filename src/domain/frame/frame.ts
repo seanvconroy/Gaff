@@ -1,4 +1,6 @@
 import { propertyTypes } from '@/domain/lettings/new-letting';
+import { licenceToShow } from '@/domain/organisations/go-live-gate';
+import type { OrganisationKind } from '@/domain/organisations/kinds';
 import { formatDate, formatRent } from '@/lib/format';
 
 /**
@@ -14,7 +16,10 @@ export type FrameAudience = 'renter' | 'owner' | 'referee';
 /** Whoever is letting the home: an agency, or a landlord letting their own. */
 export interface Lister {
   name: string;
-  /** The agency's PSRA licence number, where it has one. */
+  /**
+   * The agency's PSRA licence number, from its entry in the register, once the agency is
+   * confirmed (UX-AG-7). A landlord has none.
+   */
   licence: string | null;
   /** A number a renter can ring instead of using Gaff (Q43), where the lister has given one. */
   phone: string | null;
@@ -33,14 +38,16 @@ export interface Lister {
  */
 export function listerFrom(organisation: {
   name: string;
-  kind: 'agency' | 'landlord';
+  kind: OrganisationKind;
   psraLicenceNumber: string | null;
+  /** UX-AG-7: when someone at Gaff confirmed the agency. Until then no licence is shown. */
+  confirmedAt: Date | null;
   inboundSlug: string;
   phone?: string | null;
 }): Lister {
   return {
     name: organisation.name,
-    licence: organisation.psraLicenceNumber?.trim() || null,
+    licence: licenceToShow(organisation),
     phone: organisation.phone?.trim() || null,
     slug: organisation.inboundSlug,
   };

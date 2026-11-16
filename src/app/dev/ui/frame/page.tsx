@@ -28,6 +28,7 @@ const agency = listerFrom({
   name: 'Halcyon Lettings',
   kind: 'agency',
   psraLicenceNumber: '001234',
+  confirmedAt: new Date('2026-11-01T10:00:00Z'),
   inboundSlug: 'halcyon-lettings',
   phone: '01 496 0000',
 });

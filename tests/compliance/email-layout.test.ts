@@ -17,16 +17,19 @@ import {
  * tests lay out every message Gaff writes and hold the result to that.
  */
 
+const CONFIRMED = new Date('2026-11-01T10:00:00Z');
 const agency = listerFrom({
   name: 'Halcyon Lettings',
   kind: 'agency',
   psraLicenceNumber: '001234',
+  confirmedAt: CONFIRMED,
   inboundSlug: 'halcyon-lettings',
 });
 const landlord = listerFrom({
   name: 'Mary Byrne',
   kind: 'landlord',
   psraLicenceNumber: null,
+  confirmedAt: null,
   inboundSlug: 'mary-byrne',
 });
 

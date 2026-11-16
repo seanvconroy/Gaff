@@ -9,6 +9,7 @@ import {
   type WorkerPool,
 } from 'graphile-worker';
 import { db, pool } from '@/db/client';
+import { queueRegisterRefreshIfDue } from '@/server/register/refresh';
 import { taskList } from './tasks';
 
 const CONCURRENCY = 3;
@@ -120,6 +121,8 @@ export async function runDueJobs(
 export async function queueDailyJobs(): Promise<void> {
   await db().execute(sql`
     select graphile_worker.add_job('retention_sweep', '{}'::json, job_key => 'retention_sweep')`);
+  // UX-AG-1 (Q39): and, once a week, the refresh of the PSRA register.
+  await queueRegisterRefreshIfDue();
 }
 
 /**

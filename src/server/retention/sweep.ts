@@ -17,6 +17,7 @@ import { BACKSTOP_DAYS, isDue } from '@/domain/retention/retention';
 import { recordCutoff } from '@/domain/tenancy/steps';
 import { env } from '@/lib/env';
 import { irishToday } from '@/lib/format';
+import { purgeExpiredInvites } from '@/server/accounts/invites';
 import { purgeOldCodes } from '@/server/auth/codes';
 import { purgeOldConfirmations } from '@/server/auth/confirm';
 import { purgeFunnelEvents } from '@/server/funnels/steps';
@@ -235,6 +236,8 @@ export async function sweepPersonalData(
     if (!onlyOrganisationId) {
       await purgeOldCodes(tx, now);
       await purgeOldConfirmations(tx, now);
+      // UX-AG-5: an invite holds an email address. One that has expired unanswered is deleted.
+      await purgeExpiredInvites(tx, now);
     }
     const oldDecisions = await tx
       .delete(decisions)

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { env } from '@/lib/env';
+import { noteLettingFor } from '@/server/accounts/profile';
 import { currentUser, findMember } from '@/server/auth/member';
 import { recordActiveMinute } from '@/server/dashboard/activity';
 
@@ -18,5 +19,7 @@ export async function POST(request: Request): Promise<Response> {
   const parsed = heartbeat.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return new Response(null, { status: 400 });
   await recordActiveMinute(member, parsed.data.lettingId);
+  // UX-AC-11: this is the context they're using, so it's the one Gaff reopens.
+  await noteLettingFor(user.id, member.organisationId);
   return new Response(null, { status: 204 });
 }

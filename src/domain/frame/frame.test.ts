@@ -11,17 +11,21 @@ import {
 } from './frame';
 
 const now = new Date('2026-11-15T12:00:00Z');
+/** When someone at Gaff confirmed the agency (UX-AG-7). */
+const CONFIRMED = new Date('2026-11-01T10:00:00Z');
 
 const agency = listerFrom({
   name: 'Halcyon Lettings',
   kind: 'agency',
   psraLicenceNumber: '001234',
+  confirmedAt: CONFIRMED,
   inboundSlug: 'halcyon-lettings',
 });
 const landlord = listerFrom({
   name: 'Mary Byrne',
   kind: 'landlord',
   psraLicenceNumber: null,
+  confirmedAt: null,
   inboundSlug: 'mary-byrne',
 });
 
@@ -154,9 +158,28 @@ describe('the frame of every private page: the footer', () => {
           name: 'Halcyon Lettings',
           kind: 'agency',
           psraLicenceNumber: '  ',
+          confirmedAt: CONFIRMED,
           inboundSlug: 'halcyon-lettings',
         }),
       ).licence,
+    ).toBeNull();
+  });
+
+  it('UX-AG-7: the licence is an agency’s, and only once the agency is confirmed', () => {
+    const claimed = {
+      name: 'Halcyon Lettings',
+      kind: 'agency',
+      psraLicenceNumber: '001234',
+      inboundSlug: 'halcyon-lettings',
+    } as const;
+    // Being confirmed: the number proves nothing yet about who is using it (Q32).
+    expect(frameFooter('renter', listerFrom({ ...claimed, confirmedAt: null })).licence).toBeNull();
+    expect(frameFooter('renter', listerFrom({ ...claimed, confirmedAt: CONFIRMED })).licence).toBe(
+      '001234',
+    );
+    // A landlord has none to show, whatever is stored.
+    expect(
+      listerFrom({ ...claimed, kind: 'private_landlord', confirmedAt: CONFIRMED }).licence,
     ).toBeNull();
   });
 
@@ -208,6 +231,7 @@ describe('“Talk to a person”', () => {
       name: 'Halcyon Lettings',
       kind: 'agency',
       psraLicenceNumber: '001234',
+      confirmedAt: CONFIRMED,
       inboundSlug: 'halcyon-lettings',
       phone: ' 01 496 0000 ',
     });
@@ -219,6 +243,7 @@ describe('“Talk to a person”', () => {
       name: 'Mary Byrne',
       kind: 'landlord',
       psraLicenceNumber: null,
+      confirmedAt: null,
       inboundSlug: 'mary-byrne',
       phone: '+353 (87) 123 4567',
     });
@@ -233,6 +258,7 @@ describe('“Talk to a person”', () => {
       name: 'Halcyon Lettings',
       kind: 'agency',
       psraLicenceNumber: '001234',
+      confirmedAt: CONFIRMED,
       inboundSlug: 'halcyon-lettings',
       phone: '   ',
     });

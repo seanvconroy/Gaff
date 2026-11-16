@@ -1,30 +1,113 @@
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
-import { users } from '@/db/schema';
+import { psraRegister, users } from '@/db/schema';
 import type { SensitiveAction } from '@/domain/auth/confirm';
+import type { OrganisationKind } from '@/domain/organisations/kinds';
+import { searchTextFor } from '@/domain/register/search';
+import type { SignedInPerson } from '@/server/accounts/contexts';
 import { findConfirmation, grantConfirmation, type Confirmation } from '@/server/auth/confirm';
 import { findMember, type Member } from '@/server/auth/member';
 export type { Member };
-import { createOrganisation } from '@/server/organisations/create-organisation';
+import { createOrganisationIn } from '@/server/organisations/create-organisation';
 
-/** A signed-up operator with their own organisation, isolated from every other test. */
-export async function createTestMember(
-  overrides: { name?: string; organisation?: string; kind?: 'agency' | 'landlord' } = {},
-): Promise<Member> {
+/** A made-up person who has signed in and done nothing else yet. */
+export async function createTestPerson(
+  overrides: { name?: string; email?: string; emailVerified?: boolean } = {},
+): Promise<SignedInPerson> {
   const id = crypto.randomUUID();
+  const person = {
+    id,
+    name: overrides.name ?? 'Ann Power',
+    email: overrides.email ?? `${id}@test.gaff.ie`,
+    emailVerified: overrides.emailVerified ?? true,
+  };
+  await db().insert(users).values(person);
+  return person;
+}
+
+/** The person as the session would give them now: with the name they've given since. */
+export async function reloaded(person: SignedInPerson): Promise<SignedInPerson> {
+  const [row] = await db().select().from(users).where(eq(users.id, person.id));
+  return { id: row!.id, name: row!.name, email: row!.email, emailVerified: row!.emailVerified };
+}
+
+/** A made-up business licensed to let, in Gaff's copy of the PSRA register. */
+export async function aRegisterEntry(
+  overrides: {
+    registeredName?: string;
+    tradingName?: string | null;
+    licenceNumber?: string;
+    county?: string;
+  } = {},
+) {
+  const id = crypto.randomUUID();
+  const entry = {
+    id,
+    // Fifteen digits from the random ID: no other test has it, and no real licence is so long.
+    licenceNumber:
+      overrides.licenceNumber ??
+      String(BigInt(`0x${id.replace(/-/g, '')}`) % 10n ** 15n).padStart(15, '0'),
+    registeredName: overrides.registeredName ?? `Halcyon ${id.slice(0, 6)} Limited`,
+    tradingName: overrides.tradingName === undefined ? null : overrides.tradingName,
+    licenceType: 'company',
+    county: overrides.county ?? 'Dublin',
+  };
   await db()
-    .insert(users)
-    .values({ id, name: 'pending', email: `${id}@test.gaff.ie`, emailVerified: true });
+    .insert(psraRegister)
+    .values({ ...entry, searchText: searchTextFor(entry) })
+    .onConflictDoUpdate({
+      target: psraRegister.licenceNumber,
+      set: { removedAt: null, lastSeenAt: sql`now()` },
+    });
+  const [stored] = await db()
+    .select()
+    .from(psraRegister)
+    .where(eq(psraRegister.licenceNumber, entry.licenceNumber));
+  return stored!;
+}
+
+/**
+ * A signed-up operator with their own organisation, isolated from every other test. An agency is
+ * on the register and CONFIRMED unless `confirmed: false` is asked for, so its homes can go live
+ * (UX-AG-4); its licence number is 001234, as the agreement and the emails print it, unless
+ * `licenceNumber` says otherwise. Pass `kind` for a landlord's team or a private landlord.
+ */
+export async function createTestMember(
+  overrides: {
+    name?: string;
+    organisation?: string;
+    kind?: OrganisationKind;
+    confirmed?: boolean;
+  } = {},
+): Promise<Member> {
+  const person = await createTestPerson({ name: overrides.name });
   const kind = overrides.kind ?? 'agency';
-  await createOrganisation(id, {
-    yourName: overrides.name ?? 'Ann Power',
-    name: overrides.organisation ?? `Halcyon ${id.slice(0, 6)}`,
-    kind,
-    psraLicenceNumber: kind === 'agency' ? '001234' : undefined,
-  });
-  const member = await findMember(id);
+  const name = overrides.organisation ?? `Halcyon ${person.id.slice(0, 6)}`;
+  const entry = kind === 'agency' ? await aRegisterEntry({ registeredName: name }) : null;
+  await db().transaction((tx) =>
+    createOrganisationIn(tx, {
+      kind,
+      name,
+      psraRegisterEntryId: entry?.id ?? null,
+      // The number tests read in an agreement or an email, not the made-up entry's own.
+      psraLicenceNumber: entry ? '001234' : null,
+      confirmed: entry && overrides.confirmed !== false ? { at: new Date(), by: null } : null,
+      adminUserId: person.id,
+      actor: { type: 'person', userId: person.id },
+    }),
+  );
+  const member = await findMember(person.id);
   if (!member) throw new Error('test member was not created');
   return member;
+}
+
+/** Test only: the agency as it is once someone at Gaff has confirmed it (UX-AG-4). */
+export async function confirmForTest(organisationId: string): Promise<void> {
+  const { organisations } = await import('@/db/schema');
+  await db()
+    .update(organisations)
+    .set({ confirmedAt: new Date() })
+    .where(eq(organisations.id, organisationId));
 }
 
 /**

@@ -40,12 +40,15 @@ export function useFlowForm(
   const ref = useRef<HTMLFormElement>(null);
 
   // What the server found replaces what was found here, and focus goes to the first of it.
+  const [answered, setAnswered] = useState(state.attempt);
+  if (state.attempt !== answered) {
+    setAnswered(state.attempt);
+    setFound(null);
+    setCount(Object.keys(state.errors ?? {}).length);
+  }
   useEffect(() => {
     if (state.attempt === undefined) return;
-    setFound(null);
-    const problems = Object.keys(state.errors ?? {}).length;
-    setCount(problems);
-    if (problems > 0) focusFirstProblem(ref.current);
+    if (Object.keys(state.errors ?? {}).length > 0) focusFirstProblem(ref.current);
   }, [state.attempt, state.errors]);
 
   const errors: Problems = found ?? state.errors ?? {};

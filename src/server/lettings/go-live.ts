@@ -13,7 +13,7 @@ import {
   portals,
   readyToTakeEnquiries,
 } from '@/domain/lettings/setup';
-import { berRatings } from '@/domain/lettings/new-letting';
+import type { berRatings } from '@/domain/lettings/new-letting';
 import { type GoLiveGate, goLiveGate } from '@/domain/organisations/go-live-gate';
 import type { OrganisationKind } from '@/domain/organisations/kinds';
 import type { Member } from '@/server/auth/member';

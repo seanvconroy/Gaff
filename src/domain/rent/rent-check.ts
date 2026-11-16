@@ -103,7 +103,12 @@ export interface RentAnswers {
 }
 
 /** One screen of the rent check. The last rent and the day it was set are one small question. */
-export const rentQuestionOrder = ['lastLet', 'ending', 'substantialChange', 'previousRent'] as const;
+export const rentQuestionOrder = [
+  'lastLet',
+  'ending',
+  'substantialChange',
+  'previousRent',
+] as const;
 export type RentQuestion = (typeof rentQuestionOrder)[number];
 
 /**
@@ -145,8 +150,7 @@ export function rentCheckFormSchema(today: string) {
     .transform((value, ctx): RentCheckInput => {
       if (value.lastLet === 'never') return { lastLet: 'never' };
       const underNewRules = value.lastLet === 'under_new_rules';
-      const ending =
-        value.ending && value.ending in endings ? (value.ending as Ending) : undefined;
+      const ending = value.ending && value.ending in endings ? (value.ending as Ending) : undefined;
       if (underNewRules && !ending) {
         ctx.addIssue({
           code: 'custom',

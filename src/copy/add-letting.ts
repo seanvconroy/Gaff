@@ -117,7 +117,8 @@ export const addLettingCopy = {
       setOn: 'Date that rent was set',
       setOnHint: 'Usually the day the last tenancy began, or the day of its last rent review.',
     },
-    fromLastTime: 'Filled in from the last time this home was let on Gaff. Change anything that’s different.',
+    fromLastTime:
+      'Filled in from the last time this home was let on Gaff. Change anything that’s different.',
   },
 
   rentResult: {
@@ -185,8 +186,9 @@ export const addLettingCopy = {
 
   advertised: {
     title: 'Is it advertised anywhere else?',
-    lead: 'Gaff is answering enquiries for this home now. If it’s on Daft or MyHome too, Gaff can answer those as well.',
-    legend: 'Where else is it advertised?',
+    /** UX-FL-4: what was done, what Gaff does next, and when. */
+    live: (address: string) => `${address} is live`,
+    lead: 'Gaff answers every enquiry for this home from now on, within minutes of each one. If it’s on Daft or MyHome too, Gaff can answer those as well.',
     daft: 'Daft',
     myhome: 'MyHome',
     no: 'No',
@@ -203,8 +205,16 @@ export const addLettingCopy = {
   },
 
   review: {
-    title: { again: 'Here’s the home from last time', advert: 'Here’s what Gaff found', enquiry: 'Here’s what Gaff found', manual: 'Here’s the home so far' },
-    lead: { again: 'Change what’s new. Tap anything to change it.', other: 'Tap anything to change it.' },
+    title: {
+      again: 'Here’s the home from last time',
+      advert: 'Here’s what Gaff found',
+      enquiry: 'Here’s what Gaff found',
+      manual: 'Here’s the home so far',
+    },
+    lead: {
+      again: 'Change what’s new. Tap anything to change it.',
+      other: 'Tap anything to change it.',
+    },
     toCheck: (count: number) => (count === 1 ? '1 thing to check' : `${count} things to check`),
     nothingToCheck: 'Nothing to check',
     checkThis: 'Check this',
@@ -225,6 +235,8 @@ export const addLettingCopy = {
       photos: 'No photos yet',
       details: 'Nothing asked',
     },
+    hasDescription: 'Described in your own words',
+    moreFacts: (count: number) => (count === 1 ? '1 more fact' : `${count} more facts`),
     availableFrom: (date: string) => `Available from ${date}`,
     datePassed: (date: string) => `Was available from ${date}`,
     done: 'Done',

@@ -370,9 +370,7 @@ export async function saveAnswers(
         .set({
           answers,
           step:
-            draft.step === 'review' || !input.advance
-              ? draft.step
-              : furthestStep(draft.step, next),
+            draft.step === 'review' || !input.advance ? draft.step : furthestStep(draft.step, next),
         })
         .where(eq(lettingDrafts.id, id));
       return { kind: 'draft', next };
@@ -381,7 +379,8 @@ export async function saveAnswers(
     const detail = await lettingDetailIn(tx, id);
     if (!detail) throw new UserFacingError('We couldn’t find that home.');
     if (detail.letting.stage !== 'setup') throw new UserFacingError(SETUP_ONLY);
-    if (input.step === 'details') throw new Error('A letting’s details are set with setLettingDetails');
+    if (input.step === 'details')
+      throw new Error('A letting’s details are set with setLettingDetails');
     const home = await homeIn(tx, id);
     const answers = withAnswers(home!.answers, input.patch);
     await changeLettingIn(tx, member, detail, input.step, answers);
@@ -430,7 +429,10 @@ export async function confirmReview(
       const home = await homeIn(tx, id);
       if (!home) throw new UserFacingError('We couldn’t find that home.');
       const photos = home.photos.length;
-      return { kind: 'letting', next: stepAfter('home', { answers: home.answers, photos }, 'again') };
+      return {
+        kind: 'letting',
+        next: stepAfter('home', { answers: home.answers, photos }, 'again'),
+      };
     }
     const answers = draftAnswersSchema.parse(draft.answers);
     const photos = (await photosIn(tx, { draftId: id })).length;

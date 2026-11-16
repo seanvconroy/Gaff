@@ -132,9 +132,9 @@ describe('UX-LT-22: showing the home on Gaff', () => {
 describe('Step 9: what the go-live screen asks, each once', () => {
   it('Q43: a number renters can call is offered at a lister’s first go-live, if they have none', () => {
     expect(goLiveAsks({ kind: 'agency', phone: null, hasGoneLive: false }).phone).toBe('offered');
-    expect(
-      goLiveAsks({ kind: 'private_landlord', phone: null, hasGoneLive: false }).phone,
-    ).toBe('offered');
+    expect(goLiveAsks({ kind: 'private_landlord', phone: null, hasGoneLive: false }).phone).toBe(
+      'offered',
+    );
   });
 
   it('Q43: it isn’t asked again: not with a number on file, and not after the first go-live', () => {
@@ -151,12 +151,12 @@ describe('Step 9: what the go-live screen asks, each once', () => {
   });
 
   it('Q47: "Confirm it’s you" is in place for a private landlord’s first home, as a step to come', () => {
-    expect(
-      goLiveAsks({ kind: 'private_landlord', phone: null, hasGoneLive: false }).identity,
-    ).toBe('later');
-    expect(
-      goLiveAsks({ kind: 'private_landlord', phone: null, hasGoneLive: true }).identity,
-    ).toBe(null);
+    expect(goLiveAsks({ kind: 'private_landlord', phone: null, hasGoneLive: false }).identity).toBe(
+      'later',
+    );
+    expect(goLiveAsks({ kind: 'private_landlord', phone: null, hasGoneLive: true }).identity).toBe(
+      null,
+    );
     expect(goLiveAsks({ kind: 'agency', phone: null, hasGoneLive: false }).identity).toBe(null);
     expect(goLiveAsks({ kind: 'landlord', phone: null, hasGoneLive: false }).identity).toBe(null);
   });

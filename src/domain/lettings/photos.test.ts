@@ -3,6 +3,7 @@ import {
   MAX_HOME_PHOTOS,
   coverOf,
   movedPhoto,
+  isPhotoKey,
   photoKey,
   photoRoomLeft,
   reorderedPhotos,
@@ -56,5 +57,24 @@ describe('UX-LT-10: a home’s photos', () => {
       'homes/0b0f7c3e-2a31-4d3c-9a43-0f0d2b8a6c11/7d6a3f0e-51c2-4c59-8d0f-3f3a1b2c4d5e.jpg',
     );
     expect(photoKey('o', 'p', 'image/webp')).toBe('homes/o/p.webp');
+  });
+
+  it('UX-LT-10: only a key a photo could have is ever looked up', () => {
+    const key = photoKey(
+      '0b0f7c3e-2a31-4d3c-9a43-0f0d2b8a6c11',
+      '7d6a3f0e-51c2-4c59-8d0f-3f3a1b2c4d5e',
+      'image/png',
+    );
+    expect(isPhotoKey(key)).toBe(true);
+    for (const other of [
+      'homes/o/p.webp',
+      `${key}/more`,
+      key.replace('homes/', 'documents/'),
+      key.replace('.png', '.svg'),
+      `../${key}`,
+      '',
+    ]) {
+      expect(isPhotoKey(other)).toBe(false);
+    }
   });
 });

@@ -7,10 +7,9 @@ import { organisations } from '@/db/schema';
  * address, which its privacy notice lives under. Select these wherever an organisation is loaded
  * for a private page or a message, then pass the row to `listerFrom` (`src/domain/frame/frame`).
  *
- * THE PHONE NUMBER'S SEAM (Q43, UX-PP-3): organisations have no phone number yet. The package
- * that adds the column adds `phone: organisations.phone` here. The pages that load a whole
- * organisation row need nothing more: `listerFrom` already reads `phone`, "Talk to a person"
- * shows it, and an owner's or a referee's footer gives it.
+ * Q43, UX-PP-3: `phone` is the number renters can call, where the lister has given one (at
+ * their first go-live, or later). `listerFrom` reads it, "Talk to a person" shows it, and an
+ * owner's or a referee's footer gives it.
  */
 export const listerColumns = {
   name: organisations.name,
@@ -18,4 +17,5 @@ export const listerColumns = {
   psraLicenceNumber: organisations.psraLicenceNumber,
   confirmedAt: organisations.confirmedAt,
   inboundSlug: organisations.inboundSlug,
+  phone: organisations.phone,
 };

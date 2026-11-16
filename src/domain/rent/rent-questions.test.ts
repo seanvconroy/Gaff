@@ -109,13 +109,13 @@ describe('UX-LT-23: the rent check starts filled in from last time', () => {
     expect(rentAnswersFromLastTime({ rentCents: 185_000, tenancyStartedOn: '2026-06-01' })).toEqual(
       { lastLet: 'under_new_rules', previousRent: '1,850', previousRentSetOn: '2026-06-01' },
     );
-    expect(
-      rentAnswersFromLastTime({ rentCents: 170_050, tenancyStartedOn: '2025-09-01' }),
-    ).toEqual({
-      lastLet: 'before_new_rules',
-      previousRent: '1,700.5',
-      previousRentSetOn: '2025-09-01',
-    });
+    expect(rentAnswersFromLastTime({ rentCents: 170_050, tenancyStartedOn: '2025-09-01' })).toEqual(
+      {
+        lastLet: 'before_new_rules',
+        previousRent: '1,700.5',
+        previousRentSetOn: '2025-09-01',
+      },
+    );
   });
 
   it('UX-LT-23: it answers nothing for the person: how it ended is still theirs to say', () => {

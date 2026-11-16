@@ -1,0 +1,394 @@
+import type { Metadata } from 'next';
+import { notFound, redirect } from 'next/navigation';
+import { addressSearch } from '@/adapters/address';
+import { addLettingCopy } from '@/copy/add-letting';
+import { goLiveCopy } from '@/copy/go-live';
+import { lettingDetailsLine } from '@/domain/criteria/criteria';
+import {
+  type DraftAnswers,
+  type FlowStep,
+  flowSteps,
+  formValuesFrom,
+  reviewGroups,
+  thingsToCheck,
+} from '@/domain/lettings/add-letting';
+import {
+  type FlowScreen,
+  fromOf,
+  resumeHref,
+  screenFromSlug,
+  screenHref,
+  startHref,
+} from '@/domain/lettings/links';
+import { availableWindow } from '@/domain/lettings/new-letting';
+import { previewBer, previewFacts } from '@/domain/lettings/preview';
+import { addAgencyHref } from '@/domain/navigation/account-menu';
+import {
+  RENT_RULES_VERSION,
+  type RentAnswers,
+  type RentCheckOutcome,
+  rentAnswersFromCheck,
+} from '@/domain/rent/rent-check';
+import { formatDate, formatRent } from '@/lib/format';
+import type { FlowHome } from '@/server/lettings/drafts';
+import { goLiveStepFor } from '@/server/lettings/go-live';
+import { rentAnswersFromLettingBefore } from '@/server/lettings/rent-check';
+import {
+  advertisedAction,
+  confirmReviewAction,
+  goLiveAction,
+  photosDoneAction,
+  removePhotoAction,
+  reorderPhotosAction,
+  rentResultAction,
+  saveDetailsAction,
+  saveRentCheckAction,
+  saveReviewAction,
+  saveStepAction,
+  uploadPhotoAction,
+} from '../../../_flow/actions';
+import { AdvertisedStep } from '../../../_flow/Advertised';
+import { detailsValues } from '../../../_flow/fields';
+import { GoLiveHeld, GoLiveStep } from '../../../_flow/GoLive';
+import { flowHome } from '../../../_flow/home';
+import { HomePreview } from '../../../_flow/HomePreview';
+import { RentCheckStep, RentResultStep } from '../../../_flow/RentCheck';
+import { type ReviewPart, type ReviewRow, ReviewStep } from '../../../_flow/Review';
+import { AddressStep, DetailsStep, HomeStep, PhotosStep, RentStep } from '../../../_flow/Steps';
+import type { StepFrame } from '../../../_flow/StepForm';
+
+export const metadata: Metadata = { title: 'Add a letting' };
+
+const copy = addLettingCopy;
+
+/** Which screens a home can be shown, as it stands. Anything else goes to where it left off. */
+function allowed(home: FlowHome, screen: FlowScreen, alone: boolean): boolean {
+  if (home.kind === 'draft') {
+    // Until "Looks right", a draft that arrived filled in is changed on its review (UX-LT-4).
+    if (home.reached === 'review') return screen === 'review';
+    return screen === 'address' || screen === 'rent' || screen === 'home';
+  }
+  const { letting, rentCheck, setup } = home.detail;
+  const closed = letting.status === 'let' || letting.status === 'withdrawn';
+  if (letting.stage !== 'setup') {
+    // After go-live, three screens are still of use: the question that follows it, and the
+    // letting details and rent check opened on their own from the letting's page.
+    if (screen === 'advertised') return letting.status === 'live';
+    if (!alone || closed) return false;
+    return screen === 'details' || screen === 'rent_check' || screen === 'rent_result';
+  }
+  if (screen === 'review' || screen === 'advertised') return false;
+  if (screen === 'rent_result') return Boolean(rentCheck);
+  // UX-LT-14: the rent check comes before go-live. UX-AG-4: a held home has been decided.
+  if (screen === 'go_live') return setup.rentCheckDone && !letting.goLiveHeldAt;
+  return true;
+}
+
+function reviewRows(
+  home: FlowHome,
+  today: string,
+  href: (part: ReviewPart) => string,
+): ReviewRow[] {
+  const { answers } = home;
+  const r = copy.review;
+  const address = [answers.addressLine1, answers.addressLine2, answers.area, answers.eircode]
+    .filter(Boolean)
+    .join(', ');
+  const date = !answers.availableFrom
+    ? r.missing.availableFrom
+    : answers.availableFrom < today
+      ? r.datePassed(formatDate(answers.availableFrom))
+      : r.availableFrom(formatDate(answers.availableFrom));
+  const facts = [
+    ...previewFacts(answers).map((fact) => `${fact.label}: ${fact.value}`),
+    previewBer(answers.berRating) ?? r.missing.ber,
+  ];
+  const more = answers.otherFacts?.length ?? 0;
+  const value: Record<ReviewPart, string> = {
+    photos: home.photos.length > 0 ? copy.goLive.morePhotos(home.photos.length) : r.missing.photos,
+    address: address || r.missing.address,
+    rent: [
+      answers.rentCents === undefined ? r.missing.rent : formatRent(answers.rentCents),
+      date,
+    ].join(' · '),
+    home:
+      answers.propertyType && answers.bedrooms !== undefined
+        ? facts.join(' · ')
+        : [r.missing.home, ...facts.slice(-1)].join(' · '),
+    description: [
+      answers.description ? r.hasDescription : r.missing.description,
+      more > 0 ? r.moreFacts(more) : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+    details:
+      lettingDetailsLine(answers.criteria ?? null, answers.noSmokingIndoors ?? false) ??
+      r.missing.details,
+  };
+  return (['photos', ...reviewGroups, 'details'] as const).map((part) => ({
+    part,
+    value: value[part],
+    href: href(part),
+  }));
+}
+
+/**
+ * Every screen of adding a letting after the first, for a home that has an ID: a draft, or a
+ * letting in set-up (UX-FL-1, UX-FL-2). One address per step, `/lettings/<id>/setup/<step>`,
+ * so Back, a reload and "Continue" all land where they should.
+ */
+export default async function SetupStepPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ lettingId: string; step: string }>;
+  searchParams: Promise<{
+    from?: string | string[];
+    alone?: string;
+    edit?: string;
+    then?: string;
+  }>;
+}) {
+  const { lettingId: id, step: slug } = await params;
+  const screen = screenFromSlug(slug);
+  if (!screen) notFound();
+  const { member, home } = await flowHome(id);
+  const query = await searchParams;
+  const from = fromOf(query.from);
+  const lettingHref = `/lettings/${id}`;
+  // On its own: the letting details or the rent check, opened from the letting's page.
+  const alone = query.alone === '1' && home.kind === 'letting';
+  if (!allowed(home, screen, alone)) {
+    if (home.kind === 'letting' && home.detail.letting.stage !== 'setup') redirect(lettingHref);
+    if (home.kind === 'letting' && screen === 'go_live' && home.detail.letting.goLiveHeldAt) {
+      redirect(lettingHref);
+    }
+    redirect(resumeHref(id, from));
+  }
+
+  const { today, inAYear } = availableWindow();
+  const values = formValuesFrom(home.answers);
+  const searchOn = addressSearch().name !== 'off';
+  const leaveHref = alone ? lettingHref : (from ?? '/lettings');
+  const at = (step: FlowStep) => flowSteps.indexOf(step);
+  const frameFor = (step: FlowStep, exit = true): StepFrame => {
+    if (alone) return { leaveHref };
+    const before = at(step) > 0 ? flowSteps[at(step) - 1]! : null;
+    return {
+      leaveHref,
+      step,
+      exit,
+      backHref: before
+        ? screenHref(id, before, from)
+        : home.kind === 'draft' && home.origin === 'manual'
+          ? startHref(from)
+          : undefined,
+    };
+  };
+
+  switch (screen) {
+    case 'review': {
+      const open = (['photos', ...reviewGroups, 'details'] as const).find(
+        (part) => part === query.edit,
+      );
+      const reviewHref = screenHref(id, 'review', from);
+      return (
+        <ReviewStep
+          frame={{ leaveHref }}
+          origin={home.kind === 'draft' ? home.origin : 'manual'}
+          rows={reviewRows(home, today, (part) => screenHref(id, 'review', from, { edit: part }))}
+          checks={thingsToCheck({ answers: home.answers, photos: home.photos.length }, today)}
+          open={open ?? null}
+          reviewHref={reviewHref}
+          looksRight={confirmReviewAction.bind(null, id, from)}
+          save={{
+            address: saveReviewAction.bind(null, 'address', id),
+            rent: saveReviewAction.bind(null, 'rent', id),
+            home: saveReviewAction.bind(null, 'home', id),
+            description: saveReviewAction.bind(null, 'description', id),
+            details: saveReviewAction.bind(null, 'details', id),
+          }}
+          values={values}
+          details={detailsValues({
+            ...home.answers.criteria,
+            noSmokingIndoors: home.answers.noSmokingIndoors,
+          })}
+          availableFrom={home.answers.availableFrom ?? ''}
+          today={today}
+          inAYear={inAYear}
+          searchOn={searchOn}
+          photos={home.photos}
+          upload={uploadPhotoAction.bind(null, id)}
+          remove={removePhotoAction.bind(null, id)}
+          reorder={reorderPhotosAction.bind(null, id)}
+        />
+      );
+    }
+    case 'address':
+      return (
+        <AddressStep
+          frame={frameFor('address')}
+          action={saveStepAction.bind(null, 'address', id, from)}
+          values={values}
+          searchOn={searchOn}
+        />
+      );
+    case 'rent':
+      return (
+        <RentStep
+          frame={frameFor('rent')}
+          action={saveStepAction.bind(null, 'rent', id, from)}
+          values={values}
+          today={today}
+          inAYear={inAYear}
+        />
+      );
+    case 'home':
+      return (
+        <HomeStep
+          frame={frameFor('home')}
+          action={saveStepAction.bind(null, 'home', id, from)}
+          values={values}
+        />
+      );
+    default:
+  }
+
+  // From here on the home is a letting: `allowed` sends a draft back to what it still lacks.
+  if (home.kind !== 'letting') redirect(resumeHref(id, from));
+  const { detail } = home;
+  const { letting } = detail;
+  const answers: DraftAnswers = home.answers;
+
+  switch (screen) {
+    case 'photos': {
+      const then = query.then === 'go-live' ? 'go_live' : 'details';
+      return (
+        <PhotosStep
+          frame={frameFor('photos')}
+          photos={home.photos}
+          upload={uploadPhotoAction.bind(null, id)}
+          remove={removePhotoAction.bind(null, id)}
+          reorder={reorderPhotosAction.bind(null, id)}
+          done={photosDoneAction.bind(null, id, from, then)}
+        />
+      );
+    }
+    case 'details': {
+      const start = detailsValues({
+        ...(letting.criteria ?? {}),
+        noSmokingIndoors: letting.noSmokingIndoors,
+      });
+      return (
+        <DetailsStep
+          frame={frameFor('details')}
+          action={saveDetailsAction.bind(null, id, from, alone)}
+          values={start}
+          availableFrom={letting.availableFrom}
+          today={today}
+          alone={alone}
+          startsWithLine={lettingDetailsLine(letting.criteria, letting.noSmokingIndoors) !== null}
+        />
+      );
+    }
+    case 'rent_check': {
+      // A check made before; or, for a home let again, what Gaff knows from last time.
+      const fromBefore: RentAnswers | null = detail.rentCheck
+        ? null
+        : await rentAnswersFromLettingBefore(member, letting.previousLettingId);
+      return (
+        <RentCheckStep
+          frame={frameFor('rent_check', false)}
+          action={saveRentCheckAction.bind(null, id, from, alone)}
+          start={detail.rentCheck ? rentAnswersFromCheck(detail.rentCheck) : (fromBefore ?? {})}
+          fromLastTime={fromBefore !== null}
+          today={today}
+        />
+      );
+    }
+    case 'rent_result': {
+      const check = detail.rentCheck!;
+      const words: { title: string } & Record<string, string> =
+        copy.rentResult[check.result as RentCheckOutcome['result']];
+      const over = detail.rentProblem
+        ? { askingCents: letting.monthlyRentCents, ceilingCents: detail.rentProblem.ceilingCents }
+        : null;
+      return (
+        <RentResultStep
+          frame={
+            alone
+              ? { leaveHref }
+              : {
+                  leaveHref,
+                  step: 'rent_check',
+                  exit: true,
+                  backHref: screenHref(id, 'rent_check', from),
+                }
+          }
+          action={rentResultAction.bind(null, id, from, alone)}
+          title={words.title}
+          why={words[check.reason] ?? ''}
+          over={over}
+          rent={
+            over
+              ? (over.ceilingCents / 100).toLocaleString('en-IE', { maximumFractionDigits: 2 })
+              : ''
+          }
+          rulesVersion={check.rulesVersion ?? RENT_RULES_VERSION}
+          alone={alone}
+        />
+      );
+    }
+    case 'go_live': {
+      const step = await goLiveStepFor(member, detail);
+      const preview = (
+        <HomePreview home={answers} photos={home.photos} letBy={step.organisationName} />
+      );
+      if (!step.gate.open && !step.gate.waits) {
+        return (
+          <GoLiveHeld
+            frame={frameFor('go_live', false)}
+            preview={preview}
+            why={goLiveCopy.held[step.gate.reason](step.organisationName)}
+            fix={
+              step.gate.reason === 'no_licence'
+                ? { href: addAgencyHref, label: goLiveCopy.findLicence }
+                : null
+            }
+            lettingHref={lettingHref}
+          />
+        );
+      }
+      return (
+        <GoLiveStep
+          frame={frameFor('go_live')}
+          action={goLiveAction.bind(null, id, from)}
+          preview={preview}
+          onGaff={letting.onGaff}
+          needsBer={step.onGaffNeeds.includes('ber')}
+          needsPhoto={step.onGaffNeeds.includes('photo')}
+          photosHref={screenHref(id, 'photos', from, { then: 'go-live' })}
+          askPhone={step.asks.phone === 'offered'}
+          identityLater={step.asks.identity === 'later'}
+        />
+      );
+    }
+    case 'advertised':
+      return (
+        <AdvertisedStep
+          frame={{ leaveHref: lettingHref }}
+          action={advertisedAction.bind(null, id)}
+          address={letting.addressLine1}
+          chosen={
+            letting.advertisedOn === null
+              ? []
+              : letting.advertisedOn.length > 0
+                ? letting.advertisedOn
+                : ['no']
+          }
+        />
+      );
+    default:
+      notFound();
+  }
+}

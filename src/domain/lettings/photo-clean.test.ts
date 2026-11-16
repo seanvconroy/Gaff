@@ -100,7 +100,11 @@ describe('UX-LT-10: Gaff’s copy of a photo has no location or camera data', ()
   });
 
   it('UX-LT-10: a photo with nothing to take out comes back whole', () => {
-    const plain = png(pngChunk('IHDR', Buffer.alloc(13)), pngChunk('IDAT', picture), pngChunk('IEND', Buffer.alloc(0)));
+    const plain = png(
+      pngChunk('IHDR', Buffer.alloc(13)),
+      pngChunk('IDAT', picture),
+      pngChunk('IEND', Buffer.alloc(0)),
+    );
     expect(stripPngMetadata(plain)!.equals(plain)).toBe(true);
     const simple = webp(webpChunk('VP8 ', picture));
     expect(stripWebpMetadata(simple)!.equals(simple)).toBe(true);

@@ -35,9 +35,7 @@ export async function letAgain(
     const [started] = await tx
       .select({ id: lettingDrafts.id })
       .from(lettingDrafts)
-      .where(
-        and(eq(lettingDrafts.previousLettingId, lettingId), eq(lettingDrafts.origin, 'again')),
-      )
+      .where(and(eq(lettingDrafts.previousLettingId, lettingId), eq(lettingDrafts.origin, 'again')))
       .limit(1);
     if (started) return started;
 

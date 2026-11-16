@@ -67,7 +67,9 @@ export function StepForm({
     <FlowShell
       leave={{ kind: 'close', href: frame.leaveHref }}
       progress={frame.step ? progressFor(frame.step) : undefined}
-      saveAndExit={frame.exit ? <FlowExitButton form={id}>{copy.saveAndExit}</FlowExitButton> : null}
+      saveAndExit={
+        frame.exit ? <FlowExitButton form={id}>{copy.saveAndExit}</FlowExitButton> : null
+      }
       back={
         frame.backHref ? (
           <ButtonLink href={frame.backHref} variant="quiet">

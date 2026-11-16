@@ -24,8 +24,6 @@ export function problemOnLeaving(
  */
 export function focusFirstProblem(within: ParentNode | null): void {
   requestAnimationFrame(() => {
-    within
-      ?.querySelector<HTMLElement>('[aria-invalid="true"], button[data-invalid]')
-      ?.focus();
+    within?.querySelector<HTMLElement>('[aria-invalid="true"], button[data-invalid]')?.focus();
   });
 }

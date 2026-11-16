@@ -6,11 +6,7 @@ import { useState } from 'react';
 import type { z } from 'zod';
 import { addLettingCopy } from '@/copy/add-letting';
 import { lettingDetailsFormSchema } from '@/domain/criteria/criteria';
-import {
-  addressStepSchema,
-  homeStepSchema,
-  rentStepSchema,
-} from '@/domain/lettings/add-letting';
+import { addressStepSchema, homeStepSchema, rentStepSchema } from '@/domain/lettings/add-letting';
 import { MAX_HOME_PHOTOS } from '@/domain/lettings/photos';
 import { fieldErrors, type FormState } from '@/lib/forms';
 import { ButtonLink } from '@/ui/Button';
@@ -18,15 +14,9 @@ import { TextArea, TextField } from '@/ui/Field';
 import { FlowExit, FlowShell, FlowTitle } from '@/ui/FlowShell';
 import { PhotoUploader, type UploadedPhoto, type UploadResult } from '@/ui/PhotoUploader';
 import { SubmitButton } from '@/ui/SubmitButton';
-import {
-  AddressFields,
-  DescriptionFields,
-  DetailsFields,
-  HomeFields,
-  RentFields,
-} from './fields';
+import { AddressFields, DescriptionFields, DetailsFields, HomeFields, RentFields } from './fields';
 import styles from './flow.module.css';
-import { firstAddressHref, screenHref } from './links';
+import { firstAddressHref, screenHref } from '@/domain/lettings/links';
 import { progressFor, StepForm, type StepFrame } from './StepForm';
 
 const copy = addLettingCopy;
@@ -38,7 +28,6 @@ const problemsBy = (schema: () => z.ZodType) => (values: Record<string, string>)
   const parsed = schema().safeParse(values);
   return parsed.success ? {} : fieldErrors(parsed.error);
 };
-
 
 /**
  * Step 1, "Tell Gaff about the home" (UX-LT-1): one box for a pasted advert or a description,

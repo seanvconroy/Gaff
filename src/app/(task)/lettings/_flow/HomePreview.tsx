@@ -50,9 +50,7 @@ export function HomePreview({
         )}
       </div>
       <div className={styles.previewHead}>
-        <h2 className="type-title">
-          {[home.addressLine1, home.area].filter(Boolean).join(', ')}
-        </h2>
+        <h2 className="type-title">{[home.addressLine1, home.area].filter(Boolean).join(', ')}</h2>
         {summary ? <p>{summary}</p> : null}
         {letBy ? <p className={styles.muted}>{copy.goLive.letBy(letBy)}</p> : null}
       </div>

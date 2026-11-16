@@ -53,11 +53,7 @@ const numbered = (from: number, to: number, chosen: string) => {
  * result fills the full address. "Enter it myself" opens the same fields empty. Where no lookup
  * is connected, the fields are simply there.
  */
-export function AddressFields({
-  values,
-  errors,
-  searchOn,
-}: GroupProps & { searchOn: boolean }) {
+export function AddressFields({ values, errors, searchOn }: GroupProps & { searchOn: boolean }) {
   const hasAddress = Boolean(values.addressLine1 || values.area || values.eircode);
   const hasProblem = ['addressLine1', 'addressLine2', 'area', 'county', 'eircode'].some(
     (field) => errors[field],
@@ -176,7 +172,9 @@ export function RentFields({
         label={copy.rent.availableFrom}
         min={today}
         max={inAYear}
-        defaultValue={values.availableFrom && values.availableFrom >= today ? values.availableFrom : ''}
+        defaultValue={
+          values.availableFrom && values.availableFrom >= today ? values.availableFrom : ''
+        }
         error={errors.availableFrom}
       />
     </>

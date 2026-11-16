@@ -57,7 +57,9 @@ async function homeFor(tx: Tx, id: string): Promise<(Home & { closed: boolean })
 }
 
 const of = (home: Home): SQL =>
-  home.kind === 'letting' ? eq(lettingPhotos.lettingId, home.id) : eq(lettingPhotos.draftId, home.id);
+  home.kind === 'letting'
+    ? eq(lettingPhotos.lettingId, home.id)
+    : eq(lettingPhotos.draftId, home.id);
 
 async function rowsOf(tx: Tx, home: Home) {
   return tx

@@ -11,7 +11,11 @@ import { recordEvent } from '@/server/record/events';
  * to a person" and the payment page read it (`listerColumns`). The event says only that a
  * number was given or removed: a landlord's own number is personal data (rule 8).
  */
-export async function setListerPhoneIn(tx: Tx, member: Member, phone: string | null): Promise<void> {
+export async function setListerPhoneIn(
+  tx: Tx,
+  member: Member,
+  phone: string | null,
+): Promise<void> {
   const tidy = phone === null ? null : tidyPhone(phone);
   if (phone !== null && !tidy) {
     throw new UserFacingError('Enter a phone number, like 01 234 5678, or leave it blank', 'phone');
@@ -22,7 +26,10 @@ export async function setListerPhoneIn(tx: Tx, member: Member, phone: string | n
     .where(eq(organisations.id, member.organisationId));
   if (!organisation) throw new Error('The organisation is gone');
   if (organisation.phone === tidy) return;
-  await tx.update(organisations).set({ phone: tidy }).where(eq(organisations.id, member.organisationId));
+  await tx
+    .update(organisations)
+    .set({ phone: tidy })
+    .where(eq(organisations.id, member.organisationId));
   await recordEvent(tx, {
     organisationId: member.organisationId,
     actor: { type: 'person', userId: member.userId },

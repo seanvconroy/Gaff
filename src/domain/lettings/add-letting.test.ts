@@ -213,10 +213,7 @@ describe('UX-LT-9 to UX-LT-11: each step reads its own answers', () => {
       otherFacts: [],
     });
     const empty = homeStepSchema().safeParse({});
-    expect(empty.error?.issues.map((issue) => issue.path[0])).toEqual([
-      'propertyType',
-      'bedrooms',
-    ]);
+    expect(empty.error?.issues.map((issue) => issue.path[0])).toEqual(['propertyType', 'bedrooms']);
   });
 
   it.each([
@@ -242,8 +239,7 @@ describe('UX-LT-9 to UX-LT-11: each step reads its own answers', () => {
     const description =
       'A bright two-bed on the second floor, with a balcony facing south.\n\nFive minutes’ walk to the Luas.';
     expect(
-      homeStepSchema().parse({ propertyType: 'apartment', bedrooms: '2', description })
-        .description,
+      homeStepSchema().parse({ propertyType: 'apartment', bedrooms: '2', description }).description,
     ).toBe(description);
   });
 
@@ -280,7 +276,11 @@ describe('UX-LT-9 to UX-LT-11: each step reads its own answers', () => {
       availableFrom: '2026-12-13',
     });
     expect(
-      partialAnswers('home', { bedrooms: '2', description: 'Lovely home, no HAP.', otherFacts: '' }),
+      partialAnswers('home', {
+        bedrooms: '2',
+        description: 'Lovely home, no HAP.',
+        otherFacts: '',
+      }),
     ).toEqual({ bedrooms: 2 });
   });
 
@@ -302,12 +302,12 @@ describe('UX-LT-9 to UX-LT-11: each step reads its own answers', () => {
 
 describe('UX-LT-8: a Daft or MyHome link is kept, never fetched', () => {
   it('UX-LT-8: a link pasted alone is found, and the screen can ask for the words too', () => {
-    expect(advertLinksIn(' https://www.daft.ie/for-rent/apartment-12-ranelagh-road/123456 ')).toEqual(
-      {
-        daftUrl: 'https://www.daft.ie/for-rent/apartment-12-ranelagh-road/123456',
-        alone: true,
-      },
-    );
+    expect(
+      advertLinksIn(' https://www.daft.ie/for-rent/apartment-12-ranelagh-road/123456 '),
+    ).toEqual({
+      daftUrl: 'https://www.daft.ie/for-rent/apartment-12-ranelagh-road/123456',
+      alone: true,
+    });
     expect(advertLinksIn('https://www.myhome.ie/rentals/brochure/12-ranelagh-road/987')).toEqual({
       myhomeUrl: 'https://www.myhome.ie/rentals/brochure/12-ranelagh-road/987',
       alone: true,

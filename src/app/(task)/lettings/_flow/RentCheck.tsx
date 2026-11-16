@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import { addLettingCopy } from '@/copy/add-letting';
 import {
   endings,
@@ -62,8 +62,8 @@ export function RentCheckStep({
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
   const fields = useRef<HTMLDivElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
-
   const questions = rentQuestions(answers);
+
   const index = Math.min(at, questions.length - 1);
   const question = questions[index]!;
   const last = index === questions.length - 1;
@@ -71,16 +71,15 @@ export function RentCheckStep({
   const count = found ? Object.keys(found).length : serverCount;
 
   // What the server found is shown on the question it belongs to.
-  useEffect(() => {
-    if (attempt === 'first') return;
+  const [answeredAt, setAnsweredAt] = useState(attempt);
+  if (attempt !== answeredAt) {
+    setAnsweredAt(attempt);
     setFound(null);
-    const wrong = rentQuestions(answers).findIndex((each) =>
+    const wrong = questions.findIndex((each) =>
       rentQuestionFields[each].some((field) => fromServer[field]),
     );
     if (wrong >= 0) setAt(wrong);
-    // Only when the server answers: the answers and errors it is about are already in hand.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempt]);
+  }
 
   function go(to: number) {
     setFound(null);

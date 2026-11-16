@@ -125,13 +125,20 @@ function offered<T extends z.ZodType>(schema: T) {
   );
 }
 
+/** A home is available from today, up to a year ahead: the dates the picker offers. */
+export function availableWindow(now: Date = new Date()): { today: string; inAYear: string } {
+  return {
+    today: irishToday(now),
+    inAYear: irishToday(new Date(now.getTime() + 366 * 24 * 60 * 60 * 1000)),
+  };
+}
+
 /**
  * Each field's rule, once. The step-at-a-time flow (add-letting.ts) and the whole-letting schema
  * below read the same ones, so a value is checked the same way wherever it is typed.
  */
 export function lettingFields(now: Date = new Date()) {
-  const today = irishToday(now);
-  const inAYear = irishToday(new Date(now.getTime() + 366 * 24 * 60 * 60 * 1000));
+  const { today, inAYear } = availableWindow(now);
   return {
     addressLine1: blankable(
       trimmed

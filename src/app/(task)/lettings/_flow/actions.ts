@@ -43,7 +43,7 @@ import { changeAskingRent, recordRentCheck, rentCheckProblem } from '@/server/le
 import { setLettingDetails } from '@/server/lettings/set-criteria';
 import { sendTestEnquiry } from '@/server/lettings/test-enquiry';
 import type { UploadResult } from '@/ui/PhotoUploader';
-import { screenHref, startHref } from './links';
+import { screenHref, startHref } from '@/domain/lettings/links';
 
 const copy = addLettingCopy;
 

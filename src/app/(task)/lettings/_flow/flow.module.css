@@ -24,6 +24,14 @@
   color: var(--color-ink-muted);
 }
 
+/* A heading with its state beside it: "Confirm it's you", "Later". */
+.withPill {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
 /* The line renters will see: set apart on the quiet fill, as words Gaff wrote. */
 .previewLine {
   padding: var(--space-4);
@@ -117,74 +125,9 @@
   padding-inline-start: var(--space-5);
 }
 
-/* The review: each part of the home is a row to tap, with what's there and a way to change it. */
-.reviewList {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  border-top: 1px solid var(--color-border);
-}
-
-.reviewRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-3);
-  align-items: center;
-  width: 100%;
-  min-height: var(--size-row);
-  padding: var(--space-3) 0;
-  background-color: transparent;
-  border: 0;
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-ink);
-  font-family: var(--type-body-family);
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
-  text-align: start;
-  cursor: pointer;
-}
-
-.reviewRow:hover .reviewChange {
-  color: var(--color-brand-text);
-}
-
-.reviewWords {
-  display: grid;
-  gap: var(--space-1);
-  min-width: 0;
-}
-
-.reviewLabel {
+/* The review: how many things to look at, above the home's parts. */
+.count {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  align-items: center;
-  color: var(--color-ink-muted);
-  font-size: var(--type-body-sm-size);
-  line-height: var(--type-body-sm-line);
-}
-
-.reviewValue {
-  overflow-wrap: anywhere;
-}
-
-.reviewChange {
-  font-weight: var(--type-title-weight);
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
-}
-
-.reviewThumbs {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.reviewThumb {
-  width: var(--size-row);
-  height: var(--size-control);
-  border-radius: var(--radius-sm);
-  object-fit: cover;
 }
 
 .sheetForm {

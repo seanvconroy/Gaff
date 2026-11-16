@@ -54,3 +54,11 @@ export type PhotoType = keyof typeof extensions;
 export function photoKey(organisationId: string, photoId: string, type: PhotoType): string {
   return `homes/${organisationId}/${photoId}.${extensions[type]}`;
 }
+
+const PHOTO_KEY =
+  /^homes\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\.(?:jpg|png|webp)$/;
+
+/** Whether this is a key `photoKey` could have made. Anything else is never looked up. */
+export function isPhotoKey(key: string): boolean {
+  return PHOTO_KEY.test(key);
+}

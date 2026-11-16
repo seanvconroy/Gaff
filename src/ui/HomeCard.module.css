@@ -1,0 +1,99 @@
+/*
+ * Home cards: a home in a list, led by its photo. Below 900px one column; above, three across.
+ * No box: the photo is the object, and space holds the cards apart (UX-DS-12).
+ */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The title's link reaches over the whole card, so the card is one target. */
+.card {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* The cover photo at 3:2 with 16px corners; without one, the quiet fill and a house icon. */
+.photo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-lg);
+  color: var(--color-ink-muted);
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.text {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.heading {
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
+  font-weight: var(--type-heading-weight);
+  overflow-wrap: anywhere;
+}
+
+.title {
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.title::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+}
+
+.card:hover .title {
+  text-decoration: underline;
+}
+
+.line {
+  color: var(--color-ink-muted);
+}
+
+/* "Needs you": a small dot and the words, both in the attention colour. */
+.needs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-warning);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+  font-weight: var(--type-title-weight);
+}
+
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background-color: currentcolor;
+  border-radius: var(--radius-pill);
+}
+
+@media (width > 900px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-8) var(--space-6);
+  }
+}

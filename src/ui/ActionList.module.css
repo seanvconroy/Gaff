@@ -146,3 +146,24 @@ a.row:focus-visible {
     padding-inline-start: 0;
   }
 }
+
+/*
+ * On the page, with no card: the rows line up with the heading above them, with a hairline above
+ * the first and below the last. Hover underlines the title instead of filling an inset row.
+ */
+.bare {
+  border-block: 1px solid var(--color-border);
+}
+
+.bare .row {
+  padding-inline: 0;
+}
+
+.bare a.row:hover {
+  background-color: transparent;
+}
+
+.bare a.row:hover .title {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}

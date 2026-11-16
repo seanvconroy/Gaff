@@ -94,6 +94,42 @@ describe('R7: the first reply', () => {
     ]);
   });
 
+  it('UX-PP-10, UX-AI-10: goes out in the email layout, with its words unchanged as plain text', async () => {
+    const member = await createTestMember({ organisation: 'Halcyon Lettings' });
+    await aLiveLetting(member);
+    const outcome = await deliverEmail(member, daftEnquiry);
+    if (outcome.kind !== 'enquiry') throw new Error('expected an enquiry');
+    const [reply] = await firstReplies(member.organisationId, outcome.applicationId);
+    await sendMessage({
+      organisationId: member.organisationId,
+      messageId: reply!.id,
+      attempt: 1,
+      maxAttempts: 10,
+    });
+    const [mail] = await db()
+      .select()
+      .from(devOutbox)
+      .where(eq(devOutbox.toAddress, 'aoife.byrne@example.ie'))
+      .orderBy(desc(devOutbox.createdAt))
+      .limit(1);
+    // The plain-text alternative is the fixed wording, byte for byte.
+    expect(mail!.text).toBe(reply!.body);
+    expect(mail!.subject).toBe('Your enquiry about 12 Ranelagh Road');
+    const html = mail!.html!;
+    // Rule 6: the first message still says who is writing, and how to reach a person.
+    expect(html).toContain('I’m Halcyon Lettings’ AI assistant.');
+    expect(html).toContain('If you’d rather talk to a person, just reply and say so.');
+    // The renter's link is one button with a label, not a web address to read.
+    const link = /http:\/\/localhost:3000\/r\/[A-Za-z0-9_-]{43}/.exec(reply!.body)![0];
+    expect(html).toContain(`<a href="${link}" data-email="button"`);
+    expect(html).toContain('>Answer a few questions</a>');
+    expect(html.replace(/<[^>]+>/g, '')).not.toMatch(/https?:\/\//);
+    // A renter's email is Gaff's, with the lister named in its footer.
+    expect(html).toContain('<img src="http://localhost:3000/email/wordmark.png"');
+    expect(html).toContain('alt="Gaff"');
+    expect(html).toContain('Halcyon Lettings</span>');
+  });
+
   it('is sent once per renter, even when they enquire on both portals', async () => {
     const member = await createTestMember();
     await aLiveLetting(member);

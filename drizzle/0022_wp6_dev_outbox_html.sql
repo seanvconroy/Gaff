@@ -1,0 +1,1 @@
+ALTER TABLE "dev_outbox" ADD COLUMN "html" text;

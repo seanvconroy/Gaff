@@ -12,5 +12,7 @@ export const devOutbox = pgTable('dev_outbox', {
   replyTo: text(),
   subject: text().notNull(),
   text: text().notNull(),
+  /** The message in the email layout (UX-PP-10), where it was sent with one. */
+  html: text(),
   createdAt: createdAt(),
 });

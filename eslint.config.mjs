@@ -19,6 +19,8 @@ export default defineConfig([
   ...nextTs,
   globalIgnores([
     '.next/**',
+    // Agents' worktrees are whole copies of the repository; each is linted in its own place.
+    '.claude/**',
     'node_modules/**',
     'drizzle/**',
     'playwright-report/**',

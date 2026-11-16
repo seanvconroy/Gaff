@@ -1,3 +1,4 @@
+import { conversationHref, conversationKey, inboxHref } from '@/domain/inbox/conversations';
 import type { TenancyStep } from '@/domain/tenancy/steps';
 import { formatDate, formatTime, irishToday } from '@/lib/format';
 import type { TodayItem, TodayKind } from './today';
@@ -36,16 +37,23 @@ const tenancySteps: Record<TenancyStep, string> = {
 
 /**
  * Where each thing is done today: the pages that exist. The focused decision flows (wave 3A)
- * and Inbox's conversations (WP-8) change these, and only these.
+ * change these, and only these.
+ *
+ * UX-NV-2: an answer to approve, a question and an email Gaff couldn't place are handled in
+ * Inbox. A row about one conversation opens it, so a draft is approved in two taps: the row,
+ * then Send. A row that counts several opens Inbox on "Needs you".
  */
 export function todayHref(item: TodayItem): string {
   switch (item.kind) {
     case 'approvals':
-      return '/approvals';
     case 'questions':
-      return '/questions';
+      return item.only
+        ? conversationHref(conversationKey({ kind: 'renter', id: item.only }))
+        : inboxHref('needs-you');
     case 'attention':
-      return '/attention';
+      return item.only
+        ? conversationHref(conversationKey({ kind: 'email', id: item.only }))
+        : inboxHref('needs-you');
     case 'attendance':
       return `/lettings/${item.lettingId}/attendance`;
     case 'shortlist':

@@ -9,11 +9,12 @@ export interface LettingCounts {
 const inboxKinds: ReadonlySet<TodayItem['kind']> = new Set(['approvals', 'questions', 'attention']);
 
 /**
- * UX-NV-5: Today and Inbox show a count when something needs the user. Inbox counts what is
- * waiting on a reply: answers to approve, questions only a person can answer, and emails Gaff
- * couldn't place. Today is the total: all of those, and each other thing that needs a person
- * (marking who came, choosing, a deadline) once. So nothing is counted twice inside a badge, and
- * Today is never less than Inbox.
+ * UX-NV-5: Today and Inbox show a count when something needs the user. Inbox counts
+ * conversations that need a reply: one with an answer to approve, one with a question only a
+ * person can answer, and each email Gaff couldn't place. A conversation with a draft and a
+ * question is counted once (UX-NV-15; `needsYouToday` sees to it). Today is the total: all of
+ * those, and each other thing that needs a person (marking who came, choosing, a deadline)
+ * once. So nothing is counted twice inside a badge, and Today is never less than Inbox.
  */
 export function navCounts(items: readonly TodayItem[]): LettingCounts {
   let inbox = 0;

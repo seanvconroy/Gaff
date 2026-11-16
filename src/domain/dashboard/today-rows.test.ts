@@ -6,6 +6,8 @@ import { todayRow, todayRows, waitingWords } from './today-rows';
 const now = new Date('2026-11-16T19:20:00Z');
 const ago = (minutes: number) => new Date(now.getTime() - minutes * 60_000);
 const home = { lettingId: 'l1', address: '12 Ranelagh Road', since: null, leadUserId: 'ann' };
+const APPLICATION = '00000000-0000-4000-8000-000000000011';
+const EMAIL = '00000000-0000-4000-8000-000000000005';
 const words = (item: TodayItem) => {
   const row = todayRow(item, now);
   return [row.title, row.why];
@@ -133,9 +135,9 @@ describe('UX-HM-3: the whole row is one link to where the task is done', () => {
         { kind: 'tenancy', ...home, step: 'finish', startDate: null },
         { kind: 'rtb', ...home, dueBy: '2027-01-13' },
         { kind: 'setup', ...home, stepsLeft: null },
-        { kind: 'approvals', ...home, count: 1 },
-        { kind: 'questions', ...home, count: 1, firstName: null },
-        { kind: 'attention', count: 1, since: null, leadUserId: null },
+        { kind: 'approvals', ...home, count: 1, only: APPLICATION },
+        { kind: 'questions', ...home, count: 1, firstName: null, only: APPLICATION },
+        { kind: 'attention', count: 1, only: EMAIL, since: null, leadUserId: null },
       ],
       now,
     );
@@ -148,14 +150,53 @@ describe('UX-HM-3: the whole row is one link to where the task is done', () => {
       '/lettings/l1/tenancy',
       '/lettings/l1/tenancy',
       '/lettings/l1',
-      '/approvals',
-      '/questions',
-      '/attention',
+      // UX-NV-2: handled in Inbox. One conversation waiting: the row opens it.
+      `/inbox/renter-${APPLICATION}`,
+      `/inbox/renter-${APPLICATION}`,
+      `/inbox/email-${EMAIL}`,
     ]);
     // One row per kind per home, so nothing is listed twice.
     expect(new Set(rows.map((row) => row.key)).size).toBe(rows.length);
     expect(rows.at(-1)).toMatchObject({ key: 'attention-all', lettingId: null, leadUserId: null });
     expect(rows[0]).toMatchObject({ lettingId: 'l1', leadUserId: 'ann' });
+  });
+});
+
+describe('UX-NV-2: answers, questions and unplaced email are handled in Inbox', () => {
+  it('opens the conversation when a row is about one, so a draft is approved in two taps', () => {
+    const [row] = todayRows([{ kind: 'approvals', ...home, count: 1, only: APPLICATION }], now);
+    expect(row).toMatchObject({
+      title: 'Approve 1 answer · 12 Ranelagh Road',
+      href: `/inbox/renter-${APPLICATION}`,
+    });
+  });
+
+  it('opens Inbox on "Needs you" when a row counts several conversations', () => {
+    const rows = todayRows(
+      [
+        { kind: 'approvals', ...home, count: 3, only: null },
+        { kind: 'questions', ...home, count: 2, firstName: null },
+        { kind: 'attention', count: 2, since: null, leadUserId: null },
+      ],
+      now,
+    );
+    expect(rows.map((row) => row.href)).toEqual([
+      '/inbox?show=needs-you',
+      '/inbox?show=needs-you',
+      '/inbox?show=needs-you',
+    ]);
+  });
+
+  it('never points at the pages Inbox replaced', () => {
+    const rows = todayRows(
+      [
+        { kind: 'approvals', ...home, count: 1 },
+        { kind: 'questions', ...home, count: 1, firstName: 'Aoife' },
+        { kind: 'attention', count: 1, since: null, leadUserId: null },
+      ],
+      now,
+    );
+    for (const row of rows) expect(row.href).toMatch(/^\/inbox(\?|\/|$)/);
   });
 });
 

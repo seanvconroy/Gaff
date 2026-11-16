@@ -59,6 +59,8 @@ const said = (now: Date) =>
   );
 
 const saidAt = sql`coalesce(${messages.sentAt}, ${messages.createdAt})`;
+/** At the same instant, theirs was said before ours (`inOrderSaid` in the domain). */
+const ours = sql`(${messages.direction} = 'outbound')`;
 
 /** The people on the team, and who is reading. */
 async function readersFor(tx: Tx, member: Member): Promise<Readers & { memberIds: Set<string> }> {
@@ -128,12 +130,12 @@ export async function inboxFor(
       .selectDistinctOn([messages.applicationId], messageColumns)
       .from(messages)
       .where(and(isNotNull(messages.applicationId), isNull(messages.checkId), said(now)))
-      .orderBy(messages.applicationId, desc(saidAt), desc(messages.id));
+      .orderBy(messages.applicationId, desc(saidAt), desc(ours), desc(messages.id));
     const lastToOwners = await tx
       .selectDistinctOn([messages.lettingId], messageColumns)
       .from(messages)
       .where(and(isNull(messages.applicationId), isNull(messages.checkId), said(now)))
-      .orderBy(messages.lettingId, desc(saidAt), desc(messages.id));
+      .orderBy(messages.lettingId, desc(saidAt), desc(ours), desc(messages.id));
 
     // R29: drafts waiting for a person. R8: questions only a person can answer.
     const drafts = await tx

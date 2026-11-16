@@ -15,7 +15,7 @@ import {
 } from '@/copy/templates/answers';
 import { protectedGroundProblem } from '@/domain/compliance/protected-grounds';
 import { questionsIn } from '@/domain/answers/guardrails';
-import { canRemember } from '@/domain/inbox/thread';
+import { answerField, canRemember } from '@/domain/inbox/thread';
 import { CONFLICT_MESSAGE, memberAppliedIn } from '@/server/accounts/conflict';
 import type { Member } from '@/server/auth/member';
 import { recordDecision } from '@/server/decisions/record-decision';
@@ -28,9 +28,6 @@ export interface PersonAnswer {
   questionId: string;
   answer: string;
 }
-
-/** The form field an answer was typed in, so a problem with it shows there (UX-DS-18). */
-export const answerField = (questionId: string) => `answer-${questionId}`;
 
 /** What a person wrote, checked before anything is stored or sent. Blank answers are dropped. */
 function checkedAnswers(answers: readonly PersonAnswer[]): PersonAnswer[] {

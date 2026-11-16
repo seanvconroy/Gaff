@@ -2,6 +2,7 @@ import { TZDate } from '@date-fns/tz';
 import { formatShortDate, formatTime, TIME_ZONE } from '@/lib/format';
 import {
   type InboxMessage,
+  inOrderSaid,
   isSaid,
   type Readers,
   saidAt,
@@ -35,6 +36,7 @@ export function threadFrom(
 ): ThreadEntry[] {
   return messages
     .filter((message) => isSaid(message, input.now))
+    .sort(inOrderSaid)
     .map((message) => {
       const writer = writerOf(message, input.readers);
       return {
@@ -51,8 +53,7 @@ export function threadFrom(
         text: withoutPrivateLinks(message.body, input.readers.appUrl).trim(),
         byText: message.channel === 'sms',
       };
-    })
-    .sort((a, b) => a.at.getTime() - b.at.getTime() || a.id.localeCompare(b.id));
+    });
 }
 
 /** A question only a person can answer (R8), as it is stored. */
@@ -97,6 +98,9 @@ export function replyFor(
   if (draft) return { kind: 'draft', draft, questions: open, more: rest.length };
   return open.length > 0 ? { kind: 'questions', questions: open } : { kind: 'write' };
 }
+
+/** The form field an answer to a question is typed in, so a problem with it shows there. */
+export const answerField = (questionId: string) => `answer-${questionId}`;
 
 /** Why Gaff held back an answer the AI wrote, in a line. */
 const heldBack: Record<string, string> = {

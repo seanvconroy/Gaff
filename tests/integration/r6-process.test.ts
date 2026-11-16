@@ -5,7 +5,7 @@ import { applications, inboundEmails, messages, organisations } from '@/db/schem
 import type { Member } from '@/server/auth/member';
 import { assignInboundEmail, dismissInboundEmail } from '@/server/enquiries/attention';
 import { processInboundEmail } from '@/server/enquiries/process';
-import { listNeedsAttention } from '@/server/enquiries/queries';
+import { inboxFor, threadFor } from '@/server/inbox/queries';
 import { receiveInboundEmail } from '@/server/enquiries/receive';
 import { createLetting } from '@/server/lettings/create-letting';
 import { daftEnquiry, gmailForwardingConfirmation, myhomeEnquiry } from '../fixtures/emails';
@@ -100,14 +100,29 @@ describe('R6: reading and merging enquiries', () => {
     expect(all[0]!.sources.sort()).toEqual(['daft', 'myhome']);
   });
 
+  /** UX-NV-17: emails Gaff couldn't place wait in Inbox, each as a conversation. */
+  async function unplaced(member: Member) {
+    const { conversations } = await inboxFor(member);
+    const threads = [];
+    for (const conversation of conversations.filter((c) => c.kind === 'email')) {
+      const thread = await threadFor(member, { kind: 'email', id: conversation.key.slice(6) });
+      if (thread?.kind === 'email') threads.push(thread);
+    }
+    return threads;
+  }
+
   it('sets aside a Gmail forwarding confirmation for the operator, losing nothing', async () => {
     const { member } = await setUp();
     expect(await deliver(member, gmailForwardingConfirmation)).toEqual({ kind: 'needs_attention' });
-    const waiting = await listNeedsAttention(member);
+    const waiting = await unplaced(member);
     expect(waiting).toHaveLength(1);
     expect(waiting[0]).toMatchObject({ problem: 'not_from_a_portal' });
-    await dismissInboundEmail(member, waiting[0]!.id);
-    expect(await listNeedsAttention(member)).toEqual([]);
+    await dismissInboundEmail(member, waiting[0]!.emailId);
+    expect(await unplaced(member)).toEqual([]);
+    // Dealt with once: it can't be set aside, or matched to a home, a second time.
+    await expect(dismissInboundEmail(member, waiting[0]!.emailId)).rejects.toThrow(
+      'That email has already been dealt with.',
+    );
   });
 
   it('lets the operator match an enquiry Gaff couldn’t place', async () => {
@@ -117,13 +132,16 @@ describe('R6: reading and merging enquiries', () => {
       aLetting({ addressLine1: '4 Main Street', daftUrl: '', myhomeUrl: '' }),
     );
     expect(await deliver(member, daftEnquiry)).toEqual({ kind: 'needs_attention' });
-    const [waiting] = await listNeedsAttention(member);
+    const [waiting] = await unplaced(member);
     expect(waiting?.problem).toBe('no_matching_letting');
-    await assignInboundEmail(member, waiting!.id, lettingId);
+    const { applicationId } = await assignInboundEmail(member, waiting!.emailId, lettingId);
     const matched = await withOrg(member.organisationId, (tx) =>
       tx.select().from(applications).where(eq(applications.lettingId, lettingId)),
     );
-    expect(matched).toHaveLength(1);
+    expect(matched.map((application) => application.id)).toEqual([applicationId]);
+    await expect(assignInboundEmail(member, waiting!.emailId, lettingId)).rejects.toThrow(
+      'That email has already been dealt with.',
+    );
   });
 
   it('threads a renter’s reply to their application by the reply address', async () => {

@@ -63,6 +63,14 @@ describe('UX-NV-14: a conversation opens as a thread, oldest first', () => {
     );
   });
 
+  it('puts Gaff’s first reply after the enquiry it answers, though both are stored at one instant', () => {
+    // Stored in one transaction, so at the same time; the reply's ID happens to sort first.
+    const reply = message({ minutesAgo: 5, direction: 'outbound', sentAt: null });
+    const enquiry = message({ minutesAgo: 5 });
+    expect(thread([reply, enquiry]).map((e) => e.from)).toEqual(['them', 'gaff']);
+    expect(thread([enquiry, reply]).map((e) => e.from)).toEqual(['them', 'gaff']);
+  });
+
   it('says when a message is on its way, and when it didn’t send', () => {
     const out = { direction: 'outbound' as const, sentAt: null };
     const entries = thread([

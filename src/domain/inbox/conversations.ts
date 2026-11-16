@@ -103,6 +103,19 @@ export function saidAt(message: Pick<InboxMessage, 'createdAt' | 'sentAt'>): Dat
 }
 
 /**
+ * The order things were said in: by when, and at the same instant, theirs before ours. Gaff's
+ * first reply is written the moment an enquiry arrives, and it is still the reply.
+ */
+export function inOrderSaid(
+  a: Pick<InboxMessage, 'id' | 'direction' | 'createdAt' | 'sentAt'>,
+  b: Pick<InboxMessage, 'id' | 'direction' | 'createdAt' | 'sentAt'>,
+): number {
+  const ours = (message: Pick<InboxMessage, 'direction'>) =>
+    message.direction === 'outbound' ? 1 : 0;
+  return saidAt(a).getTime() - saidAt(b).getTime() || ours(a) - ours(b) || a.id.localeCompare(b.id);
+}
+
+/**
  * A message with any private link in it hidden. A renter's, owner's or referee's link opens
  * their own page with no sign-in, so it is for them alone: nobody letting the home is shown it.
  */
@@ -286,7 +299,7 @@ export function conversationsFrom(input: {
     if (!ref || !isSaid(message, now)) continue;
     const key = conversationKey(ref);
     const known = last.get(key);
-    if (!known || saidAt(message).getTime() >= saidAt(known).getTime()) last.set(key, message);
+    if (!known || inOrderSaid(message, known) > 0) last.set(key, message);
   }
 
   const conversations: Conversation[] = [];

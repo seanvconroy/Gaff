@@ -227,6 +227,23 @@ describe('UX-NV-13: the list is newest first, by the last thing said', () => {
     expect(conversations.map((c) => c.who)).toEqual(['Aoife', 'Sorcha', 'Ciarán']);
   });
 
+  it('takes Gaff’s reply as the last line when it was stored at the same instant as the enquiry', () => {
+    const reply = message({
+      minutesAgo: 5,
+      direction: 'outbound',
+      sentAt: null,
+      status: 'scheduled',
+      body: 'Hello Aoife,\n\nThanks for your enquiry.',
+    });
+    const enquiry = message({ minutesAgo: 5, body: 'Hi, is it furnished?' });
+    for (const messages of [
+      [reply, enquiry],
+      [enquiry, reply],
+    ]) {
+      expect(list({ messages })[0]?.lastLine).toBe('Gaff: Thanks for your enquiry.');
+    }
+  });
+
   it('never takes its last line from a draft, a message nobody sent, or one set to go later', () => {
     const said = message({ minutesAgo: 30, body: 'Hi, is it furnished?' });
     for (const status of ['awaiting_approval', 'discarded', 'cancelled']) {

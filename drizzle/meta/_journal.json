@@ -155,6 +155,13 @@
       "when": 1794769235571,
       "tag": "0021_ux_me_funnel_events",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794823710703,
+      "tag": "0022_ux_si_sign_in",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,6 @@
 # ADR-0013: Operators sign in by email link; renters and landlords use private links
 
-- Status: Accepted
+- Status: Accepted. The "Operators" part (sign-in by email link) is superseded by [ADR-0015](0015-sign-in-google-apple-codes-passkeys.md). The "Renters and landlords" part (private links, no accounts) stands.
 - Date: 2026-10-31
 
 ## Context

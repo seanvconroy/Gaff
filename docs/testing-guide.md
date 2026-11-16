@@ -56,7 +56,7 @@ Each step says where to do it: 💻 for your laptop, as the operator; 📱 for y
 
 ### Set up (stage 1)
 
-1. 💻 Open https://gaff-test.vercel.app and **sign in** with any made-up email, for example `ann@halcyon.test`. Open the sign-in link from the Outbox.
+1. 💻 Open https://gaff-test.vercel.app and **sign in** with any made-up email, for example `ann@halcyon.test`. Enter the six-digit code from the email in the Outbox.
 2. 💻 Set up the workspace as **an agency**, with PSRA licence `001234`.
 3. 💻 In **Settings**:
    - check the income rule (2.5 times the rent by default);

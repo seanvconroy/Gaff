@@ -8,8 +8,7 @@ import type { DirectStepCode } from './catalogue';
  * field a name, a contact detail or a sentence could go in (rule 8, ADR-0006).
  */
 export const funnelVariantSchema = z.enum([
-  // Sign-in methods. Email links are today's; the rest come with the redesigned sign-in.
-  'email_link',
+  // Sign-in methods (UX-SI-1). Email links went with the redesigned sign-in (ADR-0015).
   'email_code',
   'google',
   'apple',

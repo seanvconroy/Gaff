@@ -193,8 +193,14 @@ export const eventCatalogue = {
     decisionId: z.uuid(),
     mode: z.enum(['electronic', 'paper']),
   }),
-  /** R23: the operator's payment account changed (the IBAN itself is never logged). */
-  'settings.payment_account': z.object({ changed: z.boolean() }),
+  /**
+   * R23: the operator's payment account changed (the IBAN itself is never logged). UX-SI-10:
+   * and how the admin confirmed it was them, just before.
+   */
+  'settings.payment_account': z.object({
+    changed: z.boolean(),
+    confirmedBy: z.enum(['passkey', 'email_code']).optional(),
+  }),
   /** R23: the deposit and first month's rent asked for, to the operator's own account. */
   'payment.requested': z.object({
     tenancyId: z.uuid(),

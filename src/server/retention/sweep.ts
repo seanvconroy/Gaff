@@ -17,6 +17,8 @@ import { BACKSTOP_DAYS, isDue } from '@/domain/retention/retention';
 import { recordCutoff } from '@/domain/tenancy/steps';
 import { env } from '@/lib/env';
 import { irishToday } from '@/lib/format';
+import { purgeOldCodes } from '@/server/auth/codes';
+import { purgeOldConfirmations } from '@/server/auth/confirm';
 import { purgeFunnelEvents } from '@/server/funnels/steps';
 import { recordEvent } from '@/server/record/events';
 
@@ -228,6 +230,12 @@ export async function sweepPersonalData(
     // UX-ME-1: funnel events are part of that anonymous record. They belong to no organisation,
     // so they go when the sweep runs for everyone.
     if (!onlyOrganisationId) await purgeFunnelEvents(tx, cutoff);
+    // UX-SI-2, UX-SI-10: one-time codes and confirmations belong to no organisation either.
+    // They are deleted a day after they were sent or ran out.
+    if (!onlyOrganisationId) {
+      await purgeOldCodes(tx, now);
+      await purgeOldConfirmations(tx, now);
+    }
     const oldDecisions = await tx
       .delete(decisions)
       .where(and(inOrg(decisions), lt(decisions.decidedAt, cutoff)))

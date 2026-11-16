@@ -1,0 +1,74 @@
+/* The sign-in screens: a title, then one column of 48px controls (UX-DS-13). */
+.screen {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.title {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.lead {
+  color: var(--color-ink-muted);
+}
+
+.methods {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.providers {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* "or": a hairline either side of the word. */
+.divider {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  color: var(--color-ink-muted);
+}
+
+.divider::before,
+.divider::after {
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-border);
+  content: '';
+}
+
+.email {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.smallPrint,
+.quiet {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.actions {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* A link that sits by itself: a 44px target (UX-DS-15). */
+.standaloneLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-target);
+  justify-self: start;
+}
+
+/* The code, shown large to be typed somewhere else (UX-SI-3). */
+.shownCode {
+  font-family: var(--type-display-family);
+  font-size: var(--type-display-size);
+  line-height: var(--type-display-line);
+  font-weight: var(--type-display-weight);
+  font-variant-numeric: tabular-nums;
+}

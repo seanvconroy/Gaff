@@ -1,19 +1,32 @@
 import { redirect } from 'next/navigation';
 import type { NextRequest } from 'next/server';
+import { signInMethodFrom } from '@/domain/auth/methods';
 import { currentUser } from '@/server/auth/member';
-import { noteSignedIn } from '@/server/auth/sign-in-steps';
+import { afterSignIn, finishSignIn } from '@/server/auth/sign-in';
+import { readSignInAttempt } from '@/server/auth/sign-in-steps';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * UX-ME-1: where a sign-in link lands once it has signed the person in. It records the last step
- * of the sign-in funnel for that try, then goes on to the workspace, as before.
+ * Where Google, Apple and a passkey land once the person is signed in (a code, typed or by the
+ * email's button, finishes in its own request). It records the last step of the sign-in funnel
+ * for that try (UX-ME-1), remembers the method on this device (UX-SI-6), and goes on: to the
+ * passkey offer if it's due (UX-SI-4), else to `next` if it's a path on this site, else to `/`
+ * (UX-SI-8).
  */
 export async function GET(request: NextRequest): Promise<never> {
   const user = await currentUser();
   if (!user) redirect('/sign-in');
   const query = request.nextUrl.searchParams;
-  // A link that had expired or been used comes back with an error: nobody signed in with it.
-  if (!query.has('error')) await noteSignedIn(query.get('attempt'), user, 'email_link');
-  redirect('/');
+  const method = signInMethodFrom(query.get('method'));
+  if (!method) redirect(await afterSignIn(null, query.get('next')));
+  redirect(
+    await finishSignIn({
+      userId: user.id,
+      method,
+      // Signed by the server when the sign-in screen was rendered: a made-up ID is ignored.
+      attemptId: readSignInAttempt(query.get('attempt')),
+      nextPath: query.get('next'),
+    }),
+  );
 }

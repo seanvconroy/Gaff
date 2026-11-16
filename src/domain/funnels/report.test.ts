@@ -127,14 +127,14 @@ describe('UX-ME-2: funnel maths, from counts only', () => {
       fact('sign_in.screen_opened', 'a', 0),
       fact('sign_in.screen_opened', 'b', 0),
       fact('sign_in.screen_opened', 'c', 0),
-      fact('sign_in.method_chosen', 'a', 10, 'email_link'),
+      fact('sign_in.method_chosen', 'a', 10, 'email_code'),
       fact('sign_in.method_chosen', 'b', 10, 'passkey'),
-      fact('sign_in.signed_in', 'a', 30, 'email_link'),
+      fact('sign_in.signed_in', 'a', 30, 'email_code'),
     ]);
     expect(report.split).toEqual({
       label: 'Method',
       rows: [
-        { variant: 'email_link', reached: [1, 1, 1] },
+        { variant: 'email_code', reached: [1, 1, 1] },
         { variant: 'passkey', reached: [1, 1, 0] },
         // Opened the screen and chose nothing.
         { variant: null, reached: [1, 0, 0] },
@@ -168,7 +168,7 @@ describe('UX-ME-2: funnel maths, from counts only', () => {
     expect(formatDuration(3 * 60_000)).toBe('3 minutes');
     expect(formatDuration(5 * 3_600_000)).toBe('5 hours');
     expect(formatDuration(3 * 86_400_000)).toBe('3 days');
-    expect(variantLabel('email_link')).toBe('Email link');
+    expect(variantLabel('email_code')).toBe('Email code');
     expect(variantLabel(null)).toBe('Not known');
   });
 });

@@ -1,16 +1,16 @@
 import { expect, test } from '@playwright/test';
 import { expectAccessible, openAccountMenu, screenshot, signIn, uniqueEmail } from './support';
 
-test('a new operator signs in by email link and sets up their workspace', async ({ page }) => {
+test('a new operator signs in by email code and sets up their workspace', async ({ page }) => {
   // A signed-out visitor who asks for the letting side is sent to sign in.
   await page.goto('/today');
   await expect(page).toHaveURL(/\/sign-in$/);
-  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sign in or create an account' })).toBeVisible();
   await expectAccessible(page);
   await screenshot(page, '01-sign-in');
 
-  await page.getByRole('button', { name: 'Email me a sign-in link' }).click();
-  await expect(page.getByText('Enter your work email address')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await expect(page.getByText('Enter an email address, like ann@example.ie')).toBeVisible();
   await expectAccessible(page);
 
   const email = uniqueEmail();

@@ -181,13 +181,46 @@ export async function latestLinkFor(email: string): Promise<string> {
   return link;
 }
 
-/** Signs in through the real email-link flow. */
+/**
+ * The newest six-digit code the development outbox "sent" to this address: to sign in, or (with
+ * `about: 'confirm'`) to confirm it's you. The code is the start of the email's subject.
+ */
+export async function latestCodeFor(
+  email: string,
+  about: 'sign in' | 'confirm' = 'sign in',
+): Promise<string> {
+  const rows = await query<{ subject: string }>(
+    `select subject from dev_outbox where to_address = $1 and subject ~ ('^[0-9]{6} is your code to ' || $2)
+     order by created_at desc limit 1`,
+    [email, about],
+  );
+  const code = rows[0]?.subject.slice(0, 6);
+  if (!code) throw new Error(`No code to ${about} has been sent to ${email}`);
+  return code;
+}
+
+/** Signs in through the real email-code flow (UX-SI-2): the address, then the six-digit code. */
 export async function signIn(page: Page, email: string): Promise<void> {
   await page.goto('/sign-in');
-  await page.getByLabel('Work email').fill(email);
-  await page.getByRole('button', { name: 'Email me a sign-in link' }).click();
-  await expect(page.getByText('Check your email')).toBeVisible();
-  await page.goto(await latestLinkFor(email));
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Enter your code' })).toBeVisible();
+  await page.getByLabel('Six-digit code').fill(await latestCodeFor(email));
+  // The code sends itself; then on to wherever a signed-in person lands.
+  await page.waitForURL((url) => !url.pathname.startsWith('/sign-in'));
+}
+
+/**
+ * UX-SI-10: answers the "Confirm it's you" sheet with the code emailed to the signed-in person
+ * (the sheet says which address it went to). The form that asked then sends itself again.
+ */
+export async function confirmItsYou(page: Page): Promise<void> {
+  const sheet = page.getByRole('dialog', { name: 'Confirm it’s you' });
+  await sheet.getByRole('button', { name: /^Email me a code/ }).click();
+  await expect(sheet.getByLabel('Six-digit code')).toBeVisible();
+  const email = /code to (\S+@\S+?)\. It works/.exec(await sheet.innerText())?.[1];
+  if (!email) throw new Error('The sheet doesn’t say where the code went');
+  await sheet.getByLabel('Six-digit code').fill(await latestCodeFor(email, 'confirm'));
 }
 
 let counter = 0;

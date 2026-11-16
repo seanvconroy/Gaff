@@ -123,3 +123,24 @@ describe('UX-TS-5: who Gaff’s own team is (STAFF_EMAILS)', () => {
     expect(environmentProblems({ ...base, STAFF_EMAILS: 'everyone' })).toEqual(['STAFF_EMAILS.0']);
   });
 });
+
+describe('UX-SI-1: Google and Apple are switched on by their credentials (Q30)', () => {
+  it('needs neither: production starts without them, and the buttons aren’t shown', () => {
+    expect(environmentProblems(production)).toEqual([]);
+    expect(
+      environmentProblems({ ...base, GOOGLE_CLIENT_ID: '', GOOGLE_CLIENT_SECRET: '' }),
+    ).toEqual([]);
+  });
+
+  it('takes each provider’s two values together, or not at all', () => {
+    const google = { GOOGLE_CLIENT_ID: 'id.apps.example', GOOGLE_CLIENT_SECRET: 's' };
+    const apple = { APPLE_CLIENT_ID: 'ie.gaff.signin', APPLE_CLIENT_SECRET: 'signed.token' };
+    expect(environmentProblems({ ...production, ...google, ...apple })).toEqual([]);
+    expect(environmentProblems({ ...base, GOOGLE_CLIENT_ID: 'id.apps.example' })).toEqual([
+      'GOOGLE_CLIENT_SECRET',
+    ]);
+    expect(environmentProblems({ ...base, APPLE_CLIENT_SECRET: 'signed.token' })).toEqual([
+      'APPLE_CLIENT_ID',
+    ]);
+  });
+});

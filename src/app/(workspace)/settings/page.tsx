@@ -6,6 +6,7 @@ import { organisations } from '@/db/schema';
 import { formatRatio, incomeRuleChoices } from '@/domain/applications/apply';
 import { formatIban } from '@/domain/tenancy/payment';
 import { env } from '@/lib/env';
+import { hasPasskey } from '@/server/auth/confirm-request';
 import { requireMember } from '@/server/auth/member';
 import { CopyButton } from '@/ui/CopyButton';
 import { Disclosure } from '@/ui/Disclosure';
@@ -195,6 +196,8 @@ export default async function SettingsPage({
           <PaymentAccountForm
             accountName={organisation!.paymentAccountName ?? ''}
             iban={organisation!.paymentIban ? formatIban(organisation!.paymentIban) : ''}
+            email={member.email}
+            hasPasskey={await hasPasskey(member.userId)}
           />
         </Section>
 

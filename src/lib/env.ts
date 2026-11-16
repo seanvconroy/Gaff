@@ -65,8 +65,30 @@ const schema = z
      * internal pages (/internal). Empty by default: nobody is staff until this is set.
      */
     STAFF_EMAILS: staffEmailsSchema,
+    /**
+     * UX-SI-1 (Q30): "Continue with Google" and "Continue with Apple". Each is switched on by
+     * setting both of its values. With neither, its button isn't shown; where the development
+     * tools are on, a local stand-in takes its place (/dev/sign-in).
+     */
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
+    /** Apple's Services ID, and the client secret (a signed token Apple accepts for six months). */
+    APPLE_CLIENT_ID: z.string().optional(),
+    APPLE_CLIENT_SECRET: z.string().optional(),
   })
   .superRefine((env, ctx) => {
+    for (const [id, secret] of [
+      ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
+      ['APPLE_CLIENT_ID', 'APPLE_CLIENT_SECRET'],
+    ] as const) {
+      if (Boolean(env[id]) !== Boolean(env[secret])) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [env[id] ? secret : id],
+          message: `${id} and ${secret} are set together, or not at all`,
+        });
+      }
+    }
     if (env.GAFF_ENV === 'production' || env.GAFF_ENV === 'staging') {
       if (!env.CRON_SECRET) {
         ctx.addIssue({

@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { users } from '@/db/schema';
+import type { SensitiveAction } from '@/domain/auth/confirm';
+import { findConfirmation, grantConfirmation, type Confirmation } from '@/server/auth/confirm';
 import { findMember, type Member } from '@/server/auth/member';
 export type { Member };
 import { createOrganisation } from '@/server/organisations/create-organisation';
@@ -23,6 +25,20 @@ export async function createTestMember(
   const member = await findMember(id);
   if (!member) throw new Error('test member was not created');
   return member;
+}
+
+/**
+ * UX-SI-10: the member has just confirmed it's them, as the "Confirm it's you" sheet leaves it.
+ * For tests of use cases that spend a confirmation, such as changing where tenants pay.
+ */
+export async function confirmedAgain(
+  member: Member,
+  action: SensitiveAction = 'change_payment_account',
+): Promise<Confirmation> {
+  const grant = await grantConfirmation(member.userId, action, 'email_code');
+  const confirmation = await findConfirmation(member.userId, action, grant);
+  if (!confirmation) throw new Error('the confirmation was not found');
+  return confirmation;
 }
 
 /** The database's own message for a failed query (Drizzle wraps it as the error's cause). */

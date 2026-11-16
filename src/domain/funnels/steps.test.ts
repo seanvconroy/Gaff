@@ -81,7 +81,7 @@ describe('UX-ME-1: a funnel event holds IDs, codes, numbers and dates only', () 
   });
 
   it('UX-ME-1: the split is a code from a fixed list', () => {
-    expect(funnelVariantSchema.safeParse('email_link').success).toBe(true);
+    expect(funnelVariantSchema.safeParse('email_code').success).toBe(true);
     for (const value of ['Ann Power', 'ann@example.ie', '0871234567', 'I have two kids']) {
       expect(funnelVariantSchema.safeParse(value).success, value).toBe(false);
     }

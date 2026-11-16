@@ -11,6 +11,7 @@ import { paymentAccountSchema, paymentAmounts } from '@/domain/tenancy/payment';
 import { env } from '@/lib/env';
 import { formatDate, formatEuro, irishToday } from '@/lib/format';
 import { createAccessLink } from '@/server/access/links';
+import { ConfirmationNeeded, spendConfirmation, type Confirmation } from '@/server/auth/confirm';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { queueMessage } from '@/server/messages/outbox';
@@ -19,11 +20,18 @@ import { recordEvent } from '@/server/record/events';
 /**
  * R23: where tenants pay: the operator's own account (rule 5). Only an admin can change it, and
  * every change is logged (without the IBAN), since payment details are what fraudsters target.
+ *
+ * UX-SI-10: changing it asks the admin to confirm it's them again, whatever the age of their
+ * session. The change is saved only by spending a `Confirmation` in the same transaction.
+ * Without one, valid details come back as `confirm: true` and nothing is saved.
  */
 export async function setPaymentAccount(
   member: Member,
   values: Record<string, string>,
-): Promise<{ ok: true } | { ok: false; errors: Record<string, string> }> {
+  confirmation: Confirmation | null,
+): Promise<
+  { ok: true } | { ok: false; errors: Record<string, string> } | { ok: false; confirm: true }
+> {
   if (member.role !== 'admin') throw new UserFacingError('Only an admin can change this.');
   const parsed = paymentAccountSchema.safeParse(values);
   if (!parsed.success) {
@@ -31,18 +39,31 @@ export async function setPaymentAccount(
     for (const issue of parsed.error.issues) errors[String(issue.path[0])] ??= issue.message;
     return { ok: false, errors };
   }
-  await withOrg(member.organisationId, async (tx) => {
-    await tx
-      .update(organisations)
-      .set({ paymentAccountName: parsed.data.accountName, paymentIban: parsed.data.iban })
-      .where(eq(organisations.id, member.organisationId));
-    await recordEvent(tx, {
-      organisationId: member.organisationId,
-      actor: { type: 'person', userId: member.userId },
-      type: 'settings.payment_account',
-      data: { changed: true },
+  if (!confirmation) return { ok: false, confirm: true };
+  try {
+    await withOrg(member.organisationId, async (tx) => {
+      const confirmedBy = await spendConfirmation(
+        tx,
+        confirmation,
+        'change_payment_account',
+        member.userId,
+      );
+      await tx
+        .update(organisations)
+        .set({ paymentAccountName: parsed.data.accountName, paymentIban: parsed.data.iban })
+        .where(eq(organisations.id, member.organisationId));
+      await recordEvent(tx, {
+        organisationId: member.organisationId,
+        actor: { type: 'person', userId: member.userId },
+        type: 'settings.payment_account',
+        data: { changed: true, confirmedBy },
+      });
     });
-  });
+  } catch (error) {
+    // Expired, or spent already: ask again. Nothing was saved.
+    if (error instanceof ConfirmationNeeded) return { ok: false, confirm: true };
+    throw error;
+  }
   return { ok: true };
 }
 

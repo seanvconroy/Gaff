@@ -95,7 +95,7 @@ test('UX-ME-2: Gaff’s own team sees every funnel on the internal page, and nob
     expect(await reachedOnPage(page, 'First run', 'Signed in')).toBeGreaterThanOrEqual(2);
     expect(await reachedOnPage(page, 'First run', 'Set-up finished')).toBeGreaterThanOrEqual(1);
     await expect(
-      page.getByRole('region', { name: 'Sign-in: by method' }).getByText('Email link'),
+      page.getByRole('region', { name: 'Sign-in: by method' }).getByText('Email code'),
     ).toBeVisible();
 
     // A flow that isn't built yet has its steps, and dashes for numbers.

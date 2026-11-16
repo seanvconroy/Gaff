@@ -172,7 +172,7 @@ export function formatDuration(ms: number): string {
   return plural(Math.round(hours / 24), 'day');
 }
 
-/** A split's code in plain words: "email_link" reads "Email link". */
+/** A split's code in plain words: "email_code" reads "Email code". */
 export function variantLabel(variant: string | null): string {
   if (variant === null) return 'Not known';
   const words = variant.replace(/[_.:-]+/g, ' ').trim();

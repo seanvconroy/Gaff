@@ -237,12 +237,13 @@ export async function queryInventoryItem(
   itemId: string,
   values: Record<string, string>,
 ): Promise<QueryItemResult | null> {
-  const link = await resolveAccessLink(token, 'renter');
-  if (!link) return null;
+  // The note is read first: an empty one is told so before anything is looked up.
   const parsed = inventoryQuerySchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, errors: { note: parsed.error.issues[0]!.message } };
   }
+  const link = await resolveAccessLink(token, 'renter');
+  if (!link) return null;
   return withOrg(link.organisationId, async (tx) => {
     const [row] = await tx
       .select({ item: inventoryItems.id, tenancy: tenancies })

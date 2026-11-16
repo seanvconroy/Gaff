@@ -23,8 +23,8 @@ const rows = [
  */
 export function inboxRows(items: readonly TodayItem[]): InboxRow[] {
   return rows.map((row) => {
-    const item = items.find((candidate) => candidate.kind === row.kind);
-    const count = item && 'count' in item ? item.count : 0;
+    // UX-HM-5: Today has one item per home for answers and questions; Inbox adds them up.
+    const count = items.reduce((sum, item) => (item.kind === row.kind ? sum + item.count : sum), 0);
     return { ...row, count, waiting: count > 0 ? `${count} waiting` : 'Nothing waiting' };
   });
 }

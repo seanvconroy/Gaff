@@ -1,14 +1,14 @@
 'use client';
 
-import { useActionState, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { applyCopy, codeGateCopy, common } from '@/copy/renter';
 import { applicationProblems, earningLabels, type Earning } from '@/domain/applications/apply';
-import { emptyFormState } from '@/lib/forms';
 import { Button } from '@/ui/Button';
 import { ChoiceGroup, TextField } from '@/ui/Field';
 import { QuestionSteps, type QuestionStep } from '@/ui/QuestionSteps';
 import { Sheet } from '@/ui/Sheet';
 import { SummaryList } from '@/ui/SummaryList';
+import { useSend } from '@/ui/useSend';
 import { applyAction } from './apply-actions';
 import { CodeGate } from './CodeGate';
 
@@ -42,7 +42,7 @@ export function ApplyFlow({
   current: Record<string, string>;
   startAt?: string | null;
 }) {
-  const [state, action] = useActionState(applyAction.bind(null, token), emptyFormState);
+  const [state, action] = useSend(applyAction.bind(null, token), common.sendFailed);
   const form = useRef<HTMLFormElement>(null);
   const [closed, setClosed] = useState<number | undefined>();
   const defaults = state.values ?? current;

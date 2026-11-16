@@ -1,13 +1,13 @@
 'use client';
 
-import { useActionState, useState } from 'react';
-import { tenancyCopy } from '@/copy/renter';
+import { useState } from 'react';
+import { common, tenancyCopy } from '@/copy/renter';
 import { INVENTORY_QUERY_MAX } from '@/domain/tenancy/movein';
-import { emptyFormState } from '@/lib/forms';
 import { Button } from '@/ui/Button';
 import { TextArea } from '@/ui/Field';
 import { Sheet } from '@/ui/Sheet';
 import { SubmitButton } from '@/ui/SubmitButton';
+import { useSend } from '@/ui/useSend';
 import styles from '../renter.module.css';
 import { queryItemAction } from './inventory-actions';
 
@@ -32,7 +32,11 @@ export function ItemQuery({
   /** What they've already said about it, to change. */
   note: string | null;
 }) {
-  const [state, action] = useActionState(queryItemAction.bind(null, token, itemId), emptyFormState);
+  const [state, action] = useSend(
+    queryItemAction.bind(null, token, itemId),
+    common.sendFailed,
+    'note',
+  );
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState<number | undefined>();
   // The note went: the sheet closes, and the page under it now shows what was said.
@@ -42,9 +46,14 @@ export function ItemQuery({
   }
   return (
     <>
-      <Button variant="quiet" aria-haspopup="dialog" onClick={() => setOpen(true)}>
+      {/* Its name says which item, for anyone who can't see where it sits. */}
+      <Button
+        variant="quiet"
+        aria-haspopup="dialog"
+        aria-label={copy.wrongAbout(item)}
+        onClick={() => setOpen(true)}
+      >
         {copy.wrong}
-        <span className="visually-hidden">: {item}</span>
       </Button>
       <Sheet open={open} onClose={() => setOpen(false)} title={copy.sheetTitle(item)}>
         <form key={state.attempt ?? 'first'} action={action} noValidate className={styles.task}>

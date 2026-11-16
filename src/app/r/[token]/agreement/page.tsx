@@ -4,7 +4,7 @@ import { tenancyCopy } from '@/copy/renter';
 import { homeFrom, listerFrom } from '@/domain/frame/frame';
 import { formatDateTime } from '@/lib/format';
 import { loadTenantAgreement } from '@/server/tenancy/tenancy';
-import { ButtonLink, buttonClass } from '@/ui/Button';
+import { ButtonLink, buttonProps } from '@/ui/Button';
 import { DocumentView } from '@/ui/Document';
 import { Notice } from '@/ui/Notice';
 import { Outcome } from '@/ui/Outcome';
@@ -78,16 +78,23 @@ export default async function TenantAgreementPage({
             both || status === 'tenant_signed' ? (
               <>
                 <p>
-                  <strong>Tenant:</strong>{' '}
+                  <strong>{copy.signatures.tenant}</strong>{' '}
                   {tenancy.tenantSignedAt
-                    ? `signed electronically by ${tenancy.tenantSignedName} on ${formatDateTime(tenancy.tenantSignedAt)}`
-                    : 'signed on paper'}
+                    ? copy.signatures.tenantSigned(
+                        tenancy.tenantSignedName ?? '',
+                        formatDateTime(tenancy.tenantSignedAt),
+                      )
+                    : copy.signatures.onPaper}
                 </p>
                 <p>
-                  <strong>For the landlord:</strong>{' '}
+                  <strong>{copy.signatures.landlord}</strong>{' '}
                   {tenancy.operatorSignedAt
-                    ? `signed by ${view.signerName} for ${organisation.name} on ${formatDateTime(tenancy.operatorSignedAt)}`
-                    : 'not signed yet'}
+                    ? copy.signatures.landlordSigned(
+                        view.signerName ?? '',
+                        organisation.name,
+                        formatDateTime(tenancy.operatorSignedAt),
+                      )
+                    : copy.signatures.notYet}
                 </p>
               </>
             ) : undefined
@@ -97,7 +104,7 @@ export default async function TenantAgreementPage({
           {/* A file to keep: a plain link, so the phone saves it or opens it. */}
           <a
             href={`/r/${token}/agreement/download`}
-            className={buttonClass('secondary', 'phone')}
+            {...buttonProps('secondary', 'phone')}
             download
           >
             <Download size={20} strokeWidth={1.75} aria-hidden="true" />

@@ -1,10 +1,9 @@
 'use client';
 
-import { useActionState } from 'react';
 import { checksCopy, common } from '@/copy/renter';
-import { emptyFormState } from '@/lib/forms';
 import { ChoiceGroup, TextField } from '@/ui/Field';
 import { QuestionSteps, type QuestionStep } from '@/ui/QuestionSteps';
+import { useSend } from '@/ui/useSend';
 import { refereesAction } from './check-actions';
 
 const copy = checksCopy.references;
@@ -42,7 +41,7 @@ export function ReferencesFlow({
   ask: ReadonlyArray<'landlord' | 'employer'>;
   startAt?: string | null;
 }) {
-  const [state, action] = useActionState(refereesAction.bind(null, token), emptyFormState);
+  const [state, action] = useSend(refereesAction.bind(null, token), common.sendFailed);
   const defaults = state.values ?? {};
   const yesNo = [
     { value: 'yes', label: common.yes },

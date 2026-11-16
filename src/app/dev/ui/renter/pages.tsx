@@ -15,6 +15,7 @@ import { InventoryPage, type InventoryItem } from '../../../r/[token]/Inventory'
 import { LinkEnded } from '../../../r/[token]/load';
 import { PayPage, type PayDetails } from '../../../r/[token]/Pay';
 import { RenterHub, type HubOptions } from '../../../r/[token]/RenterHub';
+import { RenterFailed, RenterLoading } from '../../../r/[token]/States';
 
 /**
  * Every page a renter or a tenant can see (UX-RN-1 to UX-RN-26), drawn from made-up details, for
@@ -246,11 +247,18 @@ const inventory: InventoryItem[] = [
 const tenancy = (progress: TenantProgress) => model('tenancy', { progress });
 
 /** Each page, by the name its address takes: `/dev/ui/renter?page=booked`. */
-export const pages: Record<string, { label: string; render: () => ReactNode }> = {
-  questions: { label: 'Questions', render: () => hub(model('questions')) },
+/**
+ * `q` is the screen of a one-per-screen flow that the address asks for (`&q=pets`), passed on to
+ * the pages that have one, as a renter's own address would.
+ */
+export const pages: Record<string, { label: string; render: (q?: string) => ReactNode }> = {
+  questions: {
+    label: 'Questions',
+    render: (q) => hub(model('questions'), { ...closed, q }),
+  },
   'questions-change': {
     label: 'Questions, changing an answer',
-    render: () =>
+    render: (q) =>
       hub(
         model('answers_sent', {
           questions: {
@@ -258,7 +266,7 @@ export const pages: Record<string, { label: string; render: () => ReactNode }> =
             values: { occupants: '2', hasPets: 'no', canMoveIn: 'yes', stayMonths: '12' },
           },
         }),
-        { ...closed, changing: true, q: 'moving-in' },
+        { ...closed, changing: true, q: q ?? 'moving-in' },
       ),
   },
   'answers-sent': { label: 'Answers sent', render: () => hub(model('answers_sent')) },
@@ -365,7 +373,7 @@ export const pages: Record<string, { label: string; render: () => ReactNode }> =
   'after-viewing': { label: 'After viewing', render: () => hub(model('after_viewing')) },
   apply: {
     label: 'Applying',
-    render: () => (
+    render: (q) => (
       <PrivateFrame
         audience="renter"
         lister={lister('01 496 0000')}
@@ -383,13 +391,14 @@ export const pages: Record<string, { label: string; render: () => ReactNode }> =
             fullName: 'Aoife Byrne',
             email: 'aoife.byrne@example.ie',
           }}
+          startAt={q}
         />
       </PrivateFrame>
     ),
   },
   'apply-check': {
     label: 'Applying, the check screen',
-    render: () => (
+    render: (q) => (
       <PrivateFrame
         audience="renter"
         lister={lister('01 496 0000')}
@@ -407,6 +416,7 @@ export const pages: Record<string, { label: string; render: () => ReactNode }> =
             fullName: 'Aoife Byrne',
             email: 'aoife.byrne@example.ie',
           }}
+          startAt={q}
         />
       </PrivateFrame>
     ),
@@ -431,8 +441,11 @@ export const pages: Record<string, { label: string; render: () => ReactNode }> =
   },
   'checks-references': {
     label: 'Checks: your references',
-    render: () =>
-      hub(model('checks', { checkItems: checks('passed', 'passed', 'to_do', 'to_do') }), open),
+    render: (q) =>
+      hub(model('checks', { checkItems: checks('passed', 'passed', 'to_do', 'to_do') }), {
+        ...open,
+        q,
+      }),
   },
   'checks-arranged': {
     label: 'Checks: arranged by the lister',
@@ -557,4 +570,6 @@ export const pages: Record<string, { label: string; render: () => ReactNode }> =
   },
   'home-closed': { label: 'Home no longer available', render: () => hub(model('home_closed')) },
   'link-ended': { label: 'The link has ended', render: () => <LinkEnded /> },
+  loading: { label: 'Loading', render: () => <RenterLoading /> },
+  failed: { label: 'A page that couldn’t load', render: () => <RenterFailed /> },
 };

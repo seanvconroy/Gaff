@@ -18,12 +18,12 @@ export const dynamic = 'force-dynamic';
 export default async function RenterPagesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; q?: string }>;
 }) {
   if (!env().DEV_TOOLS) notFound();
-  const { page } = await searchParams;
+  const { page, q } = await searchParams;
   const chosen = page ? pages[page] : undefined;
-  if (chosen) return chosen.render();
+  if (chosen) return chosen.render(q);
   return (
     <main className={styles.page}>
       <Narrow>

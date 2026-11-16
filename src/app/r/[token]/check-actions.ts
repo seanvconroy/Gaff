@@ -9,6 +9,7 @@ import { startProviderCheck, submitReferees } from '@/server/checks/checks';
 import { loadRenterPage } from '@/server/renter/answers';
 import { CHECK_RETURN_COOKIE, CHECK_RETURN_MINUTES } from '@/server/renter/check-return';
 import { linkIsOpen } from '@/server/renter/gate';
+import { toRenterPage } from './back';
 
 /** UX-RN-14: nothing about the checks is done from a link alone. */
 async function open(token: string): Promise<boolean> {
@@ -21,9 +22,9 @@ async function open(token: string): Promise<boolean> {
  * given their link: this browser remembers the way back for an hour (UX-RN-17).
  */
 export async function startCheckAction(token: string, kind: 'identity' | 'income'): Promise<void> {
-  if (!(await open(token))) redirect(`/r/${token}`);
+  if (!(await open(token))) toRenterPage(token);
   const started = await startProviderCheck(token, kind);
-  if ('problem' in started) redirect(`/r/${token}?check_problem=${started.problem}`);
+  if ('problem' in started) toRenterPage(token, `?check_problem=${started.problem}`);
   (await cookies()).set(CHECK_RETURN_COOKIE, token, cookieOptions(CHECK_RETURN_MINUTES * 60));
   redirect(started.redirectUrl);
 }
@@ -35,12 +36,12 @@ export async function refereesAction(
   formData: FormData,
 ): Promise<FormState> {
   const values = formValues(formData);
-  if (!(await open(token))) redirect(`/r/${token}`);
+  if (!(await open(token))) toRenterPage(token);
   const result = await submitReferees(token, values);
   if (!result) return invalid({ form: common.linkEnded }, values);
   if (!result.ok) {
-    if ('closed' in result) redirect(`/r/${token}`);
+    if ('closed' in result) toRenterPage(token);
     return invalid(result.errors, values);
   }
-  redirect(`/r/${token}`);
+  toRenterPage(token);
 }

@@ -1,11 +1,10 @@
 'use client';
 
-import { useActionState } from 'react';
-import { tenancyCopy } from '@/copy/renter';
-import { emptyFormState } from '@/lib/forms';
+import { common, tenancyCopy } from '@/copy/renter';
 import { Button } from '@/ui/Button';
 import { TextField } from '@/ui/Field';
 import { SubmitButton } from '@/ui/SubmitButton';
+import { useSend } from '@/ui/useSend';
 import styles from '../renter.module.css';
 import { ppsnAction, skipPpsnAction } from './ppsn-actions';
 
@@ -17,7 +16,7 @@ const copy = tenancyCopy.pps;
  * birth (rule 3). Answered or skipped, it isn't asked again.
  */
 export function PpsStep({ token }: { token: string }) {
-  const [state, action] = useActionState(ppsnAction.bind(null, token), emptyFormState);
+  const [state, action] = useSend(ppsnAction.bind(null, token), common.sendFailed, 'ppsn');
   return (
     <form key={state.attempt ?? 'first'} action={action} noValidate className={styles.task}>
       <TextField

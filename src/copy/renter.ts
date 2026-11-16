@@ -56,6 +56,16 @@ export const common = {
   linkEnded: 'This link has ended. Reply to any email from us and we’ll help.',
 } as const;
 
+/** States: loading. The frame is there at once; this is what a screen reader hears meanwhile. */
+export const loadingCopy = { label: 'Opening your page' } as const;
+
+/** States: a page couldn’t load, or a button’s action never arrived. One sentence and a way on. */
+export const failedCopy = {
+  title: 'That didn’t work',
+  text: 'We couldn’t reach Gaff. Check your connection and try again.',
+  button: 'Try again',
+} as const;
+
 /** States: the link has expired or been withdrawn. */
 export const linkEnded = {
   title: 'This link has ended',
@@ -474,6 +484,16 @@ export const tenancyCopy = {
     bothNext: (operator: string) =>
       `Next, ${operator} sends you how to pay the deposit and first month’s rent.`,
     back: 'Back to your tenancy',
+    /** Who has signed, under the agreement and in the copy to download. */
+    signatures: {
+      tenant: 'Tenant:',
+      landlord: 'For the landlord:',
+      tenantSigned: (name: string, when: string) => `signed electronically by ${name} on ${when}`,
+      onPaper: 'signed on paper',
+      landlordSigned: (signer: string, operator: string, when: string) =>
+        `signed by ${signer} for ${operator} on ${when}`,
+      notYet: 'not signed yet',
+    },
   },
   pay: {
     title: 'Pay the deposit and first month’s rent',

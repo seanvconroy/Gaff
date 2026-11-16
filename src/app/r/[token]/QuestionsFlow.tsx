@@ -1,6 +1,5 @@
 'use client';
 
-import { useActionState } from 'react';
 import { common, questionsCopy } from '@/copy/renter';
 import {
   MOVE_IN_LATER,
@@ -11,10 +10,10 @@ import {
   stayChoices,
 } from '@/domain/criteria/answers';
 import type { Criteria, CriterionQuestion } from '@/domain/criteria/criteria';
-import { emptyFormState } from '@/lib/forms';
 import { ChoiceGroup, TextField } from '@/ui/Field';
 import { DateField } from '@/ui/Pickers';
 import { QuestionSteps, type QuestionStep } from '@/ui/QuestionSteps';
+import { useSend } from '@/ui/useSend';
 import { saveAnswersAction } from './actions';
 
 /** UX-RN-2: the order the questions are asked in. Only those the criteria need are asked. */
@@ -34,6 +33,7 @@ export function QuestionsFlow({
   lead,
   current,
   startAt,
+  fromStart,
 }: {
   token: string;
   asked: readonly CriterionQuestion[];
@@ -45,8 +45,10 @@ export function QuestionsFlow({
   lead: string;
   current: Record<string, string>;
   startAt?: string | null;
+  /** They asked to change their answers: start at the first question, not after the last. */
+  fromStart?: boolean;
 }) {
-  const [state, action] = useActionState(saveAnswersAction.bind(null, token), emptyFormState);
+  const [state, action] = useSend(saveAnswersAction.bind(null, token), common.sendFailed);
   const defaults = state.values ?? current;
   const check = (question: CriterionQuestion) => (values: Readonly<Record<string, string>>) => {
     const read = readAnswer(question, values, criteria);
@@ -176,7 +178,7 @@ export function QuestionsFlow({
       defaults={defaults}
       serverErrors={state.errors}
       formKey={state.attempt}
-      startAt={startAt}
+      startAt={startAt ?? (fromStart ? steps[0]?.id : undefined)}
       submit={questionsCopy.send}
       pending={questionsCopy.sending}
     />

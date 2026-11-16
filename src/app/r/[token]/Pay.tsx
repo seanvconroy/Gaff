@@ -2,7 +2,7 @@ import { Phone } from 'lucide-react';
 import { codeGateCopy, notices, offerCopy, tenancyCopy } from '@/copy/renter';
 import { reachAPerson } from '@/domain/frame/frame';
 import type { RenterModel } from '@/server/renter/model';
-import { buttonClass } from '@/ui/Button';
+import { buttonProps } from '@/ui/Button';
 import { CopyButton } from '@/ui/CopyButton';
 import { Notice } from '@/ui/Notice';
 import { Outcome } from '@/ui/Outcome';
@@ -103,7 +103,7 @@ export function PayTask({ model, details }: { model: RenterModel; details: PayDe
         </Notice>
         {phone ? (
           <div className={styles.actions}>
-            <a href={phone.href} className={buttonClass('primary', 'phone')}>
+            <a href={phone.href} {...buttonProps('primary', 'phone')}>
               <Phone size={20} strokeWidth={1.75} aria-hidden="true" />
               {notices.ringToCheck.button(phone.shown)}
             </a>

@@ -1,3 +1,4 @@
+import { tenancyCopy } from '@/copy/renter';
 import { agreementFile, agreementFileName } from '@/domain/tenancy/agreement-file';
 import { formatDateTime } from '@/lib/format';
 import { loadTenantAgreement } from '@/server/tenancy/tenancy';
@@ -13,17 +14,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
     return new Response('Not found', { status: 404 });
   }
   const { tenancy, organisation } = view;
+  const words = tenancyCopy.agreement.signatures;
   const signatures: string[] = [];
   if (tenancy.tenantSignedAt) {
     signatures.push(
-      `Tenant: signed electronically by ${tenancy.tenantSignedName} on ${formatDateTime(tenancy.tenantSignedAt)}`,
+      `${words.tenant} ${words.tenantSigned(tenancy.tenantSignedName ?? '', formatDateTime(tenancy.tenantSignedAt))}`,
     );
   } else if (tenancy.agreementStatus === 'signed_on_paper') {
-    signatures.push('Tenant: signed on paper');
+    signatures.push(`${words.tenant} ${words.onPaper}`);
   }
   if (tenancy.operatorSignedAt) {
     signatures.push(
-      `For the landlord: signed by ${view.signerName} for ${organisation.name} on ${formatDateTime(tenancy.operatorSignedAt)}`,
+      `${words.landlord} ${words.landlordSigned(view.signerName ?? '', organisation.name, formatDateTime(tenancy.operatorSignedAt))}`,
     );
   }
   const name = agreementFileName(view.letting.addressLine1);

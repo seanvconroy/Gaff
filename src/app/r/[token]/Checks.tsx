@@ -36,6 +36,12 @@ function Keeps({ line, more }: { line: string; more: string }) {
  *
  * Until the one-time code is entered (or they're signed in with the same email), the page shows
  * only that there are checks, and "Start" (UX-RN-14).
+ *
+ * THE VERIFIED IDENTITY'S SEAM (UX-RN-15's first row, Q35): "Use the ID check you did on 3
+ * October?" before the provider's flow, and "Keep this, so you never have to do it again?" after
+ * it, belong to the ID check's task below (`provider('identity')`). They need an identity kept on
+ * a person's own profile, which work package WP-24 builds. Until then every ID check runs with
+ * the provider, and nothing is offered to keep.
  */
 export function ChecksTask({
   token,

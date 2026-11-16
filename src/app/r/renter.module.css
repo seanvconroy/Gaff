@@ -8,11 +8,20 @@
   color: var(--color-ink-muted);
 }
 
-/* A page's task: its title, a line or two, then what to do. */
+/*
+ * A page's task: its title, a line or two, then what to do. The frame is there at once; the task
+ * fades in when it's ready (section 5, "States"). Once, and not at all with reduced motion.
+ */
 .task {
   display: grid;
   gap: var(--space-6);
   min-width: 0;
+  animation: task-in var(--motion-base) var(--ease-enter);
+}
+
+/* A task inside a task (a check's own part, a form) arrives with it, not after it. */
+.task .task {
+  animation: none;
 }
 
 .titles {
@@ -154,6 +163,12 @@
 
 .saidLabel {
   color: var(--color-ink-muted);
+}
+
+@keyframes task-in {
+  from {
+    opacity: 0;
+  }
 }
 
 @media (width > 900px) {

@@ -15,7 +15,7 @@ import {
 } from '@/copy/renter';
 import { formatDate, irishToday } from '@/lib/format';
 import type { RenterModel } from '@/server/renter/model';
-import { ButtonLink, buttonClass } from '@/ui/Button';
+import { ButtonLink, buttonProps } from '@/ui/Button';
 import { DirectionsLink } from '@/ui/DirectionsLink';
 import { Notice } from '@/ui/Notice';
 import { Outcome } from '@/ui/Outcome';
@@ -93,6 +93,7 @@ export function RenterHub({
         lead={questionsCopy.lead(model.firstName, operator)}
         current={model.questions.values}
         startAt={options.q}
+        fromStart={options.changing}
       />,
       questionsCopy.next(operator, model.viewings.first),
     );
@@ -172,7 +173,7 @@ export function RenterHub({
           </Outcome>
           <div className={styles.actions}>
             {/* A calendar file: a plain link, so the phone's own calendar opens it. */}
-            <a href={`${here}/viewing.ics`} className={buttonClass('primary', 'phone')}>
+            <a href={`${here}/viewing.ics`} {...buttonProps('primary', 'phone')}>
               <CalendarPlus size={20} strokeWidth={1.75} aria-hidden="true" />
               {viewingCopy.booked.calendar}
             </a>

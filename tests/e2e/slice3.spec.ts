@@ -246,7 +246,9 @@ test('R26: the operator finishes the let home; the record is archived and the da
 
   await page.goto('/today');
   await page
-    .getByRole('link', { name: '12 Ranelagh Road: ask for the deposit and first month’s rent' })
+    .getByRole('link', {
+      name: /Ask for the deposit and first month’s rent · 12 Ranelagh Road/,
+    })
     .click();
   await page.getByRole('button', { name: 'Ask Aoife to pay' }).click();
   await page.getByRole('button', { name: 'It’s in our account' }).click();
@@ -257,8 +259,11 @@ test('R26: the operator finishes the let home; the record is archived and the da
   await expect(page.getByText('Finished', { exact: true })).toBeVisible();
   await expect(page.getByText('Step 9 of 9 · Close')).toBeVisible();
 
-  await page.goto('/today');
-  await expect(page.getByText(/let in 0 days/)).toBeVisible();
+  // UX-HM-9: what the letting took is shown under the closed home in Lettings, not on Today.
+  await page.goto('/lettings');
+  await expect(
+    page.getByRole('list', { name: 'Let', exact: true }).getByText(/^Let in 0 days/),
+  ).toBeVisible();
   await page.goto(`${lettingUrl}/timeline`);
   await expect(page.getByText('Letting finished and archived')).toBeVisible();
 });

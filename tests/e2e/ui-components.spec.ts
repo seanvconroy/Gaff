@@ -617,6 +617,8 @@ test('UX-NV-12, UX-DS-10: home cards are one column on a phone and three across 
     }),
   );
   expect(frames).toEqual(Array(4).fill({ ratio: 1.5, radius: '16px' }));
+  // The photo loads as it comes into view.
+  await first.scrollIntoViewIfNeeded();
   await expect(first.locator('img')).toHaveJSProperty('complete', true);
   expect(
     await first.locator('img').evaluate((img: HTMLImageElement) => img.naturalWidth),

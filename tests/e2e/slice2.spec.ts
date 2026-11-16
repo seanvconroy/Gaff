@@ -47,8 +47,9 @@ test('R17: the operator compares applicants side by side and chooses a preferred
   await applyOnPhone(browser, links[CIARAN]!, '4,000');
 
   await page.goto('/today');
+  // UX-HM-3: the row says the task and the home, then why now.
   await page
-    .getByRole('link', { name: '12 Ranelagh Road: choose who to offer it to (2 applied)' })
+    .getByRole('link', { name: /Choose an applicant · 12 Ranelagh Road\s*2 people have applied/ })
     .click();
   await expect(page.getByRole('heading', { name: 'Aoife Byrne' })).toBeVisible();
   await expect(page.getByText('€5,200 a month, 2.8 times the rent')).toBeVisible();

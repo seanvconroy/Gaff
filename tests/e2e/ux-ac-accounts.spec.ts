@@ -331,7 +331,7 @@ test('UX-AG-1 to UX-AG-4: an agency person finds their agency by typing its name
 
     // She lands on Today, in the agency, after four questions and no more (UX-AC-6).
     await expect(page).toHaveURL(/\/today$/);
-    await expect(page.getByRole('heading', { name: 'Your lettings' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Today' })).toBeVisible();
     expect(await organisationsOf(email)).toMatchObject([
       { kind: 'agency', name: agency, licence, confirmed: false },
     ]);
@@ -729,7 +729,7 @@ test('UX-AG-5: a founder sets a pilot agency up, and its first admin joins with 
     await page.getByLabel('Six-digit code').fill(await latestCodeFor(admin));
     // No questions: straight to Today, in the agency, which is already confirmed.
     await expect(page).toHaveURL(/\/today$/);
-    await expect(page.getByRole('heading', { name: 'Your lettings' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Today' })).toBeVisible();
     expect(await organisationsOf(admin)).toMatchObject([
       { kind: 'agency', name: agency, licence, confirmed: true },
     ]);

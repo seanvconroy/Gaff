@@ -357,7 +357,7 @@ export async function setUpAgency(
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Is this your agency?' })).toBeVisible();
   await page.getByRole('button', { name: 'Yes, that’s us' }).click();
-  await expect(page.getByRole('heading', { name: 'Your lettings' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Today' })).toBeVisible();
   if (options.confirmed !== false) await confirmAgencyOf(email);
   const rows = await asSystem<{ slug: string }>(
     `select o.inbound_slug as slug from organisations o

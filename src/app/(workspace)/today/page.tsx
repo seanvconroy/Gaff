@@ -99,7 +99,7 @@ export default async function TodayPage({
         }
       />
 
-      {views.length > 1 ? <ViewSwitch path="/today" view={view} label="Whose" /> : null}
+      {views.length > 1 ? <ViewSwitch path="/today" view={view} label="Whose tasks" /> : null}
 
       {/* Block 1: the setup checklist goes here, when WP-27 builds it. */}
 

@@ -33,7 +33,6 @@ import {
   rentChecks,
   tenancies,
   users,
-  viewingSessions,
   viewingSlots,
 } from '@/db/schema';
 import { firstNameOf } from '@/domain/accounts/first-run';
@@ -429,19 +428,26 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
       members: members.length,
     };
 
-    // "Viewings today": each viewing time today, in Irish time, with how many are booked.
+    // "Viewings today": each viewing time today, in Irish time, with how many are booked. A
+    // viewing time is what its slots say it is: bookings and attendance go by the slots too.
     const dayStart = irishInstant(today, '00:00');
     const dayEnd = irishInstant(dayAfter(today), '00:00');
-    const sessionsToday = await tx
-      .select({
-        sessionId: viewingSessions.id,
-        lettingId: viewingSessions.lettingId,
-        startsAt: viewingSessions.startsAt,
-        endsAt: viewingSessions.endsAt,
-      })
-      .from(viewingSessions)
-      .where(and(gte(viewingSessions.startsAt, dayStart), lt(viewingSessions.startsAt, dayEnd)))
-      .orderBy(asc(viewingSessions.startsAt));
+    const sessionsToday = (
+      await tx
+        .select({
+          sessionId: viewingSlots.sessionId,
+          lettingId: viewingSlots.lettingId,
+          startsAt: min(viewingSlots.startsAt),
+          endsAt: max(viewingSlots.endsAt),
+        })
+        .from(viewingSlots)
+        .where(and(gte(viewingSlots.startsAt, dayStart), lt(viewingSlots.startsAt, dayEnd)))
+        .groupBy(viewingSlots.sessionId, viewingSlots.lettingId)
+    )
+      .flatMap((row) =>
+        row.startsAt && row.endsAt ? [{ ...row, startsAt: row.startsAt, endsAt: row.endsAt }] : [],
+      )
+      .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
     const sessionIds = sessionsToday.map((s) => s.sessionId);
     const sessionPlaces = new Map(
       sessionIds.length === 0

@@ -70,7 +70,7 @@ The web framework, the email provider and the AI provider can each be swapped wi
 | Validation and dates | Zod for every input; date-fns with Europe/Dublin | [0001](adr/0001-modular-monolith-typescript-nextjs.md) |
 | Testing | Vitest, real Postgres, Playwright with axe, compliance suite, AI evals | [0012](adr/0012-testing-and-ci.md) |
 | CI | GitHub Actions; synthetic data only | [0012](adr/0012-testing-and-ci.md) |
-| Sign-in | Operators: email link (Better Auth, data in our DB). Renters and landlords: private links, no accounts | [0013](adr/0013-sign-in-operators-links-for-renters.md) |
+| Sign-in | People with accounts: Google, Apple, a six-digit email code, or a passkey (Better Auth, data in our DB). Renters, owners and referees: private links, no accounts | [0015](adr/0015-sign-in-google-apple-codes-passkeys.md), [0013](adr/0013-sign-in-operators-links-for-renters.md) |
 
 ## Where the PRD's rules live
 

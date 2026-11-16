@@ -67,7 +67,7 @@ Vercel deploys the repository's default branch, `claude/gaff-mvp`, as production
    | `"database": "XX000"` | The user name should be `gaff.` followed by your project's reference. |
    | `"database": "42P01"` | The tables aren't there. Check the build log for the migration step. |
 
-2. **Sign in.** Open the app and sign in with a made-up email, then open the sign-in link from `/dev/outbox`.
+2. **Sign in.** Open the app and sign in with a made-up email, then enter the six-digit code from the email in `/dev/outbox`.
 3. **The daily job.** In Vercel, **Settings**, then **Cron Jobs**, shows `/api/cron/daily` once a day.
 
 ## 4. The minute tick (Supabase)
@@ -94,7 +94,7 @@ Locally, `pnpm worker` does the same job continuously (see `CLAUDE.md`).
 
 ## Good to know
 
-- **Vercel's sign-in protects the test copy.** New Vercel projects ask for a Vercel sign-in on every `vercel.app` address, so only you can open the test copy and its Outbox, which shows every email, sign-in links included. Keep it on. Sign in to Vercel once on your phone too. The minute tick passes it with the project's automation bypass secret. Production, on Gaff's own domain, is open to renters and has no Outbox.
+- **Vercel's sign-in protects the test copy.** New Vercel projects ask for a Vercel sign-in on every `vercel.app` address, so only you can open the test copy and its Outbox, which shows every email, sign-in codes included. Keep it on. Sign in to Vercel once on your phone too. The minute tick passes it with the project's automation bypass secret. Production, on Gaff's own domain, is open to renters and has no Outbox.
 - **Preview deployments** of other branches share the test database but never migrate it.
 - **Logs:** Vercel shows function logs per request. They hold IDs and counts, never personal data.
 - **Seeing the data:** Supabase's **Table Editor** shows Gaff's tables. Remember it's the test copy: made-up details only.
@@ -120,8 +120,11 @@ Before the first real renter (see [launch-checklist.md](launch-checklist.md)):
   | SMS | the Sinch settings |
   | AI | the Bedrock settings and AWS keys |
   | `IDENTITY_PROVIDER`, `INCOME_PROVIDER` | `none` |
+  | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | from a Google OAuth client (web application), with the redirect URI `https://<domain>/api/auth/callback/google`. Without both, "Continue with Google" isn't shown |
+  | `APPLE_CLIENT_ID`, `APPLE_CLIENT_SECRET` | Apple's Services ID and client secret, with the return URL `https://<domain>/api/auth/callback/apple`. Apple accepts a client secret for six months at most, so renew it. Without both, "Continue with Apple" isn't shown |
 
-  Production refuses to start with a stand-in or without the encryption key.
+  Production refuses to start with a stand-in or without the encryption key. Sign-in by email code and by passkey needs no setting ([ADR-0015](adr/0015-sign-in-google-apple-codes-passkeys.md)). A passkey belongs to the domain in `APP_URL`, so settle the domain before people add them.
+- **Apple:** register the sending domain (`MAIL_FROM_DOMAIN`) with "Sign in with Apple", so "Hide My Email" addresses can be reached.
 - **Resend:**
   - Add the sending domain in region `eu-west-1`, with open and click tracking off, and add its SPF and DKIM records.
   - Turn on receiving for the inbound subdomain and add its MX record.

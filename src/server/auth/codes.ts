@@ -1,5 +1,5 @@
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
-import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, gte, lt, sql } from 'drizzle-orm';
 import { emailSender, gaffSender } from '@/adapters/email';
 import { db, type Tx } from '@/db/client';
 import { oneTimeCodes } from '@/db/schema';
@@ -109,7 +109,7 @@ export async function sendCode(input: SendCodeInput, now = new Date()): Promise<
         eq(oneTimeCodes.purpose, input.purpose),
         eq(oneTimeCodes.subject, input.subject),
         eq(oneTimeCodes.browserHash, browserHash),
-        gte(oneTimeCodes.sentAt, new Date(now.getTime() - RESEND_AFTER_SECONDS * 1000)),
+        gt(oneTimeCodes.sentAt, new Date(now.getTime() - RESEND_AFTER_SECONDS * 1000)),
       ),
     )
     .orderBy(desc(oneTimeCodes.sentAt))

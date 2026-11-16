@@ -20,6 +20,14 @@ import {
 const widths = [390, 1280] as const;
 const viewport = (width: number) => ({ width, height: width === 390 ? 844 : 900 });
 
+/**
+ * A sheet over a long page: what's on screen, not the whole page. A sheet stays put while the
+ * page scrolls under it, so a full-page picture would show it out of place.
+ */
+async function screenshotOfSheet(page: Page, name: string): Promise<void> {
+  await page.screenshot({ path: `screenshots/${name}.png` });
+}
+
 async function rows<T extends pg.QueryResultRow>(sql: string, params: unknown[]): Promise<T[]> {
   const client = new pg.Client({ connectionString: E2E_DATABASE_URL });
   await client.connect();
@@ -658,7 +666,7 @@ test('UX-SI-10: changing the account tenants pay into asks to confirm it’s you
     ).toBeVisible();
     await expectNoSidewaysScroll(page);
     await expectAccessible(page);
-    await screenshot(page, `ux-si-confirm-${width}`);
+    await screenshotOfSheet(page, `ux-si-confirm-${width}`);
     // Nothing is saved until they have.
     if (width === 390) expect(await savedIban(email)).toBeNull();
 
@@ -681,7 +689,7 @@ test('UX-SI-10: changing the account tenants pay into asks to confirm it’s you
       sheet.getByText('That code isn’t right. Check the email and try again.'),
     ).toBeVisible();
     await expectAccessible(page);
-    await screenshot(page, `ux-si-confirm-code-${width}`);
+    await screenshotOfSheet(page, `ux-si-confirm-code-${width}`);
     await sheet.getByLabel('Six-digit code').fill(code);
     await expect(page.getByText('Saved.')).toBeVisible();
     await expect(page.getByLabel('IBAN')).toHaveValue('IE29 AIBK 9311 5212 3456 78');
@@ -722,7 +730,7 @@ test('UX-SI-10: a person with a passkey confirms it’s them with it', async ({ 
   await expect(sheet.getByRole('button', { name: 'Use your passkey' })).toBeVisible();
   await expect(sheet.getByRole('button', { name: 'Email me a code instead' })).toBeVisible();
   await expectAccessible(page);
-  await screenshot(page, 'ux-si-confirm-passkey-390');
+  await screenshotOfSheet(page, 'ux-si-confirm-passkey-390');
   await sheet.getByRole('button', { name: 'Use your passkey' }).click();
   await expect(page.getByText('Saved.')).toBeVisible();
   expect(await savedIban(email)).toBe('IE29AIBK93115212345678');

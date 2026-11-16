@@ -1,5 +1,6 @@
 import { devices, expect, test } from '@playwright/test';
 import { daftEnquiry } from '../fixtures/emails';
+import { bookFirstTime } from './renter';
 import {
   createLettingThroughUi,
   expectAccessible,
@@ -52,9 +53,7 @@ test('R15: the operator marks who came, on a phone, with one tap per person', as
   });
   const renter = await phone.newPage();
   await renter.goto(invitation);
-  await renter.getByRole('radio').first().check();
-  await renter.getByRole('button', { name: 'Book this time' }).click();
-  await expect(renter.getByText('You’re booked')).toBeVisible();
+  await bookFirstTime(renter);
 
   // Before the viewing, the operator sees when they can mark it.
   await page.setViewportSize({ width: 412, height: 915 });
@@ -88,7 +87,10 @@ test('R15: the operator marks who came, on a phone, with one tap per person', as
 
   // The renter's page moves on, and the timeline shows the person's decisions.
   await renter.reload();
-  await expect(renter.getByText('Thanks for coming to view')).toBeVisible();
+  await expect(
+    renter.getByRole('heading', { name: 'Thanks for coming. Would you like to apply?' }),
+  ).toBeVisible();
+  await expect(renter.getByRole('link', { name: 'Apply', exact: true })).toBeVisible();
   await expectAccessible(renter);
   await phone.close();
   await page.setViewportSize({ width: 1280, height: 900 });

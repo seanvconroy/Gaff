@@ -198,7 +198,7 @@ test('UX-PP-3, UX-PP-10, UX-AI-1, UX-AI-2: the first reply is one email with one
   await button.click();
   await expect(page).toHaveURL(/\/r\/[A-Za-z0-9_-]{43}$/);
   await expect(
-    page.getByRole('heading', { name: 'Hi Aoife, a few quick questions' }),
+    page.getByRole('heading', { name: 'How many people would live here, including you?' }),
   ).toBeVisible();
 
   // UX-PP-1 to UX-PP-5: the page stands in the renter's frame at both widths.
@@ -250,7 +250,7 @@ test('UX-PP-3, UX-PP-10, UX-AI-1, UX-AI-2: the first reply is one email with one
 
   // A link that isn't anyone's still gives a way to a person, and names nobody.
   await page.goto('/r/not-a-real-link');
-  await expect(page.getByRole('heading', { name: 'This link isn’t working' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'This link has ended' })).toBeVisible();
   await expectPrivateFrame(page, { audience: 'renter', lister: null });
   await expectTalkToAPerson(page, { lister: null });
 });

@@ -10,6 +10,7 @@ import type { RenterModel } from '@/server/renter/model';
 import { PrivateFrame } from '@/ui/PrivateFrame';
 import { ApplyFlow } from '../../../r/[token]/ApplyFlow';
 import { CancelViewing, ChooseTime, ConfirmTime } from '../../../r/[token]/Booking';
+import { DeclineOffer } from '../../../r/[token]/Decline';
 import { InventoryPage, type InventoryItem } from '../../../r/[token]/Inventory';
 import { LinkEnded } from '../../../r/[token]/load';
 import { PayPage, type PayDetails } from '../../../r/[token]/Pay';
@@ -446,6 +447,10 @@ export const pages: Record<string, { label: string; render: () => ReactNode }> =
       ),
   },
   offer: { label: 'The offer', render: () => hub(model('offer')) },
+  decline: {
+    label: 'Declining the offer',
+    render: () => <DeclineOffer token={TOKEN} model={model('offer')} />,
+  },
   'offer-closed': { label: 'The offer has closed', render: () => hub(model('offer_closed')) },
   'offer-declined': { label: 'Offer declined', render: () => hub(model('offer_declined')) },
   'tenancy-agreement-coming': {

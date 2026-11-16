@@ -34,7 +34,10 @@ export function PasskeyOffer({ device, next }: { device: DeviceKind; next: strin
     setWorking('on');
     setFailed(false);
     const result = await authClient.passkey.addPasskey();
-    if (result?.error) {
+    // The device already holds a passkey for this account: nothing to add, and nothing wrong.
+    const problem = result?.error as { code?: string } | null | undefined;
+    const already = problem?.code === 'ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED';
+    if (result?.error && !already) {
       setWorking(null);
       setFailed(true);
       return;

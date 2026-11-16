@@ -678,6 +678,8 @@ test('UX-SI-10: changing the account tenants pay into asks to confirm it’s you
       await page.getByRole('button', { name: 'Save the account' }).click();
       await expect(sheet).toBeVisible();
     }
+    // One form, however many times it has asked.
+    await expect(page.locator('input[name="iban"]')).toHaveCount(1);
 
     await sheet.getByRole('button', { name: 'Email me a code' }).click();
     const input = sheet.getByLabel('Six-digit code');

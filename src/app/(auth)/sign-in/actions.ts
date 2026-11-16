@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { signInCopy } from '@/copy/sign-in';
-import { secondsUntilResend } from '@/domain/auth/codes';
+import { CODE_LENGTH, secondsUntilResend } from '@/domain/auth/codes';
 import {
   signInProviderSchema,
   type SignInMethod,
@@ -109,6 +109,8 @@ export interface CodeState {
 /** UX-SI-2: one try at the code. The right one signs the person in and goes on. */
 export async function checkSignInCode(state: CodeState, formData: FormData): Promise<CodeState> {
   const code = String(formData.get('code') ?? '').replace(/\D/g, '');
+  // A stray Enter on a half-typed code isn't a try: nothing is counted against the code.
+  if (code.length !== CODE_LENGTH) return state;
   const result = await auth().api.signInWithCode({ body: { code }, headers: await headers() });
   if (result.result === 'correct') {
     redirect(

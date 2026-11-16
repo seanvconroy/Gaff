@@ -70,7 +70,8 @@ export function PaymentAccountForm({
         </Stack>
       </form>
       <ConfirmItsYou
-        key={state.attempt ?? 'first'}
+        // A fresh sheet for each answer (its key differs from the form's: they are siblings).
+        key={`confirm-${state.attempt ?? 'first'}`}
         open={state.confirm === 'change_payment_account' && closedFor !== state.attempt}
         action="change_payment_account"
         email={email}

@@ -1,6 +1,6 @@
 'use server';
 
-import { secondsUntilResend } from '@/domain/auth/codes';
+import { CODE_LENGTH, secondsUntilResend } from '@/domain/auth/codes';
 import { sensitiveActionSchema, type SensitiveAction } from '@/domain/auth/confirm';
 import { finishConfirmation, startConfirmation } from '@/server/auth/confirm-request';
 import { currentUser } from '@/server/auth/member';
@@ -33,5 +33,8 @@ export async function checkConfirmCode(
   const parsed = sensitiveActionSchema.safeParse(action);
   const user = await currentUser();
   if (!parsed.success || !user) return 'finished';
-  return finishConfirmation(user, parsed.data, String(code).replace(/\D/g, ''));
+  const digits = String(code).replace(/\D/g, '');
+  // A half-typed code isn't a try: nothing is counted against the code.
+  if (digits.length !== CODE_LENGTH) return 'wrong';
+  return finishConfirmation(user, parsed.data, digits);
 }

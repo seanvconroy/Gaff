@@ -67,6 +67,12 @@ export function formatShortDate(value: Date | string, now: Date = new Date()): s
   return `${day} ${MONTHS[month - 1]}${year === parts(now).year ? '' : ` ${year}`}`;
 }
 
+/** "Fri 20 Nov": a day in a short row of days. The full date is said beside it. */
+export function formatShortDay(value: Date | string): string {
+  const { month, day, weekday } = parts(value);
+  return `${WEEKDAYS[weekday]!.slice(0, 3)} ${day} ${MONTHS[month - 1]!.slice(0, 3)}`;
+}
+
 /** "6pm", "9:12am", "12pm". */
 export function formatTime(instant: Date): string {
   const local = new TZDate(instant, TIME_ZONE);

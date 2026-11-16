@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, isNull, sum } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNull, sum } from 'drizzle-orm';
 import { type Tx, withOrg } from '@/db/client';
 import {
   landlords,
@@ -38,6 +38,39 @@ export async function photosIn(
     )
     .orderBy(asc(lettingPhotos.position), asc(lettingPhotos.createdAt));
   return rows.map((row) => ({ id: row.id, href: photoHref(row.storageKey) }));
+}
+
+/**
+ * UX-LT-10, UX-NV-9: where to load each of these lettings' cover photos from, by letting ID. A
+ * letting with no photo isn't in the map. For a list of homes: one query, in a transaction
+ * already scoped to the organisation. (The Lettings list's `coverPhotosFor` reads this.)
+ */
+export async function coverPhotoHrefsIn(
+  tx: Tx,
+  lettingIds: readonly string[],
+): Promise<Map<string, string>> {
+  if (lettingIds.length === 0) return new Map();
+  const rows = await tx
+    .selectDistinctOn([lettingPhotos.lettingId], {
+      lettingId: lettingPhotos.lettingId,
+      storageKey: lettingPhotos.storageKey,
+    })
+    .from(lettingPhotos)
+    .where(inArray(lettingPhotos.lettingId, [...lettingIds]))
+    .orderBy(lettingPhotos.lettingId, asc(lettingPhotos.position), asc(lettingPhotos.createdAt));
+  return new Map(
+    rows.flatMap((row) =>
+      row.lettingId ? [[row.lettingId, photoHref(row.storageKey)] as const] : [],
+    ),
+  );
+}
+
+/** One letting's cover photo, or null if it has none. */
+export async function coverPhotoHref(member: Member, lettingId: string): Promise<string | null> {
+  return withOrg(
+    member.organisationId,
+    async (tx) => (await coverPhotoHrefsIn(tx, [lettingId])).get(lettingId) ?? null,
+  );
 }
 
 export async function listLettings(member: Member) {

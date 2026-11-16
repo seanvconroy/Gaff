@@ -42,6 +42,7 @@
   gap: var(--space-1);
   align-items: center;
   justify-content: center;
+
   /* A chip that says only "2" is still a 44px target across. */
   min-width: var(--size-target);
   height: var(--size-chip);

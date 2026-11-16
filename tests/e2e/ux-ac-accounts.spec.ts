@@ -15,6 +15,7 @@ import {
   signOut,
   signUpOperator,
   signUpRenter,
+  toGoLiveThroughUi,
   uniqueEmail,
 } from './support';
 
@@ -158,7 +159,9 @@ test('UX-AC-6, UX-AC-4, UX-AC-7: a private landlord reaches "Add your home" afte
 
     // Straight into adding the home: no business name, no licence, no workspace to set up.
     await expect(page).toHaveURL(/\/lettings\/new$/);
-    await expect(page.getByLabel('Address', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Tell Gaff about the home' }),
+    ).toBeVisible();
     await expect(page.getByText(/licence|business name|workspace/i)).toHaveCount(0);
     await expectAccessible(page);
     await screenshot(page, `ux-ac-landlord-add-your-home-${width}`);
@@ -342,14 +345,7 @@ test('UX-AG-1 to UX-AG-4: an agency person finds their agency by typing its name
     // UX-AG-4: being confirmed, she can do everything except put a letting live.
     const address = `${width} Glenmore Road`;
     await createLettingThroughUi(page, address);
-    const overview = page.url().replace(/\/viewings.*$/, '');
-    await page.goto(`${overview}/criteria`);
-    await page.getByLabel('Most people who can live there').selectOption('3');
-    await page.getByLabel('No pets').check();
-    await page.getByRole('button', { name: 'Save criteria' }).click();
-    await page.getByRole('link', { name: 'Check the rent' }).click();
-    await page.getByLabel('No, this is its first letting').check();
-    await page.getByRole('button', { name: 'Check the rent' }).click();
+    await toGoLiveThroughUi(page);
     await page.getByRole('button', { name: 'Start taking enquiries' }).click();
     const held = `We’re confirming ${agency}. This usually takes under an hour. We’ll email you, and this home will go live then.`;
     await expect(page.getByText(held)).toBeVisible();
@@ -524,13 +520,7 @@ test('UX-AG-2, UX-AG-3: the licence number instead, applying for a licence, and 
     ]);
     // He can add a letting and set it up. The go-live step says why it can't go live yet.
     await createLettingThroughUi(page, `${width} Rathmore Park`);
-    const overview = page.url().replace(/\/viewings.*$/, '');
-    await page.goto(`${overview}/criteria`);
-    await page.getByLabel('No pets').check();
-    await page.getByRole('button', { name: 'Save criteria' }).click();
-    await page.getByRole('link', { name: 'Check the rent' }).click();
-    await page.getByLabel('No, this is its first letting').check();
-    await page.getByRole('button', { name: 'Check the rent' }).click();
+    await toGoLiveThroughUi(page);
     await expect(
       page.getByText(`This home can’t go live yet: ${applying} has no PSRA licence on Gaff.`),
     ).toBeVisible();

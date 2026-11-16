@@ -35,7 +35,17 @@ import { StepCard } from '@/ui/StepCard';
 import { SummaryList } from '@/ui/SummaryList';
 import { Cell, Table } from '@/ui/Table';
 import { Wordmark, WordmarkImage } from '@/ui/Wordmark';
-import { CodeDemo, MenuDemo, PickerDemos, SheetDemo, ThemeSwitch, ToastDemo } from './Demos';
+import {
+  AddressSearchDemo,
+  CodeDemo,
+  MenuDemo,
+  OptionRowDemo,
+  PhotoUploaderDemo,
+  PickerDemos,
+  SheetDemo,
+  ThemeSwitch,
+  ToastDemo,
+} from './Demos';
 import styles from './ui.module.css';
 
 export const metadata: Metadata = { title: 'Components' };
@@ -342,6 +352,14 @@ export default function ComponentsPage() {
         </Section>
 
         <Section
+          id="option-rows"
+          title="Option row"
+          lead="Something that is off until tapped, and then asks for one value. The whole row is the target."
+        >
+          <OptionRowDemo />
+        </Section>
+
+        <Section
           id="chips"
           title="Chips"
           lead="Filters and quick answers. A row that scrolls sideways with a fade on a phone; a wrapping row on a desktop."
@@ -419,6 +437,22 @@ export default function ComponentsPage() {
           lead="Dates and times in words, in Irish format. A sheet on a phone; a popover on a desktop."
         >
           <PickerDemos />
+        </Section>
+
+        <Section
+          id="address-search"
+          title="Address search"
+          lead="One field for an Eircode or an address. Results appear under it as you type; picking one fills the full address."
+        >
+          <AddressSearchDemo />
+        </Section>
+
+        <Section
+          id="photo-uploader"
+          title="Photo uploader"
+          lead="Drag photos in or choose them. The first is the cover. Reorder by dragging, or from each photo’s menu."
+        >
+          <PhotoUploaderDemo />
         </Section>
 
         <Section

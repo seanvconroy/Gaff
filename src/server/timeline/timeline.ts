@@ -1,7 +1,7 @@
 import { asc, eq } from 'drizzle-orm';
 import { withOrg, type Tx } from '@/db/client';
 import { events, users } from '@/db/schema';
-import { describeCriteria, type Criteria } from '@/domain/criteria/criteria';
+import { describeCriteria, NO_SMOKING_INDOORS, type Criteria } from '@/domain/criteria/criteria';
 import { formatDate, formatEuro, formatRent } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 
@@ -47,6 +47,21 @@ const rentCheckTitles: Record<string, string> = {
   get_advice: 'Rent check: get advice before setting the rent',
 };
 
+/** Adding a letting, a step at a time (UX-FL-2): which step was answered, never what was typed. */
+const savedSteps: Record<string, string> = {
+  review: 'The home’s details looked over',
+  address: 'Address saved',
+  rent: 'Rent and date saved',
+  home: 'The home’s details saved',
+};
+const changedSteps: Record<string, string> = {
+  address: 'Address changed',
+  rent: 'Rent or available date changed',
+  home: 'The home’s details changed',
+};
+const portalNames = (data: Record<string, unknown>) =>
+  [data.daft ? 'Daft' : null, data.myhome ? 'MyHome' : null].filter(Boolean).join(' and ');
+
 /** One event in plain words. Personal details are never in events, so none appear here. */
 export function describeEvent(
   event: Pick<EventRow, 'type' | 'data'>,
@@ -66,6 +81,43 @@ export function describeEvent(
             .filter(Boolean)
             .join(', ') || undefined,
       };
+    case 'letting.draft_started':
+      return {
+        what: 'Started adding the home',
+        detail: data.origin === 'again' ? 'From the last time it was let' : undefined,
+      };
+    case 'letting.draft_saved':
+      return { what: savedSteps[String(data.step)] ?? 'The home’s details saved' };
+    case 'letting.advert_link_kept':
+      return {
+        what: 'Advert link kept, to match enquiries to this home',
+        detail: portalNames(data) || undefined,
+      };
+    case 'letting.details_changed':
+      return { what: changedSteps[String(data.step)] ?? 'The home’s details changed' };
+    case 'letting.photos_changed':
+      return {
+        what: data.reordered
+          ? 'Photos put in a new order'
+          : Number(data.removed) > 0
+            ? 'Photo removed'
+            : 'Photo added',
+        detail: `${data.count} ${data.count === 1 ? 'photo' : 'photos'} now`,
+      };
+    case 'letting.house_rules_set':
+      return {
+        what: 'House rule set',
+        detail: data.noSmokingIndoors ? NO_SMOKING_INDOORS : 'None',
+      };
+    case 'letting.on_gaff_set':
+      return { what: data.on ? 'Set to show on gaff.ie' : 'Set not to show on gaff.ie' };
+    case 'letting.advertised_set':
+      return {
+        what: 'Said where else it’s advertised',
+        detail: portalNames(data) || 'Nowhere else',
+      };
+    case 'letting.test_enquiry_sent':
+      return { what: 'Test enquiry tried', detail: 'Nothing was sent to anyone' };
     case 'viewings.session_added':
       return {
         what: 'Viewing time added',

@@ -1,3 +1,4 @@
+import { inASentence } from '@/domain/answers/sentences';
 import type { AiDrafter } from '@/ports/ai';
 
 /** Words a question uses, mapped to the words in a fact that answer it. */
@@ -17,7 +18,8 @@ const topics: Array<[RegExp, RegExp]> = [
 
 /**
  * A deterministic stand-in for the AI, for development and tests. It answers a question only
- * when one fact clearly covers its topic, and otherwise leaves it for the operator.
+ * when one fact clearly covers its topic, and otherwise leaves it for the operator. Like the
+ * real one, it answers in a sentence, from that fact alone (UX-AI-11).
  */
 export const fakeDrafter: AiDrafter = {
   promptVersion: 'fake@1',
@@ -28,7 +30,7 @@ export const fakeDrafter: AiDrafter = {
         const topic = topics.find(([asks]) => asks.test(question));
         const fact = topic ? facts.find((f) => topic[1].test(f.text)) : undefined;
         return fact
-          ? { question, answer: `${fact.text.replace(/\.$/, '')}.`, factIds: [fact.id] }
+          ? { question, answer: inASentence(question, fact), factIds: [fact.id] }
           : { question, answer: null, factIds: [] };
       }),
     };

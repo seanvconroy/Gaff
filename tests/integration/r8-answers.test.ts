@@ -66,7 +66,7 @@ describe('R8 and R29: answers from the facts, approved by a person', () => {
       status: 'awaiting_approval',
       inReplyToId: inboundId,
     });
-    expect(answer!.body).toContain('You asked: Is there parking?\nParking: On-street parking.');
+    expect(answer!.body).toContain('You asked: Is there parking?\nYes, there’s on-street parking.');
     expect(answer!.body).toMatch(/AI assistant$/);
     const [draft] = await withOrg(member.organisationId, (tx) =>
       tx.select().from(aiDrafts).where(eq(aiDrafts.sourceMessageId, inboundId)),

@@ -19,6 +19,7 @@ import {
   type CheckedItem,
   type Fact,
 } from '@/domain/answers/guardrails';
+import { asASentence } from '@/domain/answers/sentences';
 import { enqueue } from '@/server/jobs/enqueue';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
@@ -129,8 +130,10 @@ export async function draftAnswersFor(input: { organisationId: string; messageId
       };
       checked = remaining.map((question, i) => {
         const item = response.items[i];
+        // UX-AI-11: an answer that only repeats a fact's field and value is put as a sentence,
+        // from that same fact, before the guardrails check what would go out.
         return item
-          ? { ...checkDraftItem({ ...item, question }, facts), question }
+          ? { ...checkDraftItem(asASentence({ ...item, question }, facts), facts), question }
           : { question, outcome: 'to_operator' as const, reason: 'no_facts' as const };
       });
     } catch (error) {

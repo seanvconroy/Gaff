@@ -8,7 +8,7 @@ import type { AiDrafter, DraftRequest } from '@/ports/ai';
  * are processed in the EU (ADR-0009). Structured output: each answer cites fact IDs, and the
  * guardrails in src/domain/answers check every one before anything is sent.
  */
-export const PROMPT_VERSION = 'answers@1';
+export const PROMPT_VERSION = 'answers@2';
 
 const draftSchema = z.object({
   items: z.array(
@@ -29,6 +29,8 @@ function systemPrompt(operatorName: string): string {
     'Never comment on or ask about the renter, their family, nationality, age, religion, disability, or whether they receive housing assistance.',
     'Never make or suggest decisions about viewings, offers or who gets the home.',
     'Write plain, warm Irish English: one or two short sentences per answer, no exclamation marks.',
+    // UX-AI-11: a reply reads like a person wrote it.
+    'Answer the question itself, in a sentence, the way a person would: "Yes, it’s furnished." Start with Yes or No when the question asks for one. Never reply with a label and a value, such as "Furnishing: Furnished."',
   ].join('\n');
 }
 

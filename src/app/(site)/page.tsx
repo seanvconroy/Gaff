@@ -11,8 +11,9 @@ export const metadata: Metadata = { title: siteCopy.search.title };
 
 /**
  * The public site's first screen (UX-NV-20), which is Search on the renting side (UX-NV-19) and
- * where sign-in lands. Someone letting is sent on to Today (UX-HM-1). Work package WP-21 builds
- * search; until then it says what will be here.
+ * where sign-in lands. Who is sent on from here, and where, is `firstScreenRedirect`: someone
+ * letting goes to Today (UX-HM-1). Work package WP-21 builds search; until then it says what
+ * will be here.
  */
 export default async function FirstScreen({
   searchParams,

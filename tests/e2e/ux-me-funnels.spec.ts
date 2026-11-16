@@ -6,6 +6,7 @@ import {
   expectNoSidewaysScroll,
   screenshot,
   signIn,
+  signOut,
   signUpOperator,
 } from './support';
 
@@ -67,9 +68,8 @@ test('UX-ME-2: Gaff’s own team sees every funnel on the internal page, and nob
   response = await page.goto('/internal/funnels');
   expect(response?.status()).toBe(404);
   await expect(page.getByRole('heading', { name: 'Funnels' })).toHaveCount(0);
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Sign out' }).click();
-  await expect(page).toHaveURL(/\/sign-in$/);
+  await page.goto('/today');
+  await signOut(page);
 
   // One of Gaff's team (STAFF_EMAILS) signs in the usual way and opens it.
   await signIn(page, E2E_STAFF_EMAIL);

@@ -135,6 +135,9 @@ export default function ComponentsPage() {
           <p>
             <Link href="/dev/ui/flow">See the flow shell, the frame of a step-by-step task</Link>
           </p>
+          <p>
+            <Link href="/dev/ui/nav">See the navigation: the top bar and the tab bar</Link>
+          </p>
         </div>
 
         <Section

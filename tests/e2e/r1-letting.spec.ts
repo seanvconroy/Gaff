@@ -9,9 +9,15 @@ test('R1: an operator creates a letting with viewing times', async ({ page }) =>
   await expectAccessible(page);
 
   // Step 1 of 3: the home. Nothing can be skipped: an empty step says what it needs.
+  // UX-FL-3: the errors are at their fields, with no box at the top; focus goes to the first, and
+  // a screen reader hears how many there are.
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page.getByText('Some details need another look')).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'another look' })).toHaveText(
+    '4 things need another look',
+  );
+  await expect(page.getByText('That didn’t save yet')).toHaveCount(0);
   await expect(page.getByText('Enter the first line of the address')).toBeVisible();
+  await expect(page.getByLabel('Address', { exact: true })).toBeFocused();
   await page.getByLabel('Address', { exact: true }).fill('12 Ranelagh Road');
   await page.getByLabel('Area').fill('Ranelagh, Dublin 6');
   await page.getByLabel('Eircode').fill('d06 f2x3');
@@ -31,7 +37,9 @@ test('R1: an operator creates a letting with viewing times', async ({ page }) =>
     .getByLabel('Anything else renters often ask?')
     .fill('Gas central heating\nBins collected on Tuesdays\nNo HAP');
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page.getByText('Some details need another look')).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'another look' })).toHaveText(
+    '2 things need another look',
+  );
   await expect(page.getByText('Choose the BER rating')).toBeVisible();
   await expect(page.getByText('touches on housing assistance')).toBeVisible();
   await expect(page.getByLabel('BER rating')).toBeFocused();

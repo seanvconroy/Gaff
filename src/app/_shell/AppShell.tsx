@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { siteCopy } from '@/copy/site';
 import { accountMenuFor } from '@/domain/navigation/account-menu';
-import { homeFor, listAHomeHref } from '@/domain/navigation/context';
+import { homeFor, listAHomeHref, listAHomeSignedOutHref } from '@/domain/navigation/context';
 import { lettingDestinations, rentingDestinations } from '@/domain/navigation/destinations';
 import { type CurrentPerson, currentPerson } from '@/server/context/current-person';
 import { lettingCountsFor, rentingCountsFor } from '@/server/context/nav-counts';
@@ -42,7 +42,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
   const person = await currentPerson();
   const destinations = person ? await destinationsFor(person) : [];
   const listAHome = (
-    <ButtonLink href={listAHomeHref} variant="quiet">
+    <ButtonLink href={person ? listAHomeHref : listAHomeSignedOutHref} variant="quiet">
       {siteCopy.header.listAHome}
     </ButtonLink>
   );

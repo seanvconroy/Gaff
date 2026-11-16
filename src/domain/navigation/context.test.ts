@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { contextFor, findAHomeHref, firstScreenRedirect, homeFor, listAHomeHref } from './context';
+import {
+  contextFor,
+  findAHomeHref,
+  firstScreenRedirect,
+  homeFor,
+  listAHomeHref,
+  listAHomeSignedOutHref,
+} from './context';
 
 describe('UX-NV-19: which side of Gaff a signed-in person is on', () => {
   it('a member of an organisation is letting', () => {
@@ -21,19 +28,25 @@ describe('the public site’s first screen, which is also where sign-in lands', 
     expect(firstScreenRedirect('letting', {})).toBe('/today');
   });
 
-  it('UX-NV-20: a signed-out visitor, and someone renting, stay on the public site', () => {
+  it('UX-NV-20: a signed-out visitor stays on the public site', () => {
     expect(firstScreenRedirect(null, {})).toBeNull();
-    expect(firstScreenRedirect('renting', {})).toBeNull();
+    expect(firstScreenRedirect(null, { rent: '1' })).toBeNull();
   });
 
-  it('UX-NV-8: "Find a home to rent" shows the public site to someone letting', () => {
+  it('someone signed in who lets nothing yet goes to set-up, as signing in always has', () => {
+    expect(firstScreenRedirect('renting', {})).toBe('/welcome');
+  });
+
+  it('UX-NV-8: "Find a home to rent" shows the public site to anyone signed in', () => {
     expect(findAHomeHref).toBe('/?rent=1');
     expect(firstScreenRedirect('letting', { rent: '1' })).toBeNull();
+    expect(firstScreenRedirect('renting', { rent: '1' })).toBeNull();
     expect(firstScreenRedirect('letting', { rent: ['1', '1'] })).toBe('/today');
     expect(firstScreenRedirect('letting', { rent: 'no' })).toBe('/today');
   });
 
-  it('UX-NV-8: "List a home" leads to adding a letting', () => {
+  it('UX-NV-8, UX-NV-20: "List a home" leads to adding a letting, through sign-in if need be', () => {
     expect(listAHomeHref).toBe('/lettings/new');
+    expect(listAHomeSignedOutHref).toBe('/sign-in?next=%2Flettings%2Fnew');
   });
 });

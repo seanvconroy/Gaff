@@ -7,6 +7,7 @@ import {
   goLiveThroughUi,
   screenshot,
   sendTestEmail,
+  openAccountMenu,
   signUpOperator,
 } from './support';
 
@@ -14,7 +15,8 @@ test('R5: an operator finds their Gaff address and how to forward enquiries to i
   page,
 }) => {
   await signUpOperator(page, 'Halcyon Lettings');
-  await page.getByRole('link', { name: 'Settings' }).click();
+  // UX-NV-8: settings are in the account menu, not the bar.
+  await (await openAccountMenu(page)).getByRole('menuitem', { name: 'Agency settings' }).click();
   await expect(page.getByRole('heading', { name: 'Your Gaff address' })).toBeVisible();
   await expect(page.getByText(/^halcyon-lettings(-\d+)?@in\.gaff\.test$/)).toBeVisible();
   await expect(page.getByText('Set up forwarding once')).toBeVisible();
@@ -62,7 +64,7 @@ test('R6: enquiries are read, matched to the home and merged; anything else wait
   await expect(firstReply.getByText(/I’m Halcyon Lettings’ AI assistant/)).toBeVisible();
   await screenshot(page, '20-first-reply');
 
-  await page.goto('/');
+  await page.goto('/today');
   await page.getByRole('link', { name: '1 email needs your attention' }).click();
   await expect(page.getByText('It might be a forwarding confirmation')).toBeVisible();
   await expectAccessible(page);

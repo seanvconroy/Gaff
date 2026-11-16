@@ -46,7 +46,9 @@ test('R8 and R29: the AI answers from the facts, a person approves, and answers 
   await expect(page.getByText('Approved. It’s on its way.')).toBeVisible();
 
   // R8: the garden question wasn't in the facts, so it's for a person.
-  await page.getByRole('link', { name: 'Questions', exact: true }).click();
+  // UX-NV-2: questions are reached through Inbox, which shows how many are waiting.
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Inbox' }).click();
+  await page.getByRole('link', { name: /Questions only you can answer/ }).click();
   await expect(page.getByText('Is there a garden?')).toBeVisible();
   await expect(page.getByText('Gaff doesn’t have this in the home’s facts.')).toBeVisible();
   await page.getByLabel('Your answer').fill('Yes, a small back garden with a shed.');

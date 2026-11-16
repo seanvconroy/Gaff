@@ -67,7 +67,7 @@
   min-height: var(--size-bar);
   color: var(--color-ink-muted);
   font-size: var(--type-body-size);
-  line-height: var(--type-label-line);
+  line-height: var(--type-body-sm-line);
   font-weight: var(--type-title-weight);
   text-decoration: none;
   white-space: nowrap;

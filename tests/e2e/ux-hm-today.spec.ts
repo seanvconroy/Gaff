@@ -394,7 +394,14 @@ test('UX-NV-9 to UX-NV-12: Lettings is a photo-led list under Live, Setting up a
     // UX-NV-11: no "Step 2 of 9", no stage meter, no time in Gaff, no usual time.
     const words = await main(page).innerText();
     expect(words).not.toMatch(/Step \d of 9|time in Gaff|usual|Not live yet|Available from/i);
-    await expect(main(page).locator('[class*="StageTracker"]')).toHaveCount(0);
+    await expect(page.getByRole('navigation', { name: 'Letting stages' })).toHaveCount(0);
+    // Nothing else in a card: the photo, then the address and the status line.
+    const parts = await live
+      .getByRole('listitem')
+      .evaluateAll((cards) =>
+        cards.map((card) => [card.children.length, card.lastElementChild!.children.length]),
+      );
+    expect(parts).toEqual(Array(3).fill([2, 2]));
 
     // UX-NV-12: three across on a desktop, one column on a phone.
     expect(await columns(live)).toBe(viewport.width > 900 ? 3 : 1);

@@ -20,9 +20,10 @@ describe('R28: the dashboard', () => {
     await aRenterEnquires(member, 2, { occupants: '1', hasPets: 'no' });
 
     let board = await dashboardFor(member);
-    expect(board.today).toEqual([
+    expect(board.today).toMatchObject([
       { kind: 'shortlist', lettingId, address: '12 Ranelagh Road', count: 2 },
     ]);
+    expect(board.today).toHaveLength(1);
     expect(board.lettings[0]).toMatchObject({ stage: 'enquiries', undecided: 2, toMark: 0 });
 
     await inviteToView(member, lettingId, { chosenIds: [first], waitlistSize: 1 });
@@ -35,16 +36,20 @@ describe('R28: the dashboard', () => {
 
     // On the day: the viewing has started, so there's someone to mark.
     board = await dashboardFor(member, new Date(slot!.startsAt.getTime() + 5 * 60_000));
-    expect(board.today).toEqual([
+    expect(board.today).toMatchObject([
       { kind: 'attendance', lettingId, address: '12 Ranelagh Road', count: 1 },
     ]);
+    expect(board.today).toHaveLength(1);
   });
 
   it('shows a letting still being set up', async () => {
     const member = await createTestMember();
     const { lettingId } = await createLetting(member, aLetting());
     const board = await dashboardFor(member);
-    expect(board.today).toEqual([{ kind: 'setup', lettingId, address: '12 Ranelagh Road' }]);
+    expect(board.today).toMatchObject([
+      { kind: 'setup', lettingId, address: '12 Ranelagh Road', stepsLeft: 3 },
+    ]);
+    expect(board.today).toHaveLength(1);
   });
 
   it('compares time in Gaff with the usual time, counting each minute once', async () => {

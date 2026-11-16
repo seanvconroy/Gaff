@@ -15,6 +15,12 @@ describe('UX-NV-7: a private landlord with one home has no list of one', () => {
     ).toBeNull();
   });
 
+  it('UX-AC-4: the same for a private landlord’s silent organisation', () => {
+    expect(lettingsOpensOn({ organisationKind: 'private_landlord', lettingIds: ['3f0c'] })).toBe(
+      '/lettings/3f0c',
+    );
+  });
+
   it('an agency always sees its list, even of one', () => {
     expect(lettingsOpensOn({ organisationKind: 'agency', lettingIds: ['3f0c'] })).toBeNull();
   });

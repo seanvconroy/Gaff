@@ -4,6 +4,10 @@ import { approvalAnswersSchema, approvalRoute } from './approval';
 describe('R19: who approves, and how (Q22)', () => {
   it('a landlord letting their own homes approves by making the offer', () => {
     expect(approvalRoute({ organisationKind: 'landlord', landlordEmail: null })).toBe('own_home');
+    // UX-AC-4: a private landlord's silent organisation is theirs alone: there's no owner to ask.
+    expect(approvalRoute({ organisationKind: 'private_landlord', landlordEmail: null })).toBe(
+      'own_home',
+    );
   });
 
   it('an agency sends the landlord a private link, or confirms their approval itself', () => {

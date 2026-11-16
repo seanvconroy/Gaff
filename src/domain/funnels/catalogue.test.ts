@@ -134,9 +134,18 @@ describe('UX-ME-1: the funnel catalogue', () => {
     expect(isDirectStep('add_letting.draft_reviewed')).toBe(true);
   });
 
+  it('UX-AC-6: first run ends for a renter too, who makes no organisation for the record', () => {
+    // A renter's finish is a step of its own; someone letting finishes by an event the record
+    // already holds. Either way it counts once a person.
+    expect(isDirectStep('first_run.set_up_finished')).toBe(true);
+    expect(recordSources()).toContainEqual({
+      step: 'first_run.set_up_finished',
+      source: { from: 'record', event: 'organisation.created', subject: 'actor', variant: 'kind' },
+    });
+  });
+
   it('UX-ME-1: a step the record already holds is mapped, not written a second time', () => {
     expect(isDirectStep('add_letting.live')).toBe(false);
-    expect(isDirectStep('first_run.set_up_finished')).toBe(false);
     expect(isDirectStep('renter_questions.answers_sent')).toBe(false);
     expect(isDirectStep('not_a.step')).toBe(false);
     expect(recordSources()).toContainEqual({

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { letsOwnHomes, type OrganisationKind } from '@/domain/organisations/kinds';
 
 /**
  * R19, stage 7: the landlord approves the preferred applicant (and the backup) from a one-page
@@ -8,10 +9,10 @@ import { z } from 'zod';
 export type ApprovalRoute = 'own_home' | 'link' | 'operator_confirms';
 
 export function approvalRoute(input: {
-  organisationKind: 'agency' | 'landlord';
+  organisationKind: OrganisationKind;
   landlordEmail: string | null;
 }): ApprovalRoute {
-  if (input.organisationKind === 'landlord') return 'own_home';
+  if (letsOwnHomes(input.organisationKind)) return 'own_home';
   return input.landlordEmail ? 'link' : 'operator_confirms';
 }
 

@@ -17,7 +17,7 @@ export interface Member {
   readonly email: string;
   readonly organisationId: string;
   readonly organisationName: string;
-  readonly organisationKind: 'agency' | 'landlord';
+  readonly organisationKind: OrganisationKind;
   readonly role: 'admin' | 'negotiator';
   readonly [memberBrand]: true;
 }

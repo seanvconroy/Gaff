@@ -302,7 +302,7 @@ Everything is in `src/ui`. A screen is built only from these; a screen that need
 - **Choice row** (`ChoiceGroup`): radios or checkboxes as whole-row targets, 48px or taller, with the help under the question so it's read before choosing. The chosen row takes a 2px `brand` edge that grows inwards, and the `brand-bg` tint.
 - **Choice card** (`ChoiceCards`): one of a few options, each with a 24px icon, a label and a line of help. 72px or taller; the whole card is the target. The chosen card takes the `brand` edge and tint, and a tick. They are real radios, so the arrow keys move between them.
 - **Chips.** `Chips` are quick answers in a form: real radios or checkboxes. `ChipLinks` are filters that each show a different view of one list. A chip is 36px high to look at and 44px to press. The chosen one takes the `brand-bg` tint, the `brand` edge and a tick.
-- **Segmented progress.** The steps of a flow, or the four parts of a letting. Done and current segments are `brand`; the rest are `border`. There is no "Step 3 of 7" in words unless there are more than six steps. Screen readers get a list: each part, whether it's done, and which one you're on. It has taken over from `StepIndicator`, which is gone, and takes over from `StageTracker` and `StageMeter`, which stay until the screens that use them are rebuilt.
+- **Segmented progress.** The steps of a flow, or the four parts of a letting. Done and current segments are `brand`; the rest are `border`. There is no "Step 3 of 7" in words unless there are more than six steps. Screen readers get a list: each part, whether it's done, and which one you're on. It has taken over from `StepIndicator`, and from `StageMeter` in the list of lettings, which are both gone; it takes over from `StageTracker`, which stays until a letting's own page is rebuilt.
 - **Sheet / dialog** (`Sheet`): a short task over the page, with a title, a Close button, its content, and buttons that stay in view. `radius-xl` corners. It is never an "Are you sure?".
 - **Menu:** rare actions behind a "more" button (a 48px target). Each action is a 48px row. A destructive action is `danger`, with its icon. The button can show something else (`trigger`), such as an avatar; then `triggerLabel` names it for screen readers, and the name holds whatever words the button shows. A `header` sits above the actions and isn't one of them.
 - **What opens** (sheets, dialogs, menus, pickers) all stand on `Overlay`, the browser's own modal dialog. Focus moves in and stays in, Escape closes it, a press on the scrim closes it, and focus goes back to what opened it. Above 900px a popover sits beside its control and is kept inside the window; that position is the one style set from code, because no token can say where a control is on screen.
@@ -314,6 +314,15 @@ Everything is in `src/ui`. A screen is built only from these; a screen that need
 - **Account menu** (`AccountMenu`): a `Menu` on the avatar at the right-hand end of the navigation. The person's name and the context they're in, then links, then Sign out. What it holds, and in what order, is one rule (`accountMenuFor`).
 - **Skeleton:** loading is the result's own layout in `surface-2`, with a line saying what's happening. The shapes are still.
 - **Avatar:** a person's or an agency's initials in a circle. Never a photo: a renter's profile has none (product rule 3). `strong` is ink, for the agency whose page it is. **Badge:** a small mark beside a name, such as "Identity verified": an icon and words.
+
+### Built with Today and Lettings
+
+| Component | In `src/ui` | Below 900px | Above 900px |
+| --- | --- | --- | --- |
+| **Home card** | `HomeCard`, `HomeGrid` | One column | A grid, three across |
+
+- **Home card:** a home in a list, led by its cover photo at 3:2 with `radius-lg` corners. A home with no photo shows the `surface-2` fill and a house icon, never a broken image. Under the photo: the address at `heading` size, then one status line in words in `ink-muted` ("Viewings · 8 of 14 booked"). The whole card is one link, named by the address. There is no box round it: the photo is the object, and space holds the cards apart. `needsYou` adds a small dot and its words in `warning`, so it is never told by colour alone.
+- **Action list, on the page** (`bare`): the same rows under a heading with no card round them, for a list that isn't one object, such as "Needs you" on Today. The rows line up with the heading, with a hairline above the first and below the last; hover underlines the title.
 
 ### Carried over, restyled by the tokens
 

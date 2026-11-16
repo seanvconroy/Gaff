@@ -48,12 +48,14 @@ describe('R26, stage 9: finishing a let home', () => {
     await expect(finishLetting(member, lettingId)).rejects.toThrow(
       'Finish once the agreement is signed and the payment is in.',
     );
-    expect((await dashboardFor(member)).today).toContainEqual({
-      kind: 'tenancy',
-      lettingId,
-      address: '12 Ranelagh Road',
-      step: 'confirm_payment',
-    });
+    expect((await dashboardFor(member)).today).toContainEqual(
+      expect.objectContaining({
+        kind: 'tenancy',
+        lettingId,
+        address: '12 Ranelagh Road',
+        step: 'confirm_payment',
+      }),
+    );
     await confirmPayment(member, lettingId);
     const { deleteAfter, daysToLet } = await finishLetting(member, lettingId);
     expect(daysToLet).toBe(0);

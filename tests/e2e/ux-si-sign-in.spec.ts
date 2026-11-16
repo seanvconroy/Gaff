@@ -614,7 +614,7 @@ test('UX-SI-8: after sign-in, on to where they were going, if it’s a path on t
   await startWithEmail(page, email, '/sign-in?next=https%3A%2F%2Fevil.example%2Fsettings');
   await onCodeScreen(page);
   await page.getByLabel('Six-digit code').fill(await latestCodeFor(email));
-  await expect(page.getByRole('heading', { name: 'Your lettings' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Today' })).toBeVisible();
   expect(new URL(page.url()).host).toBe(new URL(test.info().project.use.baseURL!).host);
 
   // Someone already signed in doesn't see the sign-in screen again.

@@ -58,24 +58,3 @@
     white-space: nowrap;
   }
 }
-
-.meter {
-  display: inline-grid;
-  grid-template-columns: repeat(9, 10px);
-  gap: var(--space-1);
-}
-
-.meterFilled,
-.meterEmpty {
-  display: block;
-  height: 4px;
-  border-radius: var(--radius-pill);
-}
-
-.meterFilled {
-  background-color: var(--color-primary);
-}
-
-.meterEmpty {
-  background-color: var(--color-border);
-}

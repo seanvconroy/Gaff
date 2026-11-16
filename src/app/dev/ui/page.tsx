@@ -25,6 +25,7 @@ import { CopyButton } from '@/ui/CopyButton';
 import { Disclosure } from '@/ui/Disclosure';
 import { EmptyState } from '@/ui/EmptyState';
 import { ChoiceGroup, SelectField, TextArea, TextField } from '@/ui/Field';
+import { HomeCard, HomeGrid } from '@/ui/HomeCard';
 import { Card, CardHeader } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { Outcome } from '@/ui/Outcome';
@@ -59,6 +60,16 @@ const colours = [
   ['info', 'info', 'Information'],
   ['infoBg', 'info-bg', 'Its tint'],
 ] as const;
+
+/** A made-up cover photo for the examples: a drawing, so the page needs no picture of a real home. */
+const samplePhoto = `data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200">' +
+    '<rect width="300" height="200" fill="#cfd8e6"/>' +
+    '<rect y="140" width="300" height="60" fill="#8a97ab"/>' +
+    '<path d="M90 140V85l60-40 60 40v55z" fill="#f4f5f7"/>' +
+    '<rect x="138" y="105" width="24" height="35" fill="#3a5fa8"/>' +
+    '</svg>',
+)}`;
 
 const typeSamples: Record<(typeof typeStyles)[number], string> = {
   display: '12 Ranelagh Road',
@@ -601,6 +612,29 @@ export default function ComponentsPage() {
           >
             <p>Add a time and renters book themselves.</p>
           </EmptyState>
+        </Section>
+
+        <Section
+          id="homes"
+          title="Home card"
+          lead="A home in a list, led by its photo at 3:2: one column on a phone, three across on a desktop. Without a photo, a house icon. The whole card is one link."
+        >
+          <HomeGrid label="Homes">
+            <HomeCard
+              href="#homes"
+              title="12 Ranelagh Road"
+              line="Viewings · 8 of 14 booked"
+              photo={{ src: samplePhoto, alt: '' }}
+              needsYou="Needs you"
+            />
+            <HomeCard href="#homes" title="4 Rathmines Close" line="Enquiries · 23 so far" />
+            <HomeCard href="#homes" title="9 Canal View" line="2 steps left" needsYou="Needs you" />
+            <HomeCard
+              href="#homes"
+              title="Apartment 14, The Old Distillery, Smithfield"
+              line="Let in 21 days · saved 9 days and 4 hours 20 minutes"
+            />
+          </HomeGrid>
         </Section>
       </main>
     </div>

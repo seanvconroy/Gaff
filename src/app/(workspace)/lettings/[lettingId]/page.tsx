@@ -23,6 +23,7 @@ import { comparableWarnings, medianRentCents } from '@/domain/rent/comparables';
 import { formatDate, formatDateTime, formatRent } from '@/lib/format';
 import { env } from '@/lib/env';
 import { addAgencyHref } from '@/domain/navigation/account-menu';
+import { todayRows } from '@/domain/dashboard/today-rows';
 import { dashboardFor } from '@/server/dashboard/dashboard';
 import { goLiveGateFor } from '@/server/lettings/go-live';
 import { ActionList, ActionRow } from '@/ui/ActionList';
@@ -123,8 +124,13 @@ export default async function LettingPage({
   // R28 for this home alone: what needs a person now, in the same words as the dashboard.
   const needsYou =
     !inSetup && !finished
-      ? (await dashboardFor(member)).today.filter(
-          (item) => 'lettingId' in item && item.lettingId === letting.id,
+      ? // Whoever leads it: every member can open and act on any home (UX-AG-8).
+        todayRows(
+          (await dashboardFor(member)).everyone.filter(
+            (item) => 'lettingId' in item && item.lettingId === letting.id,
+          ),
+          new Date(),
+          { withAddress: false },
         )
       : [];
   const required = checklist.filter((c) => c.neededToGoLive);
@@ -279,7 +285,7 @@ export default async function LettingPage({
               </p>
             ) : null}
           </div>
-          {needsYou.length > 0 ? <TodayList items={needsYou} withAddress={false} flush /> : null}
+          {needsYou.length > 0 ? <TodayList rows={needsYou} flush /> : null}
         </section>
       ) : null}
 

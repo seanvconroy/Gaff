@@ -1,6 +1,13 @@
 import { House, Plus } from 'lucide-react';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import {
+  chosenView,
+  lettingsIn,
+  lettingsViews,
+  todayIn,
+  todayViews,
+} from '@/domain/dashboard/views';
 import { lettingsOpensOn } from '@/domain/navigation/one-home';
 import { withReturn } from '@/domain/navigation/return-to';
 import { requireMember } from '@/server/auth/member';
@@ -8,8 +15,8 @@ import { dashboardForRequest } from '@/server/dashboard/dashboard';
 import { ButtonLink } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
 import { PageHeader, Stack } from '@/ui/Layout';
-import styles from '../dashboard.module.css';
 import { LettingsList } from '../LettingsList';
+import { ViewSwitch } from '../ViewSwitch';
 
 export const metadata: Metadata = { title: 'Lettings' };
 
@@ -17,51 +24,58 @@ export const metadata: Metadata = { title: 'Lettings' };
 const addALetting = withReturn('/lettings/new', '/lettings');
 
 /**
- * Lettings (UX-NV-1): every home and how it's doing. For now it is the list the dashboard has
- * always shown; work package WP-7 rebuilds it. A private landlord with one home has no list of
- * one: Lettings opens straight on that home (UX-NV-7).
+ * Lettings (UX-NV-9 to UX-NV-12): every home and how it's doing, as a photo-led list. It opens
+ * on the homes a person leads; anyone on a team can switch to "Everyone" (UX-AG-8). A private
+ * landlord with one home has no list of one: Lettings opens straight on that home (UX-NV-7).
  */
-export default async function LettingsPage() {
+export default async function LettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
   const member = await requireMember();
-  const { lettings, usualDaysToLet } = await dashboardForRequest(member);
+  const board = await dashboardForRequest(member);
+  const { now, viewer } = board;
   const onlyHome = lettingsOpensOn({
     organisationKind: member.organisationKind,
-    lettingIds: lettings.map((letting) => letting.id),
+    lettingIds: board.lettings.map((letting) => letting.id),
   });
   if (onlyHome) redirect(onlyHome);
-  const homes = lettings.length;
+
+  const views = lettingsViews(viewer);
+  const view = chosenView((await searchParams).view, views);
+  const homes = lettingsIn(view, board.lettings, viewer);
+  // UX-NV-9: the dot marks a home that something on this person's Today belongs to.
+  const onToday = todayIn(chosenView(view, todayViews(viewer)), board.everyone, viewer, now);
+  const needsYou = new Set(
+    onToday.flatMap((item) => ('lettingId' in item ? [item.lettingId] : [])),
+  );
+  const add = (variant: 'primary' | 'secondary') => (
+    <ButtonLink href={addALetting} variant={variant}>
+      <Plus size={20} strokeWidth={2} aria-hidden="true" />
+      Add a letting
+    </ButtonLink>
+  );
+
   return (
     <Stack gap={8}>
       <PageHeader
         title="Lettings"
-        lead={homes > 0 ? `${homes} ${homes === 1 ? 'home' : 'homes'}` : undefined}
-        actions={
-          // UX-HM-6: a quiet button here; the primary button only in the empty state.
-          homes > 0 ? (
-            <ButtonLink href={addALetting} variant="secondary">
-              <Plus size={20} strokeWidth={2} aria-hidden="true" />
-              Add a letting
-            </ButtonLink>
-          ) : undefined
-        }
+        // UX-HM-6: a quiet button here; the primary button only in the empty state.
+        actions={homes.length > 0 ? add('secondary') : undefined}
       />
-      {homes === 0 ? (
-        <EmptyState
-          icon={House}
-          title="No lettings yet"
-          action={
-            <ButtonLink href={addALetting} variant="primary">
-              <Plus size={20} strokeWidth={2} aria-hidden="true" />
-              Add a letting
-            </ButtonLink>
-          }
-        >
-          <p>Add a home you’re letting, and it appears here with how it’s doing.</p>
+      {views.length > 1 ? <ViewSwitch path="/lettings" view={view} label="Whose homes" /> : null}
+      {homes.length > 0 ? (
+        <LettingsList lettings={homes} needsYou={needsYou} now={now} />
+      ) : board.lettings.length > 0 ? (
+        // On a team, with homes, none of them this person's.
+        <EmptyState icon={House} title="No homes of your own yet" action={add('primary')}>
+          <p>Homes you add appear here. Your colleagues’ homes are under Everyone.</p>
         </EmptyState>
       ) : (
-        <section className={styles.panel} aria-label="All lettings">
-          <LettingsList lettings={lettings} usualDaysToLet={usualDaysToLet} />
-        </section>
+        <EmptyState icon={House} title="No lettings yet" action={add('primary')}>
+          <p>Add a home you’re letting, and it appears here with how it’s doing.</p>
+        </EmptyState>
       )}
     </Stack>
   );

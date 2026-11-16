@@ -65,7 +65,7 @@ test('R6: enquiries are read, matched to the home and merged; anything else wait
   await screenshot(page, '20-first-reply');
 
   await page.goto('/today');
-  await page.getByRole('link', { name: '1 email needs your attention' }).click();
+  await page.getByRole('link', { name: /1 email Gaff couldn’t place/ }).click();
   await expect(page.getByText('It might be a forwarding confirmation')).toBeVisible();
   await expectAccessible(page);
   await screenshot(page, '19-needs-attention');

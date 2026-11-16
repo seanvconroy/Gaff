@@ -133,11 +133,9 @@ describe('R20, Q20: when the offer isn’t accepted', () => {
     const [closed] = await sentTo(member, ids[0]!, 'offer_expired');
     expect(closed!.subject).toBe('12 Ranelagh Road: the offer has closed');
     expect((await statusOf(member, ids[1]!)).status).toBe('backup');
-    expect((await dashboardFor(member)).today).toContainEqual({
-      kind: 'rechoose',
-      lettingId,
-      address: '12 Ranelagh Road',
-    });
+    expect((await dashboardFor(member)).today).toContainEqual(
+      expect.objectContaining({ kind: 'rechoose', lettingId, address: '12 Ranelagh Road' }),
+    );
   });
 });
 

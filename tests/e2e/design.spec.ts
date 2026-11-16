@@ -20,9 +20,17 @@ test('UX-DS-1, UX-DS-7: the look: a white page in ink and one blue, one type fam
 }) => {
   test.slow();
   await signUpOperator(page);
+
+  // UX-DS-2, UX-DS-13: the one primary button is ink, and 48px high. With no homes yet, it is
+  // "Add a letting" on Lettings (UX-HM-6).
+  await page.goto('/lettings');
+  const add = page.getByRole('link', { name: 'Add a letting' });
+  await expect(add).toHaveCSS('background-color', rgb(tokens.colors['ink']!.light));
+  expect((await add.boundingBox())!.height).toBe(48);
+
   await createLettingThroughUi(page);
 
-  // The current page is marked in the navigation, and the dashboard's one accent is the count.
+  // The current page is marked in the navigation, and Today's one accent is the count.
   await page.goto('/today');
   const nav = page.getByRole('navigation', { name: 'Main' });
   await expect(nav.getByRole('link', { name: 'Today' })).toHaveAttribute('aria-current', 'page');
@@ -40,7 +48,7 @@ test('UX-DS-1, UX-DS-7: the look: a white page in ink and one blue, one type fam
   );
 
   // UX-DS-7: one family. The title is DM Sans, not a serif, and no page loads Fraunces.
-  const title = page.getByRole('heading', { level: 1, name: 'Your lettings' });
+  const title = page.getByRole('heading', { level: 1, name: 'Today' });
   await expect(title).toHaveCSS('font-family', /^"DM Sans"/);
   await expect(title).toHaveCSS('font-size', '32px');
   expect(
@@ -57,11 +65,6 @@ test('UX-DS-1, UX-DS-7: the look: a white page in ink and one blue, one type fam
     'fill',
     rgb(tokens.colors['brand']!.light),
   );
-
-  // UX-DS-2, UX-DS-13: the one primary button is ink, and 48px high.
-  const add = page.getByRole('link', { name: 'Add a letting' });
-  await expect(add).toHaveCSS('background-color', rgb(tokens.colors['ink']!.light));
-  expect((await add.boundingBox())!.height).toBe(48);
 
   // Both themes: every interactive element shows a focus ring, including in the navigation.
   for (const colorScheme of ['light', 'dark'] as const) {
@@ -81,11 +84,11 @@ test('UX-DS-1, UX-DS-7: the look: a white page in ink and one blue, one type fam
   expect(await pageColour(page)).toBe(rgb(tokens.colors['surface-0']!.dark));
 
   // Colour changes take motion-fast, and nothing at all under reduced motion.
-  await page.goto('/today');
+  await page.goto('/lettings');
   const button = page.getByRole('link', { name: 'Add a letting' });
   await expect(button).toHaveCSS('transition-duration', '0.12s');
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/today');
+  await page.goto('/lettings');
   await expect(button).toHaveCSS('transition-duration', '0s');
 
   // On a phone the navigation is a bar along the bottom, and nothing scrolls sideways.

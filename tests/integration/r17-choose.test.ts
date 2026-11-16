@@ -24,12 +24,14 @@ describe('R17: applicants side by side', () => {
       [ids[1], 2, 21, false],
     ]);
     const board = await dashboardFor(member);
-    expect(board.today).toContainEqual({
-      kind: 'choose',
-      lettingId,
-      address: '12 Ranelagh Road',
-      count: 2,
-    });
+    expect(board.today).toContainEqual(
+      expect.objectContaining({
+        kind: 'choose',
+        lettingId,
+        address: '12 Ranelagh Road',
+        count: 2,
+      }),
+    );
   });
 });
 

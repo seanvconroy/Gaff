@@ -32,22 +32,3 @@ export function StageTracker({ current }: { current: Stage }) {
     </nav>
   );
 }
-
-/**
- * A letting's progress in a list row: nine small segments filled up to its stage, in primary
- * (not the accent, which a list would repeat on every row). Decorative: the row says the stage
- * in words.
- */
-export function StageMeter({ current }: { current: Stage }) {
-  const currentIndex = stages.indexOf(current);
-  return (
-    <span className={styles.meter} aria-hidden="true">
-      {stages.map((stage, index) => (
-        <span
-          key={stage}
-          className={index <= currentIndex ? styles.meterFilled : styles.meterEmpty}
-        />
-      ))}
-    </span>
-  );
-}

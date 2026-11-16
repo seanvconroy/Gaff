@@ -81,12 +81,14 @@ describe('R24: the packs, and the reminder to register', () => {
     await withOrg(member.organisationId, (tx) =>
       tx.update(tenancies).set({ startDate: '2026-10-01' }).where(eq(tenancies.id, tenancy.id)),
     );
-    expect((await dashboardFor(member)).today).toContainEqual({
-      kind: 'rtb',
-      lettingId,
-      address: '12 Ranelagh Road',
-      dueBy: '2026-11-01',
-    });
+    expect((await dashboardFor(member)).today).toContainEqual(
+      expect.objectContaining({
+        kind: 'rtb',
+        lettingId,
+        address: '12 Ranelagh Road',
+        dueBy: '2026-11-01',
+      }),
+    );
     await markRtbRegistered(member, lettingId, { reference: '' });
     expect((await dashboardFor(member)).today.some((i) => i.kind === 'rtb')).toBe(false);
   });

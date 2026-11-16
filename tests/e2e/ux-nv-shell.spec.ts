@@ -86,7 +86,7 @@ test('UX-NV-1 to UX-NV-5: anyone running lettings has four destinations, in a to
     await expect(nav.getByRole('link', { name: 'Inbox', exact: true })).toBeVisible();
 
     for (const [label, path, heading] of [
-      ['Today', '/today', 'Your lettings'],
+      ['Today', '/today', 'Today'],
       ['Lettings', '/lettings', 'Lettings'],
       ['Calendar', '/calendar', 'Calendar'],
       ['Inbox', '/inbox', 'Inbox'],
@@ -96,6 +96,8 @@ test('UX-NV-1 to UX-NV-5: anyone running lettings has four destinations, in a to
       await expect(
         page.getByRole('heading', { level: 1, name: heading, exact: true }),
       ).toBeVisible();
+      // Today shows still shapes while it loads (section 3, "States"): wait for the page itself.
+      await expect(page.getByText('Finding what needs you.')).toHaveCount(0);
       // The page you're on is marked for screen readers, and only that one.
       await expect(nav.getByRole('link', { name: label })).toHaveAttribute('aria-current', 'page');
       await expect(nav.locator('[aria-current]')).toHaveCount(1);
@@ -104,7 +106,7 @@ test('UX-NV-1 to UX-NV-5: anyone running lettings has four destinations, in a to
       await screenshot(page, `nv-letting-${label.toLowerCase()}-${width}`);
     }
 
-    // Lettings is the list that was on the dashboard; Calendar says what will be there.
+    // Lettings lists every home (UX-NV-9); Calendar says what will be there.
     await page.goto('/lettings');
     await expect(page.getByRole('link', { name: '12 Ranelagh Road', exact: true })).toBeVisible();
     await page.goto('/calendar');
@@ -145,8 +147,9 @@ test('UX-NV-1 to UX-NV-5: anyone running lettings has four destinations, in a to
   }
 
   // UX-NV-3: on a desktop the bar stays at the top when the page scrolls, and lifts off it.
+  // Settings is the page long enough to scroll: Today with nothing waiting is a few lines.
   await page.setViewportSize({ width: 1280, height: 400 });
-  await page.goto('/today');
+  await page.goto('/settings');
   await page.mouse.wheel(0, 300);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
   const header = page.getByRole('banner');

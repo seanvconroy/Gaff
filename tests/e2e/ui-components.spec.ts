@@ -67,6 +67,7 @@ test('UX-DS-16: the component page shows every component and its states at 390px
         'Avatar and badge',
         'Status pill, notice and outcome',
         'Cards, rows and lists',
+        'Home card',
       ]) {
         await expect(page.getByRole('heading', { level: 2, name: component })).toBeVisible();
       }
@@ -582,6 +583,63 @@ test('UX-DS-27: chips scroll sideways on a phone and wrap on a desktop; segmente
     rgb(tokens.colors['border']!.light),
     rgb(tokens.colors['border']!.light),
   ]);
+});
+
+test('UX-NV-12, UX-DS-10: home cards are one column on a phone and three across on a desktop; the photo is 3:2 with 16px corners, a home without one shows a house icon, and the whole card is one link', async ({
+  page,
+}) => {
+  const homes = page.getByRole('list', { name: 'Homes' });
+  const cards = homes.getByRole('listitem');
+  const lefts = async () =>
+    new Set(await cards.evaluateAll((items) => items.map((i) => i.getBoundingClientRect().left)));
+
+  await open(page, '/dev/ui', phone);
+  await expect(cards).toHaveCount(4);
+  expect((await lefts()).size).toBe(1);
+  await expectNoSidewaysScroll(page);
+
+  await open(page, '/dev/ui', desktop);
+  expect((await lefts()).size).toBe(3);
+  // The fourth card wraps to a second row, under the first.
+  const tops = await cards.evaluateAll((items) => items.map((i) => i.getBoundingClientRect().top));
+  expect(tops[3]).toBeGreaterThan(tops[0]!);
+
+  // UX-DS-10: the photo, or its placeholder, is 3:2 with 16px corners; never a broken image.
+  const first = cards.nth(0);
+  const frames = await cards.evaluateAll((items) =>
+    items.map((item) => {
+      const frame = item.firstElementChild!;
+      const box = frame.getBoundingClientRect();
+      return {
+        ratio: Math.round((box.width / box.height) * 100) / 100,
+        radius: getComputedStyle(frame).borderTopLeftRadius,
+      };
+    }),
+  );
+  expect(frames).toEqual(Array(4).fill({ ratio: 1.5, radius: '16px' }));
+  // The photo loads as it comes into view.
+  await first.scrollIntoViewIfNeeded();
+  await expect(first.locator('img')).toHaveJSProperty('complete', true);
+  expect(
+    await first.locator('img').evaluate((img: HTMLImageElement) => img.naturalWidth),
+  ).toBeGreaterThan(0);
+  await expect(cards.nth(1).locator('img')).toHaveCount(0);
+  await expect(cards.nth(1).locator('svg')).toBeVisible();
+
+  // One link a card, named by the address alone; a press anywhere on the card lands on it.
+  await expect(homes.getByRole('link')).toHaveCount(4);
+  const link = first.getByRole('link', { name: '12 Ranelagh Road', exact: true });
+  await first.scrollIntoViewIfNeeded();
+  const photo = (await first.locator('img').boundingBox())!;
+  expect(
+    await link.evaluate((el, at) => el.contains(document.elementFromPoint(at.x, at.y)), {
+      x: photo.x + photo.width / 2,
+      y: photo.y + photo.height / 2,
+    }),
+  ).toBe(true);
+  // "Needs you" is words with its dot, never the dot alone.
+  await expect(first.getByText('Needs you')).toBeVisible();
+  await expect(cards.nth(1).getByText('Needs you')).toHaveCount(0);
 });
 
 test('the flow shell fills a phone, with a fixed footer whose primary button spans the width; on a desktop the same header and footer hold a 640px column', async ({

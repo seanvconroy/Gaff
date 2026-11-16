@@ -56,7 +56,7 @@ export function CodeScreen({
   return (
     <div className={styles.screen}>
       <div className={styles.title}>
-        <h1 className="type-heading">{codeCopy.title}</h1>
+        <h1 className="type-display-mobile">{codeCopy.title}</h1>
         <p className={styles.lead}>{codeCopy.lead(email)}</p>
       </div>
 

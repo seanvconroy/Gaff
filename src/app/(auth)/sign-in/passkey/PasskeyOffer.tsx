@@ -46,7 +46,7 @@ export function PasskeyOffer({ device, next }: { device: DeviceKind; next: strin
   return (
     <div className={styles.screen}>
       <div className={styles.title}>
-        <h1 className="type-heading">{passkeyCopy.signedIn}</h1>
+        <h1 className="type-display-mobile">{passkeyCopy.signedIn}</h1>
       </div>
       <ButtonLink href={next} fullWidth>
         {passkeyCopy.continue}
@@ -58,11 +58,11 @@ export function PasskeyOffer({ device, next }: { device: DeviceKind; next: strin
         description={passkeyCopy.description(device)}
         footer={
           <>
-            <Button variant="quiet" disabled={working !== null} onClick={() => void notNow()}>
-              {passkeyCopy.notNow}
-            </Button>
             <Button variant="primary" disabled={working !== null} onClick={() => void turnOn()}>
               {working === 'on' ? passkeyCopy.turningOn : passkeyCopy.turnOn}
+            </Button>
+            <Button variant="quiet" disabled={working !== null} onClick={() => void notNow()}>
+              {passkeyCopy.notNow}
             </Button>
           </>
         }

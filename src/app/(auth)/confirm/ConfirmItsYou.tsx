@@ -97,11 +97,11 @@ export function ConfirmItsYou({
         step === 'choose' ? (
           hasPasskey ? (
             <>
-              <Button variant="quiet" disabled={busy} onClick={() => void sendCode()}>
-                {working === 'send' ? confirmCopy.sending : confirmCopy.emailCodeInstead}
-              </Button>
               <Button variant="primary" disabled={busy} onClick={() => void confirmByPasskey()}>
                 {working === 'passkey' ? confirmCopy.waitingForPasskey : confirmCopy.usePasskey}
+              </Button>
+              <Button variant="quiet" disabled={busy} onClick={() => void sendCode()}>
+                {working === 'send' ? confirmCopy.sending : confirmCopy.emailCodeInstead}
               </Button>
             </>
           ) : (

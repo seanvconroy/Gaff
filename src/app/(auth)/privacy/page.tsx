@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: 'Privacy notice' };
 export default function PrivacyNoticePage() {
   return (
     <div className={styles.legal}>
-      <h1 className="type-heading">Privacy notice</h1>
+      <h1 className="type-display-mobile">Privacy notice</h1>
       <p>
         This is about your Gaff account. If you enquired about a home, the notice from the agent or
         landlord letting it is linked in their emails to you.

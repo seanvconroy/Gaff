@@ -17,7 +17,7 @@ import { cookieLifetimes, cookieNames, cookieOptions } from './cookies';
  * proof that anything attached to it belongs to this mailbox's owner, so its other sign-in
  * methods and sessions are dropped before the owner is let in.
  */
-async function signInVerifiedEmail(ctx: GenericEndpointContext, email: string): Promise<void> {
+async function signInVerifiedEmail(ctx: GenericEndpointContext, email: string): Promise<string> {
   const adapter = ctx.context.internalAdapter;
   let user = (await adapter.findUserByEmail(email))?.user ?? null;
   if (!user) {
@@ -32,6 +32,7 @@ async function signInVerifiedEmail(ctx: GenericEndpointContext, email: string): 
   const session = await adapter.createSession(user.id);
   if (!session) throw new APIError('INTERNAL_SERVER_ERROR', { message: 'Could not sign in' });
   await setSessionCookie(ctx, { session, user });
+  return user.id;
 }
 
 /**
@@ -55,9 +56,10 @@ export const gaffSignIn = () =>
             code: ctx.body.code,
           });
           if (tried.result !== 'correct') return ctx.json({ result: tried.result });
-          await signInVerifiedEmail(ctx, tried.subject);
+          const userId = await signInVerifiedEmail(ctx, tried.subject);
           return ctx.json({
             result: 'correct' as const,
+            userId,
             attemptId: tried.attemptId,
             nextPath: tried.nextPath,
           });
@@ -77,9 +79,10 @@ export const gaffSignIn = () =>
             browserKey: ctx.getCookie(cookieNames.signInCode),
           });
           if (opened.where !== 'here') return ctx.json(opened);
-          await signInVerifiedEmail(ctx, opened.subject);
+          const userId = await signInVerifiedEmail(ctx, opened.subject);
           return ctx.json({
             where: 'here' as const,
+            userId,
             attemptId: opened.attemptId,
             nextPath: opened.nextPath,
           });

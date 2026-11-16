@@ -4,6 +4,7 @@ import { formatDate } from '../../src/lib/format';
 import { AOIFE, anAcceptedOffer, onPhone } from './journeys';
 import {
   AVAILABLE_IN_DAYS,
+  confirmItsYou,
   createLettingThroughUi,
   expectAccessible,
   expectNoSidewaysScroll,
@@ -108,6 +109,7 @@ test('R23: the tenant is asked for the deposit and first month’s rent, paid to
   );
   await page.getByLabel('IBAN').fill('IE29 AIBK 9311 5212 3456 78');
   await page.getByRole('button', { name: 'Save the account' }).click();
+  await confirmItsYou(page);
   await expect(page.getByText('Saved.')).toBeVisible();
 
   await page.goto(`${lettingUrl}/tenancy`);
@@ -239,6 +241,7 @@ test('R26: the operator finishes the let home; the record is archived and the da
   await page.getByLabel('Name on the account').fill('Halcyon Lettings client account');
   await page.getByLabel('IBAN').fill('IE29 AIBK 9311 5212 3456 78');
   await page.getByRole('button', { name: 'Save the account' }).click();
+  await confirmItsYou(page);
   await expect(page.getByText('Saved.')).toBeVisible();
 
   await page.goto('/');

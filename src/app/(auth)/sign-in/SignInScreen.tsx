@@ -100,7 +100,7 @@ export function SignInScreen({
   return (
     <div className={styles.screen}>
       <div className={styles.title}>
-        <h1 className="type-heading">{signInCopy.title}</h1>
+        <h1 className="type-display-mobile">{signInCopy.title}</h1>
         {lastMethod ? <p className={styles.lead}>{signInCopy.lastUsed(lastMethod)}</p> : null}
       </div>
 

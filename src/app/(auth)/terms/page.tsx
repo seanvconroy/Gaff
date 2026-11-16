@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: 'Terms' };
 export default function TermsPage() {
   return (
     <div className={styles.legal}>
-      <h1 className="type-heading">Terms</h1>
+      <h1 className="type-display-mobile">Terms</h1>
       <p>
         Gaff is software for letting a home in Ireland. Letting agents and landlords use it to run a
         letting. Renters use it free: Gaff never charges a renter, and never holds anyone’s money.

@@ -1,6 +1,6 @@
 'use server';
 
-import { cookies, headers } from 'next/headers';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { signInCopy } from '@/copy/sign-in';
@@ -13,8 +13,7 @@ import {
 import { safeNextPath } from '@/domain/auth/next-path';
 import { invalid, type FormState } from '@/lib/forms';
 import { auth, signInProviderModes } from '@/server/auth/auth';
-import { cookieNames } from '@/server/auth/cookies';
-import { requestSignInCode, resendSignInCode } from '@/server/auth/sign-in';
+import { finishSignIn, requestSignInCode, resendSignInCode } from '@/server/auth/sign-in';
 import {
   noteSignInMethodChosen,
   noteSignInScreenOpened,
@@ -24,7 +23,10 @@ import {
 
 const emailSchema = z.object({ email: z.email(signInCopy.errors.emailInvalid).max(254) });
 
-/** Where every method lands once the person is signed in: /sign-in/return finishes the job. */
+/**
+ * Where Google and Apple come back to once the person is signed in: /sign-in/return finishes
+ * the job. The try's ID travels signed, so the route can trust it.
+ */
 function returnPath(
   method: SignInMethod,
   attemptId: string | null,
@@ -109,8 +111,14 @@ export async function checkSignInCode(state: CodeState, formData: FormData): Pro
   const code = String(formData.get('code') ?? '').replace(/\D/g, '');
   const result = await auth().api.signInWithCode({ body: { code }, headers: await headers() });
   if (result.result === 'correct') {
-    (await cookies()).delete(cookieNames.signInCode);
-    redirect(returnPath('email_code', result.attemptId, result.nextPath));
+    redirect(
+      await finishSignIn({
+        userId: result.userId,
+        method: 'email_code',
+        attemptId: result.attemptId,
+        nextPath: result.nextPath,
+      }),
+    );
   }
   const waited = Math.ceil((Date.now() - state.stamp) / 1000);
   return {

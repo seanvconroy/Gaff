@@ -1,10 +1,7 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { NextRequest } from 'next/server';
-import { safeNextPath } from '@/domain/auth/next-path';
 import { auth } from '@/server/auth/auth';
-import { cookieNames } from '@/server/auth/cookies';
-import { signedSignInAttempt } from '@/server/auth/sign-in-steps';
+import { finishSignIn } from '@/server/auth/sign-in';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,10 +21,12 @@ export async function GET(request: NextRequest): Promise<never> {
     // The token is only good for showing the code, and only until the code expires.
     redirect(`/sign-in/your-code?t=${encodeURIComponent(token)}`);
   }
-  (await cookies()).delete(cookieNames.signInCode);
-  const query = new URLSearchParams({ method: 'email_code' });
-  if (opened.attemptId) query.set('attempt', signedSignInAttempt(opened.attemptId));
-  const next = safeNextPath(opened.nextPath);
-  if (next) query.set('next', next);
-  redirect(`/sign-in/return?${query.toString()}`);
+  redirect(
+    await finishSignIn({
+      userId: opened.userId,
+      method: 'email_code',
+      attemptId: opened.attemptId,
+      nextPath: opened.nextPath,
+    }),
+  );
 }

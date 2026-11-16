@@ -25,7 +25,7 @@ export default async function YourCodePage({
     return (
       <div className={styles.screen}>
         <div className={styles.title}>
-          <h1 className="type-heading">{codeShownCopy.goneTitle}</h1>
+          <h1 className="type-display-mobile">{codeShownCopy.goneTitle}</h1>
           <p className={styles.lead}>{codeShownCopy.gone}</p>
         </div>
         <ButtonLink href="/sign-in" variant="primary" fullWidth>
@@ -37,12 +37,10 @@ export default async function YourCodePage({
   return (
     <div className={styles.screen}>
       <div className={styles.title}>
-        <h1 className="type-heading">{codeShownCopy.title}</h1>
+        <h1 className="type-display-mobile">{codeShownCopy.title}</h1>
         <p className={styles.lead}>{codeShownCopy.lead}</p>
       </div>
-      <p className={styles.shownCode} aria-label={opened.code.split('').join(' ')}>
-        {opened.code}
-      </p>
+      <p className={styles.shownCode}>{opened.code}</p>
       <p className={styles.lead}>{codeShownCopy.until(formatTime(opened.expiresAt))}</p>
     </div>
   );

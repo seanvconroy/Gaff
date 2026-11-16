@@ -3,6 +3,7 @@ import {
   createLettingThroughUi,
   expectAccessible,
   expectNoSidewaysScroll,
+  goLiveThroughUi,
   isoDateInDays,
   openAccountMenu,
   screenshot,
@@ -23,7 +24,8 @@ const widths = [
 ] as const;
 
 const mainNav = (page: Page) => page.getByRole('navigation', { name: 'Main' });
-const avatar = (page: Page) => page.getByRole('button', { name: 'Account' });
+/** The avatar shows the person's initials, so its name holds them: "AP, account" (WCAG 2.5.3). */
+const avatar = (page: Page) => page.getByRole('banner').getByRole('button', { name: /, account$/ });
 const wordmark = (page: Page) => page.getByRole('link', { name: 'Gaff', exact: true });
 const box = async (locator: ReturnType<Page['locator']>) => (await locator.boundingBox())!;
 
@@ -78,7 +80,7 @@ test('UX-NV-1 to UX-NV-5: anyone running lettings has four destinations, in a to
     await expectBarLayout(page, viewport);
 
     // UX-NV-5: Today counts what needs a person; Inbox has nothing waiting, so no count.
-    await expect(nav.getByRole('link', { name: 'Today, 1 thing needs you' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Today 1 thing needs you' })).toBeVisible();
     await expect(nav.getByRole('link', { name: 'Inbox', exact: true })).toBeVisible();
 
     for (const [label, path, heading] of [
@@ -149,6 +151,13 @@ test('UX-NV-1 to UX-NV-5: anyone running lettings has four destinations, in a to
   expect((await box(header)).y).toBe(0);
   await expect(header).toHaveAttribute('data-scrolled', '');
   await expect(header).not.toHaveCSS('box-shadow', 'none');
+
+  // UX-NV-5: the count follows what the person does, without loading the page again. Finishing
+  // set-up was the one thing waiting, so the count goes as the letting goes live.
+  await page.setViewportSize(desktop);
+  await page.goto(lettingUrl);
+  await goLiveThroughUi(page);
+  await expect(nav.getByRole('link', { name: 'Today', exact: true })).toBeVisible();
 });
 
 test('UX-NV-4: the tab bar never wraps, down to 360px wide, whatever the counts', async ({
@@ -189,7 +198,7 @@ test('UX-NV-4: the tab bar never wraps, down to 360px wide, whatever the counts'
     // A count past 99 stops growing, and is read out in words.
     if (side === 'renting') {
       const enquiries = mainNav(page).getByRole('link', {
-        name: 'Enquiries, 120 things need you',
+        name: 'Enquiries 120 things need you',
       });
       await expect(enquiries).toContainText('99+');
     }
@@ -210,6 +219,7 @@ test('UX-NV-8: the account menu on the avatar holds the name and context, Profil
     await page.goto('/today');
 
     // Enter opens it, and the first row takes focus.
+    await expect(avatar(page)).toHaveAccessibleName('AP, account');
     await avatar(page).focus();
     await page.keyboard.press('Enter');
     const menu = page.getByRole('menu', { name: 'Account' });
@@ -348,7 +358,7 @@ test('UX-NV-19, UX-NV-21: the renting side has the same bar, with Search, Saved 
   // the bar shows it and reads it out (the made-up counts on the development page).
   await expect(nav.getByRole('link', { name: 'Enquiries', exact: true })).toBeVisible();
   await page.goto('/dev/ui/nav?side=renting');
-  await expect(nav.getByRole('link', { name: 'Enquiries, 120 things need you' })).toBeVisible();
+  await expect(nav.getByRole('link', { name: 'Enquiries 120 things need you' })).toBeVisible();
 });
 
 test('UX-NV-20: a signed-out visitor sees the wordmark, "List a home" and "Sign in", and signing in moves nothing', async ({
@@ -440,7 +450,7 @@ test('UX-NV-6, UX-FL-1, UX-FL-3: adding a letting opens full screen without the 
 
     // UX-NV-6: no navigation, at either width: no bar, no tabs, no avatar.
     await expect(mainNav(page)).toHaveCount(0);
-    await expect(avatar(page)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /account/i })).toHaveCount(0);
     await expect(wordmark(page)).toHaveCount(0);
 
     // UX-FL-1: its own header, with Close on the left and the progress in segments.

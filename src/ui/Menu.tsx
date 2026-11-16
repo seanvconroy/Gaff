@@ -28,6 +28,7 @@ export function Menu({
   label,
   align = 'end',
   trigger,
+  triggerLabel,
   header,
   children,
 }: {
@@ -36,6 +37,11 @@ export function Menu({
   align?: 'start' | 'end';
   /** What the button shows in place of the three dots: an `Avatar`, for the account menu. */
   trigger?: ReactNode;
+  /**
+   * The button's name for screen readers, where it shows words of its own: the name has to hold
+   * the words on screen (WCAG 2.5.3), so an avatar reading "AP" is "AP, account".
+   */
+  triggerLabel?: string;
   /** Above the actions, and not one of them: whose menu this is. */
   header?: ReactNode;
   children: ReactNode;
@@ -78,7 +84,7 @@ export function Menu({
         ref={button}
         type="button"
         className={`${styles.trigger} ${trigger ? styles.round : ''}`}
-        aria-label={label}
+        aria-label={triggerLabel ?? label}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen(true)}

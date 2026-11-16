@@ -49,7 +49,7 @@ export interface NavDestination extends Destination {
  *
  * Only the destinations differ between letting and renting. With none (a signed-out visitor) it
  * is a header alone. The page you're on is marked for screen readers as well as by colour, and a
- * count is read out in words ("Today, 3 things need you").
+ * count is read out in words ("Today 3 things need you").
  */
 export function NavBar({
   home,
@@ -96,7 +96,7 @@ export function NavBar({
                           <span className={styles.badge} aria-hidden="true">
                             {badgeText(count)}
                           </span>
-                          <span className="visually-hidden">, {needsYouWords(count)}</span>
+                          <span className="visually-hidden"> {needsYouWords(count)}</span>
                         </>
                       ) : null}
                     </Link>

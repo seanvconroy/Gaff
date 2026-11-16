@@ -15,6 +15,7 @@ import type {
 } from '@/domain/navigation/account-menu';
 import styles from './AccountMenu.module.css';
 import { Avatar } from './Avatar';
+import { initialsOf } from './code';
 import { Menu, MenuItem } from './Menu';
 
 const icons: Record<AccountRowKey, LucideIcon> = {
@@ -45,6 +46,7 @@ export function AccountMenu({
         label="Account"
         align="end"
         trigger={<Avatar name={menu.name} />}
+        triggerLabel={`${initialsOf(menu.name)}, account`}
         header={
           <p className={styles.who}>
             <span className={styles.name}>{menu.name}</span>

@@ -374,7 +374,11 @@ export async function startViewingsNow(addressLine1: string, operatorEmail: stri
 
 /** UX-NV-8: opens the account menu on the avatar, at the right-hand end of the navigation. */
 export async function openAccountMenu(page: Page): Promise<Locator> {
-  await page.getByRole('button', { name: 'Account' }).click();
+  // The avatar shows the person's initials, so its name holds them: "AP, account".
+  await page
+    .getByRole('banner')
+    .getByRole('button', { name: /, account$/ })
+    .click();
   const menu = page.getByRole('menu', { name: 'Account' });
   await expect(menu).toBeVisible();
   return menu;

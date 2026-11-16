@@ -27,11 +27,17 @@ const MenuContext = createContext<{ close: () => void }>({ close: () => undefine
 export function Menu({
   label,
   align = 'end',
+  trigger,
+  header,
   children,
 }: {
   /** What the button is for, for screen readers and as the sheet's title: "More for 12 Ranelagh Road". */
   label: string;
   align?: 'start' | 'end';
+  /** What the button shows in place of the three dots: an `Avatar`, for the account menu. */
+  trigger?: ReactNode;
+  /** Above the actions, and not one of them: whose menu this is. */
+  header?: ReactNode;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -71,7 +77,7 @@ export function Menu({
       <button
         ref={button}
         type="button"
-        className={styles.trigger}
+        className={`${styles.trigger} ${trigger ? styles.round : ''}`}
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -83,7 +89,7 @@ export function Menu({
           }
         }}
       >
-        <Ellipsis size={20} strokeWidth={1.75} aria-hidden="true" />
+        {trigger ?? <Ellipsis size={20} strokeWidth={1.75} aria-hidden="true" />}
       </button>
       <Overlay
         open={open}
@@ -94,6 +100,7 @@ export function Menu({
         labelledBy={titleId}
       >
         <SheetHeader id={titleId} title={label} onClose={close} phoneOnly />
+        {header ? <div className={styles.header}>{header}</div> : null}
         <MenuContext.Provider value={{ close }}>
           <div
             ref={list}

@@ -93,6 +93,36 @@
   animation-name: step-back;
 }
 
+/* A flow's title, and the line or two under it. */
+.titles {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* Takes focus when a step opens, for screen readers: no ring, as it isn't a control. */
+.title:focus {
+  outline: none;
+}
+
+.lead {
+  color: var(--color-ink-muted);
+}
+
+/* A step that shares its page with the others (FlowStep): hidden until it's the current one. */
+.part:not([hidden]) {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.part.fromRight:not([hidden]) {
+  animation: step-in var(--motion-base) var(--ease-enter);
+}
+
+.part.fromLeft:not([hidden]) {
+  animation: step-back var(--motion-base) var(--ease-enter);
+}
+
 .footer {
   position: fixed;
   z-index: 5;
@@ -123,6 +153,14 @@
   display: flex;
   flex: 1;
   min-width: 0;
+}
+
+@media (width <= 900px) {
+  .title {
+    font-size: var(--type-display-mobile-size);
+    line-height: var(--type-display-mobile-line);
+    letter-spacing: var(--type-display-mobile-tracking);
+  }
 }
 
 @media (width > 900px) {

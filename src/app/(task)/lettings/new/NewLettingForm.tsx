@@ -11,11 +11,11 @@ import {
   propertyTypes,
 } from '@/domain/lettings/new-letting';
 import { emptyFormState, fieldErrors, formValues, type FormState } from '@/lib/forms';
-import { Button, ButtonLink } from '@/ui/Button';
+import { Button } from '@/ui/Button';
 import { SelectField, TextArea, TextField } from '@/ui/Field';
-import { Columns, FormActions, FormPanel, formClass } from '@/ui/Form';
-import { Notice } from '@/ui/Notice';
-import { StepIndicator } from '@/ui/Steps';
+import { focusFirstProblem, problemOnLeaving } from '@/ui/flow';
+import { FlowProblems, FlowShell, FlowStep, FlowTitle } from '@/ui/FlowShell';
+import { Columns, FormPanel } from '@/ui/Form';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { createLettingAction } from './actions';
 import styles from './new-letting.module.css';
@@ -31,8 +31,6 @@ const stepFields = [
   ['daftUrl', 'myhomeUrl', 'photosUrl', 'landlordName', 'landlordEmail'],
 ] as const;
 
-const NEEDS_ANOTHER_LOOK = 'Some details need another look. They’re marked below.';
-
 function firstStepWithError(errors: Record<string, string>): number | null {
   const index = stepFields.findIndex((fields) => fields.some((field) => errors[field]));
   return index === -1 ? null : index;
@@ -42,8 +40,20 @@ function firstStepWithError(errors: Record<string, string>): number | null {
  * R1, in three short steps instead of one long form (progressive disclosure): the home, its key
  * facts, then the optional advert links and landlord. Each step is checked with the same rules
  * the server uses before moving on; anything the server still finds sends you back to that step.
+ *
+ * It is a focused task (UX-NV-6, UX-FL-1): it fills the screen in the flow shell, with no
+ * navigation. Closing it goes back to `leaveTo`, where it was opened. Nothing is kept until the
+ * last step saves the letting, so there is no "Save and exit" yet (work package WP-9 adds drafts).
  */
-export function NewLettingForm({ forAgency, today }: { forAgency: boolean; today: string }) {
+export function NewLettingForm({
+  forAgency,
+  today,
+  leaveTo,
+}: {
+  forAgency: boolean;
+  today: string;
+  leaveTo: string;
+}) {
   const [state, action] = useActionState(createLettingAction, emptyFormState);
   // After a failed save the form remounts with what was typed (selects included).
   return (
@@ -53,6 +63,7 @@ export function NewLettingForm({ forAgency, today }: { forAgency: boolean; today
       action={action}
       forAgency={forAgency}
       today={today}
+      leaveTo={leaveTo}
     />
   );
 }
@@ -62,17 +73,22 @@ function Wizard({
   action,
   forAgency,
   today,
+  leaveTo,
 }: {
   state: FormState;
   action: (formData: FormData) => void;
   forAgency: boolean;
   today: string;
+  leaveTo: string;
 }) {
   const v = state.values ?? {};
   const titles = ['The home', 'Key facts', forAgency ? 'Adverts and landlord' : 'Adverts'];
   const last = titles.length - 1;
   const [step, setStep] = useState(() => firstStepWithError(state.errors ?? {}) ?? 0);
   const [errors, setErrors] = useState<Record<string, string>>(state.errors ?? {});
+  // UX-FL-3: how many fields the last press of the button found wrong, for screen readers.
+  const [found, setFound] = useState(Object.keys(state.errors ?? {}).length);
+  const [direction, setDirection] = useState<'forward' | 'back'>();
   const [showLine2, setShowLine2] = useState(Boolean(v.addressLine2 || state.errors?.addressLine2));
   const form = useRef<HTMLFormElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -90,6 +106,8 @@ function Wizard({
 
   function goTo(index: number) {
     setErrors({});
+    setFound(0);
+    setDirection(index < step ? 'back' : 'forward');
     setStep(index);
     window.scrollTo({ top: 0 });
     // Screen readers hear the new step's title; the next Tab goes to its first field.
@@ -100,46 +118,79 @@ function Wizard({
   function next(): boolean {
     const problems = problemsIn(step);
     if (Object.keys(problems).length === 0) return true;
+    // UX-FL-3: the errors are at their fields; focus goes to the first, and the count is read out.
     setErrors(problems);
-    requestAnimationFrame(() => {
-      form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
-    });
+    setFound(Object.keys(problems).length);
+    focusFirstProblem(form.current);
     return false;
   }
 
-  const anyErrors = Object.keys(errors).length > 0;
   return (
-    <form
-      ref={form}
-      action={action}
-      className={formClass}
-      noValidate
-      onChange={(event) => {
-        // A field's error goes as soon as it's edited; the step is checked again on Continue.
-        const name = (event.target as unknown as HTMLInputElement).name;
-        if (name && errors[name]) {
-          setErrors(({ [name]: _fixed, ...rest }) => rest);
-        }
-      }}
-      onSubmit={(event) => {
-        // Pressing Enter on a step before the last moves on, rather than saving half a letting.
-        if (step < last) {
-          event.preventDefault();
-          if (next()) goTo(step + 1);
-        } else if (!next()) {
-          event.preventDefault();
-        }
+    <FlowShell
+      leave={{ kind: 'close', href: leaveTo }}
+      progress={{ label: 'Add a letting', segments: titles, current: step }}
+      back={
+        step > 0 ? (
+          <Button variant="quiet" onClick={() => goTo(step - 1)}>
+            Back
+          </Button>
+        ) : undefined
+      }
+      primary={
+        step < last ? (
+          <Button
+            variant="primary"
+            fullWidth="phone"
+            onClick={() => {
+              if (next()) goTo(step + 1);
+            }}
+          >
+            Continue
+          </Button>
+        ) : (
+          <SubmitButton fullWidth="phone" pendingLabel="Saving…">
+            Save and add viewing times
+          </SubmitButton>
+        )
+      }
+      form={{
+        ref: form,
+        action,
+        noValidate: true,
+        onChange: (event) => {
+          // A field's error goes as soon as it's edited; the step is checked again on Continue.
+          const name = (event.target as unknown as HTMLInputElement).name;
+          if (name && errors[name]) {
+            setErrors(({ [name]: _fixed, ...rest }) => rest);
+          }
+        },
+        onBlur: (event) => {
+          // Leaving a field with something wrong typed in it says so there and then.
+          const field = event.target as unknown as HTMLInputElement;
+          const problem = problemOnLeaving(
+            { name: field.name ?? '', value: field.value ?? '' },
+            problemsIn(step),
+          );
+          if (problem) setErrors((now) => ({ ...now, [field.name]: problem }));
+        },
+        onSubmit: (event) => {
+          // Pressing Enter on a step before the last moves on, rather than saving half a letting.
+          if (step < last) {
+            event.preventDefault();
+            if (next()) goTo(step + 1);
+          } else if (!next()) {
+            event.preventDefault();
+          }
+        },
       }}
     >
-      <StepIndicator steps={titles} current={step} onSelect={goTo} />
+      <FlowTitle
+        title="Add a letting"
+        lead="Three short steps, about ten minutes in all. You can change any of it later."
+      />
+      <FlowProblems count={found} />
 
-      {anyErrors || state.message ? (
-        <Notice tone="danger" title="That didn’t save yet" role="alert">
-          <p>{state.message && !anyErrors ? state.message : NEEDS_ANOTHER_LOOK}</p>
-        </Notice>
-      ) : null}
-
-      <div hidden={step !== 0} className={styles.step}>
+      <FlowStep current={step === 0} direction={direction}>
         <FormPanel>
           <section className={styles.section} aria-labelledby="step-home">
             <StepHeading id="step-home" current={step === 0} ref={step === 0 ? heading : null}>
@@ -231,9 +282,9 @@ function Wizard({
             </Columns>
           </section>
         </FormPanel>
-      </div>
+      </FlowStep>
 
-      <div hidden={step !== 1} className={styles.step}>
+      <FlowStep current={step === 1} direction={direction}>
         <FormPanel>
           <section className={styles.section} aria-labelledby="step-facts">
             <div className={styles.sectionHeader}>
@@ -314,9 +365,9 @@ function Wizard({
             />
           </section>
         </FormPanel>
-      </div>
+      </FlowStep>
 
-      <div hidden={step !== 2} className={styles.step}>
+      <FlowStep current={step === 2} direction={direction}>
         <FormPanel>
           <section className={styles.section} aria-labelledby="step-adverts">
             <div className={styles.sectionHeader}>
@@ -389,32 +440,8 @@ function Wizard({
             </section>
           ) : null}
         </FormPanel>
-      </div>
-
-      <FormActions>
-        {step < last ? (
-          <Button
-            variant="primary"
-            onClick={() => {
-              if (next()) goTo(step + 1);
-            }}
-          >
-            Continue
-          </Button>
-        ) : (
-          <SubmitButton pendingLabel="Saving…">Save and add viewing times</SubmitButton>
-        )}
-        {step > 0 ? (
-          <Button variant="quiet" onClick={() => goTo(step - 1)}>
-            Back
-          </Button>
-        ) : (
-          <ButtonLink href="/" variant="quiet">
-            Cancel
-          </ButtonLink>
-        )}
-      </FormActions>
-    </form>
+      </FlowStep>
+    </FlowShell>
   );
 }
 

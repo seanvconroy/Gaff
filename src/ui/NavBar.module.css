@@ -1,0 +1,202 @@
+/*
+ * The navigation (UX-NV-3, UX-NV-4). White, in the ordinary tokens. Below 900px: the wordmark and
+ * the avatar at the top of the page, and the destinations in a tab bar fixed to the foot of the
+ * screen. Above: one top bar that stays put, with the destinations in its middle.
+ */
+.bar {
+  background-color: var(--color-surface-0);
+  color: var(--color-ink);
+}
+
+.inner {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  min-height: calc(var(--size-control) + 2 * var(--space-1));
+  padding: var(--space-1) var(--space-4);
+}
+
+.brand {
+  display: flex;
+  flex: none;
+}
+
+.end {
+  display: flex;
+  flex: none;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* The tab bar: 64px, plus the phone's safe area. */
+.nav {
+  position: fixed;
+  z-index: 5;
+  inset-inline: 0;
+  bottom: 0;
+  padding: 0 var(--space-1) env(safe-area-inset-bottom);
+  background-color: var(--color-surface-0);
+  border-top: 1px solid var(--color-border);
+}
+
+.list {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  min-width: 0;
+}
+
+/* An icon over a one-word label that never wraps. The whole tab is the target. */
+.link {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: var(--size-bar);
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-title-weight);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+.link:hover {
+  color: var(--color-ink);
+}
+
+/* Inside the bar's own edge, so the ring is never cut off by the screen. */
+.link:focus-visible {
+  outline-offset: -2px;
+}
+
+/* The page you're on: ink and a short brand line, and marked for screen readers too. */
+.link[aria-current='page'] {
+  color: var(--color-ink);
+}
+
+.link[aria-current='page']::before {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--space-8);
+  height: 2px;
+  margin-left: calc(var(--space-8) / -2);
+  background-color: var(--color-brand);
+  border-radius: var(--radius-pill);
+  content: '';
+}
+
+.icon {
+  flex: none;
+}
+
+/* How many things need you: a figure on ink, at the icon's top right. Read out in words. */
+.badge {
+  position: absolute;
+  top: var(--space-1);
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  margin-left: var(--space-1);
+  padding: 0 var(--space-1);
+  background-color: var(--color-primary);
+  border: 2px solid var(--color-surface-0);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink-inverse);
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+}
+
+@media (width > 900px) {
+  /* The top bar: 64px, and it stays at the top as the page scrolls. */
+  .bar {
+    position: sticky;
+    z-index: 5;
+    top: 0;
+    border-bottom: 1px solid var(--color-border);
+    transition: box-shadow var(--motion-fast) var(--ease-standard);
+  }
+
+  /* Once the page has moved under it, it lifts off with a soft shadow. */
+  .bar[data-scrolled] {
+    box-shadow: var(--shadow-raised);
+  }
+
+  /* The wordmark on the left, the destinations in the middle, the avatar on the right. */
+  .inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: var(--space-6);
+    max-width: calc(var(--size-page) + 2 * var(--space-8));
+    min-height: var(--size-bar);
+    margin: 0 auto;
+    padding: 0 var(--space-8);
+  }
+
+  .nav {
+    position: static;
+    grid-column: 2;
+    padding: 0;
+    background-color: transparent;
+    border-top: 0;
+  }
+
+  .list {
+    grid-auto-columns: auto;
+    gap: var(--space-2);
+  }
+
+  /* The same destinations as words in a row. */
+  .link {
+    flex-direction: row;
+    gap: var(--space-2);
+    padding: 0 var(--space-4);
+    line-height: var(--type-body-line);
+  }
+
+  .icon {
+    display: none;
+  }
+
+  .link[aria-current='page']::before {
+    inset: auto var(--space-4) 0;
+    width: auto;
+    margin-left: 0;
+  }
+
+  .badge {
+    position: static;
+    margin-left: 0;
+    border: 0;
+  }
+
+  .end {
+    grid-column: 3;
+    justify-self: end;
+  }
+}
+
+/* Printing an agreement or a pack: just the document. */
+@media print {
+  .bar {
+    display: none;
+  }
+}

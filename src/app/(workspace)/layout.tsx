@@ -1,47 +1,22 @@
-import { LogOut } from 'lucide-react';
+import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { requireMember } from '@/server/auth/member';
-import { Wordmark } from '@/ui/Wordmark';
-import { signOut } from './actions';
-import { ActivityTracker } from './ActivityTracker';
-import { WorkspaceNav } from './WorkspaceNav';
-import styles from './workspace.module.css';
+import { requirePerson } from '@/server/context/current-person';
+import { ActivityTracker } from '../_shell/ActivityTracker';
+import { AppShell } from '../_shell/AppShell';
 
 export const dynamic = 'force-dynamic';
 
-/** The workspace: a sidebar (a top bar and a bottom bar on a phone) beside the page. */
+/**
+ * The letting side: Today, Lettings, Calendar, Inbox, and the pages under them, inside the shell
+ * with the navigation. Signed out → sign-in; signed in with nothing to let → welcome.
+ */
 export default async function WorkspaceLayout({ children }: { children: ReactNode }) {
-  const member = await requireMember();
+  const person = await requirePerson();
+  if (!person.member) redirect('/welcome');
   return (
-    <div className={styles.shell}>
-      <a href="#main" className={styles.skip}>
-        Skip to content
-      </a>
-      <header className={styles.side}>
-        <div className={styles.sideInner}>
-          <div className={styles.brand}>
-            <Wordmark />
-          </div>
-          <WorkspaceNav />
-          <div className={styles.account}>
-            <p className={styles.who}>
-              <span className={styles.name}>{member.name}</span>
-              <span className="visually-hidden"> · </span>
-              <span>{member.organisationName}</span>
-            </p>
-            <form action={signOut}>
-              <button type="submit" className={styles.signOut}>
-                <LogOut size={20} strokeWidth={1.75} aria-hidden="true" />
-                Sign out
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
-      <main id="main" className={styles.main}>
-        {children}
-      </main>
+    <>
+      <AppShell>{children}</AppShell>
       <ActivityTracker />
-    </div>
+    </>
   );
 }

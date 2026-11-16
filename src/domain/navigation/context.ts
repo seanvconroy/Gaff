@@ -38,5 +38,5 @@ export function firstScreenRedirect(
   query: { rent?: string | string[] },
 ): '/today' | null {
   if (context !== 'letting') return null;
-  return query.rent === '1' ? null : homeFor('letting');
+  return query.rent === '1' ? null : '/today';
 }

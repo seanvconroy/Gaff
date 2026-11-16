@@ -1,9 +1,3 @@
-/* R1's three steps. A hidden step stays in the form (so it's sent), but isn't shown. */
-.step:not([hidden]) {
-  display: grid;
-  gap: var(--space-6);
-}
-
 /* Groups of fields inside the step's panel, divided by hairlines. */
 .section {
   display: grid;

@@ -1,7 +1,8 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { asc, desc, eq } from 'drizzle-orm';
 import { withOrg } from '@/db/client';
 import {
   applications,
+  bookings,
   lettings,
   organisations,
   tenancies,
@@ -41,15 +42,21 @@ export async function loadRenterPage(token: string) {
     const criteria = row.letting.criteria ?? { noPets: false };
     const allSlots = await slotAvailability(tx, row.letting.id, row.application.id);
     const booking = await currentBooking(tx, row.application.id);
-    const offers = await tx
+    // UX-RN-9: someone whose viewing was cancelled is told so, and offered another time.
+    const [lastBooking] = booking
+      ? []
+      : await tx
+          .select({ status: bookings.status })
+          .from(bookings)
+          .where(eq(bookings.applicationId, row.application.id))
+          .orderBy(desc(bookings.createdAt))
+          .limit(1);
+    const placeOffers = await tx
       .select()
       .from(waitlistOffers)
-      .where(
-        and(
-          eq(waitlistOffers.applicationId, row.application.id),
-          eq(waitlistOffers.status, 'open'),
-        ),
-      );
+      .where(eq(waitlistOffers.applicationId, row.application.id))
+      .orderBy(desc(waitlistOffers.offeredAt));
+    const offers = placeOffers.filter((o) => o.status === 'open');
     // Someone on the waiting list sees only a place they've been offered that's still free
     // to book (R14).
     const bookable = bookableSlots(allSlots, new Date());
@@ -78,6 +85,10 @@ export async function loadRenterPage(token: string) {
         : null;
     const inventory = tenancy?.inventorySharedAt ? await inventoryOf(tx, tenancy.id) : [];
     return {
+      // UX-RN-9, UX-RN-10: what became of their last viewing, and of the last place held for them.
+      bookingCancelled: lastBooking?.status === 'cancelled',
+      holdRanOut: offer === null && placeOffers[0]?.status === 'expired',
+      lastViewing: allSlots.at(-1)?.startsAt ?? null,
       inventory,
       payTo,
       tenancy: tenancy ?? null,

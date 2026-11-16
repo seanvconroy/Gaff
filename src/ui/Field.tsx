@@ -213,7 +213,9 @@ export function SelectField({
 /**
  * A question with choice rows (radios, or checkboxes): each row is one target, 48px or taller.
  * `inline` puts short answers side by side ("Yes" and "No", "24 hours" to "3 days"); longer
- * answers stack. For a few options that each need an icon and a line of help, use `ChoiceCards`.
+ * answers stack. `inline="pairs"` puts them two across at every width, for a run of short
+ * answers where one is a few words ("1" to "5", then "6 or more"). For a few options that each
+ * need an icon and a line of help, use `ChoiceCards`.
  */
 export function ChoiceGroup({
   name,
@@ -233,7 +235,7 @@ export function ChoiceGroup({
   type?: 'radio' | 'checkbox';
   options: ReadonlyArray<{ value: string; label: ReactNode; hint?: ReactNode }>;
   defaultValue?: string | readonly string[];
-  inline?: boolean;
+  inline?: boolean | 'pairs';
   /** For a single checkbox whose own label says it all: the legend is for screen readers. */
   hideLegend?: boolean;
 }) {
@@ -249,7 +251,11 @@ export function ChoiceGroup({
       <legend className={hideLegend ? 'visually-hidden' : styles.legend}>{legend}</legend>
       <Hint name={name} hint={hint} />
       <ErrorMessage name={name} error={error} />
-      <div className={`${styles.options} ${inline ? styles.inline : ''}`}>
+      <div
+        className={`${styles.options} ${
+          inline === 'pairs' ? styles.pairs : inline ? styles.inline : ''
+        }`}
+      >
         {options.map((option) => {
           // The whole card is clickable, but the accessible name is the label alone and
           // the hint is its description.

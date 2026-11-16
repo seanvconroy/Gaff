@@ -176,6 +176,13 @@
       "when": 1794831794890,
       "tag": "0024_ux_ac_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794852561039,
+      "tag": "0025_ux_rn_renter_pages",
+      "breakpoints": true
     }
   ]
 }

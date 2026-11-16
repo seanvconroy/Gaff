@@ -89,7 +89,14 @@ describe('UX-PP-7: one link, and the page always shows where the renter stands n
   });
 
   it('once the home is let or withdrawn, everyone else sees that, whatever stage they reached', () => {
-    for (const status of ['enquired', 'invited', 'booked', 'waitlisted', 'applied', 'backup'] as const) {
+    for (const status of [
+      'enquired',
+      'invited',
+      'booked',
+      'waitlisted',
+      'applied',
+      'backup',
+    ] as const) {
       expect(view({ status, lettingStatus: 'let' })).toBe('let_to_someone_else');
       expect(view({ status, lettingStatus: 'withdrawn' })).toBe('home_closed');
     }

@@ -6,6 +6,7 @@ import {
   MAX_PHOTO_BYTES,
   checklistSchema,
   inventoryItemSchema,
+  inventoryQuerySchema,
   photoKind,
   stripJpegMetadata,
 } from '@/domain/tenancy/movein';
@@ -133,6 +134,7 @@ export async function inventoryOf(tx: Tx, tenancyId: string) {
       item: inventoryItems.item,
       condition: inventoryItems.condition,
       note: inventoryItems.note,
+      tenantNote: inventoryItems.tenantNote,
       photoType: inventoryItems.photoType,
     })
     .from(inventoryItems)
@@ -219,6 +221,48 @@ export async function confirmInventory(token: string): Promise<boolean> {
       data: { tenancyId: tenancy.id },
     });
     return true;
+  });
+}
+
+export type QueryItemResult =
+  { ok: true } | { ok: false; errors: Record<string, string> } | { ok: false; closed: true };
+
+/**
+ * UX-RN-25: "Something's not right". The tenant sends a short note to the lister about one item
+ * of the inventory, before or after confirming it. The note is kept with the item, where the
+ * operator sees it; the record holds only that it happened.
+ */
+export async function queryInventoryItem(
+  token: string,
+  itemId: string,
+  values: Record<string, string>,
+): Promise<QueryItemResult | null> {
+  const link = await resolveAccessLink(token, 'renter');
+  if (!link) return null;
+  const parsed = inventoryQuerySchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, errors: { note: parsed.error.issues[0]!.message } };
+  }
+  return withOrg(link.organisationId, async (tx) => {
+    const [row] = await tx
+      .select({ item: inventoryItems.id, tenancy: tenancies })
+      .from(inventoryItems)
+      .innerJoin(tenancies, eq(tenancies.id, inventoryItems.tenancyId))
+      .where(and(eq(inventoryItems.id, itemId), eq(tenancies.applicationId, link.subjectId)));
+    if (!row?.tenancy.inventorySharedAt) return { ok: false, closed: true };
+    await tx
+      .update(inventoryItems)
+      .set({ tenantNote: parsed.data.note, tenantNotedAt: new Date() })
+      .where(eq(inventoryItems.id, itemId));
+    await recordEvent(tx, {
+      organisationId: link.organisationId,
+      lettingId: row.tenancy.lettingId,
+      actor: { type: 'renter', applicationId: link.subjectId },
+      type: 'inventory.item_queried',
+      subject: { type: 'tenancy', id: row.tenancy.id },
+      data: { tenancyId: row.tenancy.id, itemId },
+    });
+    return { ok: true };
   });
 }
 

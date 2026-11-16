@@ -7,9 +7,10 @@ import { AccountMenu } from '@/ui/AccountMenu';
 import { Button } from '@/ui/Button';
 import { Chips } from '@/ui/Chips';
 import { CodeInput } from '@/ui/CodeInput';
-import { TextField } from '@/ui/Field';
+import { ChoiceGroup, TextField } from '@/ui/Field';
 import { Menu, MenuItem } from '@/ui/Menu';
 import { DateField, TimeField } from '@/ui/Pickers';
+import { QuestionSteps } from '@/ui/QuestionSteps';
 import { Sheet } from '@/ui/Sheet';
 import { ToastProvider, useToast } from '@/ui/Toast';
 import styles from './ui.module.css';
@@ -189,5 +190,64 @@ export function CodeDemo() {
         error="That code isn’t right. Check the email and try again."
       />
     </div>
+  );
+}
+
+/** Questions one per screen: two made-up ones, sent nowhere. */
+export function QuestionStepsDemo() {
+  const need = (field: string) => (values: Readonly<Record<string, string>>) =>
+    values[field] ? {} : ({ [field]: 'Choose one to carry on' } as Record<string, string>);
+  return (
+    <QuestionSteps
+      label="A few quick questions"
+      action={() => {}}
+      defaults={{}}
+      submit="Send my answers"
+      pending="Sending…"
+      steps={[
+        {
+          id: 'people',
+          name: 'People',
+          title: 'How many people would live here, including you?',
+          lead: 'Halcyon Lettings asks everyone the same questions.',
+          fields: ['demoPeople'],
+          check: need('demoPeople'),
+          content: ({ errors }) => (
+            <ChoiceGroup
+              name="demoPeople"
+              legend="How many people would live here, including you?"
+              hideLegend
+              inline="pairs"
+              error={errors.demoPeople}
+              options={['1', '2', '3', '4', '5', '6 or more'].map((label) => ({
+                value: label,
+                label,
+              }))}
+            />
+          ),
+        },
+        {
+          id: 'pets',
+          name: 'Pets',
+          title: 'Do you have any pets?',
+          fields: ['demoPets'],
+          check: need('demoPets'),
+          content: ({ errors }) => (
+            <ChoiceGroup
+              name="demoPets"
+              legend="Do you have any pets?"
+              hideLegend
+              hint="Assistance dogs don’t count as pets."
+              inline
+              error={errors.demoPets}
+              options={[
+                { value: 'yes', label: 'Yes' },
+                { value: 'no', label: 'No' },
+              ]}
+            />
+          ),
+        },
+      ]}
+    />
   );
 }

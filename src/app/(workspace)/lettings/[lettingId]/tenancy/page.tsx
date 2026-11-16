@@ -454,6 +454,15 @@ function MoveInStep({
                         </StatusPill>
                         {item.note ? <span className={styles.note}> {item.note}</span> : null}
                       </span>
+                      {/* UX-RN-25: what the tenant said isn't right about this item, in words. */}
+                      {item.tenantNote ? (
+                        <span>
+                          <StatusPill tone="warning">
+                            The tenant says something’s not right
+                          </StatusPill>
+                          <span className={styles.note}> {item.tenantNote}</span>
+                        </span>
+                      ) : null}
                     </span>
                     {!confirmed ? (
                       <form action={removeItemAction.bind(null, lettingId, item.id)}>

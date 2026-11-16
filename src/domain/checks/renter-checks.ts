@@ -8,7 +8,11 @@ import type { CheckKind, CheckStatus } from './checks';
  * so. "No" finishes the references as surely as two names do: neither is ever shown as missing.
  */
 export type RenterCheck = 'identity' | 'income' | 'references';
-export type CheckListState = 'done' | 'next' | 'under_way' | 'to_come';
+/**
+ * `arranged`: there's no service to start this check with here, so the operator arranges it
+ * with the renter themselves. It is never the renter's task, and never holds up the next one.
+ */
+export type CheckListState = 'done' | 'next' | 'under_way' | 'to_come' | 'arranged';
 
 export interface CheckFacts {
   kind: CheckKind;
@@ -40,8 +44,14 @@ function stateOf(check: RenterCheck, checks: readonly CheckFacts[]): 'done' | 't
  * didn't finish is offered again only once nothing else is waiting, because its result may
  * simply be on its way.
  */
-export function nextCheck(checks: readonly CheckFacts[]): RenterCheck | null {
-  const states = order.map((check) => [check, stateOf(check, checks)] as const);
+export function nextCheck(
+  checks: readonly CheckFacts[],
+  /** Checks with no service to start them here: the operator arranges those. */
+  unavailable: readonly RenterCheck[] = [],
+): RenterCheck | null {
+  const states = order
+    .filter((check) => !unavailable.includes(check))
+    .map((check) => [check, stateOf(check, checks)] as const);
   return (
     states.find(([, state]) => state === 'to_do')?.[0] ??
     states.find(([, state]) => state === 'started')?.[0] ??
@@ -49,8 +59,11 @@ export function nextCheck(checks: readonly CheckFacts[]): RenterCheck | null {
   );
 }
 
-export function checkList(checks: readonly CheckFacts[]): CheckListItem[] {
-  const next = nextCheck(checks);
+export function checkList(
+  checks: readonly CheckFacts[],
+  unavailable: readonly RenterCheck[] = [],
+): CheckListItem[] {
+  const next = nextCheck(checks, unavailable);
   return order.map((check) => {
     const state = stateOf(check, checks);
     return {
@@ -58,11 +71,13 @@ export function checkList(checks: readonly CheckFacts[]): CheckListItem[] {
       state:
         state === 'done'
           ? 'done'
-          : check === next
-            ? 'next'
-            : state === 'started'
-              ? 'under_way'
-              : 'to_come',
+          : unavailable.includes(check)
+            ? 'arranged'
+            : check === next
+              ? 'next'
+              : state === 'started'
+                ? 'under_way'
+                : 'to_come',
     };
   });
 }

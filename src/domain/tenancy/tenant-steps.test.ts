@@ -93,7 +93,12 @@ describe('UX-RN-26: the tenant’s steps always match the operator’s', () => {
     expect(states(start)).toEqual(['next', 'to_come', 'to_come']);
     expect(states({ ...start, agreementStatus: 'signed' })).toEqual(['done', 'next', 'to_come']);
     expect(
-      states({ ...start, agreementStatus: 'signed', paymentRequestedAt: at, paymentReceivedAt: at }),
+      states({
+        ...start,
+        agreementStatus: 'signed',
+        paymentRequestedAt: at,
+        paymentReceivedAt: at,
+      }),
     ).toEqual(['done', 'done', 'next']);
     expect(
       states({
@@ -128,7 +133,12 @@ describe('UX-RN-26: the tenant’s steps always match the operator’s', () => {
   });
 
   it('after move-in, the tenant is never asked to pay (the open payment step after move-in is gone)', () => {
-    const movedIn = { ...start, agreementStatus: 'signed', paymentRequestedAt: at, moveInCompletedAt: at };
+    const movedIn = {
+      ...start,
+      agreementStatus: 'signed',
+      paymentRequestedAt: at,
+      moveInCompletedAt: at,
+    };
     expect(states(movedIn)).toEqual(['done', 'done', 'next']);
     expect(tenantTask({ ...movedIn, ppsnSkippedAt: at })).toBe('moved_in');
   });

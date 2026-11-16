@@ -66,6 +66,19 @@ describe('UX-RN-15: the checks are done one at a time', () => {
     );
   });
 
+  it('a check with no service to start it is arranged by the operator, and never holds up the next', () => {
+    const all = checks('to_do', 'to_do', 'to_do', 'to_do');
+    expect(checkList(all, ['identity', 'income']).map((item) => item.state)).toEqual([
+      'arranged',
+      'arranged',
+      'next',
+    ]);
+    expect(nextCheck(all, ['identity'])).toBe('income');
+    expect(
+      nextCheck(checks('to_do', 'to_do', 'in_progress', 'not_needed'), ['identity', 'income']),
+    ).toBeNull();
+  });
+
   it('says nothing is left once the renter’s part is done', () => {
     expect(nextCheck(checks('passed', 'passed', 'in_progress', 'not_needed'))).toBeNull();
   });

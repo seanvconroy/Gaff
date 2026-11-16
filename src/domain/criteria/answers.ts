@@ -177,7 +177,11 @@ export function answersInWords(
   const a = answers ?? {};
   const rows: Array<{ question: CriterionQuestion; label: string; value: string }> = [];
   if (a.moveInDate !== undefined) {
-    rows.push({ question: 'moveInDate', label: 'Move in', value: `By ${formatDate(a.moveInDate)}` });
+    rows.push({
+      question: 'moveInDate',
+      label: 'Move in',
+      value: `By ${formatDate(a.moveInDate)}`,
+    });
   }
   if (a.stayMonths !== undefined) {
     rows.push({ question: 'stayMonths', label: 'Stay', value: stayLabel(a.stayMonths) });

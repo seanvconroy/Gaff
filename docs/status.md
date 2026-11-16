@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 16 November 2026 (wave 1 of the UX redesign is built: navigation, sign-in, accounts and first run, and the page frame. Wave 2 is being built).
+Last updated: 16 November 2026 (wave 1 of the UX redesign is built: navigation, sign-in, accounts and first run, and the page frame. Wave 2 is being built: Today and Lettings are in).
 
 ## Done
 
@@ -85,8 +85,8 @@ Last updated: 16 November 2026 (wave 1 of the UX redesign is built: navigation, 
   | --- | --- | --- |
   | 0. Foundations | WP-1 funnel events and baselines; WP-2 design system | **Done**, 15 November 2026. See "Wave 0" below |
   | 1. Frame, sign-in and accounts | WP-3 shell and navigation; WP-4 sign-in; WP-5 accounts and first run; WP-6 the page frame | **Done**, 16 November 2026. See "Wave 1" below |
-  | 2A. Running a letting, part 1 | WP-7 Today and Lettings; WP-8 Inbox; WP-9 adding a letting; WP-10 reading an advert; WP-11 forwarding | Not started |
-  | 2B. Inside a letting, for renters | WP-12 the renter's pages; WP-13 owner and referee pages; WP-14 profile and the renter's home | Not started |
+  | 2A. Running a letting, part 1 | WP-7 Today and Lettings; WP-8 Inbox; WP-9 adding a letting; WP-10 reading an advert; WP-11 forwarding | WP-7 **done**, 16 November 2026 (see "Wave 2" below). WP-8 and WP-9 in progress |
+  | 2B. Inside a letting, for renters | WP-12 the renter's pages; WP-13 owner and referee pages; WP-14 profile and the renter's home | WP-12 in progress |
   | 3A. Running a letting, part 2 | WP-15 a letting's page; WP-16 calendar; WP-17 decisions and the offer; WP-18 tenancy, close and settings; WP-19 teams | Not started |
   | 3B. The marketplace | WP-20 homes on Gaff; WP-21 search; WP-22 asking to view; WP-23 saved homes and alerts | Not started |
   | 4. Trust, fit and finish | WP-24 a verified identity; WP-25 fit; WP-26 trust and Gaff's internal page; WP-27 activation; WP-28 the end-to-end pass | Not started |
@@ -132,6 +132,19 @@ Left for later packages, on purpose:
 - A member can't open a letting they enquired about themselves (UX-AC-14) when the enquiry used their sign-in email. Another address isn't caught until applications are tied to profiles (WP-14).
 - Only the go-live step says an agency is being confirmed; Today and Settings don't yet.
 - A private landlord's go-live is open until the identity check is built (WP-24); the seam is `goLiveGate`.
+
+## UX redesign, wave 2 (running a letting, part 1; inside a letting, for renters)
+
+| Package | What | Proven by |
+| --- | --- | --- |
+| WP-7: Today and Lettings (UX-HM-1 to UX-HM-11; UX-NV-9 to UX-NV-12) | Today has four blocks: what needs you, today's viewings, what's waiting on others, and "While you were away" as one sentence of counts. Rows are ordered by one rule for everyone, and items of one kind for one home are one row with a count. With nothing waiting it says "You're all caught up" and offers one action at most. No row holds contact details or message text. An admin can switch between "Mine" and "Everyone". Lettings is a photo-led list under Live, Setting up and Let, three across on a desktop and one column on a phone, with one status line in words; the step counter, the meter and the times are gone | `src/domain/dashboard/*.test.ts`, `tests/integration/ux-hm-today.test.ts`, `tests/e2e/ux-hm-today.spec.ts` |
+
+Left for later packages, on purpose:
+
+- A letting's lead is whoever created it, until teams arrive (WP-19).
+- Lettings shows a house icon for every home until photos arrive (WP-9); the list reads a cover photo through `src/server/lettings/cover-photo.ts`.
+- Today has no primary button: the setup checklist is WP-27.
+- Today's rows still open the old Approvals, Questions and Needs attention pages until Inbox replaces them (WP-8).
 
 ## Known issues
 

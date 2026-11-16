@@ -1,7 +1,16 @@
 import { expect, test } from '@playwright/test';
-import { expectAccessible, openAccountMenu, screenshot, signIn, uniqueEmail } from './support';
+import {
+  expectAccessible,
+  openAccountMenu,
+  screenshot,
+  setUpAgency,
+  signIn,
+  uniqueEmail,
+} from './support';
 
-test('a new operator signs in by email code and sets up their workspace', async ({ page }) => {
+test('a new operator signs in by email code and sets up their agency through first run', async ({
+  page,
+}) => {
   // A signed-out visitor who asks for the letting side is sent to sign in.
   await page.goto('/today');
   await expect(page).toHaveURL(/\/sign-in$/);
@@ -13,24 +22,26 @@ test('a new operator signs in by email code and sets up their workspace', async 
   await expect(page.getByText('Enter an email address, like ann@example.ie')).toBeVisible();
   await expectAccessible(page);
 
+  // UX-SI-8: no profile yet, so first run starts. One question per screen (UX-AC-6).
   const email = uniqueEmail();
   await signIn(page, email);
   await expect(page).toHaveURL(/\/welcome$/);
-  await expect(page.getByRole('heading', { name: 'Set up your workspace' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Let’s get you started. What’s your name?' }),
+  ).toBeVisible();
+  // The old card is gone: no workspace to set up, no business name, no licence to type.
+  await expect(page.getByText(/Set up your workspace|PSRA licence number/)).toHaveCount(0);
   await expectAccessible(page);
   await screenshot(page, '02-welcome');
 
-  await page.getByLabel('Your name').fill('Ann Power');
-  await page.getByLabel('Other people: we are a letting agency').check();
-  await page.getByLabel('Name of your agency or business').fill('Halcyon Lettings');
-  await page.getByRole('button', { name: 'Set up my workspace' }).click();
-  await expect(page.getByText('Enter your PSRA licence number')).toBeVisible();
+  // Pressing Continue with no name marks the field, with no box at the top (UX-FL-3).
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await expect(page.getByText('Enter your name')).toBeVisible();
   await expectAccessible(page);
   await screenshot(page, '03-welcome-error');
 
-  await page.getByLabel('PSRA licence number').fill('001234');
-  await page.getByRole('button', { name: 'Set up my workspace' }).click();
-  await expect(page.getByRole('heading', { name: 'Your lettings' })).toBeVisible();
+  // Their name, "I work at a letting agency", the agency, "Yes, that's us": then Today.
+  await setUpAgency(page, email);
   await expect(page).toHaveURL(/\/today$/);
   await expectAccessible(page);
   await screenshot(page, '04-dashboard-empty');

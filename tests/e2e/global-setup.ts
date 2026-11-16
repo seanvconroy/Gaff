@@ -19,6 +19,10 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   await admin.end();
   await runMigrations(url.toString());
 
+  // UX-AG-1: the weekly job loads Gaff's copy of the PSRA register (the made-up sample here). It
+  // is run now, on the empty database, so every journey finds the same register from the start.
+  await loadTheRegister(url.toString());
+
   if (vercelJobs) {
     const tick = () =>
       fetch(`${e2eEnv.APP_URL}/api/cron/tick`, {
@@ -47,4 +51,28 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   return async () => {
     worker.kill('SIGTERM');
   };
+}
+
+/**
+ * Asks the app to run its daily jobs, as the daily cron does: that queues the refresh of the
+ * register, which has never run on this database, and runs it. Then waits for the copy.
+ */
+async function loadTheRegister(databaseUrl: string): Promise<void> {
+  const client = new pg.Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    for (let tries = 0; tries < 60; tries++) {
+      const daily = await fetch(`${e2eEnv.APP_URL}/api/cron/daily`, {
+        headers: { authorization: `Bearer ${E2E_CRON_SECRET}` },
+      }).catch(() => null);
+      const { rows } = await client.query<{ n: number }>(
+        'select count(*)::int as n from psra_register',
+      );
+      if (daily?.ok && rows[0]!.n > 0) return;
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  } finally {
+    await client.end();
+  }
+  throw new Error('The PSRA register was not loaded');
 }

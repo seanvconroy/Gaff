@@ -60,6 +60,7 @@ The web framework, the email provider and the AI provider can each be swapped wi
 | Database | PostgreSQL 16+, Drizzle ORM, SQL migrations in the repo | [0003](adr/0003-postgres-only-data-store.md) |
 | Jobs | graphile-worker (queue in Postgres), outbox table for every message; run by a cron tick on Vercel | [0003](adr/0003-postgres-only-data-store.md), [0014](adr/0014-vercel-supabase-approved-vendors.md) |
 | Tenant isolation | `organisation_id` on every row, plus Postgres row-level security | [0004](adr/0004-tenant-isolation-row-level-security.md) |
+| Accounts | One person, several roles: each organisation they belong to, a private landlord's silent organisation of one, and renting. A person's own profile has no organisation and its own row-level security | [0016](adr/0016-one-person-several-roles.md) |
 | Privacy | Staged collection, renter data scoped to one application, retention jobs | [0005](adr/0005-staged-data-and-retention.md) |
 | Record | Append-only event log with no personal data | [0006](adr/0006-event-log-without-personal-data.md) |
 | Decisions | Renter-affecting changes need a person's decision record | [0007](adr/0007-people-decide.md) |
@@ -99,8 +100,12 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 
 | Table | Holds | Personal data? |
 | --- | --- | --- |
-| `organisations` | Agency or portfolio landlord: name, kind, PSRA licence number (agencies), Gaff inbound address, sending identity, approve-before-send flag, pilot baselines | No |
-| `users`, `sessions`, `memberships` | Operator accounts (Better Auth tables) and their role in an organisation (admin or negotiator) | Operator staff |
+| `organisations` | An agency, a landlord's team, or one private landlord's silent organisation: name, kind, the agency's entry in the PSRA register and the licence number copied from it, when someone at Gaff confirmed it, whether its licence has lapsed, Gaff inbound address, sending identity, approve-before-send flag, pilot baselines | A private landlord's first name |
+| `users`, `sessions`, `memberships` | People's accounts (Better Auth tables) and their role in each organisation they belong to (admin or negotiator) | Yes |
+| `profiles` | A person's own profile (ADR-0016): whether they're renting, the context they used last, where they are in first run. No `organisation_id`; only `withPerson()` reads it | Yes, the person's own |
+| `organisation_invites` | An invitation to join an organisation, by email address (UX-AG-5). Deleted when accepted, or once expired | Yes |
+| `join_requests` | A person's request to join an agency that is already on Gaff (UX-AG-3) | IDs only |
+| `psra_register`, `psra_register_refreshes` | Gaff's weekly copy of the PSRA register: businesses licensed to let, and a count for each refresh (Q39). No organisation, no person | Sole traders' names |
 | `landlords` | Owner's name and contact details, when an agent lets for them | Yes |
 | `lettings` | Address, rent, available from, key facts, photos link, advert links, criteria (typed), stage, status | No |
 | `letting_facts` | Facts the AI may answer from, each with an ID: set-up facts and operator answers | No (screened) |

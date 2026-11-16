@@ -82,4 +82,9 @@ CREATE UNIQUE INDEX "organisations_confirmed_register_entry_idx" ON "organisatio
 CREATE POLICY "tenant_isolation" ON "join_requests" AS PERMISSIVE FOR ALL TO public USING (organisation_id = nullif(current_setting('app.org_id', true), '')::uuid or current_setting('app.rls_bypass', true) = 'on') WITH CHECK (organisation_id = nullif(current_setting('app.org_id', true), '')::uuid or current_setting('app.rls_bypass', true) = 'on');--> statement-breakpoint
 CREATE POLICY "own_row" ON "join_requests" AS PERMISSIVE FOR SELECT TO public USING (user_id = nullif(current_setting('app.person_id', true), ''));--> statement-breakpoint
 CREATE POLICY "tenant_isolation" ON "organisation_invites" AS PERMISSIVE FOR ALL TO public USING (organisation_id = nullif(current_setting('app.org_id', true), '')::uuid or current_setting('app.rls_bypass', true) = 'on') WITH CHECK (organisation_id = nullif(current_setting('app.org_id', true), '')::uuid or current_setting('app.rls_bypass', true) = 'on');--> statement-breakpoint
-CREATE POLICY "person_only" ON "profiles" AS PERMISSIVE FOR ALL TO public USING (user_id = nullif(current_setting('app.person_id', true), '') or current_setting('app.rls_bypass', true) = 'on') WITH CHECK (user_id = nullif(current_setting('app.person_id', true), '') or current_setting('app.rls_bypass', true) = 'on');
+CREATE POLICY "person_only" ON "profiles" AS PERMISSIVE FOR ALL TO public USING (user_id = nullif(current_setting('app.person_id', true), '') or current_setting('app.rls_bypass', true) = 'on') WITH CHECK (user_id = nullif(current_setting('app.person_id', true), '') or current_setting('app.rls_bypass', true) = 'on');--> statement-breakpoint
+-- UX-AG-1, Q32: a licence number is no longer typed. It comes from the agency's entry in the PSRA
+-- register, and an agency is confirmed by a person at Gaff. An agency set up before this has a
+-- typed number that nobody checked and no register entry, so the number is cleared: the agency
+-- reads as having no licence found yet, and its admin finds it on the register (UX-AG-2).
+UPDATE "organisations" SET "psra_licence_number" = NULL WHERE "kind" = 'agency' AND "psra_register_entry_id" IS NULL;

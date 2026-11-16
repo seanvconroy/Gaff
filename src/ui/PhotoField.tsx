@@ -3,6 +3,7 @@
 import type { ChangeEvent, ReactNode } from 'react';
 import { MAX_PHOTO_BYTES } from '@/domain/tenancy/photos';
 import { TextField } from './Field';
+import { shrinkPhoto } from './shrink-photo';
 
 /** Said by the browser before upload, so a big photo never meets the server's size limit. */
 const TOO_BIG = 'That photo is too big. Try one under 4 MB.';
@@ -22,26 +23,15 @@ async function redraw(event: ChangeEvent<HTMLInputElement>) {
 
 async function shrink(input: HTMLInputElement) {
   const file = input.files?.[0];
-  if (!file || !file.type.startsWith('image/') || typeof createImageBitmap !== 'function') return;
-  try {
-    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
-    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext('2d')?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, 'image/jpeg', 0.85),
-    );
-    if (!blob) return;
-    const files = new DataTransfer();
-    files.items.add(new File([blob], 'photo.jpg', { type: 'image/jpeg' }));
-    input.files = files.files;
-  } catch {
-    // Keep the original: the server checks and strips it.
-  }
+  if (!file) return;
+  const smaller = await shrinkPhoto(file);
+  if (smaller === file) return;
+  const files = new DataTransfer();
+  files.items.add(smaller);
+  input.files = files.files;
 }
 
+/** One photo. For a home's photos, many at once and in an order, use `PhotoUploader`. */
 export function PhotoField({
   name,
   label,

@@ -25,6 +25,10 @@ const production = {
   CRON_SECRET: 'c'.repeat(32),
   PSRA_REGISTER_SOURCE: 'url',
   PSRA_REGISTER_URL: 'https://register.example/licensees.csv',
+  ADDRESS_SEARCH: 'off',
+  PHOTO_STORE: 'supabase',
+  SUPABASE_URL: 'https://example.supabase.co',
+  SUPABASE_SERVICE_ROLE_KEY: 'k',
 };
 
 describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)', () => {
@@ -57,6 +61,22 @@ describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)'
     ]);
     expect(environmentProblems({ ...production, PSRA_REGISTER_URL: 'not a web address' })).toEqual([
       'PSRA_REGISTER_URL',
+    ]);
+  });
+
+  it('UX-LT-9, UX-LT-10: refuses the made-up address search and the local photo store', () => {
+    expect(environmentProblems({ ...production, ADDRESS_SEARCH: 'sample' })).toEqual([
+      'ADDRESS_SEARCH',
+    ]);
+    expect(environmentProblems({ ...production, ADDRESS_SEARCH: undefined })).toEqual([
+      'ADDRESS_SEARCH',
+    ]);
+    expect(environmentProblems({ ...production, PHOTO_STORE: 'local' })).toEqual(['PHOTO_STORE']);
+    expect(environmentProblems({ ...production, SUPABASE_SERVICE_ROLE_KEY: undefined })).toEqual([
+      'SUPABASE_SERVICE_ROLE_KEY',
+    ]);
+    expect(environmentProblems({ ...production, SUPABASE_URL: 'not a web address' })).toEqual([
+      'SUPABASE_URL',
     ]);
   });
 

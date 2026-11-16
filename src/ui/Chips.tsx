@@ -2,6 +2,7 @@ import { Check } from 'lucide-react';
 import Link from 'next/link';
 import type { ChangeEventHandler, ReactNode } from 'react';
 import styles from './Chips.module.css';
+import { describedBy, FieldError, fieldIds } from './Field';
 
 /**
  * Chips (section 8): filters and quick answers. On a phone they are one row that scrolls
@@ -9,7 +10,8 @@ import styles from './Chips.module.css';
  * look at and 44px to press (UX-DS-15). The chosen one is marked by a tick as well as colour.
  *
  * `Chips` are answers inside a form: real radios (one answer) or checkboxes (several), so they
- * work with a keyboard, a screen reader and a form with no script.
+ * work with a keyboard, a screen reader and a form with no script. A question that must be
+ * answered says so under itself, as any field does (UX-FL-3): give it `error`.
  */
 export function Chips({
   name,
@@ -19,6 +21,8 @@ export function Chips({
   defaultValue,
   onChange,
   hideLegend,
+  optional,
+  error,
 }: {
   name: string;
   /** The question the chips answer. */
@@ -29,11 +33,18 @@ export function Chips({
   onChange?: ChangeEventHandler<HTMLInputElement>;
   /** Where a heading just above already asks the question: the legend is for screen readers. */
   hideLegend?: boolean;
+  /** Says "(optional)" beside the question, as a field's label does. */
+  optional?: boolean;
+  error?: string;
 }) {
   const chosen = new Set(typeof defaultValue === 'string' ? [defaultValue] : (defaultValue ?? []));
+  const ids = fieldIds(name);
   return (
-    <fieldset className={styles.fieldset}>
-      <legend className={hideLegend ? 'visually-hidden' : styles.legend}>{legend}</legend>
+    <fieldset className={styles.fieldset} aria-describedby={describedBy(name, null, error)}>
+      <legend className={hideLegend ? 'visually-hidden' : styles.legend}>
+        {legend}
+        {optional ? <span className={styles.optional}> (optional)</span> : null}
+      </legend>
       <div className={styles.scroller}>
         <div className={styles.row}>
           {options.map((option) => (
@@ -45,6 +56,7 @@ export function Chips({
                 value={option.value}
                 defaultChecked={chosen.has(option.value)}
                 onChange={onChange}
+                aria-invalid={error ? true : undefined}
               />
               <Check className={styles.tick} size={16} strokeWidth={2.5} aria-hidden="true" />
               <span>{option.label}</span>
@@ -52,6 +64,7 @@ export function Chips({
           ))}
         </div>
       </div>
+      {error ? <FieldError id={ids.error}>{error}</FieldError> : null}
     </fieldset>
   );
 }

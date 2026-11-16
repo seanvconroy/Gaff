@@ -109,6 +109,34 @@ export function FlowExit({
 }
 
 /**
+ * "Save and exit" for a step that is a form: it sends the step's form, by its `id`, with
+ * `intent=exit`, so what's typed is kept before the person leaves (UX-FL-2). The form's action
+ * saves what it can and goes to where the task was opened. It sits outside the form, in the
+ * header, which is why it names the form.
+ */
+export function FlowExitButton({
+  form,
+  children = 'Save and exit',
+}: {
+  /** The `id` given to the step's form (`FlowShell`'s `form={{ id }}`). */
+  form: string;
+  children?: ReactNode;
+}) {
+  return (
+    <button
+      type="submit"
+      form={form}
+      name="intent"
+      value="exit"
+      formNoValidate
+      className={`${styles.exitLink} ${styles.exitButton}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
  * A flow's title: the question or the task's name, and at most two lines under it. Give `ref`
  * and it can take focus when a step opens, so screen readers hear where they are.
  */

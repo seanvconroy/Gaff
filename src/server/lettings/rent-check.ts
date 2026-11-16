@@ -1,10 +1,13 @@
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { withOrg } from '@/db/client';
-import { lettings, rentChecks } from '@/db/schema';
+import { lettings, rentChecks, tenancies } from '@/db/schema';
+import { MAX_RENT_CENTS, MIN_RENT_CENTS } from '@/domain/lettings/new-letting';
 import {
   RENT_RULES_VERSION,
   capCeilingCents,
   checkRent,
+  rentAnswersFromLastTime,
+  type RentAnswers,
   type RentCheckInput,
   type RentCheckOutcome,
 } from '@/domain/rent/rent-check';
@@ -14,23 +17,28 @@ import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
 
 /**
- * R3: records the rent check and the rent the operator is asking. Re-checking replaces the
- * previous check; the record keeps every one.
+ * R3: records the rent check. Re-checking replaces the previous check; the record keeps every
+ * one. UX-LT-12: the check never asks for the rent again: it is made against the rent the
+ * letting already has. `askingRentCents` changes that rent in the same step, for callers that
+ * have a new one to set.
  */
 export async function recordRentCheck(
   member: Member,
   lettingId: string,
   input: RentCheckInput,
-  askingRentCents: number,
+  askingRentCents?: number,
 ): Promise<RentCheckOutcome> {
   const outcome = checkRent(input);
   await withOrg(member.organisationId, async (tx) => {
     const [letting] = await tx
-      .select({ rent: lettings.monthlyRentCents })
+      .select({ rent: lettings.monthlyRentCents, status: lettings.status })
       .from(lettings)
       .where(eq(lettings.id, lettingId))
       .for('update');
     if (!letting) throw new UserFacingError('We couldn’t find that letting.');
+    if (letting.status === 'let' || letting.status === 'withdrawn') {
+      throw new UserFacingError('This letting is closed, so its rent check can’t change.');
+    }
 
     const previous = input.lastLet === 'never' ? null : input;
     const values = {
@@ -52,7 +60,7 @@ export async function recordRentCheck(
       .onConflictDoUpdate({ target: rentChecks.lettingId, set: values });
 
     const actor = { type: 'person', userId: member.userId } as const;
-    if (askingRentCents !== letting.rent) {
+    if (askingRentCents !== undefined && askingRentCents !== letting.rent) {
       await tx
         .update(lettings)
         .set({ monthlyRentCents: askingRentCents })
@@ -78,7 +86,7 @@ export async function recordRentCheck(
         lastLet: input.lastLet,
         ...(previous
           ? {
-              ending: previous.ending,
+              ...(previous.ending ? { ending: previous.ending } : {}),
               previousRentCents: previous.previousRentCents,
               previousRentSetOn: previous.previousRentSetOn,
             }
@@ -87,6 +95,69 @@ export async function recordRentCheck(
     });
   });
   return outcome;
+}
+
+/**
+ * UX-LT-13: the rent is changed on the rent check's result screen, where the asking rent is
+ * above what the rules allow. A person's change, recorded as theirs.
+ */
+export async function changeAskingRent(
+  member: Member,
+  lettingId: string,
+  rentCents: number,
+): Promise<void> {
+  if (!Number.isInteger(rentCents) || rentCents < MIN_RENT_CENTS || rentCents > MAX_RENT_CENTS) {
+    throw new UserFacingError('Enter a monthly rent between €100 and €20,000', 'rent');
+  }
+  await withOrg(member.organisationId, async (tx) => {
+    const [letting] = await tx
+      .select({ rent: lettings.monthlyRentCents, status: lettings.status })
+      .from(lettings)
+      .where(eq(lettings.id, lettingId))
+      .for('update');
+    if (!letting) throw new UserFacingError('We couldn’t find that letting.');
+    if (letting.status === 'let' || letting.status === 'withdrawn') {
+      throw new UserFacingError('This letting is closed, so its rent can’t change.');
+    }
+    if (letting.rent === rentCents) return;
+    await tx
+      .update(lettings)
+      .set({ monthlyRentCents: rentCents })
+      .where(eq(lettings.id, lettingId));
+    await recordEvent(tx, {
+      organisationId: member.organisationId,
+      lettingId,
+      actor: { type: 'person', userId: member.userId },
+      type: 'letting.rent_changed',
+      data: { fromCents: letting.rent, toCents: rentCents },
+    });
+  });
+}
+
+/**
+ * UX-LT-23: what the rent check starts with on a letting made by "Let it again": the rent the
+ * home was last let at, and the day that tenancy began. Null where the home wasn't let last
+ * time, so there is nothing to start from. Nothing about the tenant is read.
+ */
+export async function rentAnswersFromLettingBefore(
+  member: Member,
+  previousLettingId: string | null,
+): Promise<RentAnswers | null> {
+  if (!previousLettingId) return null;
+  return withOrg(member.organisationId, async (tx) => {
+    const [tenancy] = await tx
+      .select({ rentCents: tenancies.rentCents, startDate: tenancies.startDate })
+      .from(tenancies)
+      .where(eq(tenancies.lettingId, previousLettingId))
+      .orderBy(desc(tenancies.createdAt))
+      .limit(1);
+    return tenancy
+      ? rentAnswersFromLastTime({
+          rentCents: tenancy.rentCents,
+          tenancyStartedOn: tenancy.startDate,
+        })
+      : null;
+  });
 }
 
 export type RentCheckRow = typeof rentChecks.$inferSelect;

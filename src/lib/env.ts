@@ -82,6 +82,22 @@ const schema = z
      */
     PSRA_REGISTER_SOURCE: z.enum(['sample', 'url']).default('sample'),
     PSRA_REGISTER_URL: z.url().optional(),
+    /**
+     * UX-LT-9 (Q40): address search when adding a letting. "sample" is a made-up gazetteer for
+     * local work and tests, never for production. "off" looks nothing up: the address is typed
+     * into the manual fields. Autoaddress joins this list once its DPA is signed (rule 10).
+     */
+    ADDRESS_SEARCH: z.enum(['off', 'sample']).default('sample'),
+    /**
+     * UX-LT-10: where homes' photos are kept. "local" is a table in Gaff's own database, for
+     * local work and tests; "supabase" is Supabase Storage in Ireland (an approved vendor).
+     */
+    PHOTO_STORE: z.enum(['local', 'supabase']).default('local'),
+    /** The Supabase project's address, and its service-role key, which stays on the server. */
+    SUPABASE_URL: z.url().optional(),
+    SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+    /** The private bucket homes' photos go in. */
+    PHOTO_BUCKET: z.string().min(1).default('homes'),
   })
   .superRefine((env, ctx) => {
     for (const [id, secret] of [
@@ -120,6 +136,8 @@ const schema = z
         ['IDENTITY_PROVIDER', env.IDENTITY_PROVIDER, 'stand_in'],
         ['INCOME_PROVIDER', env.INCOME_PROVIDER, 'stand_in'],
         ['PSRA_REGISTER_SOURCE', env.PSRA_REGISTER_SOURCE, 'sample'],
+        ['ADDRESS_SEARCH', env.ADDRESS_SEARCH, 'sample'],
+        ['PHOTO_STORE', env.PHOTO_STORE, 'local'],
       ] as const;
       if (!env.DATA_ENCRYPTION_KEY) {
         ctx.addIssue({
@@ -144,6 +162,17 @@ const schema = z
         path: ['PSRA_REGISTER_URL'],
         message: 'PSRA_REGISTER_URL is required when PSRA_REGISTER_SOURCE is "url"',
       });
+    }
+    if (env.PHOTO_STORE === 'supabase') {
+      for (const key of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'] as const) {
+        if (!env[key]) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is required when PHOTO_STORE is "supabase"`,
+          });
+        }
+      }
     }
     if (env.EMAIL_PROVIDER === 'resend') {
       for (const key of ['RESEND_API_KEY', 'RESEND_WEBHOOK_SECRET'] as const) {

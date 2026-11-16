@@ -11,6 +11,7 @@ import {
   letAgainAnswers,
   missingCore,
   needsAnswer,
+  partialAnswers,
   rentStepSchema,
   resumeStep,
   stepAfter,
@@ -266,6 +267,26 @@ describe('UX-LT-9 to UX-LT-11: each step reads its own answers', () => {
     const answers = withAnswers({ ...core, berRating: 'C1' }, { berRating: undefined });
     expect('berRating' in answers).toBe(false);
     expect(withAnswers(core, { otherFacts: [] }).otherFacts).toBeUndefined();
+  });
+
+  it('UX-FL-2: "Save and exit" keeps each field that reads cleanly, and nothing else', () => {
+    expect(
+      partialAnswers('address', { addressLine1: '12 Ranelagh Road', area: '', eircode: 'D06' }),
+    ).toEqual({ addressLine1: '12 Ranelagh Road' });
+    expect(partialAnswers('rent', { rent: '1,850', availableFrom: '' }, now)).toEqual({
+      rentCents: 185_000,
+    });
+    expect(partialAnswers('rent', { rent: 'lots', availableFrom: '2026-12-13' }, now)).toEqual({
+      availableFrom: '2026-12-13',
+    });
+    expect(
+      partialAnswers('home', { bedrooms: '2', description: 'Lovely home, no HAP.', otherFacts: '' }),
+    ).toEqual({ bedrooms: 2 });
+  });
+
+  it('UX-FL-2: leaving a step empty clears nothing that was there', () => {
+    const answers = withAnswers(core, partialAnswers('address', { addressLine1: '', area: '' }));
+    expect(answers).toEqual(core);
   });
 
   it('rule 3: a draft has no field for free-text criteria or anything about a person', () => {

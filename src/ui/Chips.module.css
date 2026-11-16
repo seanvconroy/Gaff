@@ -16,6 +16,11 @@
   font-weight: var(--type-title-weight);
 }
 
+.optional {
+  color: var(--color-ink-muted);
+  font-weight: var(--type-body-weight);
+}
+
 .scroller {
   min-width: 0;
 }

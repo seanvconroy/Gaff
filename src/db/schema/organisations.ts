@@ -64,6 +64,12 @@ export const organisations = pgTable(
     /** R23: where the deposit and first month's rent are paid: the operator's own account. */
     paymentAccountName: text(),
     paymentIban: text(),
+    /**
+     * Q43: a number renters can call, for anyone who'd rather ring. The lister's own: an
+     * agency's office, or a private landlord's (so it is personal data: never in an event, a
+     * log or a web address). Offered at the first go-live; "Talk to a person" shows it.
+     */
+    phone: text(),
     /** Pilot baselines from the interviews, for time and days saved (R28). */
     baselineMinutesPerLetting: integer(),
     baselineDaysToLet: integer(),

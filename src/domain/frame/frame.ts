@@ -129,7 +129,7 @@ export function homeFrom(
   };
 }
 
-function kindOfHome(home: Pick<FrameHome, 'bedrooms' | 'propertyType'>): string {
+export function kindOfHome(home: Pick<FrameHome, 'bedrooms' | 'propertyType'>): string {
   if (home.propertyType === 'studio') return propertyTypes.studio;
   const known = propertyTypes[home.propertyType as keyof typeof propertyTypes];
   const type = known && home.propertyType !== 'other' ? known.toLowerCase() : 'home';

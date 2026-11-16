@@ -281,6 +281,44 @@ export function descriptionSchema() {
   return z.object({ description: fields.description, otherFacts: fields.otherFacts });
 }
 
+const stepFields = {
+  address: ['addressLine1', 'addressLine2', 'area', 'county', 'eircode'],
+  rent: ['rent', 'availableFrom'],
+  home: [
+    'propertyType',
+    'bedrooms',
+    'bathrooms',
+    'furnished',
+    'berRating',
+    'parking',
+    'description',
+    'otherFacts',
+  ],
+  description: ['description', 'otherFacts'],
+} as const;
+
+/**
+ * UX-FL-2, "Save and exit": what can be kept from a step that isn't finished. Each field that
+ * reads cleanly on its own is kept; one that is empty or wrong is left as it was, and nothing
+ * is cleared. So leaving half way through a step never loses what was typed properly.
+ */
+export function partialAnswers(
+  step: CoreStep | 'description',
+  values: Readonly<Record<string, string | undefined>>,
+  now: Date = new Date(),
+): Patch<DraftAnswers> {
+  const fields = lettingFields(now);
+  const kept: Record<string, unknown> = {};
+  for (const field of stepFields[step]) {
+    const typed = values[field];
+    if (typed === undefined || typed.trim() === '') continue;
+    const parsed = fields[field].safeParse(typed);
+    if (!parsed.success || parsed.data === undefined) continue;
+    kept[field === 'rent' ? 'rentCents' : field] = parsed.data;
+  }
+  return kept as Patch<DraftAnswers>;
+}
+
 /** What a step's form shows for what's known: the strings its fields start with. */
 export function formValuesFrom(answers: DraftAnswers): Record<string, string> {
   const text = (value: string | number | undefined) => (value === undefined ? '' : String(value));

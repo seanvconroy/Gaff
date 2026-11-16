@@ -18,9 +18,14 @@ export function problemOnLeaving(
   return problems[field.name] ?? null;
 }
 
-/** Moves focus to the first field marked as wrong, once the page has drawn the errors. */
+/**
+ * Moves focus to the first field marked as wrong, once the page has drawn the errors. A picker
+ * is a button, which can't be `aria-invalid`, so it carries `data-invalid` instead.
+ */
 export function focusFirstProblem(within: ParentNode | null): void {
   requestAnimationFrame(() => {
-    within?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+    within
+      ?.querySelector<HTMLElement>('[aria-invalid="true"], button[data-invalid]')
+      ?.focus();
   });
 }

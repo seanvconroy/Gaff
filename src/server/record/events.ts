@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Tx } from '@/db/client';
 import { events } from '@/db/schema';
+import { draftOrigins } from '@/domain/lettings/add-letting';
 import { organisationKinds } from '@/domain/organisations/kinds';
 import { assertNoPersonalData } from '@/domain/record/personal-data';
 
@@ -40,7 +41,44 @@ export const eventCatalogue = {
    * workspace, or to decide something on it, and was stopped. The actor is that member.
    */
   'letting.conflict_noted': z.object({ stopped: z.enum(['page', 'decision']) }),
-  'letting.created': z.object({ setupFacts: z.number().int().min(0), withLandlord: z.boolean() }),
+  /**
+   * UX-FL-2: someone began adding a home. Its ID is the letting's from then on, so a letting's
+   * record starts here. `origin` is how it began; `fromLettingId` is the letting "Let it again"
+   * was pressed on (UX-LT-23).
+   */
+  'letting.draft_started': z.object({
+    origin: z.enum(draftOrigins),
+    fromLettingId: z.uuid().optional(),
+  }),
+  /** A step of adding it was answered, or the review confirmed. Which step: never what was typed. */
+  'letting.draft_saved': z.object({ step: z.enum(['review', 'address', 'rent', 'home']) }),
+  /** UX-LT-8: an advert link was kept, to match enquiries to the home. Never fetched (Q31). */
+  'letting.advert_link_kept': z.object({ daft: z.boolean(), myhome: z.boolean() }),
+  'letting.created': z.object({
+    setupFacts: z.number().int().min(0),
+    withLandlord: z.boolean(),
+    origin: z.enum(draftOrigins).optional(),
+    fromLettingId: z.uuid().optional(),
+  }),
+  /** A letting in set-up had its address, its date or its facts changed. Which step only. */
+  'letting.details_changed': z.object({ step: z.enum(['address', 'rent', 'home']) }),
+  /** UX-LT-10: photos were added, removed or put in a new order. Counts only. */
+  'letting.photos_changed': z.object({
+    added: z.number().int().min(0),
+    removed: z.number().int().min(0),
+    reordered: z.boolean(),
+    count: z.number().int().min(0),
+  }),
+  /** UX-MT-5: the one house rule. It is shown to renters and never used to rank anyone. */
+  'letting.house_rules_set': z.object({ noSmokingIndoors: z.boolean() }),
+  /** UX-LT-21: "On gaff.ie" was switched on or off. */
+  'letting.on_gaff_set': z.object({ on: z.boolean() }),
+  /** "Is it advertised anywhere else?" was answered. */
+  'letting.advertised_set': z.object({ daft: z.boolean(), myhome: z.boolean() }),
+  /** UX-LT-24: a person looked at what a renter gets, on a made-up enquiry. Nothing was sent. */
+  'letting.test_enquiry_sent': z.object({}),
+  /** Q43: the lister gave, changed or removed the number renters can call. Never the number. */
+  'organisation.phone_set': z.object({ given: z.boolean() }),
   'viewings.session_added': z.object({
     sessionId: z.uuid(),
     kind: z.enum(['slots', 'group']),

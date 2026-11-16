@@ -1,0 +1,80 @@
+/*
+ * Address search. The field is the one control, 48px; its results are a list directly under it,
+ * each a 48px row. On a phone the step it sits in is the whole screen; on a desktop, the task's
+ * column. One layout serves both, so there is no breakpoint here.
+ */
+.search {
+  position: relative;
+}
+
+.icon {
+  position: absolute;
+  inset-inline-start: var(--space-4);
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--color-ink-muted);
+  pointer-events: none;
+}
+
+.search .input {
+  padding-inline-start: var(--space-12);
+}
+
+.search .input[aria-invalid='true'] {
+  padding-inline-start: calc(var(--space-12) - 1px);
+}
+
+.list {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.list[hidden] {
+  display: none;
+}
+
+.option {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: var(--size-control);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+}
+
+.option + .option {
+  border-top: 1px solid var(--color-border);
+}
+
+/*
+ * The result in hand, by pointer or by the arrow keys: a quiet fill. By the keys it also takes
+ * the focus ring, inside its own edge, because the keyboard's focus is on it in all but name.
+ */
+.option:hover,
+.option[aria-selected='true'] {
+  background-color: var(--color-surface-2);
+}
+
+.option[aria-selected='true'] {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.pin {
+  flex: none;
+  color: var(--color-ink-muted);
+}
+
+/* Always in the page, so a screen reader is listening before there is anything to say. */
+.status {
+  margin-top: var(--space-2);
+}
+
+.status:empty {
+  margin-top: 0;
+}

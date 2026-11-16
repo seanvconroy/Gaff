@@ -3,7 +3,8 @@ import { emailSender } from '@/adapters/email';
 import { smsSender } from '@/adapters/sms';
 import { layOutEmail } from '@/copy/email-layout';
 import { withOrg, type Tx } from '@/db/client';
-import { applications, messages, organisations } from '@/db/schema';
+import { applications, messages, organisations, users } from '@/db/schema';
+import { senderName } from '@/domain/messages/email';
 import { listerFrom } from '@/domain/frame/frame';
 import { env } from '@/lib/env';
 import { listerColumns } from '@/server/frame/lister';
@@ -33,7 +34,13 @@ export type OutboundKind =
   | 'agreement_signed'
   | 'payment_request'
   | 'payment_received'
-  | 'inventory_shared';
+  | 'inventory_shared'
+  /** UX-NV-18: a message a person wrote themselves, to a renter or to the home's owner. */
+  | 'message'
+  | 'owner_message';
+
+/** The kinds a person writes themselves, in Inbox: sent as written, and marked as theirs. */
+export const WRITTEN_KINDS: readonly OutboundKind[] = ['message', 'owner_message'];
 
 /**
  * Puts a message in the outbox (ADR-0010), in the caller's transaction. AI-written answers
@@ -122,12 +129,14 @@ export async function sendMessage(input: {
       .select({
         message: messages,
         ref: applications.ref,
+        writer: users.name,
         operatorName: organisations.name,
         slug: organisations.inboundSlug,
         organisation: listerColumns,
       })
       .from(messages)
       .leftJoin(applications, eq(applications.id, messages.applicationId))
+      .leftJoin(users, eq(users.id, messages.authorUserId))
       .innerJoin(organisations, eq(organisations.id, messages.organisationId))
       .where(and(eq(messages.id, input.messageId), eq(messages.status, 'scheduled')))
       .for('update', { of: messages });
@@ -137,7 +146,7 @@ export async function sendMessage(input: {
   });
   if (!claimed) return 'skipped';
 
-  const { message, ref, operatorName, slug } = claimed;
+  const { message, ref, writer, operatorName, slug } = claimed;
   const config = env();
   // UX-PP-10: an email goes out in the one layout. Its words are the message's, unchanged, and
   // the message as it was written is still sent beside it as plain text.
@@ -159,7 +168,12 @@ export async function sendMessage(input: {
         : await emailSender().send({
             to: message.toAddress!,
             from: {
-              name: `${operatorName} via Gaff`,
+              // UX-NV-18: a message a person wrote themselves says so, in who it is from.
+              name: senderName({
+                kind: message.kind,
+                operatorName,
+                writer: message.author === 'person' ? writer : null,
+              }),
               address: `${slug}@${config.MAIL_FROM_DOMAIN}`,
             },
             // A renter's replies thread to their application. Anyone else's (a referee, a

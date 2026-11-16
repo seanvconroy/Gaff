@@ -9,9 +9,26 @@ import type { FrameAudience } from '@/domain/frame/frame';
 
 /** Who an email of this kind is written to. The frame is theirs, as on a page (UX-PP-9). */
 export function emailAudience(kind: string): FrameAudience {
-  if (kind === 'landlord_approval') return 'owner';
+  if (kind === 'landlord_approval' || kind === 'owner_message') return 'owner';
   if (kind === 'reference_request' || kind === 'reference_reminder') return 'referee';
   return 'renter';
+}
+
+/**
+ * Who an email says it is from. Every message is "Halcyon Lettings via Gaff". One a person wrote
+ * themselves, to a renter or an owner, is marked as theirs: "Ann Power, Halcyon Lettings via
+ * Gaff" (UX-NV-18). Its words are sent as written, so the name is where it's said.
+ */
+export function senderName(input: {
+  kind: string;
+  operatorName: string;
+  /** The name of the person who wrote it, where a person did. */
+  writer: string | null;
+}): string {
+  const lister = `${input.operatorName} via Gaff`;
+  const written = input.kind === 'message' || input.kind === 'owner_message';
+  const writer = input.writer?.replace(/[<>"\r\n]/g, '').trim();
+  return written && writer ? `${writer}, ${lister}` : lister;
 }
 
 /** A run of words, or a web address found among them. */

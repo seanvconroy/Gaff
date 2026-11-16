@@ -114,6 +114,8 @@ export const eventCatalogue = {
       'payment_request',
       'payment_received',
       'inventory_shared',
+      'message',
+      'owner_message',
     ]),
     channel: z.enum(['email', 'sms']),
     author: z.enum(['template', 'ai', 'person']),
@@ -125,6 +127,8 @@ export const eventCatalogue = {
     checkId: z.uuid().nullable().optional(),
   }),
   'message.failed': z.object({ messageId: z.uuid(), attempts: z.number().int() }),
+  /** UX-NV-18: a person wrote to a renter or to a home's owner themselves, in Inbox. */
+  'message.written': z.object({ messageId: z.uuid(), to: z.enum(['renter', 'owner']) }),
   /** R8: answers drafted for a renter's message: how many by the AI, how many for a person. */
   'answers.drafted': z.object({
     sourceMessageId: z.uuid(),

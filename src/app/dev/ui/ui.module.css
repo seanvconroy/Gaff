@@ -36,6 +36,11 @@
   color: var(--color-ink-muted);
 }
 
+/* Under the navigation's example: on a phone, clear of the tab bar at the foot. */
+.underBar {
+  padding-bottom: calc(var(--size-bar) + var(--space-16));
+}
+
 /* Each component: a title, a line about it, then its states. A hairline separates the groups. */
 .section {
   display: grid;

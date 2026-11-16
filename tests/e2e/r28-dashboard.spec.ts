@@ -23,7 +23,7 @@ test('R28: the dashboard shows each letting’s stage, what needs a person today
     .url()
     .replace(/\/viewings.*$/, '')
     .replace(/\?.*$/, '');
-  await page.goto('/');
+  await page.goto('/today');
   const today = page.getByRole('region', { name: 'Needs you today' });
   await expect(
     today.getByRole('link', { name: '12 Ranelagh Road: finish setting up' }),
@@ -35,7 +35,7 @@ test('R28: the dashboard shows each letting’s stage, what needs a person today
   await goLiveThroughUi(page);
   await sendTestEmail(page, { to: await gaffAddress(page), ...daftEnquiry });
   await expect(async () => {
-    await page.goto('/');
+    await page.goto('/today');
     await expect(
       today.getByRole('link', { name: '12 Ranelagh Road: decide who views (1 person waiting)' }),
     ).toBeVisible({ timeout: 1000 });
@@ -59,7 +59,7 @@ test('R28: the dashboard shows each letting’s stage, what needs a person today
   await expect(page.getByText('Saved.')).toBeVisible();
   await expectAccessible(page);
 
-  await page.goto('/');
+  await page.goto('/today');
   await expect(
     page.getByText(
       /Your time in Gaff: 1 minute · usually 6 hours 30 minutes a letting · first enquiry today, usually let in 30 days/,

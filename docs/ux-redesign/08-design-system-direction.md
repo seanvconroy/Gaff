@@ -183,6 +183,7 @@ Every component adapts between phone and desktop. "Status" says whether it exist
 | **Action row** | Something that needs you | Whole-row target | Same | Exists |
 | **Sheet / dialog** | A short task over the page | Slides up from the bottom | A centred dialog | New |
 | **Menu** | Rare actions (⋯) | A sheet | A popover | New |
+| **Account menu** | Everything outside the destinations, on the avatar: profile, settings, help, sign out | A sheet | A popover under the avatar | New |
 | **Calendar** | Viewing times | A day list with a week strip | A week grid | New |
 | **Time picker for renters** | Booking a viewing | Days, then times | Same, in a narrower column | Changed |
 | **Thread and reply box** | A conversation | Full screen | List on the left, thread on the right | New |

@@ -71,7 +71,11 @@ The founder agreed the redesign on 14 November 2026. The decisions are Q27 to Q4
 - Use sub-agents, one per work package, each in its own worktree, when the request asks for them. Integration and end-to-end tests share one database and one port, so run those one at a time.
 - Open the pull request into the default branch, `claude/gaff-mvp`.
 - One design: build each screen at phone width first, with the same steps and words at every width.
-- The redesign's design system is in (work package WP-2): role-named tokens, one type family, 48px controls and the components in `src/ui`. Every component and its states are on one page, `/dev/ui`, when `DEV_TOOLS` is on. The sidebar stays until work package WP-3 replaces it.
+- The redesign's design system is in (work package WP-2): role-named tokens, one type family, 48px controls and the components in `src/ui`. Every component and its states are on one page, `/dev/ui`, when `DEV_TOOLS` is on.
+- The shell and the navigation are in (work package WP-3). There is no sidebar: one bar (`src/ui/NavBar`), a top bar at 900px and up and a tab bar at the foot of the screen below it.
+  - Letting has Today (`/today`), Lettings (`/lettings`), Calendar (`/calendar`) and Inbox (`/inbox`). Renting has Search (`/`), Saved (`/saved`) and Enquiries (`/enquiries`). Signed out, `/` is the public site, with a header alone. Settings, Profile, Help and Sign out are in the account menu on the avatar.
+  - "Letting or renting?" is answered in one place: `currentPerson()` in `src/server/context`, by the rule `contextFor` in `src/domain/navigation`. Work package WP-5 replaces that rule with the real switcher.
+  - A step-by-step task hides the navigation: its page goes under `(task)` and is built on `FlowShell`, with errors at the field and no error box at the top.
 
 ## Architecture
 
@@ -79,7 +83,11 @@ A TypeScript modular monolith: one Next.js app on Vercel (Dublin) and one Postgr
 
 - `src/domain/`: pure business rules. No I/O and no framework imports (enforced by lint). Write these first, with unit tests.
 - `src/server/`: use cases. Each one loads data, applies a domain rule, then writes the change and its event in one transaction, inside `withOrg()`.
-- `src/app/`: Next.js routes, kept thin. Workspace pages are in `(workspace)`, renter pages in `r/[token]` and landlord pages in `l/[token]`.
+- `src/app/`: Next.js routes, kept thin.
+  - Pages on the letting side are in `(workspace)`, and its focused tasks, which have no navigation, in `(task)`.
+  - The public site, the renting side, Profile and Help are in `(site)`.
+  - Both use the one shell in `_shell`.
+  - Renter pages by private link are in `r/[token]`, and landlord pages in `l/[token]`.
 - `src/jobs/`: background tasks (graphile-worker), the local worker, and the time-boxed runner used by the cron tick.
 - `src/ports/` and `src/adapters/`: email, SMS and AI behind interfaces. There are local stand-ins (dev outbox, fake SMS, fake AI) and real EU providers.
 - `src/db/`: Drizzle schema and migrations.

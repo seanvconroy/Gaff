@@ -1,6 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import pg from 'pg';
 import { E2E_DATABASE_URL } from '../../playwright.config';
 
@@ -370,4 +370,23 @@ export async function startViewingsNow(addressLine1: string, operatorEmail: stri
   } finally {
     await client.end();
   }
+}
+
+/** UX-NV-8: opens the account menu on the avatar, at the right-hand end of the navigation. */
+export async function openAccountMenu(page: Page): Promise<Locator> {
+  // The avatar shows the person's initials, so its name holds them: "AP, account".
+  await page
+    .getByRole('banner')
+    .getByRole('button', { name: /, account$/ })
+    .click();
+  const menu = page.getByRole('menu', { name: 'Account' });
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
+/** Signs out, from the account menu. */
+export async function signOut(page: Page): Promise<void> {
+  const menu = await openAccountMenu(page);
+  await menu.getByRole('menuitem', { name: 'Sign out' }).click();
+  await expect(page).toHaveURL(/\/sign-in$/);
 }

@@ -48,7 +48,7 @@ export function LettingHeader({ letting, tab }: { letting: HeaderLetting; tab: L
   return (
     <Stack gap={6}>
       <PageHeader
-        back={{ href: '/', label: 'Lettings' }}
+        back={{ href: '/lettings', label: 'Lettings' }}
         eyebrow={
           <span className={styles.eyebrow}>
             <span>

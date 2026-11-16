@@ -1,0 +1,21 @@
+/* The avatar is 40px inside its 48px button: pull the button out so the circle meets the gutter. */
+.account {
+  display: flex;
+  margin-inline-end: calc(var(--space-1) * -1);
+}
+
+/* Whose menu it is: the name, and under it the context they're in. */
+.who {
+  display: grid;
+  min-width: 0;
+}
+
+.name {
+  overflow-wrap: anywhere;
+  font-weight: var(--type-title-weight);
+}
+
+.context {
+  overflow-wrap: anywhere;
+  color: var(--color-ink-muted);
+}

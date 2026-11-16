@@ -241,7 +241,7 @@ test('R26: the operator finishes the let home; the record is archived and the da
   await page.getByRole('button', { name: 'Save the account' }).click();
   await expect(page.getByText('Saved.')).toBeVisible();
 
-  await page.goto('/');
+  await page.goto('/today');
   await page
     .getByRole('link', { name: '12 Ranelagh Road: ask for the deposit and first month’s rent' })
     .click();
@@ -254,7 +254,7 @@ test('R26: the operator finishes the let home; the record is archived and the da
   await expect(page.getByText('Finished', { exact: true })).toBeVisible();
   await expect(page.getByText('Step 9 of 9 · Close')).toBeVisible();
 
-  await page.goto('/');
+  await page.goto('/today');
   await expect(page.getByText(/let in 0 days/)).toBeVisible();
   await page.goto(`${lettingUrl}/timeline`);
   await expect(page.getByText('Letting finished and archived')).toBeVisible();

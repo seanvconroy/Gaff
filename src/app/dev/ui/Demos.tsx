@@ -2,6 +2,8 @@
 
 import { Copy, Pencil, Share2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import type { AccountMenu as AccountMenuRows } from '@/domain/navigation/account-menu';
+import { AccountMenu } from '@/ui/AccountMenu';
 import { Button } from '@/ui/Button';
 import { Chips } from '@/ui/Chips';
 import { CodeInput } from '@/ui/CodeInput';
@@ -97,6 +99,11 @@ export function MenuDemo() {
       {chosen ? <p role="status">You chose: {chosen}.</p> : null}
     </div>
   );
+}
+
+/** The account menu on the avatar, as the navigation shows it. Sign out does nothing here. */
+export function AccountMenuDemo({ menu }: { menu: AccountMenuRows }) {
+  return <AccountMenu menu={menu} signOut={async () => undefined} />;
 }
 
 function ToastButtons() {

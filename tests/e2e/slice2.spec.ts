@@ -46,7 +46,7 @@ test('R17: the operator compares applicants side by side and chooses a preferred
   await applyOnPhone(browser, links[AOIFE]!, '5,200');
   await applyOnPhone(browser, links[CIARAN]!, '4,000');
 
-  await page.goto('/');
+  await page.goto('/today');
   await page
     .getByRole('link', { name: '12 Ranelagh Road: choose who to offer it to (2 applied)' })
     .click();

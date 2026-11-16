@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { and, count, desc, eq, gt, inArray, isNull, lte, min } from 'drizzle-orm';
 import { withOrg } from '@/db/client';
 import {
@@ -194,4 +195,18 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
       otherMinutes: minutes.get(null)?.n ?? 0,
     };
   });
+}
+
+const perRequest = cache(
+  (_organisationId: string): { dashboard?: ReturnType<typeof dashboardFor> } => ({}),
+);
+
+/**
+ * The dashboard, read once per request: the shell's count badges (UX-NV-5) and the page under it
+ * share one reading. Outside a request, each call reads afresh.
+ */
+export function dashboardForRequest(member: Member): ReturnType<typeof dashboardFor> {
+  const slot = perRequest(member.organisationId);
+  slot.dashboard ??= dashboardFor(member);
+  return slot.dashboard;
 }

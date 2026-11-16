@@ -1,6 +1,7 @@
 import { ArrowLeft, X } from 'lucide-react';
 import Link from 'next/link';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ComponentProps, ReactNode, Ref } from 'react';
+import { needAnotherLook } from './flow';
 import styles from './FlowShell.module.css';
 import { SegmentedProgress } from './SegmentedProgress';
 
@@ -14,6 +15,16 @@ import { SegmentedProgress } from './SegmentedProgress';
  * the same at every width (UX-DS-25).
  *
  * Give `form` to make the step and its footer one form, so the footer's button sends the step.
+ *
+ * The rules every flow shares (section 4) live here and in the helpers below:
+ * - UX-FL-1, UX-NV-6: the frame itself. A flow's page goes under the `(task)` routes, which have
+ *   no navigation, and `leave` goes back to where the task was opened (`returnPath`).
+ * - UX-FL-2: `saveAndExit` is for a flow that keeps a draft. Leave it out where nothing is kept
+ *   yet, rather than promise it.
+ * - UX-FL-3: errors go at the field. There is no error box at the top: on pressing the button
+ *   with errors, call `focusFirstProblem` and give `FlowProblems` the count.
+ * - UX-FL-4: a decision's last screen is an `Outcome` in this frame, with no progress: what was
+ *   done, what Gaff does next and when, and one primary button onwards.
  */
 export function FlowShell({
   leave,
@@ -94,5 +105,63 @@ export function FlowExit({
     <Link href={href} className={styles.exitLink}>
       {children}
     </Link>
+  );
+}
+
+/**
+ * A flow's title: the question or the task's name, and at most two lines under it. Give `ref`
+ * and it can take focus when a step opens, so screen readers hear where they are.
+ */
+export function FlowTitle({
+  title,
+  lead,
+  ref,
+}: {
+  title: ReactNode;
+  lead?: ReactNode;
+  ref?: Ref<HTMLHeadingElement>;
+}) {
+  return (
+    <div className={styles.titles}>
+      <h1 ref={ref} tabIndex={ref ? -1 : undefined} className={`${styles.title} type-display`}>
+        {title}
+      </h1>
+      {lead ? <p className={styles.lead}>{lead}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * One step of a flow whose steps share a page and a form: only the current step shows, and the
+ * others keep what was typed. Once the user has moved, give `direction` and the step arrives as
+ * any other does: from the right going forward, from the left on Back.
+ */
+export function FlowStep({
+  current,
+  direction,
+  children,
+}: {
+  current: boolean;
+  direction?: 'forward' | 'back';
+  children: ReactNode;
+}) {
+  const arriving = direction === 'back' ? styles.fromLeft : direction ? styles.fromRight : '';
+  return (
+    <div hidden={!current} className={`${styles.part} ${arriving}`}>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * UX-FL-3: what a screen reader hears when the primary button is pressed with errors: how many
+ * fields need another look. Nothing is drawn: the errors themselves are at their fields. Keep it
+ * in the page from the start, with 0, so the screen reader is already listening.
+ */
+export function FlowProblems({ count }: { count: number }) {
+  return (
+    <p className="visually-hidden" role="status">
+      {count > 0 ? needAnotherLook(count) : ''}
+    </p>
   );
 }

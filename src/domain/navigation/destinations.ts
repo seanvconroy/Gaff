@@ -35,8 +35,7 @@ export const rentingDestinations = [
 ] as const satisfies readonly Destination[];
 
 export type DestinationKey =
-  | (typeof lettingDestinations)[number]['key']
-  | (typeof rentingDestinations)[number]['key'];
+  (typeof lettingDestinations)[number]['key'] | (typeof rentingDestinations)[number]['key'];
 
 export function destinationsFor(side: Side): readonly Destination[] {
   return side === 'letting' ? lettingDestinations : rentingDestinations;

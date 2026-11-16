@@ -18,7 +18,7 @@ import { finishLetting } from '@/server/tenancy/close';
 import { confirmPayment, requestPayment, setPaymentAccount } from '@/server/tenancy/payment';
 import { givePpsn } from '@/server/tenancy/rtb';
 import { markSignedOnPaper } from '@/server/tenancy/tenancy';
-import { aLetHome, createTestMember } from './helpers';
+import { aLetHome, confirmedAgain, createTestMember } from './helpers';
 
 type Member = Awaited<ReturnType<typeof createTestMember>>;
 
@@ -26,10 +26,11 @@ async function signedAndPaid() {
   const member = await createTestMember();
   const home = await aLetHome(member);
   await markSignedOnPaper(member, home.lettingId);
-  await setPaymentAccount(member, {
-    accountName: 'Client account',
-    iban: 'IE29AIBK93115212345678',
-  });
+  await setPaymentAccount(
+    member,
+    { accountName: 'Client account', iban: 'IE29AIBK93115212345678' },
+    await confirmedAgain(member),
+  );
   await requestPayment(member, home.lettingId, { dueDate: '2026-11-28' });
   return { member, ...home };
 }

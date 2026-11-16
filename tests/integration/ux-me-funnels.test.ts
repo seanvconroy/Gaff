@@ -42,6 +42,7 @@ import { bookViewing } from '@/server/viewings/booking';
 import {
   aLiveLetting,
   aRenterEnquires,
+  confirmedAgain,
   databaseError,
   renterTokenFor,
   tokenInMessage,
@@ -117,7 +118,7 @@ describe('UX-ME-1: funnel events', () => {
 
   it('UX-ME-1: something that isn’t an ID is never written, and the page still loads', async () => {
     await expect(noteSignInScreenOpened('ann@example.ie')).resolves.toBeUndefined();
-    await expect(noteSignInMethodChosen('Ann Power', 'email_link')).resolves.toBeUndefined();
+    await expect(noteSignInMethodChosen('Ann Power', 'email_code')).resolves.toBeUndefined();
     await expect(
       noteFunnelStep({ step: 'referee.opened', subjectId: '+353 87 123 4567' }),
     ).resolves.toBeUndefined();
@@ -201,8 +202,8 @@ async function createMember(kind: 'agency' | 'landlord' = 'agency') {
     .insert(users)
     .values({ id, name: 'pending', email: `${id}@test.gaff.ie`, emailVerified: true });
   await noteSignInScreenOpened(attempt);
-  await noteSignInMethodChosen(attempt, 'email_link');
-  await noteSignedIn(attempt, { id }, 'email_link');
+  await noteSignInMethodChosen(attempt, 'email_code');
+  await noteSignedIn(attempt, { id }, 'email_code');
   await createOrganisation(id, {
     yourName: 'Ann Power',
     name: `Halcyon ${id.slice(0, 6)}`,
@@ -219,8 +220,8 @@ describe('UX-ME-2: the funnels, from the record’s events and the new steps', (
     const member = await createMember('landlord');
     const again = crypto.randomUUID();
     await noteSignInScreenOpened(again);
-    await noteSignInMethodChosen(again, 'email_link');
-    await noteSignedIn(again, { id: member.userId }, 'email_link');
+    await noteSignInMethodChosen(again, 'email_code');
+    await noteSignedIn(again, { id: member.userId }, 'email_code');
     // A third try: the screen is opened and left.
     const left = crypto.randomUUID();
     await noteSignInScreenOpened(left);
@@ -231,7 +232,7 @@ describe('UX-ME-2: the funnels, from the record’s events and the new steps', (
     expect(reports.get('sign_in')!.split).toEqual({
       label: 'Method',
       rows: [
-        { variant: 'email_link', reached: [2, 2, 2] },
+        { variant: 'email_code', reached: [2, 2, 2] },
         { variant: null, reached: [1, 0, 0] },
       ],
     });
@@ -401,10 +402,11 @@ describe('UX-ME-2: the funnels, from the record’s events and the new steps', (
 
     // The tenancy: signed, paid and finished.
     await markSignedOnPaper(member, lettingId);
-    await setPaymentAccount(member, {
-      accountName: 'Client account',
-      iban: 'IE29AIBK93115212345678',
-    });
+    await setPaymentAccount(
+      member,
+      { accountName: 'Client account', iban: 'IE29AIBK93115212345678' },
+      await confirmedAgain(member),
+    );
     await requestPayment(member, lettingId, { dueDate: '2026-11-28' });
     await confirmPayment(member, lettingId);
     await finishLetting(member, lettingId);

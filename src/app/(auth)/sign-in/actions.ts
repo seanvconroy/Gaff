@@ -1,46 +1,133 @@
 'use server';
 
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { signInCopy } from '@/copy/sign-in';
+import { secondsUntilResend } from '@/domain/auth/codes';
+import {
+  signInProviderSchema,
+  type SignInMethod,
+  type SignInProvider,
+} from '@/domain/auth/methods';
+import { safeNextPath } from '@/domain/auth/next-path';
 import { invalid, type FormState } from '@/lib/forms';
-import { auth } from '@/server/auth/auth';
+import { auth, signInProviderModes } from '@/server/auth/auth';
+import { cookieNames } from '@/server/auth/cookies';
+import { requestSignInCode, resendSignInCode } from '@/server/auth/sign-in';
 import {
   noteSignInMethodChosen,
   noteSignInScreenOpened,
-  signInAttempt,
+  readSignInAttempt,
+  signedSignInAttempt,
 } from '@/server/auth/sign-in-steps';
 
-const signInSchema = z.object({
-  email: z.email('Enter your work email address, like ann@agency.ie').max(254),
-});
+const emailSchema = z.object({ email: z.email(signInCopy.errors.emailInvalid).max(254) });
 
-export async function requestSignInLink(_state: FormState, formData: FormData): Promise<FormState> {
-  const parsed = signInSchema.safeParse({ email: String(formData.get('email') ?? '').trim() });
-  if (!parsed.success) {
-    return invalid(
-      { email: parsed.error.issues[0]!.message },
-      { email: String(formData.get('email') ?? '') },
-    );
-  }
-  // UX-ME-1: this try at signing in, so its funnel can be counted. The link comes back through
-  // /sign-in/return, which records "signed in" and goes on to the workspace.
-  const attempt = signInAttempt(formData.get('attempt'));
-  await noteSignInMethodChosen(attempt, 'email_link');
-  try {
-    await auth().api.signInMagicLink({
-      body: {
-        email: parsed.data.email.toLowerCase(),
-        callbackURL: attempt ? `/sign-in/return?attempt=${attempt}` : '/',
-      },
-      headers: await headers(),
-    });
-  } catch {
-    return invalid({}, parsed.data, "That didn't send. Wait a minute and try again.");
-  }
-  return { values: parsed.data, message: 'sent' };
+/** Where every method lands once the person is signed in: /sign-in/return finishes the job. */
+function returnPath(
+  method: SignInMethod,
+  attemptId: string | null,
+  nextPath: string | null,
+): string {
+  const query = new URLSearchParams({ method });
+  if (attemptId) query.set('attempt', signedSignInAttempt(attemptId));
+  const next = safeNextPath(nextPath);
+  if (next) query.set('next', next);
+  return `/sign-in/return?${query.toString()}`;
 }
 
-/** UX-ME-1: the sign-in screen was opened. Counted once for each try, by its random ID. */
+/** UX-ME-1: the sign-in screen was opened. Counted once for each try the server made. */
 export async function signInScreenOpened(attempt: string): Promise<void> {
-  await noteSignInScreenOpened(attempt);
+  await noteSignInScreenOpened(readSignInAttempt(attempt));
+}
+
+/** UX-SI-2: "Continue" with an email address sends a six-digit code and moves to the code screen. */
+export async function continueWithEmail(_state: FormState, formData: FormData): Promise<FormState> {
+  const typed = String(formData.get('email') ?? '');
+  const parsed = emailSchema.safeParse({ email: typed.trim() });
+  if (!parsed.success) return invalid({ email: parsed.error.issues[0]!.message }, { email: typed });
+
+  const attemptId = readSignInAttempt(formData.get('attempt'));
+  await noteSignInMethodChosen(attemptId, 'email_code');
+  const result = await requestSignInCode({
+    email: parsed.data.email,
+    attemptId,
+    nextPath: safeNextPath(formData.get('next')),
+  });
+  // A code that went to this browser a moment ago still stands: on to the code screen.
+  if (result.sent || result.reason === 'wait') redirect('/sign-in/code');
+  return invalid(
+    {
+      email: result.reason === 'too_many' ? signInCopy.errors.tooMany : signInCopy.errors.notSent,
+    },
+    { email: typed },
+  );
+}
+
+/** UX-SI-1: "Continue with Google" or "Continue with Apple": off to the provider, or its stand-in. */
+export async function continueWithProvider(
+  _state: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const provider = signInProviderSchema.safeParse(formData.get('provider'));
+  if (!provider.success || signInProviderModes()[provider.data] === 'off') redirect('/sign-in');
+  const attemptId = readSignInAttempt(formData.get('attempt'));
+  const next = safeNextPath(formData.get('next'));
+  await noteSignInMethodChosen(attemptId, provider.data);
+
+  const back = new URLSearchParams({ from: provider.data });
+  if (next) back.set('next', next);
+  const started = await auth().api.signInSocial({
+    body: {
+      provider: provider.data,
+      callbackURL: returnPath(provider.data, attemptId, next),
+      errorCallbackURL: `/sign-in?${back.toString()}`,
+      disableRedirect: true,
+    },
+    headers: await headers(),
+  });
+  if (!started.url) return providerFailed(provider.data);
+  redirect(started.url);
+}
+
+function providerFailed(provider: SignInProvider): FormState {
+  return invalid({ [provider]: signInCopy.errors.provider(provider) }, {});
+}
+
+/** What the code screen knows after a try, or after asking for a new code. */
+export interface CodeState {
+  status: 'waiting' | 'wrong' | 'expired' | 'resent' | 'not_sent' | 'too_many';
+  /** Seconds until "Send a new code" unlocks, counted from when this state was made. */
+  resendIn: number;
+  /** Changes with every answer, so the screen can clear the input and restart its countdown. */
+  stamp: number;
+}
+
+/** UX-SI-2: one try at the code. The right one signs the person in and goes on. */
+export async function checkSignInCode(state: CodeState, formData: FormData): Promise<CodeState> {
+  const code = String(formData.get('code') ?? '').replace(/\D/g, '');
+  const result = await auth().api.signInWithCode({ body: { code }, headers: await headers() });
+  if (result.result === 'correct') {
+    (await cookies()).delete(cookieNames.signInCode);
+    redirect(returnPath('email_code', result.attemptId, result.nextPath));
+  }
+  const waited = Math.ceil((Date.now() - state.stamp) / 1000);
+  return {
+    status: result.result === 'wrong' ? 'wrong' : 'expired',
+    resendIn: Math.max(0, state.resendIn - waited),
+    stamp: Date.now(),
+  };
+}
+
+/** UX-SI-2: "Send a new code", once 30 seconds have passed since the last one. */
+export async function sendNewSignInCode(state: CodeState): Promise<CodeState> {
+  const now = new Date();
+  const result = await resendSignInCode();
+  if (!result.sent && result.reason === 'nothing') redirect('/sign-in');
+  if (result.sent) return { status: 'resent', resendIn: secondsUntilResend(now, now), stamp: +now };
+  if (result.reason === 'wait') {
+    return { ...state, resendIn: secondsUntilResend(result.sentAt, now), stamp: +now };
+  }
+  return { status: result.reason, resendIn: 0, stamp: +now };
 }

@@ -2,10 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { confirmationFor, forgetConfirmation } from '@/server/auth/confirm-request';
 import { requireMember } from '@/server/auth/member';
 import { setApproveBeforeSend } from '@/server/answers/review';
 import { UserFacingError } from '@/server/errors';
-import { formValues, invalid, type FormState } from '@/lib/forms';
+import { formValues, invalid, needsConfirming, type FormState } from '@/lib/forms';
 import { setIncomeRule } from '@/server/organisations/income-rule';
 import { setUsualTimes } from '@/server/organisations/usual-times';
 import { setPaymentAccount } from '@/server/tenancy/payment';
@@ -53,7 +54,11 @@ export async function incomeRuleAction(formData: FormData): Promise<void> {
   redirect('/settings?saved=income');
 }
 
-/** R23: the account tenants pay the deposit and first month's rent into. */
+/**
+ * R23: the account tenants pay the deposit and first month's rent into. UX-SI-10: saving it asks
+ * the admin to confirm it's them again. The form comes back asking for that, with what was
+ * typed kept; once they've confirmed, it sends itself again and the change is saved.
+ */
 export async function paymentAccountAction(
   _state: FormState,
   formData: FormData,
@@ -62,12 +67,18 @@ export async function paymentAccountAction(
   const values = formValues(formData);
   let result;
   try {
-    result = await setPaymentAccount(member, values);
+    result = await setPaymentAccount(
+      member,
+      values,
+      await confirmationFor(member.userId, 'change_payment_account'),
+    );
   } catch (error) {
     if (!(error instanceof UserFacingError)) throw error;
     return invalid({}, values, error.message);
   }
+  if (!result.ok && 'confirm' in result) return needsConfirming('change_payment_account', values);
   if (!result.ok) return invalid(result.errors, values, 'One or two details need another look.');
+  await forgetConfirmation();
   revalidatePath('/settings');
   redirect('/settings?saved=payment');
 }

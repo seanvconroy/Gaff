@@ -28,11 +28,3 @@
   font-size: var(--type-body-sm-size);
   line-height: var(--type-body-sm-line);
 }
-
-/* Inbox, until work package WP-8 rebuilds it: a card of hairline rows. */
-.panel {
-  background-color: var(--color-surface-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}

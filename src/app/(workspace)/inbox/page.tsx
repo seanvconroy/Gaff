@@ -1,46 +1,43 @@
-import { Inbox, type LucideIcon, MessageCircleQuestionMark, Sparkles } from 'lucide-react';
+import { MessagesSquare } from 'lucide-react';
 import type { Metadata } from 'next';
-import { type InboxRow, inboxRows } from '@/domain/navigation/inbox';
+import { showFor } from '@/domain/inbox/conversations';
 import { requireMember } from '@/server/auth/member';
-import { dashboardForRequest } from '@/server/dashboard/dashboard';
-import { ActionList, ActionRow, type TileTone } from '@/ui/ActionList';
-import { PageHeader, Stack } from '@/ui/Layout';
-import styles from '../dashboard.module.css';
+import { inboxFor } from '@/server/inbox/queries';
+import { EmptyState } from '@/ui/EmptyState';
+import { InboxFrame } from './InboxFrame';
 
 export const metadata: Metadata = { title: 'Inbox' };
 
-/** The same icon tiles as Today's rows: AI drafts in the AI colours, the rest quiet. */
-const icons: Record<InboxRow['kind'], { Icon: LucideIcon; tone: TileTone }> = {
-  approvals: { Icon: Sparkles, tone: 'ai' },
-  questions: { Icon: MessageCircleQuestionMark, tone: 'quiet' },
-  attention: { Icon: Inbox, tone: 'quiet' },
-};
-
 /**
- * Inbox (UX-NV-1, UX-NV-2): for now, the way to the three pages it takes over from, each with
- * how many are waiting. Work package WP-8 replaces this with one list of conversations.
+ * Inbox (UX-NV-13): every conversation with renters and owners, and each email Gaff couldn't
+ * place, newest first. "Needs you" is the chip that is on whenever something is waiting.
+ * Approvals, Questions and Needs attention are handled here, in the conversation (UX-NV-2).
  */
-export default async function InboxPage() {
+export default async function InboxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ show?: string; done?: string }>;
+}) {
   const member = await requireMember();
-  const { today } = await dashboardForRequest(member);
+  const now = new Date();
+  const [{ conversations, leads }, { show: asked, done }] = await Promise.all([
+    inboxFor(member, now),
+    searchParams,
+  ]);
+  const show = showFor(asked, conversations);
   return (
-    <Stack gap={8}>
-      <PageHeader title="Inbox" />
-      <section className={styles.panel} aria-label="Waiting for you">
-        <ActionList flush>
-          {inboxRows(today).map((row) => (
-            <ActionRow
-              key={row.kind}
-              id={`inbox-${row.kind}`}
-              href={row.href}
-              icon={icons[row.kind].Icon}
-              tone={icons[row.kind].tone}
-              title={row.title}
-              meta={row.waiting}
-            />
-          ))}
-        </ActionList>
-      </section>
-    </Stack>
+    <InboxFrame
+      conversations={conversations}
+      leads={leads}
+      show={show}
+      asked={asked === show ? show : null}
+      open={null}
+      done={done}
+      now={now}
+    >
+      <EmptyState icon={MessagesSquare} title="Choose a conversation">
+        <p>It opens here, with anything Gaff has drafted ready to send.</p>
+      </EmptyState>
+    </InboxFrame>
   );
 }

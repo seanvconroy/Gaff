@@ -13,6 +13,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // UX-NV-4: lets the tab bar's safe-area padding take effect on phones with a home indicator.
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -22,6 +22,7 @@ export const devOutboxSender: EmailSender = {
         replyTo: email.replyTo ?? null,
         subject: email.subject,
         text: email.text,
+        html: email.html ?? null,
       })
       .returning({ id: devOutbox.id });
     return { providerMessageId: `dev-${row!.id}` };

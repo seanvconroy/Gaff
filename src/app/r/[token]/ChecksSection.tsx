@@ -35,7 +35,7 @@ const problems: Record<string, string> = {
  * R18: the chosen renter's checks, as three numbered steps, the next one first in line. Each is
  * explained before it starts: what happens, who sees the result, and what Gaff keeps. A check
  * that doesn't pass is shown in "warning", never "danger", with a plain reason and a way to
- * explain (CLAUDE.md voice rules).
+ * explain (CLAUDE.md voice rules). What happens next is said by the page's frame, after this.
  */
 export function ChecksSection({
   token,
@@ -198,13 +198,6 @@ export function ChecksSection({
             </p>
           ))}
       </StepCard>
-      <div className={styles.next}>
-        <p className={styles.nextTitle}>What happens next</p>
-        <p>
-          When the checks are done, {operatorName} decides who to offer the home to. We’ll email you
-          either way.
-        </p>
-      </div>
     </section>
   );
 }

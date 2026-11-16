@@ -1,9 +1,12 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { emailSender } from '@/adapters/email';
 import { smsSender } from '@/adapters/sms';
+import { layOutEmail } from '@/copy/email-layout';
 import { withOrg, type Tx } from '@/db/client';
 import { applications, messages, organisations } from '@/db/schema';
+import { listerFrom } from '@/domain/frame/frame';
 import { env } from '@/lib/env';
+import { listerColumns } from '@/server/frame/lister';
 import { enqueue } from '@/server/jobs/enqueue';
 import { recordEvent } from '@/server/record/events';
 
@@ -121,6 +124,7 @@ export async function sendMessage(input: {
         ref: applications.ref,
         operatorName: organisations.name,
         slug: organisations.inboundSlug,
+        organisation: listerColumns,
       })
       .from(messages)
       .leftJoin(applications, eq(applications.id, messages.applicationId))
@@ -135,9 +139,22 @@ export async function sendMessage(input: {
 
   const { message, ref, operatorName, slug } = claimed;
   const config = env();
+  // UX-PP-10: an email goes out in the one layout. Its words are the message's, unchanged, and
+  // the message as it was written is still sent beside it as plain text.
+  const email =
+    message.channel === 'sms'
+      ? null
+      : layOutEmail({
+          kind: message.kind,
+          author: message.author as 'template' | 'ai' | 'person',
+          subject: message.subject ?? '',
+          body: message.body,
+          lister: listerFrom(claimed.organisation),
+          appUrl: config.APP_URL,
+        });
   try {
     const { providerMessageId } =
-      message.channel === 'sms'
+      email === null
         ? await smsSender().send({ to: message.toAddress!, body: message.body })
         : await emailSender().send({
             to: message.toAddress!,
@@ -152,7 +169,8 @@ export async function sendMessage(input: {
                 ? `${slug}+${ref}@${config.INBOUND_DOMAIN}`
                 : `${slug}@${config.INBOUND_DOMAIN}`,
             subject: message.subject ?? '',
-            text: message.body,
+            text: email.text,
+            html: email.html,
             idempotencyKey: `message/${message.id}`,
           });
     await withOrg(input.organisationId, async (tx) => {

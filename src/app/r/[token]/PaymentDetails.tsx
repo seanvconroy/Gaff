@@ -4,6 +4,7 @@ import { CopyButton } from '@/ui/CopyButton';
 import { Card } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { Outcome } from '@/ui/Outcome';
+import { WhatHappensNext } from '@/ui/PrivateFrame';
 import { SummaryList } from '@/ui/SummaryList';
 import styles from '../renter.module.css';
 
@@ -90,12 +91,11 @@ export function PaymentDetails({
           other fees.
         </p>
       </Notice>
-      <div className={styles.next}>
-        <p className={styles.nextTitle}>What happens next</p>
+      <WhatHappensNext>
         <p>
           Once the money arrives, {operatorName} confirms it here, and we’ll email you a receipt.
         </p>
-      </div>
+      </WhatHappensNext>
     </section>
   );
 }

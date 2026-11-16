@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
+import { homeFrom } from '@/domain/frame/frame';
 import { stageLabels, stageNumber } from '@/domain/lettings/stages';
-import { formatDate, formatDateTime, formatRent } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
 import { landlordView } from '@/server/landlord/view';
 import { Card, CardHeader, Stack } from '@/ui/Layout';
 import { Outcome } from '@/ui/Outcome';
+import { PrivateFrame } from '@/ui/PrivateFrame';
 import { StageTracker } from '@/ui/StageTracker';
 import { StatusPill } from '@/ui/StatusPill';
 import { Cell, Table, tableStyles } from '@/ui/Table';
-import { LandlordShell } from '../LandlordShell';
 import styles from '../landlord.module.css';
 
 export const metadata: Metadata = { title: 'Your letting' };
@@ -31,17 +32,20 @@ const now = {
   not_chosen: ['neutral', 'Not chosen'],
 } as const;
 
-/** R27 (Q4): the landlord's read-only view. Renters appear only as "Applicant N". */
+/**
+ * R27 (Q4): the landlord's read-only view. Renters appear only as "Applicant N". The frame is the
+ * agency's (UX-PP-9): its name in the header, the home, and "Run with Gaff" in the footer.
+ */
 export default async function LandlordPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const view = await landlordView(token);
   if (!view) {
     return (
-      <LandlordShell organisationName="Gaff">
+      <PrivateFrame audience="owner" lister={null}>
         <Outcome tone="info" title="This link isn’t working" headingLevel={1}>
           <p>It may have expired or been switched off. Ask your letting agent for a new one.</p>
         </Outcome>
-      </LandlordShell>
+      </PrivateFrame>
     );
   }
   const { letting, numbers, organisationName } = view;
@@ -56,19 +60,12 @@ export default async function LandlordPage({ params }: { params: Promise<{ token
     ['Applied', numbers.applied],
   ];
   return (
-    <LandlordShell organisationName={organisationName}>
+    <PrivateFrame audience="owner" lister={view.lister} home={homeFrom(letting)} wide>
       <Stack gap={8}>
         <Stack gap={6}>
-          <header className={styles.title}>
-            <p className="type-label">
-              Step {stageNumber(letting.stage)} of 9 · {stageLabels[letting.stage]}
-            </p>
-            <h1 className="type-display-mobile">{letting.addressLine1}</h1>
-            <p className={styles.muted}>
-              {letting.area} · {formatRent(letting.monthlyRentCents)} · Available from{' '}
-              {formatDate(letting.availableFrom)}
-            </p>
-          </header>
+          <p className={`type-label ${styles.muted}`}>
+            Step {stageNumber(letting.stage)} of 9 · {stageLabels[letting.stage]}
+          </p>
           <StageTracker current={letting.stage} />
         </Stack>
 
@@ -160,6 +157,6 @@ export default async function LandlordPage({ params }: { params: Promise<{ token
           summary to approve.
         </p>
       </Stack>
-    </LandlordShell>
+    </PrivateFrame>
   );
 }

@@ -3,13 +3,16 @@ import { questionsFor } from '@/domain/checks/checks';
 import { openReferenceRequest } from '@/server/checks/checks';
 import { Card, Stack } from '@/ui/Layout';
 import { Outcome } from '@/ui/Outcome';
-import { RenterShell } from '../../r/RenterShell';
+import { PrivateFrame } from '@/ui/PrivateFrame';
 import { ReferenceForm } from './ReferenceForm';
 
 export const metadata: Metadata = { title: 'A reference' };
 export const dynamic = 'force-dynamic';
 
-/** R18: a referee answers a few fixed questions, with no account, in about two minutes. */
+/**
+ * R18: a referee answers a few fixed questions, with no account, in about two minutes. The frame
+ * is the agency's (UX-PP-9): its name in the header, and no home, which a referee is never shown.
+ */
 export default async function ReferencePage({
   params,
   searchParams,
@@ -22,16 +25,16 @@ export default async function ReferencePage({
   const request = await openReferenceRequest(token);
   if (!request) {
     return (
-      <RenterShell operatorName="Gaff">
+      <PrivateFrame audience="referee" lister={null}>
         <Outcome tone="info" title="This link isn’t working" headingLevel={1}>
           <p>It may have expired. There’s nothing else you need to do.</p>
         </Outcome>
-      </RenterShell>
+      </PrivateFrame>
     );
   }
   const done = sent || request.status === 'answered';
   return (
-    <RenterShell operatorName={request.operatorName}>
+    <PrivateFrame audience="referee" lister={request.lister}>
       <Stack gap={6}>
         <Stack gap={2}>
           <h1 className="type-display-mobile">A reference for {request.renterName}</h1>
@@ -59,6 +62,6 @@ export default async function ReferencePage({
           </>
         )}
       </Stack>
-    </RenterShell>
+    </PrivateFrame>
   );
 }

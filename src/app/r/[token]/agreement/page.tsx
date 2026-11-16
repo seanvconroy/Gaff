@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
+import { homeFrom, listerFrom } from '@/domain/frame/frame';
 import { formatDateTime } from '@/lib/format';
 import { loadTenantAgreement } from '@/server/tenancy/tenancy';
 import { DocumentView } from '@/ui/Document';
 import { Card, Stack } from '@/ui/Layout';
 import { Outcome } from '@/ui/Outcome';
 import { Notice } from '@/ui/Notice';
+import { PrivateFrame } from '@/ui/PrivateFrame';
 import { SignForm } from '@/ui/SignForm';
-import { RenterShell } from '../../RenterShell';
 import { tenantSignAction } from './actions';
 
 export const metadata: Metadata = { title: 'Your tenancy agreement' };
@@ -25,17 +26,23 @@ export default async function TenantAgreementPage({
   const view = await loadTenantAgreement(token);
   if (!view || view.tenancy.agreementStatus === 'draft') {
     return (
-      <RenterShell operatorName={view?.organisation.name ?? 'Gaff'}>
+      <PrivateFrame audience="renter" lister={view ? listerFrom(view.organisation) : null}>
         <Outcome tone="waiting" title="Your agreement isn’t ready yet" headingLevel={1}>
           <p>We’ll email you a link as soon as it is.</p>
         </Outcome>
-      </RenterShell>
+      </PrivateFrame>
     );
   }
   const { tenancy, organisation } = view;
   const status = tenancy.agreementStatus;
   return (
-    <RenterShell operatorName={organisation.name}>
+    // UX-RN-21: the home is at the top, as on every page. The page's own title stays its title.
+    <PrivateFrame
+      audience="renter"
+      lister={listerFrom(organisation)}
+      home={homeFrom(view.letting, tenancy.startDate)}
+      homeHeading="p"
+    >
       <Stack gap={6}>
         <h1 className="type-display-mobile">Your tenancy agreement</h1>
         {!view.unchanged ? (
@@ -102,6 +109,6 @@ export default async function TenantAgreementPage({
           </Card>
         ) : null}
       </Stack>
-    </RenterShell>
+    </PrivateFrame>
   );
 }

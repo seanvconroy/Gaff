@@ -138,4 +138,32 @@ describe('R19: the landlord approves by link, with no account', () => {
       .limit(1);
     expect(stored!.replyTo).toMatch(/^halcyon-[a-z0-9-]+@in\.gaff\.test$/);
   });
+
+  it('UX-PP-9, UX-PP-10: the owner’s email is the agency’s, with one button and no invitation to Gaff', async () => {
+    const { member, lettingId } = await chosenWithLandlord();
+    await askLandlord(member, lettingId);
+    const { message } = await approvalLink(member, lettingId);
+    await sendMessage({
+      organisationId: member.organisationId,
+      messageId: message.id,
+      attempt: 1,
+      maxAttempts: 10,
+    });
+    const [stored] = await db()
+      .select()
+      .from(devOutbox)
+      .where(eq(devOutbox.toAddress, 'mary.byrne@example.ie'))
+      .orderBy(desc(devOutbox.createdAt))
+      .limit(1);
+    // The words are the fixed template's, unchanged, as plain text.
+    expect(stored!.text).toBe(message.body);
+    const html = stored!.html!;
+    const [, header] = /data-email="header"[^>]*>([\s\S]*?)<\/td>/.exec(html)!;
+    expect(header!.replace(/<[^>]+>/g, '')).toMatch(/^Halcyon/);
+    expect(html).not.toContain('<img');
+    expect(html.match(/data-email="button"/g)).toHaveLength(1);
+    expect(html).toContain('>See the summary</a>');
+    expect(html).toContain('Run with Gaff');
+    expect(html.replace(/<[^>]+>/g, '')).not.toMatch(/https?:\/\//);
+  });
 });

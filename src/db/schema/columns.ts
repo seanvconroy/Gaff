@@ -22,3 +22,31 @@ export const tenantPolicy = () =>
     using: tenantCheck,
     withCheck: tenantCheck,
   });
+
+/**
+ * Row-level security for what belongs to a person and to no organisation (UX-AC-5, ADR-0016):
+ * their profile now, and later what a renter keeps and a verified identity (Q25, Q35). A row is
+ * visible only inside withPerson() for that person. An operator's path, withOrg(), sets no
+ * person, so it sees no rows here whatever it asks for. withSystem() sees them, for retention.
+ */
+const personCheck = sql`user_id = nullif(current_setting('app.person_id', true), '') or current_setting('app.rls_bypass', true) = 'on'`;
+
+export const personPolicy = () =>
+  pgPolicy('person_only', {
+    as: 'permissive',
+    for: 'all',
+    using: personCheck,
+    withCheck: personCheck,
+  });
+
+/**
+ * Beside tenantPolicy(), on a table an organisation owns but one person started a row in: a
+ * request to join an agency. The person sees their own row from withPerson(); the agency sees
+ * every row that is its own from withOrg().
+ */
+export const ownRowPolicy = () =>
+  pgPolicy('own_row', {
+    as: 'permissive',
+    for: 'select',
+    using: sql`user_id = nullif(current_setting('app.person_id', true), '')`,
+  });

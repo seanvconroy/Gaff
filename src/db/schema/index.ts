@@ -9,3 +9,5 @@ export * from './checks';
 export * from './offers';
 export * from './tenancy';
 export * from './funnels';
+export * from './register';
+export * from './accounts';

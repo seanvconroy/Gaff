@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   boolean,
   index,
@@ -7,37 +8,76 @@ import {
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 import { users } from './auth';
-import { createdAt, updatedAt } from './columns';
+import { createdAt, ownRowPolicy, tenantPolicy, updatedAt } from './columns';
+import { psraRegister } from './register';
 
-export const organisationKind = pgEnum('organisation_kind', ['agency', 'landlord']);
+/**
+ * Who an organisation is (ADR-0016):
+ * - `agency`: a business that lets homes for their owners, under a PSRA licence;
+ * - `landlord`: a landlord's team, letting their own homes with help (UX-AG-10);
+ * - `private_landlord`: one person letting their own homes. It is made silently, has no name of
+ *   its own and no settings page, and its one member is its admin (UX-AC-4).
+ */
+export const organisationKind = pgEnum('organisation_kind', [
+  'agency',
+  'landlord',
+  'private_landlord',
+]);
 export const memberRole = pgEnum('member_role', ['admin', 'negotiator']);
 
-/** An agency or portfolio landlord: the operator that pays (PRD data model). */
-export const organisations = pgTable('organisations', {
-  id: uuid().primaryKey().defaultRandom(),
-  name: text().notNull(),
-  kind: organisationKind().notNull(),
-  psraLicenceNumber: text(),
-  /** Local part of the organisation's Gaff address, e.g. "halcyon" → halcyon@in.gaff.ie (R5). */
-  inboundSlug: text().notNull().unique(),
-  /** R29: AI-written messages wait for a person's approval. On for every new organisation. */
-  approveBeforeSend: boolean().notNull().default(true),
-  sendingDomain: text(),
-  sendingDomainVerifiedAt: timestamp({ withTimezone: true }),
-  /** R16, R17: take-home income at least this many tenths of the rent (25 = 2.5 times). */
-  incomeRuleTenths: integer().notNull().default(25),
-  /** R23: where the deposit and first month's rent are paid: the operator's own account. */
-  paymentAccountName: text(),
-  paymentIban: text(),
-  /** Pilot baselines from the interviews, for time and days saved (R28). */
-  baselineMinutesPerLetting: integer(),
-  baselineDaysToLet: integer(),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
+/** Whoever lets homes: an agency, a landlord's team, or one private landlord (ADR-0016). */
+export const organisations = pgTable(
+  'organisations',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    /**
+     * The name renters see. An agency's trading or registered name; for a private landlord,
+     * their first name until they're asked what renters should call them (UX-AC-9).
+     */
+    name: text().notNull(),
+    kind: organisationKind().notNull(),
+    /** An agency's licence number, copied from its entry in the register (UX-AG-7). */
+    psraLicenceNumber: text(),
+    /** UX-AG-1: the agency's entry in Gaff's copy of the PSRA register. */
+    psraRegisterEntryId: uuid().references(() => psraRegister.id),
+    /**
+     * UX-AG-4, Q32: when someone at Gaff confirmed that the agency's first admin works there, or
+     * when a founder created the agency for a pilot (UX-AG-5). Null: "being confirmed".
+     */
+    confirmedAt: timestamp({ withTimezone: true }),
+    /** Who at Gaff confirmed it. */
+    confirmedBy: text().references(() => users.id),
+    /** UX-AG-6: when the weekly check found the licence gone from the register. */
+    licenceLapsedAt: timestamp({ withTimezone: true }),
+    /** Local part of the organisation's Gaff address, e.g. "halcyon" → halcyon@in.gaff.ie (R5). */
+    inboundSlug: text().notNull().unique(),
+    /** R29: AI-written messages wait for a person's approval. On for every new organisation. */
+    approveBeforeSend: boolean().notNull().default(true),
+    sendingDomain: text(),
+    sendingDomainVerifiedAt: timestamp({ withTimezone: true }),
+    /** R16, R17: take-home income at least this many tenths of the rent (25 = 2.5 times). */
+    incomeRuleTenths: integer().notNull().default(25),
+    /** R23: where the deposit and first month's rent are paid: the operator's own account. */
+    paymentAccountName: text(),
+    paymentIban: text(),
+    /** Pilot baselines from the interviews, for time and days saved (R28). */
+    baselineMinutesPerLetting: integer(),
+    baselineDaysToLet: integer(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    // One confirmed agency per licence. A claim nobody has confirmed proves nothing (Q32), so
+    // it holds nothing: the real agency can still claim its own entry.
+    uniqueIndex('organisations_confirmed_register_entry_idx')
+      .on(t.psraRegisterEntryId)
+      .where(sql`${t.confirmedAt} is not null`),
+  ],
+);
 
 export const memberships = pgTable(
   'memberships',
@@ -56,3 +96,58 @@ export const memberships = pgTable(
     index('memberships_user_id_idx').on(t.userId),
   ],
 );
+
+/**
+ * UX-AG-5: an invitation to join an organisation, by email address. For now only a founder sends
+ * one, to a pilot agency's first admin; colleagues' invites are work package WP-19. The person
+ * who signs in with that address, verified, joins with no questions. The row is deleted when
+ * it's accepted, and by the retention job once it has expired (rule 9).
+ */
+export const organisationInvites = pgTable(
+  'organisation_invites',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organisationId: uuid()
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    /** The invited address, in lower case. */
+    email: text().notNull(),
+    role: memberRole().notNull(),
+    invitedBy: text().references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    /** UX-AG-12: an invite lasts seven days. */
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+  },
+  (t) => [
+    uniqueIndex('organisation_invites_org_email_idx').on(t.organisationId, t.email),
+    index('organisation_invites_email_idx').on(t.email),
+    tenantPolicy(),
+  ],
+).enableRLS();
+
+/**
+ * UX-AG-3: someone asked to join an agency that is already on Gaff. The request is the agency's
+ * admins' to answer; showing and answering it is work package WP-19. Until then it is recorded.
+ */
+export const joinRequests = pgTable(
+  'join_requests',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organisationId: uuid()
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    userId: text()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    requestedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    /** Set by the admin who answers (WP-19). */
+    answeredAt: timestamp({ withTimezone: true }),
+    answer: text({ enum: ['approved', 'declined'] }),
+  },
+  (t) => [
+    uniqueIndex('join_requests_org_user_idx').on(t.organisationId, t.userId),
+    index('join_requests_user_idx').on(t.userId),
+    tenantPolicy(),
+    ownRowPolicy(),
+  ],
+).enableRLS();

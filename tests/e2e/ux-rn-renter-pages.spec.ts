@@ -63,10 +63,7 @@ const groups: Array<[string, string[]]> = [
       'missed-viewing',
     ],
   ],
-  [
-    'UX-RN-11 to UX-RN-13: applying',
-    ['after-viewing', 'apply', 'apply-check', 'applied'],
-  ],
+  ['UX-RN-11 to UX-RN-13: applying', ['after-viewing', 'apply', 'apply-check', 'applied']],
   [
     'UX-RN-14 to UX-RN-18: the checks',
     [
@@ -100,7 +97,10 @@ const groups: Array<[string, string[]]> = [
       'tenancy-moved-in',
     ],
   ],
-  ['Outcomes: the home is let or gone, and a link that has ended', ['home-let', 'home-closed', 'link-ended']],
+  [
+    'Outcomes: the home is let or gone, and a link that has ended',
+    ['home-let', 'home-closed', 'link-ended'],
+  ],
 ];
 
 for (const [title, names] of groups) {
@@ -226,7 +226,10 @@ test('UX-RN-5, UX-RN-6, UX-RN-8, UX-RN-10: days then times, a held place with no
     'true',
   );
   await expect(page.getByRole('heading', { name: 'Friday 20 November' })).toBeVisible();
-  const times = page.getByRole('main').getByRole('listitem').getByRole('link', { name: /pm$|am$/ });
+  const times = page
+    .getByRole('main')
+    .getByRole('listitem')
+    .getByRole('link', { name: /pm$|am$/ });
   await expect(times).toHaveText(['6pm', '6:15pm', '6:30pm']);
   for (const time of await times.all()) {
     expect((await time.boundingBox())!.height).toBeGreaterThanOrEqual(48);
@@ -292,7 +295,9 @@ test('UX-RN-5, UX-RN-6, UX-RN-8, UX-RN-10: days then times, a held place with no
   await expect(page.getByRole('main').locator('input, select, textarea')).toHaveCount(0);
 });
 
-test('UX-RN-8: on a phone, “Get directions” opens the phone’s own maps app', async ({ browser }) => {
+test('UX-RN-8: on a phone, “Get directions” opens the phone’s own maps app', async ({
+  browser,
+}) => {
   for (const [userAgent, href] of [
     [
       'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1',
@@ -343,7 +348,9 @@ test('UX-RN-11, UX-RN-12: applying is two questions, then a check screen with �
   await expect(page.getByRole('main').locator('input:not([type=hidden]):visible')).toHaveCount(1);
   await expect(page.getByRole('checkbox')).toHaveCount(0);
   await next.click();
-  await expect(page.getByText('Enter your take-home income as an amount, like 3,200.')).toBeVisible();
+  await expect(
+    page.getByText('Enter your take-home income as an amount, like 3,200.'),
+  ).toBeVisible();
   await page.getByLabel('Take-home income each month').fill('3,400');
   await next.click();
 
@@ -433,21 +440,29 @@ test('UX-RN-15, UX-RN-16, UX-RN-18: the checks are one at a time, each says what
   await page.getByLabel('Their name').fill('Mary Kelly');
   await page.getByLabel('Their email').fill('mary.kelly@example.ie');
   await next.click();
-  await expect(page.getByRole('heading', { name: 'Is there an employer we can ask?' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Is there an employer we can ask?' }),
+  ).toBeVisible();
 
   // UX-RN-18: "No" to both. No fields, no warning, nothing called missing: just "Send".
   await page.goto(page_('checks-references'));
   await page.getByRole('radio', { name: 'No', exact: true }).check();
   await next.click();
-  await expect(page.getByRole('heading', { name: 'Is there an employer we can ask?' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Is there an employer we can ask?' }),
+  ).toBeVisible();
   await page.getByRole('radio', { name: 'No', exact: true }).check();
   await expect(page.getByRole('button', { name: 'Send', exact: true })).toBeVisible();
-  await expect(page.getByRole('main').locator('input[type=text], input[type=email]')).toHaveCount(0);
+  await expect(page.getByRole('main').locator('input[type=text], input[type=email]')).toHaveCount(
+    0,
+  );
   expect(await page.getByRole('main').innerText()).not.toMatch(/missing|required|must|sorry/i);
 
   // With no service to start a check here, the lister arranges it, and the next isn't held up.
   await page.goto(page_('checks-arranged'));
-  await expect(page.getByText('Halcyon Lettings will arrange this check with you.').first()).toBeVisible();
+  await expect(
+    page.getByText('Halcyon Lettings will arrange this check with you.').first(),
+  ).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Have you rented before?' })).toBeVisible();
 });
 
@@ -467,7 +482,9 @@ test('UX-RN-19 to UX-RN-25: the offer’s one total, ring-to-check, the PPS step
   // UX-RN-20: declining asks for no reason.
   await page.goto(page_('decline'));
   await expect(page.getByRole('heading', { name: 'Decline the offer?' })).toBeVisible();
-  await expect(page.getByRole('main').locator('input:not([type=hidden]), textarea, select')).toHaveCount(0);
+  await expect(
+    page.getByRole('main').locator('input:not([type=hidden]), textarea, select'),
+  ).toHaveCount(0);
 
   // UX-RN-22, UX-RN-23: the total, the account, copy buttons, and the number to ring.
   await page.goto(page_('pay'));
@@ -530,14 +547,18 @@ test('UX-RN-19 to UX-RN-25: the offer’s one total, ring-to-check, the PPS step
   await page.keyboard.press('Escape');
   await expect(note).toBeHidden();
   // What they've already said about an item is shown back to them.
-  await expect(page.getByText('There’s a second tear at the back that isn’t listed.')).toBeVisible();
+  await expect(
+    page.getByText('There’s a second tear at the back that isn’t listed.'),
+  ).toBeVisible();
 });
 
 test('UX-RN-26: the tenant’s three steps are a short list that never shows a step open after a later one is done', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  const steps = page.getByRole('list', { name: 'Your tenancy, step by step' }).getByRole('listitem');
+  const steps = page
+    .getByRole('list', { name: 'Your tenancy, step by step' })
+    .getByRole('listitem');
   const expected: Array<[string, RegExp[]]> = [
     ['tenancy-sign', [/Sign your agreement.*Next/, /Pay.*To come/, /inventory.*To come/]],
     ['tenancy-payment-coming', [/Sign your agreement.*Done/, /Pay.*Next/, /inventory.*To come/]],
@@ -558,7 +579,10 @@ test('UX-RN-26: the tenant’s three steps are a short list that never shows a s
     /\/agreement$/,
   );
   await page.goto(page_('tenancy-pay'));
-  await expect(page.getByRole('link', { name: 'See how to pay' })).toHaveAttribute('href', /\/pay$/);
+  await expect(page.getByRole('link', { name: 'See how to pay' })).toHaveAttribute(
+    'href',
+    /\/pay$/,
+  );
   await page.goto(page_('tenancy-inventory'));
   await expect(page.getByRole('link', { name: 'Check the inventory' })).toHaveAttribute(
     'href',

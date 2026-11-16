@@ -181,7 +181,9 @@ export async function answerQuestions(page: Page, answers: readonly string[]): P
   for (const [index, answer] of answers.entries()) {
     await page.getByRole('radio', { name: answer, exact: true }).check();
     const last = index === answers.length - 1;
-    await page.getByRole('button', { name: last ? 'Send my answers' : 'Next', exact: true }).click();
+    await page
+      .getByRole('button', { name: last ? 'Send my answers' : 'Next', exact: true })
+      .click();
   }
 }
 

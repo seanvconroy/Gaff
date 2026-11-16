@@ -55,7 +55,9 @@ test('UX-PP-1, UX-PP-3, UX-PP-5, UX-PP-9: the frame for a renter, a tenant, an o
     expect(box.height).toBe(48);
     if (width === 390) expect(box.width).toBe(390 - 2 * 16);
     // The home's picture is a fixed 3:2, with or without a photo in it.
-    const photo = (await page.locator('[class*="PrivateFrame-module"][class*="photo"]').boundingBox())!;
+    const photo = (await page
+      .locator('[class*="PrivateFrame-module"][class*="photo"]')
+      .boundingBox())!;
     expect(photo.width / photo.height).toBeCloseTo(3 / 2, 2);
     await expectNoSidewaysScroll(page);
     await expectAccessible(page);
@@ -160,7 +162,9 @@ test('UX-PP-3, UX-PP-10, UX-AI-1, UX-AI-2: the first reply is one email with one
   await expect(email.getByText('PSRA licence 001234')).toBeVisible();
   // The plain-text alternative is still there, and still says it too.
   await expect(firstReply.getByText('Plain text', { exact: true })).toBeVisible();
-  await expect(firstReply.locator('pre').getByText(/I’m Halcyon Lettings’ AI assistant/)).toBeVisible();
+  await expect(
+    firstReply.locator('pre').getByText(/I’m Halcyon Lettings’ AI assistant/),
+  ).toBeVisible();
   await expect(firstReply.locator('pre').getByRole('link')).toHaveCount(2);
 
   for (const width of FRAME_WIDTHS) {
@@ -199,7 +203,9 @@ test('UX-PP-3, UX-PP-10, UX-AI-1, UX-AI-2: the first reply is one email with one
     shots: 'wp6-renter-questions',
   });
   await expect(page.getByRole('heading', { level: 1, name: '12 Ranelagh Road' })).toBeVisible();
-  await expect(page.getByText(/^€1,850 a month · 2-bed apartment · From \w+day \d+ \w+$/)).toBeVisible();
+  await expect(
+    page.getByText(/^€1,850 a month · 2-bed apartment · From \w+day \d+ \w+$/),
+  ).toBeVisible();
   // UX-PP-2: what happens next is said once, after the task.
   await expect(page.getByText('What happens next', { exact: true })).toHaveCount(1);
   const order = await page.evaluate(() => {

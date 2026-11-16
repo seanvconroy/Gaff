@@ -65,7 +65,9 @@ export async function expectPrivateFrame(
       } else {
         // UX-PP-9, Q45: one quiet line, how to reach the agency, and no way into Gaff.
         await expect(footer.getByText('Run with Gaff', { exact: true })).toBeVisible();
-        await expect(footer.getByText(`To reach ${frame.lister}, reply to their email.`)).toBeVisible();
+        await expect(
+          footer.getByText(`To reach ${frame.lister}, reply to their email.`),
+        ).toBeVisible();
         await expect(footer.getByRole('link')).toHaveCount(0);
         await expect(page.getByText(/sign up for gaff|try gaff|create an account/i)).toHaveCount(0);
       }

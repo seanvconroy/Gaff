@@ -4,6 +4,7 @@ import {
   ClipboardList,
   House,
   KeyRound,
+  MessagesSquare,
   Plus,
   Send,
   Sparkles,
@@ -25,6 +26,7 @@ import { CopyButton } from '@/ui/CopyButton';
 import { Disclosure } from '@/ui/Disclosure';
 import { EmptyState } from '@/ui/EmptyState';
 import { ChoiceGroup, SelectField, TextArea, TextField } from '@/ui/Field';
+import { FormActions, formClass } from '@/ui/Form';
 import { HomeCard, HomeGrid } from '@/ui/HomeCard';
 import { Card, CardHeader } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
@@ -35,6 +37,18 @@ import { DraftedByAi, StatusPill } from '@/ui/StatusPill';
 import { StepCard } from '@/ui/StepCard';
 import { SummaryList } from '@/ui/SummaryList';
 import { Cell, Table } from '@/ui/Table';
+import {
+  ConversationList,
+  ConversationRow,
+  DraftGap,
+  DraftText,
+  OpenConversation,
+  ReplyBox,
+  Thread,
+  ThreadHeader,
+  ThreadLayout,
+  ThreadMessage,
+} from '@/ui/Thread';
 import { Wordmark, WordmarkImage } from '@/ui/Wordmark';
 import { CodeDemo, MenuDemo, PickerDemos, SheetDemo, ThemeSwitch, ToastDemo } from './Demos';
 import styles from './ui.module.css';
@@ -121,6 +135,39 @@ function Example({ label, children }: { label: string; children: ReactNode }) {
       <p className={styles.exampleLabel}>{label}</p>
       {children}
     </div>
+  );
+}
+
+/** Made-up conversations for the thread examples: one waiting, one answered, one with an owner. */
+function SampleConversations({ label, current }: { label: string; current?: boolean }) {
+  return (
+    <ConversationList label={label}>
+      <ConversationRow
+        href="#thread"
+        who="Aoife"
+        home="12 Ranelagh Road"
+        lastLine="Hi, is it furnished? Is there a garden?"
+        when="9:20am"
+        status={<StatusPill tone="info">Needs you</StatusPill>}
+        current={current}
+      />
+      <ConversationRow
+        href="#thread"
+        who="Ciarán"
+        home="12 Ranelagh Road"
+        lastLine="Gaff: Thanks for your enquiry about 12 Ranelagh Road."
+        when="Yesterday"
+      />
+      <ConversationRow
+        href="#thread"
+        who="Tom"
+        role="Owner"
+        home="4 Rathmines Close"
+        lastLine="You: Two viewings are booked for Saturday."
+        when="Tuesday"
+        status={<StatusPill>Waiting for Niamh</StatusPill>}
+      />
+    </ConversationList>
   );
 }
 
@@ -635,6 +682,91 @@ export default function ComponentsPage() {
               line="Let in 21 days · saved 9 days and 4 hours 20 minutes"
             />
           </HomeGrid>
+        </Section>
+
+        <Section
+          id="thread"
+          title="Thread and reply box"
+          lead="A conversation, like any messaging app. Below 900px the list is a screen and the open conversation is a screen, with a way back; above, they sit side by side. A draft waits in the reply box, already written, with what Gaff couldn’t answer marked in it."
+        >
+          <Example label="The list of conversations, with none open">
+            <ThreadLayout open={false} list={<SampleConversations label="Conversations" />}>
+              <EmptyState icon={MessagesSquare} title="Choose a conversation">
+                <p>It opens here, with anything Gaff has drafted ready to send.</p>
+              </EmptyState>
+            </ThreadLayout>
+          </Example>
+          <Example label="A conversation, open, with a draft in the reply box">
+            <ThreadLayout
+              open
+              list={<SampleConversations label="Conversations, with one open" current />}
+            >
+              <OpenConversation labelledBy="ui-thread-title">
+                <ThreadHeader
+                  id="ui-thread-title"
+                  back={{ href: '#thread', label: 'Inbox' }}
+                  title="Aoife Byrne"
+                  meta="12 Ranelagh Road"
+                />
+                <Thread label="Messages with Aoife">
+                  <ThreadMessage from="them" name="Aoife" when="Yesterday, 6:10pm">
+                    Hi, is it furnished? Is there a garden?
+                  </ThreadMessage>
+                  <ThreadMessage from="gaff" name="Gaff" when="Yesterday, 6:10pm">
+                    {'Hello Aoife,\n\nThanks for your enquiry about 12 Ranelagh Road.'}
+                  </ThreadMessage>
+                  <ThreadMessage from="you" name="You" when="9:02am">
+                    The side gate is open on the day.
+                  </ThreadMessage>
+                  <ThreadMessage from="colleague" name="Niamh" when="9:14am" state="sending">
+                    I’ll be there from half five.
+                  </ThreadMessage>
+                  <ThreadMessage from="gaff" name="Gaff" when="9:20am" state="not_sent" byText>
+                    Your viewing is tomorrow at 6pm.
+                  </ThreadMessage>
+                </Thread>
+                <ReplyBox id="ui-reply-title" title="Reply to Aoife" pill={<DraftedByAi />}>
+                  <form className={formClass}>
+                    <DraftText>
+                      {'Hello Aoife,\n\nYou asked: Is it furnished?\nYes, it’s furnished.'}
+                    </DraftText>
+                    <DraftGap>
+                      <TextArea
+                        name="ui-gap"
+                        label="Gaff doesn’t know: Is there a garden?"
+                        hint="Leave it empty and Gaff tells Aoife a person will reply about it."
+                        rows={3}
+                      />
+                      <ChoiceGroup
+                        type="checkbox"
+                        name="ui-remember"
+                        legend="Remember your answer"
+                        hideLegend
+                        defaultValue="yes"
+                        options={[
+                          {
+                            value: 'yes',
+                            label: 'Remember this for 12 Ranelagh Road',
+                            hint: 'Gaff uses your answer for everyone who asks about this home.',
+                          },
+                        ]}
+                      />
+                    </DraftGap>
+                    <DraftText>
+                      {
+                        'If you have any other questions, just reply to this email.\n\nHalcyon Lettings’ AI assistant'
+                      }
+                    </DraftText>
+                    <FormActions>
+                      <Button variant="primary">Send</Button>
+                      <Button>Edit</Button>
+                      <Button variant="quiet">Don’t send</Button>
+                    </FormActions>
+                  </form>
+                </ReplyBox>
+              </OpenConversation>
+            </ThreadLayout>
+          </Example>
         </Section>
       </main>
     </div>

@@ -186,7 +186,7 @@ Every component adapts between phone and desktop. "Status" says whether it exist
 | **Account menu** | Everything outside the destinations, on the avatar: profile, settings, help, sign out | A sheet | A popover under the avatar | New |
 | **Calendar** | Viewing times | A day list with a week strip | A week grid | New |
 | **Time picker for renters** | Booking a viewing | Days, then times | Same, in a narrower column | Changed |
-| **Thread and reply box** | A conversation | Full screen | List on the left, thread on the right | New |
+| **Thread and reply box** | A conversation, and the list it is chosen from. A draft waits in the reply box, with what Gaff couldn't answer marked in it | The list is a screen; the open conversation is a screen, with a way back | List on the left, thread on the right | New |
 | **Setup checklist** | First-run progress | A card with a ring and one button | Same | New |
 | **Summary list** | Terms, facts, payment details | Label above value | Label beside value | Exists |
 | **Status pill** | A state, in words with an icon | Body size on private pages | 14px in the workspace | Exists |

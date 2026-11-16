@@ -1,0 +1,241 @@
+/*
+ * Thread and reply box. Below 900px: the list of conversations is a screen, and the open one is
+ * a screen with a way back. Above: the list on the left, the conversation on the right.
+ */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.listColumn,
+.pane {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+/* The conversations: hairline rows, each one link. They line up with the heading above them. */
+.conversations {
+  margin: 0 calc(var(--space-3) * -1);
+  padding: 0;
+  border-block: 1px solid var(--color-border);
+  list-style: none;
+}
+
+.conversations > li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.conversation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-3);
+  align-items: baseline;
+  min-height: var(--size-row);
+  padding: var(--space-3);
+  color: var(--color-ink);
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.conversation:hover,
+.conversation[aria-current='true'] {
+  background-color: var(--color-surface-2);
+}
+
+/* The ring is drawn inside the row, so the rows above and below don't cover it. */
+.conversation:focus-visible {
+  outline-offset: -2px;
+}
+
+.who {
+  font-weight: var(--type-title-weight);
+  overflow-wrap: anywhere;
+}
+
+.role {
+  color: var(--color-ink-muted);
+  font-weight: var(--type-body-weight);
+}
+
+.when,
+.home {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.when {
+  white-space: nowrap;
+}
+
+.home,
+.line,
+.status {
+  grid-column: 1 / -1;
+}
+
+.line {
+  color: var(--color-ink-muted);
+  overflow-wrap: anywhere;
+}
+
+.status {
+  display: flex;
+  padding-top: var(--space-1);
+}
+
+/* An open conversation: its header, what was said, then the reply box. */
+.conversationOpen {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.header {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.headerMeta {
+  color: var(--color-ink-muted);
+}
+
+.thread {
+  display: grid;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.message {
+  display: grid;
+  gap: var(--space-1);
+  justify-self: start;
+  min-width: 0;
+  max-width: min(100%, 64ch);
+}
+
+.ours {
+  justify-self: end;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: center;
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.ours .meta {
+  justify-content: flex-end;
+}
+
+.name {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  color: var(--color-ink);
+  font-weight: var(--type-title-weight);
+}
+
+.notSent {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  color: var(--color-warning);
+  font-weight: var(--type-title-weight);
+}
+
+/* A message is one object. Theirs is on the quiet fill; ours is held off the page by a hairline. */
+.bubble {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.theirs .bubble {
+  background-color: var(--color-surface-2);
+}
+
+.ours .bubble {
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+}
+
+/* The reply box: one object at the foot of the conversation. */
+.reply {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-5);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+}
+
+.replyHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.draftText {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* The part Gaff couldn't write, marked where it falls in the draft. */
+.gap {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-4);
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-md);
+}
+
+/* The foot of an open conversation: where the page moves to when it opens. */
+.latest {
+  display: block;
+  height: 0;
+  scroll-margin-bottom: var(--space-8);
+}
+
+@media (width <= 900px) {
+  /* One screen at a time: the list, or the open conversation. */
+  .open .listColumn,
+  .layout:not(.open) .pane {
+    display: none;
+  }
+
+  .reply {
+    padding: var(--space-4);
+  }
+
+  /* Clear of the tab bar fixed to the foot of the screen. */
+  .latest {
+    scroll-margin-bottom: calc(var(--size-bar) + var(--space-6) + env(safe-area-inset-bottom));
+  }
+}
+
+@media (width > 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+  }
+
+  /* The list is beside the conversation, so there is nothing to go back to. */
+  .backRow {
+    display: none;
+  }
+}

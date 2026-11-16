@@ -12,6 +12,7 @@ import {
 import { LANDLORD_APPROVAL_TEMPLATE, landlordApprovalEmail } from '@/copy/templates/offers';
 import { incomeAgainstRule } from '@/domain/applications/apply';
 import { describeCriteria } from '@/domain/criteria/criteria';
+import { listerFrom } from '@/domain/frame/frame';
 import { approvalAnswersSchema, approvalRoute } from '@/domain/offers/approval';
 import { env } from '@/lib/env';
 import { createAccessLink, resolveAccessLink } from '@/server/access/links';
@@ -267,6 +268,8 @@ export async function loadApprovalSummary(token: string) {
       preferredAnswer: approval.preferredAnswer,
       backupAnswer: approval.backupAnswer,
       operatorName: row.organisation.name,
+      /** Whoever lets the home, for the page's frame (UX-PP-9). */
+      lister: listerFrom(row.organisation),
       landlordName: row.landlordName ?? '',
       incomeRuleTenths: row.organisation.incomeRuleTenths,
       letting: {
@@ -274,6 +277,9 @@ export async function loadApprovalSummary(token: string) {
         area: row.letting.area,
         monthlyRentCents: row.letting.monthlyRentCents,
         availableFrom: row.letting.availableFrom,
+        bedrooms: row.letting.bedrooms,
+        propertyType: row.letting.propertyType,
+        status: row.letting.status,
         criteria: describeCriteria(row.letting.criteria ?? { noPets: false }),
       },
       people: [

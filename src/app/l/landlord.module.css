@@ -1,65 +1,7 @@
-/* The landlord's private pages: phone-friendly, quiet, one column. Never below 16px. */
-.page {
-  min-height: 100vh;
-  background-color: var(--color-surface-0);
-}
-
-.header {
-  padding: var(--space-3) var(--space-4);
-  background-color: var(--color-surface-1);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.inner {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  max-width: 880px;
-  margin: 0 auto;
-}
-
-/* The agency's initial, on ink: their page, not Gaff's. */
-.monogram {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background-color: var(--color-primary);
-  border-radius: var(--radius-pill);
-  color: var(--color-ink-inverse);
-  font-size: var(--type-heading-size);
-  line-height: var(--type-heading-line);
-  font-weight: var(--type-heading-weight);
-}
-
-.who {
-  display: grid;
-  min-width: 0;
-}
-
-.operator {
-  font-weight: var(--type-title-weight);
-}
-
-.tagline {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--color-ink-muted);
-}
-
-.tagline svg {
-  flex: none;
-}
-
-.main {
-  max-width: 880px;
-  margin: 0 auto;
-  padding: var(--space-8) var(--space-4) var(--space-12);
-}
-
+/*
+ * What the owner's pages show inside the frame (src/ui/PrivateFrame): quiet, one column, never
+ * below 16px for anything they must read.
+ */
 .muted {
   color: var(--color-ink-muted);
 }
@@ -172,14 +114,4 @@
   gap: var(--space-2) var(--space-3);
   align-items: center;
   justify-content: space-between;
-}
-
-/* The page's title block: the step, the address and the home's figures. */
-.title {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.title > :first-child {
-  color: var(--color-ink-muted);
 }

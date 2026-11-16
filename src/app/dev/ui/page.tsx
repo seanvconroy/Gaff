@@ -138,6 +138,11 @@ export default function ComponentsPage() {
           <p>
             <Link href="/dev/ui/nav">See the navigation: the top bar and the tab bar</Link>
           </p>
+          <p>
+            <Link href="/dev/ui/frame">
+              See the frame of a private page, for a renter, an owner and a referee
+            </Link>
+          </p>
         </div>
 
         <Section

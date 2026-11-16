@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   frameFooter,
   frameHeader,
+  homeFrom,
   homeSummaryLine,
+  letBy,
   listerFrom,
   reachAPerson,
   type FrameHome,
@@ -57,6 +59,19 @@ describe('the frame of every private page: the header', () => {
   });
 });
 
+describe('the frame of every private page: who lets the home', () => {
+  it('UX-PP-1: a renter’s page says who lets the home, under it', () => {
+    expect(letBy('renter', agency)).toBe('Halcyon Lettings');
+    expect(letBy('renter', landlord)).toBe('Mary Byrne');
+  });
+
+  it('UX-PP-9: an owner’s page names the agency in its header, not under the owner’s own home', () => {
+    expect(letBy('owner', agency)).toBeNull();
+    expect(letBy('referee', agency)).toBeNull();
+    expect(letBy('renter', null)).toBeNull();
+  });
+});
+
 describe('the frame of every private page: the home’s summary line', () => {
   it('UX-PP-5: before it’s let, the rent, the home and the date it’s free', () => {
     expect(homeSummaryLine(home, now)).toBe(
@@ -95,6 +110,26 @@ describe('the frame of every private page: the home’s summary line', () => {
     );
     expect(homeSummaryLine({ ...home, propertyType: 'house', bedrooms: 4 }, now)).toBe(
       '€1,850 a month · 4-bed house · From Sunday 13 December',
+    );
+  });
+});
+
+describe('the frame of every private page: the home block’s facts', () => {
+  const letting = {
+    ...home,
+    id: 'a-letting',
+    eircode: 'D06 X0X0',
+    createdBy: 'a-person',
+    criteria: { noPets: true },
+  };
+
+  it('UX-PP-5: takes only what the home block shows from a letting', () => {
+    expect(homeFrom(letting)).toEqual({ ...home, tenancyStartDate: null });
+  });
+
+  it('UX-PP-5: carries the tenancy’s start date on the tenant’s own page', () => {
+    expect(homeSummaryLine(homeFrom(letting, '2026-12-20'), now)).toBe(
+      '€1,850 a month · 2-bed apartment · From Sunday 20 December',
     );
   });
 });

@@ -6,6 +6,7 @@ import {
   frameFooter,
   frameHeader,
   homeSummaryLine,
+  letBy,
   reachAPerson,
   type FrameAudience,
   type FrameHome,
@@ -60,7 +61,7 @@ export function PrivateFrame({
   const footerLines = footer.listerName !== null || footer.runWithGaff;
   return (
     // Comfortable density: body-size help text (Field reads it). Controls are 48px everywhere.
-    <div className={styles.page} data-density="comfortable">
+    <div className={styles.page} data-density="comfortable" data-frame={audience}>
       <header className={styles.header}>
         <div className={`${inner} ${styles.headerInner}`}>
           {header.brand === 'wordmark' ? (
@@ -78,7 +79,9 @@ export function PrivateFrame({
       </header>
       <main className={styles.main}>
         <div className={`${inner} ${styles.column}`}>
-          {home ? <HomeBlock home={home} lister={lister} heading={homeHeading} /> : null}
+          {home ? (
+            <HomeBlock home={home} letBy={letBy(audience, lister)} heading={homeHeading} />
+          ) : null}
           {children}
           {next ? <WhatHappensNext>{next}</WhatHappensNext> : null}
         </div>
@@ -110,16 +113,17 @@ export function PrivateFrame({
 
 /**
  * The home the page is about: the cover photo's slot, the address, one summary line that fits
- * the stage (UX-PP-5), and who lets it. Homes have no photos yet, so the slot shows the neutral
+ * the stage (UX-PP-5), and who lets it, for a renter. Homes have no photos yet, so the slot shows the neutral
  * placeholder (UX-DS-10). When a home has a public page, this block links to it.
  */
 function HomeBlock({
   home,
-  lister,
+  letBy: listerName,
   heading: Heading,
 }: {
   home: FrameHome;
-  lister: Lister | null;
+  /** Who lets it, on a renter's page. */
+  letBy: string | null;
   heading: 'h1' | 'p';
 }) {
   return (
@@ -133,13 +137,17 @@ function HomeBlock({
       </div>
       <div className={styles.homeFacts}>
         <p className={styles.summary}>{homeSummaryLine(home)}</p>
-        {lister ? <p className={styles.letBy}>{frameCopy.letBy(lister.name)}</p> : null}
+        {listerName ? <p className={styles.letBy}>{frameCopy.letBy(listerName)}</p> : null}
       </div>
     </div>
   );
 }
 
-/** UX-PP-2: what happens next and when, in one place, after the task. */
+/**
+ * UX-PP-2: what happens next and when, in one place, after the task. A page with one task passes
+ * its words to the frame's `next`; a page that still shows several tasks at once places this
+ * after the task it belongs to, until that page is rebuilt.
+ */
 export function WhatHappensNext({ children }: { children: ReactNode }) {
   return (
     <div className={styles.next}>

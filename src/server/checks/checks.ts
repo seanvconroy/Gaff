@@ -18,11 +18,13 @@ import {
   type CheckKind,
   type CheckStatus,
 } from '@/domain/checks/checks';
+import { listerFrom } from '@/domain/frame/frame';
 import { checksBack, renterChecksDone } from '@/domain/funnels/steps';
 import { openJson, sealJson } from '@/lib/crypto';
 import { env } from '@/lib/env';
 import type { IdentityResult, IncomeResult } from '@/ports/checks';
 import { createAccessLink, resolveAccessLink } from '@/server/access/links';
+import { listerColumns } from '@/server/frame/lister';
 import { noteFunnelStep, recordFunnelStep } from '@/server/funnels/steps';
 import { enqueue } from '@/server/jobs/enqueue';
 import { queueMessage } from '@/server/messages/outbox';
@@ -436,6 +438,7 @@ export async function loadReferenceRequest(token: string) {
         renterName: applications.fullName,
         deletedAt: applications.personalDataDeletedAt,
         operatorName: organisations.name,
+        organisation: listerColumns,
       })
       .from(checks)
       .innerJoin(applications, eq(applications.id, checks.applicationId))
@@ -452,6 +455,8 @@ export async function loadReferenceRequest(token: string) {
       refereeName: row.check.refereeName,
       renterName: row.renterName,
       operatorName: row.operatorName,
+      /** Whoever asked for the reference, for the page's frame (UX-PP-9). */
+      lister: listerFrom(row.organisation),
     };
   });
 }

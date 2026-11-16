@@ -2,12 +2,13 @@ import type { Metadata } from 'next';
 import { stayChoices } from '@/domain/criteria/answers';
 import { formatDate, formatEuro, irishToday } from '@/lib/format';
 import { formatRatio, minimumIncomeCents } from '@/domain/applications/apply';
+import { homeFrom, listerFrom } from '@/domain/frame/frame';
 import { openRenterPage } from '@/server/renter/answers';
 import { env } from '@/lib/env';
 import { Card, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { Outcome } from '@/ui/Outcome';
-import { HomeSummary, RenterShell } from '../RenterShell';
+import { PrivateFrame } from '@/ui/PrivateFrame';
 import styles from '../renter.module.css';
 import { AnswersForm } from './AnswersForm';
 import { ApplyForm } from './ApplyForm';
@@ -28,8 +29,9 @@ function firstName(fullName: string): string {
 }
 
 /**
- * R9: the renter's private page. No account; the link is the key. One thing at a time: the home
- * it's about, then the single task or message for where they are now.
+ * R9: the renter's private page. No account; the link is the key. One thing at a time, inside
+ * the frame every private page stands in (UX-PP-1 to UX-PP-9): the home it's about, then the
+ * single task or message for where they are now, then what happens next.
  */
 export default async function RenterPage({
   params,
@@ -67,16 +69,22 @@ export default async function RenterPage({
   const page = await openRenterPage(token);
   if (!page) {
     return (
-      <RenterShell operatorName="Gaff">
+      <PrivateFrame audience="renter" lister={null}>
         <Outcome tone="info" title="This link isn’t working" headingLevel={1}>
           <p>It may have expired. Reply to any email from us and we’ll help you.</p>
         </Outcome>
-      </RenterShell>
+      </PrivateFrame>
     );
   }
   const { application, letting, organisation, questions, firstViewing, canChange, offer } = page;
   const status = application.status;
   const closed = letting.status === 'let' || letting.status === 'withdrawn';
+  const lister = listerFrom(organisation);
+  // UX-PP-5: for the tenant, the home's "From" is the day their tenancy starts.
+  const home = homeFrom(
+    letting,
+    status === 'accepted' ? (page.tenancy?.startDate ?? page.homeOffer?.startDate ?? null) : null,
+  );
   const canBook =
     status === 'invited' || status === 'booked' || (status === 'waitlisted' && offer !== null);
   const deletion = application.deleteAfter
@@ -84,22 +92,19 @@ export default async function RenterPage({
     : '';
   if (closed && !['accepted', 'declined', 'not_chosen'].includes(application.status)) {
     return (
-      <RenterShell operatorName={organisation.name}>
-        <Stack gap={6}>
-          <HomeSummary letting={letting} />
-          <Outcome
-            tone="info"
-            title={
-              letting.status === 'let' ? 'This home has been let' : 'This home isn’t available now'
-            }
-          >
-            <p>
-              Enquiries are closed. Thank you for your interest.
-              {deletion}
-            </p>
-          </Outcome>
-        </Stack>
-      </RenterShell>
+      <PrivateFrame audience="renter" lister={lister} home={home}>
+        <Outcome
+          tone="info"
+          title={
+            letting.status === 'let' ? 'This home has been let' : 'This home isn’t available now'
+          }
+        >
+          <p>
+            Enquiries are closed. Thank you for your interest.
+            {deletion}
+          </p>
+        </Outcome>
+      </PrivateFrame>
     );
   }
   const name = firstName(application.fullName);
@@ -123,11 +128,28 @@ export default async function RenterPage({
     answers.hasPets !== undefined ? ['Pets', answers.hasPets ? 'Yes' : 'No'] : null,
   ].filter((row): row is [string, string] => row !== null);
 
-  return (
-    <RenterShell operatorName={organisation.name}>
-      <Stack gap={8}>
-        <HomeSummary letting={letting} />
+  // UX-PP-2: what happens next is said once, after the task, by the frame. Each of these states
+  // shows one task, so at most one applies.
+  const answering = !saved && canChange && questions.length > 0;
+  const applying = status === 'attended' || (status === 'applied' && Boolean(change) && !applied);
+  const checking = status === 'preferred' || status === 'backup';
+  const next = answering ? (
+    <p>{nextSteps}</p>
+  ) : applying ? (
+    <p>
+      Only {organisation.name} sees this. If they choose you, they’ll ask to check your ID, income
+      and references, and explain each check first.
+    </p>
+  ) : checking ? (
+    <p>
+      When the checks are done, {organisation.name} decides who to offer the home to. We’ll email
+      you either way.
+    </p>
+  ) : undefined;
 
+  return (
+    <PrivateFrame audience="renter" lister={lister} home={home} next={next}>
+      <Stack gap={8}>
         {booked ? (
           <Notice
             tone="success"
@@ -154,7 +176,7 @@ export default async function RenterPage({
           </Outcome>
         ) : null}
 
-        {status === 'attended' || (status === 'applied' && change && !applied) ? (
+        {applying ? (
           <section className={styles.section} aria-labelledby="apply-heading">
             <div className={styles.sectionHead}>
               <h2 id="apply-heading" className="type-title">
@@ -192,17 +214,10 @@ export default async function RenterPage({
                     : String(application.monthlyIncomeCents / 100),
               }}
             />
-            <div className={styles.next}>
-              <p className={styles.nextTitle}>What happens next</p>
-              <p>
-                Only {organisation.name} sees this. If they choose you, they’ll ask to check your
-                ID, income and references, and explain each check first.
-              </p>
-            </div>
           </section>
         ) : null}
 
-        {status === 'preferred' || status === 'backup' ? (
+        {checking ? (
           <>
             {referees ? (
               <Notice tone="success" title="Thanks" role="status">
@@ -349,7 +364,7 @@ export default async function RenterPage({
           </Card>
         ) : null}
 
-        {!saved && canChange && questions.length > 0 ? (
+        {answering ? (
           <section className={styles.section} aria-labelledby="questions-heading">
             <div className={styles.sectionHead}>
               <h2 id="questions-heading" className="type-title">
@@ -367,10 +382,6 @@ export default async function RenterPage({
               today={irishToday()}
               current={current}
             />
-            <div className={styles.next}>
-              <p className={styles.nextTitle}>What happens next</p>
-              <p>{nextSteps}</p>
-            </div>
           </section>
         ) : null}
 
@@ -389,6 +400,6 @@ export default async function RenterPage({
           </Outcome>
         ) : null}
       </Stack>
-    </RenterShell>
+    </PrivateFrame>
   );
 }

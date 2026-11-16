@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 import { formatRatio } from '@/domain/applications/apply';
-import { formatDate, formatRent } from '@/lib/format';
+import { homeFrom } from '@/domain/frame/frame';
 import { openApprovalSummary, type loadApprovalSummary } from '@/server/offers/approval';
 import { Card, Stack } from '@/ui/Layout';
 import { Outcome } from '@/ui/Outcome';
+import { PrivateFrame } from '@/ui/PrivateFrame';
 import { StatusPill } from '@/ui/StatusPill';
-import { LandlordShell } from '../../l/LandlordShell';
 import styles from '../../l/landlord.module.css';
 import { ApprovalForm } from './ApprovalForm';
 
@@ -54,7 +54,8 @@ function checkWords(
 
 /**
  * R19: the landlord's one-page summary. Names appear from this stage only, for the two people
- * chosen (Q4). Income is shown against the rule, never as an amount.
+ * chosen (Q4). Income is shown against the rule, never as an amount. The frame is the agency's
+ * (UX-PP-9): its name in the header, the home, and "Run with Gaff" in the footer.
  */
 export default async function ApprovePage({
   params,
@@ -68,32 +69,22 @@ export default async function ApprovePage({
   const summary = await openApprovalSummary(token);
   if (!summary) {
     return (
-      <LandlordShell organisationName="Gaff" tagline="Using Gaff">
+      <PrivateFrame audience="owner" lister={null}>
         <Outcome tone="info" title="This link isn’t working" headingLevel={1}>
           <p>
             It may have expired, or the choice may have changed. Ask your letting agent for a new
             one.
           </p>
         </Outcome>
-      </LandlordShell>
+      </PrivateFrame>
     );
   }
   const { letting } = summary;
   const done = summary.status === 'answered';
   return (
-    <LandlordShell
-      organisationName={summary.operatorName}
-      tagline="Sent to you privately, using Gaff"
-    >
+    <PrivateFrame audience="owner" lister={summary.lister} home={homeFrom(letting)}>
       <Stack gap={8}>
-        <header className={styles.title}>
-          <p className="type-label">Approve a tenant</p>
-          <h1 className="type-display-mobile">{letting.addressLine1}</h1>
-          <p className={styles.muted}>
-            {letting.area} · {formatRent(letting.monthlyRentCents)} · Available from{' '}
-            {formatDate(letting.availableFrom)}
-          </p>
-        </header>
+        <p className={`type-label ${styles.muted}`}>Approve a tenant</p>
         {done ? (
           <Outcome
             tone="success"
@@ -169,6 +160,6 @@ export default async function ApprovePage({
         ) : null}
         {done ? null : <ApprovalForm token={token} people={summary.people} />}
       </Stack>
-    </LandlordShell>
+    </PrivateFrame>
   );
 }

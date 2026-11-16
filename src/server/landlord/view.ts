@@ -2,8 +2,10 @@ import { asc, eq } from 'drizzle-orm';
 import { withOrg } from '@/db/client';
 import { applications, lettings, organisations } from '@/db/schema';
 import { describeCriteria } from '@/domain/criteria/criteria';
+import { listerFrom } from '@/domain/frame/frame';
 import { applicantLabels, landlordNumbers } from '@/domain/landlord/pseudonyms';
 import { resolveAccessLink } from '@/server/access/links';
+import { listerColumns } from '@/server/frame/lister';
 import { rankLetting } from '@/server/shortlist/shortlist';
 import { timelineEntries } from '@/server/timeline/timeline';
 
@@ -24,10 +26,14 @@ export async function landlordView(token: string) {
           area: lettings.area,
           monthlyRentCents: lettings.monthlyRentCents,
           availableFrom: lettings.availableFrom,
+          bedrooms: lettings.bedrooms,
+          propertyType: lettings.propertyType,
+          status: lettings.status,
           stage: lettings.stage,
           criteria: lettings.criteria,
         },
         organisationName: organisations.name,
+        organisation: listerColumns,
       })
       .from(lettings)
       .innerJoin(organisations, eq(organisations.id, lettings.organisationId))
@@ -65,6 +71,8 @@ export async function landlordView(token: string) {
     );
     return {
       organisationName: row.organisationName,
+      /** Whoever lets the home, for the page's frame (UX-PP-9). */
+      lister: listerFrom(row.organisation),
       letting: row.letting,
       criteria: describeCriteria(row.letting.criteria ?? { noPets: false }),
       numbers: landlordNumbers(

@@ -28,7 +28,8 @@ export interface Lister {
  * THE PHONE NUMBER'S SEAM (Q43, UX-PP-3): organisations have no phone number yet. The package
  * that adds one adds the column and selects it wherever an organisation is loaded for a private
  * page or an email (`listerColumns` in `src/server/frame/lister.ts`); it arrives here as `phone`,
- * and "Talk to a person" shows it with nothing else to change.
+ * and "Talk to a person" shows it with nothing else to change. The component page shows the
+ * sheet with a made-up number (`/dev/ui/frame`), and a journey holds it to that.
  */
 export function listerFrom(organisation: {
   name: string;
@@ -58,6 +59,14 @@ export function frameHeader(audience: FrameAudience, lister: Lister | null): Fra
   if (audience === 'renter') return { brand: 'wordmark', talkToAPerson: true };
   if (!lister) return { brand: 'wordmark', talkToAPerson: false };
   return { brand: 'lister', name: lister.name, talkToAPerson: false };
+}
+
+/**
+ * "Let by Halcyon Lettings", under the home on a renter's page. An owner's page names the agency
+ * in its header instead (UX-PP-9), and it is the owner's own home.
+ */
+export function letBy(audience: FrameAudience, lister: Lister | null): string | null {
+  return audience === 'renter' && lister ? lister.name : null;
 }
 
 export interface FrameFooter {
@@ -94,6 +103,23 @@ export interface FrameHome {
   status: 'draft' | 'live' | 'let' | 'withdrawn';
   /** Only on the tenant's own pages: the day their tenancy starts. */
   tenancyStartDate?: string | null;
+}
+
+/** The home block's facts, from a letting. Pass the tenancy's start date only on a tenant's page. */
+export function homeFrom(
+  letting: Omit<FrameHome, 'tenancyStartDate'>,
+  tenancyStartDate: string | null = null,
+): FrameHome {
+  return {
+    addressLine1: letting.addressLine1,
+    area: letting.area,
+    monthlyRentCents: letting.monthlyRentCents,
+    bedrooms: letting.bedrooms,
+    propertyType: letting.propertyType,
+    availableFrom: letting.availableFrom,
+    status: letting.status,
+    tenancyStartDate,
+  };
 }
 
 function kindOfHome(home: Pick<FrameHome, 'bedrooms' | 'propertyType'>): string {

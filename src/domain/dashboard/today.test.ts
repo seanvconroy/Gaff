@@ -18,7 +18,6 @@ const letting = (over: Partial<LettingSnapshot>): LettingSnapshot => ({
   undecided: 0,
   toMark: 0,
   toChoose: 0,
-  firstViewingAt: null,
   ...over,
 });
 

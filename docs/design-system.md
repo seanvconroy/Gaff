@@ -315,6 +315,15 @@ Everything is in `src/ui`. A screen is built only from these; a screen that need
 - **Skeleton:** loading is the result's own layout in `surface-2`, with a line saying what's happening. The shapes are still.
 - **Avatar:** a person's or an agency's initials in a circle. Never a photo: a renter's profile has none (product rule 3). `strong` is ink, for the agency whose page it is. **Badge:** a small mark beside a name, such as "Identity verified": an icon and words.
 
+### Built with Today and Lettings
+
+| Component | In `src/ui` | Below 900px | Above 900px |
+| --- | --- | --- | --- |
+| **Home card** | `HomeCard`, `HomeGrid` | One column | A grid, three across |
+
+- **Home card:** a home in a list, led by its cover photo at 3:2 with `radius-lg` corners. A home with no photo shows the `surface-2` fill and a house icon, never a broken image. Under the photo: the address at `heading` size, then one status line in words in `ink-muted` ("Viewings · 8 of 14 booked"). The whole card is one link, named by the address. There is no box round it: the photo is the object, and space holds the cards apart. `needsYou` adds a small dot and its words in `warning`, so it is never told by colour alone.
+- **Action list, on the page** (`bare`): the same rows under a heading with no card round them, for a list that isn't one object, such as "Needs you" on Today. The rows line up with the heading, with a hairline above the first and below the last; hover underlines the title.
+
 ### Carried over, restyled by the tokens
 
 - **Status pill:** the status `-bg` tint, the status colour for the icon and words, and always both. 13px semibold in the workspace; body size (`large`) on private pages. `accent` is `brand-bg` with ink words.

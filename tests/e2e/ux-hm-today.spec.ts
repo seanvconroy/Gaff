@@ -276,12 +276,14 @@ test('UX-HM-11: an admin switches Today and Lettings between "Mine" and "Everyon
       'aria-current',
       'true',
     );
-    await expect(rows).toHaveText([
+    // Some of these wait on a colleague, so the block is "Waiting", not "Needs you".
+    const waiting = page.getByRole('region', { name: 'Waiting' }).getByRole('listitem');
+    await expect(waiting).toHaveText([
       /^Finish setting up · 9 Canal View.*Lead: Niamh Kelly$/s,
       /^Finish setting up · 4 Harbour View.*Lead: You$/s,
     ]);
-    await expect(needsYou(page).getByText('2 Fresh Lane')).toHaveCount(0);
-    await expect(main(page).getByText('2 things', { exact: true })).toBeVisible();
+    await expect(main(page).getByText('2 Fresh Lane')).toHaveCount(0);
+    await expect(main(page).getByText('2 things are waiting.')).toBeVisible();
     // The badge in the navigation stays her own count.
     await expect(
       page
@@ -293,7 +295,7 @@ test('UX-HM-11: an admin switches Today and Lettings between "Mine" and "Everyon
     await screenshot(page, `today-everyone-${width}`);
 
     // Read first, and she can open and do any of them.
-    await rows.nth(0).getByRole('link').click();
+    await waiting.nth(0).getByRole('link').click();
     await expect(page.getByRole('heading', { level: 1, name: '9 Canal View' })).toBeVisible();
 
     // Lettings: her homes, then every home the agency runs.

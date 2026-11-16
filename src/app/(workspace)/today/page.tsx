@@ -91,7 +91,10 @@ export default async function TodayPage({
               <span className={styles.accent}>
                 {needsYou} {needsYou === 1 ? 'thing' : 'things'}
               </span>{' '}
-              {needsYou === 1 ? 'needs' : 'need'} you.
+              {everyone
+                ? // Some of these wait on a colleague, so they don't all "need you".
+                  `${needsYou === 1 ? 'is' : 'are'} waiting.`
+                : `${needsYou === 1 ? 'needs' : 'need'} you.`}
             </>
           ) : firstVisit ? (
             `Hello, ${firstNameOf(member.name)}.`
@@ -106,7 +109,7 @@ export default async function TodayPage({
       {rows.length > 0 ? (
         <section className={styles.block} aria-labelledby="needs-you-heading">
           <h2 id="needs-you-heading" className="type-title">
-            Needs you
+            {everyone ? 'Waiting' : 'Needs you'}
           </h2>
           <TodayList
             rows={rows}

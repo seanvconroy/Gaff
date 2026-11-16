@@ -40,7 +40,6 @@ export interface LettingSnapshot {
   /** Stage 8: the operator's next step on the tenancy, if it's theirs. */
   tenancyStep?: TenancyStep | null;
   tenancyStartDate?: string | null;
-  firstViewingAt: Date | null;
   /** When each thing started waiting on a person, where Gaff knows. */
   waitingSince?: Partial<Record<TodayKind, Date | null>>;
 }

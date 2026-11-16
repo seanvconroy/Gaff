@@ -88,9 +88,7 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
       .select({
         id: lettings.id,
         addressLine1: lettings.addressLine1,
-        area: lettings.area,
         monthlyRentCents: lettings.monthlyRentCents,
-        availableFrom: lettings.availableFrom,
         stage: lettings.stage,
         status: lettings.status,
         // UX-AG-9: who added it. `leadOf` turns this into the lead; WP-19 adds the real one.
@@ -252,9 +250,10 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         .filter((t) => t.startDate <= today)
         .map((t) => [t.lettingId, rtbDeadline(t.startDate)]),
     );
-    const nextViewing = byLetting(
+    // Viewing times that haven't started yet (UX-HM-7: a live home with none could do with one).
+    const timesAhead = byLetting(
       await tx
-        .select({ lettingId: viewingSlots.lettingId, at: min(viewingSlots.startsAt), n: count() })
+        .select({ lettingId: viewingSlots.lettingId, n: count() })
         .from(viewingSlots)
         .where(gt(viewingSlots.startsAt, now))
         .groupBy(viewingSlots.lettingId),
@@ -371,9 +370,6 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
       return {
         id: letting.id,
         addressLine1: letting.addressLine1,
-        area: letting.area,
-        monthlyRentCents: letting.monthlyRentCents,
-        availableFrom: letting.availableFrom,
         stage: letting.stage,
         status: letting.status,
         closedAt: letting.closedAt,
@@ -386,7 +382,7 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         places,
         booked,
         placesFree: places > 0 ? Math.max(0, places - booked) : null,
-        viewingTimesAhead: nextViewing.get(letting.id)?.n ?? 0,
+        viewingTimesAhead: timesAhead.get(letting.id)?.n ?? 0,
         toMark: toMark.get(letting.id)?.n ?? 0,
         toMarkFrom: toMark.get(letting.id)?.from ?? null,
         toMarkUntil: toMark.get(letting.id)?.until ?? null,
@@ -405,9 +401,7 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         })(),
         usualDaysToLet: usual?.daysToLet ?? null,
         minutesSaved: time.saved,
-        firstViewingAt: nextViewing.get(letting.id)?.at ?? null,
         time,
-        daysSinceFirstEnquiry: enquiredAt ? daysSince(enquiredAt, now) : null,
         waitingSince,
       };
     });

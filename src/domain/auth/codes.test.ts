@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CODE_LASTS_MINUTES,
   CODE_TRIES,
+  CODES_PER_DAY,
   CODES_PER_WINDOW,
   RESEND_AFTER_SECONDS,
   canSendAnother,
@@ -100,6 +101,13 @@ describe('UX-SI-2: one address is sent only so many codes', () => {
     expect(canSendAnother(0)).toBe(true);
     expect(canSendAnother(4)).toBe(true);
     expect(canSendAnother(5)).toBe(false);
+  });
+
+  it('allows twenty in a day, so a code can’t be guessed by asking for more and more', () => {
+    expect(CODES_PER_DAY).toBe(20);
+    expect(canSendAnother(0, 19)).toBe(true);
+    expect(canSendAnother(0, 20)).toBe(false);
+    expect(canSendAnother(4, 19)).toBe(true);
   });
 });
 

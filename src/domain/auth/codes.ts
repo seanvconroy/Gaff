@@ -16,6 +16,11 @@ export const RESEND_AFTER_SECONDS = 30;
  * someone filling another person's inbox by typing their address over and over.
  */
 export const CODES_PER_WINDOW = 5;
+/**
+ * And at most this many in a day. Each code allows five tries at a million codes, so this is
+ * what keeps guessing hopeless: a hundred tries a day at most, against any one address.
+ */
+export const CODES_PER_DAY = 20;
 
 export interface CodeFacts {
   expiresAt: Date;
@@ -62,9 +67,12 @@ export function secondsUntilResend(sentAt: Date, now: Date): number {
   return Math.max(0, Math.ceil(RESEND_AFTER_SECONDS - waited));
 }
 
-/** Whether another code may go to an address that has had this many in the last ten minutes. */
-export function canSendAnother(sentInWindow: number): boolean {
-  return sentInWindow < CODES_PER_WINDOW;
+/**
+ * Whether another code may go to an address that has had this many in the last ten minutes, and
+ * this many in the last day.
+ */
+export function canSendAnother(sentInWindow: number, sentInDay = sentInWindow): boolean {
+  return sentInWindow < CODES_PER_WINDOW && sentInDay < CODES_PER_DAY;
 }
 
 /**

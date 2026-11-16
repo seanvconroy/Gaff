@@ -376,6 +376,8 @@ test('UX-AG-1 to UX-AG-4: an agency person finds their agency by typing its name
     await waiting.getByRole('button', { name: `Confirm ${agency}` }).click();
     await expect(staffPage.getByText(/^Confirmed\./)).toBeVisible();
     await expect(staffPage.getByRole('region', { name: agency })).toHaveCount(0);
+    // The page drawn after the press has arrived whole, title and all, before it's scanned.
+    await expect(staffPage).toHaveTitle(/Agencies/);
     await expectAccessible(staffPage);
 
     // The home is live, on the decision she already made, and she's emailed.

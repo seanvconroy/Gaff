@@ -9,6 +9,7 @@ import {
   goLiveThroughUi,
   screenshot,
   sendTestEmail,
+  licenceOf,
   signUpOperator,
 } from './support';
 
@@ -116,7 +117,8 @@ test('UX-PP-3, UX-PP-10, UX-AI-1, UX-AI-2: the first reply is one email with one
   page,
 }) => {
   test.slow();
-  await signUpOperator(page);
+  // UX-AG-7: the licence renters see is the confirmed agency's, from its entry in the register.
+  const licence = await licenceOf(await signUpOperator(page));
   await createLettingThroughUi(
     page,
     '12 Ranelagh Road',
@@ -157,7 +159,7 @@ test('UX-PP-3, UX-PP-10, UX-AI-1, UX-AI-2: the first reply is one email with one
   await expect(
     email.getByText('Want to talk to a person? Reply to this email and say so.'),
   ).toBeVisible();
-  await expect(email.getByText('PSRA licence 001234')).toBeVisible();
+  await expect(email.getByText(`PSRA licence ${licence}`)).toBeVisible();
   // The plain-text alternative is still there, and still says it too.
   await expect(firstReply.getByText('Plain text', { exact: true })).toBeVisible();
   await expect(
@@ -204,7 +206,7 @@ test('UX-PP-3, UX-PP-10, UX-AI-1, UX-AI-2: the first reply is one email with one
     audience: 'renter',
     lister: 'Halcyon Lettings',
     home: '12 Ranelagh Road',
-    licence: '001234',
+    licence,
     shots: 'wp6-renter-questions',
   });
   await expect(page.getByRole('heading', { level: 1, name: '12 Ranelagh Road' })).toBeVisible();
@@ -243,7 +245,7 @@ test('UX-PP-3, UX-PP-10, UX-AI-1, UX-AI-2: the first reply is one email with one
   await expectPrivateFrame(page, {
     audience: 'renter',
     lister: 'Halcyon Lettings',
-    licence: '001234',
+    licence,
   });
 
   // A link that isn't anyone's still gives a way to a person, and names nobody.

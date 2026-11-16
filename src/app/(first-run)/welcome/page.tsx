@@ -235,7 +235,7 @@ function AgencySearch({
         </p>
         {results.length > 0 ? (
           <Card as="div">
-            <ActionList flush>
+            <ActionList>
               {results.map((result) => (
                 <ActionRow
                   key={result.id}

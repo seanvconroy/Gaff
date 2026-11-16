@@ -282,6 +282,23 @@ export async function confirmAgencyOf(email: string): Promise<void> {
   );
 }
 
+/**
+ * UX-AG-7: the PSRA licence number of the agency this person set up, as its entry in the
+ * register gives it. It is what renters see on the agency's pages and in its emails.
+ */
+export async function licenceOf(email: string): Promise<string> {
+  const rows = await asSystem<{ licence: string | null }>(
+    `select r.licence_number as licence from organisations o
+     join psra_register r on r.id = o.psra_register_entry_id
+     join memberships m on m.organisation_id = o.id join users u on u.id = m.user_id
+     where u.email = $1 and o.kind = 'agency'`,
+    [email],
+  );
+  const licence = rows[0]?.licence;
+  if (!licence) throw new Error(`${email} has no agency with a licence on the register`);
+  return licence;
+}
+
 /** First run's first question, for someone whose sign-in supplied no name (UX-AC-6). */
 export async function answerName(page: Page, name = 'Ann Power'): Promise<void> {
   await expect(page).toHaveURL(/\/welcome(\?|$)/);

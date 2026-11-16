@@ -5,9 +5,9 @@ const ann = { email: 'Ann.Power@halcyon.test', emailVerified: true };
 
 describe('UX-AC-14: a member can’t open a letting they have applied for as a renter', () => {
   it('a member whose own address enquired about the home is in conflict', () => {
-    expect(
-      appliedForThisLetting(ann, ['aoife.byrne@example.ie', 'ann.power@halcyon.test']),
-    ).toBe(true);
+    expect(appliedForThisLetting(ann, ['aoife.byrne@example.ie', 'ann.power@halcyon.test'])).toBe(
+      true,
+    );
   });
 
   it('capitals and spaces in the address make no difference', () => {

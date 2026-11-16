@@ -1,5 +1,5 @@
 import { and, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
-import { db, scopeToOrg, scopeToPerson, type Tx, withOrg, withPerson } from '@/db/client';
+import { db, scopeToOrg, scopeToPerson, type Tx, withPerson } from '@/db/client';
 import { joinRequests, memberships, organisations, psraRegister } from '@/db/schema';
 import { agencyNameSchema, nameIsKnown } from '@/domain/accounts/first-run';
 import type { BusinessLicenceType } from '@/domain/register/parse';
@@ -10,7 +10,6 @@ import {
   rankResults,
   searchTerms,
 } from '@/domain/register/search';
-import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { createOrganisationIn } from '@/server/organisations/create-organisation';
 import { recordEvent } from '@/server/record/events';
@@ -195,21 +194,21 @@ export async function claimAgency(
         and(eq(memberships.userId, person.id), eq(organisations.psraRegisterEntryId, entry.id)),
       );
     // Pressed twice, or they already belong to it: the same agency, not a second one.
-    const organisationId =
-      own?.organisationId ??
-      (holder
-        ? null
-        : (
-            await createOrganisationIn(tx, {
-              kind: 'agency',
-              name: agencyNameFrom(entry),
-              psraRegisterEntryId: entry.id,
-              psraLicenceNumber: entry.licenceNumber,
-              adminUserId: person.id,
-              actor: { type: 'person', userId: person.id },
-            })
-          ).organisationId);
-    if (!organisationId) return { result: 'already_on_gaff', agencyName: holder!.name };
+    let organisationId = own?.organisationId ?? null;
+    if (!organisationId && holder) return { result: 'already_on_gaff', agencyName: holder.name };
+    // UX-AG-2: their agency was applying for its licence, and here it is. The licence joins the
+    // agency they already set up; it is then "being confirmed" like any other.
+    organisationId ??= await attachLicenceIn(tx, person, entry);
+    organisationId ??= (
+      await createOrganisationIn(tx, {
+        kind: 'agency',
+        name: agencyNameFrom(entry),
+        psraRegisterEntryId: entry.id,
+        psraLicenceNumber: entry.licenceNumber,
+        adminUserId: person.id,
+        actor: { type: 'person', userId: person.id },
+      })
+    ).organisationId;
     await saveProfileIn(tx, person.id, {
       lastSide: 'letting',
       lastOrganisationId: organisationId,
@@ -218,6 +217,40 @@ export async function claimAgency(
     });
     return { result: 'created', organisationId };
   });
+}
+
+/** The agency this person set up while applying for a licence, if they're its admin. */
+async function attachLicenceIn(
+  tx: Tx,
+  person: SignedInPerson,
+  entry: { id: string; licenceNumber: string },
+): Promise<string | null> {
+  const [applying] = await tx
+    .select({ organisationId: organisations.id })
+    .from(memberships)
+    .innerJoin(organisations, eq(organisations.id, memberships.organisationId))
+    .where(
+      and(
+        eq(memberships.userId, person.id),
+        eq(memberships.role, 'admin'),
+        eq(organisations.kind, 'agency'),
+        isNull(organisations.psraRegisterEntryId),
+      ),
+    )
+    .limit(1);
+  if (!applying) return null;
+  await scopeToOrg(tx, applying.organisationId);
+  await tx
+    .update(organisations)
+    .set({ psraRegisterEntryId: entry.id, psraLicenceNumber: entry.licenceNumber })
+    .where(eq(organisations.id, applying.organisationId));
+  await recordEvent(tx, {
+    organisationId: applying.organisationId,
+    actor: { type: 'person', userId: person.id },
+    type: 'organisation.licence_found',
+    data: { registerEntryId: entry.id },
+  });
+  return applying.organisationId;
 }
 
 /**
@@ -247,38 +280,6 @@ export async function startAgencyWithoutLicence(
       firstRunRegisterEntryId: null,
     });
     return { organisationId };
-  });
-}
-
-/**
- * UX-AG-2: an agency that was applying has its licence now: an admin finds it on the register.
- * The agency is then "being confirmed", like any other that signed up by itself.
- */
-export async function attachLicence(member: Member, registerEntryId: string): Promise<void> {
-  if (member.role !== 'admin') throw new UserFacingError('Only an admin can do this.');
-  await withOrg(member.organisationId, async (tx) => {
-    const entry = await entryIn(tx, registerEntryId);
-    if (await confirmedHolderOf(tx, entry.id)) {
-      throw new UserFacingError('That agency is already on Gaff. Ask one of its admins to add you.');
-    }
-    const updated = await tx
-      .update(organisations)
-      .set({ psraRegisterEntryId: entry.id, psraLicenceNumber: entry.licenceNumber })
-      .where(
-        and(
-          eq(organisations.id, member.organisationId),
-          eq(organisations.kind, 'agency'),
-          isNull(organisations.psraRegisterEntryId),
-        ),
-      )
-      .returning({ id: organisations.id });
-    if (updated.length === 0) return;
-    await recordEvent(tx, {
-      organisationId: member.organisationId,
-      actor: { type: 'person', userId: member.userId },
-      type: 'organisation.licence_found',
-      data: { registerEntryId: entry.id },
-    });
   });
 }
 

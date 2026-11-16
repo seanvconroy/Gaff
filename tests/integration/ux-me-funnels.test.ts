@@ -7,7 +7,6 @@ import {
   funnelEvents,
   landlordApprovals,
   messages,
-  users,
   viewingSlots,
 } from '@/db/schema';
 import { allFunnelReports, type FunnelReport } from '@/domain/funnels/report';

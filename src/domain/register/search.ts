@@ -19,7 +19,10 @@ export function searchKey(text: string): string {
 }
 
 /** What Gaff's copy keeps for the search: both names, in plain form. */
-export function searchTextFor(entry: { registeredName: string; tradingName: string | null }): string {
+export function searchTextFor(entry: {
+  registeredName: string;
+  tradingName: string | null;
+}): string {
   const registered = searchKey(entry.registeredName);
   const trading = entry.tradingName ? searchKey(entry.tradingName) : '';
   return trading && trading !== registered ? `${registered} ${trading}` : registered;
@@ -82,6 +85,9 @@ export const licenceNumberSchema = z
   );
 
 /** The name renters see for an agency: its trading name, if it has one (UX-AC-9). */
-export function agencyNameFrom(entry: { registeredName: string; tradingName: string | null }): string {
+export function agencyNameFrom(entry: {
+  registeredName: string;
+  tradingName: string | null;
+}): string {
   return entry.tradingName?.trim() || entry.registeredName;
 }

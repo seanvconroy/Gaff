@@ -9,14 +9,16 @@ import { startTakingEnquiries } from '@/server/lettings/go-live';
 
 export async function goLiveAction(lettingId: string): Promise<void> {
   const member = await requireMember();
+  let went: 'live' | 'held';
   try {
-    await startTakingEnquiries(member, lettingId);
+    went = await startTakingEnquiries(member, lettingId);
   } catch (error) {
     if (!(error instanceof UserFacingError)) throw error;
     redirect(`/lettings/${lettingId}?problem=setup`);
   }
   revalidatePath(`/lettings/${lettingId}`, 'layout');
-  redirect(`/lettings/${lettingId}?saved=live`);
+  // UX-AG-4: held while the agency is being confirmed. The page says so, where the button was.
+  redirect(went === 'live' ? `/lettings/${lettingId}?saved=live` : `/lettings/${lettingId}`);
 }
 
 /** R26: a person closes the letting as let or withdrawn. */

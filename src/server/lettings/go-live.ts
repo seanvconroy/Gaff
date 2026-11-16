@@ -1,4 +1,5 @@
 import { and, eq, isNotNull } from 'drizzle-orm';
+import { goLiveCopy } from '@/copy/go-live';
 import { db, type Tx, withOrg } from '@/db/client';
 import { lettings, organisations } from '@/db/schema';
 import { countCriteria } from '@/domain/criteria/criteria';
@@ -31,14 +32,6 @@ export async function goLiveGateFor(
   return { gate: goLiveGate(organisation), organisationName: organisation.name };
 }
 
-/** Why a home can't go live, for the person who pressed the button (UX-AG-2, UX-AG-6). */
-export const goLiveProblems = {
-  no_licence:
-    'This home can’t go live yet: your agency’s PSRA licence isn’t on Gaff. Find it on the register when you have it.',
-  licence_lapsed:
-    'This home can’t go live yet: your agency’s PSRA licence isn’t on this week’s register.',
-} as const;
-
 /**
  * Stage 1: the operator confirms the facts, rent and criteria (PRD workflow). Only then does
  * Gaff start answering enquiries for the home. Recorded as a person's decision (ADR-0007).
@@ -67,9 +60,7 @@ export async function startTakingEnquiries(
       .where(eq(organisations.id, member.organisationId));
     const gate = goLiveGate(organisation!);
     if (!gate.open && !gate.waits) {
-      throw new UserFacingError(
-        goLiveProblems[gate.reason as keyof typeof goLiveProblems] ?? goLiveProblems.no_licence,
-      );
+      throw new UserFacingError(goLiveCopy.held[gate.reason](organisation!.name));
     }
 
     const decision = await recordDecision(tx, {

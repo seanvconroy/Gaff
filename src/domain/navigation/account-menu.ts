@@ -1,9 +1,4 @@
-import {
-  type AddableContext,
-  addableContexts,
-  type PersonContext,
-  switcherFor,
-} from './context';
+import { type AddableContext, addableContexts, type PersonContext, switcherFor } from './context';
 
 /** Who the account menu is for: their name, the contexts they have, and the one that's open. */
 export interface AccountPerson {
@@ -52,7 +47,12 @@ export interface AccountMenu {
 export const addAgencyHref = '/welcome?step=agency';
 
 const addRows: Record<AddableContext, AccountRow> = {
-  renting: { key: 'add-renting', kind: 'add-renting', label: 'Find a home to rent', add: 'renting' },
+  renting: {
+    key: 'add-renting',
+    kind: 'add-renting',
+    label: 'Find a home to rent',
+    add: 'renting',
+  },
   own_homes: {
     key: 'add-own-homes',
     kind: 'add-own-homes',

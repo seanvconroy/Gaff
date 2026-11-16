@@ -84,7 +84,10 @@ describe('the plain form names are compared in', () => {
 
   it('keeps both names once, for the search', () => {
     expect(
-      searchTextFor({ registeredName: 'Halcyon Lettings Limited', tradingName: 'Halcyon Lettings' }),
+      searchTextFor({
+        registeredName: 'Halcyon Lettings Limited',
+        tradingName: 'Halcyon Lettings',
+      }),
     ).toBe('halcyon lettings limited halcyon lettings');
     expect(searchTextFor({ registeredName: 'Corrib Homes Limited', tradingName: null })).toBe(
       'corrib homes limited',
@@ -116,7 +119,10 @@ describe('UX-AG-2: "Enter the licence number instead"', () => {
 describe('UX-AC-9: the name renters see for an agency', () => {
   it('is its trading name, or its registered name when it has none', () => {
     expect(
-      agencyNameFrom({ registeredName: 'Halcyon Lettings Limited', tradingName: 'Halcyon Lettings' }),
+      agencyNameFrom({
+        registeredName: 'Halcyon Lettings Limited',
+        tradingName: 'Halcyon Lettings',
+      }),
     ).toBe('Halcyon Lettings');
     expect(agencyNameFrom({ registeredName: 'Corrib Homes Limited', tradingName: null })).toBe(
       'Corrib Homes Limited',

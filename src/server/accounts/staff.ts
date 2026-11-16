@@ -1,13 +1,7 @@
 import { and, asc, eq, isNotNull, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, scopeToOrg, withSystem } from '@/db/client';
-import {
-  memberships,
-  organisationInvites,
-  organisations,
-  psraRegister,
-  users,
-} from '@/db/schema';
+import { memberships, organisationInvites, organisations, psraRegister, users } from '@/db/schema';
 import { type BusinessLicenceType } from '@/domain/register/parse';
 import { agencyNameFrom, licenceNumberSchema } from '@/domain/register/search';
 import type { Staff } from '@/server/auth/staff';
@@ -177,7 +171,8 @@ export async function createPilotAgency(
   staff: Staff,
   input: { licenceNumber: string; adminEmail: string },
 ): Promise<
-  { ok: true; organisationId: string; agencyName: string } | { ok: false; errors: Record<string, string> }
+  | { ok: true; organisationId: string; agencyName: string }
+  | { ok: false; errors: Record<string, string> }
 > {
   const parsed = pilotAgencySchema.safeParse(input);
   if (!parsed.success) {
@@ -191,7 +186,10 @@ export async function createPilotAgency(
       .select()
       .from(psraRegister)
       .where(
-        and(eq(psraRegister.licenceNumber, parsed.data.licenceNumber), isNull(psraRegister.removedAt)),
+        and(
+          eq(psraRegister.licenceNumber, parsed.data.licenceNumber),
+          isNull(psraRegister.removedAt),
+        ),
       );
     if (!entry) {
       return {

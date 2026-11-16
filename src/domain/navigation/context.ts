@@ -46,15 +46,13 @@ export function contextsFor(person: {
   /** Whether they've said they're looking for a home. */
   renting: boolean;
 }): PersonContext[] {
-  const letting = person.organisations.map(
-    (organisation): LettingContext => ({
-      key: organisation.id,
-      side: 'letting',
-      organisationId: organisation.id,
-      kind: organisation.kind,
-      label: organisation.kind === 'private_landlord' ? contextLabels.ownHomes : organisation.name,
-    }),
-  );
+  const letting = person.organisations.map((organisation): LettingContext => ({
+    key: organisation.id,
+    side: 'letting',
+    organisationId: organisation.id,
+    kind: organisation.kind,
+    label: organisation.kind === 'private_landlord' ? contextLabels.ownHomes : organisation.name,
+  }));
   return [
     ...letting.filter((context) => context.kind !== 'private_landlord'),
     ...letting.filter((context) => context.kind === 'private_landlord'),
@@ -72,7 +70,9 @@ export function lettingContext(
   contexts: readonly PersonContext[],
   last: LastUsed,
 ): LettingContext | null {
-  const letting = contexts.filter((context): context is LettingContext => context.side === 'letting');
+  const letting = contexts.filter(
+    (context): context is LettingContext => context.side === 'letting',
+  );
   return letting.find((context) => context.key === last.organisationId) ?? letting[0] ?? null;
 }
 

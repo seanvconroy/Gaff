@@ -43,10 +43,11 @@ export async function aRegisterEntry(
   const id = crypto.randomUUID();
   const entry = {
     id,
-    // Fifteen digits from the random ID: no other test has it, and no real licence is so long.
+    // A 9 and fourteen digits from the random ID: no other test has it, no real licence is so
+    // long, and it starts with neither the sample register's 0 nor a register test's 4.
     licenceNumber:
       overrides.licenceNumber ??
-      String(BigInt(`0x${id.replace(/-/g, '')}`) % 10n ** 15n).padStart(15, '0'),
+      `9${String(BigInt(`0x${id.replace(/-/g, '')}`) % 10n ** 14n).padStart(14, '0')}`,
     registeredName: overrides.registeredName ?? `Halcyon ${id.slice(0, 6)} Limited`,
     tradingName: overrides.tradingName === undefined ? null : overrides.tradingName,
     licenceType: 'company',

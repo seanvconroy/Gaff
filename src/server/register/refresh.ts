@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNotNull, isNull, notInArray, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, notInArray, type SQL, sql } from 'drizzle-orm';
 import { registerSource } from '@/adapters/register';
 import { db, type Tx, withSystem } from '@/db/client';
 import { organisations, psraRegister, psraRegisterRefreshes } from '@/db/schema';
@@ -37,14 +37,25 @@ export interface RefreshResult {
 export async function refreshRegister(
   source: RegisterSource = registerSource(),
   now: Date = new Date(),
+  /**
+   * Limits the refresh to licence numbers that start with this (for tests running side by
+   * side, as the retention job has): entries, removals and the re-check all keep within it.
+   */
+  onlyLicencesStarting?: string,
 ): Promise<RefreshResult> {
-  const { entries } = parseRegister(await source.read());
+  const within = onlyLicencesStarting
+    ? sql`${psraRegister.licenceNumber} like ${`${onlyLicencesStarting}%`}`
+    : undefined;
+  const entries = parseRegister(await source.read()).entries.filter(
+    (entry) => !onlyLicencesStarting || entry.licenceNumber.startsWith(onlyLicencesStarting),
+  );
   return withSystem(async (tx) => {
     // One refresh at a time: the weekly job and a first load can't run over each other.
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext('psra-register-refresh'))`);
     const held = await tx
       .select({ licenceNumber: psraRegister.licenceNumber, removedAt: psraRegister.removedAt })
-      .from(psraRegister);
+      .from(psraRegister)
+      .where(within);
     const listedNow = held.filter((entry) => entry.removedAt === null).length;
     if (!refreshIsPlausible(listedNow, entries.length)) {
       throw new RegisterFormatError(
@@ -83,6 +94,7 @@ export async function refreshRegister(
       .set({ removedAt: now })
       .where(
         and(
+          within,
           isNull(psraRegister.removedAt),
           notInArray(
             psraRegister.licenceNumber,
@@ -92,7 +104,7 @@ export async function refreshRegister(
       )
       .returning({ id: psraRegister.id });
 
-    const { lapsed, renewed } = await recheckAgencies(tx, now);
+    const { lapsed, renewed } = await recheckAgencies(tx, now, within);
     await tx.insert(psraRegisterRefreshes).values({
       source: source.name,
       finishedAt: now,
@@ -107,15 +119,19 @@ export async function refreshRegister(
 }
 
 /** UX-AG-6: every agency on Gaff against the copy as it stands now. */
-async function recheckAgencies(tx: Tx, now: Date): Promise<{ lapsed: number; renewed: number }> {
+async function recheckAgencies(
+  tx: Tx,
+  now: Date,
+  within: SQL | undefined,
+): Promise<{ lapsed: number; renewed: number }> {
   const goneEntries = tx
     .select({ id: psraRegister.id })
     .from(psraRegister)
-    .where(isNotNull(psraRegister.removedAt));
+    .where(and(within, isNotNull(psraRegister.removedAt)));
   const listedEntries = tx
     .select({ id: psraRegister.id })
     .from(psraRegister)
-    .where(isNull(psraRegister.removedAt));
+    .where(and(within, isNull(psraRegister.removedAt)));
 
   const lapsed = await tx
     .update(organisations)

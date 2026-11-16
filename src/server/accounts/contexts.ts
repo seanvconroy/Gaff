@@ -1,12 +1,7 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { db, scopeToPerson, type Tx, withPerson } from '@/db/client';
 import { memberships, organisations, users } from '@/db/schema';
-import {
-  firstNameOf,
-  nameIsKnown,
-  nameSchema,
-  purposeFromNext,
-} from '@/domain/accounts/first-run';
+import { firstNameOf, nameIsKnown, nameSchema, purposeFromNext } from '@/domain/accounts/first-run';
 import { homeFor, RENTING } from '@/domain/navigation/context';
 import { holdingsOf } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';

@@ -7,10 +7,11 @@ import {
   agencyInviteEmail,
   licenceLapsedEmail,
   licenceRenewedEmail,
+  memberConflictEmail,
 } from '@/copy/account-emails';
 import { layOutGaffEmail } from '@/copy/email-layout';
 import { withOrg } from '@/db/client';
-import { memberships, organisationInvites, organisations, users } from '@/db/schema';
+import { lettings, memberships, organisationInvites, organisations, users } from '@/db/schema';
 import { env } from '@/lib/env';
 import { INVITE_LASTS_DAYS } from './invites';
 
@@ -31,6 +32,13 @@ export const accountEmailJob = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('licence_lapsed'), organisationId: z.uuid() }),
   z.object({ kind: z.literal('licence_renewed'), organisationId: z.uuid() }),
   z.object({ kind: z.literal('agency_invite'), organisationId: z.uuid(), inviteId: z.uuid() }),
+  /** UX-AC-14: a member was stopped from working on a letting they applied for themselves. */
+  z.object({
+    kind: z.literal('member_conflict'),
+    organisationId: z.uuid(),
+    lettingId: z.uuid(),
+    memberUserId: z.uuid(),
+  }),
 ]);
 export type AccountEmailJob = z.infer<typeof accountEmailJob>;
 
@@ -77,10 +85,18 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
             .from(organisationInvites)
             .where(eq(organisationInvites.id, job.inviteId))
         : [];
-    return { agency, admins, invite: invite ?? null };
+    const [conflict] =
+      job.kind === 'member_conflict'
+        ? await tx
+            .select({ address: lettings.addressLine1, memberName: users.name })
+            .from(lettings)
+            .innerJoin(users, eq(users.id, job.memberUserId))
+            .where(eq(lettings.id, job.lettingId))
+        : [];
+    return { agency, admins, invite: invite ?? null, conflict: conflict ?? null };
   });
   if (!found) return;
-  const { agency, admins, invite } = found;
+  const { agency, admins, invite, conflict } = found;
   const key = (to: string) => `account-${job.kind}-${job.organisationId}-${to}-${attemptKey}`;
 
   if (job.kind === 'agency_invite') {
@@ -95,6 +111,19 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
       }),
       `account-agency_invite-${job.inviteId}`,
     );
+    return;
+  }
+  if (job.kind === 'member_conflict') {
+    if (!conflict) return;
+    const email = memberConflictEmail({
+      memberName: conflict.memberName,
+      address: conflict.address,
+      lettingUrl: `${app}/lettings/${job.lettingId}`,
+    });
+    // The member is told on the page. An admin who is that member has nothing to pick up.
+    for (const admin of admins.filter((each) => each.id !== job.memberUserId)) {
+      await send(admin.email, email, `account-member_conflict-${job.lettingId}-${admin.id}`);
+    }
     return;
   }
   const email =

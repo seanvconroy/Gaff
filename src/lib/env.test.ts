@@ -55,9 +55,9 @@ describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)'
     expect(environmentProblems({ ...production, PSRA_REGISTER_URL: undefined })).toEqual([
       'PSRA_REGISTER_URL',
     ]);
-    expect(environmentProblems({ ...production, PSRA_REGISTER_URL: 'not a web address' })).toEqual(
-      ['PSRA_REGISTER_URL'],
-    );
+    expect(environmentProblems({ ...production, PSRA_REGISTER_URL: 'not a web address' })).toEqual([
+      'PSRA_REGISTER_URL',
+    ]);
   });
 
   it('lets staging use the stand-ins and test tools, for testing with made-up details', () => {

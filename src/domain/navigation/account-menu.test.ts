@@ -112,14 +112,14 @@ describe('UX-AC-11, UX-AC-12: switching, at the top of the account menu', () => 
       label: 'Switch to renting',
       switchTo: 'renting',
     });
-    expect(
-      menuFor('Ann Power', person, { side: 'renting', organisationId: null }).rows[0],
-    ).toEqual({
-      key: 'switch',
-      kind: 'switch',
-      label: 'Switch to letting',
-      switchTo: 'org-halcyon',
-    });
+    expect(menuFor('Ann Power', person, { side: 'renting', organisationId: null }).rows[0]).toEqual(
+      {
+        key: 'switch',
+        kind: 'switch',
+        label: 'Switch to letting',
+        switchTo: 'org-halcyon',
+      },
+    );
   });
 
   it('with more, each is listed first: every agency by name, My own homes and Renting', () => {
@@ -151,7 +151,13 @@ describe('UX-AC-11, UX-AC-12: switching, at the top of the account menu', () => 
         switchTo: 'org-own',
         current: false,
       },
-      { key: 'switch-renting', kind: 'switch', label: 'Renting', switchTo: 'renting', current: false },
+      {
+        key: 'switch-renting',
+        kind: 'switch',
+        label: 'Renting',
+        switchTo: 'renting',
+        current: false,
+      },
     ]);
     // Nothing is left to add, so Profile comes next.
     expect(menu.rows[4]?.label).toBe('Profile');

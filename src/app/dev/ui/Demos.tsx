@@ -104,7 +104,9 @@ export function MenuDemo() {
 /** The account menu on the avatar, as the navigation shows it. Nothing in it does anything here. */
 export function AccountMenuDemo({ menu }: { menu: AccountMenuRows }) {
   const nothing = async () => undefined;
-  return <AccountMenu menu={menu} actions={{ signOut: nothing, switchTo: nothing, add: nothing }} />;
+  return (
+    <AccountMenu menu={menu} actions={{ signOut: nothing, switchTo: nothing, add: nothing }} />
+  );
 }
 
 function ToastButtons() {

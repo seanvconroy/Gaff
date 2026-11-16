@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { goLiveCopy } from '@/copy/go-live';
 import { describeCriteria } from '@/domain/criteria/criteria';
 import {
   describeKeyFacts,
@@ -21,7 +22,9 @@ import { nextSetupStep, setupChecklist, type SetupStep } from '@/domain/lettings
 import { comparableWarnings, medianRentCents } from '@/domain/rent/comparables';
 import { formatDate, formatDateTime, formatRent } from '@/lib/format';
 import { env } from '@/lib/env';
+import { addAgencyHref } from '@/domain/navigation/account-menu';
 import { dashboardFor } from '@/server/dashboard/dashboard';
+import { goLiveGateFor } from '@/server/lettings/go-live';
 import { ActionList, ActionRow } from '@/ui/ActionList';
 import { ButtonLink } from '@/ui/Button';
 import { Disclosure } from '@/ui/Disclosure';
@@ -104,6 +107,8 @@ export default async function LettingPage({
   const inSetup = letting.stage === 'setup';
   // Let at the offer, the letting runs on through the tenancy until it's finished (stage 9).
   const finished = letting.stage === 'close';
+  // UX-AG-4, UX-AG-6: whether this organisation can put a home live. Nothing else is ever held.
+  const { gate, organisationName } = await goLiveGateFor(member);
   const checklist = setupChecklist(setup);
   const next = nextSetupStep(setup);
   const criteriaLines = letting.criteria ? describeCriteria(letting.criteria) : null;
@@ -224,7 +229,29 @@ export default async function LettingPage({
               );
             })}
           </ActionList>
-          {next === 'go_live' ? (
+          {letting.goLiveHeldAt ? (
+            // UX-AG-4: they've decided to go live, and the agency is being confirmed.
+            <div className={styles.listCardFooter}>
+              <Notice tone="info" role="status">
+                <p>{goLiveCopy.waiting(organisationName)}</p>
+              </Notice>
+            </div>
+          ) : next === 'go_live' && !gate.open && !gate.waits ? (
+            // UX-AG-2, UX-AG-6: no licence on the register, so nothing goes live. All else works.
+            <div className={styles.listCardFooter}>
+              <Notice tone="warning">
+                <p>
+                  {goLiveCopy.held[gate.reason](organisationName)}
+                  {gate.reason === 'no_licence' ? (
+                    <>
+                      {' '}
+                      <Link href={addAgencyHref}>{goLiveCopy.findLicence}</Link>.
+                    </>
+                  ) : null}
+                </p>
+              </Notice>
+            </div>
+          ) : next === 'go_live' ? (
             <form action={goLiveAction.bind(null, letting.id)} className={styles.listCardFooter}>
               <p>
                 Ready when you are. Gaff will reply to every enquiry within minutes, as your AI

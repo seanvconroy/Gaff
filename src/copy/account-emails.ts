@@ -109,3 +109,26 @@ export function licenceRenewedEmail(input: {
     ].join('\n'),
   };
 }
+
+/** UX-AC-14: an admin is told that a colleague can't work on a letting, and why. */
+export function memberConflictEmail(input: {
+  memberName: string;
+  address: string;
+  lettingUrl: string;
+}): AccountEmail {
+  return {
+    subject: `${input.address}: someone else needs to run this letting`,
+    button: 'Open the letting',
+    text: [
+      'Hello,',
+      '',
+      `${input.memberName} enquired about ${input.address} as a renter. So that nobody decides on their own application, Gaff has stopped them opening that letting or deciding anything on it.`,
+      '',
+      'Someone else on your team needs to run it from here.',
+      '',
+      input.lettingUrl,
+      '',
+      'Gaff',
+    ].join('\n'),
+  };
+}

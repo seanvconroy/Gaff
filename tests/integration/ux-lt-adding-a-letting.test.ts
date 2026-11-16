@@ -241,6 +241,48 @@ describe('UX-FL-2, UX-LT-5: a home is added a step at a time, and keeps one ID',
   });
 });
 
+describe('UX-LT-4, UX-LT-5, UX-LT-16: a home that arrives filled in', () => {
+  it('opens on the review, and "Looks right" shows only the steps still missing an answer', async () => {
+    // What the advert reader (work package WP-10) or an enquiry hands over: what was found,
+    // and nothing guessed (UX-LT-3).
+    const member = await createTestMember();
+    const { id } = await startDraft(member, {
+      origin: 'enquiry',
+      review: true,
+      answers: {
+        addressLine1: '12 Ranelagh Road',
+        daftUrl: 'https://www.daft.ie/for-rent/apartment-ranelagh-road/5551234',
+        ...rent(),
+        ...home,
+      },
+    });
+    expect(await loadHome(member, id)).toMatchObject({
+      kind: 'draft',
+      origin: 'enquiry',
+      reached: 'review',
+    });
+    // A sheet on the review saves and stays there.
+    await saveAnswers(member, id, {
+      step: 'description',
+      patch: { description: 'A bright apartment near the Luas.' },
+      advance: false,
+    });
+    expect((await loadHome(member, id))?.reached).toBe('review');
+    // The area and county weren't found: that is the one step asked for.
+    expect(await confirmReview(member, id)).toEqual({ kind: 'draft', next: 'address' });
+    // With the address answered it has what a letting needs; rent and the home are skipped,
+    // and with no photo yet, photos come next.
+    expect(
+      await saveAnswers(member, id, { step: 'address', patch: address, advance: true }),
+    ).toEqual({ kind: 'letting', next: 'photos' });
+    expect((await getLetting(member, id))?.letting).toMatchObject({
+      description: 'A bright apartment near the Luas.',
+      daftUrl: 'https://www.daft.ie/for-rent/apartment-ranelagh-road/5551234',
+      setupStep: 'photos',
+    });
+  });
+});
+
 describe('UX-LT-10: photos', () => {
   it('UX-LT-10: Gaff keeps its own copy, by its real type, without what a camera or editor wrote into it', async () => {
     const member = await createTestMember();

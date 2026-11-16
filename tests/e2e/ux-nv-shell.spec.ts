@@ -147,8 +147,9 @@ test('UX-NV-1 to UX-NV-5: anyone running lettings has four destinations, in a to
   }
 
   // UX-NV-3: on a desktop the bar stays at the top when the page scrolls, and lifts off it.
+  // Settings is the page long enough to scroll: Today with nothing waiting is a few lines.
   await page.setViewportSize({ width: 1280, height: 400 });
-  await page.goto('/today');
+  await page.goto('/settings');
   await page.mouse.wheel(0, 300);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
   const header = page.getByRole('banner');

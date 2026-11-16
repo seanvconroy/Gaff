@@ -160,7 +160,8 @@ describe('UX-HM-10: no contact details and no message text leave the server for 
     expect(board.today.find((i) => i.kind === 'questions')).toMatchObject({ firstName: 'Ciarán' });
     const rows = JSON.stringify(todayRows(board.everyone, new Date()));
     expect(rows).toContain('Ciarán asked a question');
-    expect(rows).not.toMatch(/@|Súilleabháin|Byrne|087/);
+    // The phone number is matched whole: a letting's ID can hold "087" by chance.
+    expect(rows).not.toMatch(/@|Súilleabháin|Byrne|087 ?555/);
   });
 
   it('names nobody once two people have asked about the same home', async () => {

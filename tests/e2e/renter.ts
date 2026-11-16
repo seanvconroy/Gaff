@@ -25,7 +25,7 @@ export async function expectOnePrimary(page: Page): Promise<void> {
   const primaries = await page.evaluate(() => {
     const open = document.querySelector('dialog[open]');
     const within: ParentNode = open ?? document;
-    return [...within.querySelectorAll<HTMLElement>('[class*="Button-module"][class*="primary"]')]
+    return [...within.querySelectorAll<HTMLElement>('[data-button="primary"]')]
       .filter((el) => {
         const box = el.getBoundingClientRect();
         return box.width > 1 && box.height > 1 && getComputedStyle(el).visibility !== 'hidden';
@@ -76,14 +76,8 @@ export async function expectNotices(page: Page, expected: readonly RenterNotice[
     marked: [...document.querySelectorAll<HTMLElement>('[data-notice]')].map(
       (el) => el.dataset.notice ?? '',
     ),
-    boxes: [...document.querySelectorAll<HTMLElement>('[class*="Notice-module"]')]
-      .filter(
-        (el) =>
-          // The notice's own root, not its parts.
-          !el.parentElement?.closest('[class*="Notice-module"]') &&
-          !el.closest('[data-notice]') &&
-          el.getAttribute('role') !== 'alert',
-      )
+    boxes: [...document.querySelectorAll<HTMLElement>('[data-box="notice"]')]
+      .filter((el) => !el.closest('[data-notice]') && el.getAttribute('role') !== 'alert')
       .map((el) => (el.textContent ?? '').trim().slice(0, 60)),
     text: document.body.innerText,
   }));

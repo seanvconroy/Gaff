@@ -26,6 +26,7 @@ const notices: Record<string, RenterNotice[]> = {
   'checks-income': ['check'],
   'checks-income-failed': ['check'],
   'checks-references': ['check'],
+  'checks-arranged': ['check'],
   offer: ['fees'],
   pay: ['ring'],
   'pay-no-number': ['ring'],
@@ -98,8 +99,8 @@ const groups: Array<[string, string[]]> = [
     ],
   ],
   [
-    'Outcomes: the home is let or gone, and a link that has ended',
-    ['home-let', 'home-closed', 'link-ended'],
+    'Outcomes and states: the home is let or gone, a link that has ended, loading, and a page that couldn’t load',
+    ['home-let', 'home-closed', 'link-ended', 'loading', 'failed'],
   ],
 ];
 
@@ -211,6 +212,25 @@ test('UX-RN-2, UX-RN-4: the questions are one per screen, answered with taps, an
   // With nothing answered, the same address starts at the first question.
   await page.goto(page_('questions') + '&q=staying');
   await expect(question('How many people would live here, including you?')).toBeVisible();
+});
+
+test('UX-RN-3: all four questions are answered in eight taps, with nothing to type', async ({
+  page,
+}) => {
+  await at390(page, 'questions');
+  // Under 45 seconds for all four: one tap to answer and one to move on, each time.
+  let taps = 0;
+  for (const answer of ['2', 'No', 'Yes', 'A year']) {
+    await expect(
+      page.getByRole('main').locator('input:not([type=radio], [type=hidden]):visible, textarea'),
+    ).toHaveCount(0);
+    await page.getByRole('radio', { name: answer, exact: true }).check();
+    await page.getByRole('button', { name: /^(Next|Send my answers)$/ }).click();
+    taps += 2;
+  }
+  expect(taps).toBe(8);
+  // The last tap sent them (to a made-up link, which says so). Nothing else was asked.
+  await expect(page.getByText(/This link has ended\./)).toBeVisible();
 });
 
 test('UX-RN-5, UX-RN-6, UX-RN-8, UX-RN-10: days then times, a held place with no picker, and the booked page’s actions', async ({
@@ -358,7 +378,7 @@ test('UX-RN-11, UX-RN-12: applying is two questions, then a check screen with �
   await expect(page.getByRole('heading', { name: 'Is this right?' })).toBeVisible();
   await expect(page.getByText('Aoife Byrne', { exact: true })).toBeVisible();
   await expect(page.getByText('aoife.byrne@example.ie', { exact: true })).toBeVisible();
-  await expect(page.getByText('Something else', { exact: true })).toBeVisible();
+  await expect(page.getByRole('definition').filter({ hasText: 'Something else' })).toBeVisible();
   await expect(page.getByText('€3,400 a month')).toBeVisible();
   await expectAccessible(page);
   await expectOnePrimary(page);
@@ -419,10 +439,10 @@ test('UX-RN-15, UX-RN-16, UX-RN-18: the checks are one at a time, each says what
 
   // A check that didn't work is shown in warning, never danger, with a plain reason.
   await page.goto(page_('checks-income-failed'));
-  const failed = page.locator('[class*="Notice-module"]').filter({ hasText: 'That didn’t work' });
+  const failed = page.locator('[data-box="notice"]').filter({ hasText: 'That didn’t work' });
   await expect(failed).toContainText('The check couldn’t find a regular income in your account.');
-  expect(await failed.getAttribute('class')).toMatch(/warning/);
-  expect(await failed.getAttribute('class')).not.toMatch(/danger/);
+  await expect(failed).toHaveAttribute('data-tone', 'warning');
+  await expect(page.locator('[data-tone="danger"]')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
 
   // References: one referee per screen, and the opt-out is the first question.
@@ -453,9 +473,9 @@ test('UX-RN-15, UX-RN-16, UX-RN-18: the checks are one at a time, each says what
   ).toBeVisible();
   await page.getByRole('radio', { name: 'No', exact: true }).check();
   await expect(page.getByRole('button', { name: 'Send', exact: true })).toBeVisible();
-  await expect(page.getByRole('main').locator('input[type=text], input[type=email]')).toHaveCount(
-    0,
-  );
+  await expect(
+    page.getByRole('main').locator('input[type=text]:visible, input[type=email]:visible'),
+  ).toHaveCount(0);
   expect(await page.getByRole('main').innerText()).not.toMatch(/missing|required|must|sorry/i);
 
   // With no service to start a check here, the lister arranges it, and the next isn't held up.
@@ -516,7 +536,8 @@ test('UX-RN-19 to UX-RN-25: the offer’s one total, ring-to-check, the PPS step
   // UX-RN-24: the PPS number is its own short step: one optional field, one line of why, Skip.
   await page.goto(page_('tenancy-pps'));
   await expect(page.getByRole('heading', { name: 'Your PPS number' })).toBeVisible();
-  await expect(page.getByLabel('PPS number')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'PPS number' })).toBeVisible();
+  await expect(page.getByRole('main').locator('input:not([type=hidden])')).toHaveCount(1);
   await expect(page.getByRole('button', { name: 'Skip', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
   // It isn't a card under the payment details, and isn't repeated on later pages.
@@ -588,4 +609,57 @@ test('UX-RN-26: the tenant’s three steps are a short list that never shows a s
     'href',
     /\/inventory$/,
   );
+});
+
+test('States: a send that failed is said at the button, and what was answered is kept', async ({
+  page,
+  context,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(page_('questions-change') + '&q=staying');
+  const send = page.getByRole('button', { name: 'Send my answers' });
+  await expect(send).toBeVisible();
+  await page.getByRole('radio', { name: 'Longer', exact: true }).check();
+
+  // The connection drops as they press the button.
+  await context.setOffline(true);
+  await send.click();
+  await expect(
+    page.getByText('That didn’t send. Check your connection and try again.'),
+  ).toBeVisible();
+  // They're on the same screen, with every answer as they left it. No error box at the top.
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'How long would you like to stay?' }),
+  ).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'Longer', exact: true })).toBeChecked();
+  await page.getByRole('button', { name: 'Back' }).click();
+  await expect(page.getByRole('radio', { name: 'Yes', exact: true })).toBeChecked();
+  await expectOnePrimary(page);
+
+  // With the connection back, the same button sends it. (This made-up link is nobody's, and the
+  // answer from the server says so, at the button too.)
+  await context.setOffline(false);
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await send.click();
+  await expect(
+    page.getByText('This link has ended. Reply to any email from us and we’ll help.'),
+  ).toBeVisible();
+  await expect(page.getByText('That didn’t send.')).toHaveCount(0);
+});
+
+test('States: a page that couldn’t load says so in one sentence, with “Try again”', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(page_('failed'));
+  await expect(page.getByRole('heading', { level: 1, name: 'That didn’t work' })).toBeVisible();
+  await expect(
+    page.getByText('We couldn’t reach Gaff. Check your connection and try again.'),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+  // Loading: the frame is there at once, and "Talk to a person" with it.
+  await page.goto(page_('loading'));
+  await expect(page.locator('[data-frame="renter"]')).toBeVisible();
+  await expect(page.getByRole('status')).toHaveText('Opening your page');
+  await expect(page.getByRole('button', { name: 'Talk to a person' })).toBeVisible();
 });

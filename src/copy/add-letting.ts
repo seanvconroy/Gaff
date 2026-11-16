@@ -165,7 +165,8 @@ export const addLettingCopy = {
     berHint: 'A home needs its BER to be shown on gaff.ie.',
     needsPhoto: 'A home needs one photo to be shown on gaff.ie.',
     addPhoto: 'Add a photo',
-    shownLater: 'It will show on gaff.ie once it has a BER and a photo. It can go live now.',
+    shownLater: (needs: { ber: boolean; photo: boolean }) =>
+      `It will show on gaff.ie once it has ${[needs.ber ? 'a BER' : null, needs.photo ? 'a photo' : null].filter(Boolean).join(' and ')}. It can go live now.`,
     phone: 'A number renters can call',
     phoneHint: 'For anyone who’d rather ring. Renters see it on their pages.',
     /** Q47: the private landlord's identity check, kept in place for work package WP-24. */
@@ -181,7 +182,7 @@ export const addLettingCopy = {
     letBy: (name: string) => `Let by ${name}`,
     noDetails: 'No letting details. Renters are asked nothing before a viewing.',
     noPhotos: 'No photos yet',
-    morePhotos: (count: number) => `${count} photos`,
+    morePhotos: (count: number) => (count === 1 ? '1 photo' : `${count} photos`),
   },
 
   advertised: {

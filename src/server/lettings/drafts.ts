@@ -197,7 +197,11 @@ export async function keepAdvertLinks(
       .where(eq(lettingDrafts.id, id))
       .for('update');
     if (!draft) throw new UserFacingError('We couldn’t find that home. Start again.');
-    const given = Object.fromEntries(Object.entries(links).filter(([, link]) => link));
+    // Only the two links: whatever else the caller's object holds is not an answer.
+    const given = {
+      ...(links.daftUrl ? { daftUrl: links.daftUrl } : {}),
+      ...(links.myhomeUrl ? { myhomeUrl: links.myhomeUrl } : {}),
+    };
     await tx
       .update(lettingDrafts)
       .set({ answers: withAnswers(draftAnswersSchema.parse(draft.answers), given) })

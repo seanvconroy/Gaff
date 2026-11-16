@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { lettingDetailsFormSchema, lettingDetailsLine, questionsFor } from './criteria';
+import {
+  lettingDetailsFormSchema,
+  lettingDetailsFormValues,
+  lettingDetailsLine,
+  questionsFor,
+} from './criteria';
 
 const now = new Date('2026-11-16T12:00:00Z');
 const schema = lettingDetailsFormSchema(now);
@@ -114,5 +119,23 @@ describe('UX-MT-3: Gaff writes the line renters see', () => {
       now,
     );
     expect(line).not.toMatch(/suit|ideal|professional|couple|family|student/i);
+  });
+});
+
+describe('UX-LT-11: the rows open as the details were saved', () => {
+  it('UX-LT-11: what was saved comes back as the same rows, on with their values', () => {
+    const saved = {
+      criteria: { moveInBy: '2026-12-13', minStayMonths: 12, maxOccupants: 3, noPets: true },
+      noSmokingIndoors: true,
+    } as const;
+    const values = lettingDetailsFormValues({ ...saved.criteria, noSmokingIndoors: true });
+    expect(schema.parse(values)).toEqual(saved);
+  });
+
+  it('UX-LT-11: nothing saved is every row off', () => {
+    expect(schema.parse(lettingDetailsFormValues({}))).toEqual({
+      criteria: { noPets: false },
+      noSmokingIndoors: false,
+    });
   });
 });

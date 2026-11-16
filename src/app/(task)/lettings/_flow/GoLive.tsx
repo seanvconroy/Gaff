@@ -104,7 +104,9 @@ export function GoLiveStep({
                 {g.needsPhoto} <Link href={photosHref}>{g.addPhoto}</Link>
               </p>
             ) : null}
-            {needsBer || needsPhoto ? <p className={styles.muted}>{g.shownLater}</p> : null}
+            {needsBer || needsPhoto ? (
+              <p className={styles.muted}>{g.shownLater({ ber: needsBer, photo: needsPhoto })}</p>
+            ) : null}
           </section>
           {askPhone ? (
             <TextField

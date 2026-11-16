@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { addressSearch } from '@/adapters/address';
 import { addLettingCopy } from '@/copy/add-letting';
 import { goLiveCopy } from '@/copy/go-live';
-import { lettingDetailsLine } from '@/domain/criteria/criteria';
+import { lettingDetailsFormValues, lettingDetailsLine } from '@/domain/criteria/criteria';
 import {
   type DraftAnswers,
   type FlowStep,
@@ -48,7 +48,6 @@ import {
   uploadPhotoAction,
 } from '../../../_flow/actions';
 import { AdvertisedStep } from '../../../_flow/Advertised';
-import { detailsValues } from '../../../_flow/fields';
 import { GoLiveHeld, GoLiveStep } from '../../../_flow/GoLive';
 import { flowHome } from '../../../_flow/home';
 import { HomePreview } from '../../../_flow/HomePreview';
@@ -160,8 +159,11 @@ export default async function SetupStepPage({
   const alone = query.alone === '1' && home.kind === 'letting';
   if (!allowed(home, screen, alone)) {
     if (home.kind === 'letting' && home.detail.letting.stage !== 'setup') redirect(lettingHref);
-    if (home.kind === 'letting' && screen === 'go_live' && home.detail.letting.goLiveHeldAt) {
-      redirect(lettingHref);
+    if (home.kind === 'letting' && screen === 'go_live') {
+      // UX-AG-4: a held home has been decided, and its own page says so.
+      if (home.detail.letting.goLiveHeldAt) redirect(lettingHref);
+      // UX-LT-14: the rent check comes first. Its result says what's wrong, if anything is.
+      redirect(screenHref(id, home.detail.rentCheck ? 'rent_result' : 'rent_check', from));
     }
     redirect(resumeHref(id, from));
   }
@@ -209,7 +211,7 @@ export default async function SetupStepPage({
             details: saveReviewAction.bind(null, 'details', id),
           }}
           values={values}
-          details={detailsValues({
+          details={lettingDetailsFormValues({
             ...home.answers.criteria,
             noSmokingIndoors: home.answers.noSmokingIndoors,
           })}
@@ -275,7 +277,7 @@ export default async function SetupStepPage({
       );
     }
     case 'details': {
-      const start = detailsValues({
+      const start = lettingDetailsFormValues({
         ...(letting.criteria ?? {}),
         noSmokingIndoors: letting.noSmokingIndoors,
       });

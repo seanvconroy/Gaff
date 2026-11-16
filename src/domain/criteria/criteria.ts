@@ -212,3 +212,19 @@ export function lettingDetailsFormSchema(now: Date = new Date()) {
       return { criteria, noSmokingIndoors: on(value.noSmokingIndoors) };
     });
 }
+
+/** What the letting-details rows start with, from the criteria as they are stored. */
+export function lettingDetailsFormValues(
+  details: Partial<Criteria> & { noSmokingIndoors?: boolean },
+): Record<string, string> {
+  return {
+    moveInOn: details.moveInBy ? 'on' : '',
+    moveInBy: details.moveInBy ?? '',
+    stayOn: details.minStayMonths ? 'on' : '',
+    minStayMonths: details.minStayMonths ? String(details.minStayMonths) : '',
+    peopleOn: details.maxOccupants ? 'on' : '',
+    maxOccupants: details.maxOccupants ? String(details.maxOccupants) : '',
+    noPets: details.noPets ? 'on' : '',
+    noSmokingIndoors: details.noSmokingIndoors ? 'on' : '',
+  };
+}

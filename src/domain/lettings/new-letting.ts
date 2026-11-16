@@ -2,7 +2,10 @@ import { z } from 'zod';
 import { protectedGroundProblem } from '@/domain/compliance/protected-grounds';
 import { irishToday } from '@/lib/format';
 
-/** R1: everything an operator enters to create a letting, in under ten minutes. */
+/**
+ * R1: everything that can be said about a home when a letting is made. The screens ask for it a
+ * step at a time (add-letting.ts); this file holds each field's rule, once.
+ */
 
 export const counties = [
   'Carlow',
@@ -87,8 +90,10 @@ export function parseEuroToCents(input: string): number | null {
   return Math.round(Number(cleaned) * 100);
 }
 
-const MIN_RENT_CENTS = 100_00;
-const MAX_RENT_CENTS = 20_000_00;
+export const MIN_RENT_CENTS = 100_00;
+export const MAX_RENT_CENTS = 20_000_00;
+/** A description is a few paragraphs, as on an advert. */
+export const MAX_DESCRIPTION = 4000;
 
 const trimmed = z.string().trim();
 /** Form fields arrive as strings; a missing optional field counts as blank. */
@@ -112,77 +117,162 @@ function httpsUrl(message: string, hosts?: string[]) {
     }, message);
 }
 
-export function newLettingSchema(now: Date = new Date()) {
+/** A choice that may be left blank: blank means "not said", never a guess. */
+function offered<T extends z.ZodType>(schema: T) {
+  return z.preprocess(
+    (value) => (value === '' || value === undefined || value === null ? undefined : value),
+    schema.optional(),
+  );
+}
+
+/**
+ * Each field's rule, once. The step-at-a-time flow (add-letting.ts) and the whole-letting schema
+ * below read the same ones, so a value is checked the same way wherever it is typed.
+ */
+export function lettingFields(now: Date = new Date()) {
   const today = irishToday(now);
   const inAYear = irishToday(new Date(now.getTime() + 366 * 24 * 60 * 60 * 1000));
-  return z
-    .object({
-      addressLine1: trimmed
+  return {
+    addressLine1: blankable(
+      trimmed
         .min(3, 'Enter the first line of the address, like 12 Ranelagh Road')
         .max(120, 'Keep the first line under 120 characters'),
-      addressLine2: optionalText(120, 'Keep the second line under 120 characters'),
-      area: trimmed
+    ),
+    addressLine2: optionalText(120, 'Keep the second line under 120 characters'),
+    area: blankable(
+      trimmed
         .min(2, 'Enter the area, like Ranelagh, Dublin 6')
         .max(80, 'Keep the area under 80 characters'),
-      county: z.enum(counties, { error: 'Choose the county' }),
-      eircode: blankable(trimmed).transform((value, ctx) => {
-        if (!value) return undefined;
-        const eircode = normaliseEircode(value);
-        if (!eircode) {
-          ctx.addIssue({
-            code: 'custom',
-            message: 'Enter a valid Eircode, like D06 F2X3, or leave it blank',
-          });
-          return z.NEVER;
-        }
-        return eircode;
-      }),
-      rent: trimmed.transform((value, ctx) => {
-        const cents = parseEuroToCents(value);
-        if (cents === null) {
-          ctx.addIssue({ code: 'custom', message: 'Enter the monthly rent in euro, like 1,850' });
-          return z.NEVER;
-        }
-        if (cents < MIN_RENT_CENTS || cents > MAX_RENT_CENTS) {
-          ctx.addIssue({
-            code: 'custom',
-            message: 'Enter a monthly rent between €100 and €20,000',
-          });
-          return z.NEVER;
-        }
-        return cents;
-      }),
-      availableFrom: z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter the date the home is available from')
-        .refine((date) => date >= today, 'The available date can’t be in the past')
-        .refine((date) => date <= inAYear, 'Choose a date within the next year'),
-      propertyType: z.enum(Object.keys(propertyTypes) as [keyof typeof propertyTypes], {
-        error: 'Choose the type of home',
-      }),
-      bedrooms: z.coerce
-        .number({ error: 'Enter the number of bedrooms' })
-        .int('Enter a whole number of bedrooms')
-        .min(0, 'Enter 0 for a studio')
-        .max(10, 'Enter 10 bedrooms or fewer'),
-      bathrooms: z.coerce
+    ),
+    county: z.enum(counties, { error: 'Choose the county' }),
+    eircode: blankable(trimmed).transform((value, ctx) => {
+      if (!value) return undefined;
+      const eircode = normaliseEircode(value);
+      if (!eircode) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Enter a valid Eircode, like D06 F2X3, or leave it blank',
+        });
+        return z.NEVER;
+      }
+      return eircode;
+    }),
+    rent: blankable(trimmed).transform((value, ctx) => {
+      const cents = parseEuroToCents(value);
+      if (cents === null) {
+        ctx.addIssue({ code: 'custom', message: 'Enter the monthly rent in euro, like 1,850' });
+        return z.NEVER;
+      }
+      if (cents < MIN_RENT_CENTS || cents > MAX_RENT_CENTS) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Enter a monthly rent between €100 and €20,000',
+        });
+        return z.NEVER;
+      }
+      return cents;
+    }),
+    availableFrom: blankable(z.string()).transform((date, ctx) => {
+      const problem = !/^\d{4}-\d{2}-\d{2}$/.test(date)
+        ? 'Choose the date the home is available from'
+        : date < today
+          ? 'The available date can’t be in the past'
+          : date > inAYear
+            ? 'Choose a date within the next year'
+            : null;
+      if (problem) {
+        ctx.addIssue({ code: 'custom', message: problem });
+        return z.NEVER;
+      }
+      return date;
+    }),
+    propertyType: z.enum(Object.keys(propertyTypes) as [keyof typeof propertyTypes], {
+      error: 'Choose the type of home',
+    }),
+    bedrooms: z.coerce
+      .number({ error: 'Choose the number of bedrooms' })
+      .int('Enter a whole number of bedrooms')
+      .min(0, 'Enter 0 for a studio')
+      .max(10, 'Enter 10 bedrooms or fewer'),
+    /** UX-LT-14: offered, not required. */
+    bathrooms: offered(
+      z.coerce
         .number({ error: 'Enter the number of bathrooms' })
         .int('Enter a whole number of bathrooms')
         .min(1, 'Enter at least 1 bathroom')
         .max(10, 'Enter 10 bathrooms or fewer'),
-      furnished: z.enum(Object.keys(furnishing) as [keyof typeof furnishing], {
+    ),
+    furnished: offered(
+      z.enum(Object.keys(furnishing) as [keyof typeof furnishing], {
         error: 'Choose whether the home is furnished',
       }),
-      berRating: z.enum(berRatings, { error: 'Choose the BER rating' }),
-      parking: blankable(
-        z.union([
-          z.enum(Object.keys(parkingOptions) as [keyof typeof parkingOptions]),
-          z.literal('').transform(() => undefined),
-        ]),
-      ),
+    ),
+    /** UX-LT-14: not needed to go live. Needed to show the home on Gaff. */
+    berRating: offered(z.enum(berRatings, { error: 'Choose the BER rating' })),
+    parking: offered(z.enum(Object.keys(parkingOptions) as [keyof typeof parkingOptions])),
+    /**
+     * UX-LS-6: the home in the lister's own words. Renters read it, so it passes the
+     * protected-ground wording check (rule 3): it describes the home, never who should apply.
+     */
+    description: blankable(z.string()).transform((value, ctx) => {
+      const text = value.replace(/\r\n/g, '\n').trim();
+      if (!text) return undefined;
+      if (text.length > MAX_DESCRIPTION) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Keep the description under 4,000 characters',
+        });
+        return z.NEVER;
+      }
+      const problem = protectedGroundProblem(text);
+      if (problem) {
+        ctx.addIssue({ code: 'custom', message: problem });
+        return z.NEVER;
+      }
+      return text;
+    }),
+    otherFacts: z
+      .string()
+      .default('')
+      .transform((value, ctx) => {
+        const lines = value
+          .split('\n')
+          .map((line) => line.trim().replace(/^[-•*]\s*/, ''))
+          .filter(Boolean);
+        if (lines.length > 20) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Add up to 20 facts. You can add more later.',
+          });
+          return z.NEVER;
+        }
+        for (const line of lines) {
+          if (line.length > 300) {
+            ctx.addIssue({ code: 'custom', message: 'Keep each fact under 300 characters' });
+            return z.NEVER;
+          }
+          const problem = protectedGroundProblem(line);
+          if (problem) {
+            ctx.addIssue({ code: 'custom', message: problem });
+            return z.NEVER;
+          }
+        }
+        return lines;
+      }),
+    daftUrl: httpsUrl('Enter the link to the advert on daft.ie', ['daft.ie']),
+    myhomeUrl: httpsUrl('Enter the link to the advert on myhome.ie', ['myhome.ie']),
+  };
+}
+
+/**
+ * A whole letting at once: what a test or an import hands to `createLetting`. Only an address, a
+ * rent, a date, a type and a bedroom count are needed (UX-LT-14); the rest is offered.
+ */
+export function newLettingSchema(now: Date = new Date()) {
+  return z
+    .object({
+      ...lettingFields(now),
       photosUrl: httpsUrl('Enter a web link to the photos, starting https://'),
-      daftUrl: httpsUrl('Enter the link to the advert on daft.ie', ['daft.ie']),
-      myhomeUrl: httpsUrl('Enter the link to the advert on myhome.ie', ['myhome.ie']),
       landlordName: optionalText(120, 'Keep the landlord’s name under 120 characters'),
       landlordEmail: blankable(trimmed)
         .transform((value) => value.toLowerCase() || undefined)
@@ -190,34 +280,6 @@ export function newLettingSchema(now: Date = new Date()) {
           (value) => !value || z.email().safeParse(value).success,
           'Enter the landlord’s email address, like owner@example.ie',
         ),
-      otherFacts: z
-        .string()
-        .default('')
-        .transform((value, ctx) => {
-          const lines = value
-            .split('\n')
-            .map((line) => line.trim().replace(/^[-•*]\s*/, ''))
-            .filter(Boolean);
-          if (lines.length > 20) {
-            ctx.addIssue({
-              code: 'custom',
-              message: 'Add up to 20 facts. You can add more later.',
-            });
-            return z.NEVER;
-          }
-          for (const line of lines) {
-            if (line.length > 300) {
-              ctx.addIssue({ code: 'custom', message: 'Keep each fact under 300 characters' });
-              return z.NEVER;
-            }
-            const problem = protectedGroundProblem(line);
-            if (problem) {
-              ctx.addIssue({ code: 'custom', message: problem });
-              return z.NEVER;
-            }
-          }
-          return lines;
-        }),
     })
     .superRefine((value, ctx) => {
       if (value.landlordEmail && !value.landlordName) {
@@ -243,9 +305,9 @@ export type NewLetting = z.output<ReturnType<typeof newLettingSchema>>;
 export function describeKeyFacts(letting: {
   propertyType: keyof typeof propertyTypes;
   bedrooms: number;
-  bathrooms: number;
-  furnished: keyof typeof furnishing;
-  berRating: (typeof berRatings)[number];
+  bathrooms?: number | null;
+  furnished?: keyof typeof furnishing | null;
+  berRating?: (typeof berRatings)[number] | null;
   parking?: keyof typeof parkingOptions | null;
 }): Array<{ label: string; value: string }> {
   const facts = [
@@ -254,10 +316,16 @@ export function describeKeyFacts(letting: {
       label: 'Bedrooms',
       value: letting.bedrooms === 0 ? 'Studio (no separate bedroom)' : String(letting.bedrooms),
     },
-    { label: 'Bathrooms', value: String(letting.bathrooms) },
-    { label: 'Furnishing', value: furnishing[letting.furnished] },
-    { label: 'BER rating', value: letting.berRating === 'exempt' ? 'Exempt' : letting.berRating },
   ];
+  // UX-LT-14: these are offered, not required. One that wasn't given is left out, never guessed.
+  if (letting.bathrooms) facts.push({ label: 'Bathrooms', value: String(letting.bathrooms) });
+  if (letting.furnished) facts.push({ label: 'Furnishing', value: furnishing[letting.furnished] });
+  if (letting.berRating) {
+    facts.push({
+      label: 'BER rating',
+      value: letting.berRating === 'exempt' ? 'Exempt' : letting.berRating,
+    });
+  }
   if (letting.parking) facts.push({ label: 'Parking', value: parkingOptions[letting.parking] });
   return facts;
 }

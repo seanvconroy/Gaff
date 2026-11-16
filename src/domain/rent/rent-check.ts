@@ -35,12 +35,24 @@ export const endings = {
 } as const;
 export type Ending = keyof typeof endings;
 
+/**
+ * What the check is made from. A home let before always has a last rent. How the last tenancy
+ * ended matters only under the new rules, and a substantial change only before them (UX-LT-12),
+ * so each is given only where it applies.
+ */
 export type RentCheckInput =
   | { lastLet: 'never' }
   | {
-      lastLet: 'before_new_rules' | 'under_new_rules';
-      ending: Ending;
+      lastLet: 'before_new_rules';
       substantialChange: boolean;
+      ending?: Ending;
+      previousRentCents: number;
+      previousRentSetOn: string;
+    }
+  | {
+      lastLet: 'under_new_rules';
+      ending: Ending;
+      substantialChange?: boolean;
       previousRentCents: number;
       previousRentSetOn: string;
     };
@@ -81,6 +93,44 @@ function calendarMonthsBetween(from: string, to: string): number {
   return (y2 - y1) * 12 + (m2 - m1) + (d2 - d1) / daysInMonth;
 }
 
+/** The answers as the screens hold them: what was tapped or typed, as strings. */
+export interface RentAnswers {
+  lastLet?: string;
+  ending?: string;
+  substantialChange?: string;
+  previousRent?: string;
+  previousRentSetOn?: string;
+}
+
+/** One screen of the rent check. The last rent and the day it was set are one small question. */
+export const rentQuestionOrder = ['lastLet', 'ending', 'substantialChange', 'previousRent'] as const;
+export type RentQuestion = (typeof rentQuestionOrder)[number];
+
+/**
+ * UX-LT-12: the questions that apply, in order, given the answers so far. One question per
+ * screen, and a question is asked only when an earlier answer makes it apply. A first letting
+ * is one tap. Nobody is asked the rent they are asking: Gaff has it.
+ */
+export function rentQuestions(answers: RentAnswers): RentQuestion[] {
+  if (answers.lastLet === 'under_new_rules') return ['lastLet', 'ending', 'previousRent'];
+  if (answers.lastLet === 'before_new_rules') {
+    return ['lastLet', 'substantialChange', 'previousRent'];
+  }
+  return ['lastLet'];
+}
+
+/** The fields each question's screen holds. */
+export const rentQuestionFields: Record<RentQuestion, ReadonlyArray<keyof RentAnswers>> = {
+  lastLet: ['lastLet'],
+  ending: ['ending'],
+  substantialChange: ['substantialChange'],
+  previousRent: ['previousRent', 'previousRentSetOn'],
+};
+
+/**
+ * Reads the answers. Only the questions that apply are checked, and each problem is said at its
+ * own field. An answer to a question that doesn't apply is ignored.
+ */
 export function rentCheckFormSchema(today: string) {
   return z
     .object({
@@ -94,7 +144,10 @@ export function rentCheckFormSchema(today: string) {
     })
     .transform((value, ctx): RentCheckInput => {
       if (value.lastLet === 'never') return { lastLet: 'never' };
-      if (!value.ending || !(value.ending in endings)) {
+      const underNewRules = value.lastLet === 'under_new_rules';
+      const ending =
+        value.ending && value.ending in endings ? (value.ending as Ending) : undefined;
+      if (underNewRules && !ending) {
         ctx.addIssue({
           code: 'custom',
           path: ['ending'],
@@ -116,9 +169,9 @@ export function rentCheckFormSchema(today: string) {
         ctx.addIssue({
           code: 'custom',
           path: ['previousRentSetOn'],
-          message: 'Enter the date the last rent was set. It can’t be in the future.',
+          message: 'Choose the date the last rent was set. It can’t be in the future.',
         });
-      } else if (value.lastLet === 'under_new_rules' && setOn < NEW_RULES_START) {
+      } else if (underNewRules && setOn < NEW_RULES_START) {
         ctx.addIssue({
           code: 'custom',
           path: ['previousRentSetOn'],
@@ -126,23 +179,74 @@ export function rentCheckFormSchema(today: string) {
             'A tenancy that began on or after 1 March 2026 can’t have had its rent set before then',
         });
       }
-      if (
-        value.lastLet === 'before_new_rules' &&
-        value.substantialChange !== 'yes' &&
-        value.substantialChange !== 'no'
-      ) {
+      const changed = value.substantialChange;
+      if (!underNewRules && changed !== 'yes' && changed !== 'no') {
         ctx.addIssue({
           code: 'custom',
           path: ['substantialChange'],
           message: 'Choose whether the home has been substantially changed',
         });
       }
+      const previous = { previousRentCents: cents, previousRentSetOn: setOn };
+      if (underNewRules) return { lastLet: 'under_new_rules', ending: ending!, ...previous };
       return {
-        lastLet: value.lastLet,
-        ending: value.ending as Ending,
-        substantialChange: value.substantialChange === 'yes',
-        previousRentCents: cents,
-        previousRentSetOn: setOn,
+        lastLet: 'before_new_rules',
+        substantialChange: changed === 'yes',
+        ...(ending ? { ending } : {}),
+        ...previous,
       };
     });
+}
+
+/** The problems on one question's screen, by field: what stops the person moving on from it. */
+export function rentQuestionProblems(
+  question: RentQuestion,
+  answers: RentAnswers,
+  today: string,
+): Record<string, string> {
+  const parsed = rentCheckFormSchema(today).safeParse(answers);
+  if (parsed.success) return {};
+  const fields: ReadonlyArray<string> = rentQuestionFields[question];
+  const problems: Record<string, string> = {};
+  for (const issue of parsed.error.issues) {
+    const field = String(issue.path[0] ?? '');
+    if (fields.includes(field)) problems[field] ??= issue.message;
+  }
+  return problems;
+}
+
+/**
+ * UX-LT-23: what "Let it again" knows about the last tenancy, to start the rent check filled
+ * in: the last rent and the day it was set, which is the day that tenancy began. The person
+ * still answers each question; nothing is recorded until they do.
+ */
+export function rentAnswersFromLastTime(last: {
+  rentCents: number;
+  tenancyStartedOn: string;
+}): RentAnswers {
+  return {
+    lastLet: last.tenancyStartedOn >= NEW_RULES_START ? 'under_new_rules' : 'before_new_rules',
+    previousRent: (last.rentCents / 100).toLocaleString('en-IE', { maximumFractionDigits: 2 }),
+    previousRentSetOn: last.tenancyStartedOn,
+  };
+}
+
+/** What a recorded check's answers were, to show them again when the check is opened. */
+export function rentAnswersFromCheck(check: {
+  lastLet: string;
+  ending: string | null;
+  substantialChange: boolean;
+  previousRentCents: number | null;
+  previousRentSetOn: string | null;
+}): RentAnswers {
+  if (check.lastLet === 'never') return { lastLet: 'never' };
+  return {
+    lastLet: check.lastLet,
+    ending: check.ending ?? undefined,
+    substantialChange: check.substantialChange ? 'yes' : 'no',
+    previousRent: check.previousRentCents
+      ? (check.previousRentCents / 100).toLocaleString('en-IE', { maximumFractionDigits: 2 })
+      : undefined,
+    previousRentSetOn: check.previousRentSetOn ?? undefined,
+  };
 }

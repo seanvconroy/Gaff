@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 15 November 2026 (wave 0 of the UX redesign built: funnel events, and the new design system).
+Last updated: 16 November 2026 (wave 1 of the UX redesign: navigation, sign-in and the page frame built; accounts and first run in progress).
 
 ## Done
 
@@ -84,7 +84,7 @@ Last updated: 15 November 2026 (wave 0 of the UX redesign built: funnel events, 
   | Wave | Packages | Status |
   | --- | --- | --- |
   | 0. Foundations | WP-1 funnel events and baselines; WP-2 design system | **Done**, 15 November 2026. See "Wave 0" below |
-  | 1. Frame, sign-in and accounts | WP-3 shell and navigation; WP-4 sign-in; WP-5 accounts and first run; WP-6 the page frame | Not started |
+  | 1. Frame, sign-in and accounts | WP-3 shell and navigation; WP-4 sign-in; WP-5 accounts and first run; WP-6 the page frame | WP-3, WP-4 and WP-6 **done**, 16 November 2026 (see "Wave 1" below). WP-5 in progress |
   | 2A. Running a letting, part 1 | WP-7 Today and Lettings; WP-8 Inbox; WP-9 adding a letting; WP-10 reading an advert; WP-11 forwarding | Not started |
   | 2B. Inside a letting, for renters | WP-12 the renter's pages; WP-13 owner and referee pages; WP-14 profile and the renter's home | Not started |
   | 3A. Running a letting, part 2 | WP-15 a letting's page; WP-16 calendar; WP-17 decisions and the offer; WP-18 tenancy, close and settings; WP-19 teams | Not started |
@@ -109,6 +109,23 @@ Left for later packages, on purpose:
 - The sign-in screen's "opened" step can be inflated by anyone who calls it repeatedly, and email link scanners count as "page opened". WP-4 rebuilds sign-in.
 - Baselines: nobody has used the product for real, so there are no numbers yet. Run the current flows on the test copy, open `/internal/funnels`, and copy the numbers into the note at the end of section 9 before the first redesigned screen ships.
 - `STAFF_EMAILS` needs setting on the test copy and in production. ADR-0011 still says Fraunces is self-hosted; WP-28 brings the documents up to date.
+
+## UX redesign, wave 1 (frame, sign-in and accounts)
+
+| Package | What | Proven by |
+| --- | --- | --- |
+| WP-3: shell and navigation (UX-NV-1 to 8, 19 to 21; UX-FL-1 to 4) | No sidebar. One bar: a top bar at 900px and up, bottom tabs below. Letting has Today, Lettings, Calendar, Inbox; renting has Search, Saved, Enquiries; signed out, a header with "List a home" and "Sign in". The account menu on the avatar holds Profile, Settings, Help and Sign out. "Add a letting" runs full screen with no navigation, with errors at the field only. Calendar, Saved, Enquiries and the public page are empty states; Inbox is an interim page linking to the three old queues | `src/domain/navigation/*.test.ts`, `tests/e2e/ux-nv-shell.spec.ts` |
+| WP-4: sign-in (UX-SI-1 to UX-SI-12, ADR-0015) | One screen, "Sign in or create an account": Google, Apple, or a six-digit code by email, with a passkey offered afterwards. The email's button signs in on the same browser and shows the code anywhere else. New and returning people take the same path. "Confirm it's you" before changing where tenants pay. A one-time code for a private link's sensitive pages is ready for the renter pages to use. Google and Apple switch on when their credentials are set; locally a stand-in takes their place | `src/domain/auth/*.test.ts`, `tests/integration/ux-si-*.test.ts`, `tests/e2e/ux-si-sign-in.spec.ts` |
+| WP-6: the page frame for renters, owners and referees (UX-PP-1 to UX-PP-10; UX-AI-1, 2, 10) | Every page reached by a private link stands in one frame: the wordmark and "Talk to a person" for renters; the agency's name and "Run with Gaff" for owners and referees. The standing "AI letting assistant" line is gone from page headers; the first message still says it, word for word. Every email goes out in one layout with one button; a test pins the words of every fixed message so the layout can't change them | `src/domain/frame/frame.test.ts`, `tests/compliance/template-words.test.ts`, `tests/e2e/ux-pp-frame.spec.ts` |
+
+Left for later packages, on purpose:
+
+- A signed-in person with nothing set up is still sent to the old set-up screen; WP-5 replaces it with first run.
+- "Save and exit" isn't on "Add a letting": nothing is stored until its last step. WP-9 adds drafts.
+- No lister has a phone number yet, so "Talk to a person" offers replying by email only. WP-9 adds the number.
+- Page content inside the frame is unchanged, including lines of caution that WP-12 removes.
+- The one new dependency is `@better-auth/passkey`, for passkeys.
+- Google and Apple sign-in need their credentials set (`.env.example` says which) before real people can use them.
 
 ## Known issues
 

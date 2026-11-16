@@ -9,6 +9,9 @@ const icons = { info: Info, success: CheckCircle2, warning: AlertTriangle, dange
 /**
  * A notice pairs its colour with an icon and words, never colour alone. Danger is for
  * errors only; a renter who fails a check is shown in warning with a plain reason.
+ *
+ * `data-box` and `data-tone` say what it is whatever the build names its classes, so a test can
+ * hold a page to the notices it should have, and to the tone of each (UX-PP-6).
  */
 export function Notice({
   tone = 'info',
@@ -23,7 +26,12 @@ export function Notice({
 }) {
   const Icon = icons[tone];
   return (
-    <div className={`${styles.notice} ${styles[tone]}`} role={role}>
+    <div
+      className={`${styles.notice} ${styles[tone]}`}
+      role={role}
+      data-box="notice"
+      data-tone={tone}
+    >
       <Icon className={styles.icon} size={20} strokeWidth={1.5} aria-hidden="true" />
       <div className={styles.body}>
         {title ? <p className={styles.title}>{title}</p> : null}

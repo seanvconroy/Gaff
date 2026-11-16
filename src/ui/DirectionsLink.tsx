@@ -3,7 +3,7 @@
 import { MapPin } from 'lucide-react';
 import { useSyncExternalStore, type ReactNode } from 'react';
 import { directionsHref, mapsPlatform, type MapsPlatform } from '@/domain/viewings/choosing';
-import { buttonClass, type ButtonVariant, type ButtonWidth } from './Button';
+import { buttonProps, type ButtonVariant, type ButtonWidth } from './Button';
 
 const never = () => () => {};
 
@@ -33,7 +33,7 @@ export function DirectionsLink({
   return (
     <a
       href={directionsHref(address, platform)}
-      className={buttonClass(variant, fullWidth)}
+      {...buttonProps(variant, fullWidth)}
       target={web ? '_blank' : undefined}
       rel={web ? 'noreferrer' : undefined}
     >

@@ -63,6 +63,12 @@
   white-space: nowrap;
 }
 
+/* On a private page the names are body size. */
+.large .currentName {
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
 @media (width > 900px) {
   .progress {
     display: block;
@@ -83,6 +89,11 @@
   .current .name {
     color: var(--color-ink);
     font-weight: var(--type-title-weight);
+  }
+
+  .large .name {
+    font-size: var(--type-body-size);
+    line-height: var(--type-body-line);
   }
 
   .currentName {

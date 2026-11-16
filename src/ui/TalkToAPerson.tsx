@@ -4,7 +4,7 @@ import { Mail, Phone } from 'lucide-react';
 import { useState } from 'react';
 import { talkCopy } from '@/copy/frame';
 import type { WaysToReachAPerson } from '@/domain/frame/frame';
-import { Button, buttonClass } from './Button';
+import { Button, buttonProps } from './Button';
 import { Sheet } from './Sheet';
 import styles from './TalkToAPerson.module.css';
 
@@ -54,7 +54,7 @@ export function TalkToAPerson({
             </span>
             <div className={styles.words}>
               <p className={styles.title}>{talkCopy.phoneTitle(listerName)}</p>
-              <a href={phone.href} className={buttonClass('secondary', true)}>
+              <a href={phone.href} {...buttonProps('secondary', true)}>
                 {talkCopy.ring(phone.shown)}
               </a>
             </div>

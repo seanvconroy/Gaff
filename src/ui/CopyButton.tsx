@@ -2,7 +2,7 @@
 
 import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
-import { buttonClass, type ButtonVariant } from './Button';
+import { buttonProps, type ButtonVariant } from './Button';
 
 /**
  * Copies a value people would otherwise retype: an IBAN, a payment reference, a Gaff address.
@@ -24,7 +24,7 @@ export function CopyButton({
   return (
     <button
       type="button"
-      className={buttonClass(variant)}
+      {...buttonProps(variant)}
       onClick={() => {
         void navigator.clipboard?.writeText(value).then(() => {
           setCopied(true);

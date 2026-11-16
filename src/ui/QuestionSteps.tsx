@@ -20,6 +20,16 @@ import { SubmitButton } from './SubmitButton';
 
 type Values = Record<string, string>;
 
+/** The key in the browser's history state that counts the screens this flow opened. */
+const OPENED = 'questionSteps';
+
+function openedHere(): number {
+  const state: unknown = window.history.state;
+  const opened =
+    state && typeof state === 'object' ? (state as Record<string, unknown>)[OPENED] : 0;
+  return typeof opened === 'number' ? opened : 0;
+}
+
 export interface QuestionStep extends StepRule {
   /** Its short name beside the progress bar: "People". */
   name: string;
@@ -89,6 +99,7 @@ export function QuestionSteps({
   const [values, setValues] = useState(defaults);
   const [errors, setErrors] = useState<Values>(serverErrors ?? {});
   const [current, setCurrent] = useState(() => firstOpenStep(steps, defaults, startAt));
+  const openedOn = useRef(current);
   const [moved, setMoved] = useState<'forward' | 'back' | null>(null);
   const [seenKey, setSeenKey] = useState(formKey);
 
@@ -116,14 +127,24 @@ export function QuestionSteps({
     if (record) {
       const url = new URL(window.location.href);
       url.searchParams.set('q', id);
-      window.history.pushState(null, '', url);
+      // How many screens this flow has put into the browser's history, so "Back" can undo one.
+      window.history.pushState({ [OPENED]: openedHere() + 1 }, '', url);
     }
+  };
+
+  // "Back" is the browser's Back wherever the flow itself opened this screen, so the two never
+  // disagree and the history never grows by going back. A screen opened from a link has nothing
+  // behind it in this flow: there, the screen before is opened.
+  const back = () => {
+    if (openedHere() > 0) window.history.back();
+    else open(step.aside ? last.id : (stepBefore(steps, read(), step.id) ?? step.id), 'back');
   };
 
   // The browser's Back and Forward move between screens.
   useEffect(() => {
     const onPop = () => {
-      const asked = new URL(window.location.href).searchParams.get('q');
+      // The page's first address may name no screen: it stands for the one the page opened on.
+      const asked = new URL(window.location.href).searchParams.get('q') ?? openedOn.current;
       const target = firstOpenStep(steps, read(), asked);
       setErrors({});
       setMoved('back');
@@ -173,6 +194,7 @@ export function QuestionSteps({
         label={label}
         segments={path.map((each) => each.name)}
         current={onPath === -1 ? path.length - 1 : onPath}
+        large
       />
       <FlowProblems count={Object.keys(errors).length} />
       {steps.map((each) => (
@@ -214,13 +236,7 @@ export function QuestionSteps({
           </Button>
         )}
         {onPath > 0 || step.aside ? (
-          <Button
-            variant="quiet"
-            fullWidth="phone"
-            onClick={() =>
-              open(step.aside ? last.id : (stepBefore(steps, read(), step.id) ?? step.id), 'back')
-            }
-          >
+          <Button variant="quiet" fullWidth="phone" onClick={back}>
             Back
           </Button>
         ) : null}

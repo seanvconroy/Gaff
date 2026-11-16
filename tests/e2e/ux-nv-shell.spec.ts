@@ -508,7 +508,7 @@ test('UX-NV-6, UX-FL-1, UX-FL-3: adding a letting opens full screen without the 
 
     // An error goes as its field is edited, and comes back on leaving it with something wrong.
     const eircode = page.getByRole('textbox', { name: 'Eircode (optional)' });
-    await page.getByLabel('Address', { exact: true }).fill('12');
+    await page.getByLabel('Address', { exact: true }).fill('12 Ranelagh Road');
     await expect(page.locator('#field-addressLine1-error')).toHaveCount(0);
     await eircode.fill('not an eircode');
     await page.keyboard.press('Tab');

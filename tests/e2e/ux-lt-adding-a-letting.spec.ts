@@ -466,7 +466,7 @@ test('UX-LT-12, UX-LT-13: a rent above the cap is changed on the result screen, 
       ),
     ).toBeVisible();
     await expect(next(page)).toHaveCount(0);
-    const rent = page.getByLabel('Rent a month');
+    const rent = page.getByLabel('Rent a month', { exact: true });
     await expectAccessible(page);
     await screenshot(page, `ux-lt-08-rent-over-cap-${width}`);
     await rent.fill('1,800');
@@ -480,7 +480,7 @@ test('UX-LT-12, UX-LT-13: a rent above the cap is changed on the result screen, 
     await expect(
       page.getByRole('heading', { level: 1, name: 'The rent cap applies' }),
     ).toBeVisible();
-    await page.getByLabel('Rent a month').fill('1,720');
+    await page.getByLabel('Rent a month', { exact: true }).fill('1,720');
     await page.getByRole('button', { name: 'Change the rent' }).click();
     await expect(next(page)).toBeVisible();
     await expect(page.getByLabel('Rent a month')).toHaveCount(0);

@@ -194,7 +194,8 @@ test('R3: an operator checks the rent, and Gaff catches a rent over the cap', as
   await next.click();
   await expect(page.getByLabel('Last rent a month')).toHaveValue('1,700');
   await next.click();
-  await page.getByLabel('Rent a month').fill('1,720');
+  await expect(page.getByRole('heading', { name: 'The rent cap applies' })).toBeVisible();
+  await page.getByLabel('Rent a month', { exact: true }).fill('1,720');
   await page.getByRole('button', { name: 'Change the rent' }).click();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(page.getByText('Rent check saved.')).toBeVisible();

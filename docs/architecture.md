@@ -135,7 +135,10 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 ├── scripts/build-tokens.ts      tokens JSON → src/styles/tokens.css + tokens.ts
 ├── src/
 │   ├── app/                     Next.js routes only: thin pages, server actions, route handlers
-│   │   ├── (workspace)/         operator workspace, sign-in required
+│   │   ├── _shell/              the one shell: the navigation round the page
+│   │   ├── (workspace)/         the letting side: Today, Lettings, Calendar, Inbox; sign-in required
+│   │   ├── (task)/              its focused tasks: full screen, no navigation
+│   │   ├── (site)/              the public site's first screen, the renting side, Profile, Help
 │   │   ├── r/[token]/           renter pages: questions, booking (no account)
 │   │   ├── l/[token]/           landlord pages: read-only timeline (no account)
 │   │   └── api/                 inbound email webhooks, cron tick, health check

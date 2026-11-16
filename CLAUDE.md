@@ -74,8 +74,16 @@ The founder agreed the redesign on 14 November 2026. The decisions are Q27 to Q4
 - The redesign's design system is in (work package WP-2): role-named tokens, one type family, 48px controls and the components in `src/ui`. Every component and its states are on one page, `/dev/ui`, when `DEV_TOOLS` is on.
 - The shell and the navigation are in (work package WP-3). There is no sidebar: one bar (`src/ui/NavBar`), a top bar at 900px and up and a tab bar at the foot of the screen below it.
   - Letting has Today (`/today`), Lettings (`/lettings`), Calendar (`/calendar`) and Inbox (`/inbox`). Renting has Search (`/`), Saved (`/saved`) and Enquiries (`/enquiries`). Signed out, `/` is the public site, with a header alone. Settings, Profile, Help and Sign out are in the account menu on the avatar.
-  - "Letting or renting?" is answered in one place: `currentPerson()` in `src/server/context`, by the rule `contextFor` in `src/domain/navigation`. Work package WP-5 replaces that rule with the real switcher.
+  - "Letting or renting?" is answered in one place: `currentPerson()` in `src/server/context`, by the rules in `src/domain/navigation/context.ts`. A workspace page is always on the letting side, for the organisation the person let for last.
   - A step-by-step task hides the navigation: its page goes under `(task)` and is built on `FlowShell`, with errors at the field and no error box at the top.
+
+- The account model is in (work package WP-5, ADR-0016). A person is one person whatever they do.
+  - Their contexts are each organisation they belong to (an agency by name, or "My own homes") and "Renting". The account menu switches between them and adds new ones. The one that's open is remembered on their profile, and changes only in `src/server/accounts`.
+  - A private landlord's lettings live in an organisation of one, kind `private_landlord`, made silently by `ensureOwnHomes`. It is never asked for a name or a licence. `landlord` is a landlord's team.
+  - A person's own profile (`profiles`, and later what a renter keeps and a verified identity) has no `organisation_id`. Reach it only through `withPerson()`, with the signed-in person's own ID. `withOrg()` can't read it, and a test holds that.
+  - First run is `/welcome`, in `(first-run)`: one question per screen in `FlowShell`, at most four. Which screen opens is worked out from what is known (`src/domain/accounts/first-run.ts`).
+  - An agency is found on Gaff's copy of the PSRA register, which a weekly job refreshes. It is "being confirmed" until someone on Gaff's team presses Confirm on `/internal/agencies`. Until then the one thing held is go-live; the one rule is `goLiveGate` in `src/domain/organisations`. Staff confirm agencies and do nothing else.
+  - In tests, `createTestMember()` gives a confirmed agency, and `signUpOperator()` in `tests/e2e/support.ts` does too. Pass `confirmed: false` for one that is still being confirmed.
 
 ## Architecture
 
@@ -85,7 +93,7 @@ A TypeScript modular monolith: one Next.js app on Vercel (Dublin) and one Postgr
 - `src/server/`: use cases. Each one loads data, applies a domain rule, then writes the change and its event in one transaction, inside `withOrg()`.
 - `src/app/`: Next.js routes, kept thin.
   - Pages on the letting side are in `(workspace)`, and its focused tasks, which have no navigation, in `(task)`.
-  - The public site, the renting side, Profile and Help are in `(site)`.
+  - The public site, the renting side, Profile and Help are in `(site)`. First run is in `(first-run)`.
   - Both use the one shell in `_shell`.
   - Renter pages by private link are in `r/[token]`, and landlord pages in `l/[token]`.
 - `src/jobs/`: background tasks (graphile-worker), the local worker, and the time-boxed runner used by the cron tick.
@@ -93,6 +101,7 @@ A TypeScript modular monolith: one Next.js app on Vercel (Dublin) and one Postgr
 - `src/db/`: Drizzle schema and migrations.
   - Every tenant table has `organisation_id` and the `tenantPolicy()` row-level security policy.
   - Reach tenant data only through `withOrg()`. Use `withSystem()` only for cross-organisation jobs.
+  - A table that belongs to a person, not an organisation, has `personPolicy()` and is reached only through `withPerson()` (ADR-0016).
 - `src/ui/`: design-system components. `src/copy/` holds renter-facing words.
 
 ## Conventions

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { accountMenuFor } from '@/domain/navigation/account-menu';
+import { contextsFor } from '@/domain/navigation/context';
 import { lettingDestinations, rentingDestinations } from '@/domain/navigation/destinations';
 import { env } from '@/lib/env';
 import { ButtonLink } from '@/ui/Button';
@@ -13,8 +14,25 @@ export const metadata: Metadata = { title: 'Navigation' };
 export const dynamic = 'force-dynamic';
 
 const here = '/dev/ui/nav';
-const sides = ['letting', 'renting', 'signed-out'] as const;
+const sides = ['letting', 'renting', 'several', 'signed-out'] as const;
 type Side = (typeof sides)[number];
+
+/** Made-up people: one who lets, one who rents, and one with several contexts (UX-AC-11). */
+const halcyon = { id: 'halcyon', name: 'Halcyon Lettings', kind: 'agency' } as const;
+const own = { id: 'own', name: 'Ann', kind: 'private_landlord' } as const;
+function menuFor(side: Exclude<Side, 'signed-out'>) {
+  const contexts =
+    side === 'letting'
+      ? contextsFor({ organisations: [halcyon], renting: false })
+      : side === 'renting'
+        ? contextsFor({ organisations: [], renting: true })
+        : contextsFor({ organisations: [halcyon, own], renting: true });
+  return accountMenuFor({
+    name: side === 'renting' ? 'Aoife Byrne' : 'Ann Power',
+    contexts,
+    current: contexts[0] ?? null,
+  });
+}
 
 /** Made-up counts, large enough to show that the bar keeps its shape. */
 const counts: Record<string, number> = { today: 12, inbox: 3, enquiries: 120 };
@@ -22,7 +40,7 @@ const counts: Record<string, number> = { today: 12, inbox: 3, enquiries: 120 };
 /** The bar's own destinations, with this page standing in for the first as the page you're on. */
 function destinations(side: Side): NavDestination[] {
   if (side === 'signed-out') return [];
-  const list = side === 'letting' ? lettingDestinations : rentingDestinations;
+  const list = side === 'renting' ? rentingDestinations : lettingDestinations;
   return list.map((destination, index) => ({
     ...destination,
     pages: index === 0 ? [here] : [],
@@ -64,17 +82,7 @@ export default async function NavigationPage({
           ) : (
             <>
               {side === 'renting' ? listAHome : null}
-              <AccountMenuDemo
-                menu={accountMenuFor(
-                  side === 'letting'
-                    ? {
-                        name: 'Ann Power',
-                        context: 'letting',
-                        organisation: { name: 'Halcyon Lettings', kind: 'agency' },
-                      }
-                    : { name: 'Aoife Byrne', context: 'renting', organisation: null },
-                )}
-              />
+              <AccountMenuDemo menu={menuFor(side)} />
             </>
           )
         }
@@ -91,7 +99,12 @@ export default async function NavigationPage({
           label="Who is looking"
           items={sides.map((each) => ({
             href: `${here}?side=${each}`,
-            label: { letting: 'Letting', renting: 'Renting', 'signed-out': 'Signed out' }[each],
+            label: {
+              letting: 'Letting',
+              renting: 'Renting',
+              several: 'Several contexts',
+              'signed-out': 'Signed out',
+            }[each],
             current: each === side,
           }))}
         />

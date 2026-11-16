@@ -13,9 +13,12 @@ export const funnelVariantSchema = z.enum([
   'google',
   'apple',
   'passkey',
-  // Kinds of organisation, for first run.
+  // Who a person is when they finish first run: the kind of organisation they let for, or a
+  // renter, who has none (UX-AC-6).
   'agency',
   'landlord',
+  'private_landlord',
+  'renter',
   // How a letting was started.
   'import',
   'form',

@@ -8,6 +8,7 @@ import {
   latestCodeFor,
   latestLinkFor,
   screenshot,
+  setUpAgency,
   signIn,
   signUpOperator,
   uniqueEmail,
@@ -378,7 +379,9 @@ test('UX-SI-1, UX-SI-8, UX-SI-11: Google and Apple, joined to one person by a ve
     await throughStandIn(page, 'Google', { name: 'Orla Kelly', email });
     await signedIn(page);
     await expect(page).toHaveURL(/\/welcome$/);
-    await expect(page.getByLabel('Your name')).toHaveValue('Orla Kelly');
+    // UX-AC-6: Google supplied her name, so first run doesn't ask for it.
+    await expect(page.getByLabel('First and last name')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: /What brings you to Gaff\?$/ })).toBeVisible();
     const [person] = await usersWith(email);
     expect(person).toMatchObject({ email_verified: true, name: 'Orla Kelly' });
 
@@ -720,12 +723,7 @@ test('UX-SI-10: a person with a passkey confirms it’s them with it', async ({ 
     .getByRole('button', { name: 'Turn it on' })
     .click();
   await expect(page).toHaveURL(/\/welcome$/);
-  await page.getByLabel('Your name').fill('Ann Power');
-  await page.getByLabel('Other people: we are a letting agency').check();
-  await page.getByLabel('Name of your agency or business').fill('Halcyon Lettings');
-  await page.getByLabel('PSRA licence number').fill('001234');
-  await page.getByRole('button', { name: 'Set up my workspace' }).click();
-  await expect(page.getByRole('heading', { name: 'Your lettings' })).toBeVisible();
+  await setUpAgency(page, email);
 
   await fillPaymentAccount(page);
   const sheet = page.getByRole('dialog', { name: 'Confirm it’s you' });

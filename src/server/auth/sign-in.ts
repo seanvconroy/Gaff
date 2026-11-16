@@ -4,6 +4,8 @@ import type { SignInMethod } from '@/domain/auth/methods';
 import { safeNextPath } from '@/domain/auth/next-path';
 import { passkeyMemoryFrom, shouldOfferPasskey } from '@/domain/auth/passkey-offer';
 import { sendCode, waitingCode, type SendCodeResult, type WaitingCode } from './codes';
+import { startRentingIfArriving } from '@/server/accounts/contexts';
+import { acceptInvitesFor } from '@/server/accounts/invites';
 import { cookieLifetimes, cookieNames, cookieOptions } from './cookies';
 import { noteSignInMethodChosen, noteSignedIn } from './sign-in-steps';
 
@@ -29,6 +31,10 @@ export async function finishSignIn(input: {
   // A passkey is chosen and used in one step, on the email field.
   if (input.method === 'passkey') await noteSignInMethodChosen(input.attemptId, input.method);
   await noteSignedIn(input.attemptId, { id: input.userId }, input.method);
+  // UX-AG-5: someone a founder invited joins their agency here, with no questions.
+  await acceptInvitesFor(input.userId);
+  // UX-AC-6: someone on their way to Saved or Enquiries is renting: they aren't asked.
+  await startRentingIfArriving(input.userId, safeNextPath(input.nextPath));
   const jar = await cookies();
   jar.set(cookieNames.lastMethod, input.method, cookieOptions(cookieLifetimes.lastMethod));
   jar.delete(cookieNames.signInCode);

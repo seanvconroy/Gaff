@@ -8,7 +8,9 @@ import {
   openAccountMenu,
   screenshot,
   signIn,
+  signUpLandlord,
   signUpOperator,
+  signUpRenter,
   uniqueEmail,
 } from './support';
 
@@ -227,8 +229,10 @@ test('UX-NV-8: the account menu on the avatar holds the name and context, Profil
     const dialog = page.getByRole('dialog', { name: 'Account' });
     await expect(dialog.getByText('Ann Power')).toBeVisible();
     await expect(dialog.getByText('Halcyon Lettings')).toBeVisible();
+    // UX-AC-13: the roles they can still add, then the rest. One context, so no switcher.
     await expect(menu.getByRole('menuitem')).toHaveText([
       'Find a home to rent',
+      'Let a home I own',
       'Profile',
       'Agency settings',
       'Help',
@@ -239,6 +243,8 @@ test('UX-NV-8: the account menu on the avatar holds the name and context, Profil
 
     // The arrows, Home and End move through the rows, and round the ends.
     await expect(menu.getByRole('menuitem', { name: 'Find a home to rent' })).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(menu.getByRole('menuitem', { name: 'Let a home I own' })).toBeFocused();
     await page.keyboard.press('ArrowDown');
     await expect(menu.getByRole('menuitem', { name: 'Profile' })).toBeFocused();
     await page.keyboard.press('End');
@@ -261,6 +267,7 @@ test('UX-NV-8: the account menu on the avatar holds the name and context, Profil
     await page.keyboard.press('ArrowDown');
     await expect(menu).toBeVisible();
     await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/\/profile$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Profile' })).toBeVisible();
@@ -276,17 +283,19 @@ test('UX-NV-8: the account menu on the avatar holds the name and context, Profil
 
     await (await openAccountMenu(page)).getByRole('menuitem', { name: 'Agency settings' }).click();
     await expect(page.getByRole('heading', { name: 'Your Gaff address' })).toBeVisible();
-
-    // "Find a home to rent" shows the public site, without sending them back to Today.
-    await (
-      await openAccountMenu(page)
-    )
-      .getByRole('menuitem', { name: 'Find a home to rent' })
-      .click();
-    await expect(
-      page.getByRole('heading', { name: 'Homes to rent will appear here.' }),
-    ).toBeVisible();
   }
+
+  // UX-AC-13: "Find a home to rent" adds Renting, and opens Search on the renting side.
+  await (
+    await openAccountMenu(page)
+  )
+    .getByRole('menuitem', { name: 'Find a home to rent' })
+    .click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(
+    page.getByRole('heading', { name: 'Homes to rent will appear here.' }),
+  ).toBeVisible();
+  await expect(mainNav(page).getByRole('link')).toHaveText(['Search', 'Saved', 'Enquiries']);
 
   await (await openAccountMenu(page)).getByRole('menuitem', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
@@ -299,10 +308,8 @@ test('UX-NV-19, UX-NV-21: the renting side has the same bar, with Search, Saved 
   page,
 }) => {
   test.slow();
-  // Someone signed in who lets nothing. Until first run is built (WP-5) that is a person who
-  // hasn't set up yet, so signing in still lands on set-up.
-  await signIn(page, uniqueEmail('aoife'));
-  await expect(page).toHaveURL(/\/welcome$/);
+  // Someone who said, at first run, that they're looking for a home (UX-AC-6).
+  await signUpRenter(page);
   const nav = mainNav(page);
 
   for (const [width, viewport] of widths) {
@@ -332,8 +339,9 @@ test('UX-NV-19, UX-NV-21: the renting side has the same bar, with Search, Saved 
     await expectAccessible(page);
     await screenshot(page, `nv-renting-enquiries-${width}`);
 
-    // Search is the public site's first screen.
-    await page.goto('/?rent=1');
+    // Search is the public site's first screen, and where the renting side opens.
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/$/);
     await expect(nav.getByRole('link', { name: 'Search' })).toHaveAttribute('aria-current', 'page');
     await expect(
       page.getByRole('heading', { name: 'Homes to rent will appear here.' }),
@@ -342,11 +350,13 @@ test('UX-NV-19, UX-NV-21: the renting side has the same bar, with Search, Saved 
     await screenshot(page, `nv-renting-search-${width}`);
   }
 
-  // UX-NV-8: a person who only rents sees "List a home" in the menu, and no agency settings.
+  // UX-NV-8, UX-AC-13: a person who only rents sees the ways to let in the menu, and no
+  // agency settings. "List a home" is in the header beside it.
   const menu = await openAccountMenu(page);
   await expect(page.getByRole('dialog', { name: 'Account' }).getByText('Renting')).toBeVisible();
   await expect(menu.getByRole('menuitem')).toHaveText([
-    'List a home',
+    'Let a home I own',
+    'Join or set up an agency',
     'Profile',
     'Help',
     'Sign out',
@@ -524,12 +534,9 @@ test('UX-NV-7: a private landlord with one home has the same four destinations, 
   page,
 }) => {
   test.slow();
-  await signIn(page, uniqueEmail('mary'));
-  await expect(page).toHaveURL(/\/welcome$/);
-  await page.getByLabel('Your name').fill('Mary Byrne');
-  await page.getByLabel('Ourselves: we are landlords letting our own homes').check();
-  await page.getByLabel('Name of your agency or business').fill('Mary Byrne');
-  await page.getByRole('button', { name: 'Set up my workspace' }).click();
+  // UX-AC-7: she says she's letting a home she owns, and lands in "Add your home".
+  await signUpLandlord(page, 'Mary Byrne');
+  await page.goto('/today');
   await expect(page).toHaveURL(/\/today$/);
   const nav = mainNav(page);
   await expect(nav.getByRole('link')).toHaveText(['Today', 'Lettings', 'Calendar', 'Inbox']);

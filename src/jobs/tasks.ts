@@ -1,11 +1,13 @@
 import type { TaskList } from 'graphile-worker';
 import { z } from 'zod';
+import { sendAccountEmail } from '@/server/accounts/emails';
 import { draftAnswersFor } from '@/server/answers/draft';
 import { processInboundEmail } from '@/server/enquiries/process';
 import { markReferenceOverdue } from '@/server/checks/checks';
 import { sendMessage } from '@/server/messages/outbox';
 import { expireHomeOffer } from '@/server/offers/offer';
 import { sendRtbReminder } from '@/server/tenancy/rtb';
+import { refreshRegister } from '@/server/register/refresh';
 import { sweepPersonalData } from '@/server/retention/sweep';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
 
@@ -16,7 +18,12 @@ const messageJob = z.object({ organisationId: z.uuid(), messageId: z.uuid() });
  * R26 (ADR-0005): the retention job, daily at 02:30 UTC. "?fill=2d" runs a missed one when jobs
  * next run, so a quiet night or a deploy never skips it.
  */
-export const CRONTAB = '30 2 * * * retention_sweep ?fill=2d';
+export const CRONTAB = [
+  '30 2 * * * retention_sweep ?fill=2d',
+  // UX-AG-1, UX-AG-6 (Q39): the PSRA register, weekly, early on Monday. A missed week runs when
+  // jobs next run. The job key matches the one a first load uses, so two never queue up.
+  '15 3 * * 1 psra_register_refresh ?fill=8d&jobKey=psra_register_refresh&max=5',
+].join('\n');
 
 /** Every background task. Tasks are thin: they call use cases in src/server. */
 export const taskList: TaskList = {
@@ -36,6 +43,16 @@ export const taskList: TaskList = {
     console.log(
       `Retention: ${swept.applications} applications, ${swept.inboundEmails} emails and ${swept.references} references cleared; ${swept.recordEvents} record events and ${swept.recordDecisions} decisions past their period deleted.`,
     );
+  },
+  psra_register_refresh: async () => {
+    const refreshed = await refreshRegister();
+    // Counts only: the register names businesses, and some are one person's.
+    console.log(
+      `PSRA register: ${refreshed.entries} businesses licensed to let (${refreshed.added} new, ${refreshed.removed} gone); ${refreshed.lapsed} agencies lapsed and ${refreshed.renewed} renewed.`,
+    );
+  },
+  send_account_email: async (payload, helpers) => {
+    await sendAccountEmail(payload, String(helpers.job.id));
   },
   reference_overdue: async (payload) => {
     await markReferenceOverdue(

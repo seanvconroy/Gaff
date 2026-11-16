@@ -3,7 +3,7 @@ import type { SignInMethod } from '@/domain/auth/methods';
 import { funnelSubjectSchema } from '@/domain/funnels/steps';
 import { env } from '@/lib/env';
 import { noteFunnelStep } from '@/server/funnels/steps';
-import { findMember } from './member';
+import { holdingsOf } from './member';
 
 /**
  * UX-ME-1: the sign-in funnel (screen opened, method chosen, signed in). Nobody is known when
@@ -78,7 +78,8 @@ export async function noteSignedIn(
 ): Promise<void> {
   const subjectId = signInAttempt(attempt);
   if (subjectId) await noteFunnelStep({ step: 'sign_in.signed_in', subjectId, variant: method });
-  if (!(await findMember(user.id))) {
+  // Someone with no context yet: first run starts here (UX-AC-6).
+  if ((await holdingsOf(user.id)).contexts.length === 0) {
     await noteFunnelStep({ step: 'first_run.signed_in', subjectId: user.id });
   }
 }

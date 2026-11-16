@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Tx } from '@/db/client';
 import { events } from '@/db/schema';
+import { organisationKinds } from '@/domain/organisations/kinds';
 import { assertNoPersonalData } from '@/domain/record/personal-data';
 
 /**
@@ -8,8 +9,37 @@ import { assertNoPersonalData } from '@/domain/record/personal-data';
  * enums, numbers, booleans or dates: a compliance test rejects plain strings here.
  */
 export const eventCatalogue = {
-  'organisation.created': z.object({ kind: z.enum(['agency', 'landlord']) }),
+  'organisation.created': z.object({ kind: z.enum(organisationKinds) }),
   'member.joined': z.object({ role: z.enum(['admin', 'negotiator']) }),
+  /**
+   * UX-AG-4, UX-AG-5 (Q32): someone at Gaff confirmed that the agency's first admin works there
+   * (`checked`), or a founder set the agency up for a pilot and invited its admin (`invited`).
+   */
+  'organisation.confirmed': z.object({ how: z.enum(['checked', 'invited']) }),
+  /** UX-AG-2: an agency that was applying for its licence found it on the register. */
+  'organisation.licence_found': z.object({ registerEntryId: z.uuid() }),
+  /** UX-AG-6: the weekly check found the agency's licence gone from the register, or back. */
+  'organisation.licence_lapsed': z.object({ registerEntryId: z.uuid() }),
+  'organisation.licence_renewed': z.object({ registerEntryId: z.uuid() }),
+  /** UX-AG-5: a founder invited an agency's first admin, by email. Never the address. */
+  'member.invited': z.object({ inviteId: z.uuid(), role: z.enum(['admin', 'negotiator']) }),
+  /** UX-AG-3: someone asked to join the agency. Its admins answer (WP-19). */
+  'member.join_requested': z.object({ requestId: z.uuid() }),
+  /**
+   * UX-AG-4: a person decided to put the home live (a 'confirm_setup' decision) while their
+   * agency was being confirmed. It goes live when the agency is confirmed.
+   */
+  'letting.go_live_held': z.object({
+    decisionId: z.uuid(),
+    reason: z.enum(['being_confirmed']),
+  }),
+  /** UX-AG-4: the agency was confirmed, but the home's set-up had been undone meanwhile. */
+  'letting.go_live_hold_ended': z.object({ reason: z.enum(['not_ready']) }),
+  /**
+   * UX-AC-14 (rule 1): a member who applied for this home as a renter tried to open it in the
+   * workspace, or to decide something on it, and was stopped. The actor is that member.
+   */
+  'letting.conflict_noted': z.object({ stopped: z.enum(['page', 'decision']) }),
   'letting.created': z.object({ setupFacts: z.number().int().min(0), withLandlord: z.boolean() }),
   'viewings.session_added': z.object({
     sessionId: z.uuid(),
@@ -267,11 +297,14 @@ export type Actor =
   | { type: 'ai' }
   | { type: 'system' }
   | { type: 'renter'; applicationId: string }
-  | { type: 'landlord'; landlordId: string };
+  | { type: 'landlord'; landlordId: string }
+  /** One of Gaff's own team. They can confirm an agency and nothing else (Q13, Q32). */
+  | { type: 'staff'; userId: string };
 
 function actorId(actor: Actor): string | null {
   switch (actor.type) {
     case 'person':
+    case 'staff':
       return actor.userId;
     case 'renter':
       return actor.applicationId;

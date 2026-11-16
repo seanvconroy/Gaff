@@ -4,6 +4,7 @@ import {
   applications,
   landlords,
   lettings,
+  memberships,
   organisations,
   tenancies,
   type offers,
@@ -17,6 +18,7 @@ import {
 } from '@/copy/templates/tenancy';
 import { tenancyAgreement, type AgreementDocument } from '@/copy/templates/tenancy-agreement';
 import { furnishing, propertyTypes } from '@/domain/lettings/new-letting';
+import { licenceToShow } from '@/domain/organisations/go-live-gate';
 import {
   agreementHash,
   rentDueDay,
@@ -88,12 +90,24 @@ async function loadTenancy(tx: Tx, where: { lettingId: string } | { applicationI
   if (!row) return null;
   const { tenancy, letting, organisation, tenant } = row;
   const isAgency = organisation.kind === 'agency';
+  // UX-AC-4, UX-AC-9: a private landlord's organisation carries only the first name renters see.
+  // The agreement names the landlord in full: the one person whose organisation it is.
+  const [owner] =
+    organisation.kind === 'private_landlord'
+      ? await tx
+          .select({ name: users.name })
+          .from(memberships)
+          .innerJoin(users, eq(users.id, memberships.userId))
+          .where(eq(memberships.organisationId, organisation.id))
+          .limit(1)
+      : [];
   const type = propertyTypes[letting.propertyType as keyof typeof propertyTypes] ?? 'home';
   const furnished = furnishing[letting.furnished as keyof typeof furnishing] ?? '';
   const document: AgreementDocument = tenancyAgreement({
-    landlordName: isAgency ? (row.landlordName ?? '') : organisation.name,
+    landlordName: isAgency ? (row.landlordName ?? '') : (owner?.name ?? organisation.name),
     agentName: isAgency ? organisation.name : null,
-    psraLicenceNumber: isAgency ? organisation.psraLicenceNumber : null,
+    // UX-AG-7: the licence number of a confirmed agency, from its entry in the register.
+    psraLicenceNumber: licenceToShow(organisation),
     tenantName: tenant.fullName,
     address: letting.addressLine1,
     area: letting.area,

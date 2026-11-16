@@ -278,6 +278,16 @@ export function describeEvent(
       return { what: 'A renter’s personal details deleted on schedule' };
     case 'letting.went_live':
       return { what: 'Set-up confirmed: Gaff started answering enquiries' };
+    case 'letting.go_live_held':
+      return {
+        what: 'Set-up confirmed: the home goes live when Gaff has confirmed the agency',
+      };
+    case 'letting.go_live_hold_ended':
+      return { what: 'The home didn’t go live: its set-up was changed while it waited' };
+    case 'letting.conflict_noted':
+      return {
+        what: 'Stopped from working on this letting: they enquired about this home as a renter',
+      };
     default:
       return { what: event.type };
   }

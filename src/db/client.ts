@@ -60,6 +60,26 @@ export function withSystem<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
   });
 }
 
+/**
+ * Runs fn in a transaction scoped to one person: the only way to what is theirs alone, such as
+ * their profile (UX-AC-5, ADR-0016). Call it with the signed-in person's own ID and nobody
+ * else's. An operator's path, withOrg(), never sets a person, so it can't read these rows.
+ */
+export function withPerson<T>(userId: string, fn: (tx: Tx) => Promise<T>): Promise<T> {
+  return db().transaction(async (tx) => {
+    await scopeToPerson(tx, userId);
+    return fn(tx);
+  });
+}
+
+/**
+ * Switches an open transaction to a person. Beside scopeToOrg(), it is only for a use case the
+ * person starts themselves that also creates or joins an organisation (src/server/accounts).
+ */
+export async function scopeToPerson(tx: Tx, userId: string): Promise<void> {
+  await tx.execute(sql`select set_config('app.person_id', ${userId}, true)`);
+}
+
 /** Switches an open transaction to an organisation, e.g. straight after creating it. */
 export async function scopeToOrg(tx: Tx, organisationId: string): Promise<void> {
   await tx.execute(sql`select set_config('app.org_id', ${organisationId}, true)`);

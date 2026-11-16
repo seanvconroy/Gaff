@@ -71,6 +71,12 @@ export const lettings = pgTable(
       .notNull()
       .references(() => users.id),
     liveAt: timestamp({ withTimezone: true }),
+    /**
+     * UX-AG-4: a person decided to put the home live while their agency was being confirmed.
+     * The decision is theirs and is recorded; the home goes live when the agency is confirmed.
+     */
+    goLiveHeldAt: timestamp({ withTimezone: true }),
+    goLiveDecisionId: uuid(),
     /** R26: when a person closed it, as let or withdrawn. Deletion dates count from here. */
     closedAt: timestamp({ withTimezone: true }),
     createdAt: createdAt(),

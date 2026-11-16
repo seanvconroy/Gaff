@@ -16,6 +16,8 @@
  * builds one only has to emit its codes.
  */
 
+import type { OrganisationKind } from '@/domain/organisations/kinds';
+
 /** What is counted at each step of a funnel: each one counts once per step. */
 export const subjectKinds = [
   /** One try at signing in, from opening the screen. Not a person: nobody is known yet. */
@@ -46,7 +48,7 @@ export interface RecordSource {
   /** The payload field that holds the funnel's split, such as the portal an enquiry came from. */
   readonly variant?: string;
   /** Count only events of organisations of this kind. */
-  readonly organisationKind?: 'agency' | 'landlord';
+  readonly organisationKind?: OrganisationKind;
 }
 
 export interface FunnelSource {
@@ -108,13 +110,16 @@ export const funnels = [
     measure: 'Completion; time',
     target: '90%. Median under 60 seconds for a landlord, 2 minutes for an agency',
     subject: 'person',
-    split: 'Kind of organisation',
+    split: 'Role',
     steps: [
       { code: 'signed_in', label: 'Signed in', sources: [own] },
       {
         code: 'set_up_finished',
         label: 'Set-up finished',
-        sources: [record('organisation.created', 'actor', { variant: 'kind' })],
+        // UX-AC-6: someone who lets finishes by making their organisation, which the record
+        // holds (an agency, or a private landlord's silent one). A renter makes none, and
+        // neither does someone a founder invited, so that is written as a step of its own.
+        sources: [own, record('organisation.created', 'actor', { variant: 'kind' })],
         timedFrom: 'signed_in',
       },
     ],

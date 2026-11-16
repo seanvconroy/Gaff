@@ -75,6 +75,13 @@ const schema = z
     /** Apple's Services ID, and the client secret (a signed token Apple accepts for six months). */
     APPLE_CLIENT_ID: z.string().optional(),
     APPLE_CLIENT_SECRET: z.string().optional(),
+    /**
+     * UX-AG-1 (Q39): where Gaff's weekly copy of the PSRA register comes from. "sample" is a
+     * made-up register for local work and tests, never for production; "url" downloads the
+     * register from PSRA_REGISTER_URL (docs/deploy.md, "The PSRA register").
+     */
+    PSRA_REGISTER_SOURCE: z.enum(['sample', 'url']).default('sample'),
+    PSRA_REGISTER_URL: z.url().optional(),
   })
   .superRefine((env, ctx) => {
     for (const [id, secret] of [
@@ -112,6 +119,7 @@ const schema = z
         ['AI_PROVIDER', env.AI_PROVIDER, 'fake'],
         ['IDENTITY_PROVIDER', env.IDENTITY_PROVIDER, 'stand_in'],
         ['INCOME_PROVIDER', env.INCOME_PROVIDER, 'stand_in'],
+        ['PSRA_REGISTER_SOURCE', env.PSRA_REGISTER_SOURCE, 'sample'],
       ] as const;
       if (!env.DATA_ENCRYPTION_KEY) {
         ctx.addIssue({
@@ -129,6 +137,13 @@ const schema = z
           });
         }
       }
+    }
+    if (env.PSRA_REGISTER_SOURCE === 'url' && !env.PSRA_REGISTER_URL) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PSRA_REGISTER_URL'],
+        message: 'PSRA_REGISTER_URL is required when PSRA_REGISTER_SOURCE is "url"',
+      });
     }
     if (env.EMAIL_PROVIDER === 'resend') {
       for (const key of ['RESEND_API_KEY', 'RESEND_WEBHOOK_SECRET'] as const) {

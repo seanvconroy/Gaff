@@ -229,36 +229,172 @@ export function uniqueEmail(prefix = 'ann'): string {
   return `${prefix}.${Date.now()}.${counter}@halcyon.test`;
 }
 
-/** Signs up a new operator and sets up their workspace; returns their email. */
-export async function signUpOperator(
-  page: Page,
-  organisation = 'Halcyon Lettings',
-): Promise<string> {
-  const email = uniqueEmail();
-  await signIn(page, email);
-  await expect(page).toHaveURL(/\/welcome$/);
-  await page.getByLabel('Your name').fill('Ann Power');
-  await page.getByLabel('Other people: we are a letting agency').check();
-  await page.getByLabel('Name of your agency or business').fill(organisation);
-  await page.getByLabel('PSRA licence number').fill('001234');
-  await page.getByRole('button', { name: 'Set up my workspace' }).click();
-  await expect(page.getByRole('heading', { name: 'Your lettings' })).toBeVisible();
+/** Runs statements as the system would: across organisations, for a test's own set-up. */
+async function asSystem<T extends pg.QueryResultRow>(sql: string, params: unknown[]): Promise<T[]> {
   const client = new pg.Client({ connectionString: E2E_DATABASE_URL });
   await client.connect();
   try {
     await client.query('begin');
     await client.query("select set_config('app.rls_bypass', 'on', true)");
-    const { rows } = await client.query<{ slug: string }>(
-      `select o.inbound_slug as slug from organisations o
-       join memberships m on m.organisation_id = o.id join users u on u.id = m.user_id
-       where u.email = $1`,
-      [email],
-    );
+    const { rows } = await client.query<T>(sql, params);
     await client.query('commit');
-    currentSender = rows[0]?.slug ?? null;
+    return rows;
   } finally {
     await client.end();
   }
+}
+
+/**
+ * A made-up business licensed to let, put straight into Gaff's copy of the PSRA register, for
+ * one journey. Every journey signs up "Halcyon Lettings", and an agency can only be on Gaff
+ * once, so each gets an entry of its own, told apart by its licence number. Returns the number:
+ * seven digits starting with 2, which nothing in the sample register has.
+ */
+export async function aRegisterEntry(name: string, county = 'Dublin'): Promise<string> {
+  const plain = name
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+  for (let tries = 0; tries < 20; tries++) {
+    const licence = `2${String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0')}`;
+    const made = await query<{ id: string }>(
+      `insert into psra_register (licence_number, registered_name, trading_name, licence_type, county, search_text)
+       values ($1, $2, $3, 'company', $4, $5) on conflict (licence_number) do nothing returning id`,
+      [licence, `${name} Limited`, name, county, `${plain} limited ${plain}`],
+    );
+    if (made.length > 0) return licence;
+  }
+  throw new Error('Could not make a register entry');
+}
+
+/**
+ * Test only: the agency this person set up, as it is once someone at Gaff has confirmed it
+ * (UX-AG-4). Journeys that aren't about confirming use it, so their homes can go live. The real
+ * way is the Confirm button on /internal/agencies, which the agency journey presses.
+ */
+export async function confirmAgencyOf(email: string): Promise<void> {
+  await asSystem(
+    `update organisations set confirmed_at = now()
+     where kind = 'agency' and confirmed_at is null and id in (
+       select m.organisation_id from memberships m join users u on u.id = m.user_id where u.email = $1)`,
+    [email],
+  );
+}
+
+/**
+ * UX-AG-7: the PSRA licence number of the agency this person set up, as its entry in the
+ * register gives it. It is what renters see on the agency's pages and in its emails.
+ */
+export async function licenceOf(email: string): Promise<string> {
+  const rows = await asSystem<{ licence: string | null }>(
+    `select r.licence_number as licence from organisations o
+     join psra_register r on r.id = o.psra_register_entry_id
+     join memberships m on m.organisation_id = o.id join users u on u.id = m.user_id
+     where u.email = $1 and o.kind = 'agency'`,
+    [email],
+  );
+  const licence = rows[0]?.licence;
+  if (!licence) throw new Error(`${email} has no agency with a licence on the register`);
+  return licence;
+}
+
+/** First run's first question, for someone whose sign-in supplied no name (UX-AC-6). */
+export async function answerName(page: Page, name = 'Ann Power'): Promise<void> {
+  await expect(page).toHaveURL(/\/welcome(\?|$)/);
+  await page.getByLabel('First and last name').fill(name);
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+}
+
+/** First run's second question: "What brings you to Gaff?" (UX-AC-6). */
+export async function answerPurpose(
+  page: Page,
+  purpose: 'I’m looking for a home' | 'I’m letting a home I own' | 'I work at a letting agency',
+): Promise<void> {
+  await expect(page.getByRole('heading', { name: /What brings you to Gaff\?$/ })).toBeVisible();
+  // A real radio, as large as its card.
+  await page.getByRole('radio', { name: purpose, exact: true }).check();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+}
+
+/**
+ * Signs up a new operator at a letting agency, through first run (UX-AC-6, UX-AG-1 to UX-AG-4):
+ * their name, "I work at a letting agency", the agency by its licence number, "Yes, that's us".
+ * Returns their email.
+ *
+ * The agency is CONFIRMED unless `confirmed: false` is asked for, so the journey can put homes
+ * live straight away. Pass `confirmed: false` for an agency that is still "being confirmed".
+ */
+export async function signUpOperator(
+  page: Page,
+  organisation = 'Halcyon Lettings',
+  options: { confirmed?: boolean } = {},
+): Promise<string> {
+  const email = uniqueEmail();
+  await signIn(page, email);
+  await setUpAgency(page, email, organisation, options);
+  return email;
+}
+
+/**
+ * The rest of `signUpOperator`, for a journey that signed its person in its own way: from first
+ * run's first question, to Today, in a confirmed agency (unless `confirmed: false`).
+ */
+export async function setUpAgency(
+  page: Page,
+  email: string,
+  organisation = 'Halcyon Lettings',
+  options: { confirmed?: boolean } = {},
+): Promise<void> {
+  const licence = await aRegisterEntry(organisation);
+  await answerName(page);
+  await answerPurpose(page, 'I work at a letting agency');
+  await expect(page.getByRole('heading', { name: 'Which agency?' })).toBeVisible();
+  // By its number, which only this journey's entry has (UX-AG-2). Finding an agency by typing
+  // its name has a journey of its own (ux-ac-accounts.spec.ts).
+  await page.goto('/welcome?step=agency&by=licence');
+  await page.getByLabel('Licence number').fill(licence);
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Is this your agency?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Yes, that’s us' }).click();
+  await expect(page.getByRole('heading', { name: 'Your lettings' })).toBeVisible();
+  if (options.confirmed !== false) await confirmAgencyOf(email);
+  const rows = await asSystem<{ slug: string }>(
+    `select o.inbound_slug as slug from organisations o
+     join memberships m on m.organisation_id = o.id join users u on u.id = m.user_id
+     where u.email = $1`,
+    [email],
+  );
+  currentSender = rows[0]?.slug ?? null;
+}
+
+/**
+ * Signs up a private landlord through first run: their name, then "I'm letting a home I own",
+ * which lands in "Add your home" (UX-AC-6, UX-AC-7). Returns their email.
+ */
+export async function signUpLandlord(page: Page, name = 'Mary Byrne'): Promise<string> {
+  const email = uniqueEmail('mary');
+  await signIn(page, email);
+  await answerName(page, name);
+  await answerPurpose(page, 'I’m letting a home I own');
+  await expect(page).toHaveURL(/\/lettings\/new$/);
+  const rows = await asSystem<{ slug: string }>(
+    `select o.inbound_slug as slug from organisations o
+     join memberships m on m.organisation_id = o.id join users u on u.id = m.user_id
+     where u.email = $1`,
+    [email],
+  );
+  currentSender = rows[0]?.slug ?? null;
+  return email;
+}
+
+/** Signs up a renter through first run: their name, then "I'm looking for a home" (UX-AC-6). */
+export async function signUpRenter(page: Page, name = 'Aoife Byrne'): Promise<string> {
+  const email = uniqueEmail('aoife');
+  await signIn(page, email);
+  await answerName(page, name);
+  await answerPurpose(page, 'I’m looking for a home');
+  await expect(page.getByRole('heading', { name: 'Search' })).toBeVisible();
   return email;
 }
 

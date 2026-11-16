@@ -23,6 +23,8 @@ const production = {
   DATA_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
   DEV_TOOLS: '0',
   CRON_SECRET: 'c'.repeat(32),
+  PSRA_REGISTER_SOURCE: 'url',
+  PSRA_REGISTER_URL: 'https://register.example/licensees.csv',
 };
 
 describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)', () => {
@@ -40,6 +42,21 @@ describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)'
     expect(environmentProblems({ ...production, DEV_TOOLS: '1' })).toEqual(['DEV_TOOLS']);
     expect(environmentProblems({ ...production, DATA_ENCRYPTION_KEY: undefined })).toEqual([
       'DATA_ENCRYPTION_KEY',
+    ]);
+  });
+
+  it('UX-AG-1: refuses the made-up PSRA register, and needs the address of the real one', () => {
+    expect(environmentProblems({ ...production, PSRA_REGISTER_SOURCE: 'sample' })).toEqual([
+      'PSRA_REGISTER_SOURCE',
+    ]);
+    expect(environmentProblems({ ...production, PSRA_REGISTER_SOURCE: undefined })).toEqual([
+      'PSRA_REGISTER_SOURCE',
+    ]);
+    expect(environmentProblems({ ...production, PSRA_REGISTER_URL: undefined })).toEqual([
+      'PSRA_REGISTER_URL',
+    ]);
+    expect(environmentProblems({ ...production, PSRA_REGISTER_URL: 'not a web address' })).toEqual([
+      'PSRA_REGISTER_URL',
     ]);
   });
 

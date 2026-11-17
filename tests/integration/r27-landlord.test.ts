@@ -194,7 +194,7 @@ describe('R27 and Q4, UX-OP-1 to UX-OP-5: the owner’s read-only page', () => {
     const view = await landlordView(token);
     expect(view).toMatchObject({
       letting: { addressLine1: '12 Ranelagh Road', stage: 'viewings' },
-      criteria: ['Up to 3 people', 'No pets (assistance dogs are always welcome)'],
+      criteria: ['Up to 3 people', 'No pets (assistance dogs always welcome)'],
       numbers: { enquiries: 2, answered: 2, invited: 1, waitlisted: 1 },
       standing: { code: 'viewings', booked: 0, places: 4 },
       figures: [

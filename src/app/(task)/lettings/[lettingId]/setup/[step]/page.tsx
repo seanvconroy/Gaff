@@ -17,7 +17,7 @@ import {
   type SourcedField,
   sourcedFields,
 } from '@/domain/lettings/advert-reading';
-import { homeWordingWhy } from '@/domain/compliance/who-should-apply';
+import { leftOutWhy } from '@/domain/compliance/who-should-apply';
 import {
   type FlowScreen,
   fromOf,
@@ -175,7 +175,10 @@ function readingView(reading: DraftReading, hasCriteria: boolean): ReadingView {
     sources,
     ownWords: reading.ownWords.map((each) => r.read.ownWords[each]),
     suggested: suggested.length > 0,
-    leftOut: reading.leftOut.map((each) => ({ line: each.line, why: homeWordingWhy(each.reason) })),
+    leftOut: reading.leftOut.map((each) => ({
+      line: each.line,
+      why: leftOutWhy(each.line, each.reason),
+    })),
   };
 }
 

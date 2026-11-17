@@ -150,7 +150,16 @@ export function RenterHub({
               <h3 id="your-answers" className="type-heading">
                 {answersSentCopy.yourAnswers}
               </h3>
-              <SummaryList layout="split" rows={model.questions.answers} />
+              {/* UX-MT-11: each answer beside what the home is for, without judgement. */}
+              {model.questions.beside.length > 0 ? (
+                <div className={styles.group} data-beside="">
+                  {model.questions.beside.map((line) => (
+                    <p key={line}>{line}</p>
+                  ))}
+                </div>
+              ) : (
+                <SummaryList layout="split" rows={model.questions.answers} />
+              )}
               {canAnswer ? (
                 <p>
                   <Link href={`${here}?change=answers`} className={styles.lineLink}>

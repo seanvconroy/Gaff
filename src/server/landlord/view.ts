@@ -12,7 +12,7 @@ import {
   viewingSessions,
   viewingSlots,
 } from '@/db/schema';
-import { describeCriteria } from '@/domain/criteria/criteria';
+import { lettingDetailsParts } from '@/domain/criteria/criteria';
 import { listerFrom } from '@/domain/frame/frame';
 import {
   letSummary,
@@ -64,6 +64,7 @@ export async function landlordView(token: string, now: Date = new Date()) {
           status: lettings.status,
           stage: lettings.stage,
           criteria: lettings.criteria,
+          noSmokingIndoors: lettings.noSmokingIndoors,
           closedAt: lettings.closedAt,
         },
         organisationName: organisations.name,
@@ -186,7 +187,7 @@ export async function landlordView(token: string, now: Date = new Date()) {
       /** Whoever lets the home, for the page's frame (UX-PP-9). */
       lister: listerFrom(row.organisation),
       letting: row.letting,
-      criteria: describeCriteria(row.letting.criteria ?? { noPets: false }, now),
+      criteria: lettingDetailsParts(row.letting.criteria, row.letting.noSmokingIndoors, now),
       numbers,
       standing: whereItStands(facts),
       figures: ownerFigures(facts),

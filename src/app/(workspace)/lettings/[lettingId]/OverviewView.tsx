@@ -5,6 +5,8 @@ import type { Figure, NeedsYou } from '@/domain/lettings/overview';
 import { formatDateTime } from '@/lib/format';
 import type { TimelineEntry } from '@/server/timeline/timeline';
 import { ButtonLink } from '@/ui/Button';
+import { Disclosure } from '@/ui/Disclosure';
+import { SummaryList } from '@/ui/SummaryList';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { remindOwnerAction } from '@/app/(task)/lettings/[lettingId]/approval/actions';
 import { TodayList } from '../../TodayList';
@@ -18,7 +20,17 @@ const copy = lettingPageCopy;
  * and the last three things, with "See everything" for History (UX-LP-6). What's next is one
  * sentence.
  */
+export interface PoolView {
+  /** UX-MT-7: one sentence from counts of answers. It names criteria, never people. */
+  summary: string;
+  /** UX-MT-9: what each criterion is costing, before invitations go out. */
+  costs: ReadonlyArray<{ label: string; value: string }>;
+  costsLabel: string;
+  change: { href: string; label: string; next: string } | null;
+}
+
 export function OverviewView({
+  pool,
   lettingId,
   needs,
   figures,
@@ -29,6 +41,7 @@ export function OverviewView({
   tenancyHref,
   resultsHref,
 }: {
+  pool: PoolView | null;
   lettingId: string;
   needs: NeedsYou;
   figures: readonly Figure[];
@@ -112,6 +125,26 @@ export function OverviewView({
               </div>
             ))}
           </dl>
+        ) : null}
+        {pool ? (
+          <>
+            <p data-pool-summary>{pool.summary}</p>
+            {pool.costs.length > 0 ? (
+              <Disclosure summary={pool.costsLabel}>
+                <SummaryList rows={pool.costs} />
+                {pool.change ? (
+                  <>
+                    <p className={styles.small}>{pool.change.next}</p>
+                    <p>
+                      <Link href={pool.change.href} className={styles.change}>
+                        {pool.change.label}
+                      </Link>
+                    </p>
+                  </>
+                ) : null}
+              </Disclosure>
+            ) : null}
+          </>
         ) : null}
         {recent.length > 0 ? (
           <>

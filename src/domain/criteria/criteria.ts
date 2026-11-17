@@ -49,21 +49,6 @@ export function describeStay(months: number): string {
   return `${months / 12} years`;
 }
 
-/** The criteria in plain words, as the operator and renters see them. */
-export function describeCriteria(criteria: Criteria, now: Date = new Date()): string[] {
-  const lines: string[] = [];
-  if (criteria.moveInBy) lines.push(`Can move in by ${formatDate(criteria.moveInBy, now)}`);
-  if (criteria.minStayMonths)
-    lines.push(`Plans to stay at least ${describeStay(criteria.minStayMonths)}`);
-  if (criteria.maxOccupants) {
-    lines.push(
-      `Up to ${criteria.maxOccupants} ${criteria.maxOccupants === 1 ? 'person' : 'people'}`,
-    );
-  }
-  if (criteria.noPets) lines.push('No pets (assistance dogs are always welcome)');
-  return lines;
-}
-
 /** Reads the criteria form. Blank fields mean "no criterion". */
 export function criteriaFormSchema(now: Date = new Date()) {
   const today = irishToday(now);
@@ -150,18 +135,38 @@ export function lettingDetailsParts(
   noSmokingIndoors: boolean,
   now: Date = new Date(),
 ): string[] {
-  const parts: string[] = [];
-  if (criteria?.moveInBy) parts.push(`Move in by ${formatDate(criteria.moveInBy, now)}`);
-  if (criteria?.minStayMonths) parts.push(stayOrLonger(criteria.minStayMonths));
-  if (criteria?.maxOccupants) {
-    parts.push(
-      `Up to ${criteria.maxOccupants} ${criteria.maxOccupants === 1 ? 'person' : 'people'}`,
-    );
-  }
-  if (criteria?.noPets) parts.push('No pets (assistance dogs always welcome)');
+  const parts = questionsFor(criteria ?? { noPets: false }).map((question) =>
+    criterionDetail(criteria!, question, now),
+  );
   if (noSmokingIndoors) parts.push(NO_SMOKING_INDOORS);
   return parts;
 }
+
+/**
+ * One criterion in the letting details' fixed words ("Up to 3 people"): the one place these
+ * words are written. Fit (UX-MT-6) and the pool summary (UX-MT-9) name a criterion with them.
+ */
+export function criterionDetail(
+  criteria: Criteria,
+  question: CriterionQuestion,
+  now: Date = new Date(),
+): string {
+  switch (question) {
+    case 'moveInDate':
+      return criteria.moveInBy ? `Move in by ${formatDate(criteria.moveInBy, now)}` : '';
+    case 'stayMonths':
+      return criteria.minStayMonths ? stayOrLonger(criteria.minStayMonths) : '';
+    case 'occupants':
+      return criteria.maxOccupants
+        ? `Up to ${criteria.maxOccupants} ${criteria.maxOccupants === 1 ? 'person' : 'people'}`
+        : '';
+    case 'hasPets':
+      return criteria.noPets ? NO_PETS_DETAIL : '';
+  }
+}
+
+/** Assistance dogs never count as pets (rule 3): the words say so wherever pets do. */
+export const NO_PETS_DETAIL = 'No pets (assistance dogs always welcome)';
 
 const on = (value: string | undefined) => value === 'on';
 

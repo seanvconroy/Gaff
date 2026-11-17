@@ -79,9 +79,12 @@ describe('UX-LP-8, UX-LP-9: People is everyone who enquired, in the ranking’s 
       expect(person.sheet.checks).toEqual([]);
       expect(person.sheet.conversationHref).toBe(`/inbox/renter-${person.id}`);
     }
-    expect(people[0]!.sheet.told.map((row) => row.label)).toEqual(
-      expect.arrayContaining(['People', 'Pets']),
-    );
+    // UX-MT-6: how they fit is each criterion in the letting details' words, with their answer.
+    expect(people[0]!.sheet.fitRows).toEqual([
+      { label: 'Up to 3 people', value: 'Said 2 people. Meets this.' },
+      { label: 'No pets (assistance dogs always welcome)', value: 'Said no pets. Meets this.' },
+    ]);
+    expect(people[1]!.sheet.fitRows).toEqual([]);
   });
 });
 

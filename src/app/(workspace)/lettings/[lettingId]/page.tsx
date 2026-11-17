@@ -6,10 +6,14 @@ import { letsOwnHomes } from '@/domain/organisations/kinds';
 import { seeItOnGaffHref } from '@/domain/lettings/links';
 import { figuresFor, needsYouOn, pageStage, whatsNext } from '@/domain/lettings/overview';
 import { chosenChip, peopleGroup } from '@/domain/lettings/people';
+import { criterionCost, poolCopy, poolSummary } from '@/copy/fit';
+import { filterFromParams } from '@/domain/fit/ask';
+import { screenHref } from '@/domain/lettings/links';
 import { canLetAgain, canSendTestEnquiry, lettingDetailsLocked } from '@/domain/lettings/setup';
 import { hasTeam, may } from '@/domain/team/permissions';
 import { goLiveGateFor } from '@/server/lettings/go-live';
 import { overviewFactsFor, peopleFor } from '@/server/lettings/page';
+import { poolFor } from '@/server/lettings/pool';
 import { DETAILS_LOCKED } from '@/server/lettings/set-criteria';
 import { lettingStandingFor } from '@/server/team/lead';
 import { ActionList, ActionRow } from '@/ui/ActionList';
@@ -43,6 +47,35 @@ const savedCopy: Record<string, string> = {
 const views: readonly LettingView[] = ['overview', 'people', 'home'];
 
 /**
+ * UX-MT-7, UX-MT-9: the pool summary, while people are enquiring and before anyone is invited:
+ * one sentence from counts of answers, and what each criterion is costing, with the way to change
+ * it for everyone. Once invitations go out the criteria lock, and the costs aren't offered.
+ */
+async function poolView(
+  member: Parameters<typeof poolFor>[0],
+  letting: { id: string; stage: string },
+  stage: string,
+) {
+  if (stage !== 'enquiries' && stage !== 'shortlist') return null;
+  const { criteria, counts } = await poolFor(member, letting.id);
+  const summary = poolSummary(criteria, counts);
+  if (!summary) return null;
+  const open = !lettingDetailsLocked(letting.stage);
+  return {
+    summary,
+    costs: open ? counts.costs.map((cost) => criterionCost(criteria, cost)) : [],
+    change: open
+      ? {
+          href: screenHref(letting.id, 'details', `/lettings/${letting.id}`, { alone: '1' }),
+          label: poolCopy.change,
+          next: poolCopy.changeNext,
+        }
+      : null,
+    costsLabel: poolCopy.costs,
+  };
+}
+
+/**
  * A letting's page (section 4, "A letting's page", UX-LP-1 to UX-LP-13). The header, the four
  * parts, and three views that never change: Overview, People and Home (UX-LP-2). The view is in
  * the address, so Back and a reload keep it. No fact appears twice on a view (UX-LP-4).
@@ -52,7 +85,7 @@ export default async function LettingPage({
   searchParams,
 }: {
   params: Promise<{ lettingId: string }>;
-  searchParams: Promise<{ view?: string; saved?: string; show?: string; person?: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const detail = await loadLetting(params);
   const { member, letting } = detail;
@@ -131,6 +164,7 @@ export default async function LettingPage({
 
       {view === 'overview' ? (
         <OverviewView
+          pool={await poolView(member, letting, stage)}
           lettingId={letting.id}
           needs={needsYouOn(facts, now)}
           figures={figuresFor(facts, now)}
@@ -149,6 +183,9 @@ export default async function LettingPage({
           chip={chosenChip(query.show, peopleGroup(stage))}
           personId={query.person ?? null}
           live={letting.status !== 'draft'}
+          criteria={letting.criteria ?? { noPets: false }}
+          filter={filterFromParams(query)}
+          declined={query.asked === 'no'}
         />
       ) : (
         <>

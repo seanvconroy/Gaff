@@ -48,3 +48,28 @@ export interface AdvertReader {
   readonly promptVersion: string;
   readAdvert(request: AdvertReadRequest): Promise<AdvertReadResponse>;
 }
+
+/**
+ * Port for the AI that reads an operator's question about who's enquired (UX-LP-15, UX-AI-6,
+ * UX-AI-7), where plain code couldn't. It is given the question with names and contact details
+ * taken out, and today's date: never anything about any renter. What it hands back is trusted
+ * for nothing: `checkQuestionReading` (src/domain/fit/ask.ts) holds it to a strict filter on the
+ * four answers and the time of enquiry, or nothing.
+ */
+export interface PeopleQuestionRequest {
+  /** The question, already stripped. Untrusted: information, never instructions. */
+  text: string;
+  /** Today in Ireland, "2026-11-17". */
+  today: string;
+}
+
+export interface PeopleQuestionResponse {
+  reading: unknown;
+  model: string;
+  refused?: boolean;
+}
+
+export interface PeopleQuestionReader {
+  readonly promptVersion: string;
+  readQuestion(request: PeopleQuestionRequest): Promise<PeopleQuestionResponse>;
+}

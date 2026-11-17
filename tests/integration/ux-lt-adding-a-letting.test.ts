@@ -812,7 +812,7 @@ describe('R27: adding a letting, in the timeline', () => {
       ['Photos put in a new order', '2 photos now'],
       ['Photo removed', '1 photo now'],
       ['The home’s details changed', undefined],
-      ['Criteria set', 'No pets (assistance dogs are always welcome)'],
+      ['Criteria set', 'No pets (assistance dogs always welcome)'],
       ['House rule set', 'No smoking indoors'],
       ['Rent check: market rent can be set', undefined],
       ['Set not to show on gaff.ie', undefined],

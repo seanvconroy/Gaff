@@ -11,7 +11,7 @@ import {
 } from '@/db/schema';
 import { LANDLORD_APPROVAL_TEMPLATE, landlordApprovalEmail } from '@/copy/templates/offers';
 import { incomeAgainstRule } from '@/domain/applications/apply';
-import { describeCriteria } from '@/domain/criteria/criteria';
+import { lettingDetailsParts } from '@/domain/criteria/criteria';
 import { listerFrom } from '@/domain/frame/frame';
 import { approvalAnswersSchema, approvalRoute } from '@/domain/offers/approval';
 import { env } from '@/lib/env';
@@ -409,7 +409,7 @@ export async function loadApprovalSummary(token: string) {
         bedrooms: row.letting.bedrooms,
         propertyType: row.letting.propertyType,
         status: row.letting.status,
-        criteria: describeCriteria(row.letting.criteria ?? { noPets: false }),
+        criteria: lettingDetailsParts(row.letting.criteria, row.letting.noSmokingIndoors),
       },
       people: [
         person(approval.preferredId, 'preferred'),

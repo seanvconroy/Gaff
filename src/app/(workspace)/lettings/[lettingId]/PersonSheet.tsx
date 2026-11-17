@@ -17,7 +17,13 @@ export interface PersonSheetData {
   status: { tone: PillTone; words: string };
   stand: string;
   deleted: boolean;
+  answered: boolean;
+  /** Whether anything was asked of renters on this letting. */
+  asked: boolean;
+  /** The ranking's reason: "Meets 3 of 4 criteria (has pets)". */
   fit: string | null;
+  /** UX-MT-6: each criterion, their answer, and whether it meets it. */
+  fitRows: ReadonlyArray<{ label: string; value: string }>;
   told: ReadonlyArray<{ label: string; value: string }>;
   income: ReadonlyArray<{ label: string; value: string }>;
   checks: ReadonlyArray<{ label: string; text: string; tone: PillTone }>;
@@ -47,11 +53,26 @@ export function PersonSheet({ data, closeHref }: { data: PersonSheetData; closeH
           <p>{copy.deleted}</p>
         ) : (
           <>
+            {data.asked ? (
+              <section className={styles.people} aria-labelledby="person-fit">
+                <h3 id="person-fit" className="type-heading">
+                  {copy.fit}
+                </h3>
+                {/* UX-MT-6: a count with words, and each criterion with their answer. */}
+                {data.answered ? (
+                  <>
+                    {data.fit ? <p>{data.fit}</p> : null}
+                    <SummaryList rows={data.fitRows} />
+                  </>
+                ) : (
+                  <p>{copy.notAnswered}</p>
+                )}
+              </section>
+            ) : null}
             <section className={styles.people} aria-labelledby="person-told">
               <h3 id="person-told" className="type-heading">
                 {copy.told}
               </h3>
-              {data.fit ? <p>{data.fit}</p> : null}
               <SummaryList rows={[...data.told, ...data.income]} />
             </section>
             {data.checks.length > 0 ? (

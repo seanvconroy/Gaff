@@ -568,6 +568,8 @@ test('R26: the operator finishes the let home; the record is archived and the da
     .click();
   await expect(page).toHaveURL(new RegExp(`${lettingUrl}/tenancy/payment$`));
   await page.getByRole('button', { name: 'Ask Aoife to pay' }).click();
+  // The request is sent before going on: leaving at once could cancel it.
+  await expect(page.getByRole('heading', { name: 'Asked Aoife to pay' })).toBeVisible();
   await page.goto('/today');
   await page
     .getByRole('link', { name: /Check the payment has arrived · 12 Ranelagh Road/ })

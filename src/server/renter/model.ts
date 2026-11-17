@@ -1,3 +1,4 @@
+import { answersBesideDetails } from '@/copy/fit';
 import { formatRatio } from '@/domain/applications/apply';
 import {
   checkList,
@@ -55,6 +56,8 @@ export interface RenterModel {
     /** Answers already given, as the taps that made them. */
     values: Record<string, string>;
     answers: Array<{ label: string; value: string }>;
+    /** UX-MT-11: each answer beside what the home is for, in plain words, without judgement. */
+    beside: string[];
     canChange: boolean;
   };
   viewings: {
@@ -162,6 +165,9 @@ export function renterModel(
       values: answersAsValues(application.answers, page.criteria),
       answers: application.answersAt
         ? answersInWords(application.answers, (date) => formatDate(date, now))
+        : [],
+      beside: application.answersAt
+        ? answersBesideDetails(page.criteria, application.answers, now)
         : [],
       canChange: page.canChange,
     },

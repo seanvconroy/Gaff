@@ -175,6 +175,7 @@ export default async function WhoViewsPage({
           inputMode="numeric"
           defaultValue={typedWaitlist ?? String(waitlistSize(null, left))}
           error={waitlistValid ? undefined : copy.waitlist.error(MAX_WAITLIST)}
+          autoFocus={!waitlistValid}
         />
       </FlowShell>
     );

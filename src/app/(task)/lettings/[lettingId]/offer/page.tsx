@@ -144,7 +144,7 @@ export default async function OfferPage({
   });
   // UX-DC-20: offered to the backup on its own only if the person leaves this on.
   const canOfferBackup = Boolean(backupRow && who.backup);
-  const owner = state.landlord ? firstNameOf(state.landlord.name) : 'The owner';
+  const owner = state.landlord ? firstNameOf(state.landlord.name) : decisionsCopy.owner.theOwner;
   const today = irishToday();
   const rent = formatEuro(letting.monthlyRentCents);
   const asked = one(query.terms) === '1';
@@ -322,6 +322,8 @@ export default async function OfferPage({
                 inputMode="decimal"
                 defaultValue={values.deposit}
                 error={errors.deposit}
+                // UX-FL-3: after Next, focus is on the field that needs another look.
+                autoFocus={Boolean(errors.deposit)}
               />
             ) : (
               copy.depositValue(

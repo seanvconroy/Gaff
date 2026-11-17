@@ -6,7 +6,16 @@ import {
   screenshot,
   subjectsSentTo,
 } from './support';
-import { AOIFE, CIARAN, applyOnPhone, onPhone, twoChosen, twoPeopleWhoCame } from './journeys';
+import {
+  AOIFE,
+  CIARAN,
+  applyOnPhone,
+  flowAtBothWidths,
+  onPhone,
+  recordComparablesThroughUi,
+  twoChosen,
+  twoPeopleWhoCame,
+} from './journeys';
 import { enterLinkCode, expectFramePageAtBothWidths, expectRenterPageAtBothWidths } from './renter';
 
 test('R16: someone who came applies on their phone, with two questions and no documents', async ({
@@ -74,7 +83,7 @@ test('R16: someone who came applies on their phone, with two questions and no do
   await aoife.context.close();
 });
 
-test('R17: the operator compares applicants side by side and chooses a preferred applicant and a backup', async ({
+test('R17, UX-DC-7 to UX-DC-9: from Today, the operator chooses a preferred applicant and a backup in a focused flow', async ({
   browser,
   page,
 }) => {
@@ -84,23 +93,59 @@ test('R17: the operator compares applicants side by side and chooses a preferred
   await applyOnPhone(browser, links[CIARAN]!, '4,000');
 
   await page.goto('/today');
-  // UX-HM-3: the row says the task and the home, then why now.
+  // UX-HM-3: the row says the task and the home, then why now. It opens the flow.
   await page
     .getByRole('link', { name: /Choose an applicant · 12 Ranelagh Road\s*2 people have applied/ })
     .click();
-  await expect(page.getByRole('heading', { name: 'Aoife Byrne' })).toBeVisible();
-  await expect(page.getByText('€5,200 a month, 2.8 times the rent')).toBeVisible();
-  await expect(page.getByText('Below your income rule')).toBeVisible();
-  await expectAccessible(page);
+  await expect(page).toHaveURL(/\/lettings\/[0-9a-f-]+\/choose$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Choose an applicant' })).toBeVisible();
+  // UX-FL-1: a focused task, with no navigation.
+  await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0);
+  // UX-DC-7: only what applications collect. UX-DC-8: below the rule is said on the card, in
+  // the warning style, and nobody is hidden or moved down for it.
+  const aoife = page.locator('label').filter({ hasText: 'Aoife Byrne' });
+  const ciaran = page.locator('label').filter({ hasText: 'Ciarán Ó Súilleabháin' });
+  await expect(aoife).toContainText('€5,200 a month, 2.8 times the rent');
+  await expect(aoife).toContainText('Meets your income rule');
+  await expect(ciaran).toContainText('€4,000 a month, 2.1 times the rent');
+  await expect(ciaran).toContainText('Below your income rule of 2.5 times the rent');
+  await expect(ciaran.locator('[class*="StatusPill"]').filter({ hasText: 'Below' })).toBeVisible();
+  await expect(page.getByRole('radio')).toHaveCount(2);
+  await expect(page.getByText(/Didn’t answer the questions/)).toHaveCount(0);
+  await flowAtBothWidths(page, 'choose');
   await screenshot(page, '36-applicants-side-by-side');
 
-  await page.getByRole('button', { name: 'Confirm my choice' }).click();
-  await expect(page.getByText('Choose your preferred applicant.')).toBeVisible();
-  await page.getByLabel('Preferred: Aoife Byrne').check();
-  await page.getByLabel('Backup: Ciarán Ó Súilleabháin').check();
-  await page.getByRole('button', { name: 'Confirm my choice' }).click();
-  await expect(page.getByText('Choice saved')).toBeVisible();
+  // Errors at the field: nobody is chosen for the person.
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByText('Choose an applicant.')).toBeVisible();
+  await page.getByRole('radio', { name: 'Choose Aoife Byrne' }).check();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Add a backup?' })).toBeVisible();
+  // "No backup" is an equal choice.
+  await expect(page.getByRole('radio', { name: 'No backup' })).toBeVisible();
+  await flowAtBothWidths(page, 'choose-backup');
+  await page.getByRole('radio', { name: 'Ciarán Ó Súilleabháin', exact: true }).check();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Check and confirm' })).toBeVisible();
+  await expect(
+    page.getByText(
+      'Gaff will ask Aoife and Ciarán for an ID check, an income check and references. It tells them what each is for. Neither is told who’s first.',
+    ),
+  ).toBeVisible();
+  await flowAtBothWidths(page, 'choose-check');
+  await page.getByRole('button', { name: 'Start the checks' }).click();
+  // UX-FL-4: what was done, and what Gaff does next.
+  await expect(page.getByRole('heading', { name: 'Checks started' })).toBeVisible();
+  await flowAtBothWidths(page, 'choose-started');
+  await page.getByRole('link', { name: 'Done' }).click();
   await expect(page.getByText('Step 6 of 9 · Checks')).toBeVisible();
+  // UX-DC-10: while checks run, there's nothing to do, and the letting says so.
+  await expect(page.getByText(/Checks under way for Aoife and Ciarán/)).toBeVisible();
+
+  // UX-DC-9: the choice can change until an offer is made: the cards remember it.
+  await page.goto(`${lettingUrl}/choose`);
+  await expect(page.getByRole('radio', { name: 'Choose Aoife Byrne' })).toBeChecked();
+  await expect(aoife).toContainText('Your choice now');
 
   await page.setViewportSize({ width: 412, height: 915 });
   await expectNoSidewaysScroll(page);
@@ -113,7 +158,7 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   page,
 }) => {
   test.slow();
-  const { lettingUrl } = await twoChosen(browser, page);
+  await twoChosen(browser, page);
   let checksLink = '';
   await expect(async () => {
     checksLink = await linkInEmail(AOIFE, '12 Ranelagh Road: a few checks before an offer');
@@ -258,36 +303,79 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   await expectFramePageAtBothWidths(referee, 'referee', 'wp13-referee-thanks');
   await mary.context.close();
 
-  // The operator sees each result in words.
-  await page.goto(`${lettingUrl}/applications`);
-  const card = page.getByRole('listitem').filter({ hasText: 'Aoife Byrne' });
-  await expect(card.getByText('Verified: Aoife Byrne.')).toBeVisible();
+  // UX-DC-11: every check for Aoife is back: one task on Today opens one screen.
+  await expect(async () => {
+    await page.goto('/today');
+    await page
+      .getByRole('link', { name: /The checks are back for Aoife · 12 Ranelagh Road/ })
+      .click({ timeout: 1000 });
+  }).toPass({ timeout: 20_000 });
+  await expect(page).toHaveURL(/\/checks$/);
   await expect(
-    card.getByText(/Confirmed €5,200 a month, 2\.8 times the rent: meets your rule\./),
+    page.getByRole('heading', { level: 1, name: 'The checks are back for Aoife' }),
+  ).toBeVisible();
+  // UX-DC-10: each result in words.
+  const results = page.getByRole('region', { name: 'Aoife Byrne' });
+  await expect(results.getByText('Verified: Aoife Byrne.')).toBeVisible();
+  await expect(
+    results.getByText(/Confirmed €5,200 a month, 2\.8 times the rent: meets your rule\./),
   ).toBeVisible();
   await expect(
-    card.getByText(/Mary Kelly answered\. Rented from them\. Rent always on time\./),
+    results.getByText(/Mary Kelly answered\. Rented from them\. Rent always on time\./),
   ).toBeVisible();
-  await expect(card.getByText('Not needed: no employer to ask.')).toBeVisible();
-  await expectAccessible(page);
+  await expect(results.getByText('Not needed: no employer to ask.')).toBeVisible();
+  // The backup's checks are under way, and nothing is a refusal or in danger.
+  await expect(
+    page.getByRole('region', { name: 'Ciarán Ó Súilleabháin, your backup' }),
+  ).toBeVisible();
+  await expect(page.locator('[data-tone="danger"]')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Continue to the offer' })).toBeVisible();
+  await flowAtBothWidths(page, 'checks-back');
   await screenshot(page, '39-operator-check-results');
 });
 
-test('R19: the landlord approves the chosen tenant and the backup from a one-page summary, with no account', async ({
+test('R19, UX-DC-14, UX-DC-16: the owner is asked from a focused flow, and approves the chosen tenant and the backup with no account', async ({
   browser,
   page,
 }) => {
   test.slow();
   const { lettingUrl } = await twoChosen(browser, page);
-  await page.goto(`${lettingUrl}/applications`);
-  await expect(page.getByRole('heading', { name: 'The landlord’s approval' })).toBeVisible();
-  await page.getByLabel('Landlord’s name').fill('Tom Walsh');
-  await page.getByLabel('Landlord’s email').fill('tom.walsh@example.ie');
-  await page.getByRole('button', { name: 'Save the landlord’s details' }).click();
+  await page.goto(`${lettingUrl}/approval`);
+  // UX-DC-14: the owner's details are asked here, because Gaff doesn't have them.
+  await expect(page.getByRole('heading', { level: 1, name: 'Who owns this home?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByText('Enter the owner’s name.')).toBeVisible();
+  await flowAtBothWidths(page, 'owner-details');
+  await page.getByLabel('Owner’s name').fill('Tom Walsh');
+  await page.getByLabel('Owner’s email').fill('tom.walsh@example.ie');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Ask Tom to approve' })).toBeVisible();
+  // What Tom will see: the two people chosen, by name, with their results in words.
+  await expect(page.getByRole('heading', { name: 'What Tom will see' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Aoife Byrne, the tenant you chose' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Ciarán Ó Súilleabháin, your backup' }),
+  ).toBeVisible();
   // UX-OP-7: the agent is warned while checks are still under way.
   await expect(page.getByText(/checks? (aren’t|isn’t) back yet/)).toBeVisible();
-  await page.getByRole('button', { name: 'Ask the landlord to approve' }).click();
-  await expect(page.getByText('Waiting for their answer.')).toBeVisible();
+  // UX-DC-15: a quiet way to record that the owner has already approved.
+  await expect(page.getByRole('button', { name: 'Tom has already approved' })).toBeVisible();
+  await flowAtBothWidths(page, 'owner-ask');
+  await page.getByRole('button', { name: 'Send to Tom' }).click();
+  await expect(page.getByRole('heading', { name: 'Sent to Tom' })).toBeVisible();
+  await expect(page.getByText('Gaff tells you on Today as soon as Tom answers.')).toBeVisible();
+  await flowAtBothWidths(page, 'owner-sent');
+
+  // UX-DC-16: while Gaff waits, the letting says so, with "Remind Tom".
+  await page.goto(lettingUrl);
+  await expect(page.getByText(/^Waiting for Tom · sent (just now|\d+ minutes? ago)/)).toBeVisible();
+  await page.getByRole('button', { name: 'Remind Tom' }).click();
+  await expect(page.getByText('Reminder sent. The owner has a new link.')).toBeVisible();
+  await page.goto(`${lettingUrl}/approval`);
+  await expect(page.getByRole('heading', { level: 1, name: 'Waiting for Tom' })).toBeVisible();
+  await flowAtBothWidths(page, 'owner-waiting');
 
   let approvalLink = '';
   await expect(async () => {
@@ -332,34 +420,91 @@ test('R19: the landlord approves the chosen tenant and the backup from a one-pag
   await expectFramePageAtBothWidths(landlord, 'owner', 'wp13-approve-thanks');
   await tom.context.close();
 
-  await page.goto(`${lettingUrl}/applications`);
-  await expect(page.getByText('Approved Aoife Byrne', { exact: true })).toBeVisible();
-  await expect(page.getByText('Approved Ciarán Ó Súilleabháin as backup')).toBeVisible();
+  // UX-DC-16: Tom's answer arrives on Today, and opens the offer.
+  await page.goto('/today');
+  await page.getByRole('link', { name: /Make the offer · 12 Ranelagh Road/ }).click();
+  await expect(page).toHaveURL(/\/offer$/);
+  await page.goto(`${lettingUrl}/approval`);
+  await expect(
+    page.getByRole('heading', { name: 'Tom approved Aoife, and Ciarán as backup' }),
+  ).toBeVisible();
 });
 
-test('R20, R21: the offer goes out with a deadline, the renter accepts on their phone, and everyone else hears', async ({
+test('R20, R21, UX-DC-15, UX-DC-17 to UX-DC-20: the offer goes out with a deadline, the renter accepts on their phone, and everyone else hears', async ({
   browser,
   page,
 }) => {
   test.slow();
   const { lettingUrl, links } = await twoChosen(browser, page);
-  // The operator confirms the landlord's approval themselves (no landlord email, Q22).
-  await page.goto(`${lettingUrl}/applications`);
-  await expect(page.getByRole('heading', { name: 'The offer' })).toBeVisible();
+  // UX-DC-19: until the owner approves, three rents are in and the checks are back, the offer's
+  // first screen names what's missing, at its place, with a link to it.
+  await page.goto(`${lettingUrl}/offer`);
+  await expect(page.getByRole('heading', { level: 1, name: 'The offer' })).toBeVisible();
+  await expect(page.getByText('The owner hasn’t approved yet.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Ask the owner' })).toBeVisible();
+  await expect(
+    page.getByText(/Three comparable rents are needed before the offer\. 0 of 3/),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Add comparable rents' })).toBeVisible();
+  await expect(page.getByText(/checks aren’t back yet/)).toBeVisible();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByText('This is needed before the offer can go.').first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Check and send' })).toHaveCount(0);
+  await flowAtBothWidths(page, 'offer-waiting-for');
+
+  await recordComparablesThroughUi(page, lettingUrl);
+  // UX-DC-15 (Q22): no email for the owner, so the operator records that they've approved.
+  await page.goto(`${lettingUrl}/approval`);
+  await page.getByRole('button', { name: 'The owner has already approved' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Recorded: the owner has approved' }),
+  ).toBeVisible();
+  await flowAtBothWidths(page, 'owner-recorded');
+  await page.getByRole('link', { name: 'Continue to the offer' }).click();
+
+  // UX-DC-17: the offer opens filled in. UX-DC-20: offering to the backup is on, as a choice.
+  await expect(page.getByText('€1,850, one month’s rent, the most allowed')).toBeVisible();
+  await expect(page.getByText('48 hours')).toBeVisible();
+  await expect(
+    page.getByRole('checkbox', {
+      name: 'If Aoife says no or doesn’t answer, offer it to Ciarán',
+    }),
+  ).toBeChecked();
+  // The owner's approval isn't asked again as a tick here.
+  await expect(page.getByText(/has approved/)).toHaveCount(0);
+  // UX-DC-18 (rule 4): the deposit can't be more than a month's rent.
+  await page.getByRole('link', { name: 'Change Deposit' }).click();
   await page.getByLabel('Deposit').fill('2,000');
-  await page.getByLabel(/The landlord has approved Aoife Byrne/).check();
-  await page.getByRole('button', { name: 'Send the offer to Aoife' }).click();
+  await page.getByRole('checkbox', { name: 'Go ahead without waiting for them' }).check();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(
     page.getByText('The deposit can’t be more than one month’s rent: €1,850.'),
   ).toBeVisible();
-  await page.getByLabel('Deposit').fill('1,850');
-  await page.getByLabel(/The landlord has approved Aoife Byrne/).check();
-  await expect(page.getByLabel(/Offer it to Ciarán Ó Súilleabháin, my backup/)).toBeChecked();
-  await expectAccessible(page);
+  await expect(page.getByLabel('Deposit')).toBeFocused();
+  // Typed with a euro sign and a comma, it is read as an amount.
+  await page.getByLabel('Deposit').fill('€1,850');
+  await expect(
+    page.getByRole('checkbox', { name: 'Go ahead without waiting for them' }),
+  ).toBeChecked();
+  await flowAtBothWidths(page, 'offer');
   await screenshot(page, '41-make-offer');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  // UX-DC-6, rule 7: the message in its fixed wording, with the terms in it.
+  await expect(page.getByRole('heading', { name: 'Check and send' })).toBeVisible();
+  await expect(
+    page.getByText(/you’d pay a deposit of €1,850 and the first month’s rent of €1,850/),
+  ).toBeVisible();
+  await expect(page.getByRole('textbox')).toHaveCount(0);
+  await flowAtBothWidths(page, 'offer-check');
   await page.getByRole('button', { name: 'Send the offer to Aoife' }).click();
-  await expect(page.getByText('Offer sent.')).toBeVisible();
-  await expect(page.getByText(/it goes to your backup automatically/)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Offer sent' })).toBeVisible();
+  await expect(
+    page.getByText(/^Aoife has until \w+day \d+ \w+, .+\. Gaff will tell you/),
+  ).toBeVisible();
+  await expect(
+    page.getByText('If it isn’t accepted in time, it goes to Ciarán, as you decided.'),
+  ).toBeVisible();
+  await flowAtBothWidths(page, 'offer-sent');
 
   let offerLink = '';
   await expect(async () => {
@@ -427,10 +572,9 @@ test('R20, R21: the offer goes out with a deadline, the renter accepts on their 
   });
   await ciaran.context.close();
 
-  await page.goto(`${lettingUrl}/applications`);
-  await expect(
-    page.getByRole('region', { name: 'The offer' }).getByText('Accepted', { exact: true }),
-  ).toBeVisible();
+  await page.goto(`${lettingUrl}/offer`);
+  await expect(page.getByRole('heading', { name: 'Aoife accepted' })).toBeVisible();
+  await page.goto(lettingUrl);
   await expect(page.getByText('Step 8 of 9 · Tenancy')).toBeVisible();
   await page.goto(`${lettingUrl}/timeline`);
   await expect(page.getByText('Offer accepted: the home is let')).toBeVisible();

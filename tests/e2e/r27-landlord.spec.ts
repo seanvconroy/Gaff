@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { daftEnquiry } from '../fixtures/emails';
-import { onPhone } from './journeys';
+import { chooseWhoViews, onPhone } from './journeys';
 import { expectFramePageAtBothWidths } from './renter';
 import {
   createLettingThroughUi,
@@ -28,11 +28,7 @@ test('R27, UX-OW-1, UX-OW-2, UX-OW-4, UX-OP-1 to UX-OP-4: the agent shares a let
   // UX-OW-1: asked once, just after go-live, where Gaff doesn't know the owner yet.
   await expect(page.getByText('Letting this for an owner?')).toBeVisible();
   await sendTestEmail(page, { to: await gaffAddress(page), ...daftEnquiry });
-  await expect(async () => {
-    await page.goto(`${lettingUrl}/shortlist`);
-    await expect(page.getByLabel('Invite Aoife Byrne')).toBeVisible({ timeout: 1000 });
-  }).toPass({ timeout: 20_000 });
-  await page.getByRole('button', { name: 'Send invitations' }).click();
+  await chooseWhoViews(page, lettingUrl, { waitFor: 'Aoife Byrne', tick: ['Aoife Byrne'] });
   await expect(page.getByText('1 invited to book a viewing')).toBeVisible();
 
   // UX-OW-2: "Share with the owner" is in the letting's menu, a focused task with one button.

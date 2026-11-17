@@ -1,5 +1,6 @@
 import { devices, expect, test } from '@playwright/test';
 import { daftEnquiry } from '../fixtures/emails';
+import { chooseWhoViews } from './journeys';
 import { bookFirstTime } from './renter';
 import {
   createLettingThroughUi,
@@ -30,16 +31,17 @@ test('R15: the operator marks who came, on a phone, with one tap per person', as
     text: daftEnquiry.text.replaceAll('12 Ranelagh Road, Ranelagh, Dublin 6', '4 Harbour View'),
   });
   await expect(async () => {
-    await page.goto(`${lettingUrl}/shortlist`);
-    await expect(page.getByLabel('Invite Aoife Byrne')).toBeVisible({ timeout: 1000 });
+    await page.goto(`${lettingUrl}/who-views`);
+    await expect(page.getByRole('checkbox', { name: 'Aoife Byrne' })).toBeVisible({
+      timeout: 1000,
+    });
   }).toPass({ timeout: 20_000 });
 
   // Before anyone books, the tab says what will happen.
   await page.goto(`${lettingUrl}/attendance`);
   await expect(page.getByRole('heading', { name: 'Nobody has booked yet' })).toBeVisible();
 
-  await page.goto(`${lettingUrl}/shortlist`);
-  await page.getByRole('button', { name: 'Send invitations' }).click();
+  await chooseWhoViews(page, lettingUrl, { waitFor: 'Aoife Byrne', tick: ['Aoife Byrne'] });
   await expect(page.getByText('1 invited to book a viewing')).toBeVisible();
 
   let invitation = '';

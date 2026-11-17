@@ -25,6 +25,9 @@ export function agoWords(since: Date, now: Date = new Date()): string {
   return `${count(Math.floor(hours / 24), 'day', 'days')} ago`;
 }
 
+/** A name, or "the owner", at the start of a sentence. */
+const cap = (words: string) => words.charAt(0).toUpperCase() + words.slice(1);
+
 /** "Aoife", "Aoife and Ciarán". */
 export const both = (first: string, second: string | null) =>
   second ? `${first} and ${second}` : first;
@@ -220,7 +223,7 @@ export const decisionsCopy = {
     ask: {
       title: (owner: string) => `Ask ${owner} to approve`,
       lead: (owner: string) =>
-        `${owner} gets a private link to a one-page summary, and approves or declines each person.`,
+        `${cap(owner)} gets a private link to a one-page summary, and approves or declines each person.`,
       sees: (owner: string) => `What ${owner} will see`,
       preferred: 'The tenant you chose',
       backup: 'Your backup',
@@ -232,13 +235,13 @@ export const decisionsCopy = {
         `Income ${formatRatio(ratioTenths)} times the rent: ${meets ? 'meets' : 'below'} your rule`,
       underWay: (n: number) =>
         `${n === 1 ? '1 check isn’t' : `${n} checks aren’t`} back yet. The owner will see “Still under way” beside ${n === 1 ? 'it' : 'them'}.`,
-      already: (owner: string) => `${owner} has already approved`,
+      already: (owner: string) => `${cap(owner)} has already approved`,
       send: (owner: string) => `Send to ${owner}`,
       sending: 'Sending…',
     },
     sent: {
       title: (owner: string) => `Sent to ${owner}`,
-      text: (owner: string) => `${owner} has a private link to approve or decline.`,
+      text: (owner: string) => `${cap(owner)} has a private link to approve or decline.`,
       next: (owner: string) => `Gaff tells you on Today as soon as ${owner} answers.`,
     },
     confirmed: {
@@ -252,19 +255,19 @@ export const decisionsCopy = {
         `Waiting for ${owner} · sent ${agoWords(sent, now)}`,
       title: (owner: string) => `Waiting for ${owner}`,
       text: (owner: string) =>
-        `${owner} has a private link to a one-page summary. Gaff tells you on Today as soon as ${owner} answers.`,
+        `${cap(owner)} has a private link to a one-page summary. Gaff tells you on Today as soon as ${owner} answers.`,
       remind: (owner: string) => `Remind ${owner}`,
       reminding: 'Sending…',
-      reminded: (owner: string) => `Reminder sent. ${owner} has a new link.`,
+      reminded: (owner: string) => `Reminder sent. ${cap(owner)} has a new link.`,
     },
     answered: {
       approved: (owner: string, first: string, backup: string | null) =>
         backup
-          ? `${owner} approved ${first}, and ${backup} as backup`
-          : `${owner} approved ${first}`,
+          ? `${cap(owner)} approved ${first}, and ${backup} as backup`
+          : `${cap(owner)} approved ${first}`,
       approvedNoBackup: (owner: string, first: string, backup: string) =>
-        `${owner} approved ${first}, and not ${backup} as backup`,
-      declined: (owner: string, first: string) => `${owner} said no to ${first}`,
+        `${cap(owner)} approved ${first}, and not ${backup} as backup`,
+      declined: (owner: string, first: string) => `${cap(owner)} said no to ${first}`,
       declinedText: 'Talk to them, then choose again.',
       chooseAgain: 'Choose again',
       continue: 'Continue to the offer',
@@ -293,10 +296,10 @@ export const decisionsCopy = {
       'Your decision now, made in advance. Gaff carries it out only if you leave this on.',
     blockers: {
       owner: {
-        ask: (owner: string) => `${owner} hasn’t approved yet.`,
+        ask: (owner: string) => `${cap(owner)} hasn’t approved yet.`,
         waiting: (owner: string, sent: Date | null) =>
           sent ? `Waiting for ${owner} · sent ${agoWords(sent)}.` : `Waiting for ${owner}.`,
-        declined: (owner: string) => `${owner} said no to the tenant you chose.`,
+        declined: (owner: string) => `${cap(owner)} said no to the tenant you chose.`,
         askLink: (owner: string) => `Ask ${owner}`,
         waitingLink: (owner: string) => `Remind ${owner}`,
         declinedLink: 'Choose again',

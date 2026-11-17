@@ -2,6 +2,7 @@ import {
   CalendarClock,
   ClipboardList,
   FileSignature,
+  Forward,
   Handshake,
   Inbox,
   type LucideIcon,
@@ -30,6 +31,7 @@ const icons: Record<TodayKind, { Icon: LucideIcon; tone: TileTone }> = {
   rechoose: { Icon: RotateCcw, tone: 'warning' },
   shortlist: { Icon: Users, tone: 'quiet' },
   setup: { Icon: ClipboardList, tone: 'quiet' },
+  forwarding: { Icon: Forward, tone: 'quiet' },
 };
 
 /**

@@ -97,6 +97,18 @@ export const eventCatalogue = {
   'letting.advertised_set': z.object({ daft: z.boolean(), myhome: z.boolean() }),
   /** UX-LT-24: a person looked at what a renter gets, on a made-up enquiry. Nothing was sent. */
   'letting.test_enquiry_sent': z.object({}),
+  /**
+   * UX-LT-19: Gaff emailed a made-up enquiry to the person's own mailbox, for their forwarding
+   * rule to send back. Never the address it went to.
+   */
+  'forwarding.test_sent': z.object({ service: z.enum(['gmail', 'outlook', 'other']) }),
+  /** UX-LT-19: the test enquiry came back through the forwarding rule. */
+  'forwarding.test_arrived': z.object({ inboundEmailId: z.uuid() }),
+  /**
+   * UX-LT-20: mail came through the organisation's forwarding rule for the first time: the test
+   * enquiry, or an enquiry from Daft or MyHome. From now on no home asks for forwarding.
+   */
+  'forwarding.in_place': z.object({ via: z.enum(['test', 'enquiry']) }),
   /** Q43: the lister gave, changed or removed the number renters can call. Never the number. */
   'organisation.phone_set': z.object({ given: z.boolean() }),
   'viewings.session_added': z.object({

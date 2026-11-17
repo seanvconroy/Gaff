@@ -316,12 +316,15 @@ test('UX-LT-1, UX-LT-8 to UX-LT-15, UX-LT-22: a letting goes live from scratch, 
     await screenshot(page, `ux-lt-10-advertised-${width}`);
     await page.getByRole('button', { name: 'Done', exact: true }).click();
 
-    // The letting's own page: live, and its one task is forwarding (the flow itself is WP-11).
+    // Daft leads to forwarding its enquiries (UX-LT-17). Closing it lands on the letting's own
+    // page: live, and its one task is forwarding (UX-LT-20).
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Where do your Daft enquiries arrive?' }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: 'Close' }).click();
     await expect(page.getByText('Gaff is now answering enquiries for this home.')).toBeVisible();
     await expect(page.getByText('Step 2 of 9 · Enquiries')).toBeVisible();
-    await expect(
-      page.getByRole('link', { name: 'Send your Daft enquiries to Gaff' }),
-    ).toBeVisible();
+    await expect(page.getByRole('link', { name: /^Set up forwarding/ })).toBeVisible();
     await expectAccessible(page);
     await screenshot(page, `ux-lt-11-live-${width}`);
 

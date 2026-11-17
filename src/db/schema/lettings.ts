@@ -88,7 +88,8 @@ export const lettings = pgTable(
     onGaff: boolean().notNull().default(true),
     /**
      * "Is it advertised anywhere else?", asked once after go-live: the portals named, an empty
-     * list for "No", null until it's answered. The forwarding task it sets up is WP-11.
+     * list for "No", null until it's answered. A home on Daft or MyHome asks for forwarding
+     * until mail comes through (UX-LT-20).
      */
     advertisedOn: jsonb().$type<Portal[]>(),
     /** UX-FL-2: the furthest step of adding it that was reached, to come back to. */

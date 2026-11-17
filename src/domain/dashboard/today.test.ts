@@ -304,6 +304,32 @@ describe('UX-HM-5: the same kind of thing for the same home is one row with a co
     ]);
   });
 
+  it('UX-LT-20: a live home on Daft or MyHome needs forwarding until mail comes through a rule', () => {
+    const onDaft = letting({ id: 'daft', advertisedOn: ['daft'] });
+    expect(needsYouToday({ ...nothing, lettings: [onDaft] })).toMatchObject([
+      { kind: 'forwarding', lettingId: 'daft', portals: ['daft'] },
+    ]);
+    expect(needsYouToday({ ...nothing, lettings: [onDaft], forwardingInPlace: true })).toEqual([]);
+    // Not advertised elsewhere, not answered yet, or not live: nothing to forward.
+    for (const quiet of [
+      letting({ advertisedOn: [] }),
+      letting({ advertisedOn: null }),
+      letting({ status: 'let', advertisedOn: ['myhome'] }),
+    ]) {
+      expect(needsYouToday({ ...nothing, lettings: [quiet] })).toEqual([]);
+    }
+  });
+
+  it('UX-LT-20, UX-HM-4: forwarding is setup to finish, ranked with it', () => {
+    const items = needsYouToday({
+      ...nothing,
+      approvals: [{ lettingId: 'daft', since: at('10:00') }],
+      lettings: [letting({ id: 'daft', advertisedOn: ['daft'] })],
+    });
+    expect(names(items)).toEqual(['approvals:daft', 'forwarding:daft']);
+    expect(todayRank(items[1]!, TODAY)).toBe(todayRanks.setup);
+  });
+
   it('never lists something for a home that isn’t this organisation’s', () => {
     const items = needsYouToday({
       ...nothing,

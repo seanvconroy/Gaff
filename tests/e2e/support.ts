@@ -598,6 +598,25 @@ export async function subjectsSentTo(to: string): Promise<string[]> {
   return rows.map((row) => row.subject);
 }
 
+/**
+ * UX-LT-19: the newest test enquiry Gaff emailed to this address for its forwarding rule to send
+ * back, as it was sent. A journey plays the person's mail service: it sends this, as it is, to
+ * the Gaff address (`sendTestEmail`), as a forwarding rule would.
+ */
+export async function forwardingTestTo(
+  to: string,
+): Promise<{ from: string; subject: string; text: string }> {
+  const rows = await query<{ from_address: string; subject: string; text: string }>(
+    `select from_address, subject, text from dev_outbox
+     where to_address = $1 and subject like 'Test enquiry from Gaff (%'
+     order by created_at desc limit 1`,
+    [to],
+  );
+  const sent = rows[0];
+  if (!sent) throw new Error(`No test enquiry has been sent to ${to}`);
+  return { from: sent.from_address, subject: sent.subject, text: sent.text };
+}
+
 /** The first link in the newest development-outbox email whose subject starts with this. */
 export async function linkInEmailStarting(to: string, subjectStart: string): Promise<string> {
   const rows = await query<{ text: string }>(

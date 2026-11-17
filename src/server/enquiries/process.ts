@@ -9,12 +9,15 @@ import { parseGaffAddress } from '@/ports/inbound-email';
 import { recordEvent } from '@/server/record/events';
 import { needsAnswers, queueDraft } from '@/server/answers/draft';
 import { queueFirstReply } from './first-reply';
+import { enquiryArrived, takeForwardingTest } from './forwarding';
 
 export type ProcessOutcome =
   | { kind: 'enquiry'; applicationId: string; lettingId: string }
   | { kind: 'repeat'; applicationId: string; lettingId: string }
   | { kind: 'reply'; applicationId: string; lettingId: string; messageId: string }
   | { kind: 'needs_attention' }
+  /** UX-LT-19: the forwarding flow's made-up enquiry. Nobody's enquiry: no renter is made. */
+  | { kind: 'forwarding_test' }
   | { kind: 'already_processed' };
 
 type Problem =
@@ -85,6 +88,11 @@ export async function processInboundEmailIn(
         .update(inboundEmails)
         .set({ status: 'processed', problem: null, lettingId, applicationId })
         .where(eq(inboundEmails.id, email.id));
+
+    // UX-LT-19: the forwarding flow's test enquiry, back through the person's own rule.
+    if (await takeForwardingTest(tx, input.organisationId, email)) {
+      return { kind: 'forwarding_test' };
+    }
 
     // A reply in a renter's thread arrives at <slug>+<ref>@.
     const address = parseGaffAddress(email.recipient, env().INBOUND_DOMAIN);
@@ -225,6 +233,8 @@ export async function processInboundEmailIn(
       })
       .returning({ id: messages.id });
     await markProcessed(lettingId, applicationId);
+    // UX-LT-20: a portal's enquiry reached Gaff, so the operator's forwarding is in place.
+    await enquiryArrived(tx, input.organisationId, email.receivedAt);
     await recordEvent(tx, {
       organisationId: input.organisationId,
       lettingId,

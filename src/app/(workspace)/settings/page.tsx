@@ -5,11 +5,13 @@ import { db } from '@/db/client';
 import { organisations } from '@/db/schema';
 import { formatRatio, incomeRuleChoices } from '@/domain/applications/apply';
 import { formatIban } from '@/domain/tenancy/payment';
+import { forwardingHref, forwardingInPlace } from '@/domain/enquiries/forwarding';
+import { forwardingCopy } from '@/copy/forwarding';
 import { env } from '@/lib/env';
 import { hasPasskey } from '@/server/auth/confirm-request';
 import { requireMember } from '@/server/auth/member';
 import { CopyButton } from '@/ui/CopyButton';
-import { Disclosure } from '@/ui/Disclosure';
+import { ButtonLink } from '@/ui/Button';
 import { ChoiceGroup, TextField } from '@/ui/Field';
 import { Columns } from '@/ui/Form';
 import { PageHeader, Stack } from '@/ui/Layout';
@@ -58,6 +60,8 @@ export default async function SettingsPage({
     .from(organisations)
     .where(eq(organisations.id, member.organisationId));
   const address = `${organisation!.inboundSlug}@${env().INBOUND_DOMAIN}`;
+  // UX-LT-19: known from what has come through the rule, never from anyone's mail settings.
+  const inPlace = forwardingInPlace({ worksAt: organisation!.forwardingWorksAt });
 
   return (
     <Stack gap={8}>
@@ -88,7 +92,7 @@ export default async function SettingsPage({
             <p>
               Send your Daft and MyHome enquiries here, and Gaff answers every one. Gaff matches
               each enquiry to a home using the advert links on the letting; anything it can’t match
-              waits for you in Needs attention.
+              waits for you in Inbox.
             </p>
           }
         >
@@ -96,26 +100,12 @@ export default async function SettingsPage({
             <code>{address}</code>
             <CopyButton value={address} what="your Gaff address" />
           </div>
-          <Disclosure summary="Set up forwarding once">
-            <ol className={styles.steps}>
-              <li>
-                <strong>Gmail:</strong> in Settings, open Forwarding and add {address}. Then create
-                a filter for emails from <code>daft.ie</code> or <code>myhome.ie</code> and choose
-                “Forward it to” your Gaff address.
-              </li>
-              <li>
-                <strong>Outlook:</strong> in Settings, open Rules and add a rule: if the sender
-                contains <code>daft.ie</code> or <code>myhome.ie</code>, forward to your Gaff
-                address.
-              </li>
-            </ol>
-            <Notice tone="info" title="Gmail asks you to confirm">
-              <p>
-                Gmail sends a confirmation email to your Gaff address. You’ll find it under “Needs
-                attention”, with the code to finish setting up.
-              </p>
-            </Notice>
-          </Disclosure>
+          <p>{inPlace ? forwardingCopy.settings.inPlace : forwardingCopy.settings.toDo}</p>
+          <div>
+            <ButtonLink href={forwardingHref()} variant="secondary">
+              {inPlace ? forwardingCopy.settings.again : forwardingCopy.settings.start}
+            </ButtonLink>
+          </div>
         </Section>
 
         <Section

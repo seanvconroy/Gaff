@@ -1,4 +1,4 @@
-import { Forward, Share2 } from 'lucide-react';
+import { Share2 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { addLettingCopy } from '@/copy/add-letting';
@@ -14,7 +14,7 @@ import {
   type parkingOptions,
   type propertyTypes,
 } from '@/domain/lettings/new-letting';
-import { canLetAgain, canSendTestEnquiry, needsForwarding, portals } from '@/domain/lettings/setup';
+import { canLetAgain, canSendTestEnquiry } from '@/domain/lettings/setup';
 import { comparableWarnings, medianRentCents } from '@/domain/rent/comparables';
 import { formatDate, formatDateTime, formatRent } from '@/lib/format';
 import { env } from '@/lib/env';
@@ -98,13 +98,6 @@ export default async function LettingPage({
         )
       : [];
   const enquiries = letting.status === 'live' ? await enquiryCount(member, letting.id) : 0;
-  // UX-LT-20: advertised on Daft or MyHome with no enquiry through yet. The forwarding flow
-  // itself is work package WP-11; until then the task points at the Gaff address.
-  const forwardFrom =
-    letting.status === 'live' &&
-    needsForwarding({ advertisedOn: letting.advertisedOn, forwardingInPlace: enquiries > 0 })
-      ? (letting.advertisedOn ?? []).map((portal) => portals[portal]).join(' and ')
-      : null;
   const changeLink = (href: string, what: string) => (
     <Link href={href} className={styles.change}>
       Change<span className="visually-hidden"> {what}</span>
@@ -186,25 +179,13 @@ export default async function LettingPage({
             <h2 id="needs-heading" className="type-title">
               What needs you
             </h2>
-            {needsYou.length === 0 && !forwardFrom ? (
+            {needsYou.length === 0 ? (
               <p className={styles.muted}>
                 Nothing needs you for this home right now. Gaff is answering enquiries and booking
                 viewings, and it’ll list anything that needs you here.
               </p>
             ) : null}
           </div>
-          {forwardFrom ? (
-            <ActionList flush>
-              <ActionRow
-                id="forwarding"
-                href="/settings"
-                icon={Forward}
-                tone="primary"
-                title={addLettingCopy.forwarding.title(forwardFrom)}
-                meta={addLettingCopy.forwarding.text}
-              />
-            </ActionList>
-          ) : null}
           {needsYou.length > 0 ? <TodayList rows={needsYou} flush /> : null}
         </section>
       ) : null}

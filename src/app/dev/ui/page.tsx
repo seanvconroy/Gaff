@@ -52,6 +52,7 @@ import {
 import { Wordmark, WordmarkImage } from '@/ui/Wordmark';
 import { DirectionsLink } from '@/ui/DirectionsLink';
 import { DocumentView } from '@/ui/Document';
+import { NumberedSteps } from '@/ui/NumberedSteps';
 import { StepList } from '@/ui/StepList';
 import { TimePicker } from '@/ui/TimePicker';
 import {
@@ -765,6 +766,16 @@ export default function ComponentsPage() {
                     stateLabel: 'To come',
                     note: 'Your last landlord, and an employer if there’s one to ask',
                   },
+                ]}
+              />
+            </Example>
+            <Example label="Numbered steps: what to do elsewhere, in order">
+              <NumberedSteps
+                label="Steps in Gmail"
+                steps={[
+                  'Open Gmail’s settings at Forwarding and POP/IMAP.',
+                  'Paste your Gaff address, then choose Next and Proceed.',
+                  'Gmail sends Gaff a confirmation code, and Gaff shows it to you.',
                 ]}
               />
             </Example>

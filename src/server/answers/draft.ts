@@ -60,7 +60,8 @@ export async function draftAnswersFor(input: { organisationId: string; messageId
       .innerJoin(lettings, eq(lettings.id, messages.lettingId))
       .innerJoin(organisations, eq(organisations.id, messages.organisationId))
       .where(and(eq(messages.id, input.messageId), eq(messages.direction, 'inbound')));
-    if (!row || row.letting.status === 'draft') return null;
+    // UX-TS-4: a home Gaff's team has hidden answers nothing until it's back, as in set-up.
+    if (!row || row.letting.status === 'draft' || row.letting.hiddenAt) return null;
     const [done] = await tx
       .select({ id: aiDrafts.id })
       .from(aiDrafts)

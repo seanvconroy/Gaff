@@ -15,6 +15,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import type { Criteria } from '@/domain/criteria/criteria';
+import { reportReasons } from '@/domain/homes/report';
 import { draftOrigins, flowSteps, type DraftAnswers } from '@/domain/lettings/add-letting';
 import type { DraftReading } from '@/domain/lettings/advert-reading';
 import type { Portal } from '@/domain/lettings/setup';
@@ -104,10 +105,15 @@ export const lettings = pgTable(
      */
     pageRemovedAt: timestamp({ withTimezone: true }),
     /**
-     * UX-TS-4: when Gaff's team hid the listing after a report. THE SEAM for work package
-     * WP-26, which sets it; a hidden home has no page and isn't in search.
+     * UX-TS-4: when Gaff's team hid the listing after a report (src/server/trust). A hidden home
+     * has no page and isn't in search, and its enquiries wait: no first reply and no answer
+     * goes until it's back.
      */
     hiddenAt: timestamp({ withTimezone: true }),
+    /** UX-TS-4: why, as the lister is told it: one of the four reasons a report can give. */
+    hiddenReason: text({ enum: reportReasons }),
+    /** UX-TS-4: when the lister asked Gaff's team to look again at a hidden home. */
+    lookAgainAskedAt: timestamp({ withTimezone: true }),
     /**
      * "Is it advertised anywhere else?", asked once after go-live: the portals named, an empty
      * list for "No", null until it's answered. A home on Daft or MyHome asks for forwarding

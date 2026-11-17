@@ -11,9 +11,9 @@
  *   `recordFunnelStep` (src/server/funnels). This is for steps the record has no event for, and
  *   for steps that belong to no letting or organisation, such as opening the sign-in screen.
  *
- * Flows that aren't built yet (search, asking to view, saved search, profile, on Gaff, the
- * forwarding flow, import, inviting a team) are here too, with `funnel` steps. The package that
- * builds one only has to emit its codes.
+ * Flows that aren't built yet (search, asking to view, saved search, profile, on Gaff, import,
+ * inviting a team) are here too, with `funnel` steps. The package that builds one only has to
+ * emit its codes, as the forwarding flow does (`src/server/enquiries/forwarding.ts`).
  */
 
 import type { OrganisationKind } from '@/domain/organisations/kinds';

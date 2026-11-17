@@ -453,18 +453,13 @@ describe('UX-ME-2: the funnels, from the record’s events and the new steps', (
     // Registering with the RTB wasn't done in this run.
     expect(reached(reports, 'tenancy')).toEqual([1, 1, 1, 0, 1]);
 
+    // UX-LT-20: the portal's enquiries arrived, so forwarding is in place; nobody opened the flow.
+    expect(reached(reports, 'forwarding')).toEqual([0, 1, 0]);
+
     // Flows that aren't built yet have their steps and no numbers.
     expect(reached(reports, 'on_gaff')).toEqual([1, 0]);
     expect(reached(reports, 'invite_team')).toEqual([1, 0, 0]);
-    for (const code of [
-      'import',
-      'forwarding',
-      'home',
-      'search',
-      'ask_to_view',
-      'saved_search',
-      'profile',
-    ]) {
+    for (const code of ['import', 'home', 'search', 'ask_to_view', 'saved_search', 'profile']) {
       expect(
         reached(reports, code).every((n) => n === 0),
         code,

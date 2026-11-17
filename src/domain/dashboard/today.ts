@@ -1,3 +1,4 @@
+import { needsForwarding, type Portal } from '@/domain/lettings/setup';
 import type { TenancyStep } from '@/domain/tenancy/steps';
 
 /**
@@ -40,6 +41,8 @@ export interface LettingSnapshot {
   /** Stage 8: the operator's next step on the tenancy, if it's theirs. */
   tenancyStep?: TenancyStep | null;
   tenancyStartDate?: string | null;
+  /** "Is it advertised anywhere else?": Daft, MyHome, neither (an empty list), or not answered. */
+  advertisedOn?: readonly Portal[] | null;
   /** When each thing started waiting on a person, where Gaff knows. */
   waitingSince?: Partial<Record<TodayKind, Date | null>>;
 }
@@ -85,6 +88,8 @@ export type TodayItem = Waiting &
     | (Home & { kind: 'choose'; count: number })
     | (Home & { kind: 'shortlist'; count: number; placesFree: number | null })
     | (Home & { kind: 'setup'; stepsLeft: number | null })
+    /** UX-LT-20: advertised on Daft or MyHome, and no enquiry has come through a rule yet. */
+    | (Home & { kind: 'forwarding'; portals: readonly Portal[] })
   );
 
 export type TodayKind = TodayItem['kind'];
@@ -131,6 +136,7 @@ export function todayRank(item: TodayItem, today: string): number {
     case 'attention':
       return todayRanks.unplaced;
     case 'setup':
+    case 'forwarding':
       return todayRanks.setup;
   }
 }
@@ -147,6 +153,7 @@ const kindOrder: readonly TodayKind[] = [
   'approvals',
   'questions',
   'attention',
+  'forwarding',
   'setup',
 ];
 
@@ -237,6 +244,11 @@ export function needsYouToday(input: {
   /** Emails Gaff couldn't place (R5, R6). They belong to no home. */
   attention: ReadonlyArray<{ since: Date; id?: string }>;
   lettings: readonly LettingSnapshot[];
+  /**
+   * UX-LT-20: whether mail has come through the organisation's forwarding rule (the test or a
+   * portal's enquiry). One rule covers every home, so it is known once, not for each letting.
+   */
+  forwardingInPlace?: boolean;
   /** The date in Ireland, as "2026-11-16". It decides whether a date is today's deadline. */
   today: string;
 }): TodayItem[] {
@@ -320,6 +332,20 @@ export function needsYouToday(input: {
           ...home,
           reason: l.newChoiceReason ?? null,
           since: since('rechoose'),
+        });
+      }
+      // UX-LT-20: it never sits silently waiting for enquiries that aren't reaching Gaff.
+      if (
+        needsForwarding({
+          advertisedOn: l.advertisedOn ?? null,
+          forwardingInPlace: input.forwardingInPlace ?? false,
+        })
+      ) {
+        items.push({
+          kind: 'forwarding',
+          ...home,
+          portals: l.advertisedOn ?? [],
+          since: since('forwarding'),
         });
       }
       if (l.undecided > 0) {

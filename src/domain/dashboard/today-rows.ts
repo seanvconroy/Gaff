@@ -1,4 +1,6 @@
 import { conversationHref, conversationKey, inboxHref } from '@/domain/inbox/conversations';
+import { forwardingHref } from '@/domain/enquiries/forwarding';
+import { portals } from '@/domain/lettings/setup';
 import type { TenancyStep } from '@/domain/tenancy/steps';
 import { formatDate, formatTime, irishToday } from '@/lib/format';
 import type { TodayItem, TodayKind } from './today';
@@ -67,6 +69,8 @@ export function todayHref(item: TodayItem): string {
       return `/lettings/${item.lettingId}/tenancy`;
     case 'setup':
       return `/lettings/${item.lettingId}`;
+    case 'forwarding':
+      return forwardingHref({ lettingId: item.lettingId });
   }
 }
 
@@ -110,6 +114,8 @@ function task(item: TodayItem, now: Date): string {
       return `${count(item.count, 'email', 'emails')} Gaff couldn’t place`;
     case 'setup':
       return 'Finish setting up';
+    case 'forwarding':
+      return 'Set up forwarding';
   }
 }
 
@@ -152,6 +158,10 @@ function why(item: TodayItem, now: Date): string | null {
     case 'questions':
     case 'attention':
       return waitingWords(item.since, now);
+    case 'forwarding': {
+      const where = item.portals.map((portal) => portals[portal]).join(' and ');
+      return `Enquiries from ${where || 'Daft and MyHome'} aren’t reaching Gaff yet`;
+    }
     case 'setup':
       if (item.stepsLeft === null) return null;
       return item.stepsLeft === 0

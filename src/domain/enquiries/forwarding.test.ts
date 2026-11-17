@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   confirmationsFor,
+  forwardingFromQuery,
+  forwardingHref,
   forwardingInPlace,
+  forwardingLeaveHref,
   forwardingStillToDo,
   isForwardingService,
   isTestEnquiry,
@@ -75,5 +78,34 @@ describe('UX-LT-19: the test enquiry is known by its reference when the rule for
     );
     // A reference can't be made to match everything.
     expect(isTestEnquiry({ subject: '', text: 'Gaff test reference: .*' }, '.*')).toBe(false);
+  });
+});
+
+describe('UX-LT-17, UX-LT-20: the flow’s addresses', () => {
+  const lettingId = '0b5f3c1e-8a2d-4e6f-9b7a-1c2d3e4f5a6b';
+
+  it('UX-LT-20: from a letting, the flow comes back to it; from Settings, to Settings', () => {
+    expect(forwardingHref({ lettingId })).toBe(`/forwarding?letting=${lettingId}`);
+    expect(forwardingHref({ lettingId }, 'confirm', 'gmail')).toBe(
+      `/forwarding/gmail/confirm?letting=${lettingId}`,
+    );
+    expect(forwardingHref({}, 'steps', 'outlook')).toBe('/forwarding/outlook');
+    expect(forwardingLeaveHref({ lettingId })).toBe(`/lettings/${lettingId}`);
+    expect(forwardingLeaveHref({ lettingId, justLive: true })).toBe(
+      `/lettings/${lettingId}?saved=live`,
+    );
+    expect(forwardingLeaveHref({})).toBe('/settings');
+  });
+
+  it('UX-LT-17: only a letting’s ID is read from the address; anything else is ignored', () => {
+    expect(forwardingFromQuery({ letting: lettingId, live: '1' })).toEqual({
+      lettingId,
+      justLive: true,
+    });
+    expect(forwardingFromQuery({ letting: 'https://example.com', live: '1' })).toEqual({
+      lettingId: null,
+      justLive: false,
+    });
+    expect(forwardingFromQuery({})).toEqual({ lettingId: null, justLive: false });
   });
 });

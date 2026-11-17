@@ -96,3 +96,54 @@ export function isTestEnquiry(
 
 /** The made-up renter the test enquiry comes from. Not a person, and never stored. */
 export const TEST_RENTER = 'Sam Sample';
+
+/**
+ * Where the flow was opened from: a letting (its page, Today's row for it, or just after it went
+ * live), or nowhere in particular (Settings). Closing the flow goes back there, and the test's
+ * reply is the one a renter would get about that home.
+ */
+export interface ForwardingFrom {
+  lettingId?: string | null;
+  /** Opened just after go-live: the letting's page then says it's live (UX-FL-4). */
+  justLive?: boolean;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Reads where the flow was opened from out of its query. Anything that isn't an ID is ignored. */
+export function forwardingFromQuery(query: {
+  letting?: string | string[];
+  live?: string | string[];
+}): ForwardingFrom {
+  const lettingId =
+    typeof query.letting === 'string' && UUID.test(query.letting) ? query.letting : null;
+  return { lettingId, justLive: lettingId !== null && query.live === '1' };
+}
+
+function query(from: ForwardingFrom): string {
+  if (!from.lettingId || !UUID.test(from.lettingId)) return '';
+  return `?letting=${from.lettingId}${from.justLive ? '&live=1' : ''}`;
+}
+
+export type ForwardingScreen = 'service' | 'steps' | 'confirm' | 'test';
+
+/** The four screens' addresses: /forwarding, then /forwarding/gmail, …/confirm, …/test. */
+export function forwardingHref(
+  from: ForwardingFrom = {},
+  screen: ForwardingScreen = 'service',
+  service: ForwardingService = 'other',
+): string {
+  const path =
+    screen === 'service'
+      ? '/forwarding'
+      : screen === 'steps'
+        ? `/forwarding/${service}`
+        : `/forwarding/${service}/${screen}`;
+  return `${path}${query(from)}`;
+}
+
+/** Where closing the flow, or finishing it, goes. */
+export function forwardingLeaveHref(from: ForwardingFrom): string {
+  if (!from.lettingId || !UUID.test(from.lettingId)) return '/settings';
+  return `/lettings/${from.lettingId}${from.justLive ? '?saved=live' : ''}`;
+}

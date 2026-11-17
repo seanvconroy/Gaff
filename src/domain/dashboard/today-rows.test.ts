@@ -225,3 +225,25 @@ describe('UX-HM-10: a row never shows contact details or message text', () => {
     expect(`${row.title} ${row.why}`).not.toMatch(/@|\d{6,}|\?/);
   });
 });
+
+describe('UX-LT-20: a home advertised elsewhere with no forwarding says so as its task', () => {
+  const lettingId = '0b5f3c1e-8a2d-4e6f-9b7a-1c2d3e4f5a6b';
+
+  it('UX-LT-20: "Set up forwarding", naming the portals whose enquiries aren’t arriving', () => {
+    expect(words({ kind: 'forwarding', ...home, portals: ['daft'] })).toEqual([
+      'Set up forwarding · 12 Ranelagh Road',
+      'Enquiries from Daft aren’t reaching Gaff yet',
+    ]);
+    expect(words({ kind: 'forwarding', ...home, portals: ['daft', 'myhome'] })[1]).toBe(
+      'Enquiries from Daft and MyHome aren’t reaching Gaff yet',
+    );
+  });
+
+  it('UX-LT-20: the row opens the forwarding flow, which comes back to the home', () => {
+    const row = todayRow({ kind: 'forwarding', ...home, lettingId, portals: ['myhome'] }, now, {
+      withAddress: false,
+    });
+    expect(row.title).toBe('Set up forwarding');
+    expect(row.href).toBe(`/forwarding?letting=${lettingId}`);
+  });
+});

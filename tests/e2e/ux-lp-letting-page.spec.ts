@@ -242,7 +242,9 @@ test('UX-LP-1, UX-LP-2, UX-LP-3: one letting through all nine stages, with the t
   await page.goto(lettingUrl);
   await expectOverview(page, {
     task: 'Send the tenancy agreement',
-    figures: ['Steps done', 'Starts'],
+    // UX-LP-4: the task already says when it starts, so no figure says it again.
+    says: /The tenancy starts on /,
+    figures: ['Steps done'],
     next: /After that: /,
   });
   await expect(progress).toContainText('Sign · Tenancy');

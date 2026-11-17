@@ -2,7 +2,9 @@ import { count, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { poolSummary } from '@/copy/fit';
 import { withOrg } from '@/db/client';
-import { applications, events } from '@/db/schema';
+import { applications, events, lettings } from '@/db/schema';
+import { factsFor } from '@/server/answers/facts';
+import { setLettingDetails } from '@/server/lettings/set-criteria';
 import { filterPeople } from '@/domain/fit/ask';
 import type { PeopleQuestionReader, PeopleQuestionRequest } from '@/ports/ai';
 import { askAboutPeople } from '@/server/lettings/ask';
@@ -185,5 +187,30 @@ describe('rule 2: only what the stage collected', () => {
       tx.select().from(applications).where(eq(applications.id, fits)),
     );
     expect(row!.monthlyIncomeCents).toBeNull();
+  });
+});
+
+describe('UX-MT-5, UX-MT-3: the one house rule, end to end, and never a criterion', () => {
+  it('UX-MT-5: “No smoking indoors” is a fact Gaff answers from, kept apart from what is asked', async () => {
+    const { member, lettingId, fits } = await aPool();
+    const before = (await peopleFor(member, lettingId)).map((p) => [p.id, p.met, p.total]);
+    await setLettingDetails(member, lettingId, {
+      criteria: { maxOccupants: 3, noPets: true },
+      noSmokingIndoors: true,
+    });
+    const facts = await withOrg(member.organisationId, async (tx) => {
+      const [letting] = await tx.select().from(lettings).where(eq(lettings.id, lettingId));
+      return factsFor(tx, letting!);
+    });
+    expect(facts.filter((f) => f.id.startsWith('core:criteria-')).map((f) => f.text)).toEqual([
+      'Criteria for viewing: Up to 3 people',
+      'Criteria for viewing: No pets (assistance dogs always welcome)',
+    ]);
+    expect(facts.find((f) => f.id === 'core:house-rule')?.text).toBe(
+      'House rule: No smoking indoors',
+    );
+    // UX-MT-2: the house rule moves nobody.
+    expect((await peopleFor(member, lettingId)).map((p) => [p.id, p.met, p.total])).toEqual(before);
+    expect(before[0]![0]).toBe(fits);
   });
 });

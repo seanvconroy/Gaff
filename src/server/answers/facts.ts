@@ -2,7 +2,7 @@ import { and, asc, eq, isNull } from 'drizzle-orm';
 import type { Tx } from '@/db/client';
 import { lettingFacts, type lettings, viewingSessions } from '@/db/schema';
 import type { Fact } from '@/domain/answers/guardrails';
-import { lettingDetailsParts } from '@/domain/criteria/criteria';
+import { lettingDetailsParts, NO_SMOKING_INDOORS } from '@/domain/criteria/criteria';
 import {
   describeKeyFacts,
   type berRatings,
@@ -37,11 +37,13 @@ export async function factsFor(tx: Tx, letting: Letting): Promise<Fact[]> {
     })),
   ];
   if (letting.photosUrl) facts.push({ id: 'core:photos', text: `Photos: ${letting.photosUrl}` });
-  for (const [i, line] of lettingDetailsParts(
-    letting.criteria,
-    letting.noSmokingIndoors,
-  ).entries()) {
+  // UX-MT-3: the letting details in Gaff's own fixed words. The house rule is a term of the
+  // tenancy, not something asked of anyone (UX-MT-5), so it is a fact of its own.
+  for (const [i, line] of lettingDetailsParts(letting.criteria, false).entries()) {
     facts.push({ id: `core:criteria-${i + 1}`, text: `Criteria for viewing: ${line}` });
+  }
+  if (letting.noSmokingIndoors) {
+    facts.push({ id: 'core:house-rule', text: `House rule: ${NO_SMOKING_INDOORS}` });
   }
   const sessions = await tx
     .select({ startsAt: viewingSessions.startsAt, endsAt: viewingSessions.endsAt })

@@ -124,6 +124,7 @@ export default async function LettingPage({
           recent={recent}
           next={whatsNext(facts)}
           remindOwner={remindOwner}
+          waitingOn={facts.waitingOn}
           tenancyHref={facts.tenancy ? `/lettings/${letting.id}/tenancy` : null}
           resultsHref={facts.tenancy?.finished ? `/lettings/${letting.id}/let` : null}
         />

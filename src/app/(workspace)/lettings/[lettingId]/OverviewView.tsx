@@ -25,6 +25,7 @@ export function OverviewView({
   recent,
   next,
   remindOwner,
+  waitingOn,
   tenancyHref,
   resultsHref,
 }: {
@@ -35,12 +36,25 @@ export function OverviewView({
   next: string;
   /** UX-DC-16: the owner's first name, while Gaff waits on their answer. */
   remindOwner: string | null;
+  /**
+   * UX-DC-10, UX-DC-16: what Gaff waits on someone else for. With nothing to do it is Needs
+   * you's words; beside a task, it is said quietly under it.
+   */
+  waitingOn: string | null;
   /** Stage 8: the tenancy's steps, in full. */
   tenancyHref: string | null;
   /** A finished letting: how it went. */
   resultsHref: string | null;
 }) {
   const now = new Date();
+  const remind = remindOwner ? (
+    <form action={remindOwnerAction.bind(null, lettingId)}>
+      <input type="hidden" name="from" value="letting" />
+      <SubmitButton variant="secondary" pendingLabel={decisionsCopy.owner.waiting.reminding}>
+        {decisionsCopy.owner.waiting.remind(remindOwner)}
+      </SubmitButton>
+    </form>
+  ) : null;
   return (
     <div className={styles.blocks}>
       <section className={styles.block} aria-labelledby="needs-heading">
@@ -55,6 +69,14 @@ export function OverviewView({
                 {needs.action}
               </ButtonLink>
             </div>
+            {waitingOn
+              ? waitingOn.split('\n').map((line) => (
+                  <p key={line} className={styles.muted}>
+                    {line}
+                  </p>
+                ))
+              : null}
+            {remind}
             {needs.also.length > 0 ? (
               <>
                 <h3 className="type-heading">{copy.needsYou.also}</h3>
@@ -69,17 +91,7 @@ export function OverviewView({
                 {line}
               </p>
             ))}
-            {remindOwner ? (
-              <form action={remindOwnerAction.bind(null, lettingId)}>
-                <input type="hidden" name="from" value="letting" />
-                <SubmitButton
-                  variant="secondary"
-                  pendingLabel={decisionsCopy.owner.waiting.reminding}
-                >
-                  {decisionsCopy.owner.waiting.remind(remindOwner)}
-                </SubmitButton>
-              </form>
-            ) : null}
+            {remind}
           </>
         )}
       </section>

@@ -1,0 +1,9 @@
+/* UX-AG-17: "Your teams" on Profile, under its own heading, like each part of the profile. */
+.teams {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.teamsLead {
+  color: var(--color-ink-muted);
+}

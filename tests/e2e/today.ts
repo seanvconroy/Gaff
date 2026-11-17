@@ -76,10 +76,10 @@ export async function aHomeLedBy(
   const rows = await asSystem<{ id: string }>(
     `insert into lettings (organisation_id, address_line1, area, county, monthly_rent_cents,
        available_from, property_type, bedrooms, bathrooms, furnished, ber_rating, stage, status,
-       created_by, created_at, live_at, closed_at)
+       created_by, lead_user_id, created_at, live_at, closed_at)
      select m.organisation_id, $2, 'Ranelagh, Dublin 6', 'Dublin', 185000,
        (now() + interval '30 days')::date, 'apartment', 2, 1, 'furnished', 'C1',
-       $3::letting_stage, ($4::text)::letting_status, u.id,
+       $3::letting_stage, ($4::text)::letting_status, u.id, u.id,
        now() - make_interval(days => $5::int),
        case when $4::text = 'draft' then null else now() - make_interval(days => $5::int) end,
        case when $6::int is null then null else now() - make_interval(days => $6::int) end

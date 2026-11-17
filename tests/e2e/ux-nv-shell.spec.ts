@@ -228,11 +228,10 @@ test('UX-NV-8: the account menu on the avatar holds the name and context, Profil
       'Let a home I own',
       'Profile',
       'Agency settings',
+      'Team',
       'Help',
       'Sign out',
     ]);
-    // Team belongs to a later package: it isn't a link to nowhere.
-    await expect(menu.getByText('Team')).toHaveCount(0);
 
     // The arrows, Home and End move through the rows, and round the ends.
     await expect(menu.getByRole('menuitem', { name: 'Find a home to rent' })).toBeFocused();

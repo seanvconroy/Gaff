@@ -3,6 +3,7 @@ import { type Tx, withOrg } from '@/db/client';
 import { applications, landlords, lettings } from '@/db/schema';
 import { protectedGroundProblem } from '@/domain/compliance/protected-grounds';
 import { CONFLICT_MESSAGE, memberAppliedIn } from '@/server/accounts/conflict';
+import { assertMayActOn } from '@/server/team/permissions';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
@@ -42,6 +43,8 @@ async function send(
   if (await memberAppliedIn(tx, member, input.lettingId)) {
     throw new UserFacingError(CONFLICT_MESSAGE);
   }
+  // UX-AG-8: only a member who may act on the letting now writes from it.
+  await assertMayActOn(tx, member, input.lettingId);
   const to = input.applicationId ? 'renter' : 'owner';
   const messageId = await queueMessage(tx, {
     organisationId: member.organisationId,

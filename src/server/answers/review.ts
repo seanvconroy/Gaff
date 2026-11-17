@@ -17,6 +17,7 @@ import { protectedGroundProblem } from '@/domain/compliance/protected-grounds';
 import { questionsIn } from '@/domain/answers/guardrails';
 import { answerField, canRemember } from '@/domain/inbox/thread';
 import { CONFLICT_MESSAGE, memberAppliedIn } from '@/server/accounts/conflict';
+import { assertMayActOn, requirePermission } from '@/server/team/permissions';
 import type { Member } from '@/server/auth/member';
 import { recordDecision } from '@/server/decisions/record-decision';
 import { UserFacingError } from '@/server/errors';
@@ -281,6 +282,8 @@ export async function answerQuestions(
     if (await memberAppliedIn(tx, member, first.lettingId)) {
       throw new UserFacingError(CONFLICT_MESSAGE);
     }
+    // UX-AG-8: only a member who may act on the letting now answers for it.
+    await assertMayActOn(tx, member, first.lettingId);
     const [row] = await tx
       .select({ application: applications, letting: lettings, organisation: organisations })
       .from(applications)
@@ -323,7 +326,7 @@ export async function answerQuestion(
 
 /** R29: the organisation's admin switches approve-before-send on or off. */
 export async function setApproveBeforeSend(member: Member, on: boolean) {
-  if (member.role !== 'admin') throw new UserFacingError('Only an admin can change this.');
+  await requirePermission(member, 'change_settings');
   await withOrg(member.organisationId, async (tx) => {
     await tx
       .update(organisations)

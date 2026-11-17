@@ -1,5 +1,6 @@
 import { TZDate } from '@date-fns/tz';
 import type { OrganisationKind } from '@/domain/organisations/kinds';
+import { hasTeam, may } from '@/domain/team/permissions';
 import { TIME_ZONE } from '@/lib/format';
 
 /**
@@ -25,12 +26,12 @@ export interface Viewer {
   members: number;
 }
 
-const inATeam = (viewer: Viewer) =>
-  viewer.organisationKind !== 'private_landlord' && viewer.members > 1;
+const inATeam = (viewer: Viewer) => hasTeam(viewer.organisationKind) && viewer.members > 1;
 
 /** UX-HM-11: the views of Today this person can choose between. One view means no switch. */
 export function todayViews(viewer: Viewer): View[] {
-  return inATeam(viewer) && viewer.role === 'admin' ? ['mine', 'everyone'] : ['mine'];
+  // The permissions table (src/domain/team): only an admin sees "Everyone" on Today.
+  return inATeam(viewer) && may('see_everyone', viewer) ? ['mine', 'everyone'] : ['mine'];
 }
 
 /** UX-AG-8: the views of Lettings this person can choose between. One view means no switch. */

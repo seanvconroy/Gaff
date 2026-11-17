@@ -1,3 +1,4 @@
+import { hasTeam } from '@/domain/team/permissions';
 import { type AddableContext, addableContexts, type PersonContext, switcherFor } from './context';
 
 /** Who the account menu is for: their name, the contexts they have, and the one that's open. */
@@ -15,6 +16,7 @@ export type AccountRowKind =
   | 'add-agency'
   | 'profile'
   | 'settings'
+  | 'team'
   | 'help'
   | 'sign-out';
 
@@ -70,9 +72,10 @@ const addRows: Record<AddableContext, AccountRow> = {
 /**
  * UX-NV-8, UX-AC-11 to UX-AC-13: the account menu holds, in this order: the person's name and
  * current context; the switcher, when they have more than one context; the contexts they can
- * still add; Profile; settings, where they let homes; Help; Sign out.
+ * still add; Profile; settings and Team, where they let homes with a team; Help; Sign out.
  *
- * Team is left out until its own package (WP-19) builds it.
+ * Team is there for an agency and a landlord's team, for every member: admins change it, agents
+ * see it. A private landlord's own homes have no team (UX-AG-10).
  */
 export function accountMenuFor(person: AccountPerson): AccountMenu {
   const { current } = person;
@@ -101,6 +104,9 @@ export function accountMenuFor(person: AccountPerson): AccountMenu {
       label: current.kind === 'agency' ? 'Agency settings' : 'Settings',
       href: '/settings',
     });
+    if (hasTeam(current.kind)) {
+      rows.push({ key: 'team', kind: 'team', label: 'Team', href: '/settings/team' });
+    }
   }
   rows.push(
     { key: 'help', kind: 'help', label: 'Help', href: '/help' },

@@ -9,6 +9,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uuid,
@@ -101,6 +102,14 @@ export const lettings = pgTable(
     createdBy: text()
       .notNull()
       .references(() => users.id),
+    /**
+     * UX-AG-9: the member responsible for the letting: whoever added it, until someone changes
+     * it. A member who leaves or is removed hands each letting they lead to someone who stays
+     * (UX-AG-15), so a letting always has one.
+     */
+    leadUserId: text()
+      .notNull()
+      .references(() => users.id),
     liveAt: timestamp({ withTimezone: true }),
     /**
      * UX-AG-4: a person decided to put the home live while their agency was being confirmed.
@@ -114,6 +123,26 @@ export const lettings = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [index('lettings_organisation_idx').on(t.organisationId, t.status), tenantPolicy()],
+).enableRLS();
+
+/**
+ * UX-AG-8 (section 2's permissions table): an agent who tapped "Help with this letting" on a
+ * letting someone else leads, so they can act on it. The record shows who did what. Removed
+ * when they leave the team.
+ */
+export const lettingHelpers = pgTable(
+  'letting_helpers',
+  {
+    organisationId: organisationId(),
+    lettingId: uuid()
+      .notNull()
+      .references(() => lettings.id, { onDelete: 'cascade' }),
+    userId: text()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    startedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.lettingId, t.userId] }), tenantPolicy()],
 ).enableRLS();
 
 /**

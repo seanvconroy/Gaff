@@ -5,7 +5,10 @@ import {
   type AccountEmail,
   agencyConfirmedEmail,
   agencyInviteEmail,
+  colleagueInviteEmail,
+  joinAnsweredEmail,
   licenceLapsedEmail,
+  memberLeftEmail,
   licenceRenewedEmail,
   memberConflictEmail,
   profileUnusedEmail,
@@ -21,7 +24,9 @@ import {
   users,
 } from '@/db/schema';
 import { env } from '@/lib/env';
+import { shownName } from '@/domain/team/members';
 import { formatDate } from '@/lib/format';
+import { invitePath } from '@/server/team/invite-links';
 import { INVITE_LASTS_DAYS } from './invites';
 
 /**
@@ -41,6 +46,23 @@ export const accountEmailJob = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('licence_lapsed'), organisationId: z.uuid() }),
   z.object({ kind: z.literal('licence_renewed'), organisationId: z.uuid() }),
   z.object({ kind: z.literal('agency_invite'), organisationId: z.uuid(), inviteId: z.uuid() }),
+  /** UX-AG-11: an admin invited a colleague. */
+  z.object({ kind: z.literal('colleague_invite'), organisationId: z.uuid(), inviteId: z.uuid() }),
+  /** UX-AG-3: an admin answered someone's request to join. To that person. */
+  z.object({
+    kind: z.literal('join_answered'),
+    organisationId: z.uuid(),
+    userId: z.uuid(),
+    approved: z.boolean(),
+  }),
+  /** UX-AG-17: a member left, and the admin who has their lettings now is told. */
+  z.object({
+    kind: z.literal('member_left'),
+    organisationId: z.uuid(),
+    memberUserId: z.uuid(),
+    adminUserId: z.uuid(),
+    handedOver: z.number().int().min(0),
+  }),
   /** UX-AC-14: a member was stopped from working on a letting they applied for themselves. */
   z.object({
     kind: z.literal('member_conflict'),
@@ -55,9 +77,6 @@ export const accountEmailJob = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('profile_unused'), userId: z.uuid(), deleteOn: z.iso.date() }),
 ]);
 export type AccountEmailJob = z.infer<typeof accountEmailJob>;
-
-/** Where the invite email's button leads: sign-in, then into the agency (src/app/join). */
-export const JOIN_PATH = '/join';
 
 async function send(to: string, email: AccountEmail, key: string): Promise<void> {
   const laidOut = layOutGaffEmail({
@@ -118,11 +137,33 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
         and(eq(memberships.organisationId, job.organisationId), eq(memberships.role, 'admin')),
       );
     const [invite] =
-      job.kind === 'agency_invite'
+      job.kind === 'agency_invite' || job.kind === 'colleague_invite'
         ? await tx
-            .select({ email: organisationInvites.email })
+            .select({
+              id: organisationInvites.id,
+              email: organisationInvites.email,
+              sentAt: organisationInvites.sentAt,
+              inviterName: users.name,
+              inviterEmail: users.email,
+            })
             .from(organisationInvites)
+            .leftJoin(users, eq(users.id, organisationInvites.invitedBy))
             .where(eq(organisationInvites.id, job.inviteId))
+        : [];
+    // UX-AG-3, UX-AG-17: the one person this is to, and the person it's about.
+    const [to] =
+      job.kind === 'join_answered' || job.kind === 'member_left'
+        ? await tx
+            .select({ email: users.email })
+            .from(users)
+            .where(eq(users.id, job.kind === 'join_answered' ? job.userId : job.adminUserId))
+        : [];
+    const [about] =
+      job.kind === 'member_left'
+        ? await tx
+            .select({ name: users.name, email: users.email })
+            .from(users)
+            .where(eq(users.id, job.memberUserId))
         : [];
     const [conflict] =
       job.kind === 'member_conflict'
@@ -132,10 +173,17 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
             .innerJoin(users, eq(users.id, job.memberUserId))
             .where(eq(lettings.id, job.lettingId))
         : [];
-    return { agency, admins, invite: invite ?? null, conflict: conflict ?? null };
+    return {
+      agency,
+      admins,
+      invite: invite ?? null,
+      conflict: conflict ?? null,
+      to: to ?? null,
+      about: about ?? null,
+    };
   });
   if (!found) return;
-  const { agency, admins, invite, conflict } = found;
+  const { agency, admins, invite, conflict, to, about } = found;
   const key = (to: string) => `account-${job.kind}-${job.organisationId}-${to}-${attemptKey}`;
 
   if (job.kind === 'agency_invite') {
@@ -145,10 +193,56 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
       invite.email,
       agencyInviteEmail({
         agencyName: agency.name,
-        joinUrl: `${app}${JOIN_PATH}`,
+        joinUrl: `${app}${invitePath(invite)}`,
         days: INVITE_LASTS_DAYS,
       }),
-      `account-agency_invite-${job.inviteId}`,
+      `account-agency_invite-${job.inviteId}-${invite.sentAt.getTime()}`,
+    );
+    return;
+  }
+  if (job.kind === 'colleague_invite') {
+    // Accepted, cancelled or expired since it was queued: there's nobody to write to.
+    if (!invite) return;
+    await send(
+      invite.email,
+      colleagueInviteEmail({
+        inviterName:
+          invite.inviterName !== null && invite.inviterEmail !== null
+            ? shownName({ name: invite.inviterName, email: invite.inviterEmail })
+            : `Someone at ${agency.name}`,
+        agencyName: agency.name,
+        joinUrl: `${app}${invitePath(invite)}`,
+        days: INVITE_LASTS_DAYS,
+      }),
+      // Sent again, it's a new email with a new link.
+      `account-colleague_invite-${job.inviteId}-${invite.sentAt.getTime()}`,
+    );
+    return;
+  }
+  if (job.kind === 'join_answered') {
+    if (!to) return;
+    await send(
+      to.email,
+      joinAnsweredEmail({
+        agencyName: agency.name,
+        approved: job.approved,
+        url: job.approved ? `${app}/today` : `${app}/`,
+      }),
+      `account-join_answered-${job.organisationId}-${job.userId}-${attemptKey}`,
+    );
+    return;
+  }
+  if (job.kind === 'member_left') {
+    if (!to || !about) return;
+    await send(
+      to.email,
+      memberLeftEmail({
+        memberName: shownName(about),
+        agencyName: agency.name,
+        lettings: job.handedOver,
+        lettingsUrl: `${app}/lettings`,
+      }),
+      `account-member_left-${job.organisationId}-${job.memberUserId}-${attemptKey}`,
     );
     return;
   }

@@ -119,10 +119,14 @@ export const memberships = pgTable(
 );
 
 /**
- * UX-AG-5: an invitation to join an organisation, by email address. For now only a founder sends
- * one, to a pilot agency's first admin; colleagues' invites are work package WP-19. The person
- * who signs in with that address, verified, joins with no questions. The row is deleted when
- * it's accepted, and by the retention job once it has expired (rule 9).
+ * UX-AG-5, UX-AG-11, UX-AG-12: an invitation to join an organisation, by email address: from a
+ * founder to a pilot agency's first admin, or from an admin to a colleague. The person who signs
+ * in with that address, verified, joins with no questions. The row is deleted when it's
+ * accepted or cancelled, and by the retention job once it has expired (rule 9).
+ *
+ * The link in the email names the invite and carries a signature over its ID and `sentAt`
+ * (src/server/team/invite-links.ts), so nothing secret is stored, and sending it again makes
+ * the old link stop working.
  */
 export const organisationInvites = pgTable(
   'organisation_invites',
@@ -136,7 +140,9 @@ export const organisationInvites = pgTable(
     role: memberRole().notNull(),
     invitedBy: text().references(() => users.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
-    /** UX-AG-12: an invite lasts seven days. */
+    /** UX-AG-12: when it was last sent: "Invited · sent today". "Send again" moves it on. */
+    sentAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    /** UX-AG-12: an invite lasts seven days from when it was last sent. */
     expiresAt: timestamp({ withTimezone: true }).notNull(),
   },
   (t) => [
@@ -148,7 +154,9 @@ export const organisationInvites = pgTable(
 
 /**
  * UX-AG-3: someone asked to join an agency that is already on Gaff. The request is the agency's
- * admins' to answer; showing and answering it is work package WP-19. Until then it is recorded.
+ * admins' to answer, on Team (src/server/team/join-requests.ts). Answered, the row is deleted:
+ * the record keeps the answer, with IDs only, and the person is told by email. A person turned
+ * down can ask again later.
  */
 export const joinRequests = pgTable(
   'join_requests',
@@ -161,9 +169,6 @@ export const joinRequests = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     requestedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    /** Set by the admin who answers (WP-19). */
-    answeredAt: timestamp({ withTimezone: true }),
-    answer: text({ enum: ['approved', 'declined'] }),
   },
   (t) => [
     uniqueIndex('join_requests_org_user_idx').on(t.organisationId, t.userId),

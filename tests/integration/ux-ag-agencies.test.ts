@@ -320,10 +320,10 @@ describe('UX-AG-1 to UX-AG-3: finding an agency', () => {
     expect(await askToJoin(colleague, entryId!)).toEqual({ agencyName: 'Liffey Quay' });
     await askToJoin(colleague, entryId!);
 
-    // Recorded for that agency's admins (WP-19 shows and answers it), once.
+    // Recorded for that agency's admins, who answer it on Team (ux-ag-teams.test.ts), once.
     const forAdmins = await withOrg(admin.organisationId, (tx) => tx.select().from(joinRequests));
     expect(forAdmins).toHaveLength(1);
-    expect(forAdmins[0]).toMatchObject({ userId: colleague.id, answeredAt: null, answer: null });
+    expect(forAdmins[0]).toMatchObject({ userId: colleague.id });
     expect((await recordOf(admin.organisationId)).at(-1)).toMatchObject({
       type: 'member.join_requested',
       actor: 'person',
@@ -649,7 +649,8 @@ describe('UX-AG-5: a founder sets a pilot agency up, and the invitation is the c
     expect(email!.subject).toBe('Join Shannonside Lettings on Gaff');
     expect(email!.text).toContain('invited you to run it, as its first admin');
     expect(email!.html).toContain('>Join Shannonside Lettings</a>');
-    expect(email!.text).toMatch(/\/join\n/);
+    // UX-AG-11: the link names the invite, so sign-in can say "Join Shannonside Lettings".
+    expect(email!.text).toMatch(/\/join\/[0-9a-f-]{36}\.[A-Za-z0-9_-]{43}\n/);
 
     // Someone else signing in doesn't get it. The invited person does, once verified.
     const stranger = await createTestPerson();

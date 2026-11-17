@@ -14,6 +14,7 @@ import { createAccessLink } from '@/server/access/links';
 import { ConfirmationNeeded, spendConfirmation, type Confirmation } from '@/server/auth/confirm';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
+import { requirePermission } from '@/server/team/permissions';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
 
@@ -32,7 +33,8 @@ export async function setPaymentAccount(
 ): Promise<
   { ok: true } | { ok: false; errors: Record<string, string> } | { ok: false; confirm: true }
 > {
-  if (member.role !== 'admin') throw new UserFacingError('Only an admin can change this.');
+  // The permissions table: an admin, once they've confirmed it's them (below); never an agent.
+  await requirePermission(member, 'change_payment_account');
   const parsed = paymentAccountSchema.safeParse(values);
   if (!parsed.success) {
     const errors: Record<string, string> = {};

@@ -65,6 +65,94 @@ export function agencyInviteEmail(input: {
   };
 }
 
+/** UX-AG-11: an admin invites a colleague. Who invited them, to which agency, and one button. */
+export function colleagueInviteEmail(input: {
+  inviterName: string;
+  agencyName: string;
+  joinUrl: string;
+  days: number;
+}): AccountEmail {
+  return {
+    subject: `${input.inviterName} invited you to join ${input.agencyName} on Gaff`,
+    button: `Join ${input.agencyName}`,
+    text: [
+      'Hello,',
+      '',
+      `${input.inviterName} has invited you to join ${input.agencyName} on Gaff, where the team runs its lettings.`,
+      '',
+      input.joinUrl,
+      '',
+      `Sign in with this email address and you’ll land in ${input.agencyName}, with every letting in front of you. The invitation works for ${input.days} days.`,
+      '',
+      'Gaff',
+    ].join('\n'),
+  };
+}
+
+/** UX-AG-3: an admin answered a request to join. */
+export function joinAnsweredEmail(input: {
+  agencyName: string;
+  approved: boolean;
+  url: string;
+}): AccountEmail {
+  return input.approved
+    ? {
+        subject: `You’re in ${input.agencyName} on Gaff`,
+        button: `Open ${input.agencyName}`,
+        text: [
+          'Hello,',
+          '',
+          `${input.agencyName} said yes to your request to join. You can see and run its lettings on Gaff from now.`,
+          '',
+          input.url,
+          '',
+          'Gaff',
+        ].join('\n'),
+      }
+    : {
+        subject: `Your request to join ${input.agencyName}`,
+        button: 'Open Gaff',
+        text: [
+          'Hello,',
+          '',
+          `${input.agencyName} didn’t add you to its team on Gaff. If you work there, ask one of its admins to invite you.`,
+          '',
+          input.url,
+          '',
+          'Gaff',
+        ].join('\n'),
+      };
+}
+
+/** UX-AG-17: a member left, and an admin has their lettings now. */
+export function memberLeftEmail(input: {
+  memberName: string;
+  agencyName: string;
+  /** How many lettings they led, which are this admin's now. */
+  lettings: number;
+  lettingsUrl: string;
+}): AccountEmail {
+  const yours =
+    input.lettings === 0
+      ? 'They didn’t lead any lettings, so nothing has moved.'
+      : input.lettings === 1
+        ? 'You lead the letting they led now.'
+        : `You lead the ${input.lettings} lettings they led now.`;
+  return {
+    subject: `${input.memberName} has left ${input.agencyName}`,
+    button: 'Open your lettings',
+    text: [
+      'Hello,',
+      '',
+      `${input.memberName} has left ${input.agencyName} on Gaff. ${yours} You can give any of them to someone else on the team from the letting.`,
+      '',
+      input.lettingsUrl,
+      '',
+      'Gaff',
+    ].join('\n'),
+  };
+}
+
 /** UX-AG-6: the weekly check didn't find the agency's licence on the PSRA register. */
 export function licenceLapsedEmail(input: {
   agencyName: string;

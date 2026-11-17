@@ -145,6 +145,10 @@ export function describeEvent(
       };
     case 'letting.on_gaff_set':
       return { what: data.on ? 'Set to show on gaff.ie' : 'Set not to show on gaff.ie' };
+    case 'letting.gaff_page_removed':
+      return {
+        what: `Its page on gaff.ie was removed, ${String(data.daysAfterLet)} days after it was let`,
+      };
     case 'letting.advertised_set':
       return {
         what: 'Said where else it’s advertised',

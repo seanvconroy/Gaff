@@ -93,6 +93,8 @@ export const eventCatalogue = {
   'letting.house_rules_set': z.object({ noSmokingIndoors: z.boolean() }),
   /** UX-LT-21: "On gaff.ie" was switched on or off. */
   'letting.on_gaff_set': z.object({ on: z.boolean() }),
+  /** UX-LS-10: the scheduled job took a let home's page off gaff.ie, this many days after it was let. */
+  'letting.gaff_page_removed': z.object({ daysAfterLet: z.number().int() }),
   /** "Is it advertised anywhere else?" was answered. */
   'letting.advertised_set': z.object({ daft: z.boolean(), myhome: z.boolean() }),
   /** UX-LT-24: a person looked at what a renter gets, on a made-up enquiry. Nothing was sent. */

@@ -195,11 +195,17 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   await expectRenterPageAtBothWidths(renter, { notices: ['check'], shots: 'wp12-live-checks-id' });
 
   // ID: through the stand-in provider, which is never given her link. This browser remembers
-  // the way back, so she lands on her own page, at the next check (UX-RN-17).
+  // the way back, so she lands on her own page (UX-RN-17), which asks once whether to keep the
+  // check (UX-PF-8). "Not now" goes on to the next check.
   await renter.getByRole('button', { name: 'Check my ID' }).click();
   await expect(renter.getByRole('heading', { name: 'Stand-in ID check' })).toBeVisible();
   expect(renter.url()).not.toContain(checksLink.split('/r/')[1]!);
   await renter.getByRole('button', { name: 'The ID and selfie match' }).click();
+  await expect(renter).toHaveURL(`${checksLink}?q=keep_id`);
+  await expect(
+    renter.getByRole('heading', { name: 'Keep this, so you never have to do it again?' }),
+  ).toBeVisible();
+  await renter.getByRole('link', { name: 'Not now' }).click();
   await expect(renter).toHaveURL(checksLink);
   await expect(list).toHaveText([/Your ID.*Done/, /Your income.*Next/, /Your references.*To come/]);
 

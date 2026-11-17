@@ -59,9 +59,10 @@ const keptFor = (email: string) =>
   );
 
 /** A Daft enquiry from a made-up renter about one of the operator's homes. */
-function enquiryFrom(email: string, name: string, address: string) {
+function enquiryFrom(email: string, name: string, address: string, phone: string) {
   const swap = (text: string) =>
     text
+      .replaceAll('087 123 4567', phone)
       .replaceAll('aoife.byrne@example.ie', email)
       .replaceAll('Aoife Byrne', name)
       .replaceAll('Aoife', name.split(' ')[0]!)
@@ -124,9 +125,12 @@ async function applicantsAt(
     lettings.push(page.url().replace(/\?.*$/, ''));
   }
   const to = await gaffAddress(page);
-  for (const renter of renters) {
+  for (const [index, renter] of renters.entries()) {
     for (const home of homes) {
-      await sendTestEmail(page, { to, ...enquiryFrom(renter.email, renter.name, home) });
+      await sendTestEmail(page, {
+        to,
+        ...enquiryFrom(renter.email, renter.name, home, `087 123 45${60 + index}`),
+      });
     }
   }
   for (const letting of lettings) {
@@ -166,6 +170,22 @@ async function applicantsAt(
     }
   }
   return { lettings, links };
+}
+
+/**
+ * "Choose an applicant" with one person and no backup to choose from: their radio, then straight
+ * to "Check and confirm" (the flow's Next asks for a backup only when there's someone to ask
+ * about), and "Start the checks".
+ */
+async function chooseTheOnlyApplicant(page: Page, lettingUrl: string, name: string) {
+  await page.goto(`${lettingUrl}/choose`);
+  const radio = page.getByRole('radio', { name: `Choose ${name}` });
+  await radio.check();
+  const id = await radio.getAttribute('value');
+  await page.goto(`${lettingUrl}/choose?step=check&preferred=${id}`);
+  await expect(page.getByRole('heading', { name: 'Check and confirm' })).toBeVisible();
+  await page.getByRole('button', { name: 'Start the checks' }).click();
+  await expect(page.getByRole('heading', { name: 'Checks started' })).toBeVisible();
 }
 
 /** The renter's checks link for a home, from the email that says they were chosen. */
@@ -320,7 +340,7 @@ test('UX-PF-8, UX-PF-12, UX-PF-9: a chosen renter keeps their ID check, says yes
   ]);
 
   // The first home: chosen, she does the ID check, and is asked once whether to keep it.
-  await chooseApplicant(page, lettings[0]!, { preferred: 'Aoife Byrne', backup: null });
+  await chooseTheOnlyApplicant(page, lettings[0]!, 'Aoife Byrne');
   await signIn(aoife.page, email);
   await aoife.page.goto(await checksLink(email, homes[0]));
   // UX-PF-13: nothing kept, nothing offered: the check itself.
@@ -340,7 +360,7 @@ test('UX-PF-8, UX-PF-12, UX-PF-9: a chosen renter keeps their ID check, says yes
   expect(await keptFor(email)).toHaveLength(1);
 
   // The second home: chosen too. Its operator sees nothing of it yet.
-  await chooseApplicant(page, lettings[1]!, { preferred: 'Aoife Byrne', backup: null });
+  await chooseTheOnlyApplicant(page, lettings[1]!, 'Aoife Byrne');
   await page.goto(`${lettings[1]}/checks`);
   await expect(page.getByText('Not started yet.').first()).toBeVisible();
   expect(await page.locator('body').innerText()).not.toContain('Verified:');

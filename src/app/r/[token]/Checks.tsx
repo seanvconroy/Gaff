@@ -96,7 +96,6 @@ export function ChecksTask({
       return (
         <ReuseKeptIdentity
           token={token}
-          operator={operator}
           step={kept}
           notice={
             <Keeps

@@ -308,8 +308,7 @@ export const checksCopy = {
    */
   keptId: {
     useTitle: (date: string) => `Use the ID check you did on ${date}?`,
-    useText: (name: string, operator: string) =>
-      `It’s in the name ${name}. If you say yes, ${operator} sees that it passed, the name and the date, and nothing else.`,
+    useText: (name: string) => `It’s in the name ${name}.`,
     use: 'Yes, use it',
     using: 'Using it…',
     doAgain: 'No, I’ll do it again',

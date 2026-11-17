@@ -33,12 +33,10 @@ export interface IdentityView {
  */
 export function ReuseKeptIdentity({
   token,
-  operator,
   step,
   notice,
 }: {
   token: string;
-  operator: string;
   step: NonNullable<IdentityView['step']>;
   /** UX-RN-16: what's kept, who sees it and when it's deleted. */
   notice: ReactNode;
@@ -74,7 +72,7 @@ export function ReuseKeptIdentity({
         <h3 id="next-check" className="type-title">
           {k.useTitle(step.on)}
         </h3>
-        <p>{k.useText(step.name, operator)}</p>
+        <p>{k.useText(step.name)}</p>
       </div>
       {notice}
       <div className={styles.actions}>

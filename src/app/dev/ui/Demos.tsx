@@ -7,6 +7,8 @@ import { AccountMenu } from '@/ui/AccountMenu';
 import { type AddressOption, AddressSearch } from '@/ui/AddressSearch';
 import { Button } from '@/ui/Button';
 import { Chips } from '@/ui/Chips';
+import { FilterChips } from '@/ui/FilterChips';
+import { HeartButton } from '@/ui/HeartButton';
 import { CodeInput } from '@/ui/CodeInput';
 import { ChoiceGroup, TextField } from '@/ui/Field';
 import { Menu, MenuItem } from '@/ui/Menu';
@@ -14,6 +16,7 @@ import { OptionRow } from '@/ui/OptionRow';
 import { PhotoUploader, type UploadedPhoto } from '@/ui/PhotoUploader';
 import { DateField, TimeField } from '@/ui/Pickers';
 import { QuestionSteps } from '@/ui/QuestionSteps';
+import { SearchBox } from '@/ui/SearchBox';
 import { Sheet } from '@/ui/Sheet';
 import { ToastProvider, useToast } from '@/ui/Toast';
 import styles from './ui.module.css';
@@ -357,5 +360,55 @@ export function QuestionStepsDemo() {
         },
       ]}
     />
+  );
+}
+
+/**
+ * The search box with chips (WP-21): the box, "Filters", and a chip per filter understood. The
+ * demo's form goes nowhere; pressing a chip says which one. The heart is shown off and on.
+ */
+export function SearchBoxDemo() {
+  return (
+    <ToastProvider>
+      <SearchBoxParts />
+    </ToastProvider>
+  );
+}
+
+function SearchBoxParts() {
+  const toast = useToast();
+  const [saved, setSaved] = useState(false);
+  return (
+    <div className={styles.fields}>
+      <SearchBox
+        id="ui-search-question"
+        question="What are you looking for?"
+        placeholder="2-bed in Ranelagh, no pets"
+        submitLabel="Search"
+        action="#search-box"
+        primary={false}
+      >
+        <FilterChips
+          label="What Gaff understood"
+          filtersLabel="Filters"
+          chips={[
+            { key: 'where', label: 'Ranelagh, Dublin 6' },
+            { key: 'beds', label: '2 bedrooms' },
+            { key: 'maxRent', label: 'Up to €2,400 a month' },
+            { key: 'pets', label: 'No pets' },
+          ]}
+          onFilters={() => toast.show({ message: 'Filters pressed' })}
+          onChip={(key) => toast.show({ message: `Chip pressed: ${key}` })}
+        />
+      </SearchBox>
+      <div className={styles.row}>
+        <HeartButton label="Save 2-bed apartment · Ranelagh, Dublin 6" onPress={() => {}} />
+        <HeartButton
+          label="Save 1-bed apartment · Rathmines, Dublin 6"
+          saved={saved}
+          onPress={() => setSaved((now) => !now)}
+        />
+      </div>
+    </div>
   );
 }

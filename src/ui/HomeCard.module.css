@@ -72,6 +72,18 @@
   color: var(--color-ink-muted);
 }
 
+.detail {
+  color: var(--color-ink);
+}
+
+/* The heart: over the photo's top corner, above the link that covers the card. */
+.action {
+  position: absolute;
+  z-index: 1;
+  top: var(--space-2);
+  right: var(--space-2);
+}
+
 /* "Needs you": a small dot and the words, both in the attention colour. */
 .needs {
   display: flex;

@@ -371,3 +371,21 @@ Gaff now shows homes to the public and shows renters where to pay a deposit. A p
 **Decision (build):** reading the register by software is not clearly allowed, so Gaff doesn't do it, and never scrapes it. There is no lookup and no `src/ports` interface for one. The operator enters three comparable homes, one per screen, with the area, type and bedrooms filled in from the home, and a button opens the RTB's register in a new tab.
 
 **To verify (founders):** allow `rtb.ie` and `data.gov.ie` in the environment's network settings so the pages can be read directly, or ask the RTB whether it offers, or would license, a feed of register entries. If it does, the lookup is built behind an interface in `src/ports` with a local stand-in, and the operator confirms the three it suggests.
+
+### Q49. A map beside the search results (OQ-7, UX-SR-8)
+
+**Answer (build, WP-21): not practical yet. Search ships with the list alone, and the list is complete without a map.** The "Map" button is left off the screen rather than shown doing nothing.
+
+Why, in this package:
+- **A renderer is a new dependency.** Showing a map someone can pan and zoom needs a map library (MapLibre GL JS is the natural one: open source, and it fetches only what Gaff points it at). The build rules allow no new dependency without approval, and a hand-written renderer isn't a sensible thing to build.
+- **The data couldn't be fetched here.** OpenStreetMap's servers (Geofabrik's extracts, Overpass) are blocked from the build environment, so there was no Irish extract to turn into tiles.
+- **Homes have no coordinates.** A letting holds an address and an Eircode, not a point. Pins need a point for each home: from Autoaddress's Eircode lookup at "Add a letting" once its DPA is signed (Q40), or a rough one from the place's centre.
+
+What it would take, all inside the approved vendors and with no visitor's request leaving Gaff:
+1. Approve MapLibre GL JS as a dependency (no vendor: it calls nothing on its own).
+2. Build vector tiles for Ireland from Geofabrik's Ireland and Northern Ireland extract (about 300 MB) with an offline tool such as Planetiler, as one PMTiles file (roughly 0.5 to 1 GB to zoom 14), plus the style, fonts and icons the map draws with.
+3. Keep that file in Supabase Storage (Ireland) and serve it through Gaff's own address (`/tiles/…`, with range requests), so the page's content policy stays `'self'`. Vercel's function and static file limits rule out serving it from the deployment itself.
+4. A point for each home, stored with the letting (see above), and refreshing the tiles every few months by a job.
+5. Credit "© OpenStreetMap contributors" on the map. The ODbL's share-alike applies to the database, not to the pictures of the map.
+
+Gaff's list of places for "Where" is in the repository (`src/domain/search/places-list.ts`), hand-made for now because of the same blocked download; `scripts/places/build-places.ts` builds the full list from OpenStreetMap when it can reach it.

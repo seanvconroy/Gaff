@@ -179,7 +179,7 @@ Every component adapts between phone and desktop. "Status" says whether it exist
 | **Date and time pickers** | Dates and times in Irish format | A sheet | A popover | New (replaces the browser's own controls) |
 | **Code input** | The six-digit sign-in code | Six boxes; numeric keyboard; accepts a paste | Same | New |
 | **Photo uploader and gallery** | Adding, ordering and showing photos | Library or camera; a two-column grid | Drag and drop; a four-column grid | New (`PhotoField` exists for single photos) |
-| **Home card** | A home in a list | One column | A grid, three across | New |
+| **Home card** | A home in a list | One column | A grid, three across | New. `src/ui/HomeCard`; in search it takes the rent as its title, `details` (when it's free, what differs) and the heart over the photo (`src/ui/HeartButton`) |
 | **Person card / row** | An enquirer or applicant | A card | A table row with the same content | Changed (from `Table`, `Cell`). `PersonCard`: applicants to choose between, a radio each, stacked on a phone and three across on a desktop (WP-17) |
 | **Pick list** | Ticking people from a ranked list ("Choose who views"), with "Why here" for each row's reason and a divider before people who haven't answered | Rows with hairlines; the whole row is the tick | Same | New (`PickList`, WP-17) |
 | **Message preview** | A fixed message as it will be sent, to read and not to edit | The quiet fill, subject then words | Same | New (`MessagePreview`, WP-17) |
@@ -204,11 +204,11 @@ Every component adapts between phone and desktop. "Status" says whether it exist
 | **Skeleton** | Loading | | | New |
 | **Copy button** | An IBAN, a reference, an address | | | Exists |
 | **Avatar and badge** | A person, an agency; "Identity verified" | | | New |
-| **Search box with chips** | Renter search; asking who's enquired | Full width; chips scroll sideways | Centred, up to 720px | New |
+| **Search box with chips** | Renter search; asking who's enquired | Full width; chips scroll sideways | Centred, up to 720px | New. `src/ui/SearchBox` (the question, the box and its button) with `src/ui/FilterChips` ("Filters", then a chip per filter, each opening its control) |
 | **Gallery** | A home's photos | Swipe, with Previous and Next; tap for full screen | A grid of five; click for full screen | Built (`src/ui/Gallery`; full screen is `Overlay`'s `full` kind) |
 | **Action card** | The one action on a home's page | Fixed to the foot of the screen, above the tab bar | Fixed to the right of the content | Built (`src/ui/ActionCard`) |
 | **Show more** | Long text, such as a home's description | Three lines, then "Show more" | Same | Built (`src/ui/ShowMore`) |
-| **Map** | Where a home is; search results | Behind a "Map" button | Beside the list | New |
+| **Map** | Where a home is; search results | Behind a "Map" button | Beside the list | Not built: serving a map from Gaff's own copy of OpenStreetMap isn't practical yet, so search shows the list alone (OQ-7; `docs/open-questions.md` Q49) |
 | **Sign-in buttons** | Google, Apple | The providers' own required styles | Same | New |
 
 **UX-DS-16.** Every screen in this PRD is built only from these components. A screen that needs something else adds it here first. `[P12]`

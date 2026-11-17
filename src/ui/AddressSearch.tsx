@@ -33,12 +33,18 @@ export function AddressSearch({
   onPick,
   notFound,
   defaultValue = '',
+  onQueryChange,
+  foundWords = (count) => (count === 1 ? '1 address found' : `${count} addresses found`),
 }: Omit<FieldBase, 'width' | 'optional'> & {
   search: (query: string) => Promise<AddressOption[]>;
   onPick: (option: AddressOption) => void;
   /** Under the field when nothing matches: what to do next, in a sentence. */
   notFound: ReactNode;
   defaultValue?: string;
+  /** Told of every change to what is typed, so a picked value can be let go when it's cleared. */
+  onQueryChange?: (query: string) => void;
+  /** What a screen reader hears when results arrive: "3 places found". */
+  foundWords?: (count: number) => string;
 }) {
   const ids = fieldIds(name);
   const listId = useId();
@@ -118,6 +124,7 @@ export function AddressSearch({
           aria-describedby={describedBy(name, hint, error)}
           onChange={(event) => {
             setQuery(event.target.value);
+            onQueryChange?.(event.target.value);
             setOpen(true);
             if (event.target.value.trim().length < SHORTEST) setOptions(null);
           }}
@@ -152,9 +159,7 @@ export function AddressSearch({
         {nothing ? (
           notFound
         ) : shown.length > 0 ? (
-          <span className="visually-hidden">
-            {shown.length === 1 ? '1 address found' : `${shown.length} addresses found`}
-          </span>
+          <span className="visually-hidden">{foundWords(shown.length)}</span>
         ) : null}
       </p>
     </FieldFrame>

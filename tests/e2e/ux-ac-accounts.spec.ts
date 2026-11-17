@@ -112,7 +112,9 @@ test('UX-AC-6: a renter reaches Search after one question, at 390px and 1280px',
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     // She lands on Search, on the renting side.
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Search' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'What are you looking for?' }),
+    ).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link')).toHaveText([
       'Search',
       'Saved',
@@ -137,7 +139,9 @@ test('UX-AC-6: a renter reaches Search after one question, at 390px and 1280px',
 
     // First run is shown once: opening Gaff again goes straight to Search.
     await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1, name: 'Search' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'What are you looking for?' }),
+    ).toBeVisible();
     await page.goto('/welcome');
     await expect(page).toHaveURL(/\/$/);
     await context.close();
@@ -243,7 +247,9 @@ test('UX-AC-6, UX-AC-10: with an email code, first run asks the name first, and 
   await expect(page.getByRole('heading', { level: 1, name: 'Which agency?' })).toBeVisible();
   // The way out of first run is the public site, to look around; she signs out from there.
   await page.goto('/?rent=1');
-  await expect(page.getByRole('heading', { level: 1, name: 'Search' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'What are you looking for?' }),
+  ).toBeVisible();
   await signOut(page);
   await signIn(page, email);
   // Signed in again, even on another day: straight back to "Which agency?".

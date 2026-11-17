@@ -65,6 +65,7 @@ import { StepList } from '@/ui/StepList';
 import { TimePicker } from '@/ui/TimePicker';
 import {
   AddressSearchDemo,
+  SearchBoxDemo,
   CodeDemo,
   MenuDemo,
   OptionRowDemo,
@@ -881,6 +882,23 @@ export default function ComponentsPage() {
               'Hi Aoife,\n\nThanks for your interest in 12 Ranelagh Road. Halcyon Lettings would like to invite you to view it.\n\nHalcyon Lettings'
             }
           />
+        </Section>
+
+        <Section
+          id="search-box"
+          title="Search box with chips"
+          lead="One box for a sentence, its button, and what Gaff understood as chips: Filters first, then one chip per filter, each opening its control. The heart saves a home."
+        >
+          <SearchBoxDemo />
+          <HomeGrid label="Search results">
+            <HomeCard
+              href="#homes"
+              title="€1,850 a month"
+              line="2-bed apartment · Ranelagh, Dublin 6"
+              details={['Free from Tuesday 1 December', 'Up to 2 people. You asked for 3.']}
+              photo={{ src: samplePhoto, alt: '' }}
+            />
+          </HomeGrid>
         </Section>
 
         <Section

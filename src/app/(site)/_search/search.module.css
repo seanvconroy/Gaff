@@ -1,0 +1,62 @@
+/* The first screen: the search box, then the homes, then one line for people letting. */
+.page {
+  display: grid;
+  gap: var(--space-8);
+  min-width: 0;
+}
+
+.promise,
+.unclear {
+  color: var(--color-ink-muted);
+}
+
+.results {
+  display: grid;
+  gap: var(--space-12);
+  min-width: 0;
+}
+
+.section {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.foot {
+  padding-block-start: var(--space-6);
+  border-block-start: 1px solid var(--color-border);
+  color: var(--color-ink-muted);
+}
+
+.foot a {
+  color: var(--color-brand-text);
+}
+
+.skeletons {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+}
+
+.skeletonCard {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* A sheet's two buttons: the primary first, side by side, wrapping on a narrow phone. */
+.sheetButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.sheetForm {
+  display: grid;
+  gap: var(--space-6);
+}
+
+@media (width > 900px) {
+  .skeletons {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

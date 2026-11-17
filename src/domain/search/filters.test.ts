@@ -1,0 +1,76 @@
+import { describe, expect, it } from 'vitest';
+import { filtersFromParams, filtersToParams, hasFilters, searchHref, without } from './filters';
+import { homePageHref } from './links';
+
+describe('UX-SR-12: a search’s address can be shared and reopened', () => {
+  const filters = {
+    where: 'ranelagh',
+    beds: 2,
+    maxRent: 2400,
+    moveIn: '2027-01-01',
+    stay: 'year' as const,
+    people: 2,
+    pets: false,
+    furnished: true as const,
+    parking: true as const,
+    type: 'apartment' as const,
+  };
+
+  it('UX-SR-12: holds the filters’ values and reopens as the same search', () => {
+    const href = searchHref(filters);
+    expect(href).toBe(
+      '/?where=ranelagh&beds=2&max=2400&from=2027-01-01&stay=year&people=2&pets=no&type=apartment&furnished=yes&parking=yes',
+    );
+    const params = Object.fromEntries(new URL(href, 'https://gaff.ie').searchParams);
+    expect(filtersFromParams(params)).toEqual(filters);
+  });
+
+  it('UX-SR-12: a value that isn’t allowed is left out, and the rest still works', () => {
+    expect(
+      filtersFromParams({
+        where: 'narnia',
+        beds: '9',
+        max: '2400',
+        from: 'soon',
+        pets: 'maybe',
+        q: 'I am a nurse',
+        name: 'Aoife',
+      }),
+    ).toEqual({ maxRent: 2400 });
+  });
+
+  it('UX-SR-12: has nothing personal and no sentence: only the allowed names', () => {
+    const names = filtersToParams(filters).map(([name]) => name);
+    expect(names).toEqual([
+      'where',
+      'beds',
+      'max',
+      'from',
+      'stay',
+      'people',
+      'pets',
+      'type',
+      'furnished',
+      'parking',
+    ]);
+  });
+
+  it('UX-SR-12: keeps "rent=1" for someone renting before first run is finished', () => {
+    expect(searchHref({ beds: 1 }, { rent: true })).toBe('/?beds=1&rent=1');
+    expect(searchHref({})).toBe('/');
+  });
+
+  it('UX-SR-3: a chip can be taken off', () => {
+    expect(without(filters, 'beds').beds).toBeUndefined();
+    expect(hasFilters({})).toBe(false);
+    expect(hasFilters({ pets: false })).toBe(true);
+  });
+});
+
+describe('UX-SR-6: a card opens the home’s page', () => {
+  it('UX-SR-6: through one function, so the page’s address is set in one place', () => {
+    expect(homePageHref('b1f6d7d2-4f0e-4a43-9b38-6a4a2f1c0e11')).toBe(
+      '/homes/b1f6d7d2-4f0e-4a43-9b38-6a4a2f1c0e11',
+    );
+  });
+});

@@ -71,10 +71,13 @@ test('UX-DS-16: the component page shows every component and its states at 390px
         'Status pill, notice and outcome',
         'Cards, rows and lists',
         'Calendar',
+        'Search box with chips',
         'Home card',
         'Thread and reply box',
       ]) {
-        await expect(page.getByRole('heading', { level: 2, name: component })).toBeVisible();
+        await expect(
+          page.getByRole('heading', { level: 2, name: component, exact: true }),
+        ).toBeVisible();
       }
       expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(
         rgb(tokens.colors['surface-0']![colorScheme]),

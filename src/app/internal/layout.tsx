@@ -11,9 +11,10 @@ export const dynamic = 'force-dynamic';
 
 /**
  * UX-TS-5: Gaff's internal pages, for Gaff's own team only (STAFF_EMAILS). Anyone else, signed
- * in or not, gets "not found". The funnels are here now; the lists of agencies waiting to be
- * confirmed and of reported listings join them later, as pages beside it. Each page also calls
- * requireStaff() itself, since a layout isn't run again when moving between its pages.
+ * in or not, gets "not found". `/internal` is the one page, with its three lists (agencies to
+ * confirm, reported listings, the funnels); Agencies (pilot set-up) and Funnels (every step)
+ * open from it. Each page also calls requireStaff() itself, since a layout isn't run again when
+ * moving between its pages.
  */
 export default async function InternalLayout({ children }: { children: ReactNode }) {
   await requireStaff();

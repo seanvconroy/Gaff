@@ -67,6 +67,8 @@ export interface HiddenListing extends ListingFacts {
   reason: ReportReason | null;
   hiddenAt: Date;
   lookAgainAskedAt: Date | null;
+  /** UX-TS-4: once the lister has asked, within one working day of their asking. */
+  answerBy: Date | null;
   /** The home's own description, as its page showed it: to look at again. */
   description: string | null;
 }
@@ -181,6 +183,7 @@ export async function reportedListingsFor(
       reason: row.reason,
       hiddenAt: row.hiddenAt!,
       lookAgainAskedAt: row.lookAgainAskedAt,
+      answerBy: row.lookAgainAskedAt ? oneWorkingDayAfter(row.lookAgainAskedAt) : null,
       description: row.description,
     }));
     return { waiting, hidden };

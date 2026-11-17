@@ -1,14 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { licenceTypeLabels } from '@/domain/register/parse';
-import { formatDateTime } from '@/lib/format';
 import { agenciesWaitingFor } from '@/server/accounts/staff';
 import { requireStaff } from '@/server/auth/staff';
 import { Card, CardHeader, PageHeader, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
-import { SubmitButton } from '@/ui/SubmitButton';
-import { SummaryList } from '@/ui/SummaryList';
-import { confirmAgencyAction } from './actions';
+import { AgenciesWaiting } from '../AgenciesWaiting';
 import { PilotAgencyForm } from './PilotAgencyForm';
 
 export const metadata: Metadata = { title: 'Agencies' };
@@ -22,8 +18,8 @@ const done: Record<string, string> = {
 /**
  * UX-AG-4, UX-AG-5 (Q32): the simple confirm action for Gaff's own team. The register is public,
  * so picking an agency proves nothing about who picked it. What is confirmed here is one thing:
- * that the person who claimed the agency works there. The full internal page is work package
- * WP-26.
+ * that the person who claimed the agency works there. The same list is on the internal page
+ * itself (`/internal`); this page adds setting up a pilot agency.
  *
  * This page shows the agency, its entry in the register and who claimed it, and nothing else:
  * no letting, no renter, no message. Staff confirm an agency and do nothing in it (Q13).
@@ -43,7 +39,7 @@ export default async function AgenciesPage({
         lead="Agencies that signed up by themselves wait here until someone at Gaff confirms that the person who claimed them works there."
       />
       <p>
-        See also: <Link href="/internal/funnels">Funnels</Link>.
+        <Link href="/internal">Back to Gaff internal</Link>
       </p>
       {query.done && done[query.done] ? (
         <Notice tone="success" role="status">
@@ -59,52 +55,7 @@ export default async function AgenciesPage({
         </Notice>
       ) : null}
 
-      <Stack gap={4} as="section">
-        <h2 className="type-title">Waiting to be confirmed</h2>
-        <p>
-          Look at the agency’s own website, or ring the number it publishes, and check that the
-          person below works there. Then press Confirm. It’s once per agency, ever.
-        </p>
-        {waiting.length === 0 ? <p>No agency is waiting.</p> : null}
-        {waiting.map((agency) => (
-          <Card key={agency.organisationId} labelledBy={`agency-${agency.organisationId}`}>
-            <CardHeader
-              id={`agency-${agency.organisationId}`}
-              level={3}
-              title={agency.name}
-              description={`Asked ${formatDateTime(agency.askedAt)}`}
-            />
-            <SummaryList
-              rows={[
-                { label: 'Registered name', value: agency.registeredName },
-                ...(agency.tradingName
-                  ? [{ label: 'Trading name', value: agency.tradingName }]
-                  : []),
-                { label: 'Licence number', value: agency.licenceNumber },
-                { label: 'Licence type', value: licenceTypeLabels[agency.licenceType] },
-                { label: 'County', value: agency.county },
-                {
-                  label: 'Claimed by',
-                  value:
-                    agency.admins.map((admin) => `${admin.name} (${admin.email})`).join(', ') ||
-                    'Nobody yet',
-                },
-              ]}
-            />
-            {agency.licenceTaken ? (
-              <Notice tone="warning">
-                <p>A confirmed agency on Gaff already holds this licence.</p>
-              </Notice>
-            ) : (
-              <form action={confirmAgencyAction.bind(null, agency.organisationId)}>
-                <SubmitButton variant="secondary" pendingLabel="Confirming…">
-                  Confirm<span className="visually-hidden"> {agency.name}</span>
-                </SubmitButton>
-              </form>
-            )}
-          </Card>
-        ))}
-      </Stack>
+      <AgenciesWaiting waiting={waiting} back="agencies" />
 
       <Card labelledBy="pilot-agency">
         <CardHeader

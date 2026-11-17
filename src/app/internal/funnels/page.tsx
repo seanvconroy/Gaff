@@ -115,7 +115,7 @@ export default async function FunnelsPage() {
         lead="How far people get in each key flow, across every organisation on Gaff. These are totals: nobody is named and no organisation is shown."
       />
       <p>
-        See also: <Link href="/internal/agencies">Agencies waiting to be confirmed</Link>.
+        <Link href="/internal">Back to Gaff internal</Link>
       </p>
       <Card tone="quiet" labelledBy="how-to-read">
         <h2 id="how-to-read" className="type-title">

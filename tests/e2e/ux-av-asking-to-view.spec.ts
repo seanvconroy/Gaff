@@ -269,7 +269,9 @@ test('UX-AV-2: a renter with a profile and kept answers asks in two taps', async
       { full_name: 'Aoife Byrne', answers: { occupants: 2, hasPets: false }, sources: ['gaff'] },
     ]);
     const table = await theLettingsEnquiries(page, home.lettingPath);
-    await expect(table.getByRole('row').filter({ hasText: 'Aoife Byrne' })).toContainText('Gaff');
+    await expect(table.getByRole('row').filter({ hasText: 'Aoife Byrne' }).first()).toContainText(
+      'Gaff',
+    );
 
     // UX-AV-9: "Ask to view" again opens their enquiry, not a second one.
     await phone.goto(home.homePath);

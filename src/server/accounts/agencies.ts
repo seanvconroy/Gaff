@@ -285,8 +285,8 @@ export async function startAgencyWithoutLicence(
 
 /**
  * UX-AG-3: "Ask to join" an agency that's already on Gaff. The request is recorded for that
- * agency's admins. Showing it to them and answering it is work package WP-19; until then it
- * waits. Asking twice makes one request.
+ * agency's admins, who answer it on Team (src/server/team/join-requests.ts). Asking twice makes
+ * one request.
  */
 export async function askToJoin(
   person: SignedInPerson,
@@ -321,7 +321,10 @@ export async function askToJoin(
   });
 }
 
-/** The agencies this person has asked to join and not heard back from. Their own rows only. */
+/**
+ * The agencies this person has asked to join and not heard back from. Their own rows only: an
+ * answered request is deleted.
+ */
 export async function pendingJoinRequests(
   userId: string,
 ): Promise<Array<{ organisationId: string; agencyName: string; requestedAt: Date }>> {
@@ -334,6 +337,6 @@ export async function pendingJoinRequests(
       })
       .from(joinRequests)
       .innerJoin(organisations, eq(organisations.id, joinRequests.organisationId))
-      .where(and(eq(joinRequests.userId, userId), isNull(joinRequests.answeredAt))),
+      .where(eq(joinRequests.userId, userId)),
   );
 }

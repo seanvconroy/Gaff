@@ -71,6 +71,8 @@ export async function makeLettingIn(
       setupStep: input.setupStep ?? null,
       previousLettingId: input.previousLettingId ?? null,
       createdBy: member.userId,
+      // UX-AG-9: whoever adds the letting leads it, until someone changes that.
+      leadUserId: member.userId,
     })
     .returning({ id: lettings.id });
   const lettingId = letting!.id;

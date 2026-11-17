@@ -89,8 +89,8 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         monthlyRentCents: lettings.monthlyRentCents,
         stage: lettings.stage,
         status: lettings.status,
-        // UX-AG-9: who added it. `leadOf` turns this into the lead; WP-19 adds the real one.
-        createdBy: lettings.createdBy,
+        // UX-AG-9: the member who leads it.
+        leadUserId: lettings.leadUserId,
         createdAt: lettings.createdAt,
         closedAt: lettings.closedAt,
         criteriaSetAt: lettings.criteriaSetAt,
@@ -108,9 +108,9 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
       .where(eq(memberships.organisationId, member.organisationId))
       .orderBy(asc(memberships.createdAt));
     const memberIds = new Set(members.map((m) => m.userId));
-    // A home whose lead has left the team is nobody's, so it shows for everyone (WP-19 hands
-    // such homes over when a member is removed).
-    const leadFor = (row: { createdBy: string }) => {
+    // A home whose lead has left the team is nobody's, so it shows for everyone. Removing a
+    // member hands their homes over (UX-AG-15), so this is only ever a moment's safety net.
+    const leadFor = (row: { leadUserId: string }) => {
       const lead = leadOf(row);
       return memberIds.has(lead) ? lead : null;
     };

@@ -108,7 +108,7 @@ export async function inboxFor(
       .select({
         lettingId: lettings.id,
         address: lettings.addressLine1,
-        createdBy: lettings.createdBy,
+        leadUserId: lettings.leadUserId,
         ownerName: landlords.name,
       })
       .from(lettings)

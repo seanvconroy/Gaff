@@ -1,12 +1,13 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import type { FormState } from '@/lib/forms';
 import { ButtonLink } from '@/ui/Button';
 import { Disclosure } from '@/ui/Disclosure';
 import { ChoiceGroup, FieldError, TextField } from '@/ui/Field';
 import { FlowProblems, FlowShell, FlowTitle } from '@/ui/FlowShell';
 import { Stack } from '@/ui/Layout';
+import type { SegmentedProgress } from '@/ui/SegmentedProgress';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { useFlowForm } from '@/ui/useFlowForm';
 
@@ -55,6 +56,7 @@ export function StepForm({
   back,
   alternative,
   after,
+  progress,
   children,
 }: {
   action: (state: FormState, data: FormData) => Promise<FormState>;
@@ -69,6 +71,8 @@ export function StepForm({
   back?: { href: string; label: string };
   alternative?: { summary: string; text: string; button: string; intent: string };
   after?: ReactNode;
+  /** Where a task has more than one screen (the usual's two questions). */
+  progress?: ComponentProps<typeof SegmentedProgress>;
   children?: ReactNode;
 }) {
   const { form, errors, count, values, attempt } = useFlowForm(action);
@@ -76,6 +80,7 @@ export function StepForm({
     <FlowShell
       leave={leave}
       form={form}
+      progress={progress}
       back={
         back ? (
           <ButtonLink href={back.href} variant="quiet">

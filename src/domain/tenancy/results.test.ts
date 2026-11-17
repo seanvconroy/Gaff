@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   nextAfterLet,
+  nextAfterLetHref,
   resultLines,
   timeInWords,
   usualAnswer,
@@ -41,6 +42,12 @@ describe('UX-TN-6: exactly one next action, in order', () => {
       'invite_colleague',
     );
   });
+  it('UX-TN-6: each opens its own task', () => {
+    expect(nextAfterLetHref('send_owner_summary', 'l1')).toBe('/lettings/l1/owner');
+    expect(nextAfterLetHref('invite_colleague', 'l1')).toBe('/settings/team');
+    expect(nextAfterLetHref('add_letting', 'l1')).toBe('/lettings/new');
+  });
+
   it('UX-TN-6: otherwise the next letting', () => {
     expect(nextAfterLet({ kind: 'agency', ownerHasSeenSummary: true, members: 3 })).toBe(
       'add_letting',

@@ -22,6 +22,23 @@ export function nextAfterLet(input: {
 }
 
 /**
+ * Where the one next action goes. Inviting a colleague opens the Team page in Settings, which
+ * WP-19 builds (UX-AG-8 onwards); sending the owner the summary is "Share with the owner".
+ */
+export const TEAM_HREF = '/settings/team';
+
+export function nextAfterLetHref(next: NextAfterLet, lettingId: string): string {
+  switch (next) {
+    case 'send_owner_summary':
+      return `/lettings/${lettingId}/owner`;
+    case 'invite_colleague':
+      return TEAM_HREF;
+    case 'add_letting':
+      return '/lettings/new';
+  }
+}
+
+/**
  * UX-TN-7: "your usual" is two questions with tap answers, asked at the first close if it
  * wasn't set during a pilot's onboarding. Each answer is a round number Gaff compares with.
  */

@@ -205,7 +205,7 @@ export async function revealPpsnAction(lettingId: string): Promise<string | null
 
 /**
  * Step 6 (R25): the move-in checklist, saved with every press. `intent=share` also shares the
- * inventory with the tenant; `intent=remove:<id>` takes an item out of it first.
+ * inventory with the tenant.
  */
 export async function moveInAction(
   lettingId: string,
@@ -216,11 +216,6 @@ export async function moveInAction(
   const values = formValues(formData);
   const checked = formData.getAll('checklist');
   return step(lettingId, 'hand_over', values, async () => {
-    const remove = /^remove:([0-9a-f-]{36})$/i.exec(values.intent ?? '');
-    if (remove) {
-      await removeInventoryItem(member, lettingId, remove[1]!);
-      return;
-    }
     await saveChecklist(member, lettingId, {
       keys: checked.includes('keys') ? 'yes' : '',
       alarms: checked.includes('alarms') ? 'yes' : '',
@@ -230,6 +225,13 @@ export async function moveInAction(
     });
     if (values.intent === 'share') await shareInventory(member, lettingId);
   });
+}
+
+/** R25: one item out of the inventory, before it's shared. */
+export async function removeItemAction(lettingId: string, itemId: string): Promise<void> {
+  const member = await requireMember();
+  await removeInventoryItem(member, lettingId, itemId);
+  revalidatePath(`/lettings/${lettingId}`, 'layout');
 }
 
 /** UX-TN-4 (R25): one inventory item, with an optional photo. The screen opens again, empty. */

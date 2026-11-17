@@ -221,12 +221,13 @@ export const tenancyCopy = {
     hoursTitle: 'And how many hours of your own time?',
     hoursLead: 'Roughly, for one letting. Gaff counts only the minutes you spend in it.',
     button: 'Continue',
-    error: 'Choose one',
+    progress: 'Your usual',
+    daysStep: 'How long',
+    hoursStep: 'Your time',
   },
   let: {
     title: (address: string) => `${address} is let`,
-    deletes: (date: string) =>
-      `The other applicants’ details are deleted by ${date}. Gaff has told each of them.`,
+    deletes: (date: string) => `The other applicants’ details are deleted from Gaff by ${date}.`,
     next: {
       send_owner_summary: (owner: string | null) =>
         owner ? `Send ${owner} the summary` : 'Send the owner the summary',

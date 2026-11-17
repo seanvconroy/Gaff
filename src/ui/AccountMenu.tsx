@@ -11,6 +11,7 @@ import {
   Search,
   Settings,
   UserRound,
+  UsersRound,
 } from 'lucide-react';
 import type {
   AccountMenu as AccountMenuRows,
@@ -29,6 +30,7 @@ const icons: Record<AccountRowKind, LucideIcon> = {
   'add-agency': Building2,
   profile: UserRound,
   settings: Settings,
+  team: UsersRound,
   help: CircleQuestionMark,
   'sign-out': LogOut,
 };

@@ -4,6 +4,7 @@ import { withOrg } from '@/db/client';
 import { organisations } from '@/db/schema';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
+import { requirePermission } from '@/server/team/permissions';
 import { recordEvent } from '@/server/record/events';
 
 const optionalNumber = (max: number, message: string) =>
@@ -28,7 +29,7 @@ export async function setUsualTimes(
   member: Member,
   values: Record<string, string>,
 ): Promise<{ ok: true } | { ok: false; errors: Record<string, string> }> {
-  if (member.role !== 'admin') throw new UserFacingError('Only an admin can change this.');
+  await requirePermission(member, 'change_settings');
   const parsed = usualTimesSchema.safeParse(values);
   if (!parsed.success) {
     const errors: Record<string, string> = {};

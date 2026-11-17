@@ -24,8 +24,41 @@ export const eventCatalogue = {
   'organisation.licence_renewed': z.object({ registerEntryId: z.uuid() }),
   /** UX-AG-5: a founder invited an agency's first admin, by email. Never the address. */
   'member.invited': z.object({ inviteId: z.uuid(), role: z.enum(['admin', 'negotiator']) }),
-  /** UX-AG-3: someone asked to join the agency. Its admins answer (WP-19). */
+  /** UX-AG-3: someone asked to join the agency. Its admins answer on Team. */
   'member.join_requested': z.object({ requestId: z.uuid() }),
+  /** UX-AG-3: an admin answered a request to join. The subject is the person who asked. */
+  'member.join_answered': z.object({
+    requestId: z.uuid(),
+    answer: z.enum(['approved', 'declined']),
+  }),
+  /** UX-AG-12: an admin sent an invite again, with a new link, or cancelled it. */
+  'member.invite_resent': z.object({ inviteId: z.uuid() }),
+  'member.invite_cancelled': z.object({ inviteId: z.uuid() }),
+  /** An admin changed a member's role. The subject is the member. */
+  'member.role_changed': z.object({ role: z.enum(['admin', 'negotiator']) }),
+  /**
+   * UX-AG-15: an admin removed a member, and UX-AG-17: a member left. The subject is the
+   * person; `handedOver` is how many lettings they led went to someone else.
+   */
+  'member.removed': z.object({
+    role: z.enum(['admin', 'negotiator']),
+    handedOver: z.number().int().min(0),
+    confirmedBy: z.enum(['passkey', 'email_code']),
+  }),
+  'member.left': z.object({
+    role: z.enum(['admin', 'negotiator']),
+    handedOver: z.number().int().min(0),
+  }),
+  /**
+   * UX-AG-9: the letting has a new lead: someone chose them (`changed`), or the lead left or
+   * was removed (`handover`).
+   */
+  'letting.lead_changed': z.object({
+    leadUserId: z.uuid(),
+    reason: z.enum(['changed', 'handover']),
+  }),
+  /** UX-AG-8: an agent chose "Help with this letting" on a letting someone else leads. */
+  'letting.help_started': z.object({}),
   /**
    * UX-AG-4: a person decided to put the home live (a 'confirm_setup' decision) while their
    * agency was being confirmed. It goes live when the agency is confirmed.

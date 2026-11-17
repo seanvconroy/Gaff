@@ -13,6 +13,8 @@ const providerNames: Record<SignInProvider, string> = { google: 'Google', apple:
 
 export const signInCopy = {
   title: 'Sign in or create an account',
+  /** UX-AG-11: on the way to an invite. */
+  joinTitle: (agencyName: string) => `Join ${agencyName}`,
   continueWith: (provider: SignInProvider) => `Continue with ${providerNames[provider]}`,
   or: 'or',
   emailLabel: 'Email',

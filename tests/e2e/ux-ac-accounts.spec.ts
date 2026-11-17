@@ -620,6 +620,7 @@ test('UX-AC-11 to UX-AC-13: one person adds contexts from the account menu and s
       'Renting',
       'Profile',
       'Agency settings',
+      'Team',
       'Help',
       'Sign out',
     ]);

@@ -33,13 +33,14 @@ describe('UX-NV-8: what the account menu holds, and in what order', () => {
     expect(menuFor('Aoife Byrne', { organisations: [], renting: false }).context).toBeNull();
   });
 
-  it('an agency: the roles to add, Profile, Agency settings, Help, then Sign out', () => {
+  it('an agency: the roles to add, Profile, Agency settings, Team, Help, then Sign out', () => {
     const menu = menuFor('Ann Power', { organisations: [halcyon], renting: false });
     expect(labels(menu)).toEqual([
       'Find a home to rent',
       'Let a home I own',
       'Profile',
       'Agency settings',
+      'Team',
       'Help',
       'Sign out',
     ]);
@@ -58,6 +59,11 @@ describe('UX-NV-8: what the account menu holds, and in what order', () => {
     expect(labels(menuFor('Seán Ó Briain', { organisations: [team], renting: false }))).toContain(
       'Settings',
     );
+    // UX-AG-10: a landlord's team has Team, as an agency does; their own homes never do.
+    expect(labels(menuFor('Seán Ó Briain', { organisations: [team], renting: false }))).toContain(
+      'Team',
+    );
+    expect(labels(menu)).not.toContain('Team');
   });
 
   it('a person who only rents sees the ways to let, and no settings', () => {
@@ -71,9 +77,9 @@ describe('UX-NV-8: what the account menu holds, and in what order', () => {
     ]);
   });
 
-  it('Team is a later package: it is left out rather than a link to nowhere', () => {
+  it('UX-NV-8: Team is in an agency’s menu, and leads to its page', () => {
     const menu = menuFor('Ann Power', { organisations: [halcyon], renting: false });
-    expect(labels(menu)).not.toContain('Team');
+    expect(menu.rows.find((row) => row.label === 'Team')?.href).toBe('/settings/team');
   });
 
   it('every row leads somewhere or does something, and Sign out is always last', () => {

@@ -376,6 +376,15 @@ export function describeEvent(
       return {
         what: 'Stopped from working on this letting: they enquired about this home as a renter',
       };
+    case 'letting.lead_changed':
+      return {
+        what:
+          data.reason === 'handover'
+            ? 'A new lead took the letting over, as the last one left the team'
+            : 'The letting’s lead changed',
+      };
+    case 'letting.help_started':
+      return { what: 'Started helping with this letting' };
     default:
       return { what: event.type };
   }

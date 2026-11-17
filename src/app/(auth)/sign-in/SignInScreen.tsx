@@ -58,6 +58,7 @@ export function SignInScreen({
   providers,
   lastMethod,
   failedProvider,
+  invite = null,
 }: {
   attempt: string;
   next: string | null;
@@ -65,6 +66,8 @@ export function SignInScreen({
   lastMethod: SignInMethod | null;
   /** Google or Apple came back with a problem that wasn't the person cancelling. */
   failedProvider: SignInProvider | null;
+  /** UX-AG-11: signing in to accept an invite: "Join {agency}", with the address filled in. */
+  invite?: { agencyName: string; email: string } | null;
 }) {
   // The try this screen opened with stays the same for as long as the screen is up.
   const [attemptId] = useState(attempt);
@@ -100,7 +103,9 @@ export function SignInScreen({
   return (
     <div className={styles.screen}>
       <div className={styles.title}>
-        <h1 className="type-display-mobile">{signInCopy.title}</h1>
+        <h1 className="type-display-mobile">
+          {invite ? signInCopy.joinTitle(invite.agencyName) : signInCopy.title}
+        </h1>
         {lastMethod ? <p className={styles.lead}>{signInCopy.lastUsed(lastMethod)}</p> : null}
       </div>
 
@@ -152,7 +157,7 @@ export function SignInScreen({
             inputMode="email"
             autoCapitalize="off"
             spellCheck={false}
-            defaultValue={emailState.values?.email}
+            defaultValue={emailState.values?.email ?? invite?.email}
             error={emailState.errors?.email}
           />
           <Button type="submit" variant="primary" fullWidth disabled={busy}>

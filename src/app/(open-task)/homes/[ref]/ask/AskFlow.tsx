@@ -283,6 +283,8 @@ export function AskFlow({
   const last = path[path.length - 1]!;
   const onPath = path.findIndex((each) => each.id === step.id);
   const isLast = step.id === last.id;
+  // An answer opened from "Change" comes back to the screen that lists the answers.
+  const home = steps.find((each) => each.id === 'check' || each.id === 'send') ?? last;
   const read = (): Values => (form.current ? formValues(new FormData(form.current)) : values);
 
   const open = (id: string, direction: 'forward' | 'back', record = true) => {
@@ -298,7 +300,7 @@ export function AskFlow({
 
   const back = () => {
     if (openedHere() > 0) window.history.back();
-    else open(step.aside ? last.id : (stepBefore(steps, read(), step.id) ?? step.id), 'back');
+    else open(step.aside ? home.id : (stepBefore(steps, read(), step.id) ?? step.id), 'back');
   };
 
   useEffect(() => {
@@ -329,7 +331,7 @@ export function AskFlow({
           ? {
               label: copy.progress,
               segments: path.map((each) => each.name),
-              current: onPath === -1 ? path.length - 1 : onPath,
+              current: onPath === -1 ? path.findIndex((each) => each.id === home.id) : onPath,
               large: true,
             }
           : undefined
@@ -382,7 +384,7 @@ export function AskFlow({
           }
           if (step.aside) {
             event.preventDefault();
-            open(last.id, 'forward');
+            open(home.id, 'forward');
           } else if (!isLast) {
             event.preventDefault();
             open(stepAfter(steps, now, step.id) ?? last.id, 'forward');

@@ -697,7 +697,8 @@ test('UX-AG-5: a founder sets a pilot agency up, and its first admin joins with 
       [admin],
     );
     const link = mail!.text.match(/https?:\/\/\S+/)![0];
-    expect(new URL(link).pathname).toBe('/join');
+    // UX-AG-11: the link names the invite, and holds no address.
+    expect(new URL(link).pathname).toMatch(/^\/join\/[0-9a-f-]{36}\.[A-Za-z0-9_-]{43}$/);
 
     // The invited person opens it, signs in with that address, and lands in the agency.
     const context = await browser.newContext({ viewport, locale: 'en-IE' });
@@ -713,8 +714,10 @@ test('UX-AG-5: a founder sets a pilot agency up, and its first admin joins with 
     await letter.close();
 
     await page.goto(new URL(link).pathname);
-    await expect(page).toHaveURL(/\/sign-in\?next=%2Fjoin$/);
-    await page.getByLabel('Email', { exact: true }).fill(admin);
+    await expect(page).toHaveURL(/\/sign-in\?next=%2Fjoin%2F/);
+    // UX-AG-11: sign-in says "Join {agency}", with the invited address filled in.
+    await expect(page.getByRole('heading', { level: 1, name: `Join ${agency}` })).toBeVisible();
+    await expect(page.getByLabel('Email', { exact: true })).toHaveValue(admin);
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Enter your code' })).toBeVisible();
     await page.getByLabel('Six-digit code').fill(await latestCodeFor(admin));

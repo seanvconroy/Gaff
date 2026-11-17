@@ -17,6 +17,7 @@ import {
   parseInviteEmails,
   refusalFor,
   refusalWords,
+  shownName,
   type TeamMember,
 } from '@/domain/team/members';
 import { hasTeam, may, type Role, roles } from '@/domain/team/permissions';
@@ -108,11 +109,13 @@ export async function teamFor(member: Member, now = new Date()): Promise<TeamVie
       })
       .from(joinRequests)
       .innerJoin(users, eq(users.id, joinRequests.userId))
-      .orderBy(asc(joinRequests.requestedAt));
+      .orderBy(asc(joinRequests.requestedAt))
+      .then((rows) => rows.map((row) => ({ ...row, name: shownName(row) })));
     return {
       canManage: may('manage_team', { role }),
       members: people.map((person) => ({
         ...person,
+        name: shownName(person),
         leads: leads.get(person.userId) ?? 0,
         you: person.userId === member.userId,
       })),
@@ -295,10 +298,10 @@ export async function answerJoinRequest(
       approved: answer === 'approved',
     });
     const [person] = await tx
-      .select({ name: users.name })
+      .select({ name: users.name, email: users.email })
       .from(users)
       .where(eq(users.id, request.userId));
-    return { name: person?.name ?? '' };
+    return { name: person ? shownName(person) : '' };
   });
 }
 
@@ -369,8 +372,9 @@ export async function memberDetail(member: Member, userId: string): Promise<Memb
       .innerJoin(users, eq(users.id, memberships.userId))
       .where(eq(memberships.organisationId, member.organisationId))
       .orderBy(asc(memberships.createdAt));
-    const person = people.find((each) => each.userId === userId);
-    if (!person) return null;
+    const found = people.find((each) => each.userId === userId);
+    if (!found) return null;
+    const person = { ...found, name: shownName(found) };
     const led = await tx
       .select({ lettingId: lettings.id, address: lettings.addressLine1 })
       .from(lettings)
@@ -384,7 +388,7 @@ export async function memberDetail(member: Member, userId: string): Promise<Memb
       lettings: led,
       others: people
         .filter((each) => each.userId !== userId)
-        .map(({ userId: other, name, role }) => ({ userId: other, name, role })),
+        .map((other) => ({ userId: other.userId, name: shownName(other), role: other.role })),
       cantRemove: refusal ? refusalWords[refusal] : null,
       cantStopBeingAdmin: demote ? refusalWords[demote] : null,
     };
@@ -466,10 +470,10 @@ export async function removeMember(
         data: { role: leaving.role, handedOver, confirmedBy },
       });
       const [person] = await tx
-        .select({ name: users.name })
+        .select({ name: users.name, email: users.email })
         .from(users)
         .where(eq(users.id, input.userId));
-      return { ok: true, name: person?.name ?? '', handedOver } as const;
+      return { ok: true, name: person ? shownName(person) : '', handedOver } as const;
     });
   } catch (error) {
     // Expired, or spent already: ask again. Nothing was changed.

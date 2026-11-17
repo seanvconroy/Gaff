@@ -2,6 +2,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { withOrg } from '@/db/client';
 import { lettingHelpers, lettings, memberships, users } from '@/db/schema';
+import { shownName } from '@/domain/team/members';
 import { refusals, type Role } from '@/domain/team/permissions';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
@@ -39,12 +40,25 @@ export async function leadChoicesFor(
       .from(lettings)
       .where(eq(lettings.id, lettingId));
     const members = await tx
-      .select({ userId: users.id, name: users.name, role: memberships.role })
+      .select({
+        userId: users.id,
+        name: users.name,
+        email: users.email,
+        role: memberships.role,
+      })
       .from(memberships)
       .innerJoin(users, eq(users.id, memberships.userId))
       .where(eq(memberships.organisationId, member.organisationId))
       .orderBy(asc(memberships.createdAt));
-    return { address: letting!.address, standing, members };
+    return {
+      address: letting!.address,
+      standing,
+      members: members.map((each) => ({
+        userId: each.userId,
+        name: shownName(each),
+        role: each.role,
+      })),
+    };
   });
 }
 
@@ -68,7 +82,7 @@ export async function changeLead(
     if (!standing) throw new UserFacingError(NOT_ON_TEAM);
     if (!standing.mayChangeLead) throw new UserFacingError(refusals.change_lead);
     const [chosen] = await tx
-      .select({ name: users.name })
+      .select({ name: users.name, email: users.email })
       .from(memberships)
       .innerJoin(users, eq(users.id, memberships.userId))
       .where(
@@ -78,7 +92,7 @@ export async function changeLead(
         ),
       );
     if (!chosen) throw new UserFacingError('Choose someone on your team.', 'lead');
-    if (standing.leadUserId === lead.data) return { leadName: chosen.name, changed: false };
+    if (standing.leadUserId === lead.data) return { leadName: shownName(chosen), changed: false };
     await tx.update(lettings).set({ leadUserId: lead.data }).where(eq(lettings.id, lettingId));
     await recordEvent(tx, {
       organisationId: member.organisationId,
@@ -87,7 +101,7 @@ export async function changeLead(
       type: 'letting.lead_changed',
       data: { leadUserId: lead.data, reason: 'changed' },
     });
-    return { leadName: chosen.name, changed: true };
+    return { leadName: shownName(chosen), changed: true };
   });
 }
 
@@ -127,8 +141,11 @@ export async function lettingStandingFor(
     const standing = await standingOn(tx, member, lettingId);
     if (!standing) return null;
     const [lead] = standing.leadUserId
-      ? await tx.select({ name: users.name }).from(users).where(eq(users.id, standing.leadUserId))
+      ? await tx
+          .select({ name: users.name, email: users.email })
+          .from(users)
+          .where(eq(users.id, standing.leadUserId))
       : [];
-    return { ...standing, leadName: lead?.name ?? null };
+    return { ...standing, leadName: lead ? shownName(lead) : null };
   });
 }

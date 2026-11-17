@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { nameIsKnown } from '@/domain/accounts/first-run';
 import type { Role } from './permissions';
 
 /**
@@ -76,6 +77,14 @@ export function adminToTakeOver(members: readonly TeamMember[], leaving: string)
   return (
     members.find((member) => member.role === 'admin' && member.userId !== leaving)?.userId ?? null
   );
+}
+
+/**
+ * How a member is named on the team's screens. Someone who joined by an invite and signed in by
+ * email code was asked nothing (UX-AG-11), so until they give a name their address stands in.
+ */
+export function shownName(person: { name: string | null; email: string }): string {
+  return nameIsKnown(person.name) ? person.name!.trim() : person.email;
 }
 
 /** UX-AG-11: at most this many addresses in one go. */

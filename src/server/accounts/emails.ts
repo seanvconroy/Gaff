@@ -24,6 +24,7 @@ import {
   users,
 } from '@/db/schema';
 import { env } from '@/lib/env';
+import { shownName } from '@/domain/team/members';
 import { formatDate } from '@/lib/format';
 import { invitePath } from '@/server/team/invite-links';
 import { INVITE_LASTS_DAYS } from './invites';
@@ -143,6 +144,7 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
               email: organisationInvites.email,
               sentAt: organisationInvites.sentAt,
               inviterName: users.name,
+              inviterEmail: users.email,
             })
             .from(organisationInvites)
             .leftJoin(users, eq(users.id, organisationInvites.invitedBy))
@@ -158,7 +160,10 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
         : [];
     const [about] =
       job.kind === 'member_left'
-        ? await tx.select({ name: users.name }).from(users).where(eq(users.id, job.memberUserId))
+        ? await tx
+            .select({ name: users.name, email: users.email })
+            .from(users)
+            .where(eq(users.id, job.memberUserId))
         : [];
     const [conflict] =
       job.kind === 'member_conflict'
@@ -201,7 +206,10 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
     await send(
       invite.email,
       colleagueInviteEmail({
-        inviterName: invite.inviterName ?? `Someone at ${agency.name}`,
+        inviterName:
+          invite.inviterName !== null && invite.inviterEmail !== null
+            ? shownName({ name: invite.inviterName, email: invite.inviterEmail })
+            : `Someone at ${agency.name}`,
         agencyName: agency.name,
         joinUrl: `${app}${invitePath(invite)}`,
         days: INVITE_LASTS_DAYS,
@@ -229,7 +237,7 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
     await send(
       to.email,
       memberLeftEmail({
-        memberName: about.name,
+        memberName: shownName(about),
         agencyName: agency.name,
         lettings: job.handedOver,
         lettingsUrl: `${app}/lettings`,

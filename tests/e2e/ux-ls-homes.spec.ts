@@ -10,6 +10,7 @@ import {
   gaffAddress,
   goLiveThroughUi,
   homeIdIn,
+  licenceOf,
   screenshot,
   sendTestEmail,
   settled,
@@ -108,7 +109,8 @@ test('UX-LS-1 to UX-LS-11, UX-LT-21: a live letting’s page opens signed out at
 }) => {
   test.slow();
   const agency = `Halcyon Lettings ${String(Date.now()).slice(-5)}`;
-  await signUpOperator(page, agency);
+  const operator = await signUpOperator(page, agency);
+  const licence = await licenceOf(operator);
   const home = await aLiveHomeOnGaff(page, '12 Ranelagh Road', { phone: '01 234 5678' });
   // Someone has enquired: nothing about them, or that they did, is on the page (UX-LS-9).
   await sendTestEmail(page, { to: await gaffAddress(page), ...daftEnquiry });
@@ -156,8 +158,9 @@ test('UX-LS-1 to UX-LS-11, UX-LT-21: a live letting’s page opens signed out at
     await expect(about.getByRole('button', { name: 'Show more' })).toBeVisible();
     await expect(visitor.getByText('BER C1')).toBeVisible();
     const letBy = visitor.getByRole('region', { name: 'Let by' });
-    await expect(letBy.getByText(agency)).toBeVisible();
-    await expect(letBy.getByText('PSRA licence 001234')).toBeVisible();
+    await expect(letBy.getByText(agency, { exact: true })).toBeVisible();
+    await expect(letBy.getByText(`Ring ${agency} on 01 234 5678`)).toBeVisible();
+    await expect(letBy.getByText(`PSRA licence ${licence}`)).toBeVisible();
     await expect(visitor.getByRole('link', { name: 'Report this listing' })).toBeVisible();
 
     // Rule 3, UX-LS-9, UX-LS-11: nothing about any person, nothing to hurry anyone.
@@ -193,6 +196,8 @@ test('UX-LS-1 to UX-LS-11, UX-LT-21: a live letting’s page opens signed out at
 
     // The gallery: a phone swipes, with Previous and Next; a desktop shows a grid. Any photo
     // opens full screen, where Next moves on and Escape closes.
+    // Measuring targets scrolled the photos along; start again from the first.
+    await visitor.reload();
     const gallery = visitor.getByRole('region', { name: 'Photos of 12 Ranelagh Road' });
     if (width === '390') {
       await expect(gallery.getByText('1 of 3')).toBeVisible();
@@ -267,7 +272,9 @@ test('UX-LS-1 to UX-LS-11, UX-LT-21: a live letting’s page opens signed out at
     expect(response?.status()).toBe(404);
     await expect(visitor.getByRole('heading', { name: 'This home isn’t on Gaff' })).toBeVisible();
     await expect(visitor.getByText('12 Ranelagh Road')).toHaveCount(0);
-    await expect(visitor.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+    for (const robots of await visitor.locator('meta[name="robots"]').all()) {
+      await expect(robots).toHaveAttribute('content', /noindex/);
+    }
     await expectAccessible(visitor);
     await screenshot(visitor, `ux-ls-06-not-available-${width}`);
     await context.close();

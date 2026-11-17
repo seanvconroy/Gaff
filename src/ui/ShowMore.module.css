@@ -11,8 +11,9 @@
   overflow-wrap: anywhere;
 }
 
-/* Three lines of the first paragraph and whatever follows it, measured in lines of body text. */
+/* Three whole lines of body text: paragraphs close up while it is clamped. */
 .clamped {
+  gap: 0;
   max-height: calc(3 * var(--type-body-line));
   overflow: hidden;
 }

@@ -21,11 +21,7 @@ import {
 } from '@/domain/team/members';
 import { hasTeam, may, type Role, roles } from '@/domain/team/permissions';
 import { INVITE_LASTS_DAYS } from '@/server/accounts/invites';
-import {
-  type Confirmation,
-  ConfirmationNeeded,
-  spendConfirmation,
-} from '@/server/auth/confirm';
+import { type Confirmation, ConfirmationNeeded, spendConfirmation } from '@/server/auth/confirm';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { enqueue } from '@/server/jobs/enqueue';
@@ -428,7 +424,8 @@ async function handOverIn(
   return leads.size;
 }
 
-export type RemoveResult = { ok: true; name: string; handedOver: number } | { ok: false; confirm: true };
+export type RemoveResult =
+  { ok: true; name: string; handedOver: number } | { ok: false; confirm: true };
 
 /**
  * UX-AG-15, UX-AG-16: an admin removes a member, having confirmed it's them (UX-SI-10). It takes
@@ -449,12 +446,7 @@ export async function removeMember(
     return await withOrg(member.organisationId, async (tx) => {
       const team = await teamIn(tx, member.organisationId, true);
       refuse(refusalFor(team, { kind: 'remove', userId: input.userId }, member.userId));
-      const confirmedBy = await spendConfirmation(
-        tx,
-        confirmation,
-        'remove_member',
-        member.userId,
-      );
+      const confirmedBy = await spendConfirmation(tx, confirmation, 'remove_member', member.userId);
       const leaving = team.find((each) => each.userId === input.userId)!;
       const staying = team.filter((each) => each.userId !== input.userId);
       const handedOver = await handOverIn(

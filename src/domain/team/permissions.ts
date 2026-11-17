@@ -108,10 +108,7 @@ export function mayActOnLetting(standing: Standing & { leadUserId: string | null
 
 /** Whether "Help with this letting" is offered: they can't act on it yet, and helping would let them. */
 export function offersHelp(standing: Standing & { leadUserId: string | null }): boolean {
-  return (
-    !mayActOnLetting(standing) &&
-    may('act_on_others_letting', { ...standing, helping: true })
-  );
+  return !mayActOnLetting(standing) && may('act_on_others_letting', { ...standing, helping: true });
 }
 
 /** Whether this organisation has team screens: an agency or a landlord's team, never one person. */

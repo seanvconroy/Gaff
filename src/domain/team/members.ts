@@ -41,8 +41,7 @@ export function refusalFor(
 
 export const refusalWords: Record<ChangeRefusal, string> = {
   not_a_member: 'They’re not on the team now.',
-  last_admin:
-    'Every team needs an admin. Make someone else an admin first, then try again.',
+  last_admin: 'Every team needs an admin. Make someone else an admin first, then try again.',
   remove_yourself: 'To leave the team yourself, go to your profile.',
 };
 
@@ -73,11 +72,10 @@ export function handover(
 }
 
 /** UX-AG-17: when someone leaves, their lettings go to an admin: the longest-standing one. */
-export function adminToTakeOver(
-  members: readonly TeamMember[],
-  leaving: string,
-): string | null {
-  return members.find((member) => member.role === 'admin' && member.userId !== leaving)?.userId ?? null;
+export function adminToTakeOver(members: readonly TeamMember[], leaving: string): string | null {
+  return (
+    members.find((member) => member.role === 'admin' && member.userId !== leaving)?.userId ?? null
+  );
 }
 
 /** UX-AG-11: at most this many addresses in one go. */
@@ -106,7 +104,10 @@ export function parseInviteEmails(typed: string): { emails: string[]; invalid: s
 }
 
 /** What is wrong with what was typed in the invite field, or null. */
-export function inviteEmailsProblem(parsed: { emails: string[]; invalid: string[] }): string | null {
+export function inviteEmailsProblem(parsed: {
+  emails: string[];
+  invalid: string[];
+}): string | null {
   if (parsed.invalid.length > 0) {
     return `${parsed.invalid[0]} isn’t an email address. Check it, then send again.`;
   }

@@ -64,7 +64,9 @@ describe('UX-AG-15: handing over lettings', () => {
 
 describe('UX-AG-11: several emails in one field', () => {
   it('splits what was typed or pasted, lower-cases it, and keeps each once', () => {
-    expect(parseInviteEmails('Ann@Example.ie, bob@example.ie;\nann@example.ie  <cara@example.ie>')).toEqual({
+    expect(
+      parseInviteEmails('Ann@Example.ie, bob@example.ie;\nann@example.ie  <cara@example.ie>'),
+    ).toEqual({
       emails: ['ann@example.ie', 'bob@example.ie', 'cara@example.ie'],
       invalid: [],
     });

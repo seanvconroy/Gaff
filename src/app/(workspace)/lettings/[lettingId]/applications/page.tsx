@@ -5,6 +5,7 @@ import { formatDateTime, formatEuro } from '@/lib/format';
 import { applicantsFor } from '@/server/applications/choose';
 import { approvalFor } from '@/server/offers/approval';
 import { offersFor } from '@/server/offers/offer';
+import { checksStillUnderWay } from '@/domain/offers/approval';
 import { whoCanBeOffered } from '@/domain/offers/offer';
 import { formatDate, irishToday } from '@/lib/format';
 import { OfferForm } from './OfferForm';
@@ -207,6 +208,11 @@ export default async function ApplicationsPage({
           state={approval}
           names={new Map(rows.map((r) => [r.id, r.name]))}
           asked={Boolean(done.asked)}
+          underWay={checksStillUnderWay(
+            rows
+              .filter((r) => r.status === 'preferred' || r.status === 'backup')
+              .flatMap((r) => r.checks),
+          )}
         />
       ) : null}
       {approval?.preferredId || sent.length > 0 ? (
@@ -278,11 +284,14 @@ function LandlordApproval({
   state,
   names,
   asked,
+  underWay,
 }: {
   lettingId: string;
   state: NonNullable<Awaited<ReturnType<typeof approvalFor>>>;
   names: Map<string, string>;
   asked: boolean;
+  /** UX-OP-7: checks of the people chosen that aren't back yet. */
+  underWay: number;
 }) {
   const answer = (id: string | null, value: string | null) =>
     id && value ? `${value === 'approved' ? 'Approved' : 'Declined'} ${names.get(id)}` : null;
@@ -354,6 +363,15 @@ function LandlordApproval({
                   {state.landlord.name} gets a private link to a one-page summary of who you chose,
                   with their check results, to approve or decline. No account needed.
                 </p>
+                {/* UX-OP-7: warned before asking while checks are unfinished. */}
+                {underWay > 0 ? (
+                  <Notice tone="warning">
+                    <p>
+                      {underWay === 1 ? '1 check isn’t' : `${underWay} checks aren’t`} back yet. The
+                      landlord will see “Still under way” beside {underWay === 1 ? 'it' : 'them'}.
+                    </p>
+                  </Notice>
+                ) : null}
                 <div>
                   <SubmitButton variant="secondary" pendingLabel="Sending…">
                     Ask the landlord to approve

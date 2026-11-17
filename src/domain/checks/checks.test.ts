@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { findProtectedGrounds } from '@/domain/compliance/protected-grounds';
 import {
+  MAX_REFERENCE_QUESTIONS,
   checksFor,
   describeReference,
   employerQuestions,
   landlordQuestions,
+  questionsShown,
   referenceAnswersSchema,
+  referenceQuestions,
   referenceSchedule,
   refereesSchema,
 } from './checks';
@@ -55,7 +58,7 @@ describe('R18: references', () => {
 
   it('asks referees fixed questions only: no free text, nothing on protected grounds', () => {
     for (const question of [...landlordQuestions, ...employerQuestions]) {
-      expect(findProtectedGrounds(question.label)).toEqual([]);
+      expect(findProtectedGrounds(question.label('Aoife'))).toEqual([]);
       for (const option of question.options) expect(findProtectedGrounds(option.label)).toEqual([]);
     }
     const parsed = referenceAnswersSchema('landlord_reference').parse({
@@ -71,6 +74,42 @@ describe('R18: references', () => {
       'lookedAfter',
       'rentAgain',
     ]);
+  });
+
+  it('UX-RF-1: a reference is at most four questions, each with a few fixed answers to tap', () => {
+    for (const kind of ['landlord_reference', 'employer_reference'] as const) {
+      const questions = referenceQuestions(kind, 'Aoife');
+      expect(questions.length).toBeLessThanOrEqual(MAX_REFERENCE_QUESTIONS);
+      for (const question of questions) {
+        expect(question.options.length).toBeGreaterThanOrEqual(2);
+        expect(question.options.length).toBeLessThanOrEqual(3);
+      }
+    }
+  });
+
+  it('UX-RF-2: the first question names the renter and asks whether the referee is who they said', () => {
+    expect(referenceQuestions('landlord_reference', 'Aoife').map((q) => q.label)).toEqual([
+      'Did Aoife rent a home from you?',
+      'Was the rent paid on time?',
+      'Did Aoife look after the home?',
+      'Would you rent to Aoife again?',
+    ]);
+    expect(referenceQuestions('employer_reference', 'Aoife').map((q) => q.label)).toEqual([
+      'Does Aoife work for you?',
+      'What kind of job is it?',
+      'How long has Aoife worked for you?',
+    ]);
+  });
+
+  it('UX-RF-2: answering no to the first question leaves nothing else to ask', () => {
+    const questions = referenceQuestions('landlord_reference', 'Aoife');
+    // One screen: every question is there from the start, and a no hides the rest.
+    expect(questionsShown(questions, undefined)).toHaveLength(4);
+    expect(questionsShown(questions, 'yes')).toHaveLength(4);
+    expect(questionsShown(questions, 'no').map((q) => q.name)).toEqual(['rentedFromYou']);
+    expect(referenceAnswersSchema('landlord_reference').parse({ rentedFromYou: 'no' })).toEqual({
+      rentedFromYou: 'no',
+    });
   });
 
   it('describes answers in plain words for the operator', () => {

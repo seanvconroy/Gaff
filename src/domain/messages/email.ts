@@ -9,7 +9,9 @@ import type { FrameAudience } from '@/domain/frame/frame';
 
 /** Who an email of this kind is written to. The frame is theirs, as on a page (UX-PP-9). */
 export function emailAudience(kind: string): FrameAudience {
-  if (kind === 'landlord_approval' || kind === 'owner_message') return 'owner';
+  if (kind === 'landlord_approval' || kind === 'owner_link' || kind === 'owner_message') {
+    return 'owner';
+  }
   if (kind === 'reference_request' || kind === 'reference_reminder') return 'referee';
   return 'renter';
 }

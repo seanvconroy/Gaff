@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { rentDueDay, rtbDeadline } from '../../src/domain/tenancy/tenancy';
 import { formatDate } from '../../src/lib/format';
 import { AOIFE, anAcceptedOffer, onPhone } from './journeys';
-import { enterLinkCode, expectRenterPageAtBothWidths } from './renter';
+import { enterLinkCode, expectFramePageAtBothWidths, expectRenterPageAtBothWidths } from './renter';
 import {
   AVAILABLE_IN_DAYS,
   confirmItsYou,
@@ -387,6 +387,11 @@ test('R26: the operator finishes the let home; the record is archived and the da
   test.slow();
   const { lettingUrl } = await anAcceptedOffer(browser, page);
   await signedOnPaper(page, lettingUrl);
+  // The agent shares the letting with its owner (UX-OW-1), whose details Gaff already has.
+  await page.goto(`${lettingUrl}/owner`);
+  await expect(page.getByLabel('Owner’s email')).toHaveValue('tom.walsh@example.ie');
+  await page.getByRole('button', { name: 'Send the link' }).click();
+  await expect(page.getByRole('heading', { name: 'Sent to Tom' })).toBeVisible();
   await page.goto('/settings');
   await page.getByLabel('Name on the account').fill('Halcyon Lettings client account');
   await page.getByLabel('IBAN').fill('IE29 AIBK 9311 5212 3456 78');
@@ -416,6 +421,18 @@ test('R26: the operator finishes the let home; the record is archived and the da
   ).toBeVisible();
   await page.goto(`${lettingUrl}/timeline`);
   await expect(page.getByText('Letting finished and archived')).toBeVisible();
+
+  // UX-OP-5: once it's let, the owner's page is a one-screen summary.
+  let ownerLink = '';
+  await expect(async () => {
+    ownerLink = await linkInEmail('tom.walsh@example.ie', '12 Ranelagh Road: follow the letting');
+  }).toPass({ timeout: 20_000 });
+  const tom = await onPhone(browser, ownerLink);
+  await expect(tom.page.locator('[data-owner="standing"]')).toHaveText('The home is let.');
+  await expect(tom.page.locator('[data-owner="summary"]')).toContainText('€1,850 a month');
+  expect(await tom.page.content()).not.toMatch(/Aoife|Byrne|aoife\.byrne/i);
+  await expectFramePageAtBothWidths(tom.page, 'owner', 'wp13-owner-summary');
+  await tom.context.close();
 });
 
 test('Testing tool: start the viewings now, only where dev tools are on', async ({ page }) => {

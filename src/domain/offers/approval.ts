@@ -30,3 +30,31 @@ export function approvalAnswersSchema(withBackup: boolean) {
 }
 
 export type ApprovalAnswer = 'approved' | 'declined';
+
+export type ApprovalRole = 'preferred' | 'backup';
+export type ApprovalChoice = 'approve' | 'decline';
+
+/**
+ * UX-OP-6: the owner answers for one person per screen, the chosen tenant and then the backup.
+ * This says whose screen is open: the one asked for (the page's address, or the browser's Back),
+ * but never one past the first person still without an answer. Counting from 0.
+ */
+export function approvalScreen(
+  roles: readonly ApprovalRole[],
+  answers: Partial<Record<ApprovalRole, ApprovalChoice>>,
+  asked?: string | null,
+): number {
+  const firstOpen = roles.findIndex((role) => !answers[role]);
+  const furthest = firstOpen === -1 ? roles.length - 1 : firstOpen;
+  const wanted = roles.findIndex((role) => role === asked);
+  return wanted >= 0 && wanted <= furthest ? wanted : furthest;
+}
+
+/**
+ * UX-OP-7: how many of the chosen people's checks aren't back yet. The owner sees "Still under
+ * way" beside each, so the agent is warned before asking for approval while any are unfinished.
+ */
+export function checksStillUnderWay(checks: ReadonlyArray<{ status: string }>): number {
+  return checks.filter((check) => check.status === 'to_do' || check.status === 'in_progress')
+    .length;
+}

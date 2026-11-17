@@ -81,7 +81,10 @@ function describe(check: CheckSummary, rentCents: number, ruleTenths: number): [
     case 'answered':
       return ['success', `${check.refereeName ?? 'They'} answered. ${check.summary ?? ''}`];
     case 'no_answer':
-      return ['warning', `No answer from ${check.refereeName ?? 'them'} after two reminders.`];
+      // UX-RF-4: a referee who says they can't give the reference isn't one who didn't answer.
+      return check.reason === 'cant_give'
+        ? ['warning', `${check.refereeName ?? 'The referee'} can’t give a reference.`]
+        : ['warning', `No answer from ${check.refereeName ?? 'them'} after two reminders.`];
     case 'not_needed':
       return [
         'neutral',

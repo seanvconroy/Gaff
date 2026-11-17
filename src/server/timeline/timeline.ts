@@ -31,6 +31,7 @@ const messageTitles: Record<string, string> = {
   reference_request: 'Reference request sent',
   reference_reminder: 'Reference reminder sent',
   landlord_approval: 'Approval request sent to the landlord',
+  owner_link: 'Link to follow the letting sent to the owner',
   offer: 'Offer sent',
   offer_expired: 'Offer closed message sent',
   outcome: 'Outcome message sent',
@@ -220,7 +221,10 @@ export function describeEvent(
             : 'To the next person, with a 2-hour hold',
       };
     case 'letting.shared_with_landlord':
-      return { what: 'Read-only link shared with the landlord' };
+      return {
+        what: 'Read-only link shared with the landlord',
+        detail: Number(data.replaced) > 0 ? 'It replaces the link they had' : undefined,
+      };
     case 'letting.landlord_link_revoked':
       return { what: 'Stopped sharing with the landlord' };
     case 'application.submitted':
@@ -402,6 +406,7 @@ function checkOutcomeWords(kind: string, outcome: string): string {
     not_passed: kind === 'identity' ? 'not verified' : 'income not confirmed',
     answered: 'answered',
     no_answer: 'no answer after two reminders',
+    cant_give: 'the referee can’t give one',
     not_needed: 'not needed',
   };
   return `${name[kind] ?? 'Check'}: ${words[outcome] ?? outcome}`;

@@ -31,6 +31,8 @@ import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
 
 const CHOSEN = ['preferred', 'backup'] as const;
+/** Why a reference has no answer, where the referee said they can't give it (UX-RF-4). */
+export const CANT_GIVE = 'cant_give';
 type ReferenceKind = 'landlord_reference' | 'employer_reference';
 
 /**
@@ -452,6 +454,8 @@ export async function loadReferenceRequest(token: string) {
       checkId: row.check.id,
       kind: row.check.kind as ReferenceKind,
       status: row.check.status,
+      /** UX-RF-4: the referee said they can't give this reference. */
+      cantGive: row.check.status === 'no_answer' && row.check.reason === CANT_GIVE,
       refereeName: row.check.refereeName,
       renterName: row.renterName,
       operatorName: row.operatorName,
@@ -487,7 +491,8 @@ export async function submitReference(
     if (!check || (check.kind !== 'landlord_reference' && check.kind !== 'employer_reference')) {
       return null;
     }
-    if (check.status === 'answered') return { ok: true };
+    // UX-RF-4: a referee who said they can't give it has nothing more to send.
+    if (check.status === 'answered' || check.reason === CANT_GIVE) return { ok: true };
     const parsed = referenceAnswersSchema(check.kind).safeParse(values);
     if (!parsed.success) {
       const errors: Record<string, string> = {};
@@ -509,6 +514,45 @@ export async function submitReference(
       type: 'check.completed',
       subject: { type: 'check', id: check.id },
       data: { checkId: check.id, kind: check.kind, outcome: 'answered' },
+    });
+    await noteCheckProgress(tx, check.applicationId);
+    return { ok: true };
+  });
+}
+
+/**
+ * UX-RF-4: the referee says "I can't give this reference", in one tap. Nothing is asked of them
+ * and no reason is kept. The agency sees it on the applicant's checks at once, and the reminders
+ * that hadn't gone yet never do. A reference that's already in stays as it is.
+ */
+export async function declineReference(token: string): Promise<{ ok: true } | null> {
+  const link = await resolveAccessLink(token, 'referee');
+  if (!link) return null;
+  return withOrg(link.organisationId, async (tx) => {
+    const [check] = await tx
+      .select()
+      .from(checks)
+      .where(eq(checks.id, link.subjectId))
+      .for('update');
+    if (!check || (check.kind !== 'landlord_reference' && check.kind !== 'employer_reference')) {
+      return null;
+    }
+    if (check.status !== 'in_progress') return { ok: true };
+    await tx
+      .update(checks)
+      .set({ status: 'no_answer', reason: CANT_GIVE, completedAt: new Date() })
+      .where(eq(checks.id, check.id));
+    await tx
+      .update(messages)
+      .set({ status: 'cancelled' })
+      .where(and(eq(messages.checkId, check.id), eq(messages.status, 'scheduled')));
+    await recordEvent(tx, {
+      organisationId: link.organisationId,
+      lettingId: check.lettingId,
+      actor: { type: 'system' },
+      type: 'check.completed',
+      subject: { type: 'check', id: check.id },
+      data: { checkId: check.id, kind: check.kind, outcome: 'cant_give' },
     });
     await noteCheckProgress(tx, check.applicationId);
     return { ok: true };

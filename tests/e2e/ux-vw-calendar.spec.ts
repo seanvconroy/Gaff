@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { daftEnquiry } from '../fixtures/emails';
-import { onPhone } from './journeys';
+import { chooseWhoViews, onPhone } from './journeys';
 import { bookFirstTime, expectOnePrimary } from './renter';
 import {
   addATime,
@@ -57,12 +57,7 @@ async function aLiveLettingWithAoifeInvited(page: Page) {
   await goLiveThroughUi(page);
   const lettingUrl = page.url().replace(/\?.*$/, '');
   await sendTestEmail(page, { to: await gaffAddress(page), ...daftEnquiry });
-  await expect(async () => {
-    await page.goto(`${lettingUrl}/shortlist`);
-    await expect(page.getByLabel('Invite Aoife Byrne')).toBeVisible({ timeout: 1000 });
-  }).toPass({ timeout: 20_000 });
-  await page.getByRole('button', { name: 'Send invitations' }).click();
-  await expect(page.getByText('1 invited to book a viewing')).toBeVisible();
+  await chooseWhoViews(page, lettingUrl, { waitFor: 'Aoife Byrne' });
   let invitation = '';
   await expect(async () => {
     invitation = await linkInEmail(AOIFE, 'Book a viewing: 12 Ranelagh Road');
@@ -169,8 +164,10 @@ test('UX-VW-4: a home with people waiting and no viewing times gets two suggeste
   const lettingUrl = page.url().replace(/\?.*$/, '');
   await sendTestEmail(page, { to: await gaffAddress(page), ...daftEnquiry });
   await expect(async () => {
-    await page.goto(`${lettingUrl}/shortlist`);
-    await expect(page.getByLabel('Invite Aoife Byrne')).toBeVisible({ timeout: 1000 });
+    await page.goto(`${lettingUrl}/who-views`);
+    await expect(page.getByRole('checkbox', { name: 'Aoife Byrne', exact: true })).toBeVisible({
+      timeout: 1000,
+    });
   }).toPass({ timeout: 20_000 });
 
   // Its one time is cancelled: nobody had booked, so it goes at once.

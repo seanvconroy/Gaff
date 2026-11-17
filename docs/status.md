@@ -87,7 +87,7 @@ Last updated: 17 November 2026 (waves 0, 1 and 2 of the UX redesign are built; w
   | 1. Frame, sign-in and accounts | WP-3 shell and navigation; WP-4 sign-in; WP-5 accounts and first run; WP-6 the page frame | **Done**, 16 November 2026. See "Wave 1" below |
   | 2A. Running a letting, part 1 | WP-7 Today and Lettings; WP-8 Inbox; WP-9 adding a letting; WP-10 reading an advert; WP-11 forwarding | **Done**, 17 November 2026. See "Wave 2" below |
   | 2B. Inside a letting, for renters | WP-12 the renter's pages; WP-13 owner and referee pages; WP-14 profile and the renter's home | **Done**, 17 November 2026. See "Wave 2" below |
-  | 3A. Running a letting, part 2 | WP-15 a letting's page; WP-16 calendar; WP-17 decisions and the offer; WP-18 tenancy, close and settings; WP-19 teams | WP-16 **done**, 17 November 2026 (see "Wave 3" below). WP-17 and WP-19 merged, being verified. WP-18 in progress; WP-15 to come |
+  | 3A. Running a letting, part 2 | WP-15 a letting's page; WP-16 calendar; WP-17 decisions and the offer; WP-18 tenancy, close and settings; WP-19 teams | WP-16, WP-17 and WP-19 **done**, 17 November 2026 (see "Wave 3" below). WP-18 in progress; WP-15 to come |
   | 3B. The marketplace | WP-20 homes on Gaff; WP-21 search; WP-22 asking to view; WP-23 saved homes and alerts | WP-20 and WP-21 in progress |
   | 4. Trust, fit and finish | WP-24 a verified identity; WP-25 fit; WP-26 trust and Gaff's internal page; WP-27 activation; WP-28 the end-to-end pass | Not started |
 - **Deploy the test copy** on Vercel and Supabase ([deploy.md](deploy.md), about 20 minutes).
@@ -169,11 +169,19 @@ Left for later packages, on purpose:
 | Package | What | Proven by |
 | --- | --- | --- |
 | WP-16: calendar and viewings (UX-VW-1 to UX-VW-11) | Calendar shows every viewing time across a person's homes: a week strip and the chosen day's list on a phone, a week grid on a desktop, with one primary action, "Add a time". Adding a time is one sheet of five fields that opens with the home's last settings; a time that overlaps another viewing the same person leads is warned about and not blocked. A home with people waiting and no times gets two suggested times, each added with one tap. Tapping a time opens its sheet: who's booked, places left, the waiting list, "Add to my calendar", Change and Cancel. Changing a time with bookings tells each renter with the fixed message; cancelling says who'll be told first and offers them the other times. "Mark who came" is a focused screen from 15 minutes before a viewing | `src/domain/viewings/*.test.ts`, `tests/integration/ux-vw-calendar.test.ts`, `tests/e2e/ux-vw-calendar.spec.ts`, `tests/e2e/r12-viewings.spec.ts`, `tests/e2e/r15-attendance.spec.ts` |
+| WP-17: decisions, checks and the offer (UX-DC-1 to UX-DC-20) | Five focused flows, each ending in a check screen before anything is sent. Choose who views: everyone who enquired in the existing ranked order, the top people ticked up to the places available, a waiting list, and the fixed messages to read. Choose an applicant, with a backup: cards showing only what applications collect, with someone below the income rule shown in the warning style and nobody hidden. The checks: nothing to do while they run, a reminder after three days, and "The checks are back for {name}" when they are. Ask the owner, or record that they've already approved. The offer, pre-filled, which waits for the owner's approval, three comparable rents, and the checks (or the person's confirmation that they're going ahead without them). Every decision is still made by a signed-in member through the same three use cases. The old shortlist and applications pages are gone | `src/domain/shortlist/*.test.ts`, `src/domain/offers/*.test.ts`, `tests/integration/r17-*.test.ts`, `tests/e2e/slice2.spec.ts`, `tests/e2e/r12-viewings.spec.ts` |
+| WP-19: teams (UX-AG-8 to UX-AG-17) | The permissions table of section 2 is one rule, checked on the server from the member's role as it is now. Every member sees every letting; an agent acts on a colleague's letting after choosing "Help with this letting", which is recorded. Each letting stores its lead, changed from its menu. An admin invites colleagues by email (seven days, sent again or cancelled, used once) and answers requests to join. Removing a member hands over their lettings first and takes effect at once; the last admin can't be removed or leave. A member can leave from their profile | `src/domain/team/*.test.ts`, `tests/integration/ux-ag-teams.test.ts`, `tests/e2e/ux-ag-teams.spec.ts` |
 
 Left for later packages, on purpose:
 
 - Dragging on the desktop calendar (UX-VW-5) isn't built. Everything it would do is done with "Add a time".
 - The calendar has no fading-in loading state.
+- "Help with this letting" is enforced on decisions, messages and answers. Other actions on a colleague's letting (adding a viewing time, sending a reminder, a tenancy step) don't ask for it yet: the end-to-end pass (WP-28) covers every use case that changes a letting.
+- Agents still see the Settings forms; the server refuses their changes.
+- Turning a private landlord into a team ("Add someone to help") isn't built. Joining by email domain (UX-AG-14) is later.
+- Ticks in a decision flow travel in the address between steps, so leaving a flow part-way resets them to Gaff's defaults.
+- Until the letting's page is rebuilt (WP-15), nowhere outside the flows lists every person's status.
+- Adding comparable rents from the offer returns to the letting, not to the offer.
 
 ## Known issues
 

@@ -236,5 +236,5 @@ test('R10, R11, R12, R13, R14: a person decides who views; renters book, move an
   // Ciarán has Aoife's place now; she cancelled.
   await page.goto(`${lettingUrl}/attendance`);
   await expect(page.getByText('Ciarán Ó Súilleabháin')).toBeVisible();
-  await expect(page.getByText(/^1 booked/)).toBeVisible();
+  await expect(page.getByText('Aoife Byrne')).toHaveCount(0);
 });

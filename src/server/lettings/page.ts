@@ -17,7 +17,7 @@ import { formatRatio, incomeAgainstRule } from '@/domain/applications/apply';
 import { allChecksBack, checkLine } from '@/domain/checks/review';
 import { answersInWords } from '@/domain/criteria/answers';
 import { conversationHref, conversationKey, inboxHref } from '@/domain/inbox/conversations';
-import { resumeHref, screenHref } from '@/domain/lettings/links';
+import { hiddenHref, resumeHref, screenHref } from '@/domain/lettings/links';
 import type { OverviewFacts } from '@/domain/lettings/overview';
 import type { ApplicationStatus, PersonFacts } from '@/domain/lettings/people';
 import { addAgencyHref } from '@/domain/navigation/account-menu';
@@ -170,6 +170,13 @@ export async function overviewFactsFor(
     setupStepsLeft: numbers?.setupStepsLeft ?? 0,
     goLiveBlocked: blocked,
     resumeHref: resumeHref(letting.id, here),
+    hidden: letting.hiddenAt
+      ? {
+          reason: letting.hiddenReason ?? 'something_else',
+          lookAgainAsked: letting.lookAgainAskedAt !== null,
+          href: hiddenHref(letting.id),
+        }
+      : null,
     rentOverCap: live && detail.rentProblem !== null,
     rentCheckHref: screenHref(letting.id, 'rent_check', here, { alone: '1' }),
     failedSends: {

@@ -3,6 +3,9 @@ import { withOrg, type Tx } from '@/db/client';
 import { events, users } from '@/db/schema';
 import { describeCriteria, NO_SMOKING_INDOORS, type Criteria } from '@/domain/criteria/criteria';
 import { sourcesInWords } from '@/domain/enquiries/sources';
+import { reportCopy } from '@/copy/home-page';
+import { hiddenReasons } from '@/copy/trust';
+import type { ReportReason } from '@/domain/homes/report';
 import { formatDate, formatEuro, formatRent } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 
@@ -17,6 +20,9 @@ export interface TimelineEntry {
 }
 
 type EventRow = typeof events.$inferSelect;
+
+/** UX-TS-3: the answer a visitor tapped, as the report page put it. */
+const reportReasonWords: Record<string, string> = reportCopy.reasons;
 
 const messageTitles: Record<string, string> = {
   first_reply: 'First reply sent',
@@ -148,6 +154,22 @@ export function describeEvent(
       };
     case 'letting.on_gaff_set':
       return { what: data.on ? 'Set to show on gaff.ie' : 'Set not to show on gaff.ie' };
+    case 'listing.reported':
+      return {
+        what: 'Reported to Gaff’s team',
+        detail: reportReasonWords[String(data.reason)] ?? undefined,
+      };
+    case 'listing.hidden':
+      return {
+        what: 'Taken off gaff.ie by Gaff’s team after a report; its enquiries wait',
+        detail: hiddenReasons[data.reason as ReportReason] ?? undefined,
+      };
+    case 'listing.kept_up':
+      return { what: 'Gaff’s team read the reports about it and kept it on gaff.ie' };
+    case 'listing.look_again_asked':
+      return { what: 'Asked Gaff’s team to look again' };
+    case 'listing.unhidden':
+      return { what: 'Back on gaff.ie: Gaff’s team looked again' };
     case 'letting.gaff_page_removed':
       return {
         what: `Its page on gaff.ie was removed, ${String(data.daysAfterLet)} days after it was let`,

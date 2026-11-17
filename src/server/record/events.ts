@@ -3,6 +3,7 @@ import type { Tx } from '@/db/client';
 import { events } from '@/db/schema';
 import { draftOrigins } from '@/domain/lettings/add-letting';
 import { enquirySources } from '@/domain/enquiries/sources';
+import { reportReasons } from '@/domain/homes/report';
 import { organisationKinds } from '@/domain/organisations/kinds';
 import { assertNoPersonalData } from '@/domain/record/personal-data';
 
@@ -130,6 +131,25 @@ export const eventCatalogue = {
   'letting.house_rules_set': z.object({ noSmokingIndoors: z.boolean() }),
   /** UX-LT-21: "On gaff.ie" was switched on or off. */
   'letting.on_gaff_set': z.object({ on: z.boolean() }),
+  /**
+   * UX-TS-3: a visitor reported the home's listing to Gaff's team, for this reason. Nothing
+   * about who sent it is known, so nothing is here. The actor is the system.
+   */
+  'listing.reported': z.object({ reportId: z.uuid(), reason: z.enum(reportReasons) }),
+  /**
+   * UX-TS-4: Gaff's team took the home off gaff.ie (actor `staff`), for this reason, answering
+   * this many reports. Its enquiries wait until it's back.
+   */
+  'listing.hidden': z.object({ reason: z.enum(reportReasons), reports: z.number().int().min(0) }),
+  /** UX-TS-4: Gaff's team read the reports and kept the home up (actor `staff`). */
+  'listing.kept_up': z.object({ reports: z.number().int().min(1) }),
+  /** UX-TS-4: the lister asked Gaff's team to look again at a hidden home. */
+  'listing.look_again_asked': z.object({}),
+  /**
+   * UX-TS-4: Gaff's team put the home back on gaff.ie (actor `staff`). The enquiries that
+   * waited got their first replies: this many.
+   */
+  'listing.unhidden': z.object({ firstReplies: z.number().int().min(0) }),
   /** UX-LS-10: the scheduled job took a let home's page off gaff.ie, this many days after it was let. */
   'letting.gaff_page_removed': z.object({ daysAfterLet: z.number().int() }),
   /** "Is it advertised anywhere else?" was answered. */

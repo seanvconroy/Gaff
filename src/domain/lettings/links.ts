@@ -52,6 +52,11 @@ export function resumeHref(id: string, from?: string | null): string {
   return withQuery(`/lettings/${id}/setup`, { from });
 }
 
+/** UX-TS-4: why a home is off gaff.ie, and "Ask Gaff to look again". */
+export function hiddenHref(id: string): string {
+  return `/lettings/${id}/hidden`;
+}
+
 /** The `from` a page was given, if it is a plain path inside Gaff. Anything else is dropped. */
 export function fromOf(value: string | string[] | undefined): string | null {
   return returnPath(value, '') || null;

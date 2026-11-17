@@ -9,7 +9,8 @@ import { needsAnswers, queueDraft } from '@/server/answers/draft';
 import { queueMessage } from '@/server/messages/outbox';
 
 /**
- * R7: queues the first reply to a new enquiry, once per application, only for a live letting.
+ * R7: queues the first reply to a new enquiry, once per application, only for a live letting
+ * that isn't hidden (UX-TS-4).
  * It goes out within minutes whether or not approve-before-send is on (open question Q1).
  */
 export async function queueFirstReply(
@@ -24,7 +25,8 @@ export async function queueFirstReply(
     .innerJoin(lettings, eq(lettings.id, applications.lettingId))
     .innerJoin(organisations, eq(organisations.id, applications.organisationId))
     .where(eq(applications.id, applicationId));
-  if (!row || row.letting.status !== 'live') return false;
+  // UX-TS-4: a home Gaff's team has hidden waits too: its first replies go when it's back.
+  if (!row || row.letting.status !== 'live' || row.letting.hiddenAt) return false;
   const { application, letting, organisation } = row;
 
   const [already] = await tx

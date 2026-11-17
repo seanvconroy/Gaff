@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { goLiveCopy } from '@/copy/go-live';
+import { hiddenCopy } from '@/copy/trust';
 import { homeHref, homePageState } from '@/domain/homes/home-page';
 import { onGaffNeeds } from '@/domain/lettings/setup';
 import type { LettingRow } from '@/server/lettings/queries';
@@ -48,11 +49,13 @@ export function OnGaffCard({
         </p>
       ) : (
         <p className={styles.muted}>
-          {!letting.onGaff
-            ? copy.off
-            : needs.length > 0
-              ? copy.needs({ ber: needs.includes('ber'), photo: needs.includes('photo') })
-              : copy.held}
+          {letting.hiddenAt
+            ? hiddenCopy.onGaff
+            : !letting.onGaff
+              ? copy.off
+              : needs.length > 0
+                ? copy.needs({ ber: needs.includes('ber'), photo: needs.includes('photo') })
+                : copy.held}
         </p>
       )}
       <form action={setOnGaffAction.bind(null, letting.id)}>

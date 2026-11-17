@@ -10,10 +10,13 @@ import {
   licenceLapsedEmail,
   memberLeftEmail,
   licenceRenewedEmail,
+  listingBackEmail,
+  listingHiddenEmail,
   memberConflictEmail,
   profileUnusedEmail,
 } from '@/copy/account-emails';
 import { layOutGaffEmail } from '@/copy/email-layout';
+import { hiddenReasons } from '@/copy/trust';
 import { db, withOrg, withSystem } from '@/db/client';
 import {
   lettings,
@@ -70,6 +73,9 @@ export const accountEmailJob = z.discriminatedUnion('kind', [
     lettingId: z.uuid(),
     memberUserId: z.uuid(),
   }),
+  /** UX-TS-4: Gaff's team hid one of the organisation's homes after a report, or put it back. */
+  z.object({ kind: z.literal('listing_hidden'), organisationId: z.uuid(), lettingId: z.uuid() }),
+  z.object({ kind: z.literal('listing_back'), organisationId: z.uuid(), lettingId: z.uuid() }),
   /**
    * UX-PF-7: a renter's profile will be deleted for want of use. This one is to a person, about
    * their own profile, and belongs to no organisation.
@@ -173,9 +179,25 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
             .innerJoin(users, eq(users.id, job.memberUserId))
             .where(eq(lettings.id, job.lettingId))
         : [];
+    // UX-TS-4: the home, why it's hidden, and its lead, who is told with the admins.
+    const [listing] =
+      job.kind === 'listing_hidden' || job.kind === 'listing_back'
+        ? await tx
+            .select({
+              address: lettings.addressLine1,
+              reason: lettings.hiddenReason,
+              hiddenAt: lettings.hiddenAt,
+              leadId: users.id,
+              leadEmail: users.email,
+            })
+            .from(lettings)
+            .innerJoin(users, eq(users.id, lettings.leadUserId))
+            .where(eq(lettings.id, job.lettingId))
+        : [];
     return {
       agency,
       admins,
+      listing: listing ?? null,
       invite: invite ?? null,
       conflict: conflict ?? null,
       to: to ?? null,
@@ -183,7 +205,7 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
     };
   });
   if (!found) return;
-  const { agency, admins, invite, conflict, to, about } = found;
+  const { agency, admins, listing, invite, conflict, to, about } = found;
   const key = (to: string) => `account-${job.kind}-${job.organisationId}-${to}-${attemptKey}`;
 
   if (job.kind === 'agency_invite') {
@@ -256,6 +278,27 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
     // The member is told on the page. An admin who is that member has nothing to pick up.
     for (const admin of admins.filter((each) => each.id !== job.memberUserId)) {
       await send(admin.email, email, `account-member_conflict-${job.lettingId}-${admin.id}`);
+    }
+    return;
+  }
+  if (job.kind === 'listing_hidden' || job.kind === 'listing_back') {
+    if (!listing) return;
+    // Put back, or hidden again, since it was queued: this email would no longer be true.
+    if ((job.kind === 'listing_hidden') !== (listing.hiddenAt !== null)) return;
+    const lettingUrl = `${app}/lettings/${job.lettingId}`;
+    const email =
+      job.kind === 'listing_hidden'
+        ? listingHiddenEmail({
+            address: listing.address,
+            reason: hiddenReasons[listing.reason ?? 'something_else'],
+            lettingUrl,
+          })
+        : listingBackEmail({ address: listing.address, lettingUrl });
+    const told = new Map([[listing.leadId, listing.leadEmail]]);
+    for (const admin of admins) told.set(admin.id, admin.email);
+    const when = job.kind === 'listing_hidden' ? listing.hiddenAt!.getTime() : attemptKey;
+    for (const [id, address] of told) {
+      await send(address, email, `account-${job.kind}-${job.lettingId}-${id}-${when}`);
     }
     return;
   }

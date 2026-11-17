@@ -92,9 +92,15 @@ export function checkLine(
       }
       return line('success', 'Done.');
     case 'not_passed':
-      return line('warning', `Not confirmed: ${reasons[check.reason ?? ''] ?? 'it wasn’t finished'}.`);
+      return line(
+        'warning',
+        `Not confirmed: ${reasons[check.reason ?? ''] ?? 'it wasn’t finished'}.`,
+      );
     case 'answered':
-      return line('success', `${check.refereeName ?? 'They'} answered. ${check.summary ?? ''}`.trim());
+      return line(
+        'success',
+        `${check.refereeName ?? 'They'} answered. ${check.summary ?? ''}`.trim(),
+      );
     case 'no_answer':
       // UX-RF-4: a referee who says they can't give the reference isn't one who didn't answer.
       return check.reason === 'cant_give'

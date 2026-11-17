@@ -40,12 +40,18 @@ describe('R20: the offer’s terms', () => {
 });
 
 describe('R20, Q20, Q22: who can be offered the home, and when', () => {
-  const answered = (preferredAnswer: 'approved' | 'declined', backupAnswer: 'approved' | 'declined') =>
-    ({ status: 'answered', preferredAnswer, backupAnswer }) as const;
+  const answered = (
+    preferredAnswer: 'approved' | 'declined',
+    backupAnswer: 'approved' | 'declined',
+  ) => ({ status: 'answered', preferredAnswer, backupAnswer }) as const;
 
   it('needs the owner’s approval for each person, by link or recorded by the operator', () => {
     expect(
-      whoCanBeOffered({ route: 'link', approval: answered('approved', 'declined'), hasBackup: true }),
+      whoCanBeOffered({
+        route: 'link',
+        approval: answered('approved', 'declined'),
+        hasBackup: true,
+      }),
     ).toEqual({ preferred: true, backup: false, problem: null });
     expect(whoCanBeOffered({ route: 'link', approval: null, hasBackup: true })).toEqual({
       preferred: false,
@@ -60,8 +66,11 @@ describe('R20, Q20, Q22: who can be offered the home, and when', () => {
       }).problem,
     ).toBe('Wait for the owner’s answer first.');
     expect(
-      whoCanBeOffered({ route: 'link', approval: answered('declined', 'approved'), hasBackup: true })
-        .problem,
+      whoCanBeOffered({
+        route: 'link',
+        approval: answered('declined', 'approved'),
+        hasBackup: true,
+      }).problem,
     ).toBe('The owner declined your preferred applicant. Choose again.');
     // Q22: with no email for the owner, the operator records that the owner approved.
     expect(

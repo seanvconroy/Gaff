@@ -288,7 +288,10 @@ export function describeEvent(
       };
     case 'check.reminded':
       return {
-        what: data.to === 'referee' ? 'A referee was reminded' : 'The renter was reminded about a check',
+        what:
+          data.to === 'referee'
+            ? 'A referee was reminded'
+            : 'The renter was reminded about a check',
       };
     case 'landlord.approval_answered':
       return {

@@ -58,11 +58,7 @@ export default async function ChecksPage({
       <FlowShell
         leave={leave}
         primary={
-          <ButtonLink
-            href={decisionHref(letting.id, 'choose')}
-            variant="primary"
-            fullWidth="phone"
-          >
+          <ButtonLink href={decisionHref(letting.id, 'choose')} variant="primary" fullWidth="phone">
             {copy.none.action}
           </ButtonLink>
         }
@@ -189,9 +185,7 @@ export default async function ChecksPage({
         </Notice>
       ) : null}
       {person(preferred, copy.preferredHeading(preferred.name))}
-      {backup && backup.checks.length > 0
-        ? person(backup, copy.backupHeading(backup.name))
-        : null}
+      {backup && backup.checks.length > 0 ? person(backup, copy.backupHeading(backup.name)) : null}
     </FlowShell>
   );
 }

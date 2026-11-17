@@ -85,5 +85,9 @@ export async function remindOwnerAction(lettingId: string, formData: FormData): 
     redirect(here(lettingId, { problem: error.message }));
   }
   revalidatePath(`/lettings/${lettingId}`, 'layout');
-  redirect(from === 'letting' ? `/lettings/${lettingId}?saved=reminded` : here(lettingId, { reminded: '1' }));
+  redirect(
+    from === 'letting'
+      ? `/lettings/${lettingId}?saved=reminded`
+      : here(lettingId, { reminded: '1' }),
+  );
 }

@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  allChecksBack,
-  checkLine,
-  inCheckOrder,
-  waitingTooLong,
-  type CheckView,
-} from './review';
+import { allChecksBack, checkLine, inCheckOrder, waitingTooLong, type CheckView } from './review';
 
 const rule = { rentCents: 185_000, ruleTenths: 25 };
 const check = (overrides: Partial<CheckView>): CheckView => ({
@@ -83,7 +77,10 @@ describe('UX-DC-13: a check waiting more than three days', () => {
       who: 'renter',
     });
     expect(
-      waitingTooLong(check({ kind: 'income', status: 'in_progress', requestedAt: daysAgo(5) }), now),
+      waitingTooLong(
+        check({ kind: 'income', status: 'in_progress', requestedAt: daysAgo(5) }),
+        now,
+      ),
     ).toEqual({ who: 'renter' });
   });
 

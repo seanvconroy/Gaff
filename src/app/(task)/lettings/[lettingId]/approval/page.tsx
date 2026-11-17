@@ -63,11 +63,7 @@ export default async function ApprovalPage({
       <FlowShell
         leave={leave}
         primary={
-          <ButtonLink
-            href={decisionHref(letting.id, 'choose')}
-            variant="primary"
-            fullWidth="phone"
-          >
+          <ButtonLink href={decisionHref(letting.id, 'choose')} variant="primary" fullWidth="phone">
             {decisionsCopy.offer.nobody.action}
           </ButtonLink>
         }
@@ -189,7 +185,9 @@ export default async function ApprovalPage({
           </h3>
           <SummaryList
             rows={[
-              ...(row.total > 0 ? [{ label: decisionsCopy.choose.criteria, value: meetsWords(row) }] : []),
+              ...(row.total > 0
+                ? [{ label: decisionsCopy.choose.criteria, value: meetsWords(row) }]
+                : []),
               {
                 label: copy.ask.incomeLabel,
                 value: copy.ask.income(income.ratioTenths, income.meetsRule),

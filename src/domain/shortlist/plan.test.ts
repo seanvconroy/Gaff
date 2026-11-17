@@ -83,9 +83,12 @@ describe('UX-DC-2 to UX-DC-4: choosing who views, before anything is sent', () =
   });
 
   it('UX-DC-4: counts the places nobody is invited to when fewer are ticked', () => {
-    expect(invitationCounts({ placesLeft: 14, undecided: 43, chosen: 11, waitlist: 10 })).toEqual(
-      { invited: 11, waitlisted: 10, told: 22, unoffered: 3 },
-    );
+    expect(invitationCounts({ placesLeft: 14, undecided: 43, chosen: 11, waitlist: 10 })).toEqual({
+      invited: 11,
+      waitlisted: 10,
+      told: 22,
+      unoffered: 3,
+    });
     expect(invitationCounts({ placesLeft: 2, undecided: 2, chosen: 2, waitlist: null })).toEqual({
       invited: 2,
       waitlisted: 0,

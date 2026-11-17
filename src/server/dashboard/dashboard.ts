@@ -214,9 +214,7 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
       const declinedByLandlord = state?.approval?.preferredAnswer === 'declined';
       const nothingOut = Boolean(state?.preferredId && !live && out.length === 0);
       // R20: the owner approved (by link, or as the operator recorded), so the offer can go.
-      const readyToOffer = Boolean(
-        nothingOut && state?.route !== 'own_home' && who?.preferred,
-      );
+      const readyToOffer = Boolean(nothingOut && state?.route !== 'own_home' && who?.preferred);
       // UX-DC-11: every check for the preferred applicant is back, and the next step is the
       // operator's: nothing is out, and the owner isn't being waited on.
       const preferredChecks = state?.preferredId

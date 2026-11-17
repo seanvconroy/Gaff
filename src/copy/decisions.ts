@@ -259,7 +259,9 @@ export const decisionsCopy = {
     },
     answered: {
       approved: (owner: string, first: string, backup: string | null) =>
-        backup ? `${owner} approved ${first}, and ${backup} as backup` : `${owner} approved ${first}`,
+        backup
+          ? `${owner} approved ${first}, and ${backup} as backup`
+          : `${owner} approved ${first}`,
       approvedNoBackup: (owner: string, first: string, backup: string) =>
         `${owner} approved ${first}, and not ${backup} as backup`,
       declined: (owner: string, first: string) => `${owner} said no to ${first}`,
@@ -287,7 +289,8 @@ export const decisionsCopy = {
     deadlineValue: (hours: number) => (hours === 72 ? '3 days' : `${hours} hours`),
     backupRow: (first: string, backup: string) =>
       `If ${first} says no or doesn’t answer, offer it to ${backup}`,
-    backupHint: 'Your decision now, made in advance. Gaff carries it out only if you leave this on.',
+    backupHint:
+      'Your decision now, made in advance. Gaff carries it out only if you leave this on.',
     blockers: {
       owner: {
         ask: (owner: string) => `${owner} hasn’t approved yet.`,
@@ -301,8 +304,7 @@ export const decisionsCopy = {
       comparables: (recorded: number) =>
         `Three comparable rents are needed before the offer. ${recorded} of 3 recorded.`,
       comparablesLink: 'Add comparable rents',
-      checks: (n: number) =>
-        `${n === 1 ? '1 check isn’t' : `${n} checks aren’t`} back yet.`,
+      checks: (n: number) => `${n === 1 ? '1 check isn’t' : `${n} checks aren’t`} back yet.`,
       checksLink: 'See the checks',
       withoutChecks: 'Go ahead without waiting for them',
       withoutChecksHint: 'The offer goes now, before every check is back.',
@@ -319,7 +321,8 @@ export const decisionsCopy = {
       title: 'Offer sent',
       text: (first: string, until: Date) =>
         `${first} has until ${formatDateTime(until)}. Gaff will tell you as soon as ${first} answers.`,
-      backup: (backup: string) => `If it isn’t accepted in time, it goes to ${backup}, as you decided.`,
+      backup: (backup: string) =>
+        `If it isn’t accepted in time, it goes to ${backup}, as you decided.`,
     },
     out: {
       title: (first: string) => `Waiting for ${first}`,

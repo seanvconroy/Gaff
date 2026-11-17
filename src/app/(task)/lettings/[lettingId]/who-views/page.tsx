@@ -1,11 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { decisionsCopy, meetsWords } from '@/copy/decisions';
-import {
-  holdingEmail,
-  invitationEmail,
-  waitlistedEmail,
-} from '@/copy/templates/invitations';
+import { holdingEmail, invitationEmail, waitlistedEmail } from '@/copy/templates/invitations';
 import { decisionHref } from '@/domain/lettings/links';
 import {
   MAX_WAITLIST,

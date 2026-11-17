@@ -34,7 +34,7 @@ test('R15: the operator marks who came, on a phone, with one tap per person', as
     await expect(page.getByLabel('Invite Aoife Byrne')).toBeVisible({ timeout: 1000 });
   }).toPass({ timeout: 20_000 });
 
-  // Before anyone books, the tab says what will happen.
+  // Before anyone books, the screen says what will happen.
   await page.goto(`${lettingUrl}/attendance`);
   await expect(page.getByRole('heading', { name: 'Nobody has booked yet' })).toBeVisible();
 
@@ -71,7 +71,8 @@ test('R15: the operator marks who came, on a phone, with one tap per person', as
   await expectAccessible(page);
   await aoife.getByRole('button', { name: 'Came' }).click();
   await expect(aoife.getByRole('button', { name: 'Came' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByText('1 booked · 1 came · 0 didn’t come · 0 to mark')).toBeVisible();
+  // UX-VW-11: one line says how many are left to mark.
+  await expect(page.getByText('Everyone is marked.')).toBeVisible();
   await expectAccessible(page);
   await expectNoSidewaysScroll(page);
   await screenshot(page, '31-attendance-phone');

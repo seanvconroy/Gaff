@@ -1,0 +1,90 @@
+/* The calendar's screen: its suggestions, and the sheets for adding and opening a time. */
+.view {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.muted {
+  color: var(--color-ink-muted);
+}
+
+/* The line that says what a new time makes: "4 places, Thursday 19 November, 6pm to 7pm". */
+.line {
+  font-weight: var(--type-heading-weight);
+}
+
+/* UX-VW-4: two suggested times for a home with people waiting. Space and type, then a hairline. */
+.suggestions {
+  display: grid;
+  gap: var(--space-3);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.suggestionList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.suggestion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--size-row);
+  padding: var(--space-2) 0;
+}
+
+.suggestion + .suggestion {
+  border-top: 1px solid var(--color-border);
+}
+
+/* A viewing time's sheet. */
+.sheet {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.counts {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.people {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.person {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: var(--size-control);
+}
+
+.person + .person {
+  border-top: 1px solid var(--color-border);
+}
+
+.personTime {
+  flex: none;
+  min-width: var(--space-16);
+  color: var(--color-ink-muted);
+}
+
+.personName {
+  flex: 1;
+  min-width: 0;
+}
+
+.sheetActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}

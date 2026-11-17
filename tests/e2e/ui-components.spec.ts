@@ -70,6 +70,7 @@ test('UX-DS-16: the component page shows every component and its states at 390px
         'Avatar and badge',
         'Status pill, notice and outcome',
         'Cards, rows and lists',
+        'Calendar',
         'Home card',
         'Thread and reply box',
       ]) {

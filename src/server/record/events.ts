@@ -117,7 +117,20 @@ export const eventCatalogue = {
     slots: z.number().int().min(1),
     places: z.number().int().min(1),
   }),
-  'viewings.session_removed': z.object({ sessionId: z.uuid() }),
+  /** UX-VW-6: a viewing time was cancelled. `told`: how many people booked were told. */
+  'viewings.session_removed': z.object({
+    sessionId: z.uuid(),
+    told: z.number().int().min(0).optional(),
+  }),
+  /**
+   * UX-VW-6: a viewing time was changed. `moved`: people were booked, so it moved as it was;
+   * `told`: how many of them heard.
+   */
+  'viewings.session_changed': z.object({
+    sessionId: z.uuid(),
+    moved: z.boolean(),
+    told: z.number().int().min(0),
+  }),
   'rent_check.recorded': z.object({
     result: z.enum(['market', 'capped', 'get_advice']),
     reason: z.enum([

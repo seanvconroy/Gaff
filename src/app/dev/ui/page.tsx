@@ -20,7 +20,9 @@ import { typeStyles } from '@/styles/tokens';
 import { ActionList, ActionRow } from '@/ui/ActionList';
 import { Avatar, Badge } from '@/ui/Avatar';
 import { Button, ButtonLink } from '@/ui/Button';
+import { Calendar } from '@/ui/Calendar';
 import { ChipLinks, Chips } from '@/ui/Chips';
+import { weekLabel, weekOf } from '@/ui/dates';
 import { ChoiceCards } from '@/ui/ChoiceCards';
 import { CopyButton } from '@/ui/CopyButton';
 import { Disclosure } from '@/ui/Disclosure';
@@ -702,6 +704,63 @@ export default function ComponentsPage() {
           >
             <p>Add a time and renters book themselves.</p>
           </EmptyState>
+        </Section>
+
+        <Section
+          id="calendar"
+          title="Calendar"
+          lead="Viewing times. Below 900px, a strip of the week’s days and the chosen day as a list; from 900px, the week, 8am to 9pm. Each time is shown with its words, and opens with a tap. Today has a ring; the chosen day takes the brand colour."
+        >
+          <Calendar
+            label="Sample viewing times"
+            days={weekOf('2026-11-19').map((date) => ({ date, href: '#calendar' }))}
+            today="2026-11-15"
+            chosen="2026-11-19"
+            title={weekLabel('2026-11-19')}
+            previous="#calendar"
+            next="#calendar"
+            thisWeek="#calendar"
+            emptyDay="No viewings this day."
+            times={[
+              {
+                id: 'ui-time-1',
+                date: '2026-11-19',
+                start: '18:00',
+                end: '19:00',
+                title: '12 Ranelagh Road',
+                meta: '6 of 8 booked',
+                href: '#calendar',
+              },
+              {
+                id: 'ui-time-2',
+                date: '2026-11-19',
+                start: '18:30',
+                end: '19:15',
+                title: '4 Harbour View',
+                meta: '8 of 8 booked · 3 waiting',
+                href: '#calendar',
+              },
+              {
+                id: 'ui-time-3',
+                date: '2026-11-16',
+                start: '12:00',
+                end: '12:45',
+                title: '9 Canal View',
+                meta: '3 of 3 booked',
+                flag: 'Mark who came',
+                href: '#calendar',
+              },
+              {
+                id: 'ui-time-4',
+                date: '2026-11-21',
+                start: '11:00',
+                end: '12:00',
+                title: '12 Ranelagh Road',
+                meta: '2 of 10 booked',
+                href: '#calendar',
+              },
+            ]}
+          />
         </Section>
 
         <Section

@@ -1,10 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { daysFromToday } from '../fixtures/lettings';
 import {
+  addATime,
   createLettingThroughUi,
   expectAccessible,
   homeIdIn,
   pickDate,
+  pickTime,
   screenshot,
   signUpOperator,
   toGoLiveThroughUi,
@@ -75,26 +77,31 @@ test('R1: an operator creates a letting with viewing times', async ({ page }) =>
     'Gas central heating\nBins collected on Tuesdays',
   );
 
-  // Viewing times aren't part of adding a letting (UX-LT-14): they're on the letting's page.
+  // Viewing times aren't part of adding a letting (UX-LT-14): they're on the letting's own
+  // calendar (UX-VW-1), added with one sheet (UX-VW-3).
   await page.goto(`/lettings/${homeIdIn(page.url())}/viewings`);
-  await expect(page.getByRole('heading', { name: 'No viewing times yet' })).toBeVisible();
-  await page.getByLabel('Date').fill(daysFromToday(7));
-  await page.getByLabel('From').fill('18:00');
-  await page.getByLabel('Until').fill('19:00');
-  await page.getByRole('button', { name: 'Add viewing time' }).click();
-  await expect(page.getByText('Viewing time added')).toBeVisible();
-  await expect(page.getByRole('heading', { name: '1 viewing time, 4 places' })).toBeVisible();
+  await expect(
+    page.getByText('No viewings yet. Add a time and renters book themselves.'),
+  ).toBeVisible();
+  await addATime(page, daysFromToday(7), async (sheet) => {
+    // The common case: pick a day, press Add. The line says what it makes.
+    await expect(sheet.getByText(/^4 places, \w+day \d+ \w+, 6pm to 7pm$/)).toBeVisible();
+  });
 
-  // Only the setting for the chosen kind of viewing shows.
-  await expect(page.getByLabel('How many can come')).toBeHidden();
-  await page.getByLabel('Date').fill(daysFromToday(9));
-  await page.getByLabel('From').fill('11:00');
-  await page.getByLabel('Until').fill('11:30');
-  await page.getByLabel('Group viewing').check();
-  await expect(page.getByLabel('Length of each slot')).toBeHidden();
-  await page.getByLabel('How many can come').fill('10');
-  await page.getByRole('button', { name: 'Add viewing time' }).click();
-  await expect(page.getByRole('heading', { name: '2 viewing times, 14 places' })).toBeVisible();
+  // Only the setting for the chosen way of viewing shows.
+  await addATime(page, daysFromToday(9), async (sheet) => {
+    await pickTime(page, 'From', '11am', sheet);
+    await pickTime(page, 'Until', '11:30am', sheet);
+    await expect(sheet.getByLabel('Most people at once')).toHaveCount(0);
+    await sheet.getByRole('radio', { name: 'Open viewing' }).check();
+    await expect(sheet.getByLabel('Length of each visit')).toHaveCount(0);
+    await sheet.getByLabel('Most people at once').selectOption('10');
+    await expect(sheet.getByText(/^10 places, \w+day \d+ \w+, 11am to 11:30am$/)).toBeVisible();
+    await expectAccessible(page);
+  });
+  await expect(
+    page.getByRole('link', { name: /^11am to 11:30am · 12 Ranelagh Road/ }),
+  ).toBeVisible();
   await expectAccessible(page);
   await screenshot(page, '07-viewing-times');
 

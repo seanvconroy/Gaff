@@ -154,7 +154,8 @@ export default async function TodayPage({
               <ActionRow
                 key={viewing.sessionId}
                 id={`viewing-${viewing.sessionId}`}
-                href={`/lettings/${viewing.lettingId}/attendance`}
+                // UX-VW-6, UX-VW-10: the viewing's own sheet, which offers "Mark who came".
+                href={`/calendar?viewing=${viewing.sessionId}`}
                 icon={CalendarDays}
                 title={`${formatTimeRange(viewing.startsAt, viewing.endsAt)} · ${viewing.address}`}
                 meta={`${viewing.booked} of ${viewing.places} booked`}

@@ -101,6 +101,12 @@ export function irishToday(now: Date = new Date()): string {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
+/** The wall-clock time in Ireland of an instant, as "18:00" (what a time field takes). */
+export function irishClock(instant: Date): string {
+  const local = new TZDate(instant, TIME_ZONE);
+  return `${String(local.getHours()).padStart(2, '0')}:${String(local.getMinutes()).padStart(2, '0')}`;
+}
+
 /** The instant for a wall-clock time in Ireland, e.g. ("2026-11-06", "18:00"). */
 export function irishInstant(date: string, time: string): Date {
   const [year, month, day] = date.split('-').map(Number) as [number, number, number];

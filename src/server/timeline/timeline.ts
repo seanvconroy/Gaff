@@ -66,6 +66,11 @@ const portalNames = (data: Record<string, unknown>) =>
   [data.daft ? 'Daft' : null, data.myhome ? 'MyHome' : null].filter(Boolean).join(' and ');
 
 /** One event in plain words. Personal details are never in events, so none appear here. */
+/** "1 person", "3 people". */
+function people(n: number): string {
+  return `${n} ${n === 1 ? 'person' : 'people'}`;
+}
+
 export function describeEvent(
   event: Pick<EventRow, 'type' | 'data'>,
 ): Omit<TimelineEntry, 'id' | 'at' | 'who'> {
@@ -156,7 +161,15 @@ export function describeEvent(
             : `${data.slots} slots, one booking each`,
       };
     case 'viewings.session_removed':
-      return { what: 'Viewing time removed' };
+      return {
+        what: 'Viewing time cancelled',
+        detail: data.told ? `${people(Number(data.told))} booked were told` : undefined,
+      };
+    case 'viewings.session_changed':
+      return {
+        what: 'Viewing time changed',
+        detail: data.moved ? `${people(Number(data.told))} booked were told it moved` : undefined,
+      };
     case 'criteria.set': {
       const lines = describeCriteria(data as unknown as Criteria);
       return { what: 'Criteria set', detail: lines.length ? lines.join('; ') : 'No criteria' };

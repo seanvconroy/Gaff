@@ -185,7 +185,7 @@ Every component adapts between phone and desktop. "Status" says whether it exist
 | **Sheet / dialog** | A short task over the page | Slides up from the bottom | A centred dialog | New |
 | **Menu** | Rare actions (⋯) | A sheet | A popover | New |
 | **Account menu** | Everything outside the destinations, on the avatar: profile, settings, help, sign out | A sheet | A popover under the avatar | New |
-| **Calendar** | Viewing times | A day list with a week strip | A week grid | New |
+| **Calendar** | Viewing times, across every home or for one (`src/ui/Calendar`) | A strip of the week's days, and the chosen day as a list of rows | A week grid, 8am to 9pm, each time a block with its words | New |
 | **Time picker for renters** | Booking a viewing | Days, then times | Same, in a narrower column | Changed |
 | **Question steps** | A few questions asked one per screen inside a page: the pre-viewing questions, applying, referees | The progress, one question, then Back and the one primary button, which spans the screen | The same, with the button sized to its label | New |
 | **Step list** | Where someone stands in a few steps done in order: a renter's checks, a tenant's steps | Rows of a name and its state in words: done, next, to come | Same | New |

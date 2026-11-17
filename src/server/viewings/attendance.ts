@@ -9,14 +9,18 @@ import { recordDecision } from '@/server/decisions/record-decision';
 import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
 
-/** R15: everyone booked to view a letting, in time order, with whether they came. */
-export async function attendanceFor(member: Member, lettingId: string) {
+/**
+ * R15: everyone booked to view a letting, in time order, with whether they came. With a
+ * viewing time (UX-VW-10), only the people booked for it.
+ */
+export async function attendanceFor(member: Member, lettingId: string, sessionId?: string) {
   return withOrg(member.organisationId, (tx) =>
     tx
       .select({
         bookingId: bookings.id,
         status: bookings.status,
         slotId: viewingSlots.id,
+        sessionId: viewingSlots.sessionId,
         startsAt: viewingSlots.startsAt,
         name: applications.fullName,
       })
@@ -26,6 +30,7 @@ export async function attendanceFor(member: Member, lettingId: string) {
       .where(
         and(
           eq(bookings.lettingId, lettingId),
+          sessionId ? eq(viewingSlots.sessionId, sessionId) : undefined,
           inArray(bookings.status, ['booked', 'attended', 'no_show']),
         ),
       )

@@ -93,8 +93,11 @@ export function enquiryLine(facts: EnquiryFacts): string {
 export const enquiriesCopy = {
   title: 'Enquiries',
   empty: 'Homes you ask to view appear here.',
+  emptyText: 'Each one shows where you stand and the one thing to do next.',
   emptyAction: 'Search homes',
   list: 'Homes you’ve asked about',
+  /** UX-RH-1: what happens next, under the list. */
+  next: 'We email you when anything changes, and each home’s page shows what’s next.',
   /** The words beside the dot on a row that is waiting on them. */
   needsYou: 'Needs you',
   /** Opening a row whose details have since been deleted. */
@@ -151,6 +154,8 @@ export const profileCopy = {
     stay: 'Stay',
     stayLabel: 'How long would you like to stay?',
     blank: 'Leave blank',
+    yes: 'Yes',
+    no: 'No',
     justMe: 'Just me',
     peopleCount: (people: number) => `${people} people`,
     by: (date: string) => `By ${date}`,
@@ -164,7 +169,11 @@ export const profileCopy = {
     aMonth: (amount: string) => `${amount} a month`,
     saidOn: (date: string) => `You said so on ${date}`,
   },
+  /** UX-PF-1: someone signed in who has never kept anything. */
+  nothingYet:
+    'Nothing kept yet. When you apply for a home, what you enter is kept here for next time.',
   keeping: {
+    title: 'Keeping',
     label: 'Keep what I enter for next time',
     hint: 'Your answers and income from each home you ask about are kept here, for you to confirm next time.',
     on: 'Kept from now on.',
@@ -173,6 +182,7 @@ export const profileCopy = {
   signIn: {
     title: 'Sign-in',
     methods: 'How you sign in',
+    passkeysLabel: 'Passkeys',
     passkeys: (count: number) => (count === 1 ? '1 passkey' : `${count} passkeys`),
     method: (method: SignInMethod) => methodWords[method],
     codeByEmail: methodWords.email_code,
@@ -182,6 +192,7 @@ export const profileCopy = {
     download: 'Download my details',
     downloadHint: 'Everything Gaff keeps on your profile, as one file.',
     delete: 'Delete my profile',
+    deleteHint: 'Gone straight away. You can start a new one any time.',
   },
   deleteSheet: {
     title: 'Delete your profile?',
@@ -206,6 +217,8 @@ export const profileCopy = {
     saved: 'Saved',
     removed: 'Removed',
   },
+  /** What happens next, at the foot of Profile. */
+  next: 'What you keep here is offered back the next time you ask to view or apply, for you to check.',
 } as const;
 
 /** UX-RN-13, UX-PF-2, UX-PF-3, UX-PF-5: the profile's words on a home's own pages. */
@@ -223,6 +236,8 @@ export const keepCopy = {
   /** After the code: back on the home's page. */
   done: 'Your details are kept for next time.',
   enquiries: 'See all your enquiries',
+  /** After the code, when the details were kept: what happens next. */
+  doneNext: 'Next time you apply for a home, they’re offered back for you to check.',
   /** The code couldn't be sent, or the address isn't the one on the application. */
   notKept: 'We couldn’t keep your details this time. Your application is in.',
 } as const;

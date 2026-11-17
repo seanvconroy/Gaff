@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { env } from '@/lib/env';
 import { standInCheck } from '@/server/checks/checks';
+import { standInPersonCheck } from '@/server/identity/person-checks';
 import { TextField } from '@/ui/Field';
 import { PageHeader, Row, Stack } from '@/ui/Layout';
 import { SubmitButton } from '@/ui/SubmitButton';
@@ -28,8 +29,13 @@ export default async function StandInCheckPage({
   const { return: returnUrl = '/checks/done' } = await searchParams;
   if (!/^[0-9a-f-]{36}$/i.test(checkId)) notFound();
   const found = await standInCheck(checkId);
-  if (!found || (found.check.kind !== 'identity' && found.check.kind !== 'income')) notFound();
-  const kind = found.check.kind;
+  // UX-TS-2, UX-PF-9: a person's own ID check, outside any letting's checks.
+  const own = found ? null : await standInPersonCheck(checkId);
+  if (!found && !own) notFound();
+  if (found && found.check.kind !== 'identity' && found.check.kind !== 'income') notFound();
+  const kind = found ? (found.check.kind as 'identity' | 'income') : 'identity';
+  const name = found ? found.application.fullName : own!.name;
+  const income = found?.application.monthlyIncomeCents ?? null;
   const action = standInResultAction.bind(null, checkId, kind, returnUrl);
   return (
     <main className={styles.main}>
@@ -49,18 +55,14 @@ export default async function StandInCheckPage({
               <TextField
                 name="verifiedName"
                 label="Name on the ID"
-                defaultValue={found.application.fullName}
+                defaultValue={name}
               />
             ) : (
               <TextField
                 name="monthlyIncome"
                 label="Take-home income the bank shows each month"
                 prefix="€"
-                defaultValue={
-                  found.application.monthlyIncomeCents === null
-                    ? ''
-                    : String(found.application.monthlyIncomeCents / 100)
-                }
+                defaultValue={income === null ? '' : String(income / 100)}
               />
             )}
             <Row>

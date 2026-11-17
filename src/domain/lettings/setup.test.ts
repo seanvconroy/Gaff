@@ -83,6 +83,7 @@ describe('UX-LT-14: what a letting needs to go live', () => {
       psraLicenceNumber: null,
       confirmedAt: null,
       licenceLapsedAt: null,
+      identityVerifiedAt: null,
     } as const;
     expect(goLiveNeeds({ ...ready, gate: goLiveGate(agency) })).toEqual(['lister']);
     expect(
@@ -104,6 +105,7 @@ describe('UX-LT-14: what a letting needs to go live', () => {
       psraLicenceNumber: '001234',
       confirmedAt: null,
       licenceLapsedAt: null,
+      identityVerifiedAt: null,
     });
     expect(gate).toEqual({ open: false, reason: 'being_confirmed', waits: true });
     expect(goLiveNeeds({ ...ready, gate })).toEqual([]);

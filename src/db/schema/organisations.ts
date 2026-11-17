@@ -53,6 +53,13 @@ export const organisations = pgTable(
     confirmedBy: text().references(() => users.id),
     /** UX-AG-6: when the weekly check found the licence gone from the register. */
     licenceLapsedAt: timestamp({ withTimezone: true }),
+    /**
+     * UX-TS-1 (Q47): a private landlord's organisation of one, once its person has confirmed it's
+     * them. The date alone: the name and the check stay on their own profile
+     * (`verified_identities`). It's set and cleared with that, in the same transaction, so every
+     * path that asks `goLiveGate` can read it. Null for anyone else.
+     */
+    identityVerifiedAt: timestamp({ withTimezone: true }),
     /** Local part of the organisation's Gaff address, e.g. "halcyon" → halcyon@in.gaff.ie (R5). */
     inboundSlug: text().notNull().unique(),
     /** R29: AI-written messages wait for a person's approval. On for every new organisation. */

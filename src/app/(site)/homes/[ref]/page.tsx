@@ -31,6 +31,7 @@ import { Disclosure } from '@/ui/Disclosure';
 import { Gallery } from '@/ui/Gallery';
 import { Outcome } from '@/ui/Outcome';
 import { ShowMore } from '@/ui/ShowMore';
+import { StatusPill } from '@/ui/StatusPill';
 import { SaveHome } from '../../_search/Saving';
 import styles from './home.module.css';
 
@@ -236,7 +237,18 @@ function LiveHome({
               {copy.letBy}
             </h2>
             <div className={styles.lister}>
-              <p className={styles.listerName}>{lister.name}</p>
+              {lister.kind === 'landlord' && lister.identityVerified ? (
+                // Q47, UX-TS-1: a private landlord's homes are public only once they've
+                // confirmed it's them, and say so beside their first name.
+                <p className={styles.listerLine}>
+                  <span className={styles.listerName}>{lister.name}</span>
+                  <StatusPill tone="success" large>
+                    {copy.identityVerified}
+                  </StatusPill>
+                </p>
+              ) : (
+                <p className={styles.listerName}>{lister.name}</p>
+              )}
               {lister.kind === 'agency' && lister.licence ? (
                 <p className={styles.muted}>{copy.licence(lister.licence)}</p>
               ) : null}

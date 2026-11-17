@@ -227,6 +227,7 @@ async function askableLetting(tx: Tx, lettingId: string) {
       psraLicenceNumber: organisation.psraLicenceNumber,
       confirmedAt: organisation.confirmedAt,
       licenceLapsedAt: organisation.licenceLapsedAt,
+      identityVerifiedAt: organisation.identityVerifiedAt,
     });
   return open ? row : null;
 }

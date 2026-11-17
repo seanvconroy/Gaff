@@ -37,10 +37,12 @@ import {
 } from '@/domain/rent/rent-check';
 import { formatDate, formatRent } from '@/lib/format';
 import type { FlowHome } from '@/server/lettings/drafts';
+import { personCheckOf } from '@/server/identity/person-checks';
 import { goLiveStepFor } from '@/server/lettings/go-live';
 import { rentAnswersFromLettingBefore } from '@/server/lettings/rent-check';
 import {
   advertisedAction,
+  confirmItsYouAction,
   confirmReviewAction,
   goLiveAction,
   photosChangedAction,
@@ -57,6 +59,7 @@ import {
 } from '../../../_flow/actions';
 import { AdvertisedStep } from '../../../_flow/Advertised';
 import { GoLiveHeld, GoLiveStep } from '../../../_flow/GoLive';
+import { GoLiveIdentity } from '../../../_flow/GoLiveIdentity';
 import { flowHome } from '../../../_flow/home';
 import { HomePreview } from '../../../_flow/HomePreview';
 import { RentCheckStep, RentResultStep } from '../../../_flow/RentCheck';
@@ -244,6 +247,8 @@ export default async function SetupStepPage({
     alone?: string;
     edit?: string;
     then?: string;
+    /** UX-TS-2: a code for what went wrong starting "Confirm it's you", said once. */
+    identity_problem?: string;
   }>;
 }) {
   const { lettingId: id, step: slug } = await params;
@@ -477,6 +482,17 @@ export default async function SetupStepPage({
       const preview = (
         <HomePreview home={answers} photos={home.photos} letBy={step.organisationName} />
       );
+      // UX-TS-2 (Q47): a private landlord confirms it's them, once, as this step.
+      if (!step.gate.open && step.gate.reason === 'identity_needed') {
+        return (
+          <GoLiveIdentity
+            frame={frameFor('go_live', false)}
+            action={confirmItsYouAction.bind(null, id, from)}
+            last={await personCheckOf(member.userId)}
+            problem={query.identity_problem}
+          />
+        );
+      }
       if (!step.gate.open && !step.gate.waits) {
         return (
           <GoLiveHeld
@@ -502,7 +518,6 @@ export default async function SetupStepPage({
           needsPhoto={step.onGaffNeeds.includes('photo')}
           photosHref={screenHref(id, 'photos', from, { then: 'go-live' })}
           askPhone={step.asks.phone === 'offered'}
-          identityLater={step.asks.identity === 'later'}
         />
       );
     }

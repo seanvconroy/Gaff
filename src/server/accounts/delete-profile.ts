@@ -21,6 +21,7 @@ import {
   profileRetention,
 } from '@/domain/profile/retention';
 import { type Confirmation, spendConfirmation } from '@/server/auth/confirm';
+import { forgetIdentityIn, keptIdentityIn } from '@/server/identity/kept';
 import { enqueue } from '@/server/jobs/enqueue';
 import { oneAtATime, type SignedInPerson } from './contexts';
 import { ownEnquiries } from './enquiries';
@@ -54,6 +55,8 @@ async function deleteProfileIn(
   await tx.delete(savedHomes).where(eq(savedHomes.userId, userId));
   await tx.delete(savedSearches).where(eq(savedSearches.userId, userId));
   await tx.delete(renterProfiles).where(eq(renterProfiles.userId, userId));
+  // UX-PF-9: a kept identity goes with the profile, and with it the date on their own homes.
+  await forgetIdentityIn(tx, userId);
   await tx.delete(profileEvents).where(eq(profileEvents.userId, userId));
   const [{ organisations } = { organisations: 0 }] = await tx
     .select({ organisations: sql<number>`count(*)::int` })
@@ -171,6 +174,8 @@ export interface ProfileDownload {
     searches: Array<{ filters: Record<string, unknown>; savedAt: Date }>;
     alerts: boolean;
   };
+  /** UX-PF-10: a kept ID check, as the three things kept: it passed, the name, the date. */
+  identity: { verifiedName: string; verifiedAt: Date } | null;
 }
 
 /** Reads the person's own profile for the file, and notes that they took a copy. */
@@ -198,6 +203,7 @@ export async function profileForDownload(person: SignedInPerson): Promise<Profil
       .select({ filters: savedSearches.filters, savedAt: savedSearches.createdAt })
       .from(savedSearches)
       .where(eq(savedSearches.userId, person.id));
+    const identity = await keptIdentityIn(tx, person.id);
     await recordProfileEvent(tx, person.id, 'profile.downloaded', {});
     return {
       name: person.name,
@@ -210,6 +216,7 @@ export async function profileForDownload(person: SignedInPerson): Promise<Profil
         addedAt: enquiry.addedAt,
       })),
       saved: { homes, searches, alerts: kept.searchAlerts },
+      identity,
     };
   });
 }

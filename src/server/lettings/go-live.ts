@@ -31,6 +31,7 @@ const gateColumns = {
   psraLicenceNumber: organisations.psraLicenceNumber,
   confirmedAt: organisations.confirmedAt,
   licenceLapsedAt: organisations.licenceLapsedAt,
+  identityVerifiedAt: organisations.identityVerifiedAt,
   phone: organisations.phone,
 };
 

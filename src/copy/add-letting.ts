@@ -182,11 +182,35 @@ export const addLettingCopy = {
       `It will show on gaff.ie once it has ${[needs.ber ? 'a BER' : null, needs.photo ? 'a photo' : null].filter(Boolean).join(' and ')}. It can go live now.`,
     phone: 'A number renters can call',
     phoneHint: 'For anyone who’d rather ring. Renters see it on their pages.',
-    /** Q47: the private landlord's identity check, kept in place for work package WP-24. */
-    identity: 'Confirm it’s you',
-    identityLater:
-      'Before a first home goes live, Gaff will ask you to confirm who you are. That check isn’t open yet, so there’s nothing to do now.',
-    later: 'Later',
+    /**
+     * UX-TS-2 (Q47): the private landlord's identity check, one step of their first go-live, and
+     * never asked again. Before it starts, one line says what's kept (UX-RN-16's rule).
+     */
+    identity: {
+      title: 'Confirm it’s you',
+      lead: 'One check before your home goes live: confirm it’s you. About two minutes, once.',
+      what: 'You’ll photograph your passport or driving licence and take a selfie.',
+      keeps:
+        'Gaff keeps only that it passed, your name and the date, on your own profile. Never the photos.',
+      more: 'A secure ID service checks that the photo and the selfie match. Renters see “Identity verified” beside your first name. If you rent a home through Gaff later, you can use the same check.',
+      moreLabel: 'More',
+      button: 'Confirm it’s you',
+      opening: 'Opening…',
+      unfinished: 'It looks like this one wasn’t finished. You can start it again.',
+      notPassed: 'That didn’t work this time',
+      reasons: {
+        document: 'The check couldn’t confirm your ID document.',
+        face_mismatch: 'The check couldn’t match your selfie to your ID.',
+        gave_up: 'The check wasn’t finished.',
+      } as Record<string, string>,
+      tryAgain: 'You can try again now.',
+      next: 'Then you’ll come back here to put your home live.',
+      problems: {
+        no_provider: 'The ID check can’t be started here yet. Talk to us and we’ll sort it out.',
+        not_allowed: 'This check is only for someone letting their own home.',
+        done: 'You’ve already confirmed it’s you.',
+      } as Record<string, string>,
+    },
     start: 'Start taking enquiries',
     starting: 'Starting…',
     rentCheckFirst: 'Finish the rent check first. Then this home can go live.',

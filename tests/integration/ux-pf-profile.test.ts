@@ -51,6 +51,9 @@ const PERSON_TABLES = [
   // WP-23: Saved.
   'saved_homes',
   'saved_searches',
+  // WP-24: a verified identity, and a person's own ID check while it runs.
+  'verified_identities',
+  'identity_checks',
 ] as const;
 
 const DAY = 86_400_000;

@@ -1,5 +1,5 @@
 import { eq, sql } from 'drizzle-orm';
-import { db } from '@/db/client';
+import { db, withPerson } from '@/db/client';
 import { psraRegister, users } from '@/db/schema';
 import type { SensitiveAction } from '@/domain/auth/confirm';
 import type { OrganisationKind } from '@/domain/organisations/kinds';
@@ -8,6 +8,7 @@ import type { SignedInPerson } from '@/server/accounts/contexts';
 import { findConfirmation, grantConfirmation, type Confirmation } from '@/server/auth/confirm';
 import { findMember, type Member } from '@/server/auth/member';
 export type { Member };
+import { keepIdentityIn } from '@/server/identity/kept';
 import { createOrganisationIn } from '@/server/organisations/create-organisation';
 
 /** A made-up person who has signed in and done nothing else yet. */
@@ -72,6 +73,10 @@ export async function aRegisterEntry(
  * on the register and CONFIRMED unless `confirmed: false` is asked for, so its homes can go live
  * (UX-AG-4); its licence number is 001234, as the agreement and the emails print it, unless
  * `licenceNumber` says otherwise. Pass `kind` for a landlord's team or a private landlord.
+ *
+ * A private landlord has CONFIRMED IT'S THEM (Q47, UX-TS-2) unless `confirmed: false` is asked
+ * for: their person keeps a verified identity, in the name they signed up with, so their homes
+ * can go live.
  */
 export async function createTestMember(
   overrides: {
@@ -97,9 +102,26 @@ export async function createTestMember(
       actor: { type: 'person', userId: person.id },
     }),
   );
+  if (kind === 'private_landlord' && overrides.confirmed !== false) {
+    await verifyForTest(person.id, person.name);
+  }
   const member = await findMember(person.id);
   if (!member) throw new Error('test member was not created');
   return member;
+}
+
+/**
+ * Test only: the person keeps a verified identity in this name (UX-PF-10), as an ID check that
+ * passed and was kept leaves it, with the date on their own homes if they let any (UX-TS-1).
+ */
+export async function verifyForTest(
+  userId: string,
+  verifiedName: string,
+  verifiedAt: Date = new Date(),
+): Promise<void> {
+  await withPerson(userId, (tx) =>
+    keepIdentityIn(tx, userId, { verifiedName, verifiedAt }, 'go_live'),
+  );
 }
 
 /** Test only: the agency as it is once someone at Gaff has confirmed it (UX-AG-4). */

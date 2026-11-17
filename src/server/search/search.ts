@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { type SearchFilters, searchHref } from '@/domain/search/filters';
+import { searchHref } from '@/domain/search/filters';
 import { parseSearch } from '@/domain/search/parse';
 import { irishToday } from '@/lib/format';
 import { noteFunnelStep } from '@/server/funnels/steps';
@@ -37,7 +37,7 @@ export function searchFromWords(input: unknown, now: Date = new Date()): WordsOu
  * an ID made for it alone, so it is never tied to a person, a device or another search. A search
  * that found nothing at all also starts the "Saved search" funnel (WP-23 adds the rest of it).
  */
-export async function countSearch(_filters: SearchFilters, found: { fits: number; close: number }) {
+export async function countSearch(found: { fits: number; close: number }): Promise<void> {
   const subjectId = randomUUID();
   await noteFunnelStep({
     step: 'search.search_made',

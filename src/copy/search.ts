@@ -60,6 +60,8 @@ export const searchCopy = {
     furnished: 'Furnished',
     parking: 'Parking',
   } satisfies Record<FilterKey, string>,
+  /** Furnished and parking, asked together. */
+  homeFacts: 'The home',
   whereNotFound: 'Gaff doesn’t know that place yet. Try a town, a Dublin district or a county.',
   peopleAny: 'Any number',
   stays: {

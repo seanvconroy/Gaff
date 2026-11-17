@@ -116,7 +116,7 @@ test('UX-DS-13, UX-DS-15: every button, input and select is 48px high, and nothi
     await open(page, '/dev/ui', viewport);
     for (const control of [
       page.getByRole('button', { name: 'Send invitations' }),
-      page.getByRole('button', { name: 'Not now' }),
+      page.getByRole('button', { name: 'Not now', exact: true }),
       page.getByLabel('Address', { exact: true }),
       page.getByLabel('Type of home'),
       page.getByRole('button', { name: 'Viewing date' }),

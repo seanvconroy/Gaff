@@ -91,6 +91,7 @@ export const teamCopy = {
       already: (emails: string[]) => `Already on the team, so not invited: ${emails.join(', ')}.`,
       noneNew: 'Everyone you entered is already on the team.',
       done: 'Back to Team',
+      doneToday: 'Back to Today',
     },
   },
 

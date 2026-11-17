@@ -37,6 +37,11 @@ export async function acceptInvites(person: SignedInPerson, now = new Date()): P
         type: 'person',
         userId: person.id,
       });
+      // UX-ME-1, section 9's "Inviting a team" funnel: an invite was accepted, once per team.
+      await recordFunnelStep(tx, {
+        step: 'invite_team.invite_accepted',
+        subjectId: invite.organisationId,
+      });
     }
     await scopeToPerson(tx, person.id);
     await saveProfileIn(tx, person.id, {

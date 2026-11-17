@@ -12,6 +12,7 @@ import {
   promptConditions,
   promptFor,
   promptTable,
+  suggestionsAllowed,
 } from './prompts';
 
 const now = new Date('2026-11-17T12:00:00Z');
@@ -145,9 +146,7 @@ describe('UX-GR-5: declined prompts wait at least 14 days', () => {
 
   it('a declined prompt makes way for the next one that applies', () => {
     const both = { ...facts, teamAnswered: false, approveBeforeSend: true, recentApprovals: clean };
-    expect(promptFor('today', both, { invite_team: daysAgo(1) }, now)?.code).toBe(
-      'stop_checking',
-    );
+    expect(promptFor('today', both, { invite_team: daysAgo(1) }, now)?.code).toBe('stop_checking');
   });
 
   it('a prompt shown once never comes back once declined', () => {
@@ -198,8 +197,12 @@ describe('Each prompt’s condition (section 9, "When")', () => {
     expect(cond({ viewer: admin, ...live })).not.toBeNull();
     expect(cond({ viewer: { ...admin, members: 2 }, ...live })).toBeNull();
     expect(cond({ viewer: { ...admin, role: 'negotiator' }, ...live })).toBeNull();
-    expect(cond({ viewer: { ...admin, organisationKind: 'private_landlord' }, ...live })).toBeNull();
-    expect(cond({ viewer: admin, homes: [home({ status: 'draft' })], teamAnswered: false })).toBeNull();
+    expect(
+      cond({ viewer: { ...admin, organisationKind: 'private_landlord' }, ...live }),
+    ).toBeNull();
+    expect(
+      cond({ viewer: admin, homes: [home({ status: 'draft' })], teamAnswered: false }),
+    ).toBeNull();
     expect(cond({ viewer: admin, homes: [home()], teamAnswered: true })).toBeNull();
   });
 
@@ -212,7 +215,9 @@ describe('Each prompt’s condition (section 9, "When")', () => {
     ).not.toBeNull();
     expect(cond({ viewer: { ...admin, role: 'negotiator' }, ...on })).toBeNull();
     expect(cond({ viewer: admin, ...on, approveBeforeSend: false })).toBeNull();
-    expect(cond({ viewer: admin, approveBeforeSend: true, recentApprovals: clean.slice(1) })).toBeNull();
+    expect(
+      cond({ viewer: admin, approveBeforeSend: true, recentApprovals: clean.slice(1) }),
+    ).toBeNull();
     expect(
       cond({
         viewer: admin,
@@ -250,5 +255,17 @@ describe('Each prompt’s condition (section 9, "When")', () => {
     const facts: PromptFacts = { viewer: admin, checklistShowing: true, justClosed: true };
     expect(promptFor('renter_page', facts, {}, now)).toBeNull();
     expect(promptFor('search', facts, {}, now)).toBeNull();
+  });
+});
+
+describe('UX-GR-5, UX-HM-7: a decline holds for Today’s “all caught up” action too', () => {
+  it('leaves out inviting and viewing times while their prompts wait', () => {
+    const built = ['finish_setup', 'add_letting', 'invite_colleague', 'add_viewing_times'];
+    expect(suggestionsAllowed(built, { invite_team: daysAgo(2) }, now)).toEqual([
+      'finish_setup',
+      'add_letting',
+      'add_viewing_times',
+    ]);
+    expect(suggestionsAllowed(built, { add_viewing_times: daysAgo(30) }, now)).toEqual(built);
   });
 });

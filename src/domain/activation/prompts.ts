@@ -256,8 +256,7 @@ export function ruleFor(code: PromptCode): PromptRule {
 /** The prompts a person can say "Not now" to, as codes a form may send. */
 export function isDeclinablePrompt(value: unknown): value is PromptCode {
   return (
-    typeof value === 'string' &&
-    promptTable.some((rule) => rule.code === value && rule.declinable)
+    typeof value === 'string' && promptTable.some((rule) => rule.code === value && rule.declinable)
   );
 }
 
@@ -288,4 +287,22 @@ export function mostRepeatedQuestion(
   let best: { lettingId: string; times: number } | null = null;
   for (const each of counts.values()) if (!best || each.times > best.times) best = each;
   return best;
+}
+
+/**
+ * UX-HM-7 and UX-GR-5 together: when nothing needs the person, Today's "all caught up" line may
+ * offer one action (`suggestedAction`). Two of those are prompts in the table too: a decline of
+ * either holds there as well, so "Not now" means not now on the whole screen.
+ */
+export function suggestionsAllowed<K extends string>(
+  built: readonly K[],
+  declines: Declines,
+  now: Date = new Date(),
+): K[] {
+  const declined = (code: PromptCode) => declineHolds(ruleFor(code), declines[code], now);
+  return built.filter(
+    (kind) =>
+      !(kind === 'invite_colleague' && declined('invite_team')) &&
+      !(kind === 'add_viewing_times' && declined('add_viewing_times')),
+  );
 }

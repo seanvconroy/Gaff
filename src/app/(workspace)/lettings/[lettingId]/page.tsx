@@ -1,6 +1,7 @@
 import { Share2 } from 'lucide-react';
 import type { Metadata } from 'next';
 import { shareCopy } from '@/copy/owner';
+import { promptFor } from '@/domain/activation/prompts';
 import { homePageState } from '@/domain/homes/home-page';
 import { letsOwnHomes } from '@/domain/organisations/kinds';
 import { seeItOnGaffHref } from '@/domain/lettings/links';
@@ -8,6 +9,7 @@ import { figuresFor, needsYouOn, pageStage, whatsNext } from '@/domain/lettings/
 import { chosenChip, peopleGroup } from '@/domain/lettings/people';
 import { canLetAgain, canSendTestEnquiry, lettingDetailsLocked } from '@/domain/lettings/setup';
 import { hasTeam, may } from '@/domain/team/permissions';
+import { declinesFor } from '@/server/activation/activation';
 import { goLiveGateFor } from '@/server/lettings/go-live';
 import { overviewFactsFor, peopleFor } from '@/server/lettings/page';
 import { DETAILS_LOCKED } from '@/server/lettings/set-criteria';
@@ -15,6 +17,7 @@ import { lettingStandingFor } from '@/server/team/lead';
 import { ActionList, ActionRow } from '@/ui/ActionList';
 import { Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
+import { PromptLine } from '../../PromptLine';
 import { HomeView } from './HomeView';
 import { LeadNotice } from './LeadNotice';
 import { loadLetting } from './letting';
@@ -80,6 +83,31 @@ export default async function LettingPage({
       listerMayShow: gate.open,
     }) === 'live';
   const saved = query.saved && savedCopy[query.saved] ? query.saved : null;
+  // UX-GR-5: one prompt at most on the letting: viewing times, then the owner's link (UX-OW-1).
+  const prompt = promptFor(
+    'letting',
+    {
+      viewer: {
+        userId: member.userId,
+        role: member.role,
+        organisationKind: member.organisationKind,
+        members: 0,
+      },
+      homes: [
+        {
+          id: letting.id,
+          addressLine1: letting.addressLine1,
+          status: letting.status,
+          leadUserId: letting.leadUserId,
+          answered: facts.answered,
+          viewingTimesAhead: facts.places,
+        },
+      ],
+      justLiveWithoutOwner: saved === 'live' && hasOwner && !letting.landlordId,
+    },
+    await declinesFor(member),
+    now,
+  );
 
   return (
     <Stack gap={8}>
@@ -117,7 +145,7 @@ export default async function LettingPage({
         </Notice>
       ) : null}
       {/* UX-OW-1: asked once, just after go-live, where Gaff doesn't know the owner yet. */}
-      {saved === 'live' && hasOwner && !letting.landlordId ? (
+      {prompt?.code === 'owner_follow_along' ? (
         <ActionList>
           <ActionRow
             id="share-with-owner"
@@ -127,7 +155,9 @@ export default async function LettingPage({
             meta={shareCopy.prompt.text}
           />
         </ActionList>
-      ) : null}
+      ) : (
+        <PromptLine prompt={prompt} back={`/lettings/${letting.id}`} />
+      )}
 
       {view === 'overview' ? (
         <OverviewView

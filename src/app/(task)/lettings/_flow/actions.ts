@@ -28,6 +28,7 @@ import { fieldErrors, formValues, invalid, type FormState } from '@/lib/forms';
 import { irishToday } from '@/lib/format';
 import type { AddressSuggestion, PostalAddress } from '@/ports/address-search';
 import { ensureOwnHomes } from '@/server/accounts/contexts';
+import { testEnquiryDue } from '@/server/activation/activation';
 import { currentUser, findMember, type Member, requireMember } from '@/server/auth/member';
 import { forwardingStillToDoFor } from '@/server/enquiries/forwarding';
 import { UserFacingError } from '@/server/errors';
@@ -452,6 +453,8 @@ export async function advertisedAction(
   if (on.length > 0 && (await forwardingStillToDoFor(member))) {
     redirect(forwardingHref({ lettingId: id, justLive: true }));
   }
+  // UX-GR-3: a first letting ends with a test enquiry the person watches being answered.
+  if (await testEnquiryDue(member, id)) redirect(`/lettings/${id}/test-enquiry?live=1`);
   redirect(`/lettings/${id}?saved=live`);
 }
 

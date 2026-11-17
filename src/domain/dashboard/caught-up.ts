@@ -21,11 +21,16 @@ export type Suggestion =
 export type SuggestionKind = Suggestion['kind'];
 
 /**
- * The actions Today can lead to today. Finishing setup arrives with the checklist (WP-27) and
- * inviting a colleague with teams (WP-19): each package adds its kind here, and the rule then
- * offers it in its place in the order.
+ * The actions Today can lead to. Every one is built: finishing setup is the checklist (WP-27),
+ * inviting a colleague is teams (WP-19). Today leaves out one whose prompt the person declined
+ * lately (`suggestionsAllowed` in `@/domain/activation/prompts`).
  */
-export const suggestionsBuilt: readonly SuggestionKind[] = ['add_letting', 'add_viewing_times'];
+export const suggestionsBuilt: readonly SuggestionKind[] = [
+  'finish_setup',
+  'add_letting',
+  'invite_colleague',
+  'add_viewing_times',
+];
 
 export function suggestedAction(
   input: {

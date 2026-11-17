@@ -27,6 +27,7 @@ import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { enqueue } from '@/server/jobs/enqueue';
 import { addMemberIn } from '@/server/organisations/create-organisation';
+import { recordFunnelStep } from '@/server/funnels/steps';
 import { recordEvent } from '@/server/record/events';
 import { NOT_ON_TEAM, requirePermission, roleNow } from './permissions';
 
@@ -202,6 +203,13 @@ export async function inviteColleagues(
         inviteId: invite!.id,
       });
       invited += 1;
+    }
+    // UX-ME-1, section 9's "Inviting a team" funnel: the agency's first invite.
+    if (invited > 0) {
+      await recordFunnelStep(tx, {
+        step: 'invite_team.invite_sent',
+        subjectId: member.organisationId,
+      });
     }
     return { ok: true, invited, alreadyIn };
   });

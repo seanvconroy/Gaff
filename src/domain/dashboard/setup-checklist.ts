@@ -94,9 +94,7 @@ export function setupChecklistFor(facts: SetupFacts): SetupChecklist | null {
   const firstLetting =
     facts.lettingLiveOrHeld &&
     (facts.testSeen || facts.realEnquiry || facts.testableLettingId === null);
-  const portals = facts.advertisedOn.filter(
-    (portal, index, all) => all.indexOf(portal) === index,
-  );
+  const portals = facts.advertisedOn.filter((portal, index, all) => all.indexOf(portal) === index);
   const steps: SetupStep[] = [{ code: 'add_letting', done: firstLetting }];
   if (kind !== 'agency_agent' && portals.length > 0) {
     steps.push({ code: 'forwarding', done: facts.forwardingInPlace });

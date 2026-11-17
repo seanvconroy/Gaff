@@ -101,8 +101,7 @@ describe('UX-GR-1: each kind of user has their own steps (section 9)', () => {
   it('opens forwarding from the home that went live, and inviting with a way back to Today', () => {
     const live = { ...admin, lettingLiveOrHeld: true, testSeen: true };
     expect(
-      setupChecklistFor({ ...live, testableLettingId: LETTING, advertisedOn: ['daft'] })!.next
-        .href,
+      setupChecklistFor({ ...live, testableLettingId: LETTING, advertisedOn: ['daft'] })!.next.href,
     ).toBe(`/forwarding?letting=${LETTING}`);
     expect(setupChecklistFor(live)!.next.href).toBe('/settings/team/invite?from=%2Ftoday');
   });

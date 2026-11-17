@@ -194,7 +194,8 @@ Every component adapts between phone and desktop. "Status" says whether it exist
 | **Numbered steps** | Steps to follow somewhere else, in order: setting up forwarding in a person's own mail | Rows of a number and a sentence | Same | New |
 | **Directions link** | "Get directions" to a home | Opens the phone's own maps app | Opens a map in a new tab | New |
 | **Thread and reply box** | A conversation, and the list it is chosen from. A draft waits in the reply box, with what Gaff couldn't answer marked in it | The list is a screen; the open conversation is a screen, with a way back | List on the left, thread on the right | New |
-| **Setup checklist** | First-run progress | A card with a ring and one button | Same | New |
+| **Setup checklist** | First-run progress | A card with a ring and one button | Same | Built (`src/ui/SetupChecklist`, WP-27): the ring and "1 of 3 done", finished steps as a tick and a name, the next step with its why and one button |
+| **Prompt** | One suggestion at the moment it's useful (section 9): "Invite your team", "Add viewing times" | A line between hairlines: an icon, the words, then its one button and "Not now" under them | The same, with the buttons beside the words | Built (`src/ui/Prompt`, WP-27). Never a banner, never a pop-up; a screen shows one at most (`promptFor`) |
 | **Summary list** | Terms, facts, payment details | Label above value | Label beside value | Exists |
 | **Status pill** | A state, in words with an icon | Body size on private pages | 14px in the workspace | Exists |
 | **Notice** | Something to know before acting | | | Exists; used far less |

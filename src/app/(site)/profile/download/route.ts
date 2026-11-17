@@ -30,6 +30,10 @@ export async function GET(request: NextRequest) {
     lastUsed: k.lastUsedAt,
     signIn: held.signIn,
     enquiries: held.enquiries,
+    // UX-PF-10: a kept ID check is the three things kept: it passed, the name, the date.
+    idCheck: held.identity
+      ? { passed: true, name: held.identity.verifiedName, on: held.identity.verifiedAt }
+      : null,
   };
   return new NextResponse(JSON.stringify(file, null, 2), {
     headers: {

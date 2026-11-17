@@ -298,6 +298,27 @@ export async function confirmAgencyOf(email: string): Promise<void> {
 }
 
 /**
+ * Test only: this person has confirmed it's them (Q47, UX-TS-2), as a passed ID check leaves it:
+ * a verified identity on their own profile, in the name they gave, and its date on their own
+ * homes. Journeys that aren't about the check use it, so a private landlord's homes can go live.
+ * The real way is "Confirm it's you" at the go-live step, which the identity journey takes.
+ */
+export async function verifyLandlordOf(email: string): Promise<void> {
+  await asSystem(
+    `insert into verified_identities (user_id, verified_name, verified_at)
+     select id, name, now() from users where email = $1
+     on conflict (user_id) do update set verified_name = excluded.verified_name`,
+    [email],
+  );
+  await asSystem(
+    `update organisations set identity_verified_at = now()
+     where kind = 'private_landlord' and id in (
+       select m.organisation_id from memberships m join users u on u.id = m.user_id where u.email = $1)`,
+    [email],
+  );
+}
+
+/**
  * UX-AG-7: the PSRA licence number of the agency this person set up, as its entry in the
  * register gives it. It is what renters see on the agency's pages and in its emails.
  */
@@ -386,13 +407,21 @@ export async function setUpAgency(
 /**
  * Signs up a private landlord through first run: their name, then "I'm letting a home I own",
  * which lands in "Add your home" (UX-AC-6, UX-AC-7). Returns their email.
+ *
+ * They have CONFIRMED IT'S THEM (Q47) unless `verified: false` is asked for, so the journey can
+ * put homes live straight away. Pass `verified: false` to meet "Confirm it's you" at go-live.
  */
-export async function signUpLandlord(page: Page, name = 'Mary Byrne'): Promise<string> {
+export async function signUpLandlord(
+  page: Page,
+  name = 'Mary Byrne',
+  options: { verified?: boolean } = {},
+): Promise<string> {
   const email = uniqueEmail('mary');
   await signIn(page, email);
   await answerName(page, name);
   await answerPurpose(page, 'I’m letting a home I own');
   await expect(page).toHaveURL(/\/lettings\/new$/);
+  if (options.verified !== false) await verifyLandlordOf(email);
   const rows = await asSystem<{ slug: string }>(
     `select o.inbound_slug as slug from organisations o
      join memberships m on m.organisation_id = o.id join users u on u.id = m.user_id
@@ -555,7 +584,11 @@ export async function pickTime(
  * people, no pets), the rent check for a first letting, and its result. It ends on "Ready to go
  * live", with nothing pressed.
  */
-export async function toGoLiveThroughUi(page: Page): Promise<void> {
+export async function toGoLiveThroughUi(
+  page: Page,
+  /** The go-live step's heading: "Confirm it's you" for a private landlord not yet verified. */
+  heading = 'Ready to go live',
+): Promise<void> {
   await page.goto(`/lettings/${homeIdIn(page.url())}/setup/details`);
   await expect(page.getByRole('heading', { name: 'Letting details' })).toBeVisible();
   await page.getByRole('checkbox', { name: 'Most people' }).check();
@@ -569,7 +602,7 @@ export async function toGoLiveThroughUi(page: Page): Promise<void> {
     page.getByRole('heading', { name: 'You can set the rent at market level' }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Ready to go live' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: heading })).toBeVisible();
 }
 
 /**

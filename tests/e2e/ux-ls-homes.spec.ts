@@ -296,6 +296,8 @@ test('UX-LS-7: a private landlord is shown by first name only, and with no numbe
   await visitor.goto(home.homePath);
   const letBy = visitor.getByRole('region', { name: 'Let by' });
   await expect(letBy.getByText('Mary', { exact: true })).toBeVisible();
+  // Q47, UX-TS-1: her homes are public because she confirmed it's her, and say so.
+  await expect(letBy.getByText('Identity verified')).toBeVisible();
   await expect(letBy.getByText(/licence/i)).toHaveCount(0);
   expect(await visitor.locator('body').innerText()).not.toContain('Byrne');
   expect(await visitor.content()).not.toContain('Byrne');

@@ -6,6 +6,7 @@ import { normaliseEmail } from '@/domain/enquiries/parse';
 import type { Member } from '@/server/auth/member';
 import { enqueue } from '@/server/jobs/enqueue';
 import { recordEvent } from '@/server/record/events';
+import { holdsEnquiryFor } from './enquiries';
 
 /** What a member in conflict is told, wherever they're stopped. */
 export const CONFLICT_MESSAGE =
@@ -13,20 +14,28 @@ export const CONFLICT_MESSAGE =
 
 /**
  * UX-AC-14 (rule 1): whether this member applied, as a renter, for this home. In a transaction
- * already scoped to the member's organisation. The rule, and what it can and can't match until
- * applications are tied to profiles (WP-14), is in src/domain/accounts/conflict.ts.
+ * already scoped to the member's organisation. The rule is in src/domain/accounts/conflict.ts.
+ *
+ * Two things are matched. The person: whether the member's own Enquiries hold this letting,
+ * which only their own path can say (`holdsEnquiryFor`, on a connection of its own, so the
+ * organisation's transaction is never scoped to a person). And the address: the member's
+ * verified sign-in address against the addresses that enquired, for an enquiry no signed-in
+ * person has opened.
  */
 export async function memberAppliedIn(tx: Tx, member: Member, lettingId: string): Promise<boolean> {
-  if (!member.emailVerified) return false;
-  const own = normaliseEmail(member.email);
-  const rows = await tx
-    .select({ email: applications.emailNormalised })
-    .from(applications)
-    .where(and(eq(applications.lettingId, lettingId), eq(applications.emailNormalised, own)))
-    .limit(1);
+  const inTheirEnquiries = await holdsEnquiryFor(member.userId, lettingId);
+  const own = member.emailVerified ? normaliseEmail(member.email) : '';
+  const rows = own
+    ? await tx
+        .select({ email: applications.emailNormalised })
+        .from(applications)
+        .where(and(eq(applications.lettingId, lettingId), eq(applications.emailNormalised, own)))
+        .limit(1)
+    : [];
   return appliedForThisLetting(
     member,
     rows.map((row) => row.email),
+    inTheirEnquiries,
   );
 }
 

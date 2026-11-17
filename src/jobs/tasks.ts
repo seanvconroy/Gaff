@@ -1,5 +1,6 @@
 import type { TaskList } from 'graphile-worker';
 import { z } from 'zod';
+import { sweepProfiles } from '@/server/accounts/delete-profile';
 import { sendAccountEmail } from '@/server/accounts/emails';
 import { draftAnswersFor } from '@/server/answers/draft';
 import { processInboundEmail } from '@/server/enquiries/process';
@@ -42,6 +43,11 @@ export const taskList: TaskList = {
     // Counts only: never personal data in logs.
     console.log(
       `Retention: ${swept.applications} applications, ${swept.inboundEmails} emails and ${swept.references} references cleared; ${swept.recordEvents} record events and ${swept.recordDecisions} decisions past their period deleted.`,
+    );
+    // UX-PF-7 (rule 9): renters' own profiles, unused for two years. Counts only.
+    const profiles = await sweepProfiles();
+    console.log(
+      `Retention: ${profiles.deleted} unused profiles deleted; ${profiles.notices} told theirs will be in 30 days.`,
     );
   },
   psra_register_refresh: async () => {

@@ -132,3 +132,31 @@ export function memberConflictEmail(input: {
     ].join('\n'),
   };
 }
+
+/**
+ * UX-PF-7 (rule 9, Q25): a renter's profile hasn't been used for almost two years. This says
+ * when it will be deleted, 30 days ahead, and how to keep it: by signing in.
+ */
+export function profileUnusedEmail(input: {
+  /** "Friday 17 November 2028" */
+  deleteOn: string;
+  profileUrl: string;
+}): AccountEmail {
+  return {
+    subject: `Your Gaff profile will be deleted on ${input.deleteOn}`,
+    button: 'Keep my profile',
+    text: [
+      'Hello,',
+      '',
+      `You haven’t used your Gaff profile for almost two years, so we’ll delete it on ${input.deleteOn}. That’s the details you kept for next time, and your sign-in.`,
+      '',
+      'To keep it, sign in before then.',
+      '',
+      input.profileUrl,
+      '',
+      'If you don’t need it any more, there’s nothing to do.',
+      '',
+      'Gaff',
+    ].join('\n'),
+  };
+}

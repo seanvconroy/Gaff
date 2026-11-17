@@ -96,7 +96,7 @@ export interface EnteredOnApplication {
   /** The number on the application, and whether they gave it themselves for reminders (Q12). */
   phone: string | null;
   smsReminders: boolean;
-  answers: Record<string, unknown> | null;
+  answers: object | null;
   answersAt: Date | null;
   earning: string | null;
   monthlyIncomeCents: number | null;
@@ -143,9 +143,9 @@ export function detailsToKeep(
 }
 
 /** Each answer that fits its shape; nothing else, whatever else the object holds. */
-export function cleanAnswers(answers: Record<string, unknown> | null | undefined): KeptAnswers {
+export function cleanAnswers(answers: object | null | undefined): KeptAnswers {
   const kept: KeptAnswers = {};
-  const given = answers ?? {};
+  const given: Record<string, unknown> = { ...(answers ?? {}) };
   const stay =
     typeof given.stayMonths === 'number' && Number.isInteger(given.stayMonths)
       ? stayAsChoice(given.stayMonths)

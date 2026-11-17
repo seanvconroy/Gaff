@@ -25,13 +25,22 @@ import { currentBooking, slotAvailability } from '@/server/viewings/booking';
 export async function loadRenterPage(token: string) {
   const link = await resolveAccessLink(token, 'renter');
   if (!link) return null;
-  return withOrg(link.organisationId, async (tx) => {
+  return loadRenterPageFor(link.organisationId, link.subjectId);
+}
+
+/**
+ * The same, for an application whose organisation is already known: behind a link that has been
+ * resolved, or from a signed-in renter's own Enquiries (UX-RH-1), which hold both IDs. Null once
+ * the renter's details have been deleted.
+ */
+export async function loadRenterPageFor(organisationId: string, applicationId: string) {
+  return withOrg(organisationId, async (tx) => {
     const [row] = await tx
       .select({ application: applications, letting: lettings, organisation: organisations })
       .from(applications)
       .innerJoin(lettings, eq(lettings.id, applications.lettingId))
       .innerJoin(organisations, eq(organisations.id, applications.organisationId))
-      .where(eq(applications.id, link.subjectId));
+      .where(eq(applications.id, applicationId));
     if (!row || row.application.personalDataDeletedAt) return null;
     const [firstSlot] = await tx
       .select({ startsAt: viewingSlots.startsAt })

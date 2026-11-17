@@ -98,6 +98,7 @@ const actionWords: Record<SensitiveAction, string> = {
   change_payment_account: 'change the account tenants pay into',
   remove_member: 'remove someone from your agency',
   delete_agency: 'delete your agency',
+  delete_profile: 'delete your profile',
 };
 
 /** UX-SI-10: confirming it's you again, before a sensitive action. */

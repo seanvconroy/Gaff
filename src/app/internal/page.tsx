@@ -13,7 +13,7 @@ import {
   reportedListingsFor,
 } from '@/server/trust/staff';
 import { SelectField } from '@/ui/Field';
-import { Card, CardHeader, PageHeader, Row, Stack } from '@/ui/Layout';
+import { Card, CardHeader, PageHeader, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { StatusPill } from '@/ui/StatusPill';
 import { SubmitButton } from '@/ui/SubmitButton';
@@ -84,13 +84,13 @@ function ReportedCard({ listing }: { listing: ReportedListing }) {
             defaultValue={listing.likeliest}
           />
           <SubmitButton variant="secondary" pendingLabel="Hiding…">
-            Hide this listing<span className="visually-hidden">: {listing.title}</span>
+            Hide this listing<span className="visually-hidden"> {listing.title}</span>
           </SubmitButton>
         </Stack>
       </form>
       <form action={keepListingUpAction.bind(null, listing.lettingId)}>
         <SubmitButton variant="quiet" pendingLabel="Saving…">
-          Keep it up<span className="visually-hidden">: {listing.title}</span>
+          Keep it up<span className="visually-hidden"> {listing.title}</span>
         </SubmitButton>
       </form>
     </Card>
@@ -125,7 +125,7 @@ function HiddenCard({ listing }: { listing: HiddenListing }) {
       />
       <form action={unhideListingAction.bind(null, listing.lettingId)}>
         <SubmitButton variant="secondary" pendingLabel="Putting it back…">
-          Put it back on gaff.ie<span className="visually-hidden">: {listing.title}</span>
+          Put it back on gaff.ie<span className="visually-hidden"> {listing.title}</span>
         </SubmitButton>
       </form>
     </Card>
@@ -196,12 +196,13 @@ export default async function InternalPage({
       </Stack>
 
       <Stack gap={4} as="section">
-        <Row spread>
-          <h2 className="type-title" id="funnels">
-            Funnels
-          </h2>
+        <h2 className="type-title" id="funnels">
+          Funnels
+        </h2>
+        <p>
+          How far people get in each key flow, as totals.{' '}
           <Link href="/internal/funnels">See every step</Link>
-        </Row>
+        </p>
         <Table caption="Funnels" head={['Funnel', 'Started', 'Reached the end']}>
           {funnels.map((funnel) => (
             <tr key={funnel.code}>

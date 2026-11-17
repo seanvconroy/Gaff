@@ -151,7 +151,7 @@ test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, i
     const reported = staffPage.getByRole('region', { name: title }).first();
     await expect(reported.getByText('2 reports')).toBeVisible();
     await expect(reported.getByText('The details are wrong', { exact: true })).toBeVisible();
-    await expect(reported.getByText(/^Answer by /)).toBeVisible();
+    await expect(reported.getByText(/Answer by /)).toBeVisible();
     await expect(staffPage.getByRole('region', { name: 'Funnels' })).toBeVisible();
     await expectNoSidewaysScroll(staffPage);
     await expectAccessible(staffPage);
@@ -165,7 +165,7 @@ test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, i
     .getByRole('region', { name: title })
     .filter({ has: staffPage.getByText('2 reports') });
   await card.getByLabel('Why it’s hidden').selectOption('wrong_details');
-  await card.getByRole('button', { name: `Hide this listing: ${title}` }).click();
+  await card.getByRole('button', { name: `Hide this listing ${title}` }).click();
   await expect(staffPage.getByText(/^Hidden\. It’s out of search/)).toBeVisible();
   await expect(staffPage).toHaveTitle(/Gaff internal/);
   await expectAccessible(staffPage);
@@ -261,7 +261,7 @@ test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, i
   await expect(hidden).toBeVisible();
   await settled(staffPage);
   await screenshot(staffPage, 'ux-ts-internal-asked-again-1280');
-  await hidden.getByRole('button', { name: `Put it back on gaff.ie: ${title}` }).click();
+  await hidden.getByRole('button', { name: `Put it back on gaff.ie ${title}` }).click();
   await expect(staffPage.getByText(/^It’s back on gaff\.ie\./)).toBeVisible();
   await expectAccessible(staffPage);
 

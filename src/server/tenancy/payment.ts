@@ -99,8 +99,13 @@ export async function requestPayment(
   if (!['signed', 'signed_on_paper'].includes(row.tenancy.agreementStatus)) {
     throw new UserFacingError('Ask for payment once the agreement is signed.');
   }
+  // UX-TN-2: where tenants pay is asked at this step of the first tenancy, then remembered.
   if (!row.organisation.paymentIban || !row.organisation.paymentAccountName) {
-    throw new UserFacingError('Add the account tenants pay into, in Settings, first.');
+    throw new UserFacingError('Add the account tenants pay into first.');
+  }
+  // UX-RN-23, UX-TS-6 (rule 5): the tenant is always shown a number to ring to check the account.
+  if (!row.organisation.phone) {
+    throw new UserFacingError('Add a number the tenant can ring to check the account first.');
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(values.dueDate) || values.dueDate < irishToday()) {
     throw new UserFacingError('Choose a date from today on.');

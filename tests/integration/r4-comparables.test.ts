@@ -72,7 +72,11 @@ describe('UX-LP-14: comparable rents, one home at a time', () => {
         .where(eq(events.lettingId, lettingId)),
     );
     const ours = recorded.filter((e) => e.type.startsWith('comparable'));
-    expect(ours.map((e) => [e.type, e.data])).toEqual([
+    // Events in one transaction share a time, so they're compared in a fixed order.
+    const key = (e: { type: string; data: unknown }) =>
+      `${e.type}:${(e.data as { position?: number }).position ?? 9}`;
+    const sorted = [...ours].sort((x, y) => key(x).localeCompare(key(y)));
+    expect(sorted.map((e) => [e.type, e.data])).toEqual([
       ['comparable.recorded', { position: 1, count: 1 }],
       ['comparable.recorded', { position: 2, count: 2 }],
       ['comparable.recorded', { position: 2, count: 2 }],

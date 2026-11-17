@@ -5,6 +5,7 @@ import { events, messages, tenancies } from '@/db/schema';
 import { UserFacingError } from '@/server/errors';
 import { loadRenterPage } from '@/server/renter/answers';
 import { confirmPayment, requestPayment, setPaymentAccount } from '@/server/tenancy/payment';
+import { setListerPhone } from '@/server/organisations/phone';
 import { markSignedOnPaper } from '@/server/tenancy/tenancy';
 import { aLetHome, confirmedAgain, createTestMember } from './helpers';
 
@@ -55,13 +56,18 @@ describe('R23: asking for the deposit and first month’s rent', () => {
     );
     await markSignedOnPaper(member, lettingId);
     await expect(requestPayment(member, lettingId, { dueDate })).rejects.toThrow(
-      'Add the account tenants pay into, in Settings, first.',
+      'Add the account tenants pay into first.',
     );
     await setPaymentAccount(
       member,
       { accountName: 'Halcyon client account', iban: IBAN },
       await confirmedAgain(member),
     );
+    // UX-RN-23, UX-TN-2: a number the tenant can ring, asked at this step if there isn't one.
+    await expect(requestPayment(member, lettingId, { dueDate })).rejects.toThrow(
+      'Add a number the tenant can ring to check the account first.',
+    );
+    await setListerPhone(member, '01 234 5678');
     await expect(requestPayment(member, lettingId, { dueDate: '2020-01-01' })).rejects.toThrow(
       'Choose a date from today on.',
     );

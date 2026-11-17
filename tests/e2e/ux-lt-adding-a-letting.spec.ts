@@ -541,9 +541,13 @@ test('UX-LT-24: a live letting has "Send a test enquiry" until its first real en
     await signUpOperator(page);
     const address = `${width} Canal View`;
     await createLettingThroughUi(page, address);
-    // Not before it's live.
+    // Not before it's live. (The menu is there from the day it's added, for "Share with the
+    // owner", UX-OW-1.)
     await page.goto(`/lettings/${homeIdIn(page.url())}`);
-    await expect(page.getByRole('button', { name: `More for ${address}` })).toHaveCount(0);
+    await page.getByRole('button', { name: `More for ${address}` }).click();
+    await expect(page.getByRole('menuitem', { name: 'Share with the owner' })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: 'Send a test enquiry' })).toHaveCount(0);
+    await page.keyboard.press('Escape');
     await goLiveThroughUi(page);
 
     await page.getByRole('button', { name: `More for ${address}` }).click();

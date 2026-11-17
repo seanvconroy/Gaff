@@ -238,6 +238,12 @@
   gap: var(--space-4);
 }
 
+/* UX-LP-15: "Clear", after how many a filter shows: a target of its own. */
+.clear {
+  min-width: var(--size-target);
+  justify-content: center;
+}
+
 /* UX-LP-15: "Ask about who's enquired": the box, then its button under it. */
 .ask {
   display: grid;

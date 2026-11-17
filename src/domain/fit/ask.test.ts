@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  answerChips,
   checkQuestionReading,
   filterFromParams,
   filterPeople,
   filterToParams,
   type Filterable,
   inFilter,
+  peopleHref,
   readPeopleQuestion,
 } from './ask';
 
@@ -188,5 +190,38 @@ describe('UX-AI-6: what a model hands back is held to a strict filter', () => {
     [null],
   ])('UX-AI-6: %o is not used', (reading) => {
     expect(checkQuestionReading(reading, today)).toBeNull();
+  });
+});
+
+describe('UX-LP-15: the same chips can be set by tapping', () => {
+  const criteria = { maxOccupants: 3, noPets: true };
+
+  it('UX-LP-15: a chip for each criterion asked, and one for meeting everything', () => {
+    expect(answerChips(criteria, {}).map((chip) => [chip.key, chip.part, chip.current])).toEqual([
+      ['peopleAtMost', { peopleAtMost: 3 }, false],
+      ['pets', { pets: 'none' }, false],
+      ['meetsAll', { meetsAll: true }, false],
+    ]);
+  });
+
+  it('UX-LP-15: a chip a question set is on, and tapping it takes it away', () => {
+    const chips = answerChips(criteria, { pets: 'none', moveInBy: '2026-12-24' });
+    expect(chips.find((chip) => chip.key === 'moveInBy')).toMatchObject({
+      current: true,
+      next: { pets: 'none' },
+    });
+    expect(chips.find((chip) => chip.key === 'peopleAtMost')).toMatchObject({
+      current: false,
+      next: { pets: 'none', moveInBy: '2026-12-24', peopleAtMost: 3 },
+    });
+  });
+
+  it('UX-LP-15: People’s address holds the chip, the filter and the person, never words', () => {
+    expect(peopleHref('l1', { show: 'answered', filter: { pets: 'none' }, person: 'p1' })).toBe(
+      '/lettings/l1?view=people&show=answered&pets=none&person=p1',
+    );
+    expect(peopleHref('l1', { show: 'all', declined: true })).toBe(
+      '/lettings/l1?view=people&asked=no',
+    );
   });
 });

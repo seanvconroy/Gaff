@@ -92,12 +92,7 @@ export function PeopleView({
       <h2 id="people-heading" className="visually-hidden">
         {copy.heading}
       </h2>
-      <form
-        action={askAboutPeopleAction.bind(null, lettingId)}
-        className={styles.ask}
-        role="search"
-        aria-label={askCopy.label}
-      >
+      <form action={askAboutPeopleAction.bind(null, lettingId)} className={styles.ask}>
         <TextField
           name="question"
           label={askCopy.label}
@@ -123,14 +118,19 @@ export function PeopleView({
         </Notice>
       ) : null}
       {answers.length > 0 ? (
-        <ChipLinks
-          label={askCopy.chips}
-          items={answers.map((each) => ({
-            href: href({ filter: each.next }),
-            label: filterChipLabel(each.key, each.part, now),
-            current: each.current,
-          }))}
-        />
+        <>
+          <p className={styles.small} aria-hidden="true">
+            {askCopy.chips}
+          </p>
+          <ChipLinks
+            label={askCopy.chips}
+            items={answers.map((each) => ({
+              href: href({ filter: each.next }),
+              label: filterChipLabel(each.key, each.part, now),
+              current: each.current,
+            }))}
+          />
+        </>
       ) : null}
       <ChipLinks
         label={copy.filter}
@@ -143,7 +143,7 @@ export function PeopleView({
       {filtered ? (
         <p className={styles.small} role="status">
           {askCopy.showing(shown.length, inChip.length)}{' '}
-          <Link href={href({ filter: {} })} className={styles.change}>
+          <Link href={href({ filter: {} })} className={`${styles.change} ${styles.clear}`}>
             {askCopy.clear}
           </Link>
         </p>

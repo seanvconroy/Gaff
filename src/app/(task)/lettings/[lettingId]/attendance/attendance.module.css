@@ -1,23 +1,9 @@
-/* R15: one row per person, big targets, readable outdoors on a phone. Each day is a card. */
+/*
+ * R15, UX-VW-10, UX-VW-11: one row per person, in time order, with two large buttons each.
+ * Readable outdoors on a phone. Space and type, then a hairline between people.
+ */
 .summary {
   font-weight: var(--type-title-weight);
-}
-
-.hint {
-  color: var(--color-ink-muted);
-  font-size: var(--type-body-sm-size);
-  line-height: var(--type-body-sm-line);
-}
-
-.day {
-  background-color: var(--color-surface-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-
-.dayHeading {
-  padding: var(--space-4) var(--space-5);
 }
 
 .list {
@@ -32,8 +18,12 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-3) var(--space-4);
   align-items: center;
-  padding: var(--space-3) var(--space-5);
+  padding: var(--space-4) 0;
   border-top: 1px solid var(--color-border);
+}
+
+.row:last-child {
+  border-bottom: 1px solid var(--color-border);
 }
 
 .who {
@@ -122,11 +112,6 @@
 }
 
 @media (width <= 900px) {
-  .dayHeading,
-  .row {
-    padding-inline: var(--space-4);
-  }
-
   .row {
     grid-template-columns: minmax(0, 1fr);
   }

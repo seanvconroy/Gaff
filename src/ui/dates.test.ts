@@ -11,8 +11,12 @@ import {
   monthLabel,
   monthWeeks,
   startOfWeek,
+  GRID_QUARTERS,
+  gridPlace,
   timeOptions,
   weekdayNames,
+  weekLabel,
+  weekOf,
 } from './dates';
 
 const now = new Date('2026-11-15T12:00:00Z');
@@ -124,5 +128,31 @@ describe('time picker: times in Irish format', () => {
     ]);
     expect(timeOptions({ from: '12:00', until: '11:00', stepMinutes: 30 })).toEqual([]);
     expect(timeOptions({ from: '12:00', until: '13:00', stepMinutes: 0 })).toEqual([]);
+  });
+});
+
+describe('UX-VW-1: the calendar’s week', () => {
+  it('UX-VW-1: a week is seven days from Monday, named in words', () => {
+    expect(weekOf('2026-11-19')).toEqual([
+      '2026-11-16',
+      '2026-11-17',
+      '2026-11-18',
+      '2026-11-19',
+      '2026-11-20',
+      '2026-11-21',
+      '2026-11-22',
+    ]);
+    expect(weekLabel('2026-11-19', now)).toBe('16 to 22 November');
+    expect(weekLabel('2026-12-02', now)).toBe('30 November to 6 December');
+    expect(weekLabel('2026-12-30', now)).toBe('28 December 2026 to 3 January 2027');
+  });
+
+  it('UX-VW-1: places a time on the 8am to 9pm grid in quarter hours, keeping it inside the day', () => {
+    expect(GRID_QUARTERS).toBe(52);
+    expect(gridPlace('18:00', '19:00')).toEqual({ from: 40, span: 4 });
+    expect(gridPlace('08:00', '08:15')).toEqual({ from: 0, span: 1 });
+    expect(gridPlace('06:00', '09:00')).toEqual({ from: 0, span: 4 });
+    expect(gridPlace('20:30', '22:00')).toEqual({ from: 50, span: 2 });
+    expect(gridPlace('23:00', '23:30')).toEqual({ from: 51, span: 1 });
   });
 });

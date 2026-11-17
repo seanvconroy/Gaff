@@ -148,3 +148,43 @@ export function timeOptions({
   }
   return options;
 }
+
+/** The seven days of the week a date is in, Monday first. */
+export function weekOf(date: string): string[] {
+  const monday = startOfWeek(date);
+  return Array.from({ length: 7 }, (_, index) => addDays(monday, index));
+}
+
+/** "16 to 22 November", "30 November to 6 December", with the year when it isn't this one. */
+export function weekLabel(date: string, now: Date = new Date()): string {
+  const thisYear = now.getUTCFullYear();
+  const parts = (day: string) => {
+    const [year, month, dayOfMonth] = day.split('-').map(Number) as [number, number, number];
+    return { year, month: MONTHS[month - 1]!, day: dayOfMonth };
+  };
+  const a = parts(startOfWeek(date));
+  const b = parts(endOfWeek(date));
+  const year = b.year === thisYear ? '' : ` ${b.year}`;
+  if (a.month === b.month) return `${a.day} to ${b.day} ${b.month}${year}`;
+  const firstYear = a.year === b.year ? '' : ` ${a.year}`;
+  return `${a.day} ${a.month}${firstYear} to ${b.day} ${b.month}${year}`;
+}
+
+/** The calendar's day on a desktop: 8am to 9pm, in quarter hours (section 4, "Layout"). */
+export const GRID_FROM = '08:00';
+export const GRID_UNTIL = '21:00';
+export const GRID_QUARTERS = (minutesOf(GRID_UNTIL) - minutesOf(GRID_FROM)) / 15;
+
+/**
+ * Where a time sits on the week grid: the quarter hour it starts in (0 is 8am) and how many it
+ * spans. A time outside the day is drawn at its edge, at least a quarter long.
+ */
+export function gridPlace(start: string, end: string): { from: number; span: number } {
+  const base = minutesOf(GRID_FROM);
+  const from = Math.min(Math.max(Math.floor((minutesOf(start) - base) / 15), 0), GRID_QUARTERS - 1);
+  const until = Math.min(
+    Math.max(Math.ceil((minutesOf(end) - base) / 15), from + 1),
+    GRID_QUARTERS,
+  );
+  return { from, span: until - from };
+}

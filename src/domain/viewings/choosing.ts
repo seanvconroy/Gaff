@@ -112,6 +112,53 @@ export function viewingCalendarFile(viewing: {
   listerName: string;
   now?: Date;
 }): string {
+  return calendarFile({
+    uid: `viewing-${viewing.bookingId}@gaff.ie`,
+    startsAt: viewing.startsAt,
+    endsAt: viewing.endsAt,
+    summary: `Viewing: ${viewing.address}`,
+    location: `${viewing.address}, ${viewing.area}`,
+    description: `Viewing with ${viewing.listerName}.`,
+    now: viewing.now,
+  });
+}
+
+/**
+ * UX-VW-8: "Add to my calendar" on a viewing time, for the person running it. When and where,
+ * and how many had booked when it was saved. Nobody's name or details: a calendar app keeps it
+ * outside Gaff. The same viewing time keeps the same UID, so saving it again updates it.
+ */
+export function viewingTimeCalendarFile(viewing: {
+  sessionId: string;
+  startsAt: Date;
+  endsAt: Date;
+  address: string;
+  area: string;
+  booked: number;
+  places: number;
+  now?: Date;
+}): string {
+  return calendarFile({
+    uid: `viewing-time-${viewing.sessionId}@gaff.ie`,
+    startsAt: viewing.startsAt,
+    endsAt: viewing.endsAt,
+    summary: `Viewing: ${viewing.address}`,
+    location: `${viewing.address}, ${viewing.area}`,
+    description: `${viewing.booked} of ${viewing.places} booked. See who in Gaff.`,
+    now: viewing.now,
+  });
+}
+
+/** One event as a standard calendar file (RFC 5545), which any phone's calendar opens. */
+function calendarFile(event: {
+  uid: string;
+  startsAt: Date;
+  endsAt: Date;
+  summary: string;
+  location: string;
+  description: string;
+  now?: Date;
+}): string {
   const stamp = (date: Date) =>
     date
       .toISOString()
@@ -129,13 +176,13 @@ export function viewingCalendarFile(viewing: {
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
-    `UID:viewing-${viewing.bookingId}@gaff.ie`,
-    `DTSTAMP:${stamp(viewing.now ?? new Date())}`,
-    `DTSTART:${stamp(viewing.startsAt)}`,
-    `DTEND:${stamp(viewing.endsAt)}`,
-    `SUMMARY:${text(`Viewing: ${viewing.address}`)}`,
-    `LOCATION:${text(`${viewing.address}, ${viewing.area}`)}`,
-    `DESCRIPTION:${text(`Viewing with ${viewing.listerName}.`)}`,
+    `UID:${event.uid}`,
+    `DTSTAMP:${stamp(event.now ?? new Date())}`,
+    `DTSTART:${stamp(event.startsAt)}`,
+    `DTEND:${stamp(event.endsAt)}`,
+    `SUMMARY:${text(event.summary)}`,
+    `LOCATION:${text(event.location)}`,
+    `DESCRIPTION:${text(event.description)}`,
     'END:VEVENT',
     'END:VCALENDAR',
     '',

@@ -1,32 +1,26 @@
-import { CalendarDays } from 'lucide-react';
 import type { Metadata } from 'next';
 import { requireMember } from '@/server/auth/member';
-import { ButtonLink } from '@/ui/Button';
-import { EmptyState } from '@/ui/EmptyState';
 import { PageHeader, Stack } from '@/ui/Layout';
+import { CalendarView } from './CalendarView';
 
 export const metadata: Metadata = { title: 'Calendar' };
+export const dynamic = 'force-dynamic';
 
 /**
- * Calendar (UX-NV-1): viewing times across every home. Work package WP-16 builds it; until then
- * it says what will be here, and where viewing times are today.
+ * Calendar (UX-NV-1, UX-VW-1, UX-VW-2): every viewing time across the person's homes, a day
+ * list on a phone and a week on a desktop, with one primary action, "Add a time".
  */
-export default async function CalendarPage() {
-  await requireMember();
+export default async function CalendarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ day?: string; viewing?: string }>;
+}) {
+  const member = await requireMember();
+  const query = await searchParams;
   return (
-    <Stack gap={8}>
+    <Stack gap={6}>
       <PageHeader title="Calendar" />
-      <EmptyState
-        icon={CalendarDays}
-        title="Viewing times for every home will appear here."
-        action={
-          <ButtonLink href="/lettings" variant="secondary">
-            Go to Lettings
-          </ButtonLink>
-        }
-      >
-        <p>For now, each letting’s own page has its viewing times.</p>
-      </EmptyState>
+      <CalendarView member={member} path="/calendar" query={query} />
     </Stack>
   );
 }

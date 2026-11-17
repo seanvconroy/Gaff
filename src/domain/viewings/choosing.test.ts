@@ -8,6 +8,7 @@ import {
   reminderNumber,
   viewingCalendarFile,
   viewingDays,
+  viewingTimeCalendarFile,
 } from './choosing';
 
 // Monday 16 November 2026, 10am in Ireland (winter time: the same as UTC).
@@ -139,5 +140,27 @@ describe('UX-RN-8: the booked page’s two actions', () => {
     expect(mapsPlatform('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)')).toBe('ios');
     expect(mapsPlatform('Mozilla/5.0 (Linux; Android 15; Pixel 9)')).toBe('android');
     expect(mapsPlatform('Mozilla/5.0 (Macintosh; Intel Mac OS X 15_0)')).toBe('other');
+  });
+});
+
+describe('UX-VW-8: "Add to my calendar" on a viewing time, for the person running it', () => {
+  it('UX-VW-8: is a standard calendar file with when, where and how many are booked, and nobody’s details', () => {
+    const file = viewingTimeCalendarFile({
+      sessionId: 'a1b2c3d4',
+      startsAt: new Date('2026-11-20T18:00:00Z'),
+      endsAt: new Date('2026-11-20T19:00:00Z'),
+      address: '12 Ranelagh Road',
+      area: 'Ranelagh, Dublin 6',
+      booked: 3,
+      places: 4,
+      now,
+    });
+    const lines = file.split('\r\n');
+    expect(lines).toContain('UID:viewing-time-a1b2c3d4@gaff.ie');
+    expect(lines).toContain('DTSTART:20261120T180000Z');
+    expect(lines).toContain('DTEND:20261120T190000Z');
+    expect(lines).toContain('SUMMARY:Viewing: 12 Ranelagh Road');
+    expect(lines).toContain('LOCATION:12 Ranelagh Road\\, Ranelagh\\, Dublin 6');
+    expect(lines).toContain('DESCRIPTION:3 of 4 booked. See who in Gaff.');
   });
 });

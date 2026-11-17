@@ -147,8 +147,9 @@ describe('UX-HM-3: the whole row is one link to where the task is done', () => {
       '/lettings/l1/applications',
       '/lettings/l1/applications',
       '/lettings/l1/applications',
-      '/lettings/l1/tenancy',
-      '/lettings/l1/tenancy',
+      // UX-TN-1: a tenancy step opens its own screen; finishing opens "Finish this letting".
+      '/lettings/l1/finish',
+      '/lettings/l1/tenancy/rtb',
       '/lettings/l1',
       // UX-NV-2: handled in Inbox. One conversation waiting: the row opens it.
       `/inbox/renter-${APPLICATION}`,

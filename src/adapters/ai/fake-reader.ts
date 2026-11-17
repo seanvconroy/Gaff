@@ -162,7 +162,7 @@ function read(text: string, today: string): AdvertReading {
     const words = line.split(/\s+/).length;
     const read = used.has(line);
     if (!read && FACT_TOPICS.test(line) && words <= 8) facts.push(line);
-    else if (!labelled && /[.!]$/.test(line) && (read ? words >= 8 : words >= 4)) {
+    else if (!labelled && /[.!]$/.test(line) && (read ? words >= 6 : words >= 4)) {
       description.push(line);
     }
   }

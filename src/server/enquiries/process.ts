@@ -41,7 +41,20 @@ export async function processInboundEmail(
   input: { organisationId: string; inboundEmailId: string; forcedLettingId?: string },
   hooks: ProcessHooks = defaultHooks,
 ): Promise<ProcessOutcome> {
-  return withOrg(input.organisationId, async (tx) => {
+  return withOrg(input.organisationId, (tx) => processInboundEmailIn(tx, input, hooks));
+}
+
+/**
+ * The same, inside a transaction the caller already holds for this organisation: for a use case
+ * that places an email as part of something else (a home started from an enquiry becoming a
+ * letting, UX-LT-16).
+ */
+export async function processInboundEmailIn(
+  tx: Tx,
+  input: { organisationId: string; inboundEmailId: string; forcedLettingId?: string },
+  hooks: ProcessHooks = defaultHooks,
+): Promise<ProcessOutcome> {
+  {
     const [email] = await tx
       .select()
       .from(inboundEmails)
@@ -227,7 +240,7 @@ export async function processInboundEmail(
     };
     await hooks.afterMessage(tx, input.organisationId, { ...outcome, messageId: message!.id });
     return outcome;
-  });
+  }
 }
 
 export interface ProcessHooks {

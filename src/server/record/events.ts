@@ -49,7 +49,27 @@ export const eventCatalogue = {
   'letting.draft_started': z.object({
     origin: z.enum(draftOrigins),
     fromLettingId: z.uuid().optional(),
+    /** UX-LT-16: the enquiry it was started from. */
+    inboundEmailId: z.uuid().optional(),
   }),
+  /**
+   * UX-LT-2, UX-AI-5: an advert the lister pasted was read into the home. Counts only: how
+   * many values were found, how many the reader gave that code dropped, how many lines about
+   * who should apply were left out, how many values ask to be checked. Never a word of it.
+   */
+  'letting.advert_read': z.object({
+    reader: z.enum(['fake', 'bedrock']),
+    found: z.number().int().min(0),
+    dropped: z.number().int().min(0),
+    leftOut: z.number().int().min(0),
+    unsure: z.number().int().min(0),
+  }),
+  /**
+   * UX-LT-16: the enquiry a home was started from was attached to it, now that it is a
+   * letting. `matched` is false where the email could no longer be read as an enquiry (its
+   * content was deleted on schedule, say): then it stays in Inbox.
+   */
+  'letting.enquiry_attached': z.object({ inboundEmailId: z.uuid(), matched: z.boolean() }),
   /** A step of adding it was answered, or the review confirmed. Which step: never what was typed. */
   'letting.draft_saved': z.object({ step: z.enum(['review', 'address', 'rent', 'home']) }),
   /** UX-LT-8: an advert link was kept, to match enquiries to the home. Never fetched (Q31). */

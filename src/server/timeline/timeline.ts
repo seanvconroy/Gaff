@@ -86,7 +86,33 @@ export function describeEvent(
     case 'letting.draft_started':
       return {
         what: 'Started adding the home',
-        detail: data.origin === 'again' ? 'From the last time it was let' : undefined,
+        detail:
+          data.origin === 'again'
+            ? 'From the last time it was let'
+            : data.origin === 'advert'
+              ? 'From its advert'
+              : data.origin === 'enquiry'
+                ? 'From an enquiry'
+                : undefined,
+      };
+    case 'letting.advert_read': {
+      const count = (n: unknown, one: string, many: string) =>
+        `${Number(n)} ${Number(n) === 1 ? one : many}`;
+      return {
+        what: 'Advert read by Gaff',
+        detail: [
+          count(data.found, 'detail found', 'details found'),
+          Number(data.leftOut) > 0 ? count(data.leftOut, 'line left out', 'lines left out') : null,
+        ]
+          .filter(Boolean)
+          .join(', '),
+      };
+    }
+    case 'letting.enquiry_attached':
+      return {
+        what: data.matched
+          ? 'The enquiry it was started from was added to it'
+          : 'The enquiry it was started from could no longer be read',
       };
     case 'letting.draft_saved':
       return { what: savedSteps[String(data.step)] ?? 'The home’s details saved' };

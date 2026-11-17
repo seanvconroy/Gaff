@@ -286,6 +286,14 @@ export function descriptionSchema() {
   return z.object({ description: fields.description, otherFacts: fields.otherFacts });
 }
 
+/**
+ * The review's "The home" sheet: the type, the rooms, furnishing, the BER and parking. The
+ * description and the other facts have a sheet of their own, so saving this one leaves them be.
+ */
+export function homeFactsSchema() {
+  return homeStepSchema().omit({ description: true, otherFacts: true });
+}
+
 const stepFields = {
   address: ['addressLine1', 'addressLine2', 'area', 'county', 'eircode'],
   rent: ['rent', 'availableFrom'],

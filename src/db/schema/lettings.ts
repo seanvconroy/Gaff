@@ -15,10 +15,12 @@ import {
 } from 'drizzle-orm/pg-core';
 import type { Criteria } from '@/domain/criteria/criteria';
 import { draftOrigins, flowSteps, type DraftAnswers } from '@/domain/lettings/add-letting';
+import type { DraftReading } from '@/domain/lettings/advert-reading';
 import type { Portal } from '@/domain/lettings/setup';
 import { stages } from '@/domain/lettings/stages';
 import { users } from './auth';
 import { createdAt, tenantPolicy, updatedAt } from './columns';
+import { inboundEmails } from './enquiries';
 import { organisations } from './organisations';
 
 export const lettingStage = pgEnum('letting_stage', stages);
@@ -134,10 +136,27 @@ export const lettingDrafts = pgTable(
     step: text({ enum: ['review', ...flowSteps] }),
     /** UX-LT-23: the letting "Let it again" was pressed on. */
     previousLettingId: uuid().references(() => lettings.id),
+    /**
+     * UX-LT-3, UX-AI-4: for a home that was read from an advert or an enquiry, the words each
+     * value came from, what to check and the lines left out. The lister's own words about a
+     * home, with names and contact details taken out first. It goes with the draft.
+     */
+    reading: jsonb().$type<DraftReading>(),
+    /**
+     * UX-LT-16: the enquiry the home was started from. It is attached to the letting, as that
+     * renter's enquiry, the moment the draft becomes one.
+     */
+    inboundEmailId: uuid().references((): AnyPgColumn => inboundEmails.id, {
+      onDelete: 'set null',
+    }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index('letting_drafts_organisation_idx').on(t.organisationId), tenantPolicy()],
+  (t) => [
+    index('letting_drafts_organisation_idx').on(t.organisationId),
+    index('letting_drafts_inbound_email_idx').on(t.inboundEmailId),
+    tenantPolicy(),
+  ],
 ).enableRLS();
 
 /**

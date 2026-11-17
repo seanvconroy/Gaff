@@ -46,7 +46,7 @@ describe('R19: who approves (Q22)', () => {
       tx.update(lettings).set({ landlordId: null }).where(eq(lettings.id, lettingId)),
     );
     expect((await approvalFor(member, lettingId))!.route).toBe('operator_confirms');
-    await expect(askLandlord(member, lettingId)).rejects.toThrow('Add the landlord’s email first.');
+    await expect(askLandlord(member, lettingId)).rejects.toThrow('Add the owner’s email first.');
     await saveLandlordContact(member, lettingId, { name: 'Tom Walsh', email: 'TOM@example.ie' });
     const state = await approvalFor(member, lettingId);
     expect(state).toMatchObject({

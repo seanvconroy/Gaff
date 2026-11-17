@@ -48,6 +48,7 @@ import {
   createTestPerson,
   databaseError,
   renterTokenFor,
+  threeComparables,
   tokenInMessage,
   type Member,
 } from './helpers';
@@ -389,6 +390,7 @@ describe('UX-ME-2: the funnels, from the record’s events and the new steps', (
     expect(await openApprovalSummary(approvalToken)).not.toBeNull();
     await openApprovalSummary(approvalToken);
     await answerApproval(approvalToken, { preferred: 'approve', backup: 'approve' });
+    await threeComparables(member, lettingId);
     expect(
       await makeOffer(member, lettingId, {
         deposit: '1,850',

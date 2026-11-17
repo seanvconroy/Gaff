@@ -156,8 +156,8 @@ test('R2: an operator sets criteria from the fixed list', async ({ page }) => {
   await page.goto(`${overview}?view=home`);
   const details = page.getByRole('region', { name: 'Letting details' });
   await expect(details.getByText('Up to 3 people')).toBeVisible();
-  await expect(details.getByText('Plans to stay at least a year')).toBeVisible();
-  await expect(details.getByText('No pets (assistance dogs are always welcome)')).toBeVisible();
+  await expect(details.getByText('A year or longer')).toBeVisible();
+  await expect(details.getByText('No pets (assistance dogs always welcome)')).toBeVisible();
   await expectAccessible(page);
   await screenshot(page, '11-overview-with-criteria');
 

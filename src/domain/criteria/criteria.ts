@@ -49,21 +49,6 @@ export function describeStay(months: number): string {
   return `${months / 12} years`;
 }
 
-/** The criteria in plain words, as the operator and renters see them. */
-export function describeCriteria(criteria: Criteria, now: Date = new Date()): string[] {
-  const lines: string[] = [];
-  if (criteria.moveInBy) lines.push(`Can move in by ${formatDate(criteria.moveInBy, now)}`);
-  if (criteria.minStayMonths)
-    lines.push(`Plans to stay at least ${describeStay(criteria.minStayMonths)}`);
-  if (criteria.maxOccupants) {
-    lines.push(
-      `Up to ${criteria.maxOccupants} ${criteria.maxOccupants === 1 ? 'person' : 'people'}`,
-    );
-  }
-  if (criteria.noPets) lines.push('No pets (assistance dogs are always welcome)');
-  return lines;
-}
-
 /** Reads the criteria form. Blank fields mean "no criterion". */
 export function criteriaFormSchema(now: Date = new Date()) {
   const today = irishToday(now);

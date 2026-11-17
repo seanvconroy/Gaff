@@ -416,7 +416,7 @@ test('UX-FL-2: Save and exit keeps what was typed, and Continue comes back to th
     await expectAccessible(page);
     await screenshot(page, `ux-lt-resume-letting-${width}`);
     await page.getByRole('link', { name: 'Home', exact: true }).click();
-    await expect(page.getByText('No pets (assistance dogs are always welcome)')).toBeVisible();
+    await expect(page.getByText('No pets (assistance dogs always welcome)')).toBeVisible();
     await page.getByRole('link', { name: 'Overview', exact: true }).click();
     await setup.getByRole('link', { name: 'Continue' }).click();
     await expect(

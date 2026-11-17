@@ -2,7 +2,7 @@ import { and, asc, eq, isNull } from 'drizzle-orm';
 import type { Tx } from '@/db/client';
 import { lettingFacts, type lettings, viewingSessions } from '@/db/schema';
 import type { Fact } from '@/domain/answers/guardrails';
-import { describeCriteria } from '@/domain/criteria/criteria';
+import { lettingDetailsParts } from '@/domain/criteria/criteria';
 import {
   describeKeyFacts,
   type berRatings,
@@ -37,7 +37,10 @@ export async function factsFor(tx: Tx, letting: Letting): Promise<Fact[]> {
     })),
   ];
   if (letting.photosUrl) facts.push({ id: 'core:photos', text: `Photos: ${letting.photosUrl}` });
-  for (const [i, line] of describeCriteria(letting.criteria ?? { noPets: false }).entries()) {
+  for (const [i, line] of lettingDetailsParts(
+    letting.criteria,
+    letting.noSmokingIndoors,
+  ).entries()) {
     facts.push({ id: `core:criteria-${i + 1}`, text: `Criteria for viewing: ${line}` });
   }
   const sessions = await tx

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { lettingPageCopy } from '@/copy/letting-page';
-import { describeCriteria, NO_SMOKING_INDOORS } from '@/domain/criteria/criteria';
+import { lettingDetailsParts } from '@/domain/criteria/criteria';
 import { screenHref } from '@/domain/lettings/links';
 import { describeKeyFacts } from '@/domain/lettings/new-letting';
 import { previewBer } from '@/domain/lettings/preview';
@@ -60,12 +60,10 @@ export function HomeView({
     parking: letting.parking as Parameters<typeof describeKeyFacts>[0]['parking'],
   });
   const ber = previewBer(letting.berRating);
+  // UX-MT-3: the letting details in Gaff's fixed words, the same everywhere they appear. The one
+  // house rule sits with them (UX-MT-5), and never ranks anyone.
   const details = letting.criteria
-    ? [
-        ...describeCriteria(letting.criteria),
-        // UX-MT-5: the one house rule sits with the letting details, and never ranks anyone.
-        ...(letting.noSmokingIndoors ? [NO_SMOKING_INDOORS] : []),
-      ]
+    ? lettingDetailsParts(letting.criteria, letting.noSmokingIndoors)
     : [];
   const advertised = [
     ...(shownOnGaff ? [copy.onGaff] : []),

@@ -1,5 +1,5 @@
 import { formatRatio } from '@/domain/applications/apply';
-import { describeCriteria, type Criteria } from '@/domain/criteria/criteria';
+import { lettingDetailsParts, type Criteria } from '@/domain/criteria/criteria';
 import type { FigureCode, LetSummary, OwnerFigure, Standing } from '@/domain/landlord/owner-page';
 import { formatDate, formatDateTime, formatRent } from '@/lib/format';
 import { possessive } from './templates/first-reply';
@@ -260,7 +260,7 @@ export const ownerCopy = {
       case 'letting.went_live':
         return { what: 'The home went live' };
       case 'criteria.set': {
-        const lines = describeCriteria(data as unknown as Criteria, now);
+        const lines = lettingDetailsParts(data as unknown as Criteria, false, now);
         return {
           what: 'What’s asked of renters was set',
           detail: lines.length > 0 ? lines.join(' · ') : 'Nothing asked',

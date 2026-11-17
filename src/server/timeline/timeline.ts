@@ -1,7 +1,11 @@
 import { asc, eq } from 'drizzle-orm';
 import { withOrg, type Tx } from '@/db/client';
 import { events, users } from '@/db/schema';
-import { describeCriteria, NO_SMOKING_INDOORS, type Criteria } from '@/domain/criteria/criteria';
+import {
+  lettingDetailsParts,
+  NO_SMOKING_INDOORS,
+  type Criteria,
+} from '@/domain/criteria/criteria';
 import { sourcesInWords } from '@/domain/enquiries/sources';
 import { formatDate, formatEuro, formatRent } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
@@ -178,7 +182,7 @@ export function describeEvent(
         detail: data.moved ? `${people(Number(data.told))} booked were told it moved` : undefined,
       };
     case 'criteria.set': {
-      const lines = describeCriteria(data as unknown as Criteria);
+      const lines = lettingDetailsParts(data as unknown as Criteria, false);
       return { what: 'Criteria set', detail: lines.length ? lines.join('; ') : 'No criteria' };
     }
     case 'rent_check.recorded':

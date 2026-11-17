@@ -10,8 +10,14 @@ import {
   flowSteps,
   formValuesFrom,
   reviewGroups,
-  thingsToCheck,
 } from '@/domain/lettings/add-letting';
+import {
+  type DraftReading,
+  reviewChecks,
+  type SourcedField,
+  sourcedFields,
+} from '@/domain/lettings/advert-reading';
+import { homeWordingWhy } from '@/domain/compliance/who-should-apply';
 import {
   type FlowScreen,
   fromOf,
@@ -52,7 +58,12 @@ import { GoLiveHeld, GoLiveStep } from '../../../_flow/GoLive';
 import { flowHome } from '../../../_flow/home';
 import { HomePreview } from '../../../_flow/HomePreview';
 import { RentCheckStep, RentResultStep } from '../../../_flow/RentCheck';
-import { type ReviewPart, type ReviewRow, ReviewStep } from '../../../_flow/Review';
+import {
+  type ReadingView,
+  type ReviewPart,
+  type ReviewRow,
+  ReviewStep,
+} from '../../../_flow/Review';
 import { AddressStep, DetailsStep, HomeStep, PhotosStep, RentStep } from '../../../_flow/Steps';
 import type { StepFrame } from '../../../_flow/StepForm';
 
@@ -81,6 +92,74 @@ function allowed(home: FlowHome, screen: FlowScreen, alone: boolean): boolean {
   // UX-LT-14: the rent check comes before go-live. UX-AG-4: a held home has been decided.
   if (screen === 'go_live') return setup.rentCheckDone && !letting.goLiveHeldAt;
   return true;
+}
+
+/** Which part of the review each value that was read belongs to. */
+const partOf: Record<SourcedField, ReviewPart> = {
+  addressLine1: 'address',
+  addressLine2: 'address',
+  area: 'address',
+  county: 'address',
+  eircode: 'address',
+  daftUrl: 'address',
+  myhomeUrl: 'address',
+  rentCents: 'rent',
+  availableFrom: 'rent',
+  propertyType: 'home',
+  bedrooms: 'home',
+  bathrooms: 'home',
+  furnished: 'home',
+  berRating: 'home',
+  parking: 'home',
+};
+
+/**
+ * UX-LT-3, UX-LT-6, UX-AI-4: what the review shows of a reading, in words. Each value's source
+ * goes in the sheet its row opens; the lines left out, each with why, behind "Why?".
+ */
+function readingView(reading: DraftReading, hasCriteria: boolean): ReadingView {
+  const r = copy.review;
+  const sources: Partial<
+    Record<ReviewPart, Array<{ label: string; quote: string; note: string | null }>>
+  > = {};
+  for (const field of sourcedFields) {
+    const source = reading.sources[field];
+    if (!source) continue;
+    const isLink = field === 'daftUrl' || field === 'myhomeUrl';
+    (sources[partOf[field]] ??= []).push({
+      label: r.read.labels[field],
+      quote: isLink ? source.quote : r.read.quote(source.quote),
+      note: isLink ? r.read.linkKept : source.sure ? null : r.read.unsure,
+    });
+  }
+  const s = r.suggested;
+  const suggested = hasCriteria
+    ? []
+    : [
+        reading.suggested.noPets
+          ? { label: s.noPets, quote: reading.suggested.noPets.quote }
+          : null,
+        reading.suggested.minStayMonths
+          ? { label: s.minStayMonths, quote: reading.suggested.minStayMonths.quote }
+          : null,
+        reading.suggested.maxOccupants
+          ? { label: s.maxOccupants, quote: reading.suggested.maxOccupants.quote }
+          : null,
+      ].filter((each) => each !== null);
+  for (const each of suggested) {
+    (sources.details ??= []).push({
+      label: each.label,
+      quote: r.read.quote(each.quote),
+      note: null,
+    });
+  }
+  return {
+    from: reading.from,
+    sources,
+    ownWords: reading.ownWords.map((each) => r.read.ownWords[each]),
+    suggested: suggested.length > 0,
+    leftOut: reading.leftOut.map((each) => ({ line: each.line, why: homeWordingWhy(each.reason) })),
+  };
 }
 
 function reviewRows(
@@ -122,7 +201,9 @@ function reviewRows(
       .join(' · '),
     details:
       lettingDetailsLine(answers.criteria ?? null, answers.noSmokingIndoors ?? false) ??
-      r.missing.details,
+      (home.reading && Object.keys(home.reading.suggested).length > 0
+        ? r.suggested.meta
+        : r.missing.details),
   };
   return (['photos', ...reviewGroups, 'details'] as const).map((part) => ({
     part,
@@ -194,12 +275,22 @@ export default async function SetupStepPage({
         (part) => part === query.edit,
       );
       const reviewHref = screenHref(id, 'review', from);
+      const { reading } = home;
+      const hasCriteria = Boolean(home.answers.criteria);
+      // Section 6: what the advert says about letting details is switched on in the sheet,
+      // for the person to save or switch off. Nothing is asked of renters until they do.
+      const suggested = reading && !hasCriteria ? reading.suggested : {};
       return (
         <ReviewStep
           frame={{ leaveHref }}
           origin={home.kind === 'draft' ? home.origin : 'manual'}
           rows={reviewRows(home, today, (part) => screenHref(id, 'review', from, { edit: part }))}
-          checks={thingsToCheck({ answers: home.answers, photos: home.photos.length }, today)}
+          checks={reviewChecks(
+            { answers: home.answers, photos: home.photos.length },
+            today,
+            reading,
+          )}
+          reading={reading ? readingView(reading, hasCriteria) : null}
           open={open ?? null}
           reviewHref={reviewHref}
           looksRight={confirmReviewAction.bind(null, id, from)}
@@ -212,7 +303,11 @@ export default async function SetupStepPage({
           }}
           values={values}
           details={lettingDetailsFormValues({
-            ...home.answers.criteria,
+            ...(home.answers.criteria ?? {
+              noPets: suggested.noPets ? true : undefined,
+              minStayMonths: suggested.minStayMonths?.value,
+              maxOccupants: suggested.maxOccupants?.value,
+            }),
             noSmokingIndoors: home.answers.noSmokingIndoors,
           })}
           availableFrom={home.answers.availableFrom ?? ''}

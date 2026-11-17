@@ -17,6 +17,7 @@ export const addLettingCopy = {
   start: {
     title: 'Tell Gaff about the home',
     box: 'Paste your advert, or describe the home in your own words.',
+    /** UX-LT-1: for a brochure or screenshots, once files are read. Not shown until then. */
     attach: 'Attach a brochure, screenshots or photos',
     continue: 'Continue',
     manual: 'Fill it in myself',
@@ -24,8 +25,20 @@ export const addLettingCopy = {
     /** UX-LT-8 (Q31): a Daft or MyHome link is kept, and never fetched. */
     linkKept:
       'Got it. Gaff will use this link to match enquiries. Paste the advert’s text too, and Gaff will fill in the details.',
-    /** Until the reader is switched on (work package WP-10). What was typed is kept. */
-    readerOff: 'Gaff can’t read adverts yet. Fill it in yourself: it takes a few minutes.',
+    /** Q31: any other link. Nothing is fetched from anywhere. */
+    linkNotOpened:
+      'Gaff doesn’t open links, so it can’t read that page. Paste the advert’s text here, or fill it in yourself.',
+    /** UX-AI-13: the review's layout, while the advert is read. */
+    reading: 'Reading your advert…',
+    readingButton: 'Reading…',
+    /** The text says nothing Gaff could find about a home. What was typed is kept. */
+    couldNotMakeOut:
+      'Gaff couldn’t make that out. Paste the advert’s text, or fill it in yourself.',
+    /** UX-AI-12: the reader is slow or down. The manual route is on the same screen. */
+    notJustNow: 'Gaff couldn’t read that just now. Try again, or fill it in yourself.',
+    /** The reader is switched off (ADVERT_READER): the screen offers only what works. */
+    readerOff:
+      'Gaff isn’t reading adverts just now. Fill the home in yourself: it takes a few minutes.',
     drafts: 'Carry on with a home you started',
     draftWithoutAddress: 'A home with no address yet',
   },
@@ -241,6 +254,67 @@ export const addLettingCopy = {
     availableFrom: (date: string) => `Available from ${date}`,
     datePassed: (date: string) => `Was available from ${date}`,
     done: 'Done',
+
+    /**
+     * A home that was read (work package WP-10). UX-AI-1, UX-AI-4: what the AI filled in is
+     * marked, and shows the words it came from. An enquiry is read by a parser, not the AI,
+     * so it says where a value came from and carries no AI mark (section 7).
+     */
+    read: {
+      advert: {
+        pill: 'Read by AI',
+        note: 'Gaff filled these in from your advert, and guessed nothing. Tap a row to see the words each one came from.',
+        row: 'From your advert',
+        from: 'From your advert',
+      },
+      enquiry: {
+        pill: null,
+        note: 'Gaff took the address from the enquiry, and guessed nothing. Tap a row to see where it came from.',
+        row: 'From the enquiry',
+        from: 'From the enquiry',
+      },
+      /** UX-LT-3: "From your advert: 'gas fired central heating'". */
+      quote: (words: string) => `“${words}”`,
+      unsure: 'The advert isn’t clear about this. Check it.',
+      ownWords: {
+        description: 'The description is in your advert’s own words. Gaff rewrote nothing.',
+        otherFacts: 'These facts are in your advert’s own words.',
+      },
+      labels: {
+        addressLine1: 'Address',
+        addressLine2: 'Address line 2',
+        area: 'Town or area',
+        county: 'County',
+        eircode: 'Eircode',
+        rentCents: 'Rent a month',
+        availableFrom: 'Available from',
+        propertyType: 'Type of home',
+        bedrooms: 'Bedrooms',
+        bathrooms: 'Bathrooms',
+        furnished: 'Furnishing',
+        berRating: 'BER rating',
+        parking: 'Parking',
+        daftUrl: 'Daft advert',
+        myhomeUrl: 'MyHome advert',
+      },
+      linkKept: 'Kept to match enquiries. Gaff doesn’t open it.',
+    },
+    /** UX-LT-6: said once, on the review. */
+    leftOut: (count: number) =>
+      `Gaff left out ${count === 1 ? '1 line' : `${count} lines`}. Adverts can’t say who a home suits.`,
+    why: 'Why?',
+    /** Three sentences (UX-LT-6). */
+    whyText:
+      'Equality law says a home can’t be advertised or let by who a person is. A line about who should apply, like “would suit a professional couple” or “no HAP”, can be read as turning people away, so Gaff leaves it out of what renters see. Describe the home instead: its rooms, its rent and what’s nearby.',
+    leftOutLines: 'What Gaff left out',
+    /** Section 6: the advert says something that could be a letting detail. A person decides. */
+    suggested: {
+      meta: 'Your advert mentions letting details. Nothing is asked until you save them.',
+      note: 'Gaff has switched on what your advert says. Nothing is asked of renters until you save. Switch off anything you don’t want.',
+      noPets: 'No pets',
+      minStayMonths: 'Length of stay',
+      maxOccupants: 'Most people',
+    },
   },
 
   setup: {
@@ -266,6 +340,15 @@ export const addLettingCopy = {
       'The link takes a renter to the questions your letting details need. It takes them about a minute.',
     noQuestions: 'You asked for no letting details, so a renter is asked nothing before a viewing.',
     done: 'Done',
+  },
+
+  /** UX-LT-16: in Inbox, on an enquiry Gaff couldn't match to any home. */
+  fromEnquiry: {
+    question: 'Is it about a home that isn’t on Gaff yet?',
+    lead: 'Gaff can start it from this email, with the address and the advert’s link. The enquiry joins the home once it’s set up, and Gaff answers it when the home goes live.',
+    start: 'Start a letting from this enquiry',
+    starting: 'Starting…',
+    carryOn: 'Carry on with this home',
   },
 
   letAgain: {

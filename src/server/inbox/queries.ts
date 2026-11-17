@@ -4,6 +4,7 @@ import {
   applications,
   inboundEmails,
   landlords,
+  lettingDrafts,
   lettings,
   memberships,
   messages,
@@ -242,6 +243,12 @@ export interface EmailThread extends ThreadBase {
   confirmation: ForwardingConfirmation | null;
   /** The homes it could be about: the ones taking enquiries, where Gaff can read an enquiry. */
   homes: Array<{ lettingId: string; address: string }>;
+  /**
+   * UX-LT-16: an enquiry about a home that isn't on Gaff can start one. `draftId` is the home
+   * already started from this email, to carry on with. Null where Gaff can't read the email as
+   * an enquiry: then there is nothing to start a home from.
+   */
+  newHome: { draftId: string | null } | null;
 }
 
 export type OpenThread = RenterThread | OwnerThread | EmailThread;
@@ -279,10 +286,18 @@ export async function threadFor(
                 .orderBy(asc(lettings.addressLine1))
             ).filter((home) => !own.has(home.lettingId))
           : [];
+      const [started] =
+        email.problem === 'no_matching_letting'
+          ? await tx
+              .select({ id: lettingDrafts.id })
+              .from(lettingDrafts)
+              .where(eq(lettingDrafts.inboundEmailId, email.id))
+          : [];
       return {
         kind: 'email',
         key,
         emailId: email.id,
+        newHome: email.problem === 'no_matching_letting' ? { draftId: started?.id ?? null } : null,
         name,
         firstName: name,
         subject: email.subject,

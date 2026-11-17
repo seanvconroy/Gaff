@@ -4,14 +4,21 @@ import { useActionState, useState } from 'react';
 import type { Show } from '@/domain/inbox/conversations';
 import { answerField } from '@/domain/inbox/thread';
 import { emptyFormState, type FormState } from '@/lib/forms';
-import { Button } from '@/ui/Button';
+import { addLettingCopy } from '@/copy/add-letting';
+import { Button, ButtonLink } from '@/ui/Button';
 import { ChoiceGroup, TextArea } from '@/ui/Field';
 import { FormActions, formClass } from '@/ui/Form';
 import { Notice } from '@/ui/Notice';
 import { DraftedByAi } from '@/ui/StatusPill';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { DraftGap, DraftText, ReplyBox } from '@/ui/Thread';
-import { answerAction, draftAction, placeEmailAction, writeAction } from './actions';
+import {
+  answerAction,
+  draftAction,
+  placeEmailAction,
+  startFromEnquiryAction,
+  writeAction,
+} from './actions';
 import styles from './inbox.module.css';
 
 /** A question only a person can answer, as the reply box words it (`questionWords`). */
@@ -282,6 +289,46 @@ export function PlaceEmail({
           </FormActions>
         </>
       )}
+    </form>
+  );
+}
+
+/**
+ * UX-LT-16: on an enquiry Gaff couldn't match to any home, a way to start the home it is about,
+ * filled in from the email. Where one was started already, a way back to it. It is never the
+ * screen's primary button: which home an email is about is the question here.
+ */
+export function StartFromEnquiry({
+  conversation,
+  draftHref,
+}: {
+  conversation: string;
+  /** The home already started from this email, to carry on with. */
+  draftHref: string | null;
+}) {
+  const words = addLettingCopy.fromEnquiry;
+  const [state, action] = useActionState(
+    startFromEnquiryAction.bind(null, conversation),
+    emptyFormState,
+  );
+  return (
+    <form action={action} className={formClass} noValidate aria-labelledby="new-home-title">
+      <div>
+        <h3 id="new-home-title" className="type-heading">
+          {words.question}
+        </h3>
+        <p>{words.lead}</p>
+      </div>
+      <FormProblem state={state} />
+      <FormActions>
+        {draftHref ? (
+          <ButtonLink href={draftHref}>{words.carryOn}</ButtonLink>
+        ) : (
+          <SubmitButton variant="secondary" pendingLabel={words.starting}>
+            {words.start}
+          </SubmitButton>
+        )}
+      </FormActions>
     </form>
   );
 }

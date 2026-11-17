@@ -16,6 +16,8 @@ import { answerQuestions, approveMessage, discardDraft } from '@/server/answers/
 import { requireMember } from '@/server/auth/member';
 import { assignInboundEmail, dismissInboundEmail } from '@/server/enquiries/attention';
 import { UserFacingError } from '@/server/errors';
+import { screenHref } from '@/domain/lettings/links';
+import { startLettingFromEnquiry } from '@/server/lettings/from-enquiry';
 import { writeToOwner, writeToRenter } from '@/server/messages/write';
 import { type DoneCode, doneNote } from './done';
 
@@ -147,4 +149,28 @@ export async function placeEmailAction(
     applicationId ? conversationHref(conversationKey({ kind: 'renter', id: applicationId })) : list,
     'matched',
   );
+}
+
+/**
+ * UX-LT-16: an enquiry about a home that isn't on Gaff yet starts one, filled in from the
+ * portal's email, and opens at "Here's what Gaff found". The email stays in Inbox until the
+ * home becomes a letting; then it is that renter's enquiry about it.
+ */
+export async function startFromEnquiryAction(
+  conversation: string,
+  _state: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const member = await requireMember();
+  const ref = parseConversationKey(conversation);
+  if (!ref || ref.kind !== 'email') redirect(inboxHref());
+  let home: string;
+  try {
+    ({ id: home } = await startLettingFromEnquiry(member, ref.id));
+  } catch (error) {
+    return problem(error, {}, 'form');
+  }
+  revalidatePath('/inbox', 'layout');
+  revalidatePath('/lettings');
+  redirect(screenHref(home, 'review', inboxHref()));
 }

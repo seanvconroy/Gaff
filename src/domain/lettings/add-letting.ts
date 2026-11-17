@@ -200,8 +200,13 @@ export function stepsLeft(reached: FlowStep | null): number {
   return flowSteps.length - flowSteps.indexOf(reached ?? 'photos');
 }
 
-/** What the review marks "Check this" (UX-LT-4): missing, or out of date. */
-export type CheckThis = 'address' | 'rent' | 'available_from' | 'home' | 'ber' | 'photos';
+/**
+ * What the review marks "Check this" (UX-LT-4): missing, or out of date. For a home that was
+ * read from an advert, also what the advert wasn't clear about, and `details`: something it
+ * says that could be a letting detail (advert-reading.ts).
+ */
+export type CheckThis =
+  'address' | 'rent' | 'available_from' | 'home' | 'ber' | 'photos' | 'details';
 
 /**
  * UX-LT-3, UX-LT-4: what the review screen asks the person to look at, counted at its top
@@ -279,6 +284,14 @@ export type ReviewGroup = (typeof reviewGroups)[number];
 export function descriptionSchema() {
   const fields = lettingFields();
   return z.object({ description: fields.description, otherFacts: fields.otherFacts });
+}
+
+/**
+ * The review's "The home" sheet: the type, the rooms, furnishing, the BER and parking. The
+ * description and the other facts have a sheet of their own, so saving this one leaves them be.
+ */
+export function homeFactsSchema() {
+  return homeStepSchema().omit({ description: true, otherFacts: true });
 }
 
 const stepFields = {

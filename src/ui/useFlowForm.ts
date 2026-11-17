@@ -34,7 +34,7 @@ export function useFlowForm(
   action: (state: FormState, data: FormData) => Promise<FormState>,
   check?: (values: Record<string, string>) => Problems,
 ) {
-  const [state, send] = useActionState(action, emptyFormState);
+  const [state, send, pending] = useActionState(action, emptyFormState);
   const [found, setFound] = useState<Problems | null>(null);
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLFormElement>(null);
@@ -101,6 +101,8 @@ export function useFlowForm(
     values: state.values,
     /** Changes each time the server answers: key the fields on it. */
     attempt: state.attempt ?? 'first',
+    /** The form has been sent and the server hasn't answered yet. */
+    pending,
     state,
   };
 }

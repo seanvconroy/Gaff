@@ -64,6 +64,14 @@ describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)'
     ]);
   });
 
+  it('UX-AI-12: reading adverts is on unless it is switched off, and takes no other value', () => {
+    expect(environmentProblems({ ...production, ADVERT_READER: 'off' })).toEqual([]);
+    expect(environmentProblems({ ...production, ADVERT_READER: 'on' })).toEqual([]);
+    expect(environmentProblems({ ...production, ADVERT_READER: 'fetch' })).toEqual([
+      'ADVERT_READER',
+    ]);
+  });
+
   it('UX-LT-9, UX-LT-10: refuses the made-up address search and the local photo store', () => {
     expect(environmentProblems({ ...production, ADDRESS_SEARCH: 'sample' })).toEqual([
       'ADDRESS_SEARCH',

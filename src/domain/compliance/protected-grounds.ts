@@ -36,7 +36,7 @@ const patterns: Array<[ProtectedGround, RegExp]> = [
   // "Professionals only" adverts have been found to discriminate against HAP tenants.
   [
     'housing_assistance',
-    /\b(hap|housing assistance|rent supplement|rental accommodation scheme|ras|social welfare|welfare|dss|on benefits)\b/i,
+    /\b(hap|housing assistance|rent supplement|rent allowance|rental accommodation scheme|ras|social welfare|welfare|dss|on benefits)\b/i,
   ],
   [
     'housing_assistance',

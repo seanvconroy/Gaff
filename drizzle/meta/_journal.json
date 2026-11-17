@@ -190,6 +190,13 @@
       "when": 1794890575844,
       "tag": "0026_ux_rn_renter_pages",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1794895684804,
+      "tag": "0027_ux_lt_reading_an_advert",
+      "breakpoints": true
     }
   ]
 }

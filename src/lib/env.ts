@@ -89,6 +89,12 @@ const schema = z
      */
     ADDRESS_SEARCH: z.enum(['off', 'sample']).default('sample'),
     /**
+     * UX-LT-1, UX-AI-12: reading a pasted advert into a letting. "on" reads with the AI provider
+     * above (the local stand-in, or Claude on Bedrock in the EU). "off" offers only "Fill it in
+     * myself": the manual route never needs the reader.
+     */
+    ADVERT_READER: z.enum(['on', 'off']).default('on'),
+    /**
      * UX-LT-10: where homes' photos are kept. "local" is a table in Gaff's own database, for
      * local work and tests; "supabase" is Supabase Storage in Ireland (an approved vendor).
      */

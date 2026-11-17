@@ -18,6 +18,7 @@ import {
 } from '@/domain/lettings/add-letting';
 import { berRatings, parseEuroToCents } from '@/domain/lettings/new-letting';
 import type { Portal } from '@/domain/lettings/setup';
+import { forwardingHref } from '@/domain/enquiries/forwarding';
 import { returnPath } from '@/domain/navigation/return-to';
 import { phoneFieldSchema } from '@/domain/organisations/phone';
 import { rentCheckFormSchema } from '@/domain/rent/rent-check';
@@ -26,6 +27,7 @@ import { irishToday } from '@/lib/format';
 import type { AddressSuggestion, PostalAddress } from '@/ports/address-search';
 import { ensureOwnHomes } from '@/server/accounts/contexts';
 import { currentUser, findMember, type Member, requireMember } from '@/server/auth/member';
+import { forwardingStillToDoFor } from '@/server/enquiries/forwarding';
 import { UserFacingError } from '@/server/errors';
 import { advertReaderIsOn } from '@/server/lettings/advert-reader';
 import {
@@ -397,6 +399,10 @@ export async function advertisedAction(
     return problem(error, values, 'where');
   }
   revalidatePath(`/lettings/${id}`, 'layout');
+  // Section 4: Daft or MyHome leads to forwarding their enquiries, if it isn't in place yet.
+  if (on.length > 0 && (await forwardingStillToDoFor(member))) {
+    redirect(forwardingHref({ lettingId: id, justLive: true }));
+  }
   redirect(`/lettings/${id}?saved=live`);
 }
 

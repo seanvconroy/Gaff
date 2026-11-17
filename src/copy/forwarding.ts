@@ -96,9 +96,13 @@ export const forwardingCopy = {
     nothingYet: (service: ForwardingService) =>
       service === 'outlook'
         ? 'Nothing to confirm? Then your rule is ready to test.'
-        : 'Nothing after five minutes? Check your Gaff address was pasted exactly, then add it again.',
+        : service === 'other'
+          ? 'Not every email asks to confirm. If nothing comes in a few minutes, send a test enquiry to check your rule.'
+          : 'Nothing after five minutes? Check your Gaff address was pasted exactly, then add it again.',
     checkAgain: 'Check again',
     foundTitle: 'Confirm it in your email',
+    thenFilter: 'Then make the filter below.',
+    thenStarts: 'Forwarding starts once you do.',
     /** Gmail: once the address is confirmed, the filter that forwards only enquiries. */
     gmailFilter: {
       label: 'Then forward only enquiries',

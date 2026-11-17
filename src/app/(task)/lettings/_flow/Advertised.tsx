@@ -22,8 +22,8 @@ function check(values: Record<string, string>): Record<string, string> {
 /**
  * After go-live (UX-FL-4): what was done and what Gaff does next, and one question, "Is it
  * advertised anywhere else?" The answer is kept on the letting. A home on Daft or MyHome needs
- * its enquiries forwarded to Gaff: that set-up is its own flow (work package WP-11), and until
- * it exists the letting's page shows it as a task.
+ * its enquiries forwarded to Gaff: Done opens that flow (`/forwarding`) if forwarding isn't in
+ * place yet, and until it is, the letting's page and Today show it as the home's task.
  */
 export function AdvertisedStep({
   frame,

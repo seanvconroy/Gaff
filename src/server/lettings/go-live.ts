@@ -334,7 +334,8 @@ export async function setOnGaff(member: Member, lettingId: string, on: boolean):
 /**
  * "Is it advertised anywhere else?", asked once after go-live: Daft, MyHome, or No. The answer
  * is kept on the letting. A home advertised elsewhere needs its enquiries forwarded to Gaff:
- * that flow is work package WP-11, which reads `advertisedOn` (`needsForwarding`).
+ * the forwarding flow (`src/server/enquiries/forwarding.ts`), and `needsForwarding` makes it the
+ * home's task until mail comes through.
  */
 export async function setAdvertisedOn(
   member: Member,

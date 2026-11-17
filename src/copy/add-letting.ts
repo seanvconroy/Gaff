@@ -198,13 +198,6 @@ export const addLettingCopy = {
     done: 'Done',
   },
 
-  /** The forwarding task, until its own flow is built (work package WP-11). */
-  forwarding: {
-    title: (where: string) => `Send your ${where} enquiries to Gaff`,
-    text: 'Forward them to your Gaff address, and Gaff answers each one within minutes.',
-    action: 'See your Gaff address',
-  },
-
   review: {
     title: {
       again: 'Here’s the home from last time',

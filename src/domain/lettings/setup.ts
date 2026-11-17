@@ -133,8 +133,8 @@ export type Portal = keyof typeof portals;
 
 /**
  * UX-LT-20: a home advertised on Daft or MyHome with no forwarding in place says so as its one
- * task. THE SEAM for work package WP-11, which builds the forwarding flow and knows whether a
- * rule is in place: until then, forwarding counts as in place once an enquiry has come through.
+ * task. Whether forwarding is in place is the organisation's, known from what has come through
+ * its rule (`forwardingInPlace` in `@/domain/enquiries/forwarding`).
  */
 export function needsForwarding(letting: {
   advertisedOn: readonly Portal[] | null;

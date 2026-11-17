@@ -63,6 +63,10 @@ describe('UX-AC-6: first run asks one question per screen, and never more than f
     expect(purposeFromNext('/lettings/new?from=%2F')).toBe('own_home');
     expect(purposeFromNext('/saved')).toBe('renting');
     expect(purposeFromNext('/enquiries')).toBe('renting');
+    // UX-RN-13: someone who ticked "Keep my details for next time" is on their way back to
+    // that home's page.
+    expect(purposeFromNext(`/r/${'a'.repeat(43)}/keep`)).toBe('renting');
+    expect(purposeFromNext(`/r/${'a'.repeat(43)}`)).toBeNull();
     // Anything else says nothing, so the question is asked.
     expect(purposeFromNext('/today')).toBeNull();
     expect(purposeFromNext('/profile')).toBeNull();

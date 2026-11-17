@@ -32,4 +32,11 @@ describe('UX-AC-14: a member can’t open a letting they have applied for as a r
   it('a deleted applicant’s placeholder never matches anyone', () => {
     expect(appliedForThisLetting(ann, ['deleted-3f0e8a5c'])).toBe(false);
   });
+
+  it('UX-AC-14: a member whose own Enquiries hold the home is in conflict, whatever the address', () => {
+    // They enquired from another address, and showed the enquiry is theirs (UX-RH-4).
+    expect(appliedForThisLetting(ann, ['ann.personal@example.ie'], true)).toBe(true);
+    expect(appliedForThisLetting({ ...ann, emailVerified: false }, [], true)).toBe(true);
+    expect(appliedForThisLetting(ann, ['ann.personal@example.ie'], false)).toBe(false);
+  });
 });

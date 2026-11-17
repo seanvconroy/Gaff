@@ -164,11 +164,21 @@ export const listAHomeHref = '/lettings/new';
 export const listAHomeSignedOutHref = `/sign-in?next=${encodeURIComponent(listAHomeHref)}`;
 
 /**
+ * UX-RH-2: a renter opens on Enquiries when something needs them, and on Search when nothing
+ * does. "Opens" is arriving on the renting side: signing in, switching to renting, or loading
+ * Gaff afresh. Tapping Search in the bar is always Search.
+ */
+export function rentingOpensOn(needsThem: number): '/enquiries' | '/' {
+  return needsThem > 0 ? '/enquiries' : '/';
+}
+
+/**
  * `/` is the public site's first screen, Search on the renting side, and where sign-in lands. So
  * it sends people on:
  *
  * - someone letting goes to Today (UX-HM-1);
- * - someone renting stays: this is Search (UX-NV-19);
+ * - someone renting stays: this is Search (UX-NV-19). Unless they are opening Gaff (`opening`)
+ *   and a home needs them: then Enquiries (UX-RH-2);
  * - someone signed in with no context yet goes to first run (UX-SI-8), unless they left it to
  *   look around (UX-AC-10);
  * - a signed-out visitor stays (UX-NV-20).
@@ -176,9 +186,13 @@ export const listAHomeSignedOutHref = `/sign-in?next=${encodeURIComponent(listAH
 export function firstScreenRedirect(
   person: { side: Side | null } | null,
   query: { rent?: string | string[] },
-): '/today' | '/welcome' | null {
+  /** The page is being loaded afresh, not reached from the bar: how many homes need the renter. */
+  opening?: { needsThem: number } | null,
+): '/today' | '/welcome' | '/enquiries' | null {
   if (person === null) return null;
   if (person.side === 'letting') return '/today';
-  if (person.side === 'renting') return null;
+  if (person.side === 'renting') {
+    return opening && rentingOpensOn(opening.needsThem) === '/enquiries' ? '/enquiries' : null;
+  }
   return query.rent === '1' ? null : '/welcome';
 }

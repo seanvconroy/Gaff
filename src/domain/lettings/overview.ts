@@ -25,8 +25,9 @@ export interface OverviewFacts {
   /** The stored stage. */
   stage: Stage;
   status: string;
-  /** UX-AG-4: going live waits for the agency to be confirmed. */
+  /** UX-AG-4: going live waits for the agency to be confirmed, and the words that say so. */
   goLiveHeld: boolean;
+  goLiveHeldWords?: string;
   setupStepsLeft: number;
   /**
    * UX-AG-2, UX-AG-6: why a home being set up can't go live, where nothing waits for it: the
@@ -185,7 +186,7 @@ export function needsYouOn(facts: OverviewFacts, now: Date = new Date()): NeedsY
   const closed = facts.status === 'withdrawn' || facts.stage === 'close';
 
   if (facts.status === 'draft') {
-    if (facts.goLiveHeld) return { kind: 'nothing', doing: n.held };
+    if (facts.goLiveHeld) return { kind: 'nothing', doing: facts.goLiveHeldWords ?? n.held };
     if (facts.goLiveBlocked) {
       return facts.goLiveBlocked.fix
         ? {

@@ -165,6 +165,7 @@ export async function overviewFactsFor(
     stage: letting.stage,
     status: letting.status,
     goLiveHeld: letting.goLiveHeldAt !== null,
+    goLiveHeldWords: gate ? goLiveCopy.waiting(gate.organisationName) : undefined,
     setupStepsLeft: numbers?.setupStepsLeft ?? 0,
     goLiveBlocked: blocked,
     resumeHref: resumeHref(letting.id, here),

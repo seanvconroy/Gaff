@@ -47,21 +47,28 @@ export interface ListerFacts {
   psraLicenceNumber: string | null;
   confirmedAt: Date | null;
   licenceLapsedAt: Date | null;
+  /** A private landlord's verified identity, as a date alone (`goLiveGate`). */
+  identityVerifiedAt: Date | null;
 }
 
 /**
  * UX-TS-1 (rule 5): a home can be public only while its lister may have it live: an agency whose
- * licence is on the register and which Gaff's team has confirmed, or a landlord letting their
- * own. The one rule is `goLiveGate`. THE SEAM for WP-24: when a private landlord's identity
- * check is built, the gate holds their homes too, and this follows it.
+ * licence is on the register and which Gaff's team has confirmed, a private landlord who has
+ * confirmed it's them (Q47), or a landlord's team. The one rule is `goLiveGate`; the public
+ * query's SQL twin (`listerMayShow` in src/server/homes/public-homes.ts) says the same.
  */
 export function listerMayShowHomes(lister: ListerFacts): boolean {
   return goLiveGate(lister).open;
 }
 
-/** "Let by": an agency by name with its licence; a landlord by first name only (UX-LS-7). */
+/**
+ * "Let by": an agency by name with its licence; a landlord by first name only (UX-LS-7). A
+ * private landlord's homes say "Identity verified" beside their first name (Q47): it's the only
+ * way they can be public at all, and it says nothing more about them.
+ */
 export type PublicLister =
-  { kind: 'agency'; name: string; licence: string | null } | { kind: 'landlord'; name: string };
+  | { kind: 'agency'; name: string; licence: string | null }
+  | { kind: 'landlord'; name: string; identityVerified: boolean };
 
 export function publicLister(lister: ListerFacts): PublicLister {
   if (lister.kind === 'agency') {
@@ -69,8 +76,14 @@ export function publicLister(lister: ListerFacts): PublicLister {
   }
   // A private landlord is one person: their first name, never more. A landlord's team has a
   // name of its own, which is how it asked renters to know it.
-  const name = lister.kind === 'private_landlord' ? firstNameOf(lister.name) : lister.name.trim();
-  return { kind: 'landlord', name };
+  if (lister.kind === 'private_landlord') {
+    return {
+      kind: 'landlord',
+      name: firstNameOf(lister.name),
+      identityVerified: lister.identityVerifiedAt !== null,
+    };
+  }
+  return { kind: 'landlord', name: lister.name.trim(), identityVerified: false };
 }
 
 /** What decides whether a home's page shows, and how. */

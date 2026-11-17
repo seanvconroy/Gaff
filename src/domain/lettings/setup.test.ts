@@ -109,14 +109,19 @@ describe('UX-LT-14: what a letting needs to go live', () => {
     expect(goLiveNeeds({ ...ready, gate })).toEqual([]);
   });
 
-  it('Q47: a private landlord’s go-live is open until the identity check is built (WP-24)', () => {
-    const gate = goLiveGate({
+  it('UX-TS-2: a private landlord’s home can’t go live until they’ve confirmed it’s them', () => {
+    const own = {
       kind: 'private_landlord',
       psraLicenceNumber: null,
       confirmedAt: null,
       licenceLapsedAt: null,
-    });
-    expect(goLiveNeeds({ ...ready, gate })).toEqual([]);
+    } as const;
+    expect(
+      goLiveNeeds({ ...ready, gate: goLiveGate({ ...own, identityVerifiedAt: null }) }),
+    ).toEqual(['lister']);
+    expect(
+      goLiveNeeds({ ...ready, gate: goLiveGate({ ...own, identityVerifiedAt: new Date() }) }),
+    ).toEqual([]);
   });
 });
 
@@ -148,17 +153,6 @@ describe('Step 9: what the go-live screen asks, each once', () => {
     expect(phoneIsOptionalFor('private_landlord')).toBe(true);
     expect(phoneIsOptionalFor('landlord')).toBe(true);
     expect(phoneIsOptionalFor('agency')).toBe(false);
-  });
-
-  it('Q47: "Confirm it’s you" is in place for a private landlord’s first home, as a step to come', () => {
-    expect(goLiveAsks({ kind: 'private_landlord', phone: null, hasGoneLive: false }).identity).toBe(
-      'later',
-    );
-    expect(goLiveAsks({ kind: 'private_landlord', phone: null, hasGoneLive: true }).identity).toBe(
-      null,
-    );
-    expect(goLiveAsks({ kind: 'agency', phone: null, hasGoneLive: false }).identity).toBe(null);
-    expect(goLiveAsks({ kind: 'landlord', phone: null, hasGoneLive: false }).identity).toBe(null);
   });
 });
 

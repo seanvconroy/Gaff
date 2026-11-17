@@ -86,14 +86,13 @@ export interface GoLiveAsks {
    * and has none on file. It is offered, never required: UX-LT-14 lets nothing else block.
    */
   phone: 'offered' | null;
-  /**
-   * "Confirm it's you" (Q47): a private landlord verifies their identity once, before their
-   * first home goes live. THE SEAM for work package WP-24: the check isn't built, so this is
-   * `later`, the step is shown as coming, and it holds nothing. WP-24 returns `needed` here
-   * while `goLiveGate` says `identity_needed`.
-   */
-  identity: 'later' | null;
 }
+
+/*
+ * "Confirm it's you" (Q47, UX-TS-2) isn't one of these: it's the gate's own step. While
+ * `goLiveGate` says `identity_needed`, the go-live step is the identity check, and once it has
+ * passed it's never asked again.
+ */
 
 /** Step 9, "Anything still to do first, each asked once". */
 export function goLiveAsks(lister: {
@@ -105,7 +104,6 @@ export function goLiveAsks(lister: {
   const first = !lister.hasGoneLive;
   return {
     phone: first && !lister.phone ? 'offered' : null,
-    identity: first && lister.kind === 'private_landlord' ? 'later' : null,
   };
 }
 

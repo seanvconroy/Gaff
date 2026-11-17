@@ -57,6 +57,7 @@ const agency: ListerFacts = {
   psraLicenceNumber: '001234',
   confirmedAt: new Date('2026-11-01'),
   licenceLapsedAt: null,
+  identityVerifiedAt: null,
 };
 
 describe('UX-LS-11: a home’s page has a stable address with nothing personal in it', () => {
@@ -119,14 +120,28 @@ describe('UX-TS-1: a lister may show homes while they may have them live', () =>
     expect(listerMayShowHomes({ ...agency, psraLicenceNumber: null })).toBe(false);
   });
 
-  it('UX-TS-1: a landlord letting their own may (the identity check is WP-24)', () => {
+  it('UX-TS-1: a private landlord may once they’ve confirmed it’s them, and not before', () => {
+    const own: ListerFacts = {
+      kind: 'private_landlord',
+      name: 'Mary',
+      psraLicenceNumber: null,
+      confirmedAt: null,
+      licenceLapsedAt: null,
+      identityVerifiedAt: new Date('2026-11-01'),
+    };
+    expect(listerMayShowHomes(own)).toBe(true);
+    expect(listerMayShowHomes({ ...own, identityVerifiedAt: null })).toBe(false);
+  });
+
+  it('UX-TS-1: a landlord’s team lets its own homes and may', () => {
     expect(
       listerMayShowHomes({
-        kind: 'private_landlord',
-        name: 'Mary',
+        kind: 'landlord',
+        name: 'Doyle Homes',
         psraLicenceNumber: null,
         confirmedAt: null,
         licenceLapsedAt: null,
+        identityVerifiedAt: null,
       }),
     ).toBe(true);
   });
@@ -141,7 +156,7 @@ describe('UX-LS-7: the lister, as renters see them', () => {
     });
   });
 
-  it('UX-LS-7: a private landlord shows by first name only', () => {
+  it('UX-LS-7, Q47: a private landlord shows by first name only, with "Identity verified"', () => {
     expect(
       publicLister({
         kind: 'private_landlord',
@@ -149,8 +164,9 @@ describe('UX-LS-7: the lister, as renters see them', () => {
         psraLicenceNumber: null,
         confirmedAt: null,
         licenceLapsedAt: null,
+        identityVerifiedAt: new Date('2026-11-01'),
       }),
-    ).toEqual({ kind: 'landlord', name: 'Mary' });
+    ).toEqual({ kind: 'landlord', name: 'Mary', identityVerified: true });
   });
 
   it('a landlord’s team shows the name it gave', () => {
@@ -161,8 +177,9 @@ describe('UX-LS-7: the lister, as renters see them', () => {
         psraLicenceNumber: null,
         confirmedAt: null,
         licenceLapsedAt: null,
+        identityVerifiedAt: null,
       }),
-    ).toEqual({ kind: 'landlord', name: 'Doyle Homes' });
+    ).toEqual({ kind: 'landlord', name: 'Doyle Homes', identityVerified: false });
   });
 });
 

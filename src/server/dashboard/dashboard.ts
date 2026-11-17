@@ -30,7 +30,6 @@ import {
   operatorQuestions,
   offers,
   organisations,
-  rentChecks,
   tenancies,
   users,
   viewingSlots,
@@ -45,13 +44,12 @@ import {
 } from '@/domain/dashboard/today';
 import { todayIn, type Viewer } from '@/domain/dashboard/views';
 import { leadOf } from '@/domain/lettings/lead';
-import { setupChecklist } from '@/domain/lettings/setup';
+import { stepsLeft } from '@/domain/lettings/add-letting';
 import { whoCanBeOffered } from '@/domain/offers/offer';
 import { rtbDeadline } from '@/domain/tenancy/tenancy';
 import { nextTenancyStep } from '@/domain/tenancy/steps';
 import { irishInstant, irishToday } from '@/lib/format';
 import { coverPhotosFor } from '@/server/lettings/cover-photo';
-import { rentCheckProblem } from '@/server/lettings/rent-check';
 import { approvalState } from '@/server/offers/approval';
 import { daysSince, timeAgainstUsual } from '@/domain/dashboard/time';
 import { ATTENDANCE_OPENS_MINUTES } from '@/domain/viewings/attendance';
@@ -97,6 +95,7 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         closedAt: lettings.closedAt,
         criteriaSetAt: lettings.criteriaSetAt,
         goLiveHeldAt: lettings.goLiveHeldAt,
+        setupStep: lettings.setupStep,
       })
       .from(lettings)
       .orderBy(desc(lettings.createdAt));
@@ -274,16 +273,6 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         .where(and(eq(bookings.status, 'booked'), gt(viewingSlots.endsAt, now)))
         .groupBy(bookings.lettingId),
     );
-    // Stage 1: what each home being set up still needs before it can take enquiries.
-    const slotsEver = byLetting(
-      await tx
-        .select({ lettingId: viewingSlots.lettingId, n: count() })
-        .from(viewingSlots)
-        .groupBy(viewingSlots.lettingId),
-    );
-    const rentCheckFor = new Map(
-      (await tx.select().from(rentChecks)).map((check) => [check.lettingId, check]),
-    );
     const enquiries = byLetting(
       await tx
         .select({
@@ -343,15 +332,8 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
       const enquiredAt = enquiries.get(letting.id)?.at ?? null;
       const tenancy = tenancyByLetting.get(letting.id);
       const offer = offerState.get(letting.id);
-      const check = rentCheckFor.get(letting.id) ?? null;
-      const setupStepsLeft = setupChecklist({
-        viewingSlots: slotsEver.get(letting.id)?.n ?? 0,
-        criteriaSet: letting.criteriaSetAt !== null,
-        rentCheckDone:
-          check !== null && rentCheckProblem(check, letting.monthlyRentCents, today) === null,
-        // Comparables aren't needed to go live, so they are never a step left.
-        comparables: 0,
-      }).filter((step) => step.neededToGoLive && !step.done).length;
+      // UX-FL-2, UX-NV-9: the steps of adding it that are still ahead of the furthest one reached.
+      const setupStepsLeft = stepsLeft(letting.setupStep);
       const time = timeAgainstUsual(
         minutes.get(letting.id)?.n ?? 0,
         usual?.minutesPerLetting ?? null,

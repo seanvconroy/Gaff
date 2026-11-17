@@ -1,4 +1,7 @@
+import { asc, inArray } from 'drizzle-orm';
 import type { Tx } from '@/db/client';
+import { lettingPhotos } from '@/db/schema';
+import { photoHref } from '@/ports/photo-store';
 
 /** A home's cover photo, as a list or a header shows it (UX-DS-10, UX-NV-9). */
 export interface CoverPhoto {
@@ -9,17 +12,27 @@ export interface CoverPhoto {
 }
 
 /**
- * The cover photo of each of these homes, by letting ID. A home with no photo isn't in the map,
- * and whatever shows it uses the house icon instead, never a broken image (UX-DS-10).
- *
- * The seam for work package WP-9, which adds photos to a letting: no home has one yet, so this
- * returns nothing. When photos are stored, read each home's first one here, in this
- * transaction, which is already scoped to the organisation. Nothing else needs to change:
- * Lettings already draws whatever this returns.
+ * The cover photo of each of these homes, by letting ID: the first of its photos (UX-LT-10).
+ * A home with no photo isn't in the map, and whatever shows it uses the house icon instead,
+ * never a broken image (UX-DS-10). Read in the caller's transaction, which is already scoped to
+ * the organisation.
  */
 export async function coverPhotosFor(
-  _tx: Tx,
-  _lettingIds: readonly string[],
+  tx: Tx,
+  lettingIds: readonly string[],
 ): Promise<Map<string, CoverPhoto>> {
-  return new Map();
+  const covers = new Map<string, CoverPhoto>();
+  if (lettingIds.length === 0) return covers;
+  const photos = await tx
+    .select({ lettingId: lettingPhotos.lettingId, storageKey: lettingPhotos.storageKey })
+    .from(lettingPhotos)
+    .where(inArray(lettingPhotos.lettingId, [...lettingIds]))
+    .orderBy(asc(lettingPhotos.position));
+  for (const photo of photos) {
+    if (photo.lettingId && !covers.has(photo.lettingId)) {
+      // The address is beside it wherever a cover is shown, so the picture adds no words.
+      covers.set(photo.lettingId, { src: photoHref(photo.storageKey), alt: '' });
+    }
+  }
+  return covers;
 }

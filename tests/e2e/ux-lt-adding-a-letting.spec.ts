@@ -83,12 +83,12 @@ test('UX-LT-1, UX-LT-8 to UX-LT-15, UX-LT-22: a letting goes live from scratch, 
     await expectAccessible(page);
     await screenshot(page, `ux-lt-01-start-${width}`);
 
-    // Reading an advert is work package WP-10. Until then the box says so, at the field, and
-    // keeps what was typed.
-    await about.fill('Bright two-bed apartment near the Luas.');
+    // Q31: a link to anywhere else is never opened. The box says so, at the field, and keeps
+    // what was typed. (Reading an advert's words is its own journey: ux-lt-reading-an-advert.)
+    await about.fill('https://www.example.ie/homes/ranelagh-road');
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
-    await expect(page.locator('#field-about-error')).toContainText('Gaff can’t read adverts yet.');
-    await expect(about).toHaveValue('Bright two-bed apartment near the Luas.');
+    await expect(page.locator('#field-about-error')).toContainText('Gaff doesn’t open links');
+    await expect(about).toHaveValue('https://www.example.ie/homes/ranelagh-road');
     await expectNoErrorBox(page);
 
     // UX-LT-8 (Q31): a Daft link is kept to match enquiries, and never fetched.

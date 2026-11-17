@@ -357,7 +357,7 @@ describe('Today’s other blocks', () => {
 });
 
 describe('UX-NV-9, UX-NV-10: what Lettings is written from', () => {
-  it('gives each home its lead, its figures and, until photos are stored, no cover photo', async () => {
+  it('gives each home its lead, its figures and, with no photo stored, no cover photo', async () => {
     const member = await createTestMember();
     const draft = await createLetting(member, aLetting({ addressLine1: '9 Canal View' }));
     const live = await aLiveLetting(member);
@@ -367,7 +367,8 @@ describe('UX-NV-9, UX-NV-10: what Lettings is written from', () => {
     const home = (id: string) => board.lettings.find((l) => l.id === id)!;
     expect(home(draft.lettingId)).toMatchObject({
       status: 'draft',
-      setupStepsLeft: 3,
+      // UX-FL-2: photos, letting details, the rent check and going live are ahead.
+      setupStepsLeft: 4,
       leadUserId: member.userId,
       coverPhoto: null,
     });

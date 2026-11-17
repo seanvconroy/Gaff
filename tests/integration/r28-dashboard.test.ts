@@ -47,7 +47,9 @@ describe('R28: the dashboard', () => {
     const { lettingId } = await createLetting(member, aLetting());
     const board = await dashboardFor(member);
     expect(board.today).toMatchObject([
-      { kind: 'setup', lettingId, address: '12 Ranelagh Road', stepsLeft: 3 },
+      // UX-FL-2: its address, rent and home are in; photos, letting details, the rent check
+      // and going live are ahead.
+      { kind: 'setup', lettingId, address: '12 Ranelagh Road', stepsLeft: 4 },
     ]);
     expect(board.today).toHaveLength(1);
   });

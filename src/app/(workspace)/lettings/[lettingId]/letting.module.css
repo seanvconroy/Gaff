@@ -238,6 +238,13 @@
   gap: var(--space-4);
 }
 
+/* UX-LP-15: "Ask about who's enquired": the box, then its button under it. */
+.ask {
+  display: grid;
+  gap: var(--space-3);
+  max-width: var(--size-task);
+}
+
 /* Where an enquiry came from, under the person's name (UX-AV-8). */
 .via {
   display: block;

@@ -158,6 +158,8 @@ export const lettingPageCopy = {
       draft: 'Enquiries that arrive now are kept safe. Gaff answers them as soon as it’s live.',
     },
     noneHere: 'Nobody here just now. Choose All to see everyone.',
+    /** UX-LP-15, UX-MT-8: a filter shows nobody; everyone is still on the list. */
+    noneFiltered: 'Nobody’s answers are within that just now. Clear it to see everyone.',
     /** UX-AV-8: before where an enquiry came from: "Through Gaff and Daft". */
     via: 'Through',
     order:

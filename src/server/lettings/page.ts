@@ -15,7 +15,8 @@ import { stepNames } from '@/copy/tenancy-steps';
 import { firstNameOf } from '@/domain/accounts/first-run';
 import { formatRatio, incomeAgainstRule } from '@/domain/applications/apply';
 import { allChecksBack, checkLine } from '@/domain/checks/review';
-import { answersInWords } from '@/domain/criteria/answers';
+import { fitDetail } from '@/copy/fit';
+import type { RenterAnswers } from '@/domain/criteria/answers';
 import { conversationHref, conversationKey, inboxHref } from '@/domain/inbox/conversations';
 import { resumeHref, screenHref } from '@/domain/lettings/links';
 import type { OverviewFacts } from '@/domain/lettings/overview';
@@ -23,7 +24,7 @@ import type { ApplicationStatus, PersonFacts } from '@/domain/lettings/people';
 import { addAgencyHref } from '@/domain/navigation/account-menu';
 import { finishHref, operatorStepHref, operatorSteps } from '@/domain/tenancy/operator-steps';
 import { canFinish } from '@/domain/tenancy/steps';
-import { formatDate, formatEuro } from '@/lib/format';
+import { formatEuro } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 import { applicantsFor } from '@/server/applications/choose';
 import { checkResultsFor } from '@/server/checks/checks';
@@ -265,11 +266,21 @@ async function countsFor(member: Member, lettingId: string, now: Date) {
 
 /** One person on People, with what their sheet shows (UX-LP-9). */
 export interface PersonRow extends PersonFacts {
+  /**
+   * Their answers to the four questions, for "Ask about who's enquired" to filter on (UX-LP-15).
+   * Null until they've answered, and once their details are deleted.
+   */
+  answers: RenterAnswers | null;
   /** UX-AV-8: where they came from, in words ("Gaff and Daft"). Empty once their details are deleted. */
   via: string;
   sheet: {
     /** How they fit what was asked, and why: the ranking's own reason (R10). */
     fit: string | null;
+    /**
+     * UX-MT-6: the detail behind "Meets 3 of 4": each criterion in the letting details' words,
+     * with their answer and whether it meets it. Empty until they've answered.
+     */
+    fitRows: Array<{ label: string; value: string }>;
     told: Array<{ label: string; value: string }>;
     income: Array<{ label: string; value: string }>;
     checks: Array<{
@@ -305,7 +316,7 @@ export async function peopleFor(member: Member, lettingId: string): Promise<Pers
       .from(organisations)
       .where(eq(organisations.id, member.organisationId));
     const [letting] = await tx
-      .select({ rentCents: lettings.monthlyRentCents })
+      .select({ rentCents: lettings.monthlyRentCents, criteria: lettings.criteria })
       .from(lettings)
       .where(eq(lettings.id, lettingId));
     const booked = await tx
@@ -323,6 +334,7 @@ export async function peopleFor(member: Member, lettingId: string): Promise<Pers
       .map((p) => p.id);
     const checks = await checkResultsFor(tx, chosenIds);
     const rentCents = letting?.rentCents ?? 0;
+    const criteria = letting?.criteria ?? { noPets: false };
     const ruleTenths = rule?.tenths ?? 30;
 
     const rankOf = new Map(ranked.map((r) => [r.id, r]));
@@ -355,10 +367,12 @@ export async function peopleFor(member: Member, lettingId: string): Promise<Pers
         appliedAt: p.appliedAt,
         meetsIncomeRule: income ? income.meetsRule : null,
         deleted,
+        answers: !deleted && p.answersAt ? p.answers : null,
         via: deleted ? '' : sourcesInWords(p.sources),
         sheet: {
           // When they enquired is under what's happened; this says only how they fit.
           fit: r && !deleted && p.answersAt ? r.reason.replace(/ Enquired .*$/, '') : null,
+          fitRows: !deleted && p.answersAt ? fitDetail(criteria, p.answers) : [],
           told: deleted
             ? []
             : [
@@ -372,9 +386,6 @@ export async function peopleFor(member: Member, lettingId: string): Promise<Pers
                   : []),
                 { label: 'Email', value: p.email },
                 ...(p.phone ? [{ label: 'Phone', value: p.phone }] : []),
-                ...answersInWords(p.answersAt ? p.answers : null, (d) => formatDate(d)).map(
-                  ({ label, value }) => ({ label, value }),
-                ),
               ],
           income:
             income && p.monthlyIncomeCents !== null

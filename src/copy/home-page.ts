@@ -13,6 +13,8 @@ export const homePageCopy = {
   highlights: 'Highlights',
   showAllHighlights: (count: number) => `Show all ${count}`,
   lettingDetails: 'Letting details',
+  /** UX-MT-10: a signed-in renter's kept answers, beside the letting details. */
+  yourAnswers: 'From the answers on your profile:',
   about: 'About this home',
   showMore: 'Show more',
   showLess: 'Show less',

@@ -145,6 +145,68 @@ export function filterToParams(filter: PeopleFilter): Array<[string, string]> {
   return out;
 }
 
+/**
+ * People's address (UX-LP-8, UX-LP-15): the stage's chip, the filter, a person's sheet, and
+ * whether a question was just declined. Never the question's words.
+ */
+export function peopleHref(
+  lettingId: string,
+  at: { show?: string | null; filter?: PeopleFilter; person?: string | null; declined?: boolean },
+): string {
+  const params: Array<[string, string]> = [['view', 'people']];
+  if (at.show && at.show !== 'all') params.push(['show', at.show]);
+  params.push(...filterToParams(at.filter ?? {}));
+  if (at.declined) params.push(['asked', 'no']);
+  if (at.person) params.push(['person', at.person]);
+  return `/lettings/${lettingId}?${new URLSearchParams(params).toString()}`;
+}
+
+/** One chip of "Their answers": a part of a filter, and whether it is on. */
+export interface AnswerChip {
+  key: FilterKey;
+  /** The filter this chip stands for, on its own. */
+  part: PeopleFilter;
+  current: boolean;
+  /** The filter after tapping it: the part added, or taken away. */
+  next: PeopleFilter;
+}
+
+/**
+ * UX-LP-15: the chips a question sets, which can also be set by tapping. One for each criterion
+ * asked, at what was asked; "Meets everything you asked"; and any other part a question set.
+ */
+export function answerChips(
+  criteria: {
+    moveInBy?: string;
+    minStayMonths?: number;
+    maxOccupants?: number;
+    noPets: boolean;
+  },
+  filter: PeopleFilter,
+): AnswerChip[] {
+  const offered: PeopleFilter = {
+    ...(criteria.moveInBy ? { moveInBy: criteria.moveInBy } : {}),
+    ...(criteria.minStayMonths ? { stayAtLeast: criteria.minStayMonths } : {}),
+    ...(criteria.maxOccupants ? { peopleAtMost: criteria.maxOccupants } : {}),
+    ...(criteria.noPets ? { pets: 'none' as const } : {}),
+    ...(criteria.moveInBy || criteria.minStayMonths || criteria.maxOccupants || criteria.noPets
+      ? { meetsAll: true as const }
+      : {}),
+  };
+  const chips: AnswerChip[] = [];
+  for (const key of Object.keys(filterParams) as FilterKey[]) {
+    const value = filter[key] ?? offered[key];
+    if (value === undefined) continue;
+    const part = { [key]: value } as PeopleFilter;
+    const current = filter[key] === value;
+    const next: PeopleFilter = { ...filter };
+    if (current) delete next[key];
+    else Object.assign(next, part);
+    chips.push({ key, part, current, next });
+  }
+  return chips;
+}
+
 // --- Reading a question -----------------------------------------------------------------
 
 export type AskReading =

@@ -1,11 +1,7 @@
 import { asc, eq } from 'drizzle-orm';
 import { withOrg, type Tx } from '@/db/client';
 import { events, users } from '@/db/schema';
-import {
-  lettingDetailsParts,
-  NO_SMOKING_INDOORS,
-  type Criteria,
-} from '@/domain/criteria/criteria';
+import { lettingDetailsParts, NO_SMOKING_INDOORS, type Criteria } from '@/domain/criteria/criteria';
 import { sourcesInWords } from '@/domain/enquiries/sources';
 import { formatDate, formatEuro, formatRent } from '@/lib/format';
 import type { Member } from '@/server/auth/member';

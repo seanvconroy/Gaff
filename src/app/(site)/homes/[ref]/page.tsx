@@ -3,7 +3,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { cache, type ReactNode } from 'react';
+import { answersBesideDetails } from '@/copy/fit';
 import { homePageCopy as copy } from '@/copy/home-page';
+import { questionsFor } from '@/domain/criteria/criteria';
+import { answersToOffer } from '@/domain/profile/offer-back';
 import { savedCopy } from '@/copy/saved';
 import {
   HIGHLIGHTS_SHOWN,
@@ -21,7 +24,8 @@ import {
 import { filtersFromParams } from '@/domain/search/filters';
 import { askHref } from '@/domain/search/links';
 import { env } from '@/lib/env';
-import { formatRent } from '@/lib/format';
+import { formatRent, irishToday } from '@/lib/format';
+import { readRenterProfile } from '@/server/accounts/renter-profile';
 import { currentPerson } from '@/server/context/current-person';
 import { type PublicHome, publicHomePage } from '@/server/homes/public-homes';
 import { savedHomeRefs } from '@/server/saved/homes';
@@ -108,8 +112,12 @@ export default async function HomePage({ params, searchParams }: Params) {
   const ask = askHref(ref, filtersFromParams(query));
   // WP-23: the heart knows whether this person already saved it.
   const saved = person ? (await savedHomeRefs(person.userId)).includes(ref) : false;
+  // UX-MT-10: a signed-in renter's own kept answers, beside what the home is for. Read only for
+  // them, through their own profile; nothing of it reaches whoever lets the home (UX-MT-14).
+  const beside = person ? await keptBeside(person.userId, page.home.home.criteria) : [];
   return (
     <LiveHome
+      beside={beside}
       home={page.home}
       ask={ask}
       aboveTabBar={person !== null}
@@ -160,12 +168,27 @@ function Highlights({ items }: { items: ReturnType<typeof homeHighlights> }) {
   );
 }
 
+/** UX-MT-10: their kept answers to what this home asks, as "You said: …" lines. */
+async function keptBeside(
+  userId: string,
+  criteria: PublicHome['home']['criteria'],
+): Promise<string[]> {
+  if (!criteria) return [];
+  const profile = await readRenterProfile(userId);
+  if (!profile.exists) return [];
+  const offered = answersToOffer(profile.answers, questionsFor(criteria), irishToday());
+  return answersBesideDetails(criteria, offered);
+}
+
 function LiveHome({
+  beside,
   home: found,
   ask,
   aboveTabBar,
   save,
 }: {
+  /** UX-MT-10: a signed-in renter's kept answers beside the letting details. */
+  beside: readonly string[];
   home: PublicHome;
   ask: string;
   aboveTabBar: boolean;
@@ -211,6 +234,14 @@ function LiveHome({
                 <li key={line}>{line}</li>
               ))}
             </ul>
+            {beside.length > 0 ? (
+              <div className={styles.beside} data-beside="">
+                <p className={styles.muted}>{copy.yourAnswers}</p>
+                {beside.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+              </div>
+            ) : null}
           </section>
 
           {description.length > 0 ? (

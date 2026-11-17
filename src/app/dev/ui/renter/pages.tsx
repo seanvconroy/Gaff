@@ -136,6 +136,12 @@ function model(
         { label: 'Move in', value: 'By Sunday 13 December' },
         { label: 'Stay', value: 'A year' },
       ],
+      beside: [
+        'You said: you could move in by Sunday 13 December. This home is for moving in by Sunday 13 December.',
+        'You said: a year. This home is for a year or longer.',
+        'You said: 4 people. This home is for up to 3.',
+        'You said: no pets. This home doesn’t take pets. Assistance dogs are always welcome.',
+      ],
       canChange: true,
     },
     viewings: {

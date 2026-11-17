@@ -6,7 +6,13 @@ import { useState } from 'react';
 import type { z } from 'zod';
 import { addLettingCopy } from '@/copy/add-letting';
 import { lettingDetailsFormSchema } from '@/domain/criteria/criteria';
-import { addressStepSchema, homeStepSchema, rentStepSchema } from '@/domain/lettings/add-letting';
+import {
+  addressStepSchema,
+  descriptionSchema,
+  homeFactsSchema,
+  homeStepSchema,
+  rentStepSchema,
+} from '@/domain/lettings/add-letting';
 import { MAX_HOME_PHOTOS } from '@/domain/lettings/photos';
 import { fieldErrors, type FormState } from '@/lib/forms';
 import { ButtonLink } from '@/ui/Button';
@@ -244,6 +250,57 @@ export function HomeStep({
 }
 
 /**
+ * UX-LP-11, UX-LP-12: the home's facts on their own, opened by "Change" on Home. Saved, it goes
+ * back to Home, and Gaff answers renters from the facts as they are now.
+ */
+export function FactsStep({
+  frame,
+  action,
+  values: start,
+}: {
+  frame: StepFrame;
+  action: Action;
+  values: Record<string, string>;
+}) {
+  return (
+    <StepForm
+      id="facts"
+      frame={frame}
+      action={action}
+      check={problemsBy(homeFactsSchema)}
+      title={copy.home.title}
+      primary={copy.save}
+    >
+      {({ errors, values }) => <HomeFields values={values ?? start} errors={errors} />}
+    </StepForm>
+  );
+}
+
+/** UX-LP-11: the description and the other facts on their own, opened by "Change" on Home. */
+export function DescriptionStep({
+  frame,
+  action,
+  values: start,
+}: {
+  frame: StepFrame;
+  action: Action;
+  values: Record<string, string>;
+}) {
+  return (
+    <StepForm
+      id="description"
+      frame={frame}
+      action={action}
+      check={problemsBy(descriptionSchema)}
+      title={copy.review.description}
+      primary={copy.save}
+    >
+      {({ errors, values }) => <DescriptionFields values={values ?? start} errors={errors} />}
+    </StepForm>
+  );
+}
+
+/**
  * Step 6, "Photos" (UX-LT-10). Each photo is kept as it uploads, so there is nothing for the
  * button to save: it moves on, as Next with photos or "Skip for now" without.
  */
@@ -255,6 +312,7 @@ export function PhotosStep({
   reorder,
   done,
   problem,
+  doneLabel,
 }: {
   frame: StepFrame;
   photos: UploadedPhoto[];
@@ -263,6 +321,8 @@ export function PhotosStep({
   reorder: (ids: string[]) => Promise<void>;
   done: () => Promise<void>;
   problem?: string;
+  /** Opened on its own from Home: one button that goes back, whatever the count. */
+  doneLabel?: string;
 }) {
   const [count, setCount] = useState(photos.length);
   return (
@@ -279,7 +339,7 @@ export function PhotosStep({
       }
       primary={
         <SubmitButton fullWidth="phone" pendingLabel={copy.saving}>
-          {count > 0 ? copy.next : copy.photos.skip}
+          {doneLabel ?? (count > 0 ? copy.next : copy.photos.skip)}
         </SubmitButton>
       }
       form={{ action: done }}

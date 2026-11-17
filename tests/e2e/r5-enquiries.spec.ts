@@ -46,14 +46,22 @@ test('R6: enquiries are read, matched to the home and merged; anything else wait
   await sendTestEmail(page, { to, ...daftEnquiry });
   await sendTestEmail(page, { to, ...gmailForwardingConfirmation });
 
+  // UX-LP-8: everyone who enquired is on People, once, whichever portal they came through.
+  const people = page.getByRole('region', { name: 'Everyone who enquired' });
   await expect(async () => {
-    await page.goto(`${overview}/enquiries`);
-    await expect(page.getByRole('heading', { name: '1 enquiry' })).toBeVisible({ timeout: 1000 });
+    await page.goto(`${overview}?view=people`);
+    await expect(people.getByRole('link', { name: 'Aoife Byrne' })).toBeVisible({
+      timeout: 1000,
+    });
   }).toPass({ timeout: 20_000 });
-  await expect(page.getByRole('cell', { name: 'Aoife Byrne' })).toBeVisible();
-  await expect(page.getByRole('cell', { name: 'Daft', exact: true })).toBeVisible();
+  await expect(people.getByRole('row')).toHaveCount(2);
   await expectAccessible(page);
   await screenshot(page, '18-enquiries');
+  await people.getByRole('link', { name: 'Aoife Byrne' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Aoife Byrne' });
+  await expect(sheet.getByText('Daft', { exact: true })).toBeVisible();
+  await sheet.getByRole('button', { name: 'Close' }).click();
+  await expect(sheet).toBeHidden();
 
   // R7: the worker has already sent the first reply, as the AI assistant. Other journeys share
   // the development outbox, so look only at mail from this operator.

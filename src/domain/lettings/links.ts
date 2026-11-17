@@ -1,3 +1,4 @@
+import { homeHref } from '@/domain/homes/home-page';
 import { type FlowStep, stepSlugs } from '@/domain/lettings/add-letting';
 import { returnPath } from '@/domain/navigation/return-to';
 
@@ -72,4 +73,12 @@ export function decisionHref(
   query: Record<string, string | null | undefined> = {},
 ): string {
   return withQuery(`/lettings/${lettingId}/${flow}`, query);
+}
+
+/**
+ * UX-LP-5: "See it on Gaff", in a letting's menu: only for a home that has a public page now
+ * (live, on gaff.ie, and everything its page needs). The address is the page's own (UX-LS-1).
+ */
+export function seeItOnGaffHref(home: { publicRef: string; shownOnGaff: boolean }): string | null {
+  return home.shownOnGaff ? homeHref(home.publicRef) : null;
 }

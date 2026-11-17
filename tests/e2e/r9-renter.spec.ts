@@ -88,6 +88,8 @@ test('R9: a renter answers the questions on their phone, with no account', async
   // The operator sees the answers have arrived.
   await page.goto('/lettings');
   await page.getByRole('link', { name: '12 Ranelagh Road', exact: true }).click();
-  await page.getByRole('link', { name: 'Enquiries' }).click();
-  await expect(page.getByText('Answered')).toBeVisible();
+  await page.getByRole('link', { name: 'People', exact: true }).click();
+  await expect(
+    page.getByRole('region', { name: 'Everyone who enquired' }).getByText(/^Meets \d of \d$/),
+  ).toBeVisible();
 });

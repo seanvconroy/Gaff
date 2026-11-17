@@ -442,7 +442,13 @@ export async function saveAnswers(
 
     const detail = await lettingDetailIn(tx, id);
     if (!detail) throw new UserFacingError('We couldn’t find that home.');
-    if (detail.letting.stage !== 'setup') throw new UserFacingError(SETUP_ONLY);
+    // UX-LP-12: a live home's facts and description can change at any time, and Gaff answers
+    // from them as they are from then on. The address and rent are set up once.
+    const live = detail.letting.status === 'live';
+    const factsOnly = input.step === 'home' || input.step === 'description';
+    if (detail.letting.stage !== 'setup' && !(live && factsOnly && !input.advance)) {
+      throw new UserFacingError(SETUP_ONLY);
+    }
     if (input.step === 'details')
       throw new Error('A letting’s details are set with setLettingDetails');
     const home = await homeIn(tx, id);

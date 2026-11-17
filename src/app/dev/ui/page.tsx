@@ -483,6 +483,14 @@ export default function ComponentsPage() {
           <Example label="A letting, on its second part">
             <SegmentedProgress label="12 Ranelagh Road" segments={parts} current={1} />
           </Example>
+          <Example label="A letting, with the stage inside the part">
+            <SegmentedProgress
+              label="9 Canal View"
+              segments={parts}
+              current={1}
+              detail="Viewings"
+            />
+          </Example>
           <Example label="A letting, finished">
             <SegmentedProgress label="4 Rathmines Close" segments={parts} current={4} />
           </Example>

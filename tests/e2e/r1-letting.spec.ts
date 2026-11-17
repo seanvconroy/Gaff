@@ -11,6 +11,7 @@ import {
   signUpOperator,
   toGoLiveThroughUi,
 } from './support';
+import { expectOverview, openHistory } from './journeys';
 
 /**
  * Stage 1 through the real screens. Adding a letting has journeys of its own, at both widths
@@ -107,18 +108,23 @@ test('R1: an operator creates a letting with viewing times', async ({ page }) =>
 
   await page.getByRole('link', { name: 'Continue setting up' }).click();
   await expect(page.getByRole('heading', { name: '12 Ranelagh Road', level: 1 })).toBeVisible();
-  await expect(page.getByText('Step 1 of 9 · Set up')).toBeVisible();
-  await expect(page.getByText('€1,850 a month')).toBeVisible();
-  await expect(page.getByText('14 places to book.')).toBeVisible();
-  // One thing to do, with one button: carry on where they left off.
-  const setup = page.getByRole('region', { name: 'Finish setting up' });
-  await expect(setup.getByText('4 steps left.')).toBeVisible();
-  await expect(setup.getByRole('link', { name: 'Continue' })).toBeVisible();
-  // Set-up shows only the letting's overview and its timeline; the rest appear as it moves on.
-  const tabs = page.getByRole('navigation', { name: 'Letting' });
-  await expect(tabs.getByRole('link')).toHaveText(['Overview', 'Timeline']);
+  // UX-LP-1, UX-LP-3: one thing to do, with one button: carry on where they left off. The four
+  // parts say where it is; nothing says "Step 1 of 9".
+  await expectOverview(page, {
+    task: 'Continue',
+    says: 'Finish setting up. 4 steps left.',
+    figures: [],
+    next: 'When it’s live, Gaff answers every enquiry within minutes.',
+  });
+  await expect(page.getByRole('list', { name: 'How far it’s got' })).toContainText('Set up');
   await expectAccessible(page);
   await screenshot(page, '08-letting-overview');
+  // The home itself, as renters will see it, is under Home.
+  await page.getByRole('link', { name: 'Home', exact: true }).click();
+  await expect(page.getByText('€1,850 a month')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Viewing times' })).toContainText(
+    '15-minute slots',
+  );
 
   await page.getByRole('link', { name: 'Lettings', exact: true }).first().click();
   await expect(page.getByRole('link', { name: '12 Ranelagh Road', exact: true })).toBeVisible();
@@ -147,7 +153,7 @@ test('R2: an operator sets criteria from the fixed list', async ({ page }) => {
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Has this home been let before?' })).toBeVisible();
 
-  await page.goto(overview);
+  await page.goto(`${overview}?view=home`);
   const details = page.getByRole('region', { name: 'Letting details' });
   await expect(details.getByText('Up to 3 people')).toBeVisible();
   await expect(details.getByText('Plans to stay at least a year')).toBeVisible();
@@ -189,8 +195,8 @@ test('R3: an operator checks the rent, and Gaff catches a rent over the cap', as
   await expectAccessible(page);
   await screenshot(page, '13-rent-over-cap');
 
-  // The letting's page says so too, until the rent is inside the rules.
-  await page.goto(overview);
+  // The letting's page says so too, under Home, until the rent is inside the rules.
+  await page.goto(`${overview}?view=home`);
   await expect(page.getByText('The rent is more than the cap allows')).toBeVisible();
   await page.getByRole('link', { name: 'Check again' }).click();
   // The answers given before are there; nothing is asked twice.
@@ -284,10 +290,11 @@ test('Stage 1 and R27: the operator confirms set-up, and the timeline shows ever
   await page.getByRole('checkbox', { name: 'No', exact: true }).check();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(page.getByText('Gaff is now answering enquiries for this home.')).toBeVisible();
-  await expect(page.getByText('Step 2 of 9 · Enquiries')).toBeVisible();
+  await expect(page.getByRole('list', { name: 'How far it’s got' })).toContainText(
+    'Find · Enquiries',
+  );
 
-  await page.getByRole('link', { name: 'Timeline' }).click();
-  await expect(page.getByRole('heading', { name: 'Everything that’s happened' })).toBeVisible();
+  await openHistory(page);
   await expect(page.getByText('Set-up confirmed: Gaff started answering enquiries')).toBeVisible();
   await expect(page.getByText('Up to 3 people')).toBeVisible();
   // Every step of adding it reads in plain words: never an event's code.

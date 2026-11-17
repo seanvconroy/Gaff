@@ -1,140 +1,106 @@
-import { Clock, Handshake, Share2, ShieldCheck } from 'lucide-react';
+import { Share2 } from 'lucide-react';
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { addLettingCopy } from '@/copy/add-letting';
-import { both, decisionsCopy } from '@/copy/decisions';
-import { goLiveCopy } from '@/copy/go-live';
 import { shareCopy } from '@/copy/owner';
+import { homePageState } from '@/domain/homes/home-page';
 import { letsOwnHomes } from '@/domain/organisations/kinds';
-import { describeCriteria, NO_SMOKING_INDOORS } from '@/domain/criteria/criteria';
-import { stepsLeft } from '@/domain/lettings/add-letting';
-import {
-  describeKeyFacts,
-  type berRatings,
-  type furnishing,
-  type parkingOptions,
-  type propertyTypes,
-} from '@/domain/lettings/new-letting';
-import { canLetAgain, canSendTestEnquiry } from '@/domain/lettings/setup';
-import { comparableWarnings, medianRentCents } from '@/domain/rent/comparables';
-import { formatDate, formatDateTime, formatRent } from '@/lib/format';
-import { env } from '@/lib/env';
-import { todayRows } from '@/domain/dashboard/today-rows';
-import { dashboardFor } from '@/server/dashboard/dashboard';
+import { seeItOnGaffHref } from '@/domain/lettings/links';
+import { figuresFor, needsYouOn, pageStage, whatsNext } from '@/domain/lettings/overview';
+import { chosenChip, peopleGroup } from '@/domain/lettings/people';
+import { canLetAgain, canSendTestEnquiry, lettingDetailsLocked } from '@/domain/lettings/setup';
+import { hasTeam, may } from '@/domain/team/permissions';
 import { goLiveGateFor } from '@/server/lettings/go-live';
-import { enquiryCount } from '@/server/lettings/test-enquiry';
+import { overviewFactsFor, peopleFor } from '@/server/lettings/page';
+import { DETAILS_LOCKED } from '@/server/lettings/set-criteria';
 import { lettingStandingFor } from '@/server/team/lead';
-import { hasTeam } from '@/domain/team/permissions';
 import { ActionList, ActionRow } from '@/ui/ActionList';
-import { ButtonLink } from '@/ui/Button';
-import { Disclosure } from '@/ui/Disclosure';
-import { ChoiceGroup } from '@/ui/Field';
-import { Card, CardHeader, Stack } from '@/ui/Layout';
+import { Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
-import { Outcome } from '@/ui/Outcome';
-import { SubmitButton } from '@/ui/SubmitButton';
-import { SummaryList } from '@/ui/SummaryList';
-import { decisionHref, resumeHref, screenHref } from '@/domain/lettings/links';
-import { firstNameOf } from '@/domain/accounts/first-run';
-import { allChecksBack } from '@/domain/checks/review';
-import { applicantsFor } from '@/server/applications/choose';
-import { approvalFor } from '@/server/offers/approval';
-import { offersFor } from '@/server/offers/offer';
-import { remindOwnerAction } from '@/app/(task)/lettings/[lettingId]/approval/actions';
-import { TodayList } from '../../TodayList';
-import { closeAction } from './actions';
-import { loadLetting } from './letting';
-import { LettingHeader } from './LettingHeader';
+import { HomeView } from './HomeView';
 import { LeadNotice } from './LeadNotice';
+import { loadLetting } from './letting';
+import { LettingHeader, type LettingView } from './LettingHeader';
 import { LettingMenu } from './LettingMenu';
 import { OnGaffCard } from './OnGaffCard';
-import { RentCheckResult } from './RentCheckResult';
-import styles from './letting.module.css';
+import { OverviewView } from './OverviewView';
+import { PeopleView } from './PeopleView';
 
 export const metadata: Metadata = { title: 'Letting' };
+export const dynamic = 'force-dynamic';
 
 const savedCopy: Record<string, string> = {
   criteria: 'Letting details saved. Gaff will ask renters only what these need.',
   'rent-check': 'Rent check saved. It goes in the rent-setting pack.',
   comparables: 'Comparables saved for the rent-setting pack.',
+  facts: 'Facts saved. Gaff answers renters from them from now on.',
+  description: 'Description saved. Renters see it from now on.',
+  photos: 'Photos saved.',
   live: 'Gaff is now answering enquiries for this home.',
   reminded: 'Reminder sent. The owner has a new link.',
   closed:
     'Closed. Everyone who enquired has been told, and Gaff deletes their details on schedule.',
 };
 
+const views: readonly LettingView[] = ['overview', 'people', 'home'];
+
+/**
+ * A letting's page (section 4, "A letting's page", UX-LP-1 to UX-LP-13). The header, the four
+ * parts, and three views that never change: Overview, People and Home (UX-LP-2). The view is in
+ * the address, so Back and a reload keep it. No fact appears twice on a view (UX-LP-4).
+ */
 export default async function LettingPage({
   params,
   searchParams,
 }: {
   params: Promise<{ lettingId: string }>;
-  searchParams: Promise<{ saved?: string; problem?: string }>;
+  searchParams: Promise<{ view?: string; saved?: string; show?: string; person?: string }>;
 }) {
-  const { member, letting, facts, sessions, places, rentCheck, rentProblem, comparables, photos } =
-    await loadLetting(params);
-  const { saved, problem } = await searchParams;
-  const closed = letting.status === 'let' || letting.status === 'withdrawn';
-  const inSetup = letting.stage === 'setup';
-  // Let at the offer, the letting runs on through the tenancy until it's finished (stage 9).
-  const finished = letting.stage === 'close';
-  const here = `/lettings/${letting.id}`;
+  const detail = await loadLetting(params);
+  const { member, letting } = detail;
+  const query = await searchParams;
+  const view = views.find((each) => each === query.view) ?? 'overview';
+  const now = new Date();
+  const { facts, recent, remindOwner } = await overviewFactsFor(member, detail, now);
+  const stage = pageStage(facts);
   // UX-OW-1: a home let for someone else can be shared with its owner from the day it's added.
   const hasOwner = !letsOwnHomes(member.organisationKind);
-  // UX-AG-4: a home a member decided to put live while their agency is being confirmed.
-  const { organisationName, gate } = await goLiveGateFor(member);
-  const criteriaLines = letting.criteria
-    ? [
-        ...describeCriteria(letting.criteria),
-        // UX-MT-5: the one house rule sits with the letting details, and never ranks anyone.
-        ...(letting.noSmokingIndoors ? [NO_SMOKING_INDOORS] : []),
-      ]
-    : null;
-  const keyFacts = describeKeyFacts({
-    propertyType: letting.propertyType as keyof typeof propertyTypes,
-    bedrooms: letting.bedrooms,
-    bathrooms: letting.bathrooms,
-    furnished: letting.furnished as keyof typeof furnishing | null,
-    berRating: letting.berRating as (typeof berRatings)[number] | null,
-    parking: letting.parking as keyof typeof parkingOptions | null,
-  });
-  // R28 for this home alone: what needs a person now, in the same words as the dashboard.
-  const needsYou =
-    !inSetup && !finished
-      ? // Whoever leads it: every member can open and act on any home (UX-AG-8).
-        todayRows(
-          (await dashboardFor(member)).everyone.filter(
-            (item) => 'lettingId' in item && item.lettingId === letting.id,
-          ),
-          new Date(),
-          { withAddress: false },
-        )
-      : [];
-  const enquiries = letting.status === 'live' ? await enquiryCount(member, letting.id) : 0;
   // UX-AG-8, UX-AG-9: who leads it, whether this member may change that, and "Help with this".
   const standing = hasTeam(member.organisationKind)
     ? await lettingStandingFor(member, letting.id)
     : null;
-  // UX-DC-10, UX-DC-16: what Gaff is waiting on someone else for, with nothing to do but look.
-  const underWay = letting.status === 'live' ? await waitingOnOthers(member, letting.id) : [];
-  const changeLink = (href: string, what: string) => (
-    <Link href={href} className={styles.change}>
-      Change<span className="visually-hidden"> {what}</span>
-    </Link>
-  );
+  // UX-LT-21, UX-TS-1: whether it has a public page, by the one rule the page itself follows.
+  const { gate } = await goLiveGateFor(member);
+  const shownOnGaff =
+    homePageState({
+      status: letting.status,
+      onGaff: letting.onGaff,
+      berRating: letting.berRating,
+      photos: detail.photos.length,
+      hiddenAt: letting.hiddenAt,
+      pageRemovedAt: letting.pageRemovedAt,
+      listerMayShow: gate.open,
+    }) === 'live';
+  const saved = query.saved && savedCopy[query.saved] ? query.saved : null;
 
   return (
     <Stack gap={8}>
       <LettingHeader
         letting={letting}
-        tab="overview"
-        actions={
+        stage={stage}
+        cover={detail.photos[0]?.href ?? null}
+        view={view}
+        menu={
           <LettingMenu
             lettingId={letting.id}
             address={letting.addressLine1}
-            testEnquiry={canSendTestEnquiry({ status: letting.status, enquiries })}
+            seeOnGaff={seeItOnGaffHref({ publicRef: letting.publicRef, shownOnGaff })}
+            testEnquiry={canSendTestEnquiry({ status: letting.status, enquiries: facts.enquiries })}
             shareWithOwner={hasOwner}
-            letAgain={canLetAgain(letting)}
+            shareWithColleague={
+              hasTeam(member.organisationKind) && may('manage_team', { role: member.role })
+            }
             changeLead={standing?.mayChangeLead ?? false}
+            close={letting.status === 'live'}
+            letAgain={canLetAgain(letting)}
           />
         }
       />
@@ -145,8 +111,7 @@ export default async function LettingPage({
           offersHelp={standing.offersHelp}
         />
       ) : null}
-
-      {saved && savedCopy[saved] && !(saved === 'rent-check' && rentProblem) ? (
+      {saved && !(saved === 'rent-check' && detail.rentProblem) ? (
         <Notice tone="success" role="status">
           <p>{savedCopy[saved]}</p>
         </Notice>
@@ -156,324 +121,50 @@ export default async function LettingPage({
         <ActionList>
           <ActionRow
             id="share-with-owner"
-            href={`${here}/owner`}
+            href={`/lettings/${letting.id}/owner`}
             icon={Share2}
             title={shareCopy.prompt.title}
             meta={shareCopy.prompt.text}
           />
         </ActionList>
       ) : null}
-      {problem === 'close' ? (
-        <Notice tone="warning" role="alert">
-          <p>Choose whether the home is let or withdrawn, then close it.</p>
-        </Notice>
-      ) : null}
 
-      {inSetup ? (
-        <section className={styles.listCard} aria-labelledby="setup-heading">
-          <div className={styles.listCardHeader}>
-            <h2 id="setup-heading" className="type-title">
-              {addLettingCopy.setup.finish}
-            </h2>
-            {letting.goLiveHeldAt ? null : (
-              <p className={styles.muted}>
-                {addLettingCopy.setup.stepsLeft(stepsLeft(letting.setupStep))}{' '}
-                {addLettingCopy.setup.next}
-              </p>
-            )}
-          </div>
-          <div className={styles.listCardFooter}>
-            {letting.goLiveHeldAt ? (
-              // UX-AG-4: they've decided to go live, and the agency is being confirmed.
-              <Notice tone="info" role="status">
-                <p>{goLiveCopy.waiting(organisationName)}</p>
-              </Notice>
-            ) : (
-              <div>
-                <ButtonLink href={resumeHref(letting.id, here)} variant="primary">
-                  {addLettingCopy.setup.continue}
-                </ButtonLink>
-              </div>
-            )}
-          </div>
-        </section>
-      ) : null}
-
-      {!inSetup && !finished ? (
-        <section className={styles.listCard} aria-labelledby="needs-heading">
-          <div className={styles.listCardHeader}>
-            <h2 id="needs-heading" className="type-title">
-              What needs you
-            </h2>
-            {needsYou.length === 0 && underWay.length === 0 ? (
-              <p className={styles.muted}>
-                Nothing needs you for this home right now. Gaff is answering enquiries and booking
-                viewings, and it’ll list anything that needs you here.
-              </p>
-            ) : null}
-          </div>
-          {needsYou.length > 0 ? <TodayList rows={needsYou} flush /> : null}
-          {underWay.length > 0 ? (
-            <ActionList flush>
-              {underWay.map((row) =>
-                row.kind === 'owner' ? (
-                  <ActionRow
-                    key={row.kind}
-                    id="waiting-owner"
-                    icon={Clock}
-                    title={decisionsCopy.owner.waiting.line(row.owner, row.since)}
-                    trailing={
-                      <form action={remindOwnerAction.bind(null, letting.id)}>
-                        <input type="hidden" name="from" value="letting" />
-                        <SubmitButton
-                          variant="secondary"
-                          pendingLabel={decisionsCopy.owner.waiting.reminding}
-                        >
-                          {decisionsCopy.owner.waiting.remind(row.owner)}
-                        </SubmitButton>
-                      </form>
-                    }
-                  />
-                ) : (
-                  <ActionRow
-                    key={row.kind}
-                    id={`waiting-${row.kind}`}
-                    href={row.href}
-                    icon={row.kind === 'checks' ? ShieldCheck : Handshake}
-                    title={row.title}
-                  />
-                ),
-              )}
-            </ActionList>
-          ) : null}
-        </section>
-      ) : null}
-
-      {finished && letting.closedAt ? (
-        <Outcome
-          tone="success"
-          title={letting.status === 'let' ? 'This home is let' : 'This letting is withdrawn'}
-        >
-          <p>
-            Closed on {formatDate(letting.closedAt)}. Gaff deletes renters’ details{' '}
-            {env().RETENTION_PERSONAL_DAYS} days after closing. The record of what happened stays,
-            with no personal details in it.
-          </p>
-        </Outcome>
-      ) : null}
-
-      <div className={styles.grid}>
-        {letting.status === 'live' ? (
-          <OnGaffCard letting={letting} photos={photos.length} listerMayShow={gate.open} />
-        ) : null}
-
-        <Card labelledBy="facts-heading">
-          <CardHeader id="facts-heading" title="Key facts" />
-          <SummaryList rows={keyFacts.map((fact) => ({ label: fact.label, value: fact.value }))} />
-          {facts.length > 0 ? (
-            <Stack gap={2}>
-              <h3 className={styles.small}>Also answered from</h3>
-              <ul className={styles.list}>
-                {facts.map((fact) => (
-                  <li key={fact.id}>{fact.answer}</li>
-                ))}
-              </ul>
-            </Stack>
-          ) : null}
-        </Card>
-
-        <Card labelledBy="viewings-heading">
-          <CardHeader
-            id="viewings-heading"
-            title="Viewing times"
-            action={closed ? null : changeLink(`${here}/viewings`, 'viewing times')}
+      {view === 'overview' ? (
+        <OverviewView
+          lettingId={letting.id}
+          needs={needsYouOn(facts, now)}
+          figures={figuresFor(facts, now)}
+          recent={recent}
+          next={whatsNext(facts)}
+          remindOwner={remindOwner}
+          waitingOn={facts.waitingOn}
+          tenancyHref={facts.tenancy ? `/lettings/${letting.id}/tenancy` : null}
+          resultsHref={facts.tenancy?.finished ? `/lettings/${letting.id}/let` : null}
+        />
+      ) : view === 'people' ? (
+        <PeopleView
+          lettingId={letting.id}
+          people={await peopleFor(member, letting.id)}
+          group={peopleGroup(stage)}
+          chip={chosenChip(query.show, peopleGroup(stage))}
+          personId={query.person ?? null}
+          live={letting.status !== 'draft'}
+        />
+      ) : (
+        <>
+          <HomeView
+            detail={detail}
+            detailsLocked={lettingDetailsLocked(letting.stage)}
+            lockedWords={DETAILS_LOCKED}
+            hasOwner={hasOwner}
+            shownOnGaff={shownOnGaff}
           />
-          {sessions.length === 0 ? (
-            <p className={styles.muted}>No viewing times yet.</p>
-          ) : (
-            <>
-              <ul className={styles.list}>
-                {sessions.map((session) => (
-                  <li key={session.id}>
-                    {formatDateTime(session.startsAt)}
-                    {session.kind === 'group'
-                      ? `, group viewing for up to ${session.capacity}`
-                      : `, ${session.slotMinutes}-minute slots`}
-                  </li>
-                ))}
-              </ul>
-              <p className={styles.muted}>
-                {places} {places === 1 ? 'place' : 'places'} to book.
-              </p>
-            </>
-          )}
-        </Card>
-
-        {criteriaLines ? (
-          <Card labelledBy="criteria-heading">
-            <CardHeader
-              id="criteria-heading"
-              title="Letting details"
-              action={
-                inSetup || letting.stage === 'enquiries'
-                  ? changeLink(
-                      screenHref(letting.id, 'details', here, { alone: '1' }),
-                      'letting details',
-                    )
-                  : null
-              }
-            />
-            {criteriaLines.length === 0 ? (
-              <p className={styles.muted}>
-                Nothing asked. Everyone is ranked by when they enquired.
-              </p>
-            ) : (
-              <ul className={styles.list}>
-                {criteriaLines.map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        ) : null}
-
-        {rentCheck ? (
-          <Card labelledBy="rent-heading">
-            <CardHeader
-              id="rent-heading"
-              title="Rent check"
-              action={
-                closed ? null : (
-                  <Link
-                    href={screenHref(letting.id, 'rent_check', here, { alone: '1' })}
-                    className={styles.change}
-                  >
-                    Check again
-                  </Link>
-                )
-              }
-            />
-            <RentCheckResult
-              check={rentCheck}
-              askingRentCents={letting.monthlyRentCents}
-              ceilingCents={rentProblem?.ceilingCents ?? null}
-            />
-            <p className={styles.small}>
-              Based on the rules from 1 March 2026 (version {rentCheck.rulesVersion}). Not legal
-              advice.
-            </p>
-          </Card>
-        ) : null}
-
-        {comparables.length > 0 ? (
-          <Card labelledBy="comparables-heading">
-            <CardHeader
-              id="comparables-heading"
-              title="Comparable rents"
-              action={closed ? null : changeLink(`${here}/comparables`, 'comparable rents')}
-            />
-            <ul className={styles.list}>
-              {comparables.map((c) => (
-                <li key={c.id}>
-                  {c.area}: {c.bedrooms}-bed {c.propertyType}, {formatRent(c.monthlyRentCents)}
-                </li>
-              ))}
-            </ul>
-            <p>
-              The middle rent is {formatRent(medianRentCents(comparables))}. You’re asking{' '}
-              {formatRent(letting.monthlyRentCents)}.
-            </p>
-            {comparableWarnings(letting, comparables).map((warning) => (
-              <Notice key={warning} tone="warning">
-                <p>{warning} Comparables should be similar homes in the same area.</p>
-              </Notice>
-            ))}
-          </Card>
-        ) : null}
-      </div>
-
-      {letting.status === 'live' ? (
-        <Disclosure variant="card" summary="Close this letting" open={problem === 'close'}>
-          <p className={styles.muted}>
-            When the home is let, or you’re not letting it now, close it here. Gaff tells everyone
-            who enquired, cancels any viewings still to come, and deletes renters’ details{' '}
-            {env().RETENTION_PERSONAL_DAYS} days later. The record of what happened stays, with no
-            personal details in it.
-          </p>
-          <form action={closeAction.bind(null, letting.id)}>
-            <Stack gap={4}>
-              <ChoiceGroup
-                name="outcome"
-                legend="How did it end?"
-                inline
-                options={[
-                  { value: 'let', label: 'It’s let' },
-                  { value: 'withdrawn', label: 'We’re not letting it now' },
-                ]}
-              />
-              <div>
-                <SubmitButton variant="secondary" pendingLabel="Closing…">
-                  Close the letting
-                </SubmitButton>
-              </div>
-            </Stack>
-          </form>
-        </Disclosure>
-      ) : null}
+          {/* UX-LT-21: the switch for "On gaff.ie", once the home is live. */}
+          {letting.status === 'live' ? (
+            <OnGaffCard letting={letting} photos={detail.photos.length} listerMayShow={gate.open} />
+          ) : null}
+        </>
+      )}
     </Stack>
   );
-}
-
-type WaitingOn =
-  | { kind: 'checks'; title: string; href: string }
-  | { kind: 'owner'; owner: string; since: Date }
-  | { kind: 'offer'; title: string; href: string };
-
-/**
- * UX-DC-10, UX-DC-16: while Gaff waits on someone else, the letting says so, and there is
- * nothing to do but look: the chosen people's checks running, the owner's answer (with "Remind
- * Mary"), or the renter's answer to the offer.
- */
-async function waitingOnOthers(
-  member: Awaited<ReturnType<typeof loadLetting>>['member'],
-  lettingId: string,
-): Promise<WaitingOn[]> {
-  const [approval, listing, sent] = await Promise.all([
-    approvalFor(member, lettingId),
-    applicantsFor(member, lettingId),
-    offersFor(member, lettingId),
-  ]);
-  const rows: WaitingOn[] = [];
-  const open = sent.find((s) => s.offer.status === 'open');
-  if (open) {
-    return [
-      {
-        kind: 'offer',
-        title: decisionsCopy.underWay.offerOut(firstNameOf(open.name), open.offer.expiresAt),
-        href: decisionHref(lettingId, 'offer'),
-      },
-    ];
-  }
-  const chosen = (listing?.rows ?? []).filter(
-    (r) => r.status === 'preferred' || r.status === 'backup',
-  );
-  const preferred = chosen.find((r) => r.status === 'preferred');
-  if (preferred && !allChecksBack(preferred.checks)) {
-    const backup = chosen.find((r) => r.status === 'backup');
-    rows.push({
-      kind: 'checks',
-      title: decisionsCopy.underWay.checks(
-        both(firstNameOf(preferred.name), backup ? firstNameOf(backup.name) : null),
-      ),
-      href: decisionHref(lettingId, 'checks'),
-    });
-  }
-  if (approval?.approval?.status === 'requested' && approval.landlord) {
-    rows.push({
-      kind: 'owner',
-      owner: firstNameOf(approval.landlord.name),
-      since: approval.approval.remindedAt ?? approval.approval.requestedAt,
-    });
-  }
-  return rows;
 }

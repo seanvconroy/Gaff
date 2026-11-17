@@ -261,6 +261,42 @@ export async function photosDoneAction(
 }
 
 /**
+ * UX-LP-11, UX-LP-12: "Change" on the facts or the description, from Home on the letting's
+ * page. It saves and goes back there. A live home's facts change at any time, and Gaff answers
+ * from them as they are from then on.
+ */
+export async function saveHomePartAction(
+  part: 'home' | 'description',
+  id: string,
+  _state: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const member = await requireMember();
+  const values = formValues(formData);
+  if (values.intent === 'exit') redirect(`/lettings/${id}?view=home`);
+  const parsed = (part === 'home' ? homeFactsSchema : descriptionSchema)().safeParse(values);
+  if (!parsed.success) return invalid(fieldErrors(parsed.error), values);
+  try {
+    await saveAnswers(member, id, {
+      step: part,
+      patch: parsed.data as Partial<DraftAnswers>,
+      advance: false,
+    });
+  } catch (error) {
+    return problem(error, values);
+  }
+  revalidatePath(`/lettings/${id}`, 'layout');
+  redirect(`/lettings/${id}?view=home&saved=${part === 'home' ? 'facts' : 'description'}`);
+}
+
+/** UX-LP-11: photos changed from Home. Each was kept as it uploaded: this only goes back. */
+export async function photosChangedAction(id: string): Promise<void> {
+  await requireMember();
+  revalidatePath(`/lettings/${id}`, 'layout');
+  redirect(`/lettings/${id}?view=home&saved=photos`);
+}
+
+/**
  * Step 7, letting details (UX-LT-11): the four fixed criteria and the one house rule. Opened
  * on its own from the letting's page (`alone`), it saves and goes back there.
  */
@@ -284,7 +320,7 @@ export async function saveDetailsAction(
     return problem(error, values);
   }
   revalidatePath(`/lettings/${id}`, 'layout');
-  if (alone) redirect(`/lettings/${id}?saved=criteria`);
+  if (alone) redirect(`/lettings/${id}?view=home&saved=criteria`);
   await reachStep(member, id, 'rent_check');
   if (values.intent === 'exit') redirect(await leaveTo(from));
   redirect(screenHref(id, 'rent_check', from));
@@ -349,7 +385,7 @@ export async function rentResultAction(
     // The same screen again, now with the rent inside the rules and Next as its one action.
     redirect(screenHref(id, 'rent_result', from, { alone: alone ? '1' : null, changed: '1' }));
   }
-  if (alone) redirect(`/lettings/${id}?saved=rent-check`);
+  if (alone) redirect(`/lettings/${id}?view=home&saved=rent-check`);
   await reachStep(member, id, 'go_live');
   if (values.intent === 'exit') redirect(await leaveTo(from));
   redirect(screenHref(id, 'go_live', from));

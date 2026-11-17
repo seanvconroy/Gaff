@@ -2,6 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { lettingPageCopy } from '@/copy/letting-page';
+import { formValues, invalid, type FormState } from '@/lib/forms';
 import { requireMember } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { closeLetting } from '@/server/lettings/close';
@@ -15,18 +17,23 @@ export async function setOnGaffAction(lettingId: string, formData: FormData): Pr
   redirect(`/lettings/${lettingId}`);
 }
 
-/** R26: a person closes the letting as let or withdrawn. */
-export async function closeAction(lettingId: string, formData: FormData): Promise<void> {
+/** R26, UX-LP-5: a person closes the letting as let or withdrawn. The error is at the question. */
+export async function closeAction(
+  lettingId: string,
+  _state: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const member = await requireMember();
-  const outcome = formData.get('outcome');
+  const values = formValues(formData);
+  const outcome = values.outcome;
   if (outcome !== 'let' && outcome !== 'withdrawn') {
-    redirect(`/lettings/${lettingId}?problem=close`);
+    return invalid({ outcome: lettingPageCopy.close.choose }, values);
   }
   try {
     await closeLetting(member, lettingId, outcome);
   } catch (error) {
     if (!(error instanceof UserFacingError)) throw error;
-    redirect(`/lettings/${lettingId}?problem=close`);
+    return invalid({ form: error.message }, values);
   }
   revalidatePath('/', 'layout');
   redirect(`/lettings/${lettingId}?saved=closed`);

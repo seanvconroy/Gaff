@@ -1,53 +1,97 @@
 'use client';
 
-import { Repeat, Send, Share2, UserRoundCog } from 'lucide-react';
+import {
+  DoorClosed,
+  ExternalLink,
+  History,
+  Pencil,
+  Repeat,
+  Send,
+  Share2,
+  UserPlus,
+  UserRoundCog,
+} from 'lucide-react';
 import { useTransition } from 'react';
 import { addLettingCopy } from '@/copy/add-letting';
+import { lettingPageCopy } from '@/copy/letting-page';
 import { shareCopy } from '@/copy/owner';
 import { teamCopy } from '@/copy/team';
 import { letAgainAction } from '@/app/(task)/lettings/_flow/actions';
 import { Menu, MenuItem } from '@/ui/Menu';
 
+const copy = lettingPageCopy.menu;
+
 /**
- * A letting's menu of rare actions, beside its address. "Send a test enquiry" is there for a
- * live letting until its first real enquiry arrives (UX-LT-24); "Share with the owner" for any
- * home let for someone else, from the day it's added (UX-OW-1, UX-OW-2); "Change lead" in a team,
- * for whoever may change it (UX-AG-9); "Let it again" once the letting is closed (UX-LT-23).
- * With none of them, there is no menu.
+ * UX-LP-5: a letting's menu of rare actions, beside its address. It holds: See it on Gaff (a live
+ * home on Gaff, once its public page exists); Change the home's details; Share with the owner
+ * (a home let for someone else: UX-OW-1); Share with a colleague (an admin on a team: UX-AG-13);
+ * History; Close this letting (while it's live). A closed letting has "Let it again" (UX-LT-23).
+ *
+ * Two more belong to earlier packages and stay: "Send a test enquiry" until the first real one
+ * arrives (UX-LT-24), and "Change lead" for whoever may change it (UX-AG-9).
  */
 export function LettingMenu({
   lettingId,
   address,
+  seeOnGaff,
   testEnquiry,
   shareWithOwner,
+  shareWithColleague,
+  changeLead,
+  close,
   letAgain,
-  changeLead = false,
 }: {
   lettingId: string;
   address: string;
+  seeOnGaff: string | null;
   testEnquiry: boolean;
   shareWithOwner: boolean;
+  shareWithColleague: boolean;
+  changeLead: boolean;
+  close: boolean;
   letAgain: boolean;
-  changeLead?: boolean;
 }) {
   const [starting, start] = useTransition();
-  if (!testEnquiry && !shareWithOwner && !letAgain && !changeLead) return null;
+  const here = `/lettings/${lettingId}`;
   return (
     <>
       <Menu label={`More for ${address}`}>
+        {seeOnGaff ? (
+          <MenuItem icon={ExternalLink} href={seeOnGaff}>
+            {copy.seeOnGaff}
+          </MenuItem>
+        ) : null}
+        {letAgain ? null : (
+          <MenuItem icon={Pencil} href={`${here}?view=home`}>
+            {copy.change}
+          </MenuItem>
+        )}
         {testEnquiry ? (
-          <MenuItem icon={Send} href={`/lettings/${lettingId}/test-enquiry`}>
+          <MenuItem icon={Send} href={`${here}/test-enquiry`}>
             {addLettingCopy.testEnquiry.menu}
           </MenuItem>
         ) : null}
         {shareWithOwner ? (
-          <MenuItem icon={Share2} href={`/lettings/${lettingId}/owner`}>
+          <MenuItem icon={Share2} href={`${here}/owner`}>
             {shareCopy.menu}
           </MenuItem>
         ) : null}
+        {shareWithColleague ? (
+          <MenuItem icon={UserPlus} href="/settings/team/invite">
+            {copy.shareWithColleague}
+          </MenuItem>
+        ) : null}
         {changeLead ? (
-          <MenuItem icon={UserRoundCog} href={`/lettings/${lettingId}/lead`}>
+          <MenuItem icon={UserRoundCog} href={`${here}/lead`}>
             {teamCopy.help.menu}
+          </MenuItem>
+        ) : null}
+        <MenuItem icon={History} href={`${here}/history`}>
+          {copy.history}
+        </MenuItem>
+        {close ? (
+          <MenuItem icon={DoorClosed} href={`${here}/close`}>
+            {copy.close}
           </MenuItem>
         ) : null}
         {letAgain ? (

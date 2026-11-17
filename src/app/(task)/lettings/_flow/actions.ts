@@ -12,10 +12,12 @@ import {
   addressStepSchema,
   advertLinksIn,
   descriptionSchema,
+  homeFactsSchema,
   homeStepSchema,
   partialAnswers,
   rentStepSchema,
 } from '@/domain/lettings/add-letting';
+import { isOnlyLinks, MAX_ADVERT_CHARS } from '@/domain/lettings/advert-reading';
 import { berRatings, parseEuroToCents } from '@/domain/lettings/new-letting';
 import type { Portal } from '@/domain/lettings/setup';
 import { returnPath } from '@/domain/navigation/return-to';
@@ -27,7 +29,8 @@ import type { AddressSuggestion, PostalAddress } from '@/ports/address-search';
 import { ensureOwnHomes } from '@/server/accounts/contexts';
 import { currentUser, findMember, type Member, requireMember } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
-import { advertReaderIsOn } from '@/server/lettings/advert-reader';
+import { readAdvertIntoDraft } from '@/server/lettings/advert-reader';
+import { readingIsOffered } from '@/server/lettings/reader-setting';
 import {
   confirmReview,
   keepAdvertLinks,
@@ -79,9 +82,11 @@ function problem(error: unknown, values: Record<string, string>, field = 'form')
 }
 
 /**
- * Step 1 (UX-LT-1, UX-LT-8). A Daft or MyHome link is kept, to match enquiries, and never
- * fetched (Q31). Reading what was pasted is work package WP-10 (`advertReaderIsOn`): until
- * then the box says so, and what was typed stays in it.
+ * Step 1 (UX-LT-1, UX-LT-2, UX-LT-8). A Daft or MyHome link is kept, to match enquiries, and
+ * never fetched (Q31); any other link is not opened either, and the box asks for the advert's
+ * words instead. Words are read into a draft, which opens at its review ("Here's what Gaff
+ * found"). If the reader is off, slow or down, the box says so and keeps what was typed, and
+ * "Fill it in myself" is on the same screen (UX-AI-12).
  */
 export async function startAction(
   draftId: string | null,
@@ -90,7 +95,7 @@ export async function startAction(
   formData: FormData,
 ): Promise<FormState> {
   const values = formValues(formData);
-  const about = values.about ?? '';
+  const about = (values.about ?? '').slice(0, MAX_ADVERT_CHARS * 2);
   const links = advertLinksIn(about);
   let id = draftId;
   if (links.daftUrl || links.myhomeUrl) {
@@ -100,9 +105,15 @@ export async function startAction(
   }
   const kept = { ...values, ...(id ? { draft: id } : {}) };
   if (!about.trim()) return invalid({ about: copy.start.empty }, kept);
-  if (!advertReaderIsOn()) return invalid({ about: copy.start.readerOff }, kept);
-  // Work package WP-10 reads the text here and opens the review screen.
-  return invalid({ about: copy.start.readerOff }, kept);
+  if (!(await readingIsOffered())) return invalid({ about: copy.start.readerOff }, kept);
+  // Q31: a link is never opened, so a link on its own gives Gaff nothing to read.
+  if (isOnlyLinks(about)) return invalid({ about: copy.start.linkNotOpened }, kept);
+  const member = await memberOrBecomeOne();
+  const outcome = await readAdvertIntoDraft(member, { text: about, draftId: id });
+  if (outcome.kind === 'nothing_found') return invalid({ about: copy.start.couldNotMakeOut }, kept);
+  if (outcome.kind === 'unavailable') return invalid({ about: copy.start.notJustNow }, kept);
+  revalidatePath('/lettings');
+  redirect(screenHref(outcome.id, 'review', from));
 }
 
 const stepSchemas = {
@@ -181,7 +192,9 @@ export async function saveReviewAction(
       noSmokingIndoors: parsed.data.noSmokingIndoors || undefined,
     };
   } else {
-    const parsed = stepSchemas[group]().safeParse(values);
+    // The review's "The home" sheet has no description or facts: they have a sheet of their own.
+    const schema = group === 'home' ? homeFactsSchema : stepSchemas[group];
+    const parsed = schema().safeParse(values);
     if (!parsed.success) return invalid(fieldErrors(parsed.error), values);
     patch = parsed.data as Partial<DraftAnswers>;
   }

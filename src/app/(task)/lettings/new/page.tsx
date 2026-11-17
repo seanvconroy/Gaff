@@ -5,7 +5,7 @@ import { fromOf, resumeHref } from '@/domain/lettings/links';
 import { listAHomeHref } from '@/domain/navigation/context';
 import { returnPath } from '@/domain/navigation/return-to';
 import { requirePerson } from '@/server/context/current-person';
-import { advertReaderIsOn } from '@/server/lettings/advert-reader';
+import { readingIsOffered } from '@/server/lettings/reader-setting';
 import { listDrafts } from '@/server/lettings/drafts';
 import { startAction } from '../_flow/actions';
 import { StartStep } from '../_flow/Steps';
@@ -43,7 +43,7 @@ export default async function NewLettingPage({
       from={back}
       draftId={draftId}
       kept={kept === '1' && draftId !== null}
-      readerOn={advertReaderIsOn()}
+      readerOn={await readingIsOffered()}
       drafts={drafts
         .filter((each) => each.id !== draftId)
         .map((each) => ({

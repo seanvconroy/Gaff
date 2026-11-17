@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { mailServiceNames } from '@/domain/enquiries/forwarding-confirmation';
 import { inboxHref, parseConversationKey, showFor } from '@/domain/inbox/conversations';
+import { resumeHref } from '@/domain/lettings/links';
 import { questionWords, whenSaid } from '@/domain/inbox/thread';
 import { requireMember } from '@/server/auth/member';
 import {
@@ -19,7 +20,13 @@ import { OpenConversation, Thread, ThreadHeader, ThreadMessage } from '@/ui/Thre
 import type { ThreadEntry } from '@/domain/inbox/thread';
 import { InboxFrame } from '../InboxFrame';
 import styles from '../inbox.module.css';
-import { DraftReply, PlaceEmail, QuestionsReply, WriteReply } from '../ReplyForms';
+import {
+  DraftReply,
+  PlaceEmail,
+  QuestionsReply,
+  StartFromEnquiry,
+  WriteReply,
+} from '../ReplyForms';
 
 export const metadata: Metadata = { title: 'Inbox' };
 
@@ -240,6 +247,14 @@ function EmailConversation({
         </Notice>
       ) : null}
       <PlaceEmail conversation={thread.key} show={show} homes={thread.homes} />
+      {thread.newHome ? (
+        <StartFromEnquiry
+          conversation={thread.key}
+          draftHref={
+            thread.newHome.draftId ? resumeHref(thread.newHome.draftId, inboxHref()) : null
+          }
+        />
+      ) : null}
       <Messages label="The email" entries={thread.entries} now={now} />
     </OpenConversation>
   );

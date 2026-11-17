@@ -17,8 +17,6 @@ export const addLettingCopy = {
   start: {
     title: 'Tell Gaff about the home',
     box: 'Paste your advert, or describe the home in your own words.',
-    /** Q31: said plainly, where the link would be pasted. */
-    boxHint: 'Gaff reads the words you paste here. It doesn’t open links.',
     /** UX-LT-1: for a brochure or screenshots, once files are read. Not shown until then. */
     attach: 'Attach a brochure, screenshots or photos',
     continue: 'Continue',
@@ -39,7 +37,8 @@ export const addLettingCopy = {
     /** UX-AI-12: the reader is slow or down. The manual route is on the same screen. */
     notJustNow: 'Gaff couldn’t read that just now. Try again, or fill it in yourself.',
     /** The reader is switched off (ADVERT_READER): the screen offers only what works. */
-    readerOff: 'Gaff isn’t reading adverts just now. Fill the home in yourself: it takes a few minutes.',
+    readerOff:
+      'Gaff isn’t reading adverts just now. Fill the home in yourself: it takes a few minutes.',
     drafts: 'Carry on with a home you started',
     draftWithoutAddress: 'A home with no address yet',
   },
@@ -341,6 +340,15 @@ export const addLettingCopy = {
       'The link takes a renter to the questions your letting details need. It takes them about a minute.',
     noQuestions: 'You asked for no letting details, so a renter is asked nothing before a viewing.',
     done: 'Done',
+  },
+
+  /** UX-LT-16: in Inbox, on an enquiry Gaff couldn't match to any home. */
+  fromEnquiry: {
+    question: 'Is it about a home that isn’t on Gaff yet?',
+    lead: 'Gaff can start it from this email, with the address and the advert’s link. The enquiry joins the home once it’s set up, and Gaff answers it when the home goes live.',
+    start: 'Start a letting from this enquiry',
+    starting: 'Starting…',
+    carryOn: 'Carry on with this home',
   },
 
   letAgain: {

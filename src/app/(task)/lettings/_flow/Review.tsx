@@ -2,7 +2,7 @@
 
 import { House, Images, ListChecks, MapPin, type LucideIcon, Text, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import type { z } from 'zod';
 import { addLettingCopy } from '@/copy/add-letting';
 import { lettingDetailsFormSchema } from '@/domain/criteria/criteria';
@@ -12,7 +12,7 @@ import {
   type ReviewGroup,
   addressStepSchema,
   descriptionSchema,
-  homeStepSchema,
+  homeFactsSchema,
   rentStepSchema,
 } from '@/domain/lettings/add-letting';
 import { MAX_HOME_PHOTOS } from '@/domain/lettings/photos';
@@ -24,6 +24,7 @@ import { FlowProblems, FlowShell, FlowTitle } from '@/ui/FlowShell';
 import { PhotoUploader, type UploadedPhoto, type UploadResult } from '@/ui/PhotoUploader';
 import { Sheet } from '@/ui/Sheet';
 import { StatusPill } from '@/ui/StatusPill';
+import { SummaryList } from '@/ui/SummaryList';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { useFlowForm } from '@/ui/useFlowForm';
 import {
@@ -59,8 +60,94 @@ const rowCopy: Record<ReviewPart, { title: string; icon: LucideIcon; checks: Che
   rent: { title: r.rent, icon: Wallet, checks: ['rent', 'available_from'] },
   home: { title: r.facts, icon: House, checks: ['home', 'ber'] },
   description: { title: r.description, icon: Text, checks: [] },
-  details: { title: r.details, icon: ListChecks, checks: [] },
+  details: { title: r.details, icon: ListChecks, checks: ['details'] },
 };
+
+/**
+ * What a home that was read shows on its review (UX-LT-3, UX-LT-6, UX-AI-4), in words: for each
+ * part, the words each value came from, shown in the sheet its row opens; the lines left out,
+ * each with why. Built by the page from the draft's reading.
+ */
+export interface ReadingView {
+  from: 'advert' | 'enquiry';
+  sources: Partial<
+    Record<ReviewPart, ReadonlyArray<{ label: string; quote: string; note: string | null }>>
+  >;
+  /** Notes for the description's sheet: what is still in the lister's own words. */
+  ownWords: readonly string[];
+  /** The advert says something that could be a letting detail. A person decides. */
+  suggested: boolean;
+  leftOut: ReadonlyArray<{ line: string; why: string }>;
+}
+
+/** UX-LT-3: "From your advert: 'gas fired central heating'", at the top of a part's sheet. */
+function Sources({ reading, part }: { reading: ReadingView | null; part: ReviewPart }) {
+  if (!reading) return null;
+  const words = r.read[reading.from];
+  const found = reading.sources[part] ?? [];
+  const notes = [
+    ...(part === 'description' ? reading.ownWords : []),
+    ...(part === 'details' && reading.suggested ? [r.suggested.note] : []),
+  ];
+  if (found.length === 0 && notes.length === 0) return null;
+  return (
+    <section className={styles.sources} aria-labelledby={`sources-${part}`}>
+      <h3 id={`sources-${part}`} className="type-heading">
+        {words.from}
+      </h3>
+      {found.length > 0 ? (
+        <SummaryList
+          rows={found.map((each) => ({
+            label: each.label,
+            value: (
+              <>
+                <span className={styles.quote}>{each.quote}</span>
+                {each.note ? <span className={styles.sourceNote}>{each.note}</span> : null}
+              </>
+            ),
+          }))}
+        />
+      ) : null}
+      {notes.map((note) => (
+        <p key={note}>{note}</p>
+      ))}
+    </section>
+  );
+}
+
+/** UX-LT-6: said once, on the review: how many lines were left out, and why, behind "Why?". */
+function LeftOut({ lines }: { lines: ReadingView['leftOut'] }) {
+  const [open, setOpen] = useState(false);
+  if (lines.length === 0) return null;
+  return (
+    <>
+      <div className={styles.leftOut}>
+        <p>{r.leftOut(lines.length)}</p>
+        <Button variant="quiet" onClick={() => setOpen(true)}>
+          {r.why}
+        </Button>
+      </div>
+      <Sheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={r.leftOutLines}
+        footer={
+          <Button variant="primary" onClick={() => setOpen(false)}>
+            {r.done}
+          </Button>
+        }
+      >
+        <p>{r.whyText}</p>
+        <SummaryList
+          rows={lines.map((each) => ({
+            label: <span className={styles.quote}>{r.read.quote(each.line)}</span>,
+            value: each.why,
+          }))}
+        />
+      </Sheet>
+    </>
+  );
+}
 
 const problemsBy = (schema: () => z.ZodType) => (values: Record<string, string>) => {
   const parsed = schema().safeParse(values);
@@ -73,7 +160,7 @@ const rules: Record<
 > = {
   address: problemsBy(addressStepSchema),
   rent: problemsBy(rentStepSchema),
-  home: problemsBy(homeStepSchema),
+  home: problemsBy(homeFactsSchema),
   description: problemsBy(descriptionSchema),
   details: problemsBy(lettingDetailsFormSchema),
 };
@@ -127,6 +214,7 @@ export function ReviewStep({
   origin,
   rows,
   checks,
+  reading,
   open,
   reviewHref,
   looksRight,
@@ -147,6 +235,8 @@ export function ReviewStep({
   rows: readonly ReviewRow[];
   /** What to look at, counted at the top. */
   checks: readonly CheckThis[];
+  /** For a home that was read from an advert or an enquiry: where its values came from. */
+  reading: ReadingView | null;
   /** The part whose sheet is open, from the address bar. */
   open: ReviewPart | null;
   /** This screen with no sheet open. */
@@ -184,14 +274,22 @@ export function ReviewStep({
       >
         <FlowTitle
           title={r.title[origin]}
-          lead={origin === 'again' ? r.lead.again : r.lead.other}
+          lead={
+            reading ? r.read[reading.from].note : origin === 'again' ? r.lead.again : r.lead.other
+          }
         />
-        <p className={styles.count} role="status">
-          {checks.length > 0 ? (
-            <StatusPill tone="warning">{r.toCheck(checks.length)}</StatusPill>
-          ) : (
-            <StatusPill tone="success">{r.nothingToCheck}</StatusPill>
-          )}
+        <p className={styles.count}>
+          {/* UX-AI-1, UX-AI-4: what the AI filled in is marked as the AI's. */}
+          {reading?.from === 'advert' ? (
+            <StatusPill tone="ai">{r.read.advert.pill}</StatusPill>
+          ) : null}
+          <span role="status">
+            {checks.length > 0 ? (
+              <StatusPill tone="warning">{r.toCheck(checks.length)}</StatusPill>
+            ) : (
+              <StatusPill tone="success">{r.nothingToCheck}</StatusPill>
+            )}
+          </span>
         </p>
         <ActionList>
           {rows.map((row) => {
@@ -210,6 +308,7 @@ export function ReviewStep({
             );
           })}
         </ActionList>
+        <LeftOut lines={reading?.leftOut ?? []} />
       </FlowShell>
 
       {/* Beside the shell, not inside it: each sheet's form is its own. */}
@@ -234,29 +333,32 @@ export function ReviewStep({
       <Sheet open={form !== null} onClose={close} title={form ? rowCopy[form].title : ''}>
         {form ? (
           <PartForm key={form} action={save[form]} check={rules[form]} onSaved={close}>
-            {({ errors, typed }) =>
-              form === 'address' ? (
-                <AddressFields values={typed ?? values} errors={errors} searchOn={searchOn} />
-              ) : form === 'rent' ? (
-                <RentFields
-                  values={typed ?? values}
-                  errors={errors}
-                  today={today}
-                  inAYear={inAYear}
-                />
-              ) : form === 'home' ? (
-                <HomeFields values={typed ?? values} errors={errors} />
-              ) : form === 'description' ? (
-                <DescriptionFields values={typed ?? values} errors={errors} />
-              ) : (
-                <DetailsFields
-                  values={typed ?? details}
-                  errors={errors}
-                  availableFrom={availableFrom}
-                  today={today}
-                />
-              )
-            }
+            {({ errors, typed }) => (
+              <>
+                <Sources reading={reading} part={form} />
+                {form === 'address' ? (
+                  <AddressFields values={typed ?? values} errors={errors} searchOn={searchOn} />
+                ) : form === 'rent' ? (
+                  <RentFields
+                    values={typed ?? values}
+                    errors={errors}
+                    today={today}
+                    inAYear={inAYear}
+                  />
+                ) : form === 'home' ? (
+                  <HomeFields values={typed ?? values} errors={errors} />
+                ) : form === 'description' ? (
+                  <DescriptionFields values={typed ?? values} errors={errors} />
+                ) : (
+                  <DetailsFields
+                    values={typed ?? details}
+                    errors={errors}
+                    availableFrom={availableFrom}
+                    today={today}
+                  />
+                )}
+              </>
+            )}
           </PartForm>
         ) : null}
       </Sheet>

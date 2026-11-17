@@ -9,6 +9,11 @@
   min-width: 0;
 }
 
+/* The first screen's box, kept (with what was typed) while the advert is read. */
+.fields[hidden] {
+  display: none;
+}
+
 /* Rows that belong together sit closer than separate questions do. */
 .rows {
   display: grid;
@@ -128,6 +133,33 @@
 /* The review: how many things to look at, above the home's parts. */
 .count {
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* UX-LT-3: the words each value came from, at the top of its sheet. */
+.sources {
+  display: grid;
+  gap: var(--space-3);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.quote {
+  overflow-wrap: anywhere;
+}
+
+.sourceNote {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-warning);
+}
+
+/* UX-LT-6: the one line saying what was left out, with "Why?". */
+.leftOut {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
 }
 
 .sheetForm {

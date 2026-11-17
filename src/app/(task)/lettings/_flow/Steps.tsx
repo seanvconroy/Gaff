@@ -10,8 +10,9 @@ import { addressStepSchema, homeStepSchema, rentStepSchema } from '@/domain/lett
 import { MAX_HOME_PHOTOS } from '@/domain/lettings/photos';
 import { fieldErrors, type FormState } from '@/lib/forms';
 import { ButtonLink } from '@/ui/Button';
-import { TextArea, TextField } from '@/ui/Field';
+import { TextArea } from '@/ui/Field';
 import { FlowExit, FlowShell, FlowTitle } from '@/ui/FlowShell';
+import { Skeleton, SkeletonGroup } from '@/ui/Skeleton';
 import { PhotoUploader, type UploadedPhoto, type UploadResult } from '@/ui/PhotoUploader';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { AddressFields, DescriptionFields, DetailsFields, HomeFields, RentFields } from './fields';
@@ -29,14 +30,55 @@ const problemsBy = (schema: () => z.ZodType) => (values: Record<string, string>)
   return parsed.success ? {} : fieldErrors(parsed.error);
 };
 
+/** Homes this organisation started and didn't finish, under the first screen (UX-FL-2). */
+function Drafts({
+  drafts,
+}: {
+  drafts: ReadonlyArray<{ id: string; label: string; href: string }>;
+}) {
+  if (drafts.length === 0) return null;
+  return (
+    <section className={styles.drafts} aria-labelledby="drafts-heading">
+      <h2 id="drafts-heading" className="type-heading">
+        {copy.start.drafts}
+      </h2>
+      <ul className={styles.factList}>
+        {drafts.map((each) => (
+          <li key={each.id}>
+            <Link href={each.href}>{each.label}</Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** UX-AI-13: the review's layout, at once, while Gaff reads what was pasted. */
+function ReadingNow() {
+  return (
+    <SkeletonGroup label={copy.start.reading}>
+      <Skeleton shape="title" width="long" />
+      <Skeleton width="half" />
+      {[0, 1, 2, 3, 4, 5].map((row) => (
+        <Skeleton key={row} shape="control" />
+      ))}
+    </SkeletonGroup>
+  );
+}
+
 /**
  * Step 1, "Tell Gaff about the home" (UX-LT-1): one box for a pasted advert or a description,
  * one primary button, and the quiet way round it, "Fill it in myself". A Daft or MyHome link
- * is kept and never fetched (UX-LT-8).
+ * is kept and never fetched (UX-LT-8); no other link is opened either (Q31).
  *
- * Reading what's in the box is work package WP-10. Until it is switched on (`readerOn`), the
- * box answers that it can't read adverts yet, what was typed stays, and the attach button,
- * which only the reader has a use for, isn't shown.
+ * Continue reads what's in the box (UX-LT-2) and opens "Here's what Gaff found". While it
+ * reads, the review's layout shows (UX-AI-13). If the reader is switched off (`readerOn`), the
+ * screen offers only what works: "Fill it in myself", as its one primary button (UX-AI-12).
+ *
+ * NOT BUILT YET: attaching a brochure, screenshots or photos (UX-LT-1). The reader carries text
+ * only, and every value it keeps must point at the words it came from, so files wait until they
+ * can be turned into text that can be checked (`advertFilesAreRead`). Until then there is no
+ * attach button, rather than one that does nothing.
  */
 export function StartStep({
   frame,
@@ -58,6 +100,22 @@ export function StartStep({
   /** Homes this organisation started and didn't finish, to carry on with (UX-FL-2). */
   drafts: ReadonlyArray<{ id: string; label: string; href: string }>;
 }) {
+  if (!readerOn) {
+    const manual = draftId ? screenHref(draftId, 'address', from) : firstAddressHref(from);
+    return (
+      <FlowShell
+        leave={{ kind: 'close', href: frame.leaveHref }}
+        primary={
+          <ButtonLink href={manual} variant="primary" fullWidth="phone">
+            {copy.start.manual}
+          </ButtonLink>
+        }
+      >
+        <FlowTitle title={copy.start.title} lead={copy.start.readerOff} />
+        <Drafts drafts={drafts} />
+      </FlowShell>
+    );
+  }
   return (
     <StepForm
       id="start"
@@ -65,57 +123,37 @@ export function StartStep({
       action={action}
       title={copy.start.title}
       primary={copy.start.continue}
+      pending={copy.start.readingButton}
     >
-      {({ errors, values }) => {
+      {({ errors, values, sending }) => {
         const draft = values?.draft || draftId;
         return (
           <>
-            <TextArea
-              name="about"
-              label={copy.start.box}
-              rows={8}
-              defaultValue={values?.about ?? ''}
-              error={errors.about}
-            />
-            {kept && !errors.about ? (
-              <p className={styles.note} role="status">
-                <Check size={20} strokeWidth={2} aria-hidden="true" />
-                <span>{copy.start.linkKept}</span>
-              </p>
-            ) : null}
-            {readerOn ? (
-              // Only the reader has a use for these (work package WP-10), so they wait for it.
-              <TextField
-                name="files"
-                type="file"
-                multiple
-                optional
-                label={copy.start.attach}
-                accept=".pdf,.doc,.docx,image/*"
+            {sending ? <ReadingNow /> : null}
+            <div hidden={sending} className={styles.fields}>
+              <TextArea
+                name="about"
+                label={copy.start.box}
+                rows={8}
+                defaultValue={values?.about ?? ''}
+                error={errors.about}
               />
-            ) : null}
-            <div className={styles.aside}>
-              <ButtonLink
-                href={draft ? screenHref(draft, 'address', from) : firstAddressHref(from)}
-                variant="quiet"
-              >
-                {copy.start.manual}
-              </ButtonLink>
+              {kept && !errors.about ? (
+                <p className={styles.note} role="status">
+                  <Check size={20} strokeWidth={2} aria-hidden="true" />
+                  <span>{copy.start.linkKept}</span>
+                </p>
+              ) : null}
+              <div className={styles.aside}>
+                <ButtonLink
+                  href={draft ? screenHref(draft, 'address', from) : firstAddressHref(from)}
+                  variant="quiet"
+                >
+                  {copy.start.manual}
+                </ButtonLink>
+              </div>
+              <Drafts drafts={drafts} />
             </div>
-            {drafts.length > 0 ? (
-              <section className={styles.drafts} aria-labelledby="drafts-heading">
-                <h2 id="drafts-heading" className="type-heading">
-                  {copy.start.drafts}
-                </h2>
-                <ul className={styles.factList}>
-                  {drafts.map((each) => (
-                    <li key={each.id}>
-                      <Link href={each.href}>{each.label}</Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
           </>
         );
       }}

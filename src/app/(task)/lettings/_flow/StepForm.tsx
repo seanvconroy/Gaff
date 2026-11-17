@@ -60,9 +60,11 @@ export function StepForm({
   children: (form: {
     errors: Record<string, string>;
     values: Record<string, string> | undefined;
+    /** The step has been sent and the server hasn't answered yet. */
+    sending: boolean;
   }) => ReactNode;
 }) {
-  const { form, errors, count, values, attempt } = useFlowForm(action, check);
+  const { form, errors, count, values, attempt, pending: sending } = useFlowForm(action, check);
   return (
     <FlowShell
       leave={{ kind: 'close', href: frame.leaveHref }}
@@ -88,7 +90,7 @@ export function StepForm({
       <FlowProblems count={count} />
       {/* The key puts back what was typed after the server sends the step back. */}
       <div key={attempt} className={styles.fields}>
-        {children({ errors, values })}
+        {children({ errors, values, sending })}
       </div>
       {errors.form ? <FieldError id={`${id}-problem`}>{errors.form}</FieldError> : null}
     </FlowShell>

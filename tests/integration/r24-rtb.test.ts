@@ -7,6 +7,7 @@ import {
   givePpsn,
   markRtbRegistered,
   rentSettingPack,
+  revealPpsn,
   rtbPack,
   sendRtbReminder,
 } from '@/server/tenancy/rtb';
@@ -50,6 +51,26 @@ describe('R24 (Q24): the PPS number, optional and for the RTB only', () => {
     expect(registered).toMatchObject({ ppsnSealed: null, rtbReference: 'RT0012345' });
     expect(registered.rtbRegisteredAt).toBeInstanceOf(Date);
     expect(await givePpsn(tenantToken, { ppsn: '1234567T' })).toBeNull();
+  });
+});
+
+describe('UX-TN-3 (rule 2): the PPS number is shown only when asked for', () => {
+  it('UX-TN-3: is given only on "Show", logged without the number, and gone once registered', async () => {
+    const member = await createTestMember();
+    const { lettingId, tenantToken } = await aLetHome(member);
+    expect(await revealPpsn(member, lettingId)).toBeNull();
+    await givePpsn(tenantToken, { ppsn: '1234567T' });
+    expect(await revealPpsn(member, lettingId)).toBe('1234567T');
+    const stored = await tenancyOf(member, lettingId);
+    const shown = await withOrg(member.organisationId, (tx) =>
+      tx.select().from(events).where(eq(events.type, 'tenancy.ppsn_shown')),
+    );
+    expect(shown.map((e) => e.data)).toEqual([{ tenancyId: stored.id }]);
+    await markRtbRegistered(member, lettingId, { reference: '' });
+    expect(await revealPpsn(member, lettingId)).toBeNull();
+    // Another organisation can't ask for it.
+    const other = await createTestMember();
+    expect(await revealPpsn(other, lettingId)).toBeNull();
   });
 });
 

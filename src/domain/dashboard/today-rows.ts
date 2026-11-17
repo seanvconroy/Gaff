@@ -1,6 +1,7 @@
 import { conversationHref, conversationKey, inboxHref } from '@/domain/inbox/conversations';
 import { forwardingHref } from '@/domain/enquiries/forwarding';
 import { portals } from '@/domain/lettings/setup';
+import { operatorStepHref, tenancyTaskHref } from '@/domain/tenancy/operator-steps';
 import type { TenancyStep } from '@/domain/tenancy/steps';
 import { formatDate, formatTime, irishToday } from '@/lib/format';
 import { decisionHref } from '@/domain/lettings/links';
@@ -70,8 +71,9 @@ export function todayHref(item: TodayItem): string {
     case 'offer':
       return decisionHref(item.lettingId, 'offer');
     case 'tenancy':
+      return tenancyTaskHref(item.lettingId, item.step);
     case 'rtb':
-      return `/lettings/${item.lettingId}/tenancy`;
+      return operatorStepHref(item.lettingId, 'register_rtb');
     case 'setup':
       return `/lettings/${item.lettingId}`;
     case 'forwarding':

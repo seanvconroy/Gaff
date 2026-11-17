@@ -210,29 +210,63 @@ test('R3: an operator checks the rent, and Gaff catches a rent over the cap', as
   await expect(page.getByText('€1,720 a month').first()).toBeVisible();
 });
 
-test('R4: an operator records three comparable rents', async ({ page }) => {
+test('R4, UX-LP-14: an operator enters three comparable rents, one home at a time, started from this home', async ({
+  page,
+}) => {
   await signUpOperator(page);
   await createLettingThroughUi(page);
-  await page.goto(`/lettings/${homeIdIn(page.url())}/comparables`);
-  await expect(page.getByRole('heading', { name: 'Comparable rents', level: 1 })).toBeVisible();
+  const lettingId = homeIdIn(page.url());
+  await page.goto(`/lettings/${lettingId}/comparables`);
+  await expect(page).toHaveURL(new RegExp(`/lettings/${lettingId}/comparables/1$`));
   for (const [n, rent, type] of [
-    [1, '1,800', 'apartment'],
-    [2, '1,950', 'apartment'],
+    [1, '1,800', null],
+    [2, '1,950', null],
     [3, '2,100', 'house'],
   ] as const) {
-    const section = page.getByRole('region', { name: `Comparable ${n}` });
-    await section.getByLabel('Area').fill('Dublin 6');
-    await section.getByLabel('Type of home').selectOption(type);
-    await section.getByLabel('Bedrooms').fill('2');
-    await section.getByLabel('Rent a month').fill(rent);
+    await page.setViewportSize(
+      n === 2 ? { width: 390, height: 844 } : { width: 1280, height: 900 },
+    );
+    await expect(
+      page.getByRole('heading', { level: 1, name: `Comparable rent ${n} of 3` }),
+    ).toBeVisible();
+    // OQ-2: Gaff doesn't read the register itself; it opens in a new tab for the person.
+    const register = page.getByRole('link', { name: /Open the RTB’s Rent Register/ });
+    await expect(register).toHaveAttribute('target', '_blank');
+    await expect(register).toHaveAttribute('href', /^https:\/\/rtb\.ie\//);
+    // The area, type and bedrooms start from this home; the person types the rent.
+    await expect(page.getByLabel('Area')).not.toHaveValue('');
+    await expect(page.getByLabel('Type of home')).toHaveValue('apartment');
+    await expect(page.getByLabel('Bedrooms')).toHaveValue('2');
+    await expect(page.getByLabel('Rent a month')).toHaveValue('');
+    if (type) await page.getByLabel('Type of home').selectOption(type);
+    if (n === 1) {
+      await page.getByRole('button', { name: 'Next', exact: true }).click();
+      await expect(page.getByText('Enter the monthly rent in euro, like 1,800')).toBeVisible();
+      await expect(page.getByLabel('Rent a month')).toBeFocused();
+    }
+    await page.getByLabel('Area').fill('Dublin 6');
+    await page.getByLabel('Rent a month').fill(rent);
+    await expectAccessible(page);
+    await screenshot(page, `ux-lp-14-comparable-${n === 2 ? 390 : 1280}${n === 3 ? '-last' : ''}`);
+    if (n === 1) await screenshot(page, '14-comparables');
+    await page
+      .getByRole('button', { name: n < 3 ? 'Next' : 'Save comparables', exact: true })
+      .click();
   }
-  await expectAccessible(page);
-  await screenshot(page, '14-comparables');
-  await page.getByRole('button', { name: 'Save comparables' }).click();
   await expect(page.getByText('Comparables saved for the rent-setting pack.')).toBeVisible();
   await expect(page.getByText('The middle rent is €1,950 a month.')).toBeVisible();
   await expect(page.getByText('Comparable 3 is a different type of home (house).')).toBeVisible();
   await expectAccessible(page);
+  // Changing one opens the first, as it was entered.
+  await page.goto(`/lettings/${lettingId}/comparables`);
+  await expect(page.getByLabel('Rent a month')).toHaveValue('1800');
+  // Opened from the offer, where they're needed (Q41), they go back to it.
+  await page.goto(`/lettings/${lettingId}/comparables?from=offer`);
+  await expect(page).toHaveURL(new RegExp(`/comparables/1\\?from=offer$`));
+  await expect(page.getByRole('link', { name: 'Close' })).toHaveAttribute(
+    'href',
+    `/lettings/${lettingId}/offer`,
+  );
 });
 
 test('Stage 1 and R27: the operator confirms set-up, and the timeline shows every step', async ({

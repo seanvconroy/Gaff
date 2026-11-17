@@ -92,7 +92,7 @@ describe('UX-LT-17, UX-LT-20: the flow’s addresses', () => {
     expect(forwardingLeaveHref({ lettingId, justLive: true })).toBe(
       `/lettings/${lettingId}?saved=live`,
     );
-    expect(forwardingLeaveHref({})).toBe('/settings');
+    expect(forwardingLeaveHref({})).toBe('/settings/enquiries');
   });
 
   it('UX-LT-17: only a letting’s ID is read from the address; anything else is ignored', () => {

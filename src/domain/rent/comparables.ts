@@ -20,43 +20,47 @@ export interface Comparable {
 const MIN_RENT = 100_00;
 const MAX_RENT = 20_000_00;
 
+/** One comparable home, numbered 1 to 3 in its messages. */
+export function comparableSchema(n: number, today: string) {
+  return z.object({
+    area: z
+      .string()
+      .trim()
+      .min(2, `Comparable ${n}: enter the area shown on the register, like Dublin 6`)
+      .max(80, `Comparable ${n}: keep the area under 80 characters`),
+    propertyType: z.enum(Object.keys(propertyTypes) as [keyof typeof propertyTypes], {
+      error: `Comparable ${n}: choose the type of home`,
+    }),
+    bedrooms: z.coerce
+      .number({ error: `Comparable ${n}: enter the number of bedrooms` })
+      .int(`Comparable ${n}: enter a whole number of bedrooms`)
+      .min(0, `Comparable ${n}: enter 0 for a studio`)
+      .max(10, `Comparable ${n}: enter 10 bedrooms or fewer`),
+    rent: z.string().transform((value, ctx) => {
+      const cleaned = value.replace(/[€,\s]/g, '');
+      const cents = /^\d+(\.\d{1,2})?$/.test(cleaned) ? Math.round(Number(cleaned) * 100) : NaN;
+      if (!(cents >= MIN_RENT && cents <= MAX_RENT)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `Comparable ${n}: enter the monthly rent in euro, like 1,800`,
+        });
+        return z.NEVER;
+      }
+      return cents;
+    }),
+    registeredOn: z
+      .string()
+      .optional()
+      .transform((value) => value || undefined)
+      .refine(
+        (value) => !value || (/^\d{4}-\d{2}-\d{2}$/.test(value) && value <= today),
+        `Comparable ${n}: enter the date on the register. It can’t be in the future.`,
+      ),
+  });
+}
+
 export function comparablesFormSchema(today: string) {
-  const one = (n: number) =>
-    z.object({
-      area: z
-        .string()
-        .trim()
-        .min(2, `Comparable ${n}: enter the area shown on the register, like Dublin 6`)
-        .max(80, `Comparable ${n}: keep the area under 80 characters`),
-      propertyType: z.enum(Object.keys(propertyTypes) as [keyof typeof propertyTypes], {
-        error: `Comparable ${n}: choose the type of home`,
-      }),
-      bedrooms: z.coerce
-        .number({ error: `Comparable ${n}: enter the number of bedrooms` })
-        .int(`Comparable ${n}: enter a whole number of bedrooms`)
-        .min(0, `Comparable ${n}: enter 0 for a studio`)
-        .max(10, `Comparable ${n}: enter 10 bedrooms or fewer`),
-      rent: z.string().transform((value, ctx) => {
-        const cleaned = value.replace(/[€,\s]/g, '');
-        const cents = /^\d+(\.\d{1,2})?$/.test(cleaned) ? Math.round(Number(cleaned) * 100) : NaN;
-        if (!(cents >= MIN_RENT && cents <= MAX_RENT)) {
-          ctx.addIssue({
-            code: 'custom',
-            message: `Comparable ${n}: enter the monthly rent in euro, like 1,800`,
-          });
-          return z.NEVER;
-        }
-        return cents;
-      }),
-      registeredOn: z
-        .string()
-        .optional()
-        .transform((value) => value || undefined)
-        .refine(
-          (value) => !value || (/^\d{4}-\d{2}-\d{2}$/.test(value) && value <= today),
-          `Comparable ${n}: enter the date on the register. It can’t be in the future.`,
-        ),
-    });
+  const one = (n: number) => comparableSchema(n, today);
 
   // The form sends c1Area, c1PropertyType… for each of the three comparables.
   const three = z.tuple([one(1), one(2), one(3)]);
@@ -94,6 +98,97 @@ export function comparablesFormSchema(today: string) {
       return result.data;
     },
   };
+}
+
+/**
+ * UX-LP-14: one comparable home, entered on its own screen. The form sends area, propertyType,
+ * bedrooms, rent and registeredOn; errors come back by those names.
+ */
+export function parseComparable(
+  n: number,
+  values: Record<string, string>,
+  today: string,
+): { ok: true; comparable: Comparable } | { ok: false; errors: Record<string, string> } {
+  const result = comparableSchema(n, today).safeParse({
+    area: values.area ?? '',
+    propertyType: values.propertyType ?? '',
+    bedrooms: values.bedrooms ?? '',
+    rent: values.rent ?? '',
+    registeredOn: values.registeredOn ?? '',
+  });
+  if (!result.success) {
+    const errors: Record<string, string> = {};
+    for (const issue of result.error.issues) {
+      // On its own screen the number is plain from the title: the message starts with the fix.
+      errors[String(issue.path[0])] ??= issue.message
+        .replace(/^Comparable \d: /, '')
+        .replace(/^./, (c) => c.toUpperCase());
+    }
+    return { ok: false, errors };
+  }
+  const row = result.data;
+  return {
+    ok: true,
+    comparable: {
+      area: row.area,
+      propertyType: row.propertyType,
+      bedrooms: row.bedrooms,
+      monthlyRentCents: row.rent,
+      ...(row.registeredOn ? { registeredOn: row.registeredOn } : {}),
+    },
+  };
+}
+
+/**
+ * UX-LP-14: what a comparable's screen starts with. One already entered comes back as it was;
+ * a new one starts with this home's area, type and bedrooms, and the person types the rent
+ * and, if they have it, the date (Q41, OQ-2: Gaff doesn't read the register itself).
+ */
+export function comparablePrefill(
+  home: { area: string; propertyType: string; bedrooms: number },
+  saved?: Comparable & { registeredOn?: string | null },
+): Record<string, string> {
+  if (saved) {
+    return {
+      area: saved.area,
+      propertyType: saved.propertyType,
+      bedrooms: String(saved.bedrooms),
+      rent: (saved.monthlyRentCents / 100).toString(),
+      registeredOn: saved.registeredOn ?? '',
+    };
+  }
+  return {
+    area: home.area,
+    propertyType: home.propertyType in propertyTypes ? home.propertyType : '',
+    bedrooms: String(home.bedrooms),
+    rent: '',
+    registeredOn: '',
+  };
+}
+
+/**
+ * The RTB's Rent Register, opened in a new tab for the person to look up (UX-LP-14). Gaff never
+ * reads it itself (OQ-2). The address is the RTB's own short link to the register's page.
+ */
+export const RTB_RENT_REGISTER_URL = 'https://rtb.ie/?p=55258';
+
+/**
+ * UX-LP-14, WP-17: where the comparables were opened from. Opened from the offer (where
+ * they're needed, Q41), they go back to it; otherwise to the letting's page.
+ */
+export type ComparablesFrom = 'offer' | 'letting';
+
+export const comparablesFrom = (value: unknown): ComparablesFrom =>
+  value === 'offer' ? 'offer' : 'letting';
+
+export function comparableStepHref(lettingId: string, position: number, from: ComparablesFrom) {
+  return `/lettings/${lettingId}/comparables/${position}${from === 'offer' ? '?from=offer' : ''}`;
+}
+
+/** Where closing the comparables goes, and where they end once all three are in. */
+export function comparablesLeaveHref(lettingId: string, from: ComparablesFrom, saved = false) {
+  if (from === 'offer') return `/lettings/${lettingId}/offer`;
+  return `/lettings/${lettingId}${saved ? '?saved=comparables' : ''}`;
 }
 
 /** Maps a parse error path ([1, "rent"]) to the form field name ("c2Rent"). */

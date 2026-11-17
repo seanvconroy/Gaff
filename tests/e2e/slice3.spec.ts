@@ -6,6 +6,7 @@ import { enterLinkCode, expectFramePageAtBothWidths, expectRenterPageAtBothWidth
 import {
   AVAILABLE_IN_DAYS,
   confirmItsYou,
+  expectControlSizes,
   createLettingThroughUi,
   expectAccessible,
   expectNoSidewaysScroll,
@@ -23,16 +24,44 @@ test('R22: the tenant reads and signs the agreement on their phone, then the ope
   // The offer starts the tenancy when the home is available.
   const startDate = isoDateInDays(AVAILABLE_IN_DAYS);
   const { lettingUrl } = await anAcceptedOffer(browser, page);
+  // UX-TN-1: the Tenancy page lists the six steps; the one to do now is its one button.
   await page.goto(`${lettingUrl}/tenancy`);
-  await expect(page.getByRole('heading', { name: 'Tenancy agreement' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'The tenancy, step by step' })).toBeVisible();
   await expect(page.getByText('Step 8 of 9 · Tenancy')).toBeVisible();
-  await expectAccessible(page);
-  // The agreement must name the landlord: this agency adds them first.
-  await page.getByLabel('Landlord’s name').fill('Tom Walsh');
-  await page.getByLabel('Landlord’s email').fill('tom.walsh@example.ie');
-  await page.getByRole('button', { name: 'Save the landlord’s details' }).click();
+  await expect(tenancySteps(page)).toHaveText([
+    /Send the agreement\s*Next/,
+    /Sign the agreement\s*To come/,
+    /Ask for the deposit and first month’s rent\s*To come/,
+    /Mark the payment received\s*To come/,
+    /Register with the RTB\s*To come/,
+    /Hand over the keys\s*To come/,
+  ]);
+  await atBothWidths(page, 'ux-tn-1-tenancy');
+  await page.getByRole('link', { name: 'Send the agreement', exact: true }).click();
+  // The agreement must name the landlord: the first time, this agency is asked for the owner.
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Who owns 12 Ranelagh Road?' }),
+  ).toBeVisible();
+  await atBothWidths(page, 'ux-tn-1-owner');
+  await page.getByRole('button', { name: 'Save and continue' }).click();
+  await expect(page.getByText('Enter the owner’s name.')).toBeVisible();
+  await page.getByLabel('Owner’s name').fill('Tom Walsh');
+  await page.getByLabel('Owner’s email').fill('tom.walsh@example.ie');
+  await page.getByRole('button', { name: 'Save and continue' }).click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Send the agreement to Aoife' }),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Read the agreement' })).toBeVisible();
+  await atBothWidths(page, 'ux-tn-1-send');
   await page.getByRole('button', { name: 'Send to Aoife to sign' }).click();
-  await expect(page.getByText('Waiting for them to sign.')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Sent to Aoife' })).toBeVisible();
+  await atBothWidths(page, 'ux-tn-1-sent');
+  // While it's with the tenant, signing is their turn, on both pages (UX-RN-26).
+  await page.goto(`${lettingUrl}/tenancy/sign`);
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Waiting for Aoife to sign' }),
+  ).toBeVisible();
+  await atBothWidths(page, 'ux-tn-1-sign-waiting');
 
   let agreementLink = '';
   await expect(async () => {
@@ -93,12 +122,16 @@ test('R22: the tenant reads and signs the agreement on their phone, then the ope
   await expectRenterPageAtBothWidths(tenant, { shots: 'wp12-live-tenancy-countersign' });
   await tenant.goto(agreementLink);
 
-  await page.reload();
-  await expect(page.getByText('Aoife has signed')).toBeVisible();
+  await page.goto(`${lettingUrl}/tenancy`);
+  await expect(tenancySteps(page).nth(1)).toHaveText(/Sign the agreement\s*Next/);
+  await page.getByRole('link', { name: 'Sign the agreement', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Sign the agreement' })).toBeVisible();
+  await expect(page.getByText(/^Aoife signed on /)).toBeVisible();
+  await atBothWidths(page, 'ux-tn-1-sign');
   await page.getByLabel('Type your full name to sign').fill('Ann Power');
   await page.getByLabel(/I agree to sign this agreement electronically, for the landlord/).check();
   await page.getByRole('button', { name: 'Sign the agreement' }).click();
-  await expect(page.getByText('Signed by both sides')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Signed by both sides' })).toBeVisible();
 
   await tenant.reload();
   await expect(tenant.getByText(/signed electronically by Aoife Byrne on/)).toBeVisible();
@@ -113,29 +146,67 @@ test('R22: the tenant reads and signs the agreement on their phone, then the ope
   await aoife.context.close();
 });
 
+/** UX-TN-1: the operator's six steps, as the letting's Tenancy page lists them. */
+const tenancySteps = (page: Page) =>
+  page.getByRole('list', { name: 'The tenancy, step by step' }).getByRole('listitem');
+
+/** Every new screen is checked and kept at a phone's width and a laptop's (rule 3). */
+async function atBothWidths(page: Page, name: string) {
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
+    await expectNoSidewaysScroll(page);
+    await expectAccessible(page);
+    await expectControlSizes(page);
+    await screenshot(page, `${name}-${width}`);
+  }
+}
+
 /** UX-RN-26: the tenant's three steps, as their page lists them. */
 const steps = (tenant: Page) =>
   tenant.getByRole('list', { name: 'Your tenancy, step by step' }).getByRole('listitem');
 
-/** The account tenants pay into, saved in Settings (which asks who's there first). */
-async function saveTheAccount(page: Page) {
-  await page.goto('/settings');
+/**
+ * UX-TN-2: the first payment request asks where tenants pay (which asks who's there first) and
+ * a number to ring, then is ready to send.
+ */
+async function toThePaymentRequest(page: Page, lettingUrl: string) {
+  await page.goto(`${lettingUrl}/tenancy/payment`);
   await page.getByLabel('Name on the account').fill('Halcyon Lettings client account');
   await page.getByLabel('IBAN').fill('IE29 AIBK 9311 5212 3456 78');
   await page.getByRole('button', { name: 'Save the account' }).click();
   await confirmItsYou(page);
-  await expect(page.getByText('Saved.')).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'A number Aoife can ring' }),
+  ).toBeVisible();
+  await page.getByLabel('Phone number').fill('01 234 5678');
+  await page.getByRole('button', { name: 'Save the number' }).click();
+  await expect(
+    page.getByRole('heading', {
+      level: 1,
+      name: 'Ask Aoife for the deposit and first month’s rent',
+    }),
+  ).toBeVisible();
 }
 
-/** Stage 8 by the quick route: the landlord added, and the agreement signed on paper. */
+/** Asked for and received: steps 3 and 4. */
+async function paidInFull(page: Page, lettingUrl: string) {
+  await toThePaymentRequest(page, lettingUrl);
+  await page.getByRole('button', { name: 'Ask Aoife to pay' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Asked Aoife to pay' })).toBeVisible();
+  await page.goto(`${lettingUrl}/tenancy/received`);
+  await page.getByRole('button', { name: 'It’s in our account' }).click();
+  await expect(page.getByText('Aoife has a receipt.')).toBeVisible();
+}
+
+/** Stage 8 by the quick route: the owner added, and the agreement signed on paper. */
 async function signedOnPaper(page: Page, lettingUrl: string) {
-  await page.goto(`${lettingUrl}/tenancy`);
-  await page.getByLabel('Landlord’s name').fill('Tom Walsh');
-  await page.getByLabel('Landlord’s email').fill('tom.walsh@example.ie');
-  await page.getByRole('button', { name: 'Save the landlord’s details' }).click();
-  await page.getByText('Signing on paper instead?').click();
+  await page.goto(`${lettingUrl}/tenancy/send`);
+  await page.getByLabel('Owner’s name').fill('Tom Walsh');
+  await page.getByLabel('Owner’s email').fill('tom.walsh@example.ie');
+  await page.getByRole('button', { name: 'Save and continue' }).click();
+  await page.getByText('We signed on paper').click();
   await page.getByRole('button', { name: 'Both sides have signed on paper' }).click();
-  await expect(page.getByText('Signed on paper', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Signed on paper' })).toBeVisible();
 }
 
 test('R23: the tenant is asked for the deposit and first month’s rent, paid to the operator’s own account', async ({
@@ -145,26 +216,56 @@ test('R23: the tenant is asked for the deposit and first month’s rent, paid to
   test.slow();
   const { lettingUrl, offerLink } = await anAcceptedOffer(browser, page);
   await signedOnPaper(page, lettingUrl);
-  await expect(page.getByText('Add the account tenants pay into, in')).toBeVisible();
-
+  // UX-TN-2: where tenants pay isn't in set-up or Settings yet: it's asked at this step.
   await page.goto('/settings');
+  await expect(page.getByRole('link', { name: /^Where tenants pay/ })).toHaveCount(0);
+  await page.goto(`${lettingUrl}/tenancy`);
+  await page
+    .getByRole('link', { name: 'Ask for the deposit and first month’s rent', exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Where does Aoife pay?' }),
+  ).toBeVisible();
   await page.getByLabel('Name on the account').fill('Halcyon Lettings client account');
   await page.getByLabel('IBAN').fill('IE29 AIBK 9311 5212 3456 79');
   await page.getByRole('button', { name: 'Save the account' }).click();
   await expect(
     page.getByText('That IBAN doesn’t look right. Check it against your bank’s details.'),
   ).toBeVisible();
+  await expect(page.getByLabel('IBAN')).toBeFocused();
   await expect(page.getByLabel('Name on the account')).toHaveValue(
     'Halcyon Lettings client account',
   );
+  await atBothWidths(page, 'ux-tn-2-account');
   await page.getByLabel('IBAN').fill('IE29 AIBK 9311 5212 3456 78');
   await page.getByRole('button', { name: 'Save the account' }).click();
+  // UX-SI-10, UX-TS-6: where money goes is saved only once they've confirmed it's them.
+  await expect(page.getByRole('dialog', { name: 'Confirm it’s you' })).toBeVisible();
   await confirmItsYou(page);
-  await expect(page.getByText('Saved.')).toBeVisible();
-
-  await page.goto(`${lettingUrl}/tenancy`);
+  // UX-RN-23: a number the tenant can ring, asked here because there isn't one yet.
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'A number Aoife can ring' }),
+  ).toBeVisible();
+  await atBothWidths(page, 'ux-tn-2-phone');
+  await page.getByLabel('Phone number').fill('01 234 5678');
+  await page.getByRole('button', { name: 'Save the number' }).click();
+  await expect(
+    page.getByRole('heading', {
+      level: 1,
+      name: 'Ask Aoife for the deposit and first month’s rent',
+    }),
+  ).toBeVisible();
+  await expect(page.getByText('€3,700', { exact: true })).toBeVisible();
+  await expect(page.getByText(/^GAFF-/)).toBeVisible();
+  await atBothWidths(page, 'ux-tn-1-request');
   await page.getByRole('button', { name: 'Ask Aoife to pay' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Asked Aoife to pay' })).toBeVisible();
   await expect(page.getByText(/with the reference GAFF-/)).toBeVisible();
+  // Remembered: Settings has it now, and changing it there still asks who's there (UX-SI-10).
+  await page.goto('/settings');
+  await expect(page.getByRole('link', { name: /^Where tenants pay/ })).toContainText(
+    'Halcyon Lettings client account',
+  );
 
   // The tenant's own page says what to pay; how to pay is one tap away.
   const aoife = await onPhone(browser, offerLink);
@@ -194,12 +295,12 @@ test('R23: the tenant is asked for the deposit and first month’s rent, paid to
   await expect(tenant.getByText(/^GAFF-/)).toBeVisible();
   await expect(tenant.getByRole('button', { name: 'Copy the IBAN' })).toBeVisible();
   await expect(tenant.getByRole('button', { name: 'Copy the reference' })).toBeVisible();
-  // UX-RN-23 (rule 5): ring and check the details before paying. This lister has no number on
-  // file yet, so the tenant is asked to ring one they already have.
+  // UX-RN-23, UX-TS-6 (rule 5): ring and check the details before paying, on the number the
+  // lister gave at the payment step.
   const ring = tenant.locator('[data-notice="ring"]');
   await expect(ring).toContainText('Ring to check these details');
   await expect(ring).toContainText(
-    'Before you pay, ring Halcyon Lettings on a number you already have for them, and check the IBAN with them.',
+    'Before you pay, ring Halcyon Lettings on 01 234 5678 and check the IBAN with them.',
   );
   // Rules 4 and 5: the deposit and first month's rent, to the lister's own account, and no fee.
   expect(await tenant.getByRole('main').innerText()).not.toMatch(/fee|pay gaff|card number/i);
@@ -209,6 +310,12 @@ test('R23: the tenant is asked for the deposit and first month’s rent, paid to
   await screenshot(tenant, '44-tenant-payment');
   await expectRenterPageAtBothWidths(tenant, { notices: ['ring'], shots: 'wp12-live-pay' });
 
+  await page.goto(`${lettingUrl}/tenancy`);
+  await page.getByRole('link', { name: 'Mark the payment received', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Has Aoife’s payment arrived?' }),
+  ).toBeVisible();
+  await atBothWidths(page, 'ux-tn-1-received');
   await page.getByRole('button', { name: 'It’s in our account' }).click();
   await expect(page.getByText('Aoife has a receipt.')).toBeVisible();
   await tenant.reload();
@@ -232,11 +339,7 @@ test('R24: the rent-setting and RTB packs; the tenant’s PPS number is optional
   const tenant = aoife.page;
   await expect(tenant.getByText('Halcyon Lettings will send you how to pay')).toBeVisible();
   await expect(tenant.getByText(/PPS/)).toHaveCount(0);
-  await saveTheAccount(page);
-  await page.goto(`${lettingUrl}/tenancy`);
-  await page.getByRole('button', { name: 'Ask Aoife to pay' }).click();
-  await page.getByRole('button', { name: 'It’s in our account' }).click();
-  await expect(page.getByText('Aoife has a receipt.')).toBeVisible();
+  await paidInFull(page, lettingUrl);
 
   await tenant.reload();
   await expect(tenant.getByRole('heading', { name: 'Your PPS number' })).toBeVisible();
@@ -269,27 +372,54 @@ test('R24: the rent-setting and RTB packs; the tenant’s PPS number is optional
   await expectRenterPageAtBothWidths(tenant, { shots: 'wp12-live-pps-given' });
   await aoife.context.close();
 
-  await page.goto(`${lettingUrl}/tenancy/rtb-pack`);
+  // UX-TN-3: everything the RTB's form asks, label and value, each with a copy button.
+  await page.goto(`${lettingUrl}/tenancy`);
+  await page.getByRole('link', { name: 'Register with the RTB', exact: true }).click();
   await expect(
-    page.getByRole('heading', { name: 'RTB registration pack: 12 Ranelagh Road' }),
+    page.getByRole('heading', { level: 1, name: 'Register with the RTB' }),
   ).toBeVisible();
-  await expect(page.getByText('1234567T')).toBeVisible();
   await expect(page.getByText(`Register by ${formatDate(rtbDeadline(startDate))}`)).toBeVisible();
-  await expectAccessible(page);
+  await expect(page.getByRole('button', { name: 'Copy tenant’s email' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Copy home' })).toBeVisible();
+  expect(await page.getByRole('button', { name: /^Copy / }).count()).toBeGreaterThan(8);
+  // The PPS number is hidden, and not in the page at all, until "Show" is pressed (rule 2).
+  expect(await page.content()).not.toContain('1234567T');
+  await expect(page.getByText('Hidden', { exact: true })).toBeVisible();
+  // Rule 3: no date of birth is asked for or shown.
+  expect(await page.getByRole('main').innerText()).not.toMatch(/date of birth/i);
+  const site = page.getByRole('link', { name: /Open the RTB’s website/ });
+  await expect(site).toHaveAttribute('target', '_blank');
+  await atBothWidths(page, 'ux-tn-3-rtb');
   await screenshot(page, '45-rtb-pack');
+  await page.getByRole('button', { name: 'Show the tenant’s PPS number' }).click();
+  await expect(page.getByText('1234567T')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Copy the tenant’s PPS number' })).toBeVisible();
+  await atBothWidths(page, 'ux-tn-3-rtb-shown');
+  // A way back to the letting.
+  await page.getByRole('link', { name: 'Back to the letting' }).last().click();
+  await expect(page).toHaveURL(new RegExp(`${lettingUrl}$`));
+  await page.goto(`${lettingUrl}/tenancy/rtb`);
+  await expect(page.getByText('1234567T')).toHaveCount(0);
+
   await page.goto(`${lettingUrl}/tenancy/rent-pack`);
   await expect(
     page.getByRole('heading', { name: 'Rent-setting pack: 12 Ranelagh Road' }),
   ).toBeVisible();
   await expectAccessible(page);
 
-  await page.goto(`${lettingUrl}/tenancy`);
+  await page.goto(`${lettingUrl}/tenancy/rtb`);
   await page.getByLabel('RTB registration number').fill('RT0012345');
-  await page.getByRole('button', { name: 'It’s registered with the RTB' }).click();
-  await expect(page.getByText(/Registered/).first()).toBeVisible();
-  await page.goto(`${lettingUrl}/tenancy/rtb-pack`);
-  await expect(page.getByText('Deleted after registration')).toBeVisible();
-  await expect(page.getByText('1234567T')).toHaveCount(0);
+  await page.getByRole('button', { name: 'I’ve registered it' }).click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Registered with the RTB' }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/number RT0012345\. The tenant’s PPS number is deleted\./),
+  ).toBeVisible();
+  await atBothWidths(page, 'ux-tn-3-registered');
+  // Deleted once registered: nothing to show.
+  await expect(page.getByRole('button', { name: /Show/ })).toHaveCount(0);
+  expect(await page.content()).not.toContain('1234567T');
 });
 
 /** A real 8×8 PNG (a red square), so the photo is drawn and uploaded as a phone would. */
@@ -306,26 +436,62 @@ test('R25: the move-in checklist, and an inventory with photos that the tenant c
   const { lettingUrl, offerLink } = await anAcceptedOffer(browser, page);
   await signedOnPaper(page, lettingUrl);
   await page.goto(`${lettingUrl}/tenancy`);
+  await page.getByRole('link', { name: /^Hand over the keys/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Hand over the keys' })).toBeVisible();
   await page.getByLabel('Keys handed over').check();
   await page.getByLabel('Electricity meter reading').fill('012345');
+  await atBothWidths(page, 'ux-tn-1-move-in');
   await page.getByRole('button', { name: 'Save the checklist' }).click();
-  await expect(page.getByText('Moved in', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Keys handed over')).toBeChecked();
+  await expect(page.getByLabel('Electricity meter reading')).toHaveValue('012345');
 
+  // UX-TN-4: the inventory one item at a time: room, item, condition as three taps, a note, a photo.
+  await page.getByRole('link', { name: 'Add an item' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Add to the inventory' })).toBeVisible();
+  const condition = page.getByRole('group', { name: 'Condition' });
+  await expect(condition.getByRole('radio')).toHaveCount(3);
+  await expect(condition.getByRole('radio', { name: 'Good' })).toBeVisible();
+  await expect(condition.getByRole('radio', { name: 'Fair' })).toBeVisible();
+  await expect(condition.getByRole('radio', { name: 'Poor' })).toBeVisible();
+  await atBothWidths(page, 'ux-tn-4-item');
+  await page.getByRole('button', { name: 'Add to the inventory' }).click();
+  await expect(page.getByText('Enter the room.')).toBeVisible();
+  await expect(page.getByText('Choose its condition: good, fair or poor.')).toBeVisible();
+  await expect(page.getByLabel('Room')).toBeFocused();
   await page.getByLabel('Room').fill('Kitchen');
   await page.getByLabel('Item', { exact: true }).fill('Fridge');
-  await page.getByLabel('Condition').selectOption('good');
+  await condition.getByRole('radio', { name: 'Good' }).check();
   await page.getByLabel(/^Photo/).setInputFiles({
     name: 'fridge.png',
     mimeType: 'image/png',
     buffer: RED_SQUARE,
   });
   await page.getByRole('button', { name: 'Add to the inventory' }).click();
+  await expect(page.getByText(/Added Fridge, Kitchen\. 1 item so far\./)).toBeVisible();
+  // The next item starts in the same room, with nothing else filled in.
+  await expect(page.getByLabel('Room')).toHaveValue('Kitchen');
+  await expect(page.getByLabel('Item', { exact: true })).toHaveValue('');
+  await atBothWidths(page, 'ux-tn-4-item-added');
+  await page.getByLabel('Item', { exact: true }).fill('Oven');
+  await condition.getByRole('radio', { name: 'Poor' }).check();
+  await page.getByLabel('Note').fill('Door seal perished.');
+  await page.getByRole('button', { name: 'Add to the inventory' }).click();
+  await expect(page.getByText(/Added Oven, Kitchen\. 2 items so far\./)).toBeVisible();
+  await page.getByRole('link', { name: 'Done', exact: true }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Hand over the keys' })).toBeVisible();
   const photo = page.getByRole('img', { name: 'Fridge, Kitchen' });
   await expect(photo).toBeVisible();
   expect(await photo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
-  await expectAccessible(page);
-  await page.getByRole('button', { name: 'Share the inventory with Aoife' }).click();
-  await expect(page.getByText('Waiting for them to confirm it.')).toBeVisible();
+  // Poor is said in words, with the warning tint: never colour alone.
+  await expect(page.getByText('Poor', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /^Remove\W*Oven$/ }).click();
+  await expect(page.getByText('Kitchen: Oven')).toHaveCount(0);
+  await atBothWidths(page, 'ux-tn-1-move-in-inventory');
+  await page.getByRole('button', { name: 'Save and share with Aoife' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Keys handed over' })).toBeVisible();
+  await expect(page.getByText(/Gaff tells you when it’s confirmed as a fair record/)).toBeVisible();
+  await atBothWidths(page, 'ux-tn-1-handed-over');
 
   const aoife = await onPhone(browser, offerLink);
   const tenant = aoife.page;
@@ -372,7 +538,7 @@ test('R25: the move-in checklist, and an inventory with photos that the tenant c
   await expectRenterPageAtBothWidths(tenant, { shots: 'wp12-live-tenancy-moved-in' });
   await aoife.context.close();
 
-  await page.reload();
+  await page.goto(`${lettingUrl}/tenancy/move-in`);
   await expect(page.getByText(/Aoife confirmed it’s a fair record/)).toBeVisible();
   // The lister sees what she said about the fridge, beside the item.
   await expect(page.getByText('The tenant says something’s not right')).toBeVisible();
@@ -392,26 +558,69 @@ test('R26: the operator finishes the let home; the record is archived and the da
   await expect(page.getByLabel('Owner’s email')).toHaveValue('tom.walsh@example.ie');
   await page.getByRole('button', { name: 'Send the link' }).click();
   await expect(page.getByRole('heading', { name: 'Sent to Tom' })).toBeVisible();
-  await page.goto('/settings');
-  await page.getByLabel('Name on the account').fill('Halcyon Lettings client account');
-  await page.getByLabel('IBAN').fill('IE29 AIBK 9311 5212 3456 78');
-  await page.getByRole('button', { name: 'Save the account' }).click();
-  await confirmItsYou(page);
-  await expect(page.getByText('Saved.')).toBeVisible();
+  await toThePaymentRequest(page, lettingUrl);
 
+  // Today opens each tenancy step's own screen (UX-TN-1).
   await page.goto('/today');
   await page
     .getByRole('link', {
       name: /Ask for the deposit and first month’s rent · 12 Ranelagh Road/,
     })
     .click();
+  await expect(page).toHaveURL(new RegExp(`${lettingUrl}/tenancy/payment$`));
   await page.getByRole('button', { name: 'Ask Aoife to pay' }).click();
+  await page.goto('/today');
+  await page
+    .getByRole('link', { name: /Check the payment has arrived · 12 Ranelagh Road/ })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`${lettingUrl}/tenancy/received$`));
   await page.getByRole('button', { name: 'It’s in our account' }).click();
-  await expect(page.getByText('You can finish once')).toHaveCount(0);
-  await expect(page.getByText('Not registered with the RTB yet')).toBeVisible();
-  await expectAccessible(page);
-  await page.getByRole('button', { name: 'Finish and close the letting' }).click();
-  await expect(page.getByText('Finished', { exact: true })).toBeVisible();
+  await expect(page.getByText('Aoife has a receipt.')).toBeVisible();
+
+  // UX-TN-5: "Finish this letting": what's done, and what's still open.
+  await page.goto(`${lettingUrl}/tenancy`);
+  await page.getByRole('link', { name: 'Finish this letting', exact: true }).first().click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Finish this letting' })).toBeVisible();
+  await expect(page.getByText(/Register first if you can/)).toBeVisible();
+  await expect(page.getByText('Still open').first()).toBeVisible();
+  await atBothWidths(page, 'ux-tn-5-finish');
+  await page.getByRole('button', { name: 'Finish', exact: true }).click();
+
+  // UX-TN-7: the usual wasn't set in onboarding, so it's asked now, as two tap questions.
+  await expect(
+    page.getByRole('heading', {
+      level: 1,
+      name: 'Before Gaff, how long did a letting usually take?',
+    }),
+  ).toBeVisible();
+  await atBothWidths(page, 'ux-tn-7-usual-days');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByText('Choose about how long a letting usually takes you.')).toBeVisible();
+  await page.getByText('About a month', { exact: true }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'And how many hours of your own time?' }),
+  ).toBeVisible();
+  await atBothWidths(page, 'ux-tn-7-usual-hours');
+  await page.getByText('About 10 hours', { exact: true }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  // UX-TN-5, UX-TN-6: the results: days to let against the usual, the time saved, and one action.
+  await expect(
+    page.getByRole('heading', { level: 1, name: '12 Ranelagh Road is let' }),
+  ).toBeVisible();
+  await expect(page.locator('[data-results="days"]')).toHaveText(
+    '0 days from first enquiry. You usually take 30.',
+  );
+  await expect(page.locator('[data-results="time"]')).toHaveText(
+    /^About (9\.5|10) hours of your time saved\.$/,
+  );
+  // The owner hasn't seen the summary since it was let, so that's the one thing offered.
+  const footer = page.locator('[data-flow-footer]');
+  await expect(footer.getByRole('link')).toHaveCount(1);
+  await expect(footer.getByRole('link', { name: 'Send Tom the summary' })).toBeVisible();
+  await atBothWidths(page, 'ux-tn-5-let');
+  await page.goto(lettingUrl);
   await expect(page.getByText('Step 9 of 9 · Close')).toBeVisible();
 
   // UX-HM-9: what the letting took is shown under the closed home in Lettings, not on Today.

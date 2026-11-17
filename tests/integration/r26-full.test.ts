@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { withOrg } from '@/db/client';
 import {
+  accessLinks,
   activityMinutes,
   applications,
   checks,
@@ -11,12 +12,17 @@ import {
   tenancies,
 } from '@/db/schema';
 import { sealJson } from '@/lib/crypto';
+import { UserFacingError } from '@/server/errors';
 import { recordActiveMinute } from '@/server/dashboard/activity';
 import { dashboardFor } from '@/server/dashboard/dashboard';
 import { sweepPersonalData } from '@/server/retention/sweep';
 import { finishLetting } from '@/server/tenancy/close';
 import { confirmPayment, requestPayment, setPaymentAccount } from '@/server/tenancy/payment';
 import { givePpsn } from '@/server/tenancy/rtb';
+import { finishView, letResults } from '@/server/tenancy/results';
+import { answerUsual } from '@/server/organisations/usual-times';
+import { shareWithOwner } from '@/server/landlord/share';
+import { setListerPhone } from '@/server/organisations/phone';
 import { markSignedOnPaper } from '@/server/tenancy/tenancy';
 import { aLetHome, confirmedAgain, createTestMember } from './helpers';
 
@@ -31,6 +37,7 @@ async function signedAndPaid() {
     { accountName: 'Client account', iban: 'IE29AIBK93115212345678' },
     await confirmedAgain(member),
   );
+  await setListerPhone(member, '01 234 5678');
   await requestPayment(member, home.lettingId, { dueDate: '2026-11-28' });
   return { member, ...home };
 }
@@ -77,6 +84,70 @@ describe('R26, stage 9: finishing a let home', () => {
     const state = await read(member, lettingId, tenantId);
     expect(state.tenant).toMatchObject({ fullName: 'Deleted', phone: null });
     expect(state.tenancy).toMatchObject({ tenantSignedName: null, ppsnSealed: null });
+  });
+});
+
+describe('UX-TN-5 to UX-TN-7: finishing, and the results screen', () => {
+  it('UX-TN-5: "Finish this letting" says what’s done and what’s open; the results come after', async () => {
+    const { member, lettingId } = await signedAndPaid();
+    expect(await finishView(member, lettingId)).toMatchObject({
+      address: '12 Ranelagh Road',
+      canFinish: false,
+      agreementSigned: true,
+      paymentReceived: false,
+      rtbRegistered: false,
+    });
+    expect(await letResults(member, lettingId)).toBeNull();
+    await confirmPayment(member, lettingId);
+    expect((await finishView(member, lettingId))!.canFinish).toBe(true);
+    const start = new Date(Date.now() - 10 * 60_000);
+    for (let minute = 0; minute < 3; minute += 1) {
+      await recordActiveMinute(member, lettingId, new Date(start.getTime() + minute * 60_000));
+    }
+    await finishLetting(member, lettingId);
+    const results = await letResults(member, lettingId);
+    expect(results).toMatchObject({
+      address: '12 Ranelagh Road',
+      daysToLet: 0,
+      usualDays: null,
+      minutesSaved: null,
+      canSetUsual: true,
+      // UX-TN-6: an agency whose owner hasn't seen the summary is offered that first.
+      next: 'send_owner_summary',
+    });
+    // The other applicant's details have their date.
+    expect(results!.othersDeletedBy).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    // UX-TN-7: the usual, as two tap answers; only the offered answers are taken.
+    expect(await answerUsual(member, 'days', '31')).toMatchObject({ ok: false });
+    await answerUsual(member, 'days', '30');
+    await answerUsual(member, 'hours', '5');
+    expect(await letResults(member, lettingId)).toMatchObject({
+      daysToLet: 0,
+      usualDays: 30,
+      minutesSaved: 5 * 60 - 3,
+    });
+    const logged = await withOrg(member.organisationId, (tx) =>
+      tx.select({ data: events.data }).from(events).where(eq(events.type, 'settings.usual_times')),
+    );
+    expect(logged.map((e) => e.data)).toContainEqual({ minutesPerLetting: 300, daysToLet: 30 });
+    await expect(answerUsual({ ...member, role: 'negotiator' }, 'days', '30')).rejects.toThrow(
+      UserFacingError,
+    );
+  });
+
+  it('UX-TN-6: once the owner has opened the summary, an agency of one is asked to invite a colleague', async () => {
+    const { member, lettingId } = await signedAndPaid();
+    await confirmPayment(member, lettingId);
+    await finishLetting(member, lettingId);
+    await shareWithOwner(member, lettingId, { name: 'Tom Walsh', email: 'tom.walsh@example.ie' });
+    await withOrg(member.organisationId, (tx) =>
+      tx
+        .update(accessLinks)
+        .set({ lastUsedAt: new Date(Date.now() + 60_000) })
+        .where(and(eq(accessLinks.purpose, 'landlord'))),
+    );
+    expect((await letResults(member, lettingId))!.next).toBe('invite_colleague');
   });
 });
 

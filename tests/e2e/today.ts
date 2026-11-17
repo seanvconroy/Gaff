@@ -98,6 +98,22 @@ export async function aHomeLedBy(
   return rows[0].id;
 }
 
+/**
+ * The usual a letting takes this operator, as a pilot's onboarding sets it (Q15). It isn't in
+ * Settings (UX-ST-3); without it, it's asked at the first close (UX-TN-7).
+ */
+export async function usualFromOnboarding(
+  email: string,
+  usual: { minutesPerLetting: number; daysToLet: number },
+): Promise<void> {
+  await asSystem(
+    `update organisations set baseline_minutes_per_letting = $2, baseline_days_to_let = $3
+     where id in (select m.organisation_id from memberships m join users u on u.id = m.user_id
+                  where u.email = $1)`,
+    [email, usual.minutesPerLetting, usual.daysToLet],
+  );
+}
+
 /** The home at this address is let and closed, as it is once its tenancy is finished (R26). */
 export async function letAndClosed(address: string, email: string): Promise<void> {
   await asSystem(

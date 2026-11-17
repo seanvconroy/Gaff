@@ -53,3 +53,9 @@ export function rtbDeadline(startDate: string): string {
   const lastDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
   return new Date(Date.UTC(y, m, Math.min(d, lastDay))).toISOString().slice(0, 10);
 }
+
+/**
+ * UX-TN-3: the RTB's website, opened in a new tab from the registration screen. Gaff doesn't
+ * register for the operator; they copy each value into the RTB's own form.
+ */
+export const RTB_WEBSITE_URL = 'https://rtb.ie/';

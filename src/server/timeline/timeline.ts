@@ -181,6 +181,10 @@ export function describeEvent(
         what: 'Rent changed',
         detail: `From ${formatRent(Number(data.fromCents))} to ${formatRent(Number(data.toCents))}`,
       };
+    case 'comparable.recorded':
+      return { what: 'Comparable rent recorded', detail: `${data.count} of 3` };
+    case 'tenancy.ppsn_shown':
+      return { what: 'PPS number shown, to register with the RTB' };
     case 'comparables.recorded':
       return {
         what: 'Three comparable rents recorded',

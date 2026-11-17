@@ -31,20 +31,31 @@ export const checklistSchema = z.object({
 
 export type Checklist = z.output<typeof checklistSchema>;
 
+/**
+ * How an item is described. UX-TN-4: a new item is one of three taps, Good, Fair or Poor. The
+ * older words stay readable for items recorded before.
+ */
 export const conditions = {
-  new: 'New',
   good: 'Good',
   fair: 'Fair',
+  poor: 'Poor',
+  new: 'New',
   worn: 'Worn',
   damaged: 'Damaged',
 } as const;
 
+export type Condition = keyof typeof conditions;
+
+/** UX-TN-4: the three conditions offered, in order. */
+export const conditionChoices = ['good', 'fair', 'poor'] as const;
+
+/** An item whose condition is worth a second look, shown in `warning` with its words. */
+export const needsALook = (condition: string) => condition === 'poor' || condition === 'damaged';
+
 export const inventoryItemSchema = z.object({
   room: z.string().trim().min(1, 'Enter the room.').max(60),
   item: z.string().trim().min(1, 'Enter the item.').max(80),
-  condition: z.enum(['new', 'good', 'fair', 'worn', 'damaged'], {
-    error: 'Choose its condition.',
-  }),
+  condition: z.enum(conditionChoices, { error: 'Choose its condition: good, fair or poor.' }),
   note: z
     .string()
     .trim()

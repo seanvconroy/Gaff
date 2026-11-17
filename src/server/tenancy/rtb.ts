@@ -68,7 +68,7 @@ export async function sendRtbReminder(input: {
   const email = rtbReminderEmail({
     address: found.address,
     deadline: formatDate(rtbDeadline(found.tenancy.startDate)),
-    tenancyUrl: `${env().APP_URL}/lettings/${found.tenancy.lettingId}/tenancy`,
+    tenancyUrl: `${env().APP_URL}/lettings/${found.tenancy.lettingId}/tenancy/rtb`,
   });
   for (const admin of found.admins) {
     await emailSender().send({ to: admin.email, from: gaffSender(), ...email });
@@ -183,6 +183,27 @@ export async function rtbPack(member: Member, lettingId: string) {
       ? openJson<{ ppsn: string }>(row.tenancy.ppsnSealed).ppsn
       : null;
     return { ...row, ppsn, deadline: rtbDeadline(row.tenancy.startDate) };
+  });
+}
+
+/**
+ * UX-TN-3 (rule 2): the tenant's PPS number, shown only when the operator presses "Show" on the
+ * RTB screen, to enter on the RTB's form. It isn't in the page until then. Null once it's
+ * deleted (after registration) or if the tenant didn't give it. Showing it is logged, without it.
+ */
+export async function revealPpsn(member: Member, lettingId: string): Promise<string | null> {
+  return withOrg(member.organisationId, async (tx) => {
+    const [tenancy] = await tx.select().from(tenancies).where(eq(tenancies.lettingId, lettingId));
+    if (!tenancy?.ppsnSealed || tenancy.rtbRegisteredAt) return null;
+    await recordEvent(tx, {
+      organisationId: member.organisationId,
+      lettingId,
+      actor: { type: 'person', userId: member.userId },
+      type: 'tenancy.ppsn_shown',
+      subject: { type: 'tenancy', id: tenancy.id },
+      data: { tenancyId: tenancy.id },
+    });
+    return openJson<{ ppsn: string }>(tenancy.ppsnSealed).ppsn;
   });
 }
 

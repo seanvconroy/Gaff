@@ -1,0 +1,50 @@
+/* R25, UX-TN-4: the inventory on the move-in screen, one row per item, a photo where there is one. */
+.inventory {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.photo,
+.noPhoto {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
+}
+
+.photo {
+  object-fit: cover;
+}
+
+.noPhoto {
+  background-color: var(--color-surface-2);
+}
+
+.itemText {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.note {
+  color: var(--color-ink-muted);
+}

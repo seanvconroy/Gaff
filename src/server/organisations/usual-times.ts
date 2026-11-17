@@ -4,6 +4,8 @@ import { withOrg } from '@/db/client';
 import { organisations } from '@/db/schema';
 import type { Member } from '@/server/auth/member';
 import { requirePermission } from '@/server/team/permissions';
+import { usualAnswer, type UsualQuestion } from '@/domain/tenancy/results';
+import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
 
 const optionalNumber = (max: number, message: string) =>
@@ -48,6 +50,52 @@ export async function setUsualTimes(
       actor: { type: 'person', userId: member.userId },
       type: 'settings.usual_times',
       data: { minutesPerLetting, daysToLet },
+    });
+  });
+  return { ok: true };
+}
+
+/**
+ * UX-TN-7: "your usual", asked at the first close as two tap questions when a pilot's
+ * onboarding didn't set it. One answer at a time; only the offered answers are taken.
+ */
+export async function answerUsual(
+  member: Member,
+  question: UsualQuestion,
+  value: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (member.role !== 'admin') throw new UserFacingError('Only an admin can change this.');
+  const answer = usualAnswer(question, value);
+  if (answer === null) {
+    return {
+      ok: false,
+      error:
+        question === 'days'
+          ? 'Choose about how long a letting usually takes you.'
+          : 'Choose about how many hours of your time a letting usually takes.',
+    };
+  }
+  await withOrg(member.organisationId, async (tx) => {
+    const [now] = await tx
+      .select({
+        minutesPerLetting: organisations.baselineMinutesPerLetting,
+        daysToLet: organisations.baselineDaysToLet,
+      })
+      .from(organisations)
+      .where(eq(organisations.id, member.organisationId));
+    const next = {
+      minutesPerLetting: question === 'hours' ? answer * 60 : (now?.minutesPerLetting ?? null),
+      daysToLet: question === 'days' ? answer : (now?.daysToLet ?? null),
+    };
+    await tx
+      .update(organisations)
+      .set({ baselineMinutesPerLetting: next.minutesPerLetting, baselineDaysToLet: next.daysToLet })
+      .where(eq(organisations.id, member.organisationId));
+    await recordEvent(tx, {
+      organisationId: member.organisationId,
+      actor: { type: 'person', userId: member.userId },
+      type: 'settings.usual_times',
+      data: next,
     });
   });
   return { ok: true };

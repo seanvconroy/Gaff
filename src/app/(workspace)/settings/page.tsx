@@ -1,247 +1,72 @@
-import { eq } from 'drizzle-orm';
+import { Bot, Building2, Inbox, Landmark, Scale } from 'lucide-react';
 import type { Metadata } from 'next';
-import type { ReactNode } from 'react';
-import { db } from '@/db/client';
-import { organisations } from '@/db/schema';
-import { formatRatio, incomeRuleChoices } from '@/domain/applications/apply';
-import { formatIban } from '@/domain/tenancy/payment';
-import { forwardingHref, forwardingInPlace } from '@/domain/enquiries/forwarding';
 import { forwardingCopy } from '@/copy/forwarding';
-import { env } from '@/lib/env';
-import { hasPasskey } from '@/server/auth/confirm-request';
-import { requireMember } from '@/server/auth/member';
-import { CopyButton } from '@/ui/CopyButton';
-import { ButtonLink } from '@/ui/Button';
-import { ChoiceGroup, TextField } from '@/ui/Field';
-import { Columns } from '@/ui/Form';
+import { settingsCopy as copy } from '@/copy/settings';
+import { formatRatio } from '@/domain/applications/apply';
+import { forwardingInPlace } from '@/domain/enquiries/forwarding';
+import {
+  settingsRowHref,
+  settingsRows,
+  type SettingsRowKey,
+} from '@/domain/organisations/settings';
+import { formatIban } from '@/domain/tenancy/payment';
+import { ActionList, ActionRow } from '@/ui/ActionList';
 import { PageHeader, Stack } from '@/ui/Layout';
-import { Notice } from '@/ui/Notice';
-import { SubmitButton } from '@/ui/SubmitButton';
-import { approveBeforeSendAction, incomeRuleAction, usualTimesAction } from './actions';
-import { PaymentAccountForm } from './PaymentAccountForm';
-import styles from './settings.module.css';
+import { loadSettings } from './load';
 
 export const metadata: Metadata = { title: 'Settings' };
+export const dynamic = 'force-dynamic';
 
-/** A setting: what it is and why on the left, the form on the right (one column on a phone). */
-function Section({
-  id,
-  title,
-  description,
-  children,
-}: {
-  id: string;
-  title: string;
-  description: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section className={styles.section} aria-labelledby={id}>
-      <div className={styles.about}>
-        <h2 id={id} className="type-title">
-          {title}
-        </h2>
-        <div className={styles.description}>{description}</div>
-      </div>
-      <div className={styles.panel}>{children}</div>
-    </section>
-  );
-}
+const icons = {
+  enquiries: Inbox,
+  assistant: Bot,
+  income: Scale,
+  payment: Landmark,
+  agency: Building2,
+} as const;
 
-export default async function SettingsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ saved?: string; problem?: string }>;
-}) {
-  const { saved, problem } = await searchParams;
-  const member = await requireMember();
-  const [organisation] = await db()
-    .select()
-    .from(organisations)
-    .where(eq(organisations.id, member.organisationId));
-  const address = `${organisation!.inboundSlug}@${env().INBOUND_DOMAIN}`;
-  // UX-LT-19: known from what has come through the rule, never from anyone's mail settings.
-  const inPlace = forwardingInPlace({ worksAt: organisation!.forwardingWorksAt });
-
+/**
+ * UX-ST-1 to UX-ST-3: Settings, from the account menu, as a list of rows. Each opens a page with
+ * one subject and one save button. "Your usual times" isn't here: it's asked at the first close
+ * (UX-TN-7). Team (WP-19) adds its own row to this list.
+ */
+export default async function SettingsPage() {
+  const { member, organisation } = await loadSettings();
+  const rows = settingsRows({
+    kind: organisation.kind,
+    role: member.role,
+    paymentAccountSet: Boolean(organisation.paymentIban),
+  });
+  const meta: Record<SettingsRowKey, string> = {
+    enquiries: forwardingInPlace({ worksAt: organisation.forwardingWorksAt })
+      ? forwardingCopy.settings.inPlace
+      : forwardingCopy.settings.toDo,
+    assistant: organisation.approveBeforeSend ? copy.assistant.rowOn : copy.assistant.rowOff,
+    income: copy.income.choice(formatRatio(organisation.incomeRuleTenths)),
+    payment: organisation.paymentIban
+      ? `${organisation.paymentAccountName ?? ''}, ${formatIban(organisation.paymentIban)}`
+      : '',
+    agency: organisation.name,
+  };
   return (
     <Stack gap={8}>
-      <PageHeader
-        title="Settings"
-        lead="Where enquiries come in, how much the AI does on its own, and the rules you use for every letting."
-      />
-      {saved ? (
-        <Notice tone="success" role="status">
-          <p>Saved.</p>
-        </Notice>
-      ) : null}
-      {problem ? (
-        <Notice tone="warning" role="alert">
-          <p>
-            {problem === 'usual'
-              ? 'Enter the hours and days as numbers, like 6.5 and 30, or leave them blank.'
-              : 'Only an admin can change that.'}
-          </p>
-        </Notice>
-      ) : null}
-
-      <div className={styles.sections}>
-        <Section
-          id="address-heading"
-          title="Your Gaff address"
-          description={
-            <p>
-              Send your Daft and MyHome enquiries here, and Gaff answers every one. Gaff matches
-              each enquiry to a home using the advert links on the letting; anything it can’t match
-              waits for you in Inbox.
-            </p>
-          }
-        >
-          <div className={styles.address}>
-            <code>{address}</code>
-            <CopyButton value={address} what="your Gaff address" />
-          </div>
-          <p>{inPlace ? forwardingCopy.settings.inPlace : forwardingCopy.settings.toDo}</p>
-          <div>
-            <ButtonLink href={forwardingHref()} variant="secondary">
-              {inPlace ? forwardingCopy.settings.again : forwardingCopy.settings.start}
-            </ButtonLink>
-          </div>
-        </Section>
-
-        <Section
-          id="approvals-heading"
-          title="Approve before send"
-          description={
-            <p>
-              While this is on, every answer the AI writes waits for you in Approvals. Fixed
-              messages, like first replies and reminders, always go straight out. Most operators
-              keep it on for their first few lettings.
-            </p>
-          }
-        >
-          <form action={approveBeforeSendAction}>
-            <Stack gap={4}>
-              <ChoiceGroup
-                name="on"
-                legend="AI-written answers"
-                inline
-                defaultValue={organisation!.approveBeforeSend ? 'yes' : 'no'}
-                options={[
-                  { value: 'yes', label: 'Wait for my approval' },
-                  { value: 'no', label: 'Send straight away' },
-                ]}
-              />
-              <div>
-                <SubmitButton variant="secondary" pendingLabel="Saving…">
-                  Save
-                </SubmitButton>
-              </div>
-            </Stack>
-          </form>
-        </Section>
-
-        <Section
-          id="income-heading"
-          title="Income rule"
-          description={
-            <p>
-              The take-home income you look for, compared with the rent. It’s the same for everyone,
-              and renters see it before they apply. Housing support, such as HAP, always counts as
-              income. A renter below the rule isn’t turned away: you decide.
-            </p>
-          }
-        >
-          <form action={incomeRuleAction}>
-            <Stack gap={4}>
-              <ChoiceGroup
-                name="ruleTenths"
-                legend="Take-home income of at least"
-                inline
-                defaultValue={String(organisation!.incomeRuleTenths)}
-                options={incomeRuleChoices.map((tenths) => ({
-                  value: String(tenths),
-                  label: `${formatRatio(tenths)} times the rent`,
-                }))}
-              />
-              <div>
-                <SubmitButton variant="secondary" pendingLabel="Saving…">
-                  Save income rule
-                </SubmitButton>
-              </div>
-            </Stack>
-          </form>
-        </Section>
-
-        <Section
-          id="payment-heading"
-          title="Where tenants pay"
-          description={
-            <p>
-              The account a new tenant pays the deposit and first month’s rent into: your own, or
-              your client account. Gaff never handles the money. Tenants see these details only on
-              their private page, and are asked to check them with you by phone.
-            </p>
-          }
-        >
-          <PaymentAccountForm
-            accountName={organisation!.paymentAccountName ?? ''}
-            iban={organisation!.paymentIban ? formatIban(organisation!.paymentIban) : ''}
-            email={member.email}
-            hasPasskey={await hasPasskey(member.userId)}
-          />
-        </Section>
-
-        <Section
-          id="usual-heading"
-          title="Your usual times"
-          description={
-            <>
-              <p>
-                How long a letting took you before Gaff, from your pilot interview. Your lettings
-                page compares your time in Gaff with these.
-              </p>
-              <p>
-                Gaff counts a minute of your time only while you’re using it, and shows totals for
-                each letting, never for each person.
-              </p>
-            </>
-          }
-        >
-          <form action={usualTimesAction}>
-            <Stack gap={4}>
-              <Columns>
-                <TextField
-                  name="hoursPerLetting"
-                  label="Hours of your time a letting usually takes"
-                  inputMode="decimal"
-                  optional
-                  defaultValue={
-                    organisation!.baselineMinutesPerLetting === null
-                      ? ''
-                      : String(Math.round((organisation!.baselineMinutesPerLetting / 60) * 10) / 10)
-                  }
-                />
-                <TextField
-                  name="daysToLet"
-                  label="Days from advert to signed tenancy, usually"
-                  inputMode="numeric"
-                  optional
-                  defaultValue={
-                    organisation!.baselineDaysToLet === null
-                      ? ''
-                      : String(organisation!.baselineDaysToLet)
-                  }
-                />
-              </Columns>
-              <div>
-                <SubmitButton variant="secondary" pendingLabel="Saving…">
-                  Save usual times
-                </SubmitButton>
-              </div>
-            </Stack>
-          </form>
-        </Section>
-      </div>
+      <PageHeader title={copy.title} lead={copy.lead} />
+      {rows.length === 0 ? (
+        <p>{copy.noRows}</p>
+      ) : (
+        <ActionList bare>
+          {rows.map((row) => (
+            <ActionRow
+              key={row}
+              id={`settings-${row}`}
+              href={settingsRowHref[row]}
+              icon={icons[row]}
+              title={copy.rows[row]}
+              meta={meta[row]}
+            />
+          ))}
+        </ActionList>
+      )}
     </Stack>
   );
 }

@@ -357,3 +357,17 @@ Gaff now shows homes to the public and shows renters where to pay a deposit. A p
 ### Q48. The identity check provider
 
 **Recommendation (CTO, for the founders to confirm):** Veriff, an EU company with self-serve pricing. Before real checks run, the founders confirm in writing that data stays in the EU and sign its DPA. Until then the build uses the stand-in provider, as now.
+
+### OQ-2. Can software read the RTB's Rent Register? (UX-LP-14, Q41)
+
+**Status: unverified.** Checked on 17 November 2026 from the build environment. This environment can't reach `rtb.ie` or `data.gov.ie` (both fail to resolve), so neither site's own pages were read. What follows comes from web search results only, and needs a person to confirm on the sites themselves.
+
+**What was found:**
+
+- **No official API.** No search result points to an API, a developer page or a data feed for the Rent Register itself. The register is a search page on rtb.ie ([RTB Rent Register](https://rtb.ie/?p=55258)). It holds new and annual registrations from the last 24 months, and the RTB says a rent notice must give three examples from it of recent rents for similar homes.
+- **Open data is averages, not homes.** data.gov.ie lists the CSO's "RTB Average Monthly Rent Report" tables ([RIH02](https://data.gov.ie/ga/dataset/rih02-rtb-average-monthly-rent-report), [RIA02](https://data.gov.ie/dataset/ria02-rtb-average-monthly-rent-report/resource/96d0071b-db5e-4a7b-bda9-cebe02be7d97)) under CC BY 4.0, as CSV, XLSX and JSON-stat. They give average rents by area and type, not individual registered tenancies, so they can't supply the three comparable homes a rent notice needs. The RTB's own data hub ([data insights](https://www.rtb.ie/about-rtb/data-insights), [registration statistics](https://www.rtb.ie/data-hub/rtb-private-tenancy-registration-statistics)) publishes counts and averages, also not single tenancies.
+- **The site's terms don't allow it.** The RTB's website terms ([rtb-terms-of-use.pdf](https://www.rtb.ie/images/uploads/general/rtb-terms-of-use.pdf), seen only as a search extract and possibly out of date) license use of the website and reserve every right not expressly granted. Nothing found grants automated reading of the register.
+
+**Decision (build):** reading the register by software is not clearly allowed, so Gaff doesn't do it, and never scrapes it. There is no lookup and no `src/ports` interface for one. The operator enters three comparable homes, one per screen, with the area, type and bedrooms filled in from the home, and a button opens the RTB's register in a new tab.
+
+**To verify (founders):** allow `rtb.ie` and `data.gov.ie` in the environment's network settings so the pages can be read directly, or ask the RTB whether it offers, or would license, a feed of register entries. If it does, the lookup is built behind an interface in `src/ports` with a local stand-in, and the operator confirms the three it suggests.

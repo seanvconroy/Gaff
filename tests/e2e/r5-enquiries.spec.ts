@@ -17,6 +17,8 @@ test('R5: an operator finds their Gaff address and how to forward enquiries to i
   await signUpOperator(page, 'Halcyon Lettings');
   // UX-NV-8: settings are in the account menu, not the bar.
   await (await openAccountMenu(page)).getByRole('menuitem', { name: 'Agency settings' }).click();
+  // UX-ST-1: Settings is a list of rows; Enquiries holds the Gaff address.
+  await page.getByRole('link', { name: /^Enquiries/ }).click();
   await expect(page.getByRole('heading', { name: 'Your Gaff address' })).toBeVisible();
   await expect(page.getByText(/^halcyon-lettings(-\d+)?@in\.gaff\.test$/)).toBeVisible();
   // UX-LT-17: forwarding is a guided flow, opened from here.

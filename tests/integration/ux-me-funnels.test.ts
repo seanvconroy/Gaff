@@ -36,6 +36,7 @@ import { openRenterPage, saveRenterAnswers } from '@/server/renter/answers';
 import { inviteToView } from '@/server/shortlist/invite';
 import { finishLetting } from '@/server/tenancy/close';
 import { confirmPayment, requestPayment, setPaymentAccount } from '@/server/tenancy/payment';
+import { setListerPhone } from '@/server/organisations/phone';
 import { markSignedOnPaper } from '@/server/tenancy/tenancy';
 import { markAttendance } from '@/server/viewings/attendance';
 import { bookViewing } from '@/server/viewings/booking';
@@ -410,6 +411,7 @@ describe('UX-ME-2: the funnels, from the record’s events and the new steps', (
       { accountName: 'Client account', iban: 'IE29AIBK93115212345678' },
       await confirmedAgain(member),
     );
+    await setListerPhone(member, '01 234 5678');
     await requestPayment(member, lettingId, { dueDate: '2026-11-28' });
     await confirmPayment(member, lettingId);
     await finishLetting(member, lettingId);

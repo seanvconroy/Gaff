@@ -85,9 +85,7 @@ export async function CalendarView({
       }
     : null;
 
-  const nothingAhead = !ahead.some(
-    (t) => t.startsAt > now && (!lettingId || t.lettingId === lettingId),
-  );
+  const nothingAhead = !ahead.some((t) => !lettingId || t.lettingId === lettingId);
   const suggesting = homes.filter((home) => home.suggestions.length > 0);
 
   return (

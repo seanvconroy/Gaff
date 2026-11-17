@@ -29,17 +29,17 @@ export default async function ViewingTimesPage({
         title="Viewing times"
         lead="Renters you invite book these themselves, and Gaff sends the reminders."
       />
+      {letting.stage === 'setup' && sessions.length > 0 ? (
+        <div>
+          <ButtonLink href={`/lettings/${letting.id}`}>Continue setting up</ButtonLink>
+        </div>
+      ) : null}
       <CalendarView
         member={member}
         path={`/lettings/${letting.id}/viewings`}
         query={query}
         lettingId={letting.id}
       />
-      {letting.stage === 'setup' && sessions.length > 0 ? (
-        <div>
-          <ButtonLink href={`/lettings/${letting.id}`}>Continue setting up</ButtonLink>
-        </div>
-      ) : null}
     </Stack>
   );
 }

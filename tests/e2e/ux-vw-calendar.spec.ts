@@ -15,6 +15,7 @@ import {
   pickTime,
   screenshot,
   sendTestEmail,
+  settled,
   signUpOperator,
   startViewingsNow,
   subjectsSentTo,
@@ -31,6 +32,12 @@ const widths = [
 ] as const;
 
 const calendar = (page: Page) => page.getByRole('region', { name: 'Viewing times' });
+
+/** A screenshot once nothing is still moving: a sheet sliding up, a picker fading out. */
+async function shot(page: Page, name: string): Promise<void> {
+  await settled(page);
+  await screenshot(page, name);
+}
 
 /** UX-VW-9: no screen uses the browser's own date or time control. */
 async function expectNoBrowserPickers(page: Page): Promise<void> {
@@ -97,7 +104,7 @@ test('UX-VW-1 to UX-VW-3, UX-VW-7, UX-VW-9: every home’s viewing times on one 
     await expectNoBrowserPickers(page);
     await expectNoSidewaysScroll(page);
     await expectAccessible(page);
-    await screenshot(page, `wp16-calendar-${width}`);
+    await shot(page, `wp16-calendar-${width}`);
 
     // Previous week, Today, Next week.
     const title = await calendar(page).getByRole('heading', { level: 2 }).innerText();
@@ -119,7 +126,7 @@ test('UX-VW-1 to UX-VW-3, UX-VW-7, UX-VW-9: every home’s viewing times on one 
   await expect(sheet.getByRole('group', { name: 'How people view' })).toBeVisible();
   await expectNoBrowserPickers(page);
   await expectAccessible(page);
-  await screenshot(page, 'wp16-add-a-time-390');
+  await shot(page, 'wp16-add-a-time-390');
   await page.keyboard.press('Escape');
   await expect(sheet).toBeHidden();
 
@@ -142,13 +149,14 @@ test('UX-VW-1 to UX-VW-3, UX-VW-7, UX-VW-9: every home’s viewing times on one 
   await expect(warning).toBeVisible();
   await expect(sheet.getByText(/^4 places, \w+day \d+ \w+, 6:30pm to 7:30pm$/)).toBeVisible();
   await expectAccessible(page);
-  await screenshot(page, 'wp16-overlap-warning-1280');
+  await shot(page, 'wp16-overlap-warning-1280');
   await sheet.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(sheet).toBeHidden();
   await expect(page.getByRole('status').filter({ hasText: 'Viewing time added' })).toBeVisible();
   await expect(timeOnCalendar(page, /^6:30pm to 7:30pm · 4 Harbour View/)).toHaveCount(1);
-  await expect(timeOnCalendar(page, /^6pm to 7pm · 12 Ranelagh Road/)).toHaveCount(1);
-  await screenshot(page, 'wp16-calendar-overlap-1280');
+  // Both of 12 Ranelagh Road's evenings are in the week.
+  await expect(timeOnCalendar(page, /^6pm to 7pm · 12 Ranelagh Road/)).toHaveCount(2);
+  await shot(page, 'wp16-calendar-overlap-1280');
 });
 
 test('UX-VW-4: a home with people waiting and no viewing times gets two suggested times, each added with one tap', async ({
@@ -187,7 +195,7 @@ test('UX-VW-4: a home with people waiting and no viewing times gets two suggeste
     ]);
     await expectOnePrimary(page);
     await expectAccessible(page);
-    await screenshot(page, `wp16-suggested-times-${width}`);
+    await shot(page, `wp16-suggested-times-${width}`);
   }
   // Across every home, the calendar says which home and how many wait.
   await page.goto('/calendar');
@@ -199,7 +207,7 @@ test('UX-VW-4: a home with people waiting and no viewing times gets two suggeste
   await page.goto(`${lettingUrl}/viewings`);
   const suggested = page.getByRole('region', { name: 'Suggested times' });
   const first = suggested.getByRole('listitem').first();
-  const words = (await first.innerText()).replace(/\s*Add$/, '');
+  const words = (await first.innerText()).split('\n')[0]!.trim();
   await first.getByRole('button', { name: /^Add/ }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Viewing time added' })).toBeVisible();
   await expect(suggested).toHaveCount(0);
@@ -232,7 +240,7 @@ test('UX-VW-6, UX-VW-8, UX-VW-10, UX-VW-11, R12 to R15: a viewing’s sheet; its
     await expect(sheet.getByRole('link', { name: 'Mark who came' })).toHaveCount(0);
     await expectOnePrimary(page);
     await expectAccessible(page);
-    await screenshot(page, `wp16-viewing-sheet-${width}`);
+    await shot(page, `wp16-viewing-sheet-${width}`);
     await sheet.getByRole('button', { name: 'Close' }).click();
     await expect(sheet).toBeHidden();
   }
@@ -262,7 +270,7 @@ test('UX-VW-6, UX-VW-8, UX-VW-10, UX-VW-11, R12 to R15: a viewing’s sheet; its
   await pickTime(page, 'From', '7pm', sheet);
   await expect(sheet.getByText(/^4 places, \w+day \d+ \w+, 7pm to 8pm$/)).toBeVisible();
   await expectAccessible(page);
-  await screenshot(page, 'wp16-change-a-time-1280');
+  await shot(page, 'wp16-change-a-time-1280');
   await sheet.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(
     page.getByRole('status').filter({ hasText: 'Viewing time moved. 1 person is being told' }),
@@ -283,7 +291,7 @@ test('UX-VW-6, UX-VW-8, UX-VW-10, UX-VW-11, R12 to R15: a viewing’s sheet; its
   // UX-VW-6: Cancel this time, with someone booked: first it needs another time to offer her.
   await addATime(page, isoDateInDays(10));
   await page.goto(`/calendar?day=${moved}`);
-  await timeOnCalendar(page, /^7pm to 8pm · 12 Ranelagh Road/).click();
+  await timeOnCalendar(page, /^7pm to 8pm · 12 Ranelagh Road.*1 of 4 booked/).click();
   sheet = page.getByRole('dialog', { name: /^\w+day \d+ \w+, 7pm to 8pm$/ });
   await sheet.getByRole('button', { name: /^More for / }).click();
   await page.getByRole('menuitem', { name: 'Cancel this time' }).click();
@@ -295,7 +303,7 @@ test('UX-VW-6, UX-VW-8, UX-VW-10, UX-VW-11, R12 to R15: a viewing’s sheet; its
     ),
   ).toBeVisible();
   await expectAccessible(page);
-  await screenshot(page, 'wp16-cancel-a-time-1280');
+  await shot(page, 'wp16-cancel-a-time-1280');
   await sheet.getByRole('button', { name: 'Cancel this time' }).click();
   await expect(
     page.getByRole('status').filter({ hasText: 'Viewing time cancelled. 1 person is being told' }),
@@ -336,7 +344,7 @@ test('UX-VW-6, UX-VW-8, UX-VW-10, UX-VW-11, R12 to R15: a viewing’s sheet; its
     await expect(page.getByText('1 left to mark.')).toBeVisible();
     await expectAccessible(page);
     await expectNoSidewaysScroll(page);
-    await screenshot(page, `wp16-mark-who-came-${width}`);
+    await shot(page, `wp16-mark-who-came-${width}`);
   }
   const aoife = page.getByRole('group', { name: 'Did Aoife Byrne come?' });
   await aoife.getByRole('button', { name: 'Came' }).click();

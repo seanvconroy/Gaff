@@ -2,7 +2,7 @@
 
 import { CalendarPlus, Pencil, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { bookedLine, placesLeftLine, type TimeSettings } from '@/domain/viewings/calendar';
 import { Button, ButtonLink, buttonProps } from '@/ui/Button';
 import { Menu, MenuItem } from '@/ui/Menu';
@@ -63,7 +63,11 @@ export function ViewingSheet({
   const [mode, setMode] = useState<'view' | 'change' | 'cancel'>('view');
   const [problem, setProblem] = useState('');
   const [cancelling, startCancelling] = useTransition();
-  const close = () => router.replace(closeHref, { scroll: false });
+  // Leaving by a link ("Mark who came") takes the sheet away with the page: that's not a close.
+  const leaving = useRef(false);
+  const close = () => {
+    if (!leaving.current) router.replace(closeHref, { scroll: false });
+  };
   const people = data.booked === 1 ? '1 person' : `${data.booked} people`;
 
   const cancel = () =>
@@ -124,7 +128,13 @@ export function ViewingSheet({
               ))}
             </ul>
           )}
-          <div className={styles.sheetActions}>
+          <div
+            className={styles.sheetActions}
+            onClickCapture={(event) => {
+              const link = (event.target as HTMLElement).closest('a[href]');
+              if (link && !link.hasAttribute('download')) leaving.current = true;
+            }}
+          >
             {data.canMark ? (
               <ButtonLink href={data.markHref} variant="primary" fullWidth="phone">
                 Mark who came

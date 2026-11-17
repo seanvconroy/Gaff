@@ -105,9 +105,6 @@ export function Calendar({
                     className={styles.stripDay}
                     aria-current={day.date === chosen ? 'true' : undefined}
                     data-today={day.date === today ? '' : undefined}
-                    aria-label={`${dayLabel(day.date)}${day.date === today ? ', today' : ''}${
-                      count ? `, ${count} viewing ${count === 1 ? 'time' : 'times'}` : ''
-                    }`}
                   >
                     <span className={styles.stripName} aria-hidden="true">
                       {weekdayNames[index]!.short}
@@ -115,11 +112,12 @@ export function Calendar({
                     <span className={styles.stripNumber} aria-hidden="true">
                       {Number(day.date.slice(8))}
                     </span>
-                    <span
-                      className={count ? styles.dot : styles.noDot}
-                      aria-hidden="true"
-                      data-dot=""
-                    />
+                    <span className={count ? styles.dot : styles.noDot} aria-hidden="true" />
+                    <span className="visually-hidden">
+                      {dayLabel(day.date)}
+                      {day.date === today ? ', today' : ''}
+                      {count ? `, ${count} viewing ${count === 1 ? 'time' : 'times'}` : ''}
+                    </span>
                   </Link>
                 </li>
               );

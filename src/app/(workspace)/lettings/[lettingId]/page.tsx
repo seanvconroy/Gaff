@@ -22,6 +22,8 @@ import { todayRows } from '@/domain/dashboard/today-rows';
 import { dashboardFor } from '@/server/dashboard/dashboard';
 import { goLiveGateFor } from '@/server/lettings/go-live';
 import { enquiryCount } from '@/server/lettings/test-enquiry';
+import { lettingStandingFor } from '@/server/team/lead';
+import { hasTeam } from '@/domain/team/permissions';
 import { ActionList, ActionRow } from '@/ui/ActionList';
 import { ButtonLink } from '@/ui/Button';
 import { Disclosure } from '@/ui/Disclosure';
@@ -36,6 +38,7 @@ import { TodayList } from '../../TodayList';
 import { closeAction } from './actions';
 import { loadLetting } from './letting';
 import { LettingHeader } from './LettingHeader';
+import { LeadNotice } from './LeadNotice';
 import { LettingMenu } from './LettingMenu';
 import { RentCheckResult } from './RentCheckResult';
 import styles from './letting.module.css';
@@ -98,6 +101,10 @@ export default async function LettingPage({
         )
       : [];
   const enquiries = letting.status === 'live' ? await enquiryCount(member, letting.id) : 0;
+  // UX-AG-8, UX-AG-9: who leads it, whether this member may change that, and "Help with this".
+  const standing = hasTeam(member.organisationKind)
+    ? await lettingStandingFor(member, letting.id)
+    : null;
   // UX-LT-20: advertised on Daft or MyHome with no enquiry through yet. The forwarding flow
   // itself is work package WP-11; until then the task points at the Gaff address.
   const forwardFrom =
@@ -123,9 +130,17 @@ export default async function LettingPage({
             testEnquiry={canSendTestEnquiry({ status: letting.status, enquiries })}
             shareWithOwner={hasOwner}
             letAgain={canLetAgain(letting)}
+            changeLead={standing?.mayChangeLead ?? false}
           />
         }
       />
+      {standing ? (
+        <LeadNotice
+          lettingId={letting.id}
+          leadName={standing.leadName}
+          offersHelp={standing.offersHelp}
+        />
+      ) : null}
 
       {saved && savedCopy[saved] && !(saved === 'rent-check' && rentProblem) ? (
         <Notice tone="success" role="status">

@@ -8,9 +8,12 @@ import { formatDate, formatEuro } from '@/lib/format';
 import { readRenterProfile } from '@/server/accounts/renter-profile';
 import { signInMethodsOf } from '@/server/accounts/sign-in-methods';
 import { hasPasskey } from '@/server/auth/confirm-request';
+import { membersOf } from '@/server/auth/member';
 import { requirePerson } from '@/server/context/current-person';
+import { teamsToLeave } from '@/server/team/team';
 import { Narrow, PageHeader, Stack } from '@/ui/Layout';
 import { ProfileRows, type ProfileView } from './ProfileRows';
+import { YourTeams } from './YourTeams';
 
 export const metadata: Metadata = { title: profileCopy.title };
 
@@ -28,10 +31,12 @@ export const metadata: Metadata = { title: profileCopy.title };
  */
 export default async function ProfilePage() {
   const person = await requirePerson();
-  const [kept, signIn, passkey] = await Promise.all([
+  const [kept, signIn, passkey, teams] = await Promise.all([
     readRenterProfile(person.userId),
     signInMethodsOf(person.userId),
     hasPasskey(person.userId),
+    // UX-AG-17: the teams they work in, each to leave from here.
+    membersOf(person.userId).then(teamsToLeave),
   ]);
   const a = kept.answers;
   const view: ProfileView = {
@@ -80,7 +85,10 @@ export default async function ProfilePage() {
     <Stack gap={8}>
       <PageHeader title={profileCopy.title} lead={profileCopy.lead} />
       <Narrow>
-        <ProfileRows view={view} />
+        <Stack gap={8}>
+          <ProfileRows view={view} />
+          <YourTeams teams={teams} />
+        </Stack>
       </Narrow>
     </Stack>
   );

@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { withOrg } from '@/db/client';
 import { organisations } from '@/db/schema';
 import type { Member } from '@/server/auth/member';
-import { UserFacingError } from '@/server/errors';
 import { requirePermission } from '@/server/team/permissions';
 import { recordEvent } from '@/server/record/events';
 

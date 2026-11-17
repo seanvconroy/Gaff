@@ -39,11 +39,23 @@ describe('R28: what needs a person today', () => {
           undecided: 3,
           toChoose: 2,
           readyToOffer: true,
+          checksBackFor: 'Aoife',
           needsNewChoice: true,
         }),
       ],
     });
     expect(items).toEqual([]);
+  });
+
+  it('UX-DC-11: one task when the preferred applicant’s checks are back, named by first name', () => {
+    const items = needsYouToday({
+      ...nothing,
+      lettings: [letting({ checksBackFor: 'Aoife', waitingSince: { checks: at('09:00') } })],
+    });
+    expect(items).toEqual([
+      expect.objectContaining({ kind: 'checks', firstName: 'Aoife', since: at('09:00') }),
+    ]);
+    expect(todayRank(items[0]!, TODAY)).toBe(todayRanks.decision);
   });
 
   it('lists a home still being set up, with the steps left', () => {

@@ -1,6 +1,7 @@
 import { conversationHref, conversationKey, inboxHref } from '@/domain/inbox/conversations';
 import type { TenancyStep } from '@/domain/tenancy/steps';
 import { formatDate, formatTime, irishToday } from '@/lib/format';
+import { decisionHref } from '@/domain/lettings/links';
 import type { TodayItem, TodayKind } from './today';
 
 /**
@@ -36,8 +37,9 @@ const tenancySteps: Record<TenancyStep, string> = {
 };
 
 /**
- * Where each thing is done today: the pages that exist. The focused decision flows (wave 3A)
- * change these, and only these.
+ * Where each thing is done. A decision opens its focused flow (WP-17): who views, an applicant,
+ * the checks that are back, and the offer. Asking the owner is reached from the offer, which
+ * names it while it's missing (UX-DC-19).
  *
  * UX-NV-2: an answer to approve, a question and an email Gaff couldn't place are handled in
  * Inbox. A row about one conversation opens it, so a draft is approved in two taps: the row,
@@ -57,11 +59,14 @@ export function todayHref(item: TodayItem): string {
     case 'attendance':
       return `/lettings/${item.lettingId}/attendance`;
     case 'shortlist':
-      return `/lettings/${item.lettingId}/shortlist`;
+      return decisionHref(item.lettingId, 'who-views');
     case 'choose':
-    case 'offer':
     case 'rechoose':
-      return `/lettings/${item.lettingId}/applications`;
+      return decisionHref(item.lettingId, 'choose');
+    case 'checks':
+      return decisionHref(item.lettingId, 'checks');
+    case 'offer':
+      return decisionHref(item.lettingId, 'offer');
     case 'tenancy':
     case 'rtb':
       return `/lettings/${item.lettingId}/tenancy`;
@@ -92,6 +97,8 @@ function task(item: TodayItem, now: Date): string {
       return 'Choose who views';
     case 'choose':
       return 'Choose an applicant';
+    case 'checks':
+      return item.firstName ? `The checks are back for ${item.firstName}` : 'The checks are back';
     case 'offer':
       return 'Make the offer';
     case 'rechoose':
@@ -130,6 +137,8 @@ function why(item: TodayItem, now: Date): string | null {
     }
     case 'choose':
       return `${people(item.count)} ${item.count === 1 ? 'has' : 'have'} applied`;
+    case 'checks':
+      return waitingWords(item.since, now);
     case 'offer':
       return 'The person you chose is waiting to hear';
     case 'rechoose':

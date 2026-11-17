@@ -55,3 +55,21 @@ export function resumeHref(id: string, from?: string | null): string {
 export function fromOf(value: string | string[] | undefined): string | null {
   return returnPath(value, '') || null;
 }
+
+/**
+ * WP-17: the focused flows for the decisions on a letting, each under `(task)`:
+ * - `who-views`: choose who views (UX-DC-1 to UX-DC-6);
+ * - `choose`: choose an applicant, and a backup (UX-DC-7 to UX-DC-9);
+ * - `checks`: the checks, and once they're back the one screen to read them (UX-DC-10 to 13);
+ * - `approval`: ask the owner to approve, or record that they have (UX-DC-14 to UX-DC-16);
+ * - `offer`: the offer (UX-DC-17 to UX-DC-20).
+ */
+export type DecisionFlow = 'who-views' | 'choose' | 'checks' | 'approval' | 'offer';
+
+export function decisionHref(
+  lettingId: string,
+  flow: DecisionFlow,
+  query: Record<string, string | null | undefined> = {},
+): string {
+  return withQuery(`/lettings/${lettingId}/${flow}`, query);
+}

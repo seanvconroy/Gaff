@@ -70,6 +70,11 @@ describe('UX-HM-3: a row says what the task is and which home, then why now', ()
     expect(words({ kind: 'shortlist', ...home, count: 1, placesFree: null })[1]).toBe(
       '1 person is waiting to hear',
     );
+    // UX-DC-11: one task when every check for the preferred applicant is back.
+    expect(words({ kind: 'checks', ...home, firstName: 'Aoife', since: ago(125) })).toEqual([
+      'The checks are back for Aoife · 12 Ranelagh Road',
+      'Waiting 2 hours',
+    ]);
     expect(words({ kind: 'offer', ...home })).toEqual([
       'Make the offer · 12 Ranelagh Road',
       'The person you chose is waiting to hear',
@@ -124,12 +129,13 @@ describe('UX-HM-3: a row says what the task is and which home, then why now', ()
 });
 
 describe('UX-HM-3: the whole row is one link to where the task is done', () => {
-  it('links each kind to the page that does it today', () => {
+  it('links each kind to the page that does it; each decision opens its flow (WP-17)', () => {
     const rows = todayRows(
       [
         { kind: 'attendance', ...home, count: 1, from: null, until: null },
         { kind: 'shortlist', ...home, count: 1, placesFree: null },
         { kind: 'choose', ...home, count: 1 },
+        { kind: 'checks', ...home, firstName: 'Aoife' },
         { kind: 'offer', ...home },
         { kind: 'rechoose', ...home, reason: null },
         { kind: 'tenancy', ...home, step: 'finish', startDate: null },
@@ -143,10 +149,11 @@ describe('UX-HM-3: the whole row is one link to where the task is done', () => {
     );
     expect(rows.map((row) => row.href)).toEqual([
       '/lettings/l1/attendance',
-      '/lettings/l1/shortlist',
-      '/lettings/l1/applications',
-      '/lettings/l1/applications',
-      '/lettings/l1/applications',
+      '/lettings/l1/who-views',
+      '/lettings/l1/choose',
+      '/lettings/l1/checks',
+      '/lettings/l1/offer',
+      '/lettings/l1/choose',
       '/lettings/l1/tenancy',
       '/lettings/l1/tenancy',
       '/lettings/l1',

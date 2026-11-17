@@ -35,7 +35,11 @@ import { recordEvent } from '@/server/record/events';
  * too, holding only codes (rule 8).
  */
 
-/** UX-GR-4: who joined by invite. The organisation's first member set it up; nobody invited them. */
+/**
+ * UX-GR-4: who joined a team that was already set up, by invite. The organisation's first member
+ * set it up: nobody invited them, even when a founder made the agency for a pilot. Anyone after
+ * them was invited, unless an admin said yes to their own request to join (UX-AG-3).
+ */
 async function joinedByInvite(tx: Tx, member: Member): Promise<boolean> {
   const [first] = await tx
     .select({ userId: memberships.userId })
@@ -44,19 +48,15 @@ async function joinedByInvite(tx: Tx, member: Member): Promise<boolean> {
     .orderBy(asc(memberships.createdAt))
     .limit(1);
   if (!first || first.userId === member.userId) return false;
-  // Accepting an invite adds the person as their own act; an admin answering a request to join
-  // adds them as the admin's (`addMemberIn`).
-  const [self] = await tx
-    .select({ n: count() })
-    .from(events)
-    .where(
-      and(
-        eq(events.type, 'member.joined'),
-        eq(events.actorType, 'person'),
-        eq(events.actorId, member.userId),
-      ),
-    );
-  return (self?.n ?? 0) > 0;
+  const askedToJoin = await has(
+    tx,
+    and(
+      eq(events.type, 'member.join_answered'),
+      eq(events.subjectId, member.userId),
+      sql`${events.data}->>'answer' = 'approved'`,
+    ),
+  );
+  return !askedToJoin;
 }
 
 async function has(tx: Tx, where: SQL | undefined): Promise<boolean> {
@@ -98,6 +98,11 @@ export async function setupFactsIn(tx: Tx, member: Member): Promise<SetupFacts> 
   const teamAnswered =
     hasTeam(member.organisationKind) &&
     (await has(tx, inArray(events.type, ['member.invited', 'team.just_me'])));
+  // A member who joined later counts as a team grown too: nobody needs inviting first.
+  const [{ n: members } = { n: 1 }] = await tx
+    .select({ n: count() })
+    .from(memberships)
+    .where(eq(memberships.organisationId, member.organisationId));
   const testable = homes.find((home) => home.status === 'live' && !enquired.has(home.id));
   return {
     organisationKind: member.organisationKind,
@@ -112,16 +117,24 @@ export async function setupFactsIn(tx: Tx, member: Member): Promise<SetupFacts> 
       homes.find((home) => home.status === 'draft' && home.goLiveHeldAt === null)?.id ?? null,
     advertisedOn: homes.flatMap((home) => home.advertisedOn ?? []),
     forwardingInPlace: forwardingInPlace({ worksAt: organisation?.worksAt ?? null }),
-    teamAnswered,
+    teamAnswered: teamAnswered || members > 1,
   };
+}
+
+/** Whether anyone on the team has sent an invite: "Invite your team" then isn't asked again. */
+async function inviteSentIn(tx: Tx): Promise<boolean> {
+  return has(tx, eq(events.type, 'member.invited'));
 }
 
 export interface Setup {
   checklist: SetupChecklist | null;
   /** The checklist was completed just now: Today says "You're all set" this once. */
   justFinished: boolean;
-  /** One invite was sent, or "It's just me" chosen: for "Invite your team" as a prompt. */
-  teamAnswered: boolean;
+  /**
+   * An invite was sent: "Invite your team" as a prompt is then done with. "It's just me" isn't
+   * this: it answers the checklist's step, and puts the prompt off like "Not now" (UX-AG-13).
+   */
+  inviteSent: boolean;
 }
 
 /**
@@ -147,28 +160,41 @@ export async function setupFor(member: Member): Promise<Setup> {
           organisationId: member.organisationId,
           actor: { type: 'person', userId: member.userId },
           type: 'setup.finished',
-          data: { steps: setupChecklistFor({ ...facts, teamAnswered: false })?.total ?? 1 },
+          // How many steps the person's checklist had: its first step undone shows them all.
+          data: {
+            steps: setupChecklistFor({ ...facts, lettingLiveOrHeld: false })?.total ?? 1,
+          },
         });
         justFinished = true;
       }
     }
-    return { checklist, justFinished, teamAnswered: facts.teamAnswered };
+    return { checklist, justFinished, inviteSent: await inviteSentIn(tx) };
   });
 }
 
-/** UX-GR-1: "It's just me", from the checklist's "Invite your team". An admin's answer. */
+/**
+ * UX-GR-1: "It's just me", from "Invite your team". An admin's answer. It ticks the checklist's
+ * step, and puts the prompt for a sole admin off as "Not now" does: it can come back in
+ * fourteen days, once there is a live letting (UX-AG-13).
+ */
 export async function chooseJustMe(member: Member): Promise<void> {
   if (!hasTeam(member.organisationKind) || !may('manage_team', { role: member.role })) {
     throw new UserFacingError('Only an admin can answer this for the team.');
   }
-  await withOrg(member.organisationId, (tx) =>
-    recordEvent(tx, {
+  await withOrg(member.organisationId, async (tx) => {
+    await recordEvent(tx, {
       organisationId: member.organisationId,
       actor: { type: 'person', userId: member.userId },
       type: 'team.just_me',
       data: {},
-    }),
-  );
+    });
+    await recordEvent(tx, {
+      organisationId: member.organisationId,
+      actor: { type: 'person', userId: member.userId },
+      type: 'prompt.declined',
+      data: { prompt: 'invite_team' },
+    });
+  });
 }
 
 /** UX-GR-5: "Not now". The prompt waits fourteen days, or for good if it is shown once. */

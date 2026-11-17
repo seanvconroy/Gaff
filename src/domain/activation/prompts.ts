@@ -132,8 +132,8 @@ export interface PromptFacts {
   homes?: readonly PromptLetting[];
   /** Just after go-live, an agency's home with no owner on it (UX-OW-1). */
   justLiveWithoutOwner?: boolean;
-  /** An invite was sent, or "It's just me" chosen. */
-  teamAnswered?: boolean;
+  /** Someone on the team has sent an invite. */
+  inviteSent?: boolean;
   /** R29: answers wait for a person's approval. */
   approveBeforeSend?: boolean;
   /** The approvals of AI drafts, newest first, as far back as twenty: whether each was edited. */
@@ -187,7 +187,7 @@ export const promptConditions: Record<PromptCode, (facts: PromptFacts) => Prompt
     isAdmin(f.viewer) &&
     hasTeam(f.viewer) &&
     f.viewer.members === 1 &&
-    f.teamAnswered === false &&
+    f.inviteSent === false &&
     (f.homes ?? []).some((h) => h.status === 'live')
       ? { code: 'invite_team' }
       : null,

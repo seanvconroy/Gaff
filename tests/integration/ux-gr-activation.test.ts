@@ -73,7 +73,9 @@ describe('UX-GR-1 to UX-GR-3: the setup checklist, from what has actually happen
     // "It's just me" answers the last step. The first time it's complete, Today says so once.
     await chooseJustMe(admin);
     setup = await setupFor(admin);
-    expect(setup).toMatchObject({ checklist: null, justFinished: true, teamAnswered: true });
+    expect(setup).toMatchObject({ checklist: null, justFinished: true, inviteSent: false });
+    // It puts the prompt for a sole admin off, as "Not now" does.
+    expect(Object.keys(await declinesFor(admin))).toEqual(['invite_team']);
     expect(await eventsOf(admin, 'setup.finished')).toEqual([
       { actorId: admin.userId, data: { steps: 3 } },
     ]);
@@ -90,7 +92,7 @@ describe('UX-GR-1 to UX-GR-3: the setup checklist, from what has actually happen
     const person = await createTestPerson();
     await inviteColleagues(admin, { emails: person.email, role: 'negotiator' });
     const setup = await setupFor(admin);
-    expect(setup.teamAnswered).toBe(true);
+    expect(setup.inviteSent).toBe(true);
     expect(setup.checklist?.steps.find((s) => s.code === 'invite_team')?.done).toBe(true);
     await acceptInvites(person);
     const steps = await withSystem((tx) =>

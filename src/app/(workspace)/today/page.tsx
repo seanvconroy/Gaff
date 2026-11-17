@@ -100,7 +100,7 @@ export default async function TodayPage({
         answered: home.undecided,
         viewingTimesAhead: home.viewingTimesAhead,
       })),
-      teamAnswered: setup.teamAnswered,
+      inviteSent: setup.inviteSent,
       approveBeforeSend: promptFacts.approveBeforeSend,
       recentApprovals: promptFacts.recentApprovals,
     },

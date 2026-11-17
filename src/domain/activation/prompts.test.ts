@@ -53,7 +53,7 @@ describe('UX-GR-5: no screen shows more than one prompt; the higher in the table
       checklistShowing: true,
       unknownHomeEnquiries: 2,
       homes: [home({ answered: 4, viewingTimesAhead: 0 })],
-      teamAnswered: false,
+      inviteSent: false,
       approveBeforeSend: true,
       recentApprovals: clean,
     };
@@ -66,7 +66,7 @@ describe('UX-GR-5: no screen shows more than one prompt; the higher in the table
       checklistShowing: false,
       unknownHomeEnquiries: 1,
       homes: [home({ answered: 4, viewingTimesAhead: 0 })],
-      teamAnswered: false,
+      inviteSent: false,
       approveBeforeSend: true,
       recentApprovals: clean,
     };
@@ -79,7 +79,7 @@ describe('UX-GR-5: no screen shows more than one prompt; the higher in the table
     });
     const withTimes = { ...noUnknown, homes: [home({ answered: 4 })] };
     expect(promptFor('today', withTimes, {}, now)?.code).toBe('invite_team');
-    expect(promptFor('today', { ...withTimes, teamAnswered: true }, {}, now)?.code).toBe(
+    expect(promptFor('today', { ...withTimes, inviteSent: true }, {}, now)?.code).toBe(
       'stop_checking',
     );
   });
@@ -91,7 +91,7 @@ describe('UX-GR-5: no screen shows more than one prompt; the higher in the table
       unknownHomeEnquiries: 3,
       homes: [home({ answered: 4, viewingTimesAhead: 0 })],
       justLiveWithoutOwner: true,
-      teamAnswered: false,
+      inviteSent: false,
       approveBeforeSend: true,
       recentApprovals: clean,
       repeatedQuestion: { lettingId: 'l1', times: 9 },
@@ -131,7 +131,7 @@ describe('UX-GR-5: declined prompts wait at least 14 days', () => {
     viewer: admin,
     checklistShowing: false,
     homes: [home()],
-    teamAnswered: false,
+    inviteSent: false,
   };
 
   it('a decline holds for fourteen days, then the prompt comes back', () => {
@@ -145,14 +145,14 @@ describe('UX-GR-5: declined prompts wait at least 14 days', () => {
   });
 
   it('a declined prompt makes way for the next one that applies', () => {
-    const both = { ...facts, teamAnswered: false, approveBeforeSend: true, recentApprovals: clean };
+    const both = { ...facts, inviteSent: false, approveBeforeSend: true, recentApprovals: clean };
     expect(promptFor('today', both, { invite_team: daysAgo(1) }, now)?.code).toBe('stop_checking');
   });
 
   it('a prompt shown once never comes back once declined', () => {
     const checking = {
       ...facts,
-      teamAnswered: true,
+      inviteSent: true,
       approveBeforeSend: true,
       recentApprovals: clean,
     };
@@ -193,7 +193,7 @@ describe('Each prompt’s condition (section 9, "When")', () => {
 
   it('Invite your team (UX-AG-13): an admin who is the only member and has a live letting', () => {
     const cond = promptConditions.invite_team;
-    const live = { homes: [home()], teamAnswered: false };
+    const live = { homes: [home()], inviteSent: false };
     expect(cond({ viewer: admin, ...live })).not.toBeNull();
     expect(cond({ viewer: { ...admin, members: 2 }, ...live })).toBeNull();
     expect(cond({ viewer: { ...admin, role: 'negotiator' }, ...live })).toBeNull();
@@ -201,9 +201,9 @@ describe('Each prompt’s condition (section 9, "When")', () => {
       cond({ viewer: { ...admin, organisationKind: 'private_landlord' }, ...live }),
     ).toBeNull();
     expect(
-      cond({ viewer: admin, homes: [home({ status: 'draft' })], teamAnswered: false }),
+      cond({ viewer: admin, homes: [home({ status: 'draft' })], inviteSent: false }),
     ).toBeNull();
-    expect(cond({ viewer: admin, homes: [home()], teamAnswered: true })).toBeNull();
+    expect(cond({ viewer: admin, homes: [home()], inviteSent: true })).toBeNull();
   });
 
   it('Stop checking every answer?: admins and private landlords, twenty clean sends in a row', () => {

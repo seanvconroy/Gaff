@@ -200,8 +200,13 @@ export function stepsLeft(reached: FlowStep | null): number {
   return flowSteps.length - flowSteps.indexOf(reached ?? 'photos');
 }
 
-/** What the review marks "Check this" (UX-LT-4): missing, or out of date. */
-export type CheckThis = 'address' | 'rent' | 'available_from' | 'home' | 'ber' | 'photos';
+/**
+ * What the review marks "Check this" (UX-LT-4): missing, or out of date. For a home that was
+ * read from an advert, also what the advert wasn't clear about, and `details`: something it
+ * says that could be a letting detail (advert-reading.ts).
+ */
+export type CheckThis =
+  'address' | 'rent' | 'available_from' | 'home' | 'ber' | 'photos' | 'details';
 
 /**
  * UX-LT-3, UX-LT-4: what the review screen asks the person to look at, counted at its top

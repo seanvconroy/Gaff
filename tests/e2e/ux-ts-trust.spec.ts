@@ -157,8 +157,12 @@ test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, i
     await expectAccessible(staffPage);
     await screenshot(staffPage, `ux-ts-internal-reported-${width}`);
   }
-  // Nothing about any renter or message is on it.
-  expect(await staffPage.locator('body').innerText()).not.toMatch(/Aoife|@example\.ie/);
+  // Nothing about any renter or message is in the reports. (The agencies list above it names
+  // each agency's own admin, who asked to be confirmed: that's a lister, never a renter.)
+  const reportsList = staffPage.locator('section', {
+    has: staffPage.getByRole('heading', { level: 2, name: 'Reported listings' }),
+  });
+  expect(await reportsList.innerText()).not.toMatch(/Aoife|@example\.ie/);
 
   // UX-TS-4: staff hide it, for the reason most reports gave.
   const card = staffPage

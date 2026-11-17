@@ -40,8 +40,8 @@ export default async function EnquiriesPage({
               {enquiries.length} {enquiries.length === 1 ? 'enquiry' : 'enquiries'}
             </h2>
             <span className={styles.small}>
-              {answered} of {enquiries.length} have sent their answers · the same person on Gaff, Daft
-              and MyHome shows once
+              {answered} of {enquiries.length} have sent their answers · the same person on Gaff,
+              Daft and MyHome shows once
             </span>
           </div>
           <Table caption="Enquiries" head={['Name', 'Contact', 'Via', 'Enquired', 'Questions']}>
@@ -56,9 +56,7 @@ export default async function EnquiriesPage({
                     <span className={tableStyles.sub}>{application.phone}</span>
                   ) : null}
                 </Cell>
-                <Cell label="Via">
-                  {sourcesInWords(application.sources)}
-                </Cell>
+                <Cell label="Via">{sourcesInWords(application.sources)}</Cell>
                 <Cell label="Enquired">{formatDateTime(application.firstEnquiredAt)}</Cell>
                 <Cell label="Questions">
                   {application.answersAt ? (

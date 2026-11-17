@@ -36,6 +36,7 @@ import {
   databaseError,
   queuedJobs,
   reloaded,
+  verifyForTest,
 } from './helpers';
 
 const keys = async (userId: string) =>
@@ -191,7 +192,8 @@ describe('UX-AC-4, UX-AC-7: a private landlord’s organisation of one, made sil
     const landlord = await createTestPerson();
     const { organisationId } = await ensureOwnHomes(landlord);
     const member = (await findMember(landlord.id, organisationId))!;
-    // The identity check before a first home goes live (Q47) is work package WP-24.
+    // UX-TS-2 (Q47): the one thing asked is that they confirm it's them, once (WP-24's tests).
+    await verifyForTest(landlord.id, landlord.name);
     const { lettingId } = await aLiveLetting(member);
     const [letting] = await withOrg(organisationId, (tx) =>
       tx.select().from(lettings).where(eq(lettings.id, lettingId)),

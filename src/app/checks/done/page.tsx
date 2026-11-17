@@ -21,7 +21,8 @@ export default async function CheckDonePage({
 }) {
   const { kind } = await searchParams;
   const back = checkReturnPath((await cookies()).get(CHECK_RETURN_COOKIE)?.value);
-  if (back) redirect(back);
+  // UX-PF-8: back from the ID check, the page asks whether to keep it, if it passed.
+  if (back) redirect(kind === 'identity' ? `${back}?q=keep_id` : back);
   const what = kind === 'income' ? 'income check' : kind === 'identity' ? 'ID check' : 'check';
   return (
     <PrivateFrame audience="renter" lister={null}>

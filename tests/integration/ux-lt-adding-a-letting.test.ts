@@ -1,5 +1,7 @@
 import { asc, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
+import { recordProviderResult } from '@/server/checks/checks';
+import { startPersonCheck } from '@/server/identity/person-checks';
 import { localPhotoStore } from '@/adapters/photos/local';
 import { db, withOrg } from '@/db/client';
 import {
@@ -455,7 +457,7 @@ describe('UX-LT-12 to UX-LT-15: the rent check, and going live', () => {
     expect(ready.needs).toEqual([]);
     // No viewing times, letting details, photos, BER, comparable rents or phone number.
     expect(ready.onGaffNeeds).toEqual(['ber', 'photo']);
-    expect(ready.asks).toEqual({ phone: 'offered', identity: null });
+    expect(ready.asks).toEqual({ phone: 'offered' });
     expect(await startTakingEnquiries(member, id)).toBe('live');
     expect((await getLetting(member, id))?.letting).toMatchObject({
       stage: 'enquiries',
@@ -536,21 +538,45 @@ describe('UX-LT-12 to UX-LT-15: the rent check, and going live', () => {
     expect((await getLetting(member, quiet))?.letting.onGaff).toBe(false);
   });
 
-  it('Q47: a private landlord’s first go-live shows the identity step as coming, and it holds nothing', async () => {
-    const member = await createTestMember({ kind: 'private_landlord', organisation: 'Mary' });
+  it('UX-TS-2: a private landlord can’t go live until they’ve confirmed it’s them, then is never asked again', async () => {
+    const member = await createTestMember({
+      kind: 'private_landlord',
+      organisation: 'Mary',
+      confirmed: false,
+    });
     const id = await aHomeAdded(member);
     await recordRentCheck(member, id, { lastLet: 'never' });
     const step = await goLiveStepFor(member, (await getLetting(member, id))!);
-    expect(step.gate).toEqual({ open: true });
-    expect(step.needs).toEqual([]);
-    expect(step.asks).toEqual({ phone: 'offered', identity: 'later' });
+    expect(step.gate).toEqual({ open: false, reason: 'identity_needed', waits: false });
+    expect(step.needs).toEqual(['lister']);
+    await expect(startTakingEnquiries(member, id)).rejects.toThrow(/confirm it’s you/);
+    expect((await getLetting(member, id))?.letting.status).toBe('draft');
+
+    // "Confirm it's you": the ID check, as one step of this go-live.
+    const started = await startPersonCheck(
+      member.userId,
+      'go_live',
+      `/lettings/${id}/setup/go-live`,
+    );
+    const checkId = /\/dev\/checks\/([0-9a-f-]{36})/.exec(
+      'redirectUrl' in started ? started.redirectUrl : '',
+    )![1]!;
+    await recordProviderResult(checkId, {
+      kind: 'identity',
+      result: { verified: true, verifiedName: 'Mary Byrne' },
+    });
+    const ready = await goLiveStepFor(member, (await getLetting(member, id))!);
+    expect(ready.gate).toEqual({ open: true });
+    expect(ready.asks).toEqual({ phone: 'offered' });
     expect(await startTakingEnquiries(member, id)).toBe('live');
     // Each is asked once, at the first go-live: not at the second home.
     const second = await aHomeAdded(member);
     await recordRentCheck(member, second, { lastLet: 'never' });
-    expect((await goLiveStepFor(member, (await getLetting(member, second))!)).asks).toEqual({
-      phone: null,
-      identity: null,
+    const next = await goLiveStepFor(member, (await getLetting(member, second))!);
+    expect(next.gate).toEqual({ open: true });
+    expect(next.asks).toEqual({ phone: null });
+    expect(await startPersonCheck(member.userId, 'go_live', '/lettings')).toEqual({
+      problem: 'done',
     });
   });
 

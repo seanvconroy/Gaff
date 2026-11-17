@@ -27,6 +27,7 @@ import { SummaryList } from '@/ui/SummaryList';
 import styles from '../renter.module.css';
 import { takePlaceAction } from './booking-actions';
 import { ChecksTask } from './Checks';
+import type { IdentityView } from './KeptIdentity';
 import { respondAction } from './offer-actions';
 import { PpsStep } from './PpsStep';
 import { QuestionsFlow } from './QuestionsFlow';
@@ -44,6 +45,10 @@ export interface HubOptions {
   /** A code for something that just went wrong, said once at the task. */
   checkProblem?: string;
   offerProblem?: string;
+  /** UX-PF-12, UX-PF-14: a code for what went wrong using a kept ID check, said once. */
+  idProblem?: string;
+  /** Q35: the renter's verified identity at their checks (`IdentityView`). */
+  identity?: IdentityView | null;
   /**
    * UX-RN-13: they ticked "Keep my details for next time" and came back from its code: whether
    * the details were kept.

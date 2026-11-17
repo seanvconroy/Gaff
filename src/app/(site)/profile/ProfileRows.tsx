@@ -11,6 +11,7 @@ import { irishToday } from '@/lib/format';
 import { Button, ButtonLink } from '@/ui/Button';
 import { ChoiceGroup, FieldError, TextField } from '@/ui/Field';
 import { Stack } from '@/ui/Layout';
+import { Notice } from '@/ui/Notice';
 import { OptionRow } from '@/ui/OptionRow';
 import { DateField } from '@/ui/Pickers';
 import { Sheet } from '@/ui/Sheet';
@@ -24,6 +25,7 @@ import {
   changeNameAction,
   changePartAction,
   deleteProfileAction,
+  nameChangedAction,
   removePartAction,
   setKeepingAction,
   type SheetState,
@@ -58,6 +60,15 @@ export interface ProfileView {
   hasPasskey: boolean;
   /** They also let homes on Gaff: deleting the profile leaves their sign-in. */
   letsHomes: boolean;
+  /**
+   * UX-PF-9: the ID check they keep, in words, and how a redo they started went. Null: none is
+   * kept, and there's no row at all (UX-PF-13).
+   */
+  identity: {
+    value: string;
+    notPassed: boolean;
+    problem: string | null;
+  } | null;
 }
 
 const c = profileCopy;
@@ -251,6 +262,28 @@ export function ProfileRows({ view }: { view: ProfileView }) {
           {view.income ? remove('income', c.income.title.toLowerCase()) : null}
         </div>
       </Section>
+
+      {view.identity ? (
+        <Section id="identity" title={c.identity.title} lead={c.identity.lead}>
+          {view.identity.notPassed ? (
+            <Notice tone="warning">
+              <p>{c.identity.notPassed}</p>
+            </Notice>
+          ) : null}
+          {view.identity.problem && c.identity.problems[view.identity.problem] ? (
+            <Notice tone="warning" role="alert">
+              <p>{c.identity.problems[view.identity.problem]}</p>
+            </Notice>
+          ) : null}
+          <SummaryList rows={[{ label: c.identity.label, value: view.identity.value }]} />
+          <p className={styles.hint}>{c.identity.keeps}</p>
+          <form action={nameChangedAction} className={styles.rowActions}>
+            <SubmitButton variant="secondary" fullWidth="phone" pendingLabel={c.identity.opening}>
+              {c.identity.nameChanged}
+            </SubmitButton>
+          </form>
+        </Section>
+      ) : null}
 
       <Section id="keeping" title={c.keeping.title}>
         <OptionRow

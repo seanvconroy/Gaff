@@ -6,6 +6,7 @@ import { homeFor, RENTING } from '@/domain/navigation/context';
 import { holdingsOf } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { recordFunnelStep } from '@/server/funnels/steps';
+import { carryIdentityToOwnHomes } from '@/server/identity/kept';
 import { createOrganisationIn } from '@/server/organisations/create-organisation';
 import { profileIn, saveProfileIn } from './profile';
 
@@ -123,6 +124,8 @@ export async function ensureOwnHomes(
       adminUserId: person.id,
       actor: { type: 'person', userId: person.id },
     });
+    // UX-PF-11: someone who keeps a verified identity isn't checked again to let their own.
+    await carryIdentityToOwnHomes(tx, person.id);
     await saveProfileIn(tx, person.id, {
       lastSide: 'letting',
       lastOrganisationId: organisationId,

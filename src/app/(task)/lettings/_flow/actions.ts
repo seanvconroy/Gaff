@@ -28,6 +28,7 @@ import { fieldErrors, formValues, invalid, type FormState } from '@/lib/forms';
 import { irishToday } from '@/lib/format';
 import type { AddressSuggestion, PostalAddress } from '@/ports/address-search';
 import { ensureOwnHomes } from '@/server/accounts/contexts';
+import { startPersonCheck } from '@/server/identity/person-checks';
 import { currentUser, findMember, type Member, requireMember } from '@/server/auth/member';
 import { forwardingStillToDoFor } from '@/server/enquiries/forwarding';
 import { UserFacingError } from '@/server/errors';
@@ -427,6 +428,24 @@ export async function goLiveAction(
   revalidatePath('/', 'layout');
   // UX-AG-4: held while the agency is being confirmed. The letting's page says so.
   redirect(went === 'live' ? screenHref(id, 'advertised', from) : `/lettings/${id}`);
+}
+
+/**
+ * UX-TS-2 (Q47): "Confirm it's you", a private landlord's one check before their first home goes
+ * live. It opens the ID service, which sends them back to this go-live step.
+ */
+export async function confirmItsYouAction(id: string, from: string | null): Promise<void> {
+  const member = await requireMember();
+  const back = screenHref(id, 'go_live', from);
+  const started = await startPersonCheck(member.userId, 'go_live', back);
+  if ('problem' in started) {
+    redirect(
+      started.problem === 'done'
+        ? back
+        : `${back}${back.includes('?') ? '&' : '?'}identity_problem=${started.problem}`,
+    );
+  }
+  redirect(started.redirectUrl);
 }
 
 /** After go-live: "Is it advertised anywhere else?" Daft, MyHome, or No. */

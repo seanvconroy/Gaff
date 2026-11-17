@@ -29,14 +29,6 @@
   color: var(--color-ink-muted);
 }
 
-/* A heading with its state beside it: "Confirm it's you", "Later". */
-.withPill {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  align-items: center;
-}
-
 /* The line renters will see: set apart on the quiet fill, as words Gaff wrote. */
 .previewLine {
   padding: var(--space-4);

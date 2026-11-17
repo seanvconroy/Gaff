@@ -153,7 +153,7 @@ describe('UX-LT-21, UX-LS-1: the one public query for homes on Gaff', () => {
       .where(eq(organisations.id, member.organisationId));
     const { ref } = await aHomeOnGaff(member);
     const [home] = await publicHomes({ ref });
-    expect(home!.lister).toEqual({ kind: 'landlord', name: 'Mary' });
+    expect(home!.lister).toEqual({ kind: 'landlord', name: 'Mary', identityVerified: true });
     expect(home!.phone).toBe('087 765 4321');
     expect(JSON.stringify(home)).not.toContain('Byrne');
   });

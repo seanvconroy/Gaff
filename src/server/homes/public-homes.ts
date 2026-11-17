@@ -1,4 +1,4 @@
-import { type SQL, and, asc, desc, eq, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
+import { type SQL, and, asc, desc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { type Tx, withSystem } from '@/db/client';
 import { lettingFacts, lettingPhotos, lettings, organisations } from '@/db/schema';
 import {
@@ -68,10 +68,16 @@ export function homeCardOf(home: PublicHome): PublicHomeCard {
   };
 }
 
-/** UX-TS-1: the lister may have a home live (`goLiveGate`), as the database can say it. */
+/**
+ * UX-TS-1: the lister may have a home live (`goLiveGate`), as the database can say it: a
+ * landlord's team; a private landlord who has confirmed it's them (Q47); or a confirmed agency
+ * with its licence on the register. A test holds it to the gate for every kind of lister.
+ */
 const listerMayShow = or(
-  ne(organisations.kind, 'agency'),
+  eq(organisations.kind, 'landlord'),
+  and(eq(organisations.kind, 'private_landlord'), isNotNull(organisations.identityVerifiedAt)),
   and(
+    eq(organisations.kind, 'agency'),
     sql`coalesce(trim(${organisations.psraLicenceNumber}), '') <> ''`,
     isNotNull(organisations.confirmedAt),
     isNull(organisations.licenceLapsedAt),
@@ -118,6 +124,7 @@ const columns = {
   psraLicenceNumber: organisations.psraLicenceNumber,
   confirmedAt: organisations.confirmedAt,
   licenceLapsedAt: organisations.licenceLapsedAt,
+  identityVerifiedAt: organisations.identityVerifiedAt,
   phone: organisations.phone,
 };
 
@@ -176,6 +183,7 @@ function listerOf(row: Row) {
     psraLicenceNumber: row.psraLicenceNumber,
     confirmedAt: row.confirmedAt,
     licenceLapsedAt: row.licenceLapsedAt,
+    identityVerifiedAt: row.identityVerifiedAt,
   };
 }
 

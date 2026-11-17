@@ -10,13 +10,13 @@ import type { OrganisationKind } from './kinds';
  * - An agency whose licence has lapsed keeps its live lettings; no new one goes live until the
  *   licence is back on the register.
  * - A landlord's team lets its own homes: there's no licence to find.
- *
- * THE PRIVATE LANDLORD'S SEAM (Q47, work package WP-24): a private landlord verifies their
- * identity once, before their first home goes live. That check isn't built, so their go-live is
- * open. WP-24 passes `identityVerified` here and adds the `identity_needed` reason; every caller
- * already goes through this one rule.
+ * - UX-TS-1, UX-TS-2 (Q47): a private landlord has no licence either. They verify their identity
+ *   once, as one step of their first go-live (`identity_needed`), and never again. It's kept on
+ *   their own profile; `identityVerifiedAt` is the date alone, on their organisation of one, so
+ *   every path that asks this rule can read it. Nothing waits: the step is theirs to do, then
+ *   they go live.
  */
-export type GoLiveHold = 'no_licence' | 'being_confirmed' | 'licence_lapsed';
+export type GoLiveHold = 'no_licence' | 'being_confirmed' | 'licence_lapsed' | 'identity_needed';
 
 export type GoLiveGate =
   | { open: true }
@@ -33,9 +33,19 @@ export interface LettingOrganisation {
   psraLicenceNumber: string | null;
   confirmedAt: Date | null;
   licenceLapsedAt: Date | null;
+  /**
+   * A private landlord's: when the identity check of the person it belongs to passed, while they
+   * keep it on their profile. Null: not verified. Read only for a private landlord.
+   */
+  identityVerifiedAt: Date | null;
 }
 
 export function goLiveGate(organisation: LettingOrganisation): GoLiveGate {
+  if (organisation.kind === 'private_landlord') {
+    return organisation.identityVerifiedAt
+      ? { open: true }
+      : { open: false, reason: 'identity_needed', waits: false };
+  }
   if (organisation.kind !== 'agency') return { open: true };
   if (!organisation.psraLicenceNumber) return { open: false, reason: 'no_licence', waits: false };
   if (organisation.licenceLapsedAt) return { open: false, reason: 'licence_lapsed', waits: false };

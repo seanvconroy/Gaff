@@ -11,7 +11,6 @@ import { SelectField, TextField } from '@/ui/Field';
 import { FlowShell, FlowTitle } from '@/ui/FlowShell';
 import { Notice } from '@/ui/Notice';
 import { OptionRow } from '@/ui/OptionRow';
-import { StatusPill } from '@/ui/StatusPill';
 import styles from './flow.module.css';
 import { progressFor, StepForm, type StepFrame } from './StepForm';
 
@@ -30,8 +29,7 @@ function check(values: Record<string, string>): Record<string, string> {
  * Step 9, "Ready to go live": the home as renters will see it, "On gaff.ie", and anything still
  * to do first, each asked once. One primary button, and pressing it is the person's decision
  * (UX-LT-15). Nothing asked here can stop it (UX-LT-14): a number renters can call and a BER
- * are offered, and the private landlord's identity check is shown as coming (work package
- * WP-24).
+ * are offered. A private landlord who hasn't confirmed it's them sees `GoLiveIdentity` first.
  */
 export function GoLiveStep({
   frame,
@@ -42,7 +40,6 @@ export function GoLiveStep({
   needsPhoto,
   photosHref,
   askPhone,
-  identityLater,
 }: {
   frame: StepFrame;
   action: Action;
@@ -56,8 +53,6 @@ export function GoLiveStep({
   photosHref: string;
   /** Q43: a number renters can call, asked once, at the lister's first go-live. */
   askPhone: boolean;
-  /** Q47: "Confirm it's you", in place for work package WP-24. It holds nothing yet. */
-  identityLater: boolean;
 }) {
   return (
     <StepForm
@@ -120,15 +115,6 @@ export function GoLiveStep({
               defaultValue={values?.phone ?? ''}
               error={errors.phone}
             />
-          ) : null}
-          {identityLater ? (
-            <section className={styles.block} aria-labelledby="identity-heading">
-              <h2 id="identity-heading" className={`type-heading ${styles.withPill}`}>
-                <span>{g.identity}</span>
-                <StatusPill>{g.later}</StatusPill>
-              </h2>
-              <p className={styles.muted}>{g.identityLater}</p>
-            </section>
           ) : null}
         </>
       )}

@@ -169,6 +169,23 @@ export const profileCopy = {
     aMonth: (amount: string) => `${amount} a month`,
     saidOn: (date: string) => `You said so on ${date}`,
   },
+  /**
+   * UX-PF-8 to UX-PF-11 (Q35): a verified identity, shown only when one is kept. Nobody is ever
+   * invited here to verify (UX-PF-13): there's no row until a step needed the check.
+   */
+  identity: {
+    title: 'ID check',
+    lead: 'Used again only when you say yes, each time a home’s checks ask for ID.',
+    label: 'Name on your ID',
+    value: (name: string, date: string) => `${name}, checked on ${date}`,
+    keeps: 'Gaff keeps only that it passed, your name and the date.',
+    nameChanged: 'My name has changed',
+    opening: 'Opening…',
+    notPassed: 'That didn’t work this time. The ID check you kept is as it was. You can try again.',
+    problems: {
+      no_provider: 'The ID check can’t be started here yet.',
+    } as Record<string, string>,
+  },
   /** UX-PF-1: someone signed in who has never kept anything. */
   nothingYet:
     'Nothing kept yet. When you apply for a home, what you enter is kept here for next time.',

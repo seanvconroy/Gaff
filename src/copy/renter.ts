@@ -300,6 +300,43 @@ export const checksCopy = {
     more: 'A secure ID service checks that the photo and the selfie match. Gaff is told only whether they did, and the name on your ID. You can ask for the result to be deleted sooner: talk to a person.',
     button: 'Check my ID',
   },
+  /**
+   * A verified identity kept on the renter's own profile (Q35): reused only with their yes, each
+   * time (UX-PF-12); its name checked against the application's (UX-PF-14); and, after a check
+   * passes, the one question about keeping it (UX-PF-8). Nothing here is ever shown before an
+   * operator has chosen them (UX-PF-13).
+   */
+  keptId: {
+    useTitle: (date: string) => `Use the ID check you did on ${date}?`,
+    useText: (name: string) => `It’s in the name ${name}.`,
+    use: 'Yes, use it',
+    using: 'Using it…',
+    doAgain: 'No, I’ll do it again',
+    checkNameTitle: 'Check your name',
+    checkNameText: (verified: string, applied: string) =>
+      `Your ID check is in the name ${verified}. This application is in the name ${applied}.`,
+    checkNameHow:
+      'If the name on your ID is right, use it on this application. If your name has changed, do the ID check again.',
+    useVerified: 'Use the name on my ID',
+    checkAgain: 'Do the ID check again',
+    keepTitle: 'Keep this, so you never have to do it again?',
+    keepLead: (name: string, date: string) =>
+      `Your ID check passed, in the name ${name}, on ${date}.`,
+    keepText:
+      'Keep it on your Gaff profile, and when another home’s checks ask for ID you can use this one. Gaff keeps only that it passed, your name and the date.',
+    keepCode: 'We’ll email you a code to set up your profile.',
+    keep: 'Keep it',
+    keeping: 'Keeping…',
+    notNow: 'Not now',
+    keepNext: 'Then you’ll go on to your next check.',
+    kept: 'Your ID check is kept on your profile',
+    keptNext: 'Next time a home’s checks ask for ID, you can use it.',
+    notKept: 'We couldn’t keep your ID check this time. Your check for this home is still done.',
+    problems: {
+      name: 'The name on your ID check isn’t the name on this application.',
+      nothing_kept: 'There’s no ID check kept on your profile now. You can do the check here.',
+    } as Record<string, string>,
+  },
   income: {
     what: 'You’ll connect your bank, read-only, through a secure open banking service. It confirms your take-home income.',
     more: 'The service reads your income from your account once, and can’t move money or see your login. Gaff is told only the monthly amount. You can ask for it to be deleted sooner: talk to a person.',

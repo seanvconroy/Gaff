@@ -31,6 +31,7 @@ import { listerColumns } from '@/server/frame/lister';
 import { noteFunnelStep, recordFunnelStep } from '@/server/funnels/steps';
 import { enqueue } from '@/server/jobs/enqueue';
 import { queueMessage } from '@/server/messages/outbox';
+import { recordPersonCheckResult } from '@/server/identity/person-checks';
 import { recordEvent } from '@/server/record/events';
 
 const CHOSEN = ['preferred', 'backup'] as const;
@@ -110,7 +111,7 @@ export async function requestChecks(
  * in the same transaction: the renter has done their part ("all three done"), and, for the
  * preferred applicant, the checks are back. Each is recorded once.
  */
-async function noteCheckProgress(tx: Tx, applicationId: string): Promise<void> {
+export async function noteCheckProgress(tx: Tx, applicationId: string): Promise<void> {
   const rows = await tx
     .select({
       kind: checks.kind,
@@ -257,7 +258,11 @@ export async function startProviderCheck(
 export async function recordProviderResult(
   checkId: string,
   outcome: { kind: 'identity'; result: IdentityResult } | { kind: 'income'; result: IncomeResult },
+  now: Date = new Date(),
 ): Promise<void> {
+  // UX-TS-2, UX-PF-9: a person's own ID check, outside any letting's checks.
+  if (outcome.kind === 'identity' && (await recordPersonCheckResult(checkId, outcome.result, now)))
+    return;
   const [found] = await withSystem((tx) =>
     tx
       .select({
@@ -274,7 +279,7 @@ export async function recordProviderResult(
   const sealed = !passed
     ? null
     : outcome.kind === 'identity' && outcome.result.verified
-      ? sealJson({ verifiedName: outcome.result.verifiedName })
+      ? sealJson({ verifiedName: outcome.result.verifiedName, verifiedAt: now.toISOString() })
       : outcome.kind === 'income' && outcome.result.confirmed
         ? sealJson({ monthlyIncomeCents: outcome.result.monthlyIncomeCents })
         : null;
@@ -286,7 +291,7 @@ export async function recordProviderResult(
         status: passed ? 'passed' : 'not_passed',
         resultSealed: sealed,
         reason,
-        completedAt: new Date(),
+        completedAt: now,
       })
       .where(eq(checks.id, checkId));
     await recordEvent(tx, {

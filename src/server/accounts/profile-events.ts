@@ -54,6 +54,26 @@ export const profileEventCatalogue = {
   'profile.search_removed': z.object({ savedSearchId: z.uuid() }),
   /** UX-SR-10: the alerts of their saved searches were switched on or off ("Stop these" too). */
   'profile.search_alerts_set': z.object({ on: z.boolean(), from: z.enum(['profile', 'email']) }),
+  /**
+   * UX-PF-8, UX-TS-2: an ID check that passed was kept on the profile: one they chose to keep
+   * after a letting's check (`check`), a private landlord's at their go-live (`go_live`), or one
+   * done again because their name changed (`name_changed`). Never the name or the date.
+   */
+  'profile.identity_kept': z.object({ from: z.enum(['check', 'go_live', 'name_changed']) }),
+  /**
+   * UX-PF-12: the renter said yes to using the ID check they keep, for this application's
+   * checks. This is the one step by which it reaches an operator.
+   */
+  'profile.identity_used': z.object({ applicationId: z.uuid() }),
+  /** UX-PF-9, UX-TS-2: they started an ID check of their own; how it ended (codes only). */
+  'profile.identity_check_started': z.object({
+    identityCheckId: z.uuid(),
+    purpose: z.enum(['go_live', 'name_changed']),
+  }),
+  'profile.identity_check_ended': z.object({
+    identityCheckId: z.uuid(),
+    outcome: z.enum(['passed', 'not_passed']),
+  }),
   /** "Download my details". */
   'profile.downloaded': z.object({}),
   /** UX-PF-7: the email that says the profile will be deleted, and on which date. */

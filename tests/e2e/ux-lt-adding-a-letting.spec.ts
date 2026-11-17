@@ -499,7 +499,7 @@ test('UX-LT-12, UX-LT-13: a rent above the cap is changed on the result screen, 
   }
 });
 
-test('UX-LT-14, Q47: a private landlord’s home goes live with the identity step in place, and a number is offered, not required', async ({
+test('UX-LT-14: a private landlord’s home goes live with a number offered, not required', async ({
   browser,
 }) => {
   test.slow();
@@ -508,12 +508,10 @@ test('UX-LT-14, Q47: a private landlord’s home goes live with the identity ste
     const page = await context.newPage();
     await signUpLandlord(page);
     await addHomeThroughUi(page, `${width} Chapel Lane`);
+    // UX-TS-2: this landlord has already confirmed it's them (ux-pf-identity.spec.ts has the
+    // check itself), so nothing more is asked here.
     await toGoLiveThroughUi(page);
-    // "Confirm it's you" is shown as coming (work package WP-24), and holds nothing.
-    await expect(page.getByRole('heading', { name: 'Confirm it’s you' })).toBeVisible();
-    await expect(
-      page.getByText(/That check isn’t open yet, so there’s nothing to do now\./),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Confirm it’s you' })).toHaveCount(0);
     await expect(page.getByLabel('A number renters can call')).toBeVisible();
     // The home has no photo: it can go live, and says what showing it on gaff.ie still needs.
     await expect(page.getByText('A home needs one photo to be shown on gaff.ie.')).toBeVisible();

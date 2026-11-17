@@ -158,7 +158,9 @@ export async function overviewFactsFor(
           fix:
             gate.gate.reason === 'no_licence'
               ? { href: addAgencyHref, label: goLiveCopy.findLicence }
-              : null,
+              : gate.gate.reason === 'identity_needed'
+                ? { href: screenHref(letting.id, 'go_live'), label: goLiveCopy.confirmItsYou }
+                : null,
         }
       : null;
 

@@ -21,6 +21,8 @@ export const homePageCopy = {
   ber: 'Energy rating',
   letBy: 'Let by',
   licence: (number: string) => `PSRA licence ${number}`,
+  /** Q47, UX-TS-1: beside a private landlord's first name. */
+  identityVerified: 'Identity verified',
   /** "Ring Mary on 087 765 4321", under the lister, where they gave a number. */
   ring: (name: string, number: string) => `Ring ${name} on ${number}`,
   report: 'Report this listing',

@@ -203,6 +203,55 @@ export const renterEnquiries = pgTable(
 ).enableRLS();
 
 /**
+ * A verified identity (Q35, rule 2, UX-PF-8 to UX-PF-11): kept on a person's own profile only
+ * because they chose to keep it, or because they let their own homes and confirmed it's them at
+ * their first go-live (Q47). It belongs to the person: no `organisation_id`, and only their own
+ * path (`withPerson`) can read or write it. No operator's path can see who has one (UX-PF-12).
+ *
+ * It holds exactly three things (UX-PF-10): that the check passed (the row exists), the verified
+ * name, and the date. Never an image, a document number or type, an issuing country or a date of
+ * birth: a compliance test holds the columns to `keptIdentityColumns`. One per person: a check
+ * done again replaces it ("My name has changed"). No expiry (UX-PF-9): it goes with the profile.
+ */
+export const verifiedIdentities = pgTable(
+  'verified_identities',
+  {
+    userId: text()
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    verifiedName: text().notNull(),
+    verifiedAt: timestamp({ withTimezone: true }).notNull(),
+  },
+  () => [personPolicy()],
+).enableRLS();
+
+/**
+ * A person's own ID check while it runs, where no letting's checks asked for it: a private
+ * landlord's go-live (Q47) or "My name has changed" (UX-PF-9). It holds codes and dates only;
+ * the result goes to `verified_identities` when it passes, and the row goes. Person-owned like
+ * the rest: an operator never sees that one was started.
+ */
+export const identityChecks = pgTable(
+  'identity_checks',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    userId: text()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    purpose: text({ enum: ['go_live', 'name_changed'] }).notNull(),
+    status: text({ enum: ['in_progress', 'not_passed'] })
+      .notNull()
+      .default('in_progress'),
+    /** A provider's reason code when it didn't pass. */
+    reason: text({ enum: ['document', 'face_mismatch', 'gave_up'] }),
+    provider: text(),
+    providerRef: text(),
+    startedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('identity_checks_user_idx').on(t.userId), personPolicy()],
+).enableRLS();
+
+/**
  * The record of what happened to a person's own profile (rule 8): kept, changed, offered back,
  * downloaded, deleted. It holds a type, IDs, codes, yes/no values and dates, and never a detail
  * itself (src/server/accounts/profile-events.ts). It belongs to no organisation, so it can't go

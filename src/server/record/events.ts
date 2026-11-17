@@ -366,6 +366,11 @@ export const eventCatalogue = {
     kind: z.enum(['identity', 'income', 'landlord_reference', 'employer_reference']),
     /** `cant_give`: a referee said they can't give the reference (UX-RF-4). */
     outcome: z.enum(['passed', 'not_passed', 'answered', 'no_answer', 'cant_give', 'not_needed']),
+    /**
+     * UX-PF-12: an ID check passed because the renter said yes, this time, to using the one they
+     * keep on their own profile. Absent: the check was done for this letting.
+     */
+    kept: z.boolean().optional(),
   }),
   /** R19: the operator added (or updated) the landlord's contact details. */
   'letting.landlord_added': z.object({ updated: z.boolean() }),

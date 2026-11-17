@@ -253,6 +253,13 @@
       "when": 1794948694098,
       "tag": "0035_ux_ts_trust",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794954223637,
+      "tag": "0036_ux_pf_verified_identity",
+      "breakpoints": true
     }
   ]
 }

@@ -6,6 +6,7 @@ const confirmed = {
   psraLicenceNumber: '001234',
   confirmedAt: new Date('2026-11-16T10:00:00Z'),
   licenceLapsedAt: null,
+  identityVerifiedAt: null,
 } as const;
 
 describe('UX-AG-4: until an agency is confirmed, the only thing held is go-live', () => {
@@ -41,16 +42,35 @@ describe('UX-AG-6: a lapsed licence stops new lettings going live', () => {
 });
 
 describe('UX-AC-7: a landlord letting their own homes has no licence to find', () => {
+  const own = {
+    kind: 'private_landlord',
+    psraLicenceNumber: null,
+    confirmedAt: null,
+    licenceLapsedAt: null,
+    identityVerifiedAt: new Date('2026-11-16T10:00:00Z'),
+  } as const;
+
   it('a private landlord is never held for a licence or a confirmation', () => {
-    const own = {
-      kind: 'private_landlord',
-      psraLicenceNumber: null,
-      confirmedAt: null,
-      licenceLapsedAt: null,
-    } as const;
-    // Q47's identity check before a first home goes live is work package WP-24: open for now.
     expect(goLiveGate(own)).toEqual({ open: true });
     expect(isBeingConfirmed(own)).toBe(false);
+  });
+
+  it('UX-TS-1, UX-TS-2: a private landlord can’t go live until they’ve confirmed it’s them, and nothing waits', () => {
+    expect(goLiveGate({ ...own, identityVerifiedAt: null })).toEqual({
+      open: false,
+      reason: 'identity_needed',
+      waits: false,
+    });
+    expect(isBeingConfirmed({ ...own, identityVerifiedAt: null })).toBe(false);
+  });
+
+  it('UX-TS-1: an agency is confirmed through its licence, never through anyone’s identity', () => {
+    expect(goLiveGate({ ...confirmed, identityVerifiedAt: null })).toEqual({ open: true });
+    expect(
+      goLiveGate({ ...confirmed, confirmedAt: null, identityVerifiedAt: new Date() }),
+    ).toMatchObject({
+      reason: 'being_confirmed',
+    });
   });
 
   it('nor is a landlord’s team', () => {
@@ -60,6 +80,7 @@ describe('UX-AC-7: a landlord letting their own homes has no licence to find', (
         psraLicenceNumber: null,
         confirmedAt: null,
         licenceLapsedAt: null,
+        identityVerifiedAt: null,
       }),
     ).toEqual({ open: true });
   });

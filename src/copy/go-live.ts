@@ -17,8 +17,12 @@ export const goLiveCopy = {
       `This home can’t go live yet: ${agencyName}’s PSRA licence isn’t on this week’s register. The homes you have live carry on. We check the register every week, and we’ll email you when it’s back.`,
     being_confirmed: (agencyName: string) =>
       `We’re confirming ${agencyName}. This usually takes under an hour.`,
+    /** UX-TS-2 (Q47): a private landlord who hasn't confirmed it's them yet. */
+    identity_needed: () =>
+      'One check before your home goes live: confirm it’s you. It takes about two minutes, once.',
   } satisfies Record<GoLiveHold, (agencyName: string) => string>,
   findLicence: 'Find our licence',
+  confirmItsYou: 'Confirm it’s you',
   /**
    * UX-LT-21: "On gaff.ie" on a live letting's page, until work package WP-15's Home view takes
    * it. Switching it off takes the home's page down at once; it still takes enquiries.

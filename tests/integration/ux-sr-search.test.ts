@@ -1,0 +1,121 @@
+import { eq, sql } from 'drizzle-orm';
+import { describe, expect, it, vi } from 'vitest';
+import { withSystem } from '@/db/client';
+import { funnelEvents, lettings } from '@/db/schema';
+import { liveHomesOnGaff, findHomes } from '@/server/search/homes';
+import { countSearch, searchFromWords } from '@/server/search/search';
+import { aLiveLetting, createTestMember } from './helpers';
+
+const PLACE = 'Dalkey';
+
+/** Every text in every table, as one string: to show a sentence was kept nowhere. */
+async function everythingStored(): Promise<string> {
+  return withSystem(async (tx) => {
+    const { rows } = await tx.execute<{ table_name: string }>(sql`
+      select table_name from information_schema.tables
+      where table_schema = 'public' and table_type = 'BASE TABLE'`);
+    const parts: string[] = [];
+    for (const { table_name } of rows) {
+      const found = await tx.execute<{ row: string }>(
+        sql`select t::text as row from ${sql.identifier(table_name)} t`,
+      );
+      parts.push(...found.rows.map((r) => r.row));
+    }
+    return parts.join('\n');
+  });
+}
+
+const funnelRows = () => withSystem((tx) => tx.select().from(funnelEvents));
+
+describe('UX-SR-2, UX-SR-6: the homes search reads', () => {
+  it('UX-SR-2: every live home on Gaff, and no draft, no home taken off Gaff and nothing about a person', async () => {
+    const member = await createTestMember();
+    const { lettingId } = await aLiveLetting(member, {
+      addressLine1: '3 Castle Street',
+      area: `${PLACE}, Co. Dublin`,
+      eircode: '',
+    });
+    const { lettingId: offGaff } = await aLiveLetting(member, {
+      addressLine1: '5 Castle Street',
+      area: `${PLACE}, Co. Dublin`,
+      eircode: '',
+    });
+    await withSystem((tx) =>
+      tx.update(lettings).set({ onGaff: false }).where(eq(lettings.id, offGaff)),
+    );
+
+    const homes = await liveHomesOnGaff();
+    const ids = homes.map((home) => home.id);
+    expect(ids).toContain(lettingId);
+    expect(ids).not.toContain(offGaff);
+    const home = homes.find((h) => h.id === lettingId)!;
+    expect(Object.keys(home).sort()).toEqual(
+      [
+        'addressLine1',
+        'addressLine2',
+        'area',
+        'availableFrom',
+        'bedrooms',
+        'county',
+        'cover',
+        'criteria',
+        'eircode',
+        'furnished',
+        'id',
+        'liveAt',
+        'parking',
+        'propertyType',
+        'rentCents',
+      ].sort(),
+    );
+    expect(JSON.stringify(home)).not.toContain('mary.byrne@example.ie');
+
+    const { fits, close } = await findHomes({ where: 'dalkey', people: 4 });
+    expect(fits.map((h) => h.id)).not.toContain(lettingId);
+    expect(close.find((c) => c.home.id === lettingId)?.miss).toEqual({
+      point: 'people',
+      maxOccupants: 3,
+      asked: 4,
+    });
+  });
+});
+
+describe('UX-SR-11, UX-MT-12: a search is not kept', () => {
+  it('UX-MT-12: the words become an address of allowed filters, and are stored and logged nowhere', async () => {
+    const said = vi.spyOn(console, 'log');
+    const warned = vi.spyOn(console, 'warn');
+    const failed = vi.spyOn(console, 'error');
+    const words = '2-bed in Dalkey for me and my partner, I’m a Zorblax nurse on HAP, no pets';
+    const outcome = searchFromWords({ words }, new Date('2026-11-17T12:00:00Z'));
+    expect(outcome).toEqual({
+      href: '/?where=dalkey&beds=2&people=2&pets=no',
+      understood: true,
+    });
+    await countSearch({ fits: 0, close: 0 });
+    const stored = await everythingStored();
+    expect(stored).not.toMatch(/zorblax/i);
+    expect(stored).not.toMatch(/nurse/i);
+    for (const spy of [said, warned, failed]) {
+      expect(JSON.stringify(spy.mock.calls)).not.toMatch(/zorblax|nurse/i);
+    }
+  });
+
+  it('UX-ME-4: a search is counted under an ID of its own, with codes only', async () => {
+    const before = await funnelRows();
+    await countSearch({ fits: 2, close: 1 });
+    const after = await funnelRows();
+    const added = after.filter((row) => !before.some((old) => old.id === row.id));
+    expect(added).toHaveLength(1);
+    expect(added[0]).toMatchObject({ step: 'search.search_made', variant: 'fit', data: {} });
+  });
+
+  it('UX-SR-3 states: words with nothing understood leave only a flag in the address', () => {
+    expect(searchFromWords({ words: 'somewhere lovely please' })).toEqual({
+      href: '/?unclear=1',
+      understood: false,
+    });
+    expect(searchFromWords({ words: 'somewhere lovely please', rent: '1' }).href).toBe(
+      '/?unclear=1&rent=1',
+    );
+  });
+});

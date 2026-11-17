@@ -120,10 +120,9 @@ export function parseComparable(
     const errors: Record<string, string> = {};
     for (const issue of result.error.issues) {
       // On its own screen the number is plain from the title: the message starts with the fix.
-      errors[String(issue.path[0])] ??= issue.message.replace(/^Comparable \d: /, '').replace(
-        /^./,
-        (c) => c.toUpperCase(),
-      );
+      errors[String(issue.path[0])] ??= issue.message
+        .replace(/^Comparable \d: /, '')
+        .replace(/^./, (c) => c.toUpperCase());
     }
     return { ok: false, errors };
   }

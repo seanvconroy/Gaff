@@ -8,7 +8,6 @@ import { Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { paymentAccountAction } from './actions';
-import styles from './settings.module.css';
 
 /**
  * R23: the account tenants pay into. Keeps what was typed if something needs fixing.
@@ -44,26 +43,22 @@ export function PaymentAccountForm({
               <p>{state.message}</p>
             </Notice>
           ) : null}
-          <div className={styles.narrow}>
-            <TextField
-              name="accountName"
-              label="Name on the account"
-              autoComplete="off"
-              defaultValue={v.accountName}
-              error={e.accountName}
-            />
-          </div>
-          <div className={styles.narrow}>
-            <TextField
-              name="iban"
-              label="IBAN"
-              autoComplete="off"
-              defaultValue={v.iban}
-              error={e.iban}
-            />
-          </div>
+          <TextField
+            name="accountName"
+            label="Name on the account"
+            autoComplete="off"
+            defaultValue={v.accountName}
+            error={e.accountName}
+          />
+          <TextField
+            name="iban"
+            label="IBAN"
+            autoComplete="off"
+            defaultValue={v.iban}
+            error={e.iban}
+          />
           <div>
-            <SubmitButton variant="secondary" pendingLabel="Saving…">
+            <SubmitButton fullWidth="phone" pendingLabel="Saving…">
               Save the account
             </SubmitButton>
           </div>

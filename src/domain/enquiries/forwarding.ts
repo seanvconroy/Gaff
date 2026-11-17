@@ -148,6 +148,6 @@ export function forwardingHref(
 
 /** Where closing the flow, or finishing it, goes. */
 export function forwardingLeaveHref(from: ForwardingFrom): string {
-  if (!from.lettingId || !UUID.test(from.lettingId)) return '/settings';
+  if (!from.lettingId || !UUID.test(from.lettingId)) return '/settings/enquiries';
   return `/lettings/${from.lettingId}${from.justLive ? '?saved=live' : ''}`;
 }

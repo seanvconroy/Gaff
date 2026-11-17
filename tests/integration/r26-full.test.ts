@@ -131,9 +131,9 @@ describe('UX-TN-5 to UX-TN-7: finishing, and the results screen', () => {
       tx.select({ data: events.data }).from(events).where(eq(events.type, 'settings.usual_times')),
     );
     expect(logged.map((e) => e.data)).toContainEqual({ minutesPerLetting: 300, daysToLet: 30 });
-    await expect(
-      answerUsual({ ...member, role: 'negotiator' }, 'days', '30'),
-    ).rejects.toThrow(UserFacingError);
+    await expect(answerUsual({ ...member, role: 'negotiator' }, 'days', '30')).rejects.toThrow(
+      UserFacingError,
+    );
   });
 
   it('UX-TN-6: once the owner has opened the summary, an agency of one is asked to invite a colleague', async () => {

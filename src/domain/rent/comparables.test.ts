@@ -117,6 +117,9 @@ describe('UX-LP-14: comparable rents entered one home at a time', () => {
     });
     expect(
       parseComparable(1, { ...values, registeredOn: '2026-12-01' }, '2026-10-31'),
-    ).toMatchObject({ ok: false, errors: { registeredOn: expect.stringMatching(/^Enter the date/) } });
+    ).toMatchObject({
+      ok: false,
+      errors: { registeredOn: expect.stringMatching(/^Enter the date/) },
+    });
   });
 });

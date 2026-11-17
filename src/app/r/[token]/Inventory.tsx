@@ -74,10 +74,7 @@ export function InventoryPage({
                       ) : null}
                       <div className={styles.itemText}>
                         <span className={styles.itemName}>{item.item}</span>
-                        <StatusPill
-                          tone={needsALook(item.condition) ? 'warning' : 'neutral'}
-                          large
-                        >
+                        <StatusPill tone={needsALook(item.condition) ? 'warning' : 'neutral'} large>
                           {conditions[item.condition]}
                         </StatusPill>
                         {item.note ? <span className={styles.muted}>{item.note}</span> : null}

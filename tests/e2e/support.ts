@@ -409,7 +409,7 @@ export async function signUpRenter(page: Page, name = 'Aoife Byrne'): Promise<st
   await signIn(page, email);
   await answerName(page, name);
   await answerPurpose(page, 'I’m looking for a home');
-  await expect(page.getByRole('heading', { name: 'Search' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'What are you looking for?' })).toBeVisible();
   return email;
 }
 

@@ -179,7 +179,7 @@ Every component adapts between phone and desktop. "Status" says whether it exist
 | **Date and time pickers** | Dates and times in Irish format | A sheet | A popover | New (replaces the browser's own controls) |
 | **Code input** | The six-digit sign-in code | Six boxes; numeric keyboard; accepts a paste | Same | New |
 | **Photo uploader and gallery** | Adding, ordering and showing photos | Library or camera; a two-column grid | Drag and drop; a four-column grid | New (`PhotoField` exists for single photos) |
-| **Home card** | A home in a list | One column | A grid, three across | New |
+| **Home card** | A home in a list | One column | A grid, three across | New. `src/ui/HomeCard`; in search it takes the rent as its title, `details` (when it's free, what differs) and the heart over the photo (`src/ui/HeartButton`) |
 | **Person card / row** | An enquirer or applicant | A card | A table row with the same content | Changed (from `Table`, `Cell`) |
 | **Action row** | Something that needs you | Whole-row target | Same | Exists |
 | **Sheet / dialog** | A short task over the page | Slides up from the bottom | A centred dialog | New |
@@ -202,10 +202,10 @@ Every component adapts between phone and desktop. "Status" says whether it exist
 | **Skeleton** | Loading | | | New |
 | **Copy button** | An IBAN, a reference, an address | | | Exists |
 | **Avatar and badge** | A person, an agency; "Identity verified" | | | New |
-| **Search box with chips** | Renter search; asking who's enquired | Full width; chips scroll sideways | Centred, up to 720px | New |
+| **Search box with chips** | Renter search; asking who's enquired | Full width; chips scroll sideways | Centred, up to 720px | New. `src/ui/SearchBox` (the question, the box and its button) with `src/ui/FilterChips` ("Filters", then a chip per filter, each opening its control) |
 | **Gallery** | A home's photos | Swipe; tap for full screen | A grid of five; click for full screen | New |
 | **Action card** | The one action on a home's page | Fixed to the foot of the screen | Fixed to the right of the content | New |
-| **Map** | Where a home is; search results | Behind a "Map" button | Beside the list | New |
+| **Map** | Where a home is; search results | Behind a "Map" button | Beside the list | Not built: serving a map from Gaff's own copy of OpenStreetMap isn't practical yet, so search shows the list alone (OQ-7; `docs/open-questions.md` Q49) |
 | **Sign-in buttons** | Google, Apple | The providers' own required styles | Same | New |
 
 **UX-DS-16.** Every screen in this PRD is built only from these components. A screen that needs something else adds it here first. `[P12]`

@@ -12,7 +12,7 @@ import { formatDate, formatEuro, formatRent } from '@/lib/format';
 export const searchCopy = {
   title: 'Search',
   question: 'What are you looking for?',
-  placeholder: '2-bed in Ranelagh under €2,400, from January',
+  placeholder: '2-bed in Ranelagh, no pets',
   search: 'Search',
   /** UX-SR-1: the one line of promise under the box. */
   promise: 'Everyone hears back.',
@@ -63,7 +63,7 @@ export const searchCopy = {
   /** Furnished and parking, asked together. */
   homeFacts: 'The home',
   whereNotFound: 'Gaff doesn’t know that place yet. Try a town, a Dublin district or a county.',
-  peopleAny: 'Any number',
+  peopleAny: 'Any',
   stays: {
     under_year: 'Under a year',
     year: 'A year',

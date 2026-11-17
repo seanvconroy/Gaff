@@ -59,6 +59,7 @@ import { StepList } from '@/ui/StepList';
 import { TimePicker } from '@/ui/TimePicker';
 import {
   AddressSearchDemo,
+  SearchBoxDemo,
   CodeDemo,
   MenuDemo,
   OptionRowDemo,
@@ -764,6 +765,14 @@ export default function ComponentsPage() {
         </Section>
 
         <Section
+          id="search-box"
+          title="Search box with chips"
+          lead="One box for a sentence, its button, and what Gaff understood as chips: Filters first, then one chip per filter, each opening its control. The heart saves a home."
+        >
+          <SearchBoxDemo />
+        </Section>
+
+        <Section
           id="homes"
           title="Home card"
           lead="A home in a list, led by its photo at 3:2: one column on a phone, three across on a desktop. Without a photo, a house icon. The whole card is one link."
@@ -777,6 +786,13 @@ export default function ComponentsPage() {
               needsYou="Needs you"
             />
             <HomeCard href="#homes" title="4 Rathmines Close" line="Enquiries · 23 so far" />
+            <HomeCard
+              href="#homes"
+              title="€1,850 a month"
+              line="2-bed apartment · Ranelagh, Dublin 6"
+              details={['Free from Tuesday 1 December', 'Up to 2 people. You asked for 3.']}
+              photo={{ src: samplePhoto, alt: '' }}
+            />
             <HomeCard href="#homes" title="9 Canal View" line="2 steps left" needsYou="Needs you" />
             <HomeCard
               href="#homes"

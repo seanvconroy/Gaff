@@ -285,9 +285,7 @@ test('UX-NV-8: the account menu on the avatar holds the name and context, Profil
     .getByRole('menuitem', { name: 'Find a home to rent' })
     .click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(
-    page.getByRole('heading', { name: 'Homes to rent will appear here.' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'What are you looking for?' })).toBeVisible();
   await expect(mainNav(page).getByRole('link')).toHaveText(['Search', 'Saved', 'Enquiries']);
 
   await (await openAccountMenu(page)).getByRole('menuitem', { name: 'Sign out' }).click();
@@ -336,9 +334,7 @@ test('UX-NV-19, UX-NV-21: the renting side has the same bar, with Search, Saved 
     await page.goto('/');
     await expect(page).toHaveURL(/\/$/);
     await expect(nav.getByRole('link', { name: 'Search' })).toHaveAttribute('aria-current', 'page');
-    await expect(
-      page.getByRole('heading', { name: 'Homes to rent will appear here.' }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'What are you looking for?' })).toBeVisible();
     await expectAccessible(page);
     await screenshot(page, `nv-renting-search-${width}`);
   }
@@ -374,10 +370,10 @@ test('UX-NV-20: a signed-out visitor sees the wordmark, "List a home" and "Sign 
     await page.goto('/');
     // The public site's first screen: nobody is sent to sign in.
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Search' })).toBeVisible();
     await expect(
-      page.getByRole('heading', { name: 'Homes to rent will appear here.' }),
+      page.getByRole('heading', { level: 1, name: 'What are you looking for?' }),
     ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'What are you looking for?' })).toBeVisible();
 
     const header = page.getByRole('banner');
     const listAHome = header.getByRole('link', { name: 'List a home' });

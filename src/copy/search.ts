@@ -1,4 +1,4 @@
-import { describeStay } from '@/domain/criteria/criteria';
+import { describeStay, NO_PETS_DETAIL } from '@/domain/criteria/criteria';
 import { furnishing } from '@/domain/lettings/new-letting';
 import type { FilterKey, SearchFilters, SearchType, Stay } from '@/domain/search/filters';
 import type { Miss } from '@/domain/search/match';
@@ -186,7 +186,7 @@ export function missWords(miss: Miss, now = new Date()): string {
     case 'people':
       return `Up to ${plural(miss.maxOccupants, 'person', 'people')}. You asked for ${miss.asked}.`;
     case 'pets':
-      return 'No pets (assistance dogs always welcome). You said you have a pet.';
+      return `${NO_PETS_DETAIL}. You said you have a pet.`;
     case 'furnished':
       return `${miss.furnished ? (furnishing[miss.furnished as keyof typeof furnishing] ?? 'Not furnished') : 'Furnishing not given'}. You asked for furnished.`;
     case 'parking':

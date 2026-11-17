@@ -1,9 +1,16 @@
-import { and, eq, isNull, lte } from 'drizzle-orm';
+import { and, asc, eq, isNull, lte } from 'drizzle-orm';
 import { emailSender } from '@/adapters/email';
 import { layOutEmail } from '@/copy/email-layout';
 import { FIRST_REPLY_TEMPLATE } from '@/copy/templates/first-reply';
 import { type Tx, withOrg, withSystem } from '@/db/client';
-import { applications, lettings, messages, organisations, waitingEnquiries } from '@/db/schema';
+import {
+  applications,
+  lettings,
+  messages,
+  organisations,
+  viewingSlots,
+  waitingEnquiries,
+} from '@/db/schema';
 import { type RenterAnswers, renterAnswersSchema } from '@/domain/criteria/answers';
 import { type Criteria, questionsFor } from '@/domain/criteria/criteria';
 import {
@@ -58,6 +65,8 @@ export interface AskHome {
   lettingId: string;
   operatorName: string;
   criteria: Criteria;
+  /** When viewings start, if any are set: the Sent screen says so. */
+  firstViewing: Date | null;
 }
 
 /** The home behind a public reference, while it can be asked about. Null: it can't. */
@@ -71,10 +80,17 @@ export async function askableHome(ref: string): Promise<AskHome | null> {
       .innerJoin(organisations, eq(organisations.id, lettings.organisationId))
       .where(eq(lettings.id, found.lettingId));
     if (!row) return null;
+    const [firstSlot] = await tx
+      .select({ startsAt: viewingSlots.startsAt })
+      .from(viewingSlots)
+      .where(eq(viewingSlots.lettingId, found.lettingId))
+      .orderBy(asc(viewingSlots.startsAt))
+      .limit(1);
     return {
       ...found,
       operatorName: row.operatorName,
       criteria: row.criteria ?? { noPets: false },
+      firstViewing: firstSlot?.startsAt ?? null,
     };
   });
 }

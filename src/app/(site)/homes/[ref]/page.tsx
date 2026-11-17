@@ -7,7 +7,6 @@ import { homePageCopy as copy } from '@/copy/home-page';
 import {
   HIGHLIGHTS_SHOWN,
   type HighlightKind,
-  askToViewHref,
   homeBer,
   homeDescription,
   homeHighlights,
@@ -18,6 +17,8 @@ import {
   reportHref,
   sharePreview,
 } from '@/domain/homes/home-page';
+import { filtersFromParams } from '@/domain/search/filters';
+import { askHref } from '@/domain/search/links';
 import { env } from '@/lib/env';
 import { formatRent } from '@/lib/format';
 import { currentPerson } from '@/server/context/current-person';
@@ -33,7 +34,10 @@ import styles from './home.module.css';
 /** One read per request, shared by the page and its sharing preview. */
 const pageFor = cache((ref: string) => publicHomePage(ref));
 
-type Params = { params: Promise<{ ref: string }> };
+type Params = {
+  params: Promise<{ ref: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
 /**
  * UX-LS-11: a sharing preview (the address, the rent and the cover photo), and a page search
@@ -78,8 +82,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
  * A let home says so until the scheduled job removes it (UX-LS-10). Anything else that has no
  * page (switched off, hidden, never there) is "not available" (`not-found.tsx`).
  */
-export default async function HomePage({ params }: Params) {
-  const { ref } = await params;
+export default async function HomePage({ params, searchParams }: Params) {
+  const [{ ref }, query] = await Promise.all([params, searchParams]);
   const [page, person] = await Promise.all([pageFor(ref), currentPerson()]);
   if (!page) notFound();
   if (page.state === 'let') {
@@ -97,7 +101,9 @@ export default async function HomePage({ params }: Params) {
       </div>
     );
   }
-  return <LiveHome home={page.home} aboveTabBar={person !== null} />;
+  // UX-AV-3: what search carried in goes on to "Ask to view", to be confirmed there.
+  const ask = askHref(ref, filtersFromParams(query));
+  return <LiveHome home={page.home} ask={ask} aboveTabBar={person !== null} />;
 }
 
 const icons: Record<HighlightKind, LucideIcon> = {
@@ -134,7 +140,15 @@ function Highlights({ items }: { items: ReturnType<typeof homeHighlights> }) {
   );
 }
 
-function LiveHome({ home: found, aboveTabBar }: { home: PublicHome; aboveTabBar: boolean }) {
+function LiveHome({
+  home: found,
+  ask,
+  aboveTabBar,
+}: {
+  home: PublicHome;
+  ask: string;
+  aboveTabBar: boolean;
+}) {
   const { home, photos, lister, phone, ref } = found;
   const title = homeTitle(home);
   const highlights = homeHighlights(home);
@@ -214,7 +228,7 @@ function LiveHome({ home: found, aboveTabBar }: { home: PublicHome; aboveTabBar:
 
         <ActionCard
           price={formatRent(home.monthlyRentCents)}
-          action={{ href: askToViewHref(ref), label: copy.askToView }}
+          action={{ href: ask, label: copy.askToView }}
           call={
             phone
               ? {

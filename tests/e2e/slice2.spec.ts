@@ -7,7 +7,7 @@ import {
   subjectsSentTo,
 } from './support';
 import { AOIFE, CIARAN, applyOnPhone, onPhone, twoChosen, twoPeopleWhoCame } from './journeys';
-import { enterLinkCode, expectRenterPageAtBothWidths } from './renter';
+import { enterLinkCode, expectFramePageAtBothWidths, expectRenterPageAtBothWidths } from './renter';
 
 test('R16: someone who came applies on their phone, with two questions and no documents', async ({
   browser,
@@ -207,19 +207,55 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
     referenceLink = await linkInEmail('mary.kelly@example.ie', 'Reference for Aoife Byrne');
   }).toPass({ timeout: 20_000 });
   const mary = await onPhone(browser, referenceLink);
+  const referee = mary.page;
+  await expect(referee.getByRole('heading', { name: 'A reference for Aoife Byrne' })).toBeVisible();
+  // UX-RF-1, UX-RF-5: one line on who's asking and why, one on who sees it; nothing about Mary.
   await expect(
-    mary.page.getByRole('heading', { name: 'A reference for Aoife Byrne' }),
+    referee.getByText(
+      'Aoife Byrne has applied to rent a home through Halcyon Lettings, and gave your name as a previous landlord.',
+    ),
   ).toBeVisible();
-  await expectAccessible(mary.page);
-  await screenshot(mary.page, '38-referee-form');
+  await expect(referee.getByText(/^Your answers go only to Halcyon Lettings/)).toBeVisible();
+  // UX-RF-3 (rule 3): no free text anywhere; every answer is a tap.
+  const noFreeText = async () => {
+    await expect(
+      referee.locator('textarea, input:not([type=radio]):not([type=hidden])'),
+    ).toHaveCount(0);
+    await expect(referee.getByRole('textbox')).toHaveCount(0);
+  };
+  await noFreeText();
+  await expect(referee.getByRole('group')).toHaveCount(4);
+  await expectFramePageAtBothWidths(referee, 'referee', 'wp13-referee-form');
+  await screenshot(referee, '38-referee-form');
   const answer = async (question: string, option: string) =>
-    mary.page.getByRole('group', { name: question }).getByLabel(option, { exact: true }).check();
-  await answer('Did they rent a home from you?', 'Yes');
+    referee.getByRole('group', { name: question }).getByLabel(option, { exact: true }).check();
+  // UX-RF-2: a no to the first question hides the rest, and the button reads "Send".
+  await answer('Did Aoife rent a home from you?', 'No');
+  await expect(referee.getByRole('group')).toHaveCount(1);
+  await expect(referee.getByRole('button', { name: 'Send', exact: true })).toBeVisible();
+  await expectAccessible(referee);
+  await screenshot(referee, 'wp13-referee-form-no');
+  await answer('Did Aoife rent a home from you?', 'Yes');
+  await expect(referee.getByRole('group')).toHaveCount(4);
+  // A question left out is said at that question, and nothing has gone.
+  await referee.getByRole('button', { name: 'Send my reference' }).click();
+  await expect(
+    referee
+      .getByRole('group', { name: 'Was the rent paid on time?' })
+      .getByText('Choose an answer.'),
+  ).toBeVisible();
+  await noFreeText();
   await answer('Was the rent paid on time?', 'Always');
-  await answer('Did they look after the home?', 'Yes');
-  await answer('Would you rent to them again?', 'Yes');
-  await mary.page.getByRole('button', { name: 'Send my reference' }).click();
-  await expect(mary.page.getByText('Your reference is with Halcyon Lettings.')).toBeVisible();
+  await answer('Did Aoife look after the home?', 'Yes');
+  await answer('Would you rent to Aoife again?', 'Yes');
+  // UX-RF-4: "I can't give this reference" is one tap, under the form.
+  await expect(referee.getByRole('button', { name: 'I can’t give this reference' })).toBeVisible();
+  await referee.getByRole('button', { name: 'Send my reference' }).click();
+  await expect(referee.getByRole('heading', { name: 'Thanks' })).toBeVisible();
+  await expect(
+    referee.getByText('That’s everything. Your answers have gone to Halcyon Lettings only.'),
+  ).toBeVisible();
+  await expectFramePageAtBothWidths(referee, 'referee', 'wp13-referee-thanks');
   await mary.context.close();
 
   // The operator sees each result in words.
@@ -248,6 +284,8 @@ test('R19: the landlord approves the chosen tenant and the backup from a one-pag
   await page.getByLabel('Landlord’s name').fill('Tom Walsh');
   await page.getByLabel('Landlord’s email').fill('tom.walsh@example.ie');
   await page.getByRole('button', { name: 'Save the landlord’s details' }).click();
+  // UX-OP-7: the agent is warned while checks are still under way.
+  await expect(page.getByText(/checks? (aren’t|isn’t) back yet/)).toBeVisible();
   await page.getByRole('button', { name: 'Ask the landlord to approve' }).click();
   await expect(page.getByText('Waiting for their answer.')).toBeVisible();
 
@@ -260,26 +298,38 @@ test('R19: the landlord approves the chosen tenant and the backup from a one-pag
   }).toPass({ timeout: 20_000 });
   const tom = await onPhone(browser, approvalLink);
   const landlord = tom.page;
+  // UX-OP-6: one person per screen, the chosen tenant first: their card, then the answer on it.
+  await expect(landlord.getByRole('heading', { name: 'Approve a tenant' })).toBeVisible();
   await expect(landlord.getByRole('heading', { name: 'Aoife Byrne' })).toBeVisible();
-  await expect(landlord.getByRole('heading', { name: 'Ciarán Ó Súilleabháin' })).toBeVisible();
   await expect(landlord.getByText('2.8 times the rent').first()).toBeVisible();
+  // UX-OP-7: a check that isn't finished says so.
+  await expect(landlord.getByText('Still under way').first()).toBeVisible();
+  // Income as a multiple of the rent, never the amount; no contact details.
   expect(await landlord.content()).not.toMatch(/5,200|4,800|aoife\.byrne@|ciaran\.os@/);
-  await expectAccessible(landlord);
-  await expectNoSidewaysScroll(landlord);
+  // UX-OP-8 (Q42): declining asks for no reason in writing.
+  await expect(landlord.getByRole('textbox')).toHaveCount(0);
+  await expect(landlord.getByRole('button', { name: 'Decline' })).toBeVisible();
+  await expectFramePageAtBothWidths(landlord, 'owner', 'wp13-approve-tenant');
   await screenshot(landlord, '40-landlord-approval');
+  await landlord.getByRole('button', { name: 'Approve Aoife' }).click();
 
-  await landlord.getByRole('button', { name: 'Send my answer' }).click();
-  await expect(landlord.getByText('Choose approve or decline for each person.')).toBeVisible();
-  await landlord
-    .getByRole('group', { name: 'Aoife Byrne, the preferred tenant' })
-    .getByLabel('Approve')
-    .check();
-  await landlord
-    .getByRole('group', { name: 'Ciarán Ó Súilleabháin, the backup' })
-    .getByLabel('Approve')
-    .check();
-  await landlord.getByRole('button', { name: 'Send my answer' }).click();
-  await expect(landlord.getByText('Thanks for your answer')).toBeVisible();
+  // Then the backup, the same way, with one sentence on what a backup is for.
+  await expect(landlord.getByRole('heading', { name: 'And a backup?' })).toBeVisible();
+  await expect(landlord.getByRole('heading', { name: 'Ciarán Ó Súilleabháin' })).toBeVisible();
+  await expect(
+    landlord.getByText('If Aoife doesn’t take the home, Halcyon Lettings offers it to Ciarán.'),
+  ).toBeVisible();
+  expect(await landlord.content()).not.toMatch(/5,200|4,800|aoife\.byrne@|ciaran\.os@/);
+  await expect(landlord.getByRole('textbox')).toHaveCount(0);
+  await expectFramePageAtBothWidths(landlord, 'owner', 'wp13-approve-backup');
+  await landlord.getByRole('button', { name: 'Approve Ciarán' }).click();
+  await expect(landlord.getByRole('heading', { name: 'Thanks, Tom' })).toBeVisible();
+  await expect(
+    landlord.getByText(
+      'Halcyon Lettings will make the offer to Aoife and tell you when there’s an answer.',
+    ),
+  ).toBeVisible();
+  await expectFramePageAtBothWidths(landlord, 'owner', 'wp13-approve-thanks');
   await tom.context.close();
 
   await page.goto(`${lettingUrl}/applications`);

@@ -334,6 +334,7 @@ test('UX-VW-6, UX-VW-8, UX-VW-10, UX-VW-11, R12 to R15: a viewing’s sheet; its
   // It has started: it can't be changed or cancelled now.
   await expect(sheet.getByRole('button', { name: /^More for / })).toHaveCount(0);
   await sheet.getByRole('link', { name: 'Mark who came' }).click();
+  await expect(page).toHaveURL(/\/attendance\?viewing=/);
 
   // UX-VW-11: a focused screen: no navigation, who's booked, and one line of how many are left.
   for (const [width, viewport] of widths) {

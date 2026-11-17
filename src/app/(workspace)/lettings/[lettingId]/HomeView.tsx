@@ -231,11 +231,7 @@ export function HomeView({
       </Part>
 
       {hasOwner ? (
-        <Part
-          id="home-owner"
-          title={copy.owner}
-          action={change(`/lettings/${id}/owner`, 'owner')}
-        >
+        <Part id="home-owner" title={copy.owner} action={change(`/lettings/${id}/owner`, 'owner')}>
           <p className={landlord ? undefined : styles.muted}>{landlord?.name ?? copy.noOwner}</p>
         </Part>
       ) : null}

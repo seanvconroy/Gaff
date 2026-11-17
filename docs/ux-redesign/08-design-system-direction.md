@@ -169,7 +169,7 @@ Every component adapts between phone and desktop. "Status" says whether it exist
 | --- | --- | --- | --- | --- |
 | **Top bar / tab bar** | The four destinations | Bottom tabs with icon and label | Top bar | New (replaces the sidebar) |
 | **Flow shell** | Any step-by-step task | Full screen; fixed footer; button full width | A 640px column, centred; same header and footer | New |
-| **Segmented progress** | Steps in a flow; the four parts of a letting | Segments, with the current part's name beside it | The same, with all names | Changed (replaces `StepIndicator`, `StageTracker`, `StageMeter`) |
+| **Segmented progress** | Steps in a flow; the four parts of a letting | Segments, with the current part's name beside it | The same, with all names | Changed (replaces `StepIndicator`, `StageTracker`, `StageMeter`, all gone). `detail` names the stage inside a letting's current part: "Find · Viewings" (WP-15) |
 | **Button** | Primary, secondary, quiet, destructive | Primary spans the width at the foot of a task | Sized to its label | Changed; destructive is new |
 | **Field** | Text, number, money, email | Label above, then the control, then the error, then help | Same | Changed (one height, three widths) |
 | **Choice card / choice row** | One of a few options | Stacked, full width | Up to three across | Exists; restyled |

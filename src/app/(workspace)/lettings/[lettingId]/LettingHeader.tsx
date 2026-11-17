@@ -31,10 +31,7 @@ export function LettingHeader({
   view: LettingView;
   menu: ReactNode;
 }) {
-  const progress = progressOf(
-    stage,
-    letting.stage === 'close' || letting.status === 'withdrawn',
-  );
+  const progress = progressOf(stage, letting.stage === 'close' || letting.status === 'withdrawn');
   const status = copy.status[letting.status] ?? copy.status.draft;
   const here = `/lettings/${letting.id}`;
   return (

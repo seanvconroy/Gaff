@@ -81,6 +81,7 @@ export const savedCopy = {
     alertsOn: 'We’ll email you when a new home fits one of your searches, once a day at most.',
     alertsOff: 'Emails about new homes are off. You can switch them on in Profile.',
     removedSearch: 'Search removed',
+    savedOn: (date: string) => `Saved ${date}`,
   },
   profile: {
     title: 'What you’re looking for',
@@ -92,9 +93,6 @@ export const savedCopy = {
     alertsOff: 'Emails about new homes are off',
   },
 } as const;
-
-/** The heart's label on Saved, where it takes a home off the list. */
-export const removeSavedLabel = (what: string) => `Remove ${what} from Saved`;
 
 /**
  * UX-SR-10: the one email a signed-out person gets before anything else: confirm the address is

@@ -35,14 +35,6 @@ export const searchCopy = {
   },
   foot: { line: 'Letting a home? Gaff runs it for you.', action: 'List a home' },
   loading: 'Finding homes',
-  /**
-   * Seams for work package WP-23 (saved homes, saved searches and alerts). Until it is built,
-   * the heart and "Tell me when one comes up" say so, and nothing is kept.
-   */
-  seams: {
-    saveHome: 'Saving homes is coming soon. For now, keep this page’s address.',
-    alert: 'Alerts are coming soon. For now, keep this page’s address and check back.',
-  },
   sheet: {
     show: 'Show homes',
     clear: 'Clear all',

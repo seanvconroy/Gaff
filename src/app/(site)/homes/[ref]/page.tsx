@@ -2,8 +2,9 @@ import { Bath, BedDouble, Car, Check, Flag, Sofa, type LucideIcon } from 'lucide
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { cache } from 'react';
+import { cache, type ReactNode } from 'react';
 import { homePageCopy as copy } from '@/copy/home-page';
+import { savedCopy } from '@/copy/saved';
 import {
   HIGHLIGHTS_SHOWN,
   type HighlightKind,
@@ -22,12 +23,14 @@ import { env } from '@/lib/env';
 import { formatRent } from '@/lib/format';
 import { currentPerson } from '@/server/context/current-person';
 import { type PublicHome, publicHomePage } from '@/server/homes/public-homes';
+import { savedHomeRefs } from '@/server/saved/homes';
 import { ActionCard } from '@/ui/ActionCard';
 import { ButtonLink } from '@/ui/Button';
 import { Disclosure } from '@/ui/Disclosure';
 import { Gallery } from '@/ui/Gallery';
 import { Outcome } from '@/ui/Outcome';
 import { ShowMore } from '@/ui/ShowMore';
+import { SaveHome } from '../../_search/Saving';
 import styles from './home.module.css';
 
 /** One read per request, shared by the page and its sharing preview. */
@@ -97,7 +100,23 @@ export default async function HomePage({ params }: Params) {
       </div>
     );
   }
-  return <LiveHome home={page.home} aboveTabBar={person !== null} />;
+  // WP-23: the heart knows whether this person already saved it.
+  const saved = person ? (await savedHomeRefs(person.userId)).includes(ref) : false;
+  return (
+    <LiveHome
+      home={page.home}
+      aboveTabBar={person !== null}
+      save={
+        <SaveHome
+          homeRef={ref}
+          label={savedCopy.heart.page}
+          saved={saved}
+          signedIn={person !== null}
+          back={page.home.href}
+        />
+      }
+    />
+  );
 }
 
 const icons: Record<HighlightKind, LucideIcon> = {
@@ -134,7 +153,16 @@ function Highlights({ items }: { items: ReturnType<typeof homeHighlights> }) {
   );
 }
 
-function LiveHome({ home: found, aboveTabBar }: { home: PublicHome; aboveTabBar: boolean }) {
+function LiveHome({
+  home: found,
+  aboveTabBar,
+  save,
+}: {
+  home: PublicHome;
+  aboveTabBar: boolean;
+  /** Save (the heart), at the top right of the title. */
+  save: ReactNode;
+}) {
   const { home, photos, lister, phone, ref } = found;
   const title = homeTitle(home);
   const highlights = homeHighlights(home);
@@ -147,9 +175,12 @@ function LiveHome({ home: found, aboveTabBar }: { home: PublicHome; aboveTabBar:
       <div className={styles.columns}>
         <div className={styles.content}>
           <header className={styles.head}>
-            <h1 id="home-title" className={styles.title}>
-              {title}
-            </h1>
+            <div className={styles.titleRow}>
+              <h1 id="home-title" className={styles.title}>
+                {title}
+              </h1>
+              <div className={styles.save}>{save}</div>
+            </div>
             <p className={styles.summary}>{homeSummary(home)}</p>
           </header>
 

@@ -50,6 +50,18 @@
   gap: var(--space-3);
 }
 
+/* A saved search, said in place of the button that saved it. */
+.kept {
+  color: var(--color-ink-muted);
+}
+
+/* "Tell me about new ones", under the homes that fit. */
+.keepSearch {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+}
+
 .sheetForm {
   display: grid;
   gap: var(--space-6);

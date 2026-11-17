@@ -3,6 +3,7 @@ import pg from 'pg';
 import { E2E_CRON_SECRET, E2E_DATABASE_URL } from '../../playwright.config';
 import { daftEnquiry } from '../fixtures/emails';
 import { aPng } from '../fixtures/photos';
+import { closeLettingThroughUi } from './journeys';
 import {
   addHomeThroughUi,
   expectAccessible,
@@ -254,8 +255,8 @@ test('UX-LS-1 to UX-LS-11, UX-LT-21: a live letting’s page opens signed out at
     await context.close();
   }
 
-  // UX-LT-21: the lister switches "On gaff.ie" off on the letting's page: the page goes at once.
-  await page.goto(home.lettingPath);
+  // UX-LT-21: the lister switches "On gaff.ie" off in the letting’s Home view: the page goes at once.
+  await page.goto(`${home.lettingPath}?view=home`);
   const onGaff = page.getByRole('region', { name: 'On gaff.ie' });
   await expect(onGaff.getByRole('link', { name: 'See its page' })).toHaveAttribute(
     'href',
@@ -315,10 +316,7 @@ test('UX-LS-10: a let home says so and offers other homes nearby, then the sched
   await signUpOperator(page);
   const home = await aLiveHomeOnGaff(page, '21 Ranelagh Road');
   await page.goto(home.lettingPath);
-  await page.getByText('Close this letting').click();
-  await page.getByLabel('It’s let').check();
-  await page.getByRole('button', { name: 'Close the letting' }).click();
-  await expect(page.getByText(/^Closed\. Everyone who enquired/)).toBeVisible();
+  await closeLettingThroughUi(page, '21 Ranelagh Road', 'It’s let');
 
   for (const [width, viewport] of widths) {
     const { context, page: visitor } = await signedOut(browser, viewport);

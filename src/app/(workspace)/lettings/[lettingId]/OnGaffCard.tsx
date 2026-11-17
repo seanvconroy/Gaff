@@ -5,15 +5,15 @@ import { onGaffNeeds } from '@/domain/lettings/setup';
 import type { LettingRow } from '@/server/lettings/queries';
 import { Card, CardHeader } from '@/ui/Layout';
 import { SubmitButton } from '@/ui/SubmitButton';
-import { setOnGaffAction } from './actions';
+import { setOnGaffAction } from './on-gaff-actions';
 import styles from './letting.module.css';
 
 const copy = goLiveCopy.onGaff;
 
 /**
  * UX-LT-21: whether a live home is shown on gaff.ie, a link to its page when it is, and the
- * switch. Switching it off takes the page down at once; the home still takes enquiries. Work
- * package WP-15 moves this into the letting's Home view.
+ * switch. Switching it off takes the page down at once; the home still takes enquiries.
+ * It sits at the foot of the letting's Home view.
  */
 export function OnGaffCard({
   letting,

@@ -1060,7 +1060,11 @@ export default function ComponentsPage() {
                     Invite your team
                   </ButtonLink>
                 }
-                decline={<Button variant="quiet">Not now</Button>}
+                decline={
+                  <Button variant="quiet">
+                    Not now<span className="visually-hidden"> (Invite your team)</span>
+                  </Button>
+                }
               >
                 <p>Colleagues see every letting and can cover for each other.</p>
               </Prompt>

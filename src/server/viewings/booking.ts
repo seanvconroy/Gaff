@@ -82,6 +82,77 @@ export async function currentBooking(tx: Tx, applicationId: string) {
   return row ?? null;
 }
 
+/**
+ * R13: a booking's confirmation, then its reminders the day before and two hours before (the
+ * two-hour one also by text, to a number the renter gave for it). Used when a renter books or
+ * moves, and when the operator moves a viewing time people have booked (UX-VW-6): the same
+ * fixed wording, "Your viewing has moved".
+ */
+export async function queueBookingMessages(
+  tx: Tx,
+  input: {
+    organisationId: string;
+    operatorName: string;
+    letting: { id: string; addressLine1: string; area: string };
+    application: { id: string; fullName: string; email: string };
+    bookingId: string;
+    startsAt: Date;
+    rescheduled: boolean;
+    sms: string | null;
+  },
+): Promise<void> {
+  const { application, letting } = input;
+  const manageUrl = `${env().APP_URL}/r/${await createAccessLink(tx, {
+    organisationId: input.organisationId,
+    purpose: 'renter',
+    subjectId: application.id,
+  })}`;
+  const viewing = {
+    renterName: application.fullName,
+    operatorName: input.operatorName,
+    address: letting.addressLine1,
+    area: letting.area,
+    startsAt: input.startsAt,
+    manageUrl,
+  };
+  const common = {
+    organisationId: input.organisationId,
+    lettingId: letting.id,
+    applicationId: application.id,
+    author: 'template' as const,
+    bookingId: input.bookingId,
+  };
+  await queueMessage(tx, {
+    ...common,
+    kind: 'booking_confirmation',
+    templateKey: BOOKING_CONFIRMATION_TEMPLATE,
+    toAddress: application.email,
+    ...bookingConfirmationEmail({ ...viewing, rescheduled: input.rescheduled }),
+  });
+  for (const reminder of reminderTimes(input.startsAt, new Date())) {
+    await queueMessage(tx, {
+      ...common,
+      kind: 'reminder',
+      templateKey: REMINDER_TEMPLATE,
+      toAddress: application.email,
+      sendAt: reminder.sendAt,
+      ...reminderEmail({ ...viewing, when: reminder.kind }),
+    });
+    if (reminder.kind === 'two_hours' && input.sms) {
+      await queueMessage(tx, {
+        ...common,
+        kind: 'reminder',
+        channel: 'sms',
+        templateKey: REMINDER_SMS_TEMPLATE,
+        toAddress: input.sms,
+        subject: '',
+        body: reminderSms(viewing),
+        sendAt: reminder.sendAt,
+      });
+    }
+  }
+}
+
 export type BookResult =
   | { ok: true; rescheduled: boolean }
   | { ok: false; reason: 'invalid_link' | 'not_invited' | 'full' | 'too_late' | 'invalid_phone' };
@@ -189,57 +260,17 @@ export async function bookViewing(
         .where(and(eq(waitlistOffers.slotId, slotId), eq(waitlistOffers.status, 'open')));
     }
 
-    const manageUrl = `${env().APP_URL}/r/${await createAccessLink(tx, {
-      organisationId: link.organisationId,
-      purpose: 'renter',
-      subjectId: application.id,
-    })}`;
-    const viewing = {
-      renterName: application.fullName,
-      operatorName: organisation.name,
-      address: letting.addressLine1,
-      area: letting.area,
-      startsAt: slot.startsAt,
-      manageUrl,
-    };
-    const common = {
-      organisationId: link.organisationId,
-      lettingId: letting.id,
-      applicationId: application.id,
-      author: 'template' as const,
-      bookingId: booking!.id,
-    };
-    await queueMessage(tx, {
-      ...common,
-      kind: 'booking_confirmation',
-      templateKey: BOOKING_CONFIRMATION_TEMPLATE,
-      toAddress: application.email,
-      ...bookingConfirmationEmail({ ...viewing, rescheduled: Boolean(existing) }),
-    });
     // Q12: text reminders only to a number the renter gave for them when booking.
-    const sms = phoneE164 ?? (application.smsReminders ? application.phoneE164 : null);
-    for (const reminder of reminderTimes(slot.startsAt, new Date())) {
-      await queueMessage(tx, {
-        ...common,
-        kind: 'reminder',
-        templateKey: REMINDER_TEMPLATE,
-        toAddress: application.email,
-        sendAt: reminder.sendAt,
-        ...reminderEmail({ ...viewing, when: reminder.kind }),
-      });
-      if (reminder.kind === 'two_hours' && sms) {
-        await queueMessage(tx, {
-          ...common,
-          kind: 'reminder',
-          channel: 'sms',
-          templateKey: REMINDER_SMS_TEMPLATE,
-          toAddress: sms,
-          subject: '',
-          body: reminderSms(viewing),
-          sendAt: reminder.sendAt,
-        });
-      }
-    }
+    await queueBookingMessages(tx, {
+      organisationId: link.organisationId,
+      operatorName: organisation.name,
+      letting,
+      application,
+      bookingId: booking!.id,
+      startsAt: slot.startsAt,
+      rescheduled: Boolean(existing),
+      sms: phoneE164 ?? (application.smsReminders ? application.phoneE164 : null),
+    });
     await recordEvent(tx, {
       organisationId: link.organisationId,
       lettingId: letting.id,

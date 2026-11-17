@@ -5,7 +5,7 @@ import { Narrow, PageHeader, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { assistantAction } from '../actions';
-import { loadSettings } from '../load';
+import { loadSettingsPage } from '../load';
 import styles from '../settings.module.css';
 
 export const metadata: Metadata = { title: 'The assistant' };
@@ -23,7 +23,7 @@ export default async function AssistantSettingsPage({
   searchParams: Promise<{ saved?: string; problem?: string }>;
 }) {
   const { saved, problem } = await searchParams;
-  const { organisation } = await loadSettings();
+  const { organisation } = await loadSettingsPage();
   return (
     <Stack gap={8}>
       <PageHeader

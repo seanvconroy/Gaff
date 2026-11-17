@@ -6,7 +6,7 @@ import { Narrow, PageHeader, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { incomeRuleAction } from '../actions';
-import { loadSettings } from '../load';
+import { loadSettingsPage } from '../load';
 
 export const metadata: Metadata = { title: 'Income rule' };
 export const dynamic = 'force-dynamic';
@@ -20,7 +20,7 @@ export default async function IncomeSettingsPage({
   searchParams: Promise<{ saved?: string; problem?: string }>;
 }) {
   const { saved, problem } = await searchParams;
-  const { organisation } = await loadSettings();
+  const { organisation } = await loadSettingsPage();
   return (
     <Stack gap={8}>
       <PageHeader

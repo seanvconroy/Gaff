@@ -8,7 +8,7 @@ import { Notice } from '@/ui/Notice';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { SummaryList } from '@/ui/SummaryList';
 import { phoneAction } from '../actions';
-import { loadSettings } from '../load';
+import { loadSettingsPage } from '../load';
 
 export const metadata: Metadata = { title: 'The agency' };
 export const dynamic = 'force-dynamic';
@@ -25,7 +25,7 @@ export default async function AgencySettingsPage({
   searchParams: Promise<{ saved?: string; problem?: string }>;
 }) {
   const { saved, problem } = await searchParams;
-  const { organisation } = await loadSettings();
+  const { organisation } = await loadSettingsPage();
   if (organisation.kind !== 'agency') redirect('/settings');
   return (
     <Stack gap={8}>

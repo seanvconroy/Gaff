@@ -1,6 +1,13 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
-import { COMPARABLES_NEEDED, comparablePrefill, type Comparable } from '@/domain/rent/comparables';
+import {
+  COMPARABLES_NEEDED,
+  comparablePrefill,
+  comparableStepHref,
+  comparablesFrom,
+  comparablesLeaveHref,
+  type Comparable,
+} from '@/domain/rent/comparables';
 import { irishToday } from '@/lib/format';
 import { stoppedByConflict } from '@/server/accounts/conflict';
 import { requireMember } from '@/server/auth/member';
@@ -14,10 +21,13 @@ export const dynamic = 'force-dynamic';
 /** UX-LP-14 (R4): comparable home `n` of three, on its own screen. */
 export default async function ComparablePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ lettingId: string; n: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { lettingId, n } = await params;
+  const from = comparablesFrom((await searchParams).from);
   const position = Number(n);
   if (!/^[0-9a-f-]{36}$/i.test(lettingId)) notFound();
   if (!Number.isInteger(position) || position < 1 || position > COMPARABLES_NEEDED) notFound();
@@ -32,7 +42,7 @@ export default async function ComparablePage({
   return (
     <ComparableStep
       key={position}
-      action={comparableAction.bind(null, lettingId, position)}
+      action={comparableAction.bind(null, lettingId, position, from)}
       position={position}
       address={letting.addressLine1}
       start={comparablePrefill(
@@ -42,8 +52,8 @@ export default async function ComparablePage({
           : undefined,
       )}
       today={irishToday()}
-      leaveHref={lettingHref}
-      backHref={position > 1 ? `/lettings/${lettingId}/comparables/${position - 1}` : null}
+      leaveHref={comparablesLeaveHref(lettingId, from)}
+      backHref={position > 1 ? comparableStepHref(lettingId, position - 1, from) : null}
     />
   );
 }

@@ -172,6 +172,25 @@ export function comparablePrefill(
  */
 export const RTB_RENT_REGISTER_URL = 'https://rtb.ie/?p=55258';
 
+/**
+ * UX-LP-14, WP-17: where the comparables were opened from. Opened from the offer (where
+ * they're needed, Q41), they go back to it; otherwise to the letting's page.
+ */
+export type ComparablesFrom = 'offer' | 'letting';
+
+export const comparablesFrom = (value: unknown): ComparablesFrom =>
+  value === 'offer' ? 'offer' : 'letting';
+
+export function comparableStepHref(lettingId: string, position: number, from: ComparablesFrom) {
+  return `/lettings/${lettingId}/comparables/${position}${from === 'offer' ? '?from=offer' : ''}`;
+}
+
+/** Where closing the comparables goes, and where they end once all three are in. */
+export function comparablesLeaveHref(lettingId: string, from: ComparablesFrom, saved = false) {
+  if (from === 'offer') return `/lettings/${lettingId}/offer`;
+  return `/lettings/${lettingId}${saved ? '?saved=comparables' : ''}`;
+}
+
 /** Maps a parse error path ([1, "rent"]) to the form field name ("c2Rent"). */
 export function comparableFieldName(path: PropertyKey[]): string {
   const [index, field] = path;

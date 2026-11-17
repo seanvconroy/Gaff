@@ -2,7 +2,13 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { COMPARABLES_NEEDED, parseComparable } from '@/domain/rent/comparables';
+import {
+  COMPARABLES_NEEDED,
+  comparableStepHref,
+  comparablesLeaveHref,
+  parseComparable,
+  type ComparablesFrom,
+} from '@/domain/rent/comparables';
 import { formValues, invalid, type FormState } from '@/lib/forms';
 import { irishToday } from '@/lib/format';
 import { requireMember } from '@/server/auth/member';
@@ -11,11 +17,13 @@ import { recordComparable } from '@/server/lettings/comparables';
 
 /**
  * UX-LP-14 (R4, Q41): one comparable home, from its own screen. The next screen opens with the
- * next one; after the third, the letting's page says they're saved for the rent-setting pack.
+ * next one; after the third, the offer they were opened from, or the letting's page, which says
+ * they're saved for the rent-setting pack.
  */
 export async function comparableAction(
   lettingId: string,
   position: number,
+  from: ComparablesFrom,
   _state: FormState,
   formData: FormData,
 ): Promise<FormState> {
@@ -31,7 +39,9 @@ export async function comparableAction(
     return invalid({ form: error.message }, values);
   }
   revalidatePath(`/lettings/${lettingId}`, 'layout');
-  if (position < COMPARABLES_NEEDED) redirect(`/lettings/${lettingId}/comparables/${position + 1}`);
-  if (count < COMPARABLES_NEEDED) redirect(`/lettings/${lettingId}/comparables`);
-  redirect(`/lettings/${lettingId}?saved=comparables`);
+  if (position < COMPARABLES_NEEDED) redirect(comparableStepHref(lettingId, position + 1, from));
+  if (count < COMPARABLES_NEEDED) {
+    redirect(`/lettings/${lettingId}/comparables${from === 'offer' ? '?from=offer' : ''}`);
+  }
+  redirect(comparablesLeaveHref(lettingId, from, true));
 }

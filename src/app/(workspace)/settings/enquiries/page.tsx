@@ -6,7 +6,7 @@ import { env } from '@/lib/env';
 import { ButtonLink } from '@/ui/Button';
 import { CopyButton } from '@/ui/CopyButton';
 import { Narrow, PageHeader, Stack } from '@/ui/Layout';
-import { loadSettings } from '../load';
+import { loadSettingsPage } from '../load';
 import styles from '../settings.module.css';
 
 export const metadata: Metadata = { title: 'Enquiries' };
@@ -19,7 +19,7 @@ const copy = settingsCopy.enquiries;
  * Whether forwarding works is known only from what has come through it (UX-LT-19).
  */
 export default async function EnquiriesSettingsPage() {
-  const { organisation } = await loadSettings();
+  const { organisation } = await loadSettingsPage();
   const address = `${organisation.inboundSlug}@${env().INBOUND_DOMAIN}`;
   const inPlace = forwardingInPlace({ worksAt: organisation.forwardingWorksAt });
   return (

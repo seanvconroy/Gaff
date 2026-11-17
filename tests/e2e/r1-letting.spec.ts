@@ -253,6 +253,13 @@ test('R4, UX-LP-14: an operator enters three comparable rents, one home at a tim
   // Changing one opens the first, as it was entered.
   await page.goto(`/lettings/${lettingId}/comparables`);
   await expect(page.getByLabel('Rent a month')).toHaveValue('1800');
+  // Opened from the offer, where they're needed (Q41), they go back to it.
+  await page.goto(`/lettings/${lettingId}/comparables?from=offer`);
+  await expect(page).toHaveURL(new RegExp(`/comparables/1\\?from=offer$`));
+  await expect(page.getByRole('link', { name: 'Close' })).toHaveAttribute(
+    'href',
+    `/lettings/${lettingId}/offer`,
+  );
 });
 
 test('Stage 1 and R27: the operator confirms set-up, and the timeline shows every step', async ({

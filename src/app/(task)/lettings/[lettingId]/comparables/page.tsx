@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
-import { COMPARABLES_NEEDED } from '@/domain/rent/comparables';
+import { comparableStepHref, comparablesFrom } from '@/domain/rent/comparables';
 import { requireMember } from '@/server/auth/member';
 import { getLetting } from '@/server/lettings/queries';
 
@@ -11,15 +11,18 @@ export const dynamic = 'force-dynamic';
  */
 export default async function ComparablesPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ lettingId: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { lettingId } = await params;
+  const from = comparablesFrom((await searchParams).from);
   if (!/^[0-9a-f-]{36}$/i.test(lettingId)) notFound();
   const member = await requireMember();
   const detail = await getLetting(member, lettingId);
   if (!detail) notFound();
   const have = new Set(detail.comparables.map((c) => c.position));
   const missing = [1, 2, 3].find((n) => !have.has(n)) ?? 1;
-  redirect(`/lettings/${lettingId}/comparables/${Math.min(missing, COMPARABLES_NEEDED)}`);
+  redirect(comparableStepHref(lettingId, missing, from));
 }

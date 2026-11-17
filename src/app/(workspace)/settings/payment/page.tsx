@@ -4,7 +4,7 @@ import { formatIban } from '@/domain/tenancy/payment';
 import { hasPasskey } from '@/server/auth/confirm-request';
 import { Narrow, PageHeader, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
-import { loadSettings } from '../load';
+import { loadSettingsPage } from '../load';
 import { PaymentAccountForm } from '../PaymentAccountForm';
 
 export const metadata: Metadata = { title: 'Where tenants pay' };
@@ -23,7 +23,7 @@ export default async function PaymentSettingsPage({
   searchParams: Promise<{ saved?: string }>;
 }) {
   const { saved } = await searchParams;
-  const { member, organisation } = await loadSettings();
+  const { member, organisation } = await loadSettingsPage();
   return (
     <Stack gap={8}>
       <PageHeader

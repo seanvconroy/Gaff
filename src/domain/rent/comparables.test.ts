@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   comparableFieldName,
   comparablePrefill,
+  comparableStepHref,
+  comparablesFrom,
+  comparablesLeaveHref,
   comparableWarnings,
   comparablesFormSchema,
   medianRentCents,
@@ -121,5 +124,17 @@ describe('UX-LP-14: comparable rents entered one home at a time', () => {
       ok: false,
       errors: { registeredOn: expect.stringMatching(/^Enter the date/) },
     });
+  });
+});
+
+describe('UX-LP-14: comparables opened from the offer go back to it', () => {
+  it('UX-LP-14: carries where they were opened from, and returns there', () => {
+    expect(comparablesFrom('offer')).toBe('offer');
+    expect(comparablesFrom('elsewhere')).toBe('letting');
+    expect(comparableStepHref('l1', 2, 'offer')).toBe('/lettings/l1/comparables/2?from=offer');
+    expect(comparableStepHref('l1', 2, 'letting')).toBe('/lettings/l1/comparables/2');
+    expect(comparablesLeaveHref('l1', 'offer', true)).toBe('/lettings/l1/offer');
+    expect(comparablesLeaveHref('l1', 'letting', true)).toBe('/lettings/l1?saved=comparables');
+    expect(comparablesLeaveHref('l1', 'letting')).toBe('/lettings/l1');
   });
 });

@@ -1,4 +1,4 @@
-import { formatDate, formatDateTime } from '@/lib/format';
+import { formatDate } from '@/lib/format';
 
 /**
  * The words of a letting's page (section 4 of the UX redesign, "A letting's page", UX-LP-1 to
@@ -98,9 +98,8 @@ export const lettingPageCopy = {
         declined: 'Declined',
       } as Record<string, string>,
       offer: 'Offer',
-      offerState: (state: string, first: string | null, until: Date | null) => {
-        if (state === 'open' && first && until)
-          return `With ${first} until ${formatDateTime(until)}`;
+      offerState: (state: string) => {
+        if (state === 'open') return 'Sent';
         if (state === 'accepted') return 'Accepted';
         if (state === 'not_accepted') return 'Not accepted';
         return 'Not sent yet';

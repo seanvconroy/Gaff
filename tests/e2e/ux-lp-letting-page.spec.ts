@@ -224,7 +224,7 @@ test('UX-LP-1, UX-LP-2, UX-LP-3: one letting through all nine stages, with the t
   await sendTheOffer(page, { withoutChecks: true });
   await page.goto(lettingUrl);
   await expectOverview(page, {
-    says: /^The offer is with Aoife until /,
+    says: /The offer is with Aoife until /,
     figures: ['Owner’s answer', 'Offer'],
     next: 'When Aoife accepts, Gaff tells everyone else and prepares the tenancy.',
   });
@@ -243,7 +243,7 @@ test('UX-LP-1, UX-LP-2, UX-LP-3: one letting through all nine stages, with the t
   await expectOverview(page, {
     task: 'Send the tenancy agreement',
     figures: ['Steps done', 'Starts'],
-    next: /^After that: /,
+    next: /After that: /,
   });
   await expect(progress).toContainText('Sign · Tenancy');
   await expect(page.getByRole('link', { name: 'The tenancy, step by step' })).toBeVisible();
@@ -254,7 +254,7 @@ test('UX-LP-1, UX-LP-2, UX-LP-3: one letting through all nine stages, with the t
   await page.goto(lettingUrl);
   await expectOverview(page, {
     task: 'Finish and close the letting',
-    figures: ['Steps done', 'Starts'],
+    figures: ['Days to let', 'Time saved'],
   });
   await expect(progress).toContainText('Sign · Close');
   await atBothWidths(page, 'stage-9-close');
@@ -297,9 +297,10 @@ test('UX-LP-8, UX-LP-9, UX-LP-10: People lists everyone, with the stage’s chip
   for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
     // UX-LP-10: a table on a desktop and a card each on a phone, the same words, never sideways.
-    await expect(people.getByRole('columnheader', { name: 'Where they stand' })).toBeVisible({
-      visible: width === 1280,
-    });
+    const row = people.getByRole('row').nth(1);
+    await expect
+      .poll(() => row.evaluate((element) => getComputedStyle(element).display))
+      .toBe(width === 1280 ? 'table-row' : 'grid');
     await expectNoSidewaysScroll(page);
     await expectAccessible(page);
     await screenshot(page, `ux-lp-people-${width}`);

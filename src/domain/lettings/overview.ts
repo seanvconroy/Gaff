@@ -119,8 +119,14 @@ export function pageStage(
   return facts.stage;
 }
 
-/** UX-LP-3: the four parts, and the current one's label: "Find · Viewings". */
-export function progressOf(stage: Stage): {
+/**
+ * UX-LP-3: the four parts, and the current one's label: "Find · Viewings". Once the letting is
+ * closed (`finished`), every part is done.
+ */
+export function progressOf(
+  stage: Stage,
+  finished = false,
+): {
   segments: readonly string[];
   current: number;
   /** The stage inside the current part, said after its name, where it isn't the same word. */
@@ -131,7 +137,7 @@ export function progressOf(stage: Stage): {
   const detail = stageLabels[stage] === part ? undefined : stageLabels[stage];
   return {
     segments: lettingParts,
-    current: partReached(stage),
+    current: finished ? partReached('close') : partOf(stage),
     detail,
     label: detail ? `${part} · ${detail}` : part,
   };
@@ -309,14 +315,17 @@ export function figuresFor(facts: OverviewFacts, now: Date = new Date()): Figure
         ...(facts.owner ? [{ label: f.owner, value: f.ownerState[facts.owner]! }] : []),
         {
           label: f.offer,
-          value: f.offerState(facts.offer.state, facts.offer.firstName, facts.offer.until),
+          // The deadline is said once, in Needs you (UX-LP-4).
+          value: f.offerState(facts.offer.state),
         },
       ];
     case 'tenancy':
       return facts.tenancy
         ? [
             { label: f.steps, value: f.of(facts.tenancy.done, facts.tenancy.total) },
-            ...(facts.tenancy.startDate
+            // Where Today's task already says when it starts, it isn't said twice (UX-LP-4).
+            ...(facts.tenancy.startDate &&
+            !facts.today.some((item) => item.kind === 'tenancy' && item.startDate)
               ? [{ label: f.startDate, value: formatDate(facts.tenancy.startDate, now) }]
               : []),
           ]

@@ -24,14 +24,17 @@ export function LettingHeader({
   view,
   menu,
 }: {
-  letting: { id: string; addressLine1: string; area: string; status: string };
+  letting: { id: string; addressLine1: string; area: string; status: string; stage: string };
   /** The stage the page is written for. */
   stage: Stage;
   cover: string | null;
   view: LettingView;
   menu: ReactNode;
 }) {
-  const progress = progressOf(stage);
+  const progress = progressOf(
+    stage,
+    letting.stage === 'close' || letting.status === 'withdrawn',
+  );
   const status = copy.status[letting.status] ?? copy.status.draft;
   const here = `/lettings/${letting.id}`;
   return (

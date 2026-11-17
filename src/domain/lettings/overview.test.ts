@@ -213,7 +213,7 @@ describe('UX-LP-1: Overview has three blocks, right at each of the nine stages',
     });
     expect(figuresFor(out, now)).toEqual([
       { label: 'Owner’s answer', value: 'Approved' },
-      { label: 'Offer', value: 'With Aoife until Sunday 22 November, 6pm' },
+      { label: 'Offer', value: 'Sent' },
     ]);
     expect(whatsNext(out)).toBe(
       'When Aoife accepts, Gaff tells everyone else and prepares the tenancy.',
@@ -234,7 +234,9 @@ describe('UX-LP-1: Overview has three blocks, right at each of the nine stages',
       action: 'Sign the tenancy agreement',
       href: '/lettings/l1/tenancy/sign',
     });
-    expect(figuresFor(facts, now)).toEqual([
+    // UX-LP-4: Today's task says when it starts, so the figure doesn't say it again.
+    expect(figuresFor(facts, now)).toEqual([{ label: 'Steps done', value: '1 of 6' }]);
+    expect(figuresFor(at({ ...facts, today: [] }), now)).toEqual([
       { label: 'Steps done', value: '1 of 6' },
       { label: 'Starts', value: 'Tuesday 1 December' },
     ]);
@@ -354,6 +356,9 @@ describe('UX-LP-3: four named parts, and never "Step n of 9"', () => {
       label: 'Find · Viewings',
     });
     expect(progressOf('setup').label).toBe('Set up');
+    // Stage 9 is the current part until the letting is finished; then every part is done.
+    expect(progressOf('close').current).toBe(3);
+    expect(progressOf('close', true).current).toBe(4);
     for (const stage of stages) expect(progressOf(stage).label).not.toMatch(/of 9/);
   });
 });

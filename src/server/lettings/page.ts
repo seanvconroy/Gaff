@@ -353,7 +353,8 @@ export async function peopleFor(member: Member, lettingId: string): Promise<Pers
         meetsIncomeRule: income ? income.meetsRule : null,
         deleted,
         sheet: {
-          fit: r && !deleted ? r.reason : null,
+          // When they enquired is under what's happened; this says only how they fit.
+          fit: r && !deleted && p.answersAt ? r.reason.replace(/ Enquired .*$/, '') : null,
           told: deleted
             ? []
             : [

@@ -189,6 +189,7 @@ Every component adapts between phone and desktop. "Status" says whether it exist
 | **Time picker for renters** | Booking a viewing | Days, then times | Same, in a narrower column | Changed |
 | **Question steps** | A few questions asked one per screen inside a page: the pre-viewing questions, applying, referees | The progress, one question, then Back and the one primary button, which spans the screen | The same, with the button sized to its label | New |
 | **Step list** | Where someone stands in a few steps done in order: a renter's checks, a tenant's steps | Rows of a name and its state in words: done, next, to come | Same | New |
+| **Numbered steps** | Steps to follow somewhere else, in order: setting up forwarding in a person's own mail | Rows of a number and a sentence | Same | New |
 | **Directions link** | "Get directions" to a home | Opens the phone's own maps app | Opens a map in a new tab | New |
 | **Thread and reply box** | A conversation, and the list it is chosen from. A draft waits in the reply box, with what Gaff couldn't answer marked in it | The list is a screen; the open conversation is a screen, with a way back | List on the left, thread on the right | New |
 | **Setup checklist** | First-run progress | A card with a ring and one button | Same | New |

@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { mailServiceNames } from '@/domain/enquiries/forwarding-confirmation';
 import { inboxHref, parseConversationKey, showFor } from '@/domain/inbox/conversations';
 import { questionWords, whenSaid } from '@/domain/inbox/thread';
 import { requireMember } from '@/server/auth/member';
@@ -12,11 +11,10 @@ import {
   type RenterThread,
   threadFor,
 } from '@/server/inbox/queries';
-import { CopyButton } from '@/ui/CopyButton';
-import { Card, CardHeader, Row, Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { OpenConversation, Thread, ThreadHeader, ThreadMessage } from '@/ui/Thread';
 import type { ThreadEntry } from '@/domain/inbox/thread';
+import { ForwardingConfirmationCard } from '../ForwardingConfirmationCard';
 import { InboxFrame } from '../InboxFrame';
 import styles from '../inbox.module.css';
 import { DraftReply, PlaceEmail, QuestionsReply, WriteReply } from '../ReplyForms';
@@ -173,7 +171,6 @@ function EmailConversation({
   now: Date;
 }) {
   const { confirmation } = thread;
-  const service = confirmation ? mailServiceNames[confirmation.service] : null;
   return (
     <OpenConversation labelledBy={TITLE}>
       <ThreadHeader
@@ -182,54 +179,8 @@ function EmailConversation({
         title={thread.name}
         meta={thread.subject || 'No subject'}
       />
-      {confirmation && service ? (
-        <Card tone="quiet" labelledBy="confirmation-title">
-          <Stack gap={4}>
-            <CardHeader
-              id="confirmation-title"
-              level={3}
-              title={
-                confirmation.code
-                  ? `${service}’s confirmation code`
-                  : `${service}’s confirmation link`
-              }
-              description={
-                confirmation.forwardingFrom
-                  ? `${service} is checking that mail from ${confirmation.forwardingFrom} should be forwarded to Gaff.`
-                  : `${service} is checking that your mail should be forwarded to Gaff.`
-              }
-            />
-            {confirmation.code ? (
-              <>
-                <Row>
-                  <p className={`type-heading ${styles.code}`}>{confirmation.code}</p>
-                  <CopyButton value={confirmation.code} what="the confirmation code" />
-                </Row>
-                <p>Type it into {service}’s forwarding settings. Forwarding starts once you do.</p>
-              </>
-            ) : null}
-            {confirmation.link ? (
-              <>
-                <p>
-                  {confirmation.code ? 'Or open' : 'Open'} {service}’s link to confirm. Forwarding
-                  starts once you do.
-                </p>
-                <Row>
-                  <p className={styles.link}>
-                    <a href={confirmation.link} target="_blank" rel="noopener noreferrer">
-                      {confirmation.link}
-                    </a>
-                  </p>
-                  <CopyButton
-                    value={confirmation.link}
-                    label="Copy link"
-                    what="to the confirmation"
-                  />
-                </Row>
-              </>
-            ) : null}
-          </Stack>
-        </Card>
+      {confirmation ? (
+        <ForwardingConfirmationCard confirmation={confirmation} />
       ) : thread.homes.length === 0 ? (
         <Notice tone="warning">
           <p>

@@ -70,6 +70,8 @@ describe('UX-MT-3: the letting details line is Gaff’s, in fixed words, and can
         'description',
         'eircode',
         'furnished',
+        // Why Gaff's team hid it: one of four fixed reasons, a code (UX-TS-4).
+        'hiddenReason',
         'myhomeUrl',
         'parking',
         'photosUrl',

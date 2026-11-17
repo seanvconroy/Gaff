@@ -100,7 +100,8 @@ test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, i
   browser,
   page,
 }) => {
-  test.slow();
+  // The longest journey: four people's screens, at two widths, with emails in between.
+  test.setTimeout(240_000);
   // An address no other journey uses, so its card is the only one by that name.
   const address = '5 Willow Terrace';
   const operatorEmail = await signUpOperator(

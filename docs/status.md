@@ -89,7 +89,7 @@ Last updated: 17 November 2026 (waves 0 to 3 of the UX redesign are built; wave 
   | 2B. Inside a letting, for renters | WP-12 the renter's pages; WP-13 owner and referee pages; WP-14 profile and the renter's home | **Done**, 17 November 2026. See "Wave 2" below |
   | 3A. Running a letting, part 2 | WP-15 a letting's page; WP-16 calendar; WP-17 decisions and the offer; WP-18 tenancy, close and settings; WP-19 teams | **Done**, 17 November 2026. See "Wave 3" below |
   | 3B. The marketplace | WP-20 homes on Gaff; WP-21 search; WP-22 asking to view; WP-23 saved homes and alerts | **Done**, 17 November 2026. See "Wave 3" below |
-  | 4. Trust, fit and finish | WP-24 a verified identity; WP-25 fit; WP-26 trust and Gaff's internal page; WP-27 activation; WP-28 the end-to-end pass | WP-24, WP-25 and WP-26 in progress |
+  | 4. Trust, fit and finish | WP-24 a verified identity; WP-25 fit; WP-26 trust and Gaff's internal page; WP-27 activation; WP-28 the end-to-end pass | WP-24, WP-25 and WP-26 **done**, 17 November 2026 (see "Wave 4" below). WP-27 in progress; WP-28 to come |
 - **Deploy the test copy** on Vercel and Supabase ([deploy.md](deploy.md), about 20 minutes).
 - **Your end-to-end test** (see [testing-guide.md](testing-guide.md)), then feedback and iteration.
 - **Before the first pilot:** everything in [launch-checklist.md](launch-checklist.md), including the providers for ID and income checks (stand-ins today) and the solicitor’s answers on electronic signing (Q23) and the agreement wording.
@@ -188,12 +188,28 @@ Left for later packages, on purpose:
 - "Stop taking enquiries" in a letting's menu (UX-LP-5) isn't built. It needs a new column and a new fixed message for the solicitor to review.
 - Gaff doesn't read the RTB's Rent Register (OQ-2 in [open-questions.md](open-questions.md)). No API or per-home open data was found and the RTB's terms don't clearly allow automated reading, but the sites couldn't be reached from the build, so this is unverified: someone should read the RTB's terms directly. Comparables are typed by hand, with the register a tab away.
 - "Use our own agreement" and its Settings row aren't built: there is no feature behind them yet.
-- **Reporting a listing reaches nobody yet.** The report flow accepts a report and stores nothing, and its thanks screen already says Gaff's team acts within a working day. That becomes true with WP-26; the marketplace must not reach real users before then.
 - There is no map (Q49 in [open-questions.md](open-questions.md), answering OQ-7). It needs a renderer (a new dependency), Ireland's map data hosted by Gaff, and a point for each home. Search ships as the list alone, as the PRD allows.
 - Gaff's list of places is hand-made (26 counties, Dublin's districts, about 150 towns and 90 neighbourhoods), because OpenStreetMap couldn't be reached from the build. `scripts/places/build-places.ts` builds the full list and hasn't been run.
 - Search doesn't match "outdoor space": a letting doesn't record it.
 - The alert email and the email that confirms a saved search are new wording, pinned by `src/copy/saved.test.ts`. They go to the solicitor with the other templates.
 - WP-22 and WP-23 were cut off by a usage limit before their agents wrote final reports, so what they left out is known only from the code and the tests.
+
+## UX redesign, wave 4 (trust, fit and finish)
+
+| Package | What | Proven by |
+| --- | --- | --- |
+| WP-24: a verified identity (UX-PF-8 to UX-PF-14; UX-TS-1, UX-TS-2) | After a passed ID check a renter is asked once, "Keep this, so you never have to do it again?". Gaff keeps three things: that the check passed, the verified name and the date. At the next home's checks the renter is asked "Use the ID check you did on {date}?"; the operator sees it only when the renter says yes, and no operator query shows who is verified before that. A name that doesn't match the application is checked with the renter. It has no expiry, goes with the profile, and can be redone from Profile. It works across roles. A private landlord confirms it's them once, at their first go-live; until then their home can't go live, has no public page and isn't in search, and after it their homes show "Identity verified" | `src/domain/identity/*.test.ts`, `tests/compliance/identity.test.ts`, `tests/integration/ux-pf-identity.test.ts`, `tests/e2e/ux-pf-identity.spec.ts` |
+| WP-25: fit (UX-MT-1 to 11, 16 to 18; UX-LP-15; UX-AI-6, UX-AI-7) | The Letting details line has one writer, in fixed words, and can't be edited or stored. Unlawful wording is left out and a lawful version offered where there is one ("Did you mean 'Up to 2 people'?"). Fit is always a count with words ("Meets 3 of 4") with the detail a tap away, on the person's sheet and in the decision flow. A pool summary on a letting's Overview is written from counts and names nobody; before invitations it shows what each criterion is costing. A renter's "Thanks" page shows their answers beside the letting details, without judgement. "Ask about who's enquired" turns a question into a filter on the four answers and the time of enquiry, and declines anything else in fixed words. Ranking is unchanged, nobody is hidden for not fitting, and Gaff never recommends a person | `src/domain/fit/*.test.ts`, `tests/compliance/fit.test.ts`, `tests/e2e/ux-mt-fit.spec.ts` |
+| WP-26: trust and Gaff's internal page (UX-TS-3 to UX-TS-6; UX-AG-4) | "Report this listing" is kept: the home, the reason tapped and an optional note, and nothing about who reported. Gaff's internal page has three lists: agencies waiting to be confirmed, reported listings, and the funnels. Staff can hide a listing for one of four fixed reasons: it leaves its public page and search at once and its enquiries wait. The lister is emailed, sees it as the letting's task, and can ask Gaff to look again. Putting it back answers the enquiries that waited. Staff can do this and confirm agencies, and nothing else: tests show they can't open a letting, read a renter, send a message or make a decision | `src/domain/homes/report.test.ts`, `tests/compliance/staff-reach.test.ts`, `tests/integration/ux-ts-trust.test.ts`, `tests/e2e/ux-ts-trust.spec.ts` |
+
+Left for later, on purpose:
+
+- **For the founder to confirm (Q47):** a private landlord's identity is kept at their first go-live without the "Keep this?" question a renter gets, because their homes can't stay public without it. The screen says what is kept before the check starts. Deleting their profile takes their homes off Gaff until they confirm again.
+- The identity check still runs against the local stand-in. No vendor is chosen (Q48).
+- A report is deleted six months after staff answer it, a period chosen for the EU Digital Services Act's review window. The person who reports gives no contact details, so they are never told the outcome. Both are for the solicitor.
+- The two emails to a lister about a hidden listing are new wording, pinned by `src/copy/trust-emails.test.ts`, for the solicitor.
+- There is no automated scam detection and no rate limit on reports.
+- "Why here" in the decision flow still shows the ranking's existing reason.
 
 ## Known issues
 

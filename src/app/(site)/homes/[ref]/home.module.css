@@ -1,0 +1,139 @@
+/*
+ * A home's page (section 5, "A home's page"). On a phone, one column in the table's order, with
+ * the action fixed at the foot of the screen. On a desktop the photos across the top, then the
+ * same blocks in a wide column with the action card held to the right.
+ */
+.page {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.content {
+  display: grid;
+  gap: var(--space-8);
+  min-width: 0;
+}
+
+.head {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.title {
+  font-size: var(--type-display-mobile-size);
+  line-height: var(--type-display-mobile-line);
+  font-weight: var(--type-display-mobile-weight);
+  letter-spacing: var(--type-display-mobile-tracking);
+  overflow-wrap: anywhere;
+}
+
+.summary {
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
+}
+
+/* Blocks are held apart by space and a hairline, not boxes (UX-DS-12). */
+.block {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--color-border);
+}
+
+.highlights {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.highlight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.highlight svg {
+  flex: none;
+  color: var(--color-ink-muted);
+}
+
+.details {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.lister {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.listerName {
+  font-weight: var(--type-title-weight);
+}
+
+.muted {
+  color: var(--color-ink-muted);
+}
+
+.report {
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border);
+}
+
+.reportLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--size-target);
+  color: var(--color-ink-muted);
+}
+
+.reportLink:hover {
+  color: var(--color-ink);
+}
+
+/* "This home has been let": one message in the page's reading column. */
+.state {
+  max-width: var(--size-task);
+}
+
+.stateHome {
+  font-weight: var(--type-title-weight);
+}
+
+.stateAction {
+  margin-top: var(--space-3);
+}
+
+@media (width > 900px) {
+  .page {
+    gap: var(--space-8);
+  }
+
+  .columns {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: var(--space-16);
+  }
+
+  .title {
+    font-size: var(--type-display-size);
+    line-height: var(--type-display-line);
+    font-weight: var(--type-display-weight);
+    letter-spacing: var(--type-display-tracking);
+  }
+
+  .highlights {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

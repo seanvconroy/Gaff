@@ -35,7 +35,8 @@ function place(el: HTMLDialogElement, control: HTMLElement | null, align: 'start
  *
  * Two layouts, as every adaptive component has (UX-DS-27). Below 900px both kinds are a sheet
  * that slides up from the foot of the screen. Above it, `sheet` is a dialog in the middle of the
- * page, and `popover` sits beside the control that opened it.
+ * page, and `popover` sits beside the control that opened it. `full` fills the screen at every
+ * width: a home's photos, one at a time (the gallery).
  */
 export function Overlay({
   open,
@@ -49,7 +50,7 @@ export function Overlay({
 }: {
   open: boolean;
   onClose: () => void;
-  kind: 'sheet' | 'popover';
+  kind: 'sheet' | 'popover' | 'full';
   /** A popover's control: above 900px it opens beside it. */
   anchor?: RefObject<HTMLElement | null>;
   /** Which edge of its control a popover lines up with. */

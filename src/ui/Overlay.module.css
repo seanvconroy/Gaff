@@ -42,6 +42,19 @@
   overscroll-behavior: contain;
 }
 
+/* The whole screen, at every width: a home's photos, one at a time. */
+.full {
+  inset: 0;
+  height: 100dvh;
+  max-height: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.full[open] {
+  animation-name: fade-in;
+}
+
 @media (width > 900px) {
   .overlay[open] {
     animation-name: fade-in;

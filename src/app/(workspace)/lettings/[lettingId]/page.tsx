@@ -37,6 +37,7 @@ import { closeAction } from './actions';
 import { loadLetting } from './letting';
 import { LettingHeader } from './LettingHeader';
 import { LettingMenu } from './LettingMenu';
+import { OnGaffCard } from './OnGaffCard';
 import { RentCheckResult } from './RentCheckResult';
 import styles from './letting.module.css';
 
@@ -58,7 +59,7 @@ export default async function LettingPage({
   params: Promise<{ lettingId: string }>;
   searchParams: Promise<{ saved?: string; problem?: string }>;
 }) {
-  const { member, letting, facts, sessions, places, rentCheck, rentProblem, comparables } =
+  const { member, letting, facts, sessions, places, rentCheck, rentProblem, comparables, photos } =
     await loadLetting(params);
   const { saved, problem } = await searchParams;
   const closed = letting.status === 'let' || letting.status === 'withdrawn';
@@ -69,7 +70,7 @@ export default async function LettingPage({
   // UX-OW-1: a home let for someone else can be shared with its owner from the day it's added.
   const hasOwner = !letsOwnHomes(member.organisationKind);
   // UX-AG-4: a home a member decided to put live while their agency is being confirmed.
-  const { organisationName } = await goLiveGateFor(member);
+  const { organisationName, gate } = await goLiveGateFor(member);
   const criteriaLines = letting.criteria
     ? [
         ...describeCriteria(letting.criteria),
@@ -204,6 +205,10 @@ export default async function LettingPage({
       ) : null}
 
       <div className={styles.grid}>
+        {letting.status === 'live' ? (
+          <OnGaffCard letting={letting} photos={photos.length} listerMayShow={gate.open} />
+        ) : null}
+
         <Card labelledBy="facts-heading">
           <CardHeader id="facts-heading" title="Key facts" />
           <SummaryList rows={keyFacts.map((fact) => ({ label: fact.label, value: fact.value }))} />

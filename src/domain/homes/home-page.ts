@@ -32,6 +32,11 @@ export function isPublicRef(value: string): boolean {
 export const homeHref = (ref: string) => `/homes/${ref}`;
 /** THE SEAM for work package WP-22, which builds asking to view at this address. */
 export const askToViewHref = (ref: string) => `/homes/${ref}/ask`;
+/**
+ * UX-LS-10: "See other homes in Ranelagh". THE SEAM for work package WP-21, whose search reads
+ * the place from `where` (UX-SR-12: a search's address holds its filters and nothing personal).
+ */
+export const homesInHref = (place: string) => `/?${new URLSearchParams({ where: place })}`;
 /** UX-TS-3: "Report this listing". Where a report goes is work package WP-26. */
 export const reportHref = (ref: string) => `/homes/${ref}/report`;
 

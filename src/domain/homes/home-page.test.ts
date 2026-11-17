@@ -12,6 +12,7 @@ import {
   homePageState,
   homeSummary,
   homeTitle,
+  homesInHref,
   isPublicRef,
   letPageDue,
   listerMayShowHomes,
@@ -225,6 +226,8 @@ describe('UX-LS-2: the page is made from the letting', () => {
   it('UX-LS-10: "See other homes in Ranelagh"', () => {
     expect(placeOf('Ranelagh, Dublin 6')).toBe('Ranelagh');
     expect(placeOf('Kinsale')).toBe('Kinsale');
+    expect(homesInHref('Ranelagh')).toBe('/?where=Ranelagh');
+    expect(homesInHref('Dublin 6')).toBe('/?where=Dublin+6');
   });
 
   it('UX-LS-11: a sharing preview has the address and the rent, and names nobody', () => {

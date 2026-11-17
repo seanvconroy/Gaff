@@ -1,0 +1,234 @@
+/*
+ * A home's photos (section 8, "Gallery"). Below 900px a strip to swipe, one photo at a time at
+ * 3:2 with 16px corners, with Previous, Next and where you are on it. Above 900px a grid of the
+ * first five, the cover large. Full screen fills the screen at both widths.
+ */
+.gallery {
+  position: relative;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.track {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-2);
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.track::-webkit-scrollbar {
+  display: none;
+}
+
+.item {
+  flex: 0 0 100%;
+  aspect-ratio: 3 / 2;
+  scroll-snap-align: start;
+}
+
+.open {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  background-color: var(--color-surface-2);
+  border: 0;
+  cursor: zoom-in;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Previous and Next sit on the photo's edges; where you are sits at its foot. */
+.controls {
+  position: absolute;
+  inset: 0 0 auto;
+  aspect-ratio: 3 / 2;
+  pointer-events: none;
+}
+
+.step {
+  position: absolute;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-target);
+  height: var(--size-target);
+  padding: 0;
+  background-color: var(--color-surface-1);
+  border: 0;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-ink);
+  cursor: pointer;
+  pointer-events: auto;
+  translate: 0 -50%;
+}
+
+.previous {
+  left: var(--space-3);
+}
+
+.next {
+  right: var(--space-3);
+}
+
+.where {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  background-color: var(--color-surface-1);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-ink);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.showAll {
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* Full screen: the photo as large as it will go, a bar above it, the steps below it. */
+.full {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.fullBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+}
+
+.fullWhere {
+  font-weight: var(--type-title-weight);
+}
+
+.close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-target);
+  height: var(--size-target);
+  padding: 0;
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.close:hover {
+  background-color: var(--color-surface-2);
+}
+
+.fullPhoto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 0 var(--space-4);
+}
+
+.fullImage {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-lg);
+}
+
+.fullSteps {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+}
+
+@media (width > 900px) {
+  /* A grid of five: the cover takes the left half, four more the right. */
+  .track {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+    aspect-ratio: 2 / 1;
+    overflow: hidden;
+    background-color: transparent;
+    scroll-snap-type: none;
+  }
+
+  .item {
+    aspect-ratio: auto;
+    min-height: 0;
+  }
+
+  .item:nth-child(n + 6) {
+    display: none;
+  }
+
+  .track[data-count='2'] .item {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+
+  .track .item:first-child {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+
+  .track[data-count='1'] .item:first-child {
+    grid-column: span 4;
+  }
+
+  .track[data-count='3'] .item:not(:first-child),
+  .track[data-count='4'] .item:nth-child(2) {
+    grid-column: span 2;
+  }
+
+  .controls {
+    display: none;
+  }
+
+  .open {
+    transition: opacity var(--motion-fast) var(--ease-standard);
+  }
+
+  .open:hover {
+    opacity: 0.9;
+  }
+
+  .showAll {
+    position: absolute;
+    right: var(--space-4);
+    bottom: var(--space-4);
+  }
+
+  .fullBar {
+    padding-inline: var(--space-8) var(--space-6);
+  }
+
+  .fullPhoto {
+    padding: 0 var(--space-8);
+  }
+}

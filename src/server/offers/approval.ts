@@ -166,6 +166,47 @@ export async function saveLandlordContactIn(
   });
 }
 
+/** The owner's email, with a new private link to the approval: when first asked, and when reminded. */
+async function sendApprovalLink(
+  tx: Tx,
+  input: {
+    member: Member;
+    lettingId: string;
+    approvalId: string;
+    landlord: { name: string; email: string };
+    withBackup: boolean;
+  },
+): Promise<void> {
+  const [letting] = await tx.select().from(lettings).where(eq(lettings.id, input.lettingId));
+  const [organisation] = await tx
+    .select({ name: organisations.name })
+    .from(organisations)
+    .where(eq(organisations.id, input.member.organisationId));
+  const token = await createAccessLink(tx, {
+    organisationId: input.member.organisationId,
+    purpose: 'landlord_approval',
+    subjectId: input.approvalId,
+  });
+  await queueMessage(tx, {
+    organisationId: input.member.organisationId,
+    lettingId: input.lettingId,
+    applicationId: null,
+    kind: 'landlord_approval',
+    author: 'template',
+    templateKey: LANDLORD_APPROVAL_TEMPLATE,
+    toAddress: input.landlord.email,
+    ...landlordApprovalEmail({
+      landlordName: input.landlord.name,
+      operatorName: organisation!.name,
+      address: letting!.addressLine1,
+      area: letting!.area,
+      withBackup: input.withBackup,
+      approvalUrl: `${env().APP_URL}/approve/${token}`,
+      availableFrom: letting!.availableFrom,
+    }),
+  });
+}
+
 /**
  * R19: the operator sends the landlord a private link to a one-page summary of the preferred
  * applicant and the backup, to approve or decline each. No account needed.
@@ -175,15 +216,10 @@ export async function askLandlord(member: Member, lettingId: string): Promise<vo
     const state = await approvalState(tx, lettingId);
     if (!state) throw new UserFacingError('We couldn’t find that letting.');
     if (state.route !== 'link' || !state.landlord) {
-      throw new UserFacingError('Add the landlord’s email first.');
+      throw new UserFacingError('Add the owner’s email first.');
     }
     if (!state.preferredId) throw new UserFacingError('Choose your preferred applicant first.');
-    if (state.approval?.status === 'requested') return;
-    const [letting] = await tx.select().from(lettings).where(eq(lettings.id, lettingId));
-    const [organisation] = await tx
-      .select({ name: organisations.name })
-      .from(organisations)
-      .where(eq(organisations.id, member.organisationId));
+    if (state.approval) return;
     const [approval] = await tx
       .insert(landlordApprovals)
       .values({
@@ -194,34 +230,102 @@ export async function askLandlord(member: Member, lettingId: string): Promise<vo
         requestedBy: member.userId,
       })
       .returning({ id: landlordApprovals.id });
-    const token = await createAccessLink(tx, {
-      organisationId: member.organisationId,
-      purpose: 'landlord_approval',
-      subjectId: approval!.id,
-    });
-    await queueMessage(tx, {
-      organisationId: member.organisationId,
+    await sendApprovalLink(tx, {
+      member,
       lettingId,
-      applicationId: null,
-      kind: 'landlord_approval',
-      author: 'template',
-      templateKey: LANDLORD_APPROVAL_TEMPLATE,
-      toAddress: state.landlord.email,
-      ...landlordApprovalEmail({
-        landlordName: state.landlord.name,
-        operatorName: organisation!.name,
-        address: letting!.addressLine1,
-        area: letting!.area,
-        withBackup: state.backupId !== null,
-        approvalUrl: `${env().APP_URL}/approve/${token}`,
-        availableFrom: letting!.availableFrom,
-      }),
+      approvalId: approval!.id,
+      landlord: state.landlord,
+      withBackup: state.backupId !== null,
     });
     await recordEvent(tx, {
       organisationId: member.organisationId,
       lettingId,
       actor: { type: 'person', userId: member.userId },
       type: 'landlord.approval_requested',
+      subject: { type: 'landlord_approval', id: approval!.id },
+      data: { approvalId: approval!.id, withBackup: state.backupId !== null },
+    });
+  });
+}
+
+/**
+ * UX-DC-16: "Remind Mary". The owner gets the same email again, with a new private link to the
+ * same approval. Only while Gaff is waiting for their answer.
+ */
+export async function remindOwner(member: Member, lettingId: string): Promise<void> {
+  await withOrg(member.organisationId, async (tx) => {
+    const state = await approvalState(tx, lettingId);
+    if (!state) throw new UserFacingError('We couldn’t find that letting.');
+    if (state.approval?.status !== 'requested' || !state.landlord) {
+      throw new UserFacingError('There’s no answer to wait for from the owner.');
+    }
+    await sendApprovalLink(tx, {
+      member,
+      lettingId,
+      approvalId: state.approval.id,
+      landlord: state.landlord,
+      withBackup: state.approval.backupId !== null,
+    });
+    await tx
+      .update(landlordApprovals)
+      .set({ remindedAt: new Date() })
+      .where(eq(landlordApprovals.id, state.approval.id));
+    await recordEvent(tx, {
+      organisationId: member.organisationId,
+      lettingId,
+      actor: { type: 'person', userId: member.userId },
+      type: 'landlord.approval_reminded',
+      subject: { type: 'landlord_approval', id: state.approval.id },
+      data: { approvalId: state.approval.id },
+    });
+  });
+}
+
+/**
+ * UX-DC-15 (Q22): "Mary has already approved". The operator records, as of today, that the owner
+ * approved the people chosen: the preferred applicant, and the backup if there is one. It counts
+ * as the owner's answer from then on, and the offer decision records that the operator confirmed
+ * it. Asked once, here, and never again as a tick inside the offer. A link the owner was sent for
+ * this choice then shows the answer as given.
+ */
+export async function recordOwnerApproved(member: Member, lettingId: string): Promise<void> {
+  await withOrg(member.organisationId, async (tx) => {
+    const state = await approvalState(tx, lettingId);
+    if (!state) throw new UserFacingError('We couldn’t find that letting.');
+    if (state.route === 'own_home') {
+      throw new UserFacingError('You’re letting your own home, so there’s nobody else to ask.');
+    }
+    if (!state.preferredId) throw new UserFacingError('Choose your preferred applicant first.');
+    if (state.approval?.status === 'answered') return;
+    const answered = {
+      status: 'answered' as const,
+      preferredAnswer: 'approved' as const,
+      backupAnswer: state.backupId ? ('approved' as const) : null,
+      answeredAt: new Date(),
+      confirmedBy: member.userId,
+    };
+    const [approval] = state.approval
+      ? await tx
+          .update(landlordApprovals)
+          .set(answered)
+          .where(eq(landlordApprovals.id, state.approval.id))
+          .returning({ id: landlordApprovals.id })
+      : await tx
+          .insert(landlordApprovals)
+          .values({
+            organisationId: member.organisationId,
+            lettingId,
+            preferredId: state.preferredId,
+            backupId: state.backupId,
+            requestedBy: member.userId,
+            ...answered,
+          })
+          .returning({ id: landlordApprovals.id });
+    await recordEvent(tx, {
+      organisationId: member.organisationId,
+      lettingId,
+      actor: { type: 'person', userId: member.userId },
+      type: 'landlord.approval_confirmed',
       subject: { type: 'landlord_approval', id: approval!.id },
       data: { approvalId: approval!.id, withBackup: state.backupId !== null },
     });
@@ -377,7 +481,7 @@ export async function answerApproval(
   });
 }
 
-/** R19: where approval stands, for the operator's Applications tab. */
+/** R19: where approval stands, for the operator's decision flows. */
 export async function approvalFor(member: Member, lettingId: string) {
   return withOrg(member.organisationId, (tx) => approvalState(tx, lettingId));
 }

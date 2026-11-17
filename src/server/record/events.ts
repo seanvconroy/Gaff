@@ -262,6 +262,19 @@ export const eventCatalogue = {
   'letting.landlord_added': z.object({ updated: z.boolean() }),
   /** R19: the landlord was sent a private link to approve the chosen applicants. */
   'landlord.approval_requested': z.object({ approvalId: z.uuid(), withBackup: z.boolean() }),
+  /** UX-DC-16: a person reminded the owner, who was sent the same email with a new link. */
+  'landlord.approval_reminded': z.object({ approvalId: z.uuid() }),
+  /**
+   * UX-DC-15 (Q22): a person recorded that the owner had already approved the people chosen.
+   * The offer decision then records that the operator confirmed it.
+   */
+  'landlord.approval_confirmed': z.object({ approvalId: z.uuid(), withBackup: z.boolean() }),
+  /** UX-DC-13: a person sent a reminder about a check waiting on the renter or a referee. */
+  'check.reminded': z.object({
+    checkId: z.uuid(),
+    kind: z.enum(['identity', 'income', 'landlord_reference', 'employer_reference']),
+    to: z.enum(['renter', 'referee']),
+  }),
   /** R19: the landlord's answer for each person. */
   'landlord.approval_answered': z.object({
     approvalId: z.uuid(),

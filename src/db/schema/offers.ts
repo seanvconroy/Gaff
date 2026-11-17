@@ -9,7 +9,7 @@ const answer = ['approved', 'declined'] as const;
 
 /**
  * R19: the landlord's approval of the preferred applicant and the backup, asked by private
- * link (or confirmed by the operator when there's no landlord email, Q22). Withdrawn if the
+ * link, or recorded by the operator as already given (Q22, UX-DC-15). Withdrawn if the
  * operator changes their choice.
  */
 export const landlordApprovals = pgTable(
@@ -36,6 +36,13 @@ export const landlordApprovals = pgTable(
       .references(() => users.id),
     requestedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     answeredAt: timestamp({ withTimezone: true }),
+    /**
+     * UX-DC-15 (Q22): the member who recorded that the owner had already approved, where the
+     * owner didn't answer by link. Null when the owner answered themselves.
+     */
+    confirmedBy: text().references(() => users.id),
+    /** UX-DC-16: when the owner was last reminded. */
+    remindedAt: timestamp({ withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [

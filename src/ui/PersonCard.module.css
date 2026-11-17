@@ -1,0 +1,138 @@
+/*
+ * Person cards: one applicant each, to choose between. Stacked below 900px; above, side by side,
+ * three across, then scrolling sideways. A card is one object, so it has an edge (UX-DS-12).
+ */
+.fieldset {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-weight: var(--type-title-weight);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.card {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  align-content: start;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: calc(var(--space-5) - 1px);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition-property: background-color, border-color;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease-standard);
+}
+
+.card:hover {
+  border-color: var(--color-ink-muted);
+}
+
+/* The edge grows inwards, so nothing moves. */
+.card:has(input:checked) {
+  padding: calc(var(--space-5) - 2px);
+  border-width: 2px;
+  border-color: var(--color-brand);
+}
+
+.card:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.name {
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
+  font-weight: var(--type-heading-weight);
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.fact {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.label {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.value {
+  margin: 0;
+}
+
+/* "Choose": a choice row inside the card, 48px high, ticked when the card is chosen. */
+.choose {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: var(--size-control);
+  padding: 0 var(--space-4);
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  font-weight: var(--type-title-weight);
+}
+
+.card:has(input:checked) .choose {
+  background-color: var(--color-brand-bg);
+}
+
+.input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--color-brand);
+  cursor: pointer;
+}
+
+.tick {
+  margin-left: auto;
+  color: var(--color-brand);
+  opacity: 0;
+}
+
+.card:has(input:checked) .tick {
+  opacity: 1;
+}
+
+@media (width > 900px) {
+  .cards {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100% - 2 * var(--space-4)) / 3);
+    overflow-x: auto;
+    padding-bottom: var(--space-2);
+  }
+}

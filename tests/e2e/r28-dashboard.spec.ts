@@ -77,7 +77,8 @@ test('R28: Today shows what needs a person, Lettings shows each letting’s stag
 
   await page.goto('/today');
   await today.getByRole('link', { name: /Choose who views/ }).click();
-  await expect(page.getByRole('heading', { name: 'Decide who views' })).toBeVisible();
+  // WP-17: the decision opens its focused flow.
+  await expect(page.getByRole('heading', { level: 1, name: 'Choose who views' })).toBeVisible();
 
   // Once the home is let and closed, Lettings shows what it saved: the usual six and a half
   // hours, less the minute spent in Gaff.

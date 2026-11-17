@@ -33,6 +33,11 @@ export interface LettingSnapshot {
   toChoose: number;
   /** R20: chosen and approved, so the offer can go. */
   readyToOffer?: boolean;
+  /**
+   * UX-DC-11: every check for the preferred applicant is back and nothing is out yet: their
+   * first name, for "The checks are back for Aoife". Undefined when that isn't so.
+   */
+  checksBackFor?: string | null;
   /** R19, R20: the landlord declined, or the offer wasn't accepted and nothing else is out. */
   needsNewChoice?: boolean;
   newChoiceReason?: NewChoiceReason | null;
@@ -81,6 +86,8 @@ export type TodayItem = Waiting &
      */
     | (Home & { kind: 'questions'; count: number; firstName: string | null } & OneConversation)
     | (Home & { kind: 'offer' })
+    /** UX-DC-11: `firstName` is the preferred applicant's, and nobody else's. */
+    | (Home & { kind: 'checks'; firstName: string | null })
     | (Home & { kind: 'rechoose'; reason: NewChoiceReason | null })
     | (Home & { kind: 'rtb'; dueBy: string })
     | (Home & { kind: 'tenancy'; step: TenancyStep; startDate: string | null })
@@ -124,6 +131,7 @@ export function todayRank(item: TodayItem, today: string): number {
       // On the day it's due, and after it, it is a deadline; before that, a date coming up.
       return item.dueBy <= today ? todayRanks.deadline : todayRanks.date;
     case 'choose':
+    case 'checks':
     case 'offer':
     case 'rechoose':
     case 'shortlist':
@@ -146,6 +154,7 @@ const kindOrder: readonly TodayKind[] = [
   'attendance',
   'rtb',
   'rechoose',
+  'checks',
   'offer',
   'choose',
   'tenancy',
@@ -324,6 +333,14 @@ export function needsYouToday(input: {
     if (l.status === 'live') {
       if (l.toChoose > 0) {
         items.push({ kind: 'choose', ...home, count: l.toChoose, since: since('choose') });
+      }
+      if (l.checksBackFor !== undefined) {
+        items.push({
+          kind: 'checks',
+          ...home,
+          firstName: l.checksBackFor,
+          since: since('checks'),
+        });
       }
       if (l.readyToOffer) items.push({ kind: 'offer', ...home, since: since('offer') });
       if (l.needsNewChoice) {

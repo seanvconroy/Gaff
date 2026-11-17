@@ -21,6 +21,7 @@ import {
   activityMinutes,
   applications,
   bookings,
+  checks,
   decisions,
   events,
   inboundEmails,
@@ -46,6 +47,7 @@ import {
 import { todayIn, type Viewer } from '@/domain/dashboard/views';
 import { leadOf } from '@/domain/lettings/lead';
 import { stepsLeft } from '@/domain/lettings/add-letting';
+import { allChecksBack } from '@/domain/checks/review';
 import { whoCanBeOffered } from '@/domain/offers/offer';
 import { rtbDeadline } from '@/domain/tenancy/tenancy';
 import { nextTenancyStep } from '@/domain/tenancy/steps';
@@ -178,6 +180,8 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
       string,
       {
         readyToOffer: boolean;
+        checksBackFor: string | null | undefined;
+        checksBackAt: Date | null;
         needsNewChoice: boolean;
         offerOut: boolean;
         reason: NewChoiceReason | null;
@@ -206,14 +210,44 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         ? whoCanBeOffered({
             route: state.route,
             approval: state.approval,
-            landlordConfirmed: true,
             hasBackup: state.backupId !== null,
           })
         : null;
       const declinedByLandlord = state?.approval?.preferredAnswer === 'declined';
-      const readyToOffer = Boolean(
-        state?.preferredId && !live && who?.preferred && out.length === 0,
-      );
+      const nothingOut = Boolean(state?.preferredId && !live && out.length === 0);
+      // R20: the owner approved (by link, or as the operator recorded), so the offer can go.
+      const readyToOffer = Boolean(nothingOut && state?.route !== 'own_home' && who?.preferred);
+      // UX-DC-11: every check for the preferred applicant is back, and the next step is the
+      // operator's: nothing is out, and the owner isn't being waited on.
+      const preferredChecks = state?.preferredId
+        ? await tx
+            .select({ status: checks.status, completedAt: checks.completedAt })
+            .from(checks)
+            .where(eq(checks.applicationId, state.preferredId))
+        : [];
+      const back =
+        nothingOut &&
+        !readyToOffer &&
+        state?.approval?.status !== 'requested' &&
+        !declinedByLandlord &&
+        allChecksBack(preferredChecks);
+      const [preferred] =
+        back && state?.preferredId
+          ? await tx
+              .select({ fullName: applications.fullName })
+              .from(applications)
+              .where(eq(applications.id, state.preferredId))
+          : [];
+      const checksBackFor = back ? firstNameOf(preferred?.fullName ?? '') || null : undefined;
+      const checksBackAt = back
+        ? preferredChecks.reduce<Date | null>(
+            (latest, c) =>
+              c.completedAt && (!latest || c.completedAt.getTime() > latest.getTime())
+                ? c.completedAt
+                : latest,
+            null,
+          )
+        : null;
       const needsNewChoice =
         !live && (declinedByLandlord || (out.length > 0 && !state?.preferredId));
       const answeredAt = state?.approval?.answeredAt ?? null;
@@ -223,6 +257,8 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
       }, null);
       offerState.set(lettingId, {
         readyToOffer,
+        checksBackFor,
+        checksBackAt,
         needsNewChoice,
         offerOut: out.some((o) => o.status === 'open'),
         reason: !needsNewChoice
@@ -356,6 +392,7 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         shortlist: undecided.get(letting.id)?.since ?? null,
         choose: toChoose.get(letting.id)?.since ?? null,
         offer: offer?.since ?? null,
+        checks: offer?.checksBackAt ?? null,
         rechoose: offer?.since ?? null,
         tenancy: tenancy?.updatedAt ?? null,
         rtb: tenancy ? irishInstant(tenancy.startDate, '00:00') : null,
@@ -384,6 +421,7 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         toChoose: toChoose.get(letting.id)?.n ?? 0,
         applied: applied.get(letting.id) ?? 0,
         readyToOffer: offer?.readyToOffer ?? false,
+        checksBackFor: offer?.checksBackFor,
         needsNewChoice: offer?.needsNewChoice ?? false,
         newChoiceReason: offer?.reason ?? null,
         offerOut: offer?.offerOut ?? false,

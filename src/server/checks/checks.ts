@@ -19,10 +19,13 @@ import {
   type CheckStatus,
 } from '@/domain/checks/checks';
 import { listerFrom } from '@/domain/frame/frame';
+import { waitingTooLong } from '@/domain/checks/review';
 import { checksBack, renterChecksDone } from '@/domain/funnels/steps';
 import { openJson, sealJson } from '@/lib/crypto';
 import { env } from '@/lib/env';
 import type { IdentityResult, IncomeResult } from '@/ports/checks';
+import type { Member } from '@/server/auth/member';
+import { UserFacingError } from '@/server/errors';
 import { createAccessLink, resolveAccessLink } from '@/server/access/links';
 import { listerColumns } from '@/server/frame/lister';
 import { noteFunnelStep, recordFunnelStep } from '@/server/funnels/steps';
@@ -149,6 +152,8 @@ export type CheckSummary = {
   reason: string | null;
   refereeName: string | null;
   requestedAt: Date | null;
+  /** When the check was set up: the moment its person was chosen. */
+  createdAt: Date;
   remindersSent: number;
   verifiedName?: string;
   monthlyIncomeCents?: number;
@@ -174,6 +179,7 @@ export async function checkResultsFor(
       reason: row.reason,
       refereeName: row.refereeName,
       requestedAt: row.requestedAt,
+      createdAt: row.createdAt,
       remindersSent: row.remindersSent,
     };
     if (opened && row.kind === 'identity') summary.verifiedName = String(opened.verifiedName);
@@ -580,5 +586,93 @@ export async function markReferenceOverdue(input: {
       data: { checkId: check.id, kind: check.kind, outcome: 'no_answer' },
     });
     await noteCheckProgress(tx, check.applicationId);
+  });
+}
+
+/**
+ * UX-DC-13: "Send a reminder" for a check that has waited more than three days. The renter gets
+ * the email about their checks again, with a new private link; a referee gets the reminder Gaff
+ * sends on its own, now. Only for a check of someone chosen, and only once it has waited.
+ */
+export async function remindAboutCheck(
+  member: Member,
+  lettingId: string,
+  checkId: string,
+  now: Date = new Date(),
+): Promise<{ to: 'renter' | 'referee' }> {
+  return withOrg(member.organisationId, async (tx) => {
+    const [row] = await tx
+      .select({ check: checks, application: applications, organisation: organisations })
+      .from(checks)
+      .innerJoin(applications, eq(applications.id, checks.applicationId))
+      .innerJoin(organisations, eq(organisations.id, checks.organisationId))
+      .where(and(eq(checks.id, checkId), eq(checks.lettingId, lettingId)))
+      .for('update', { of: checks });
+    if (!row || !(CHOSEN as readonly string[]).includes(row.application.status)) {
+      throw new UserFacingError('That check isn’t waiting on anyone now.');
+    }
+    const waiting = waitingTooLong(row.check, now);
+    if (!waiting) throw new UserFacingError('That check isn’t waiting on anyone now.');
+    const [letting] = await tx.select().from(lettings).where(eq(lettings.id, lettingId));
+    if (waiting.who === 'renter') {
+      const token = await createAccessLink(tx, {
+        organisationId: member.organisationId,
+        purpose: 'renter',
+        subjectId: row.application.id,
+      });
+      await queueMessage(tx, {
+        organisationId: member.organisationId,
+        lettingId,
+        applicationId: row.application.id,
+        kind: 'checks_invitation',
+        author: 'template',
+        templateKey: CHECKS_INVITATION_TEMPLATE,
+        toAddress: row.application.email,
+        ...checksInvitationEmail({
+          renterName: row.application.fullName,
+          operatorName: row.organisation.name,
+          address: letting!.addressLine1,
+          area: letting!.area,
+          checksUrl: `${env().APP_URL}/r/${token}`,
+        }),
+      });
+    } else {
+      const refereeToken = await createAccessLink(tx, {
+        organisationId: member.organisationId,
+        purpose: 'referee',
+        subjectId: row.check.id,
+      });
+      await queueMessage(tx, {
+        organisationId: member.organisationId,
+        lettingId,
+        applicationId: row.application.id,
+        checkId: row.check.id,
+        kind: 'reference_reminder',
+        author: 'template',
+        templateKey: REFERENCE_REMINDER_TEMPLATE,
+        toAddress: row.check.refereeEmail!,
+        ...referenceRequestEmail({
+          refereeName: row.check.refereeName ?? '',
+          renterName: row.application.fullName,
+          operatorName: row.organisation.name,
+          role: row.check.kind === 'landlord_reference' ? 'landlord' : 'employer',
+          referenceUrl: `${env().APP_URL}/reference/${refereeToken}`,
+          reminder: true,
+        }),
+      });
+    }
+    await tx
+      .update(checks)
+      .set({ remindersSent: row.check.remindersSent + 1 })
+      .where(eq(checks.id, row.check.id));
+    await recordEvent(tx, {
+      organisationId: member.organisationId,
+      lettingId,
+      actor: { type: 'person', userId: member.userId },
+      type: 'check.reminded',
+      subject: { type: 'check', id: row.check.id },
+      data: { checkId: row.check.id, kind: row.check.kind, to: waiting.who },
+    });
+    return { to: waiting.who };
   });
 }

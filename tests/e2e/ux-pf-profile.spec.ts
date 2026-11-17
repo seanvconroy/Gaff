@@ -1,5 +1,6 @@
 import { devices, expect, test, type Page } from '@playwright/test';
 import { daftEnquiry } from '../fixtures/emails';
+import { chooseWhoViews } from './journeys';
 import { bookFirstTime, expectReadable } from './renter';
 import {
   confirmItsYou,
@@ -73,12 +74,7 @@ test('UX-RN-13, UX-PF-1 to UX-PF-3, UX-PF-5, UX-RH-1, UX-RH-3, UX-RH-4: a renter
   const to = await gaffAddress(page);
   for (const home of homes) await sendTestEmail(page, { to, ...enquiryFrom(renter, name, home) });
   for (const letting of lettings) {
-    await expect(async () => {
-      await page.goto(`${letting}/shortlist`);
-      await expect(page.getByLabel(`Invite ${name}`)).toBeVisible({ timeout: 1000 });
-    }).toPass({ timeout: 20_000 });
-    await page.getByLabel(`Invite ${name}`).check();
-    await page.getByRole('button', { name: 'Send invitations' }).click();
+    await chooseWhoViews(page, letting, { waitFor: name, tick: [name] });
     await expect(page.getByText(/invited to book a viewing/)).toBeVisible();
   }
 
@@ -150,8 +146,8 @@ test('UX-RN-13, UX-PF-1 to UX-PF-3, UX-PF-5, UX-RH-1, UX-RH-3, UX-RH-4: a renter
   await expect(renterPage.getByRole('heading', { name: 'Your application is in' })).toBeVisible();
 
   // Rule 2: the operator sees what she sent, at the stage that asks for it.
-  await page.goto(`${lettings[1]}/applications`);
-  await expect(page.getByText(name).first()).toBeVisible();
+  await page.goto(`${lettings[1]}/choose`);
+  await expect(page.getByRole('radio', { name: `Choose ${name}` })).toBeVisible();
 
   // UX-RH-1, UX-RH-4: both homes are in her Enquiries, each with where she stands.
   await renterPage.goto('/enquiries');

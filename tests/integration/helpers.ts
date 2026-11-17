@@ -328,6 +328,24 @@ export async function peopleWhoApplied(
 }
 
 /**
+ * UX-DC-19 (R4, Q41): the three comparable rents the offer waits for, made up, for a letting at
+ * the usual €1,850 a month.
+ */
+export async function threeComparables(member: Member, lettingId: string): Promise<void> {
+  const { recordComparables } = await import('@/server/lettings/comparables');
+  await recordComparables(
+    member,
+    lettingId,
+    [180_000, 185_000, 195_000].map((monthlyRentCents) => ({
+      area: 'Dublin 6',
+      propertyType: 'apartment' as const,
+      bedrooms: 2,
+      monthlyRentCents,
+    })),
+  );
+}
+
+/**
  * Slice 3 set-up: a let home. Two applied; the first was chosen, the landlord approved by link,
  * the offer went out and was accepted. Returns the tenant's application ID and a fresh token.
  */
@@ -356,10 +374,13 @@ export async function aLetHome(member: Member): Promise<{
     preferred: 'approve',
     backup: 'approve',
   });
+  await threeComparables(member, lettingId);
+  // UX-DC-19: the person goes ahead before the checks are back.
   const made = await makeOffer(member, lettingId, {
     deposit: '1,850',
     startDate: '2026-12-01',
     deadlineHours: '48',
+    withoutChecks: 'yes',
   });
   if (!made.ok) throw new Error(`offer failed: ${JSON.stringify(made)}`);
   const tenantToken = await tokenInMessage(member, ids[0]!, 'offer');

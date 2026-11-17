@@ -1,0 +1,19 @@
+/* Message preview: the quiet fill, the subject in semibold, the words as they're sent. */
+.preview {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-md);
+}
+
+.subject {
+  font-weight: var(--type-title-weight);
+  overflow-wrap: anywhere;
+}
+
+.paragraph {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

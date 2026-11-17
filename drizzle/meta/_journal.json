@@ -218,6 +218,13 @@
       "when": 1794914390277,
       "tag": "0030_ux_ag_teams",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1794914476790,
+      "tag": "0031_ux_dc_owner_approval_confirmed",
+      "breakpoints": true
     }
   ]
 }

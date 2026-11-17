@@ -180,7 +180,9 @@ Every component adapts between phone and desktop. "Status" says whether it exist
 | **Code input** | The six-digit sign-in code | Six boxes; numeric keyboard; accepts a paste | Same | New |
 | **Photo uploader and gallery** | Adding, ordering and showing photos | Library or camera; a two-column grid | Drag and drop; a four-column grid | New (`PhotoField` exists for single photos) |
 | **Home card** | A home in a list | One column | A grid, three across | New |
-| **Person card / row** | An enquirer or applicant | A card | A table row with the same content | Changed (from `Table`, `Cell`) |
+| **Person card / row** | An enquirer or applicant | A card | A table row with the same content | Changed (from `Table`, `Cell`). `PersonCard`: applicants to choose between, a radio each, stacked on a phone and three across on a desktop (WP-17) |
+| **Pick list** | Ticking people from a ranked list ("Choose who views"), with "Why here" for each row's reason and a divider before people who haven't answered | Rows with hairlines; the whole row is the tick | Same | New (`PickList`, WP-17) |
+| **Message preview** | A fixed message as it will be sent, to read and not to edit | The quiet fill, subject then words | Same | New (`MessagePreview`, WP-17) |
 | **Action row** | Something that needs you | Whole-row target | Same | Exists |
 | **Sheet / dialog** | A short task over the page | Slides up from the bottom | A centred dialog | New |
 | **Menu** | Rare actions (⋯) | A sheet | A popover | New |

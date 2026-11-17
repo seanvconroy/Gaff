@@ -10,14 +10,13 @@ import styles from './letting.module.css';
 /**
  * The letting's pages. Each appears once the letting reaches the stage it's for, so a home being
  * set up shows only what can be done now (progressive disclosure); the stage tracker shows what's
- * still to come.
+ * still to come. The decisions (who views, an applicant, the checks, the owner and the offer)
+ * are focused flows of their own (WP-17), opened from what needs you.
  */
 const tabs = [
   { key: 'overview', label: 'Overview', path: '', from: 'setup' },
   { key: 'enquiries', label: 'Enquiries', path: '/enquiries', from: 'enquiries' },
-  { key: 'shortlist', label: 'Shortlist', path: '/shortlist', from: 'enquiries' },
   { key: 'attendance', label: 'Attendance', path: '/attendance', from: 'viewings' },
-  { key: 'applications', label: 'Applications', path: '/applications', from: 'applications' },
   { key: 'tenancy', label: 'Tenancy', path: '/tenancy', from: 'tenancy' },
   { key: 'timeline', label: 'Timeline', path: '/timeline', from: 'setup' },
 ] as const satisfies ReadonlyArray<{ key: string; label: string; path: string; from: Stage }>;

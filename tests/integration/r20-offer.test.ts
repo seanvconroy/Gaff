@@ -8,10 +8,22 @@ import { UserFacingError } from '@/server/errors';
 import { closeLetting } from '@/server/lettings/close';
 import { answerApproval, askLandlord } from '@/server/offers/approval';
 import { expireHomeOffer, makeOffer, respondToOffer } from '@/server/offers/offer';
-import { createTestMember, peopleWhoApplied, queuedJobs, tokenInMessage } from './helpers';
+import {
+  createTestMember,
+  peopleWhoApplied,
+  queuedJobs,
+  threeComparables,
+  tokenInMessage,
+} from './helpers';
 
 type Member = Awaited<ReturnType<typeof createTestMember>>;
-const terms = { deposit: '1,850', startDate: '2026-12-01', deadlineHours: '48' };
+/** UX-DC-19: the person goes ahead without waiting for the checks, which these tests skip. */
+const terms = {
+  deposit: '1,850',
+  startDate: '2026-12-01',
+  deadlineHours: '48',
+  withoutChecks: 'yes',
+};
 
 /** Three applied; the first is preferred, the second the backup; the landlord approves both. */
 async function approved(backup: 'approve' | 'decline' = 'approve') {
@@ -27,6 +39,7 @@ async function approved(backup: 'approve' | 'decline' = 'approve') {
   );
   const token = /\/approve\/([A-Za-z0-9_-]{43})/.exec(ask!.body)![1]!;
   await answerApproval(token, { preferred: 'approve', backup });
+  await threeComparables(member, lettingId);
   return { member, lettingId, ids };
 }
 
@@ -51,11 +64,11 @@ describe('R20: making the offer', () => {
     const { lettingId, ids } = await peopleWhoApplied(member, [5200, 4800]);
     await chooseApplicants(member, lettingId, { preferredId: ids[0]!, backupId: '' });
     await expect(makeOffer(member, lettingId, terms)).rejects.toThrow(
-      'Ask the landlord to approve first.',
+      'Ask the owner to approve first.',
     );
     await askLandlord(member, lettingId);
     await expect(makeOffer(member, lettingId, terms)).rejects.toThrow(
-      'Wait for the landlord’s answer first.',
+      'Wait for the owner’s answer first.',
     );
     const { member: m2, lettingId: l2 } = await approved();
     expect(await makeOffer(m2, l2, { ...terms, deposit: '1,851' })).toEqual({
@@ -98,6 +111,7 @@ describe('R20: making the offer', () => {
     const member = await createTestMember({ kind: 'landlord' });
     const { lettingId, ids } = await peopleWhoApplied(member, [5200]);
     await chooseApplicants(member, lettingId, { preferredId: ids[0]!, backupId: '' });
+    await threeComparables(member, lettingId);
     expect(await makeOffer(member, lettingId, terms)).toEqual({ ok: true });
   });
 });

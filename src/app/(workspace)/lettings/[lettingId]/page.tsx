@@ -1,7 +1,8 @@
-import { Share2 } from 'lucide-react';
+import { Clock, Handshake, Share2, ShieldCheck } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { addLettingCopy } from '@/copy/add-letting';
+import { both, decisionsCopy } from '@/copy/decisions';
 import { goLiveCopy } from '@/copy/go-live';
 import { shareCopy } from '@/copy/owner';
 import { letsOwnHomes } from '@/domain/organisations/kinds';
@@ -33,7 +34,13 @@ import { Notice } from '@/ui/Notice';
 import { Outcome } from '@/ui/Outcome';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { SummaryList } from '@/ui/SummaryList';
-import { resumeHref, screenHref } from '@/domain/lettings/links';
+import { decisionHref, resumeHref, screenHref } from '@/domain/lettings/links';
+import { firstNameOf } from '@/domain/accounts/first-run';
+import { allChecksBack } from '@/domain/checks/review';
+import { applicantsFor } from '@/server/applications/choose';
+import { approvalFor } from '@/server/offers/approval';
+import { offersFor } from '@/server/offers/offer';
+import { remindOwnerAction } from '@/app/(task)/lettings/[lettingId]/approval/actions';
 import { TodayList } from '../../TodayList';
 import { closeAction } from './actions';
 import { loadLetting } from './letting';
@@ -50,6 +57,7 @@ const savedCopy: Record<string, string> = {
   'rent-check': 'Rent check saved. It goes in the rent-setting pack.',
   comparables: 'Comparables saved for the rent-setting pack.',
   live: 'Gaff is now answering enquiries for this home.',
+  reminded: 'Reminder sent. The owner has a new link.',
   closed:
     'Closed. Everyone who enquired has been told, and Gaff deletes their details on schedule.',
 };
@@ -105,6 +113,8 @@ export default async function LettingPage({
   const standing = hasTeam(member.organisationKind)
     ? await lettingStandingFor(member, letting.id)
     : null;
+  // UX-DC-10, UX-DC-16: what Gaff is waiting on someone else for, with nothing to do but look.
+  const underWay = letting.status === 'live' ? await waitingOnOthers(member, letting.id) : [];
   const changeLink = (href: string, what: string) => (
     <Link href={href} className={styles.change}>
       Change<span className="visually-hidden"> {what}</span>
@@ -194,7 +204,7 @@ export default async function LettingPage({
             <h2 id="needs-heading" className="type-title">
               What needs you
             </h2>
-            {needsYou.length === 0 ? (
+            {needsYou.length === 0 && underWay.length === 0 ? (
               <p className={styles.muted}>
                 Nothing needs you for this home right now. Gaff is answering enquiries and booking
                 viewings, and it’ll list anything that needs you here.
@@ -202,6 +212,39 @@ export default async function LettingPage({
             ) : null}
           </div>
           {needsYou.length > 0 ? <TodayList rows={needsYou} flush /> : null}
+          {underWay.length > 0 ? (
+            <ActionList flush>
+              {underWay.map((row) =>
+                row.kind === 'owner' ? (
+                  <ActionRow
+                    key={row.kind}
+                    id="waiting-owner"
+                    icon={Clock}
+                    title={decisionsCopy.owner.waiting.line(row.owner, row.since)}
+                    trailing={
+                      <form action={remindOwnerAction.bind(null, letting.id)}>
+                        <input type="hidden" name="from" value="letting" />
+                        <SubmitButton
+                          variant="secondary"
+                          pendingLabel={decisionsCopy.owner.waiting.reminding}
+                        >
+                          {decisionsCopy.owner.waiting.remind(row.owner)}
+                        </SubmitButton>
+                      </form>
+                    }
+                  />
+                ) : (
+                  <ActionRow
+                    key={row.kind}
+                    id={`waiting-${row.kind}`}
+                    href={row.href}
+                    icon={row.kind === 'checks' ? ShieldCheck : Handshake}
+                    title={row.title}
+                  />
+                ),
+              )}
+            </ActionList>
+          ) : null}
         </section>
       ) : null}
 
@@ -374,4 +417,58 @@ export default async function LettingPage({
       ) : null}
     </Stack>
   );
+}
+
+type WaitingOn =
+  | { kind: 'checks'; title: string; href: string }
+  | { kind: 'owner'; owner: string; since: Date }
+  | { kind: 'offer'; title: string; href: string };
+
+/**
+ * UX-DC-10, UX-DC-16: while Gaff waits on someone else, the letting says so, and there is
+ * nothing to do but look: the chosen people's checks running, the owner's answer (with "Remind
+ * Mary"), or the renter's answer to the offer.
+ */
+async function waitingOnOthers(
+  member: Awaited<ReturnType<typeof loadLetting>>['member'],
+  lettingId: string,
+): Promise<WaitingOn[]> {
+  const [approval, listing, sent] = await Promise.all([
+    approvalFor(member, lettingId),
+    applicantsFor(member, lettingId),
+    offersFor(member, lettingId),
+  ]);
+  const rows: WaitingOn[] = [];
+  const open = sent.find((s) => s.offer.status === 'open');
+  if (open) {
+    return [
+      {
+        kind: 'offer',
+        title: decisionsCopy.underWay.offerOut(firstNameOf(open.name), open.offer.expiresAt),
+        href: decisionHref(lettingId, 'offer'),
+      },
+    ];
+  }
+  const chosen = (listing?.rows ?? []).filter(
+    (r) => r.status === 'preferred' || r.status === 'backup',
+  );
+  const preferred = chosen.find((r) => r.status === 'preferred');
+  if (preferred && !allChecksBack(preferred.checks)) {
+    const backup = chosen.find((r) => r.status === 'backup');
+    rows.push({
+      kind: 'checks',
+      title: decisionsCopy.underWay.checks(
+        both(firstNameOf(preferred.name), backup ? firstNameOf(backup.name) : null),
+      ),
+      href: decisionHref(lettingId, 'checks'),
+    });
+  }
+  if (approval?.approval?.status === 'requested' && approval.landlord) {
+    rows.push({
+      kind: 'owner',
+      owner: firstNameOf(approval.landlord.name),
+      since: approval.approval.remindedAt ?? approval.approval.requestedAt,
+    });
+  }
+  return rows;
 }

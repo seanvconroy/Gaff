@@ -1,12 +1,14 @@
-import { and, desc, eq, gt, inArray, isNull, ne, notInArray } from 'drizzle-orm';
+import { and, count, desc, eq, gt, inArray, isNull, ne, notInArray } from 'drizzle-orm';
 import { withOrg, type Tx } from '@/db/client';
 import {
   applications,
   bookings,
+  checks,
   lettings,
   messages,
   offers,
   organisations,
+  rentComparables,
   viewingSlots,
   waitlistOffers,
 } from '@/db/schema';
@@ -18,7 +20,13 @@ import {
   offerExpiredEmail,
   outcomeEmail,
 } from '@/copy/templates/offers';
-import { offerExpiry, offerTermsSchema, whoCanBeOffered } from '@/domain/offers/offer';
+import { checksStillUnderWay } from '@/domain/offers/approval';
+import {
+  offerBlockers,
+  offerExpiry,
+  offerTermsSchema,
+  whoCanBeOffered,
+} from '@/domain/offers/offer';
 import { deletionDateAfterClosing } from '@/domain/retention/retention';
 import { env } from '@/lib/env';
 import { formatDate, formatDateTime, formatEuro, irishToday } from '@/lib/format';
@@ -131,9 +139,11 @@ async function createOffer(
 export type MakeOfferResult = { ok: true } | { ok: false; errors: Record<string, string> };
 
 /**
- * R20: a person makes the offer (a 'make_offer' decision), with the landlord's approval
+ * R20: a person makes the offer (a 'make_offer' decision), with the owner's approval
  * (R19, Q22), a deposit of no more than a month's rent, a move-in date and a deadline. They can
- * also approve offering it to the backup if it isn't accepted in time (Q20).
+ * also approve offering it to the backup if it isn't accepted in time (Q20). It can't go before
+ * three comparable rents are recorded (R4, Q41) and the preferred applicant's checks are back,
+ * unless the person says they're going ahead without them (UX-DC-19).
  */
 export async function makeOffer(
   member: Member,
@@ -164,16 +174,40 @@ export async function makeOffer(
       return { ok: false, errors };
     }
     const terms = parsed.data;
+    const [recorded] = await tx
+      .select({ n: count() })
+      .from(rentComparables)
+      .where(eq(rentComparables.lettingId, lettingId));
+    const preferredChecks = await tx
+      .select({ status: checks.status })
+      .from(checks)
+      .where(eq(checks.applicationId, state.preferredId));
+    // UX-DC-19: the owner's approval, three comparable rents, and the checks or a yes to going
+    // ahead without them. Each is named on the offer's first screen while it's missing.
+    const blockers = offerBlockers({
+      route: state.route,
+      approval: state.approval,
+      hasBackup: state.backupId !== null,
+      comparables: recorded?.n ?? 0,
+      checks: preferredChecks,
+      withoutChecks: terms.withoutChecks,
+    });
     const who = whoCanBeOffered({
       route: state.route,
       approval: state.approval,
-      landlordConfirmed: terms.landlordConfirmed,
       hasBackup: state.backupId !== null,
     });
-    if (!who.preferred) throw new UserFacingError(who.problem ?? 'The landlord hasn’t approved.');
+    const [first] = blockers;
+    if (first?.code === 'owner') {
+      throw new UserFacingError(who.problem ?? 'The owner hasn’t approved.');
+    }
+    if (first?.code === 'comparables') {
+      throw new UserFacingError('Record three comparable rents first.');
+    }
+    if (first?.code === 'checks') throw new UserFacingError('The checks aren’t all back yet.');
     if (terms.offerBackup && !who.backup) {
       throw new UserFacingError(
-        'The landlord hasn’t approved your backup, so the offer can’t go to them automatically.',
+        'The owner hasn’t approved your backup, so the offer can’t go to them automatically.',
       );
     }
     const thenOfferToId = terms.offerBackup ? state.backupId : null;
@@ -190,7 +224,11 @@ export async function makeOffer(
         thenOfferToId,
         approvalRoute: state.route,
         approvalId: state.approval?.id ?? null,
-        landlordConfirmedByOperator: state.route === 'operator_confirms',
+        // Q22, UX-DC-15: the operator recorded that the owner had already approved.
+        landlordConfirmedByOperator: Boolean(state.approval?.confirmedBy),
+        comparables: recorded?.n ?? 0,
+        // UX-DC-19: the person went ahead before every check was back.
+        withoutChecks: checksStillUnderWay(preferredChecks) > 0,
       },
     });
     const [organisation] = await tx

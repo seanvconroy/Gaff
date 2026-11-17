@@ -1,5 +1,6 @@
 import { devices, expect, test, type Browser } from '@playwright/test';
 import { daftEnquiry, myhomeEnquiry } from '../fixtures/emails';
+import { flowAtBothWidths } from './journeys';
 import { expectRenterPageAtBothWidths } from './renter';
 import {
   createLettingThroughUi,
@@ -46,16 +47,61 @@ test('R10, R11, R12, R13, R14: a person decides who views; renters book, move an
     await linkInEmail(CIARAN, 'Your enquiry about 12 Ranelagh Road');
   }).toPass({ timeout: 20_000 });
 
-  // R10, R11: the ranking, and a person decides. Aoife is invited; Ciarán goes on the waiting list.
-  await page.goto(`${lettingUrl}/shortlist`);
-  await expect(page.getByRole('heading', { name: 'Decide who views' })).toBeVisible();
-  await page.getByLabel('Invite Ciarán Ó Súilleabháin').uncheck();
-  await expect(page.getByLabel('Invite Aoife Byrne')).toBeChecked();
-  await expectAccessible(page);
+  // R10, R11, UX-DC-1 to UX-DC-6: from Today, a focused flow. The ranking, the top people
+  // ticked, and a person decides. Aoife is invited; Ciarán goes on the waiting list.
+  await page.goto('/today');
+  await page.getByRole('link', { name: /^Choose who views · 12 Ranelagh Road/ }).click();
+  await expect(page).toHaveURL(/\/who-views$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Choose who views' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0);
+  const aoifeRow = page.getByRole('checkbox', { name: 'Aoife Byrne', exact: true });
+  const ciaranRow = page.getByRole('checkbox', { name: 'Ciarán Ó Súilleabháin', exact: true });
+  // UX-DC-2: ticked up to the places, each tick the person's to change.
+  await expect(aoifeRow).toBeChecked();
+  await expect(page.getByText(/^\d+ places · 2 chosen$/)).toBeVisible();
+  // UX-DC-1: the reason in words on tap, and "How Gaff ranks" once.
+  await page.getByRole('button', { name: 'Why here: Aoife Byrne' }).click();
+  await expect(page.getByText(/\. Enquired \w+day \d+ \w+, /).first()).toBeVisible();
+  await expect(page.getByText(/\. Enquired \w+day \d+ \w+, /).nth(1)).toBeHidden();
+  await expect(page.getByText('How Gaff ranks')).toHaveCount(1);
+  await ciaranRow.uncheck();
+  await expect(page.getByText(/^\d+ places · 1 chosen$/)).toBeVisible();
+  await flowAtBothWidths(page, 'who-views');
   await screenshot(page, '25-shortlist');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+
+  // Step 2: nothing has gone yet. UX-DC-4: fewer ticked than places, and it's said.
+  await expect(page.getByRole('heading', { level: 1, name: 'Check and send' })).toBeVisible();
+  await expect(
+    page.getByText('You’re inviting 1 person. The next 1 go on the waiting list.'),
+  ).toBeVisible();
+  await expect(page.getByText(/places? won’t be offered\. Invite more\?/)).toBeVisible();
+  // UX-DC-6: each fixed message can be read, and not edited.
+  await page.getByText('See the message').first().click();
+  await expect(page.getByLabel('Invited to book')).toContainText(
+    'Book a viewing: 12 Ranelagh Road',
+  );
+  await expect(page.getByRole('textbox')).toHaveCount(0);
+  await flowAtBothWidths(page, 'who-views-check');
+  // UX-DC-3: the waiting list, changed on its own screen and never bigger than who's left.
+  await page.getByRole('link', { name: 'Change On the waiting list' }).click();
+  await expect(page.getByRole('heading', { name: 'How many on the waiting list?' })).toBeVisible();
+  await expect(page.getByLabel('People on the waiting list')).toHaveValue('1');
+  await page.getByLabel('People on the waiting list').fill('99');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByText('Enter a number from 0 to 50.')).toBeVisible();
+  await flowAtBothWidths(page, 'who-views-waitlist');
+  await page.getByLabel('People on the waiting list').fill('10');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(
+    page.getByText('You’re inviting 1 person. The next 1 go on the waiting list.'),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Send invitations' }).click();
+  // UX-FL-4: what was done, and what happens next.
+  await expect(page.getByRole('heading', { name: 'Invitations sent' })).toBeVisible();
   await expect(page.getByText('1 invited to book a viewing, 1 on the waiting list')).toBeVisible();
-  await expect(page.getByText('Waiting list', { exact: true })).toBeVisible();
+  await expect(page.getByText('Gaff will tell you as people book.')).toBeVisible();
+  await flowAtBothWidths(page, 'who-views-sent');
   await screenshot(page, '26-shortlist-decided');
 
   // R12: Aoife books on her phone, from the invitation.
@@ -187,7 +233,8 @@ test('R10, R11, R12, R13, R14: a person decides who views; renters book, move an
   await expect(ciaran.page.getByRole('heading', { name: 'You’re booked' })).toBeVisible();
   await ciaran.context.close();
 
-  await page.goto(`${lettingUrl}/shortlist`);
-  await expect(page.getByText('Booked', { exact: true })).toBeVisible();
-  await expect(page.getByText('Invited', { exact: true })).toBeVisible();
+  // Ciarán has Aoife's place now; she cancelled.
+  await page.goto(`${lettingUrl}/attendance`);
+  await expect(page.getByText('Ciarán Ó Súilleabháin')).toBeVisible();
+  await expect(page.getByText(/^1 booked/)).toBeVisible();
 });

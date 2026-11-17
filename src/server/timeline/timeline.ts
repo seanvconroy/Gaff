@@ -292,6 +292,20 @@ export function describeEvent(
       return { what: data.updated ? 'Landlord’s details updated' : 'Landlord’s details added' };
     case 'landlord.approval_requested':
       return { what: 'The landlord was asked to approve' };
+    case 'landlord.approval_reminded':
+      return { what: 'The landlord was reminded to approve' };
+    case 'landlord.approval_confirmed':
+      return {
+        what: 'Recorded that the landlord had already approved',
+        detail: data.withBackup ? 'The preferred applicant and the backup' : undefined,
+      };
+    case 'check.reminded':
+      return {
+        what:
+          data.to === 'referee'
+            ? 'A referee was reminded'
+            : 'The renter was reminded about a check',
+      };
     case 'landlord.approval_answered':
       return {
         what:

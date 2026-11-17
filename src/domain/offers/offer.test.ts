@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { offerTermsSchema, whoCanBeOffered } from './offer';
+import { offerBlockers, offerTermsSchema, parseEuro, whoCanBeOffered } from './offer';
 
 const rentCents = 185_000;
 
@@ -12,7 +12,7 @@ describe('R20: the offer’s terms', () => {
         startDate: '2026-12-01',
         deadlineHours: 48,
         offerBackup: false,
-        landlordConfirmed: false,
+        withoutChecks: false,
       },
     );
     const tooMuch = terms.safeParse({
@@ -39,57 +39,128 @@ describe('R20: the offer’s terms', () => {
   });
 });
 
-describe('R20, Q20: who can be offered the home, and when', () => {
-  it('needs the landlord’s approval for each person, by link or confirmed by the operator', () => {
+describe('R20, Q20, Q22: who can be offered the home, and when', () => {
+  const answered = (
+    preferredAnswer: 'approved' | 'declined',
+    backupAnswer: 'approved' | 'declined',
+  ) => ({ status: 'answered', preferredAnswer, backupAnswer }) as const;
+
+  it('needs the owner’s approval for each person, by link or recorded by the operator', () => {
     expect(
       whoCanBeOffered({
         route: 'link',
-        approval: { status: 'answered', preferredAnswer: 'approved', backupAnswer: 'declined' },
-        landlordConfirmed: false,
+        approval: answered('approved', 'declined'),
         hasBackup: true,
       }),
     ).toEqual({ preferred: true, backup: false, problem: null });
-    expect(
-      whoCanBeOffered({ route: 'link', approval: null, landlordConfirmed: false, hasBackup: true }),
-    ).toEqual({
+    expect(whoCanBeOffered({ route: 'link', approval: null, hasBackup: true })).toEqual({
       preferred: false,
       backup: false,
-      problem: 'Ask the landlord to approve first.',
+      problem: 'Ask the owner to approve first.',
     });
     expect(
       whoCanBeOffered({
         route: 'link',
-        approval: { status: 'answered', preferredAnswer: 'declined', backupAnswer: 'approved' },
-        landlordConfirmed: false,
+        approval: { status: 'requested', preferredAnswer: null, backupAnswer: null },
         hasBackup: true,
       }).problem,
-    ).toBe('The landlord declined your preferred applicant. Choose again.');
+    ).toBe('Wait for the owner’s answer first.');
     expect(
       whoCanBeOffered({
-        route: 'operator_confirms',
-        approval: null,
-        landlordConfirmed: false,
-        hasBackup: false,
+        route: 'link',
+        approval: answered('declined', 'approved'),
+        hasBackup: true,
       }).problem,
-    ).toBe('Confirm that the landlord has approved.');
+    ).toBe('The owner declined your preferred applicant. Choose again.');
+    // Q22: with no email for the owner, the operator records that the owner approved.
+    expect(
+      whoCanBeOffered({ route: 'operator_confirms', approval: null, hasBackup: false }).preferred,
+    ).toBe(false);
     expect(
       whoCanBeOffered({
         route: 'operator_confirms',
-        approval: null,
-        landlordConfirmed: true,
+        approval: answered('approved', 'approved'),
         hasBackup: true,
       }),
     ).toEqual({ preferred: true, backup: true, problem: null });
   });
 
   it('a landlord letting their own home approves by making the offer', () => {
+    expect(whoCanBeOffered({ route: 'own_home', approval: null, hasBackup: true })).toEqual({
+      preferred: true,
+      backup: true,
+      problem: null,
+    });
+  });
+});
+
+describe('UX-DC-18: the deposit as it is typed (rule 4)', () => {
+  it.each([
+    ['1,850', 185_000],
+    ['1850', 185_000],
+    ['€1,850', 185_000],
+    ['€ 1,850.00', 185_000],
+    [' 1849.5 ', 184_950],
+  ])('reads %s', (typed, cents) => {
+    expect(parseEuro(typed)).toBe(cents);
+  });
+
+  it.each(['', 'one month', '1.850,00', '18,50', '-100'])('refuses %s', (typed) => {
+    expect(parseEuro(typed)).toBeNull();
+  });
+
+  it('accepts a month’s rent typed with a euro sign and a comma, and never more', () => {
+    const terms = offerTermsSchema(rentCents, '2026-11-02');
+    const fine = { startDate: '2026-12-01', deadlineHours: '48' };
+    expect(terms.parse({ ...fine, deposit: '€1,850' }).depositCents).toBe(185_000);
+    expect(terms.safeParse({ ...fine, deposit: '€1,850.01' }).success).toBe(false);
+  });
+});
+
+describe('UX-DC-19: what the offer waits for', () => {
+  const ready = {
+    route: 'link' as const,
+    approval: { status: 'answered', preferredAnswer: 'approved', backupAnswer: null } as const,
+    hasBackup: false,
+    comparables: 3,
+    checks: [{ status: 'passed' }, { status: 'answered' }],
+    withoutChecks: false,
+  };
+
+  it('nothing, once the owner approved, three rents are in and the checks are back', () => {
+    expect(offerBlockers(ready)).toEqual([]);
+  });
+
+  it('names each thing missing', () => {
     expect(
-      whoCanBeOffered({
-        route: 'own_home',
+      offerBlockers({
+        ...ready,
         approval: null,
-        landlordConfirmed: false,
-        hasBackup: true,
+        comparables: 1,
+        checks: [{ status: 'passed' }, { status: 'in_progress' }, { status: 'to_do' }],
       }),
-    ).toEqual({ preferred: true, backup: true, problem: null });
+    ).toEqual([
+      { code: 'owner', standing: 'ask' },
+      { code: 'comparables', recorded: 1 },
+      { code: 'checks', waiting: 2 },
+    ]);
+    expect(
+      offerBlockers({
+        ...ready,
+        approval: { status: 'requested', preferredAnswer: null, backupAnswer: null },
+      }),
+    ).toEqual([{ code: 'owner', standing: 'waiting' }]);
+  });
+
+  it('lets the person go ahead without the checks, as their own choice', () => {
+    expect(
+      offerBlockers({ ...ready, checks: [{ status: 'in_progress' }], withoutChecks: true }),
+    ).toEqual([]);
+  });
+
+  it('asks no owner of a landlord letting their own home, but still needs the rents', () => {
+    expect(offerBlockers({ ...ready, route: 'own_home', approval: null, comparables: 0 })).toEqual([
+      { code: 'comparables', recorded: 0 },
+    ]);
   });
 });

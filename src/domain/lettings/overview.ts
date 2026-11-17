@@ -55,7 +55,10 @@ export interface OverviewFacts {
   applied: number;
   /** The preferred applicant, then the backup: first name, checks back and checks in all. */
   checks: ReadonlyArray<{ firstName: string; back: number; total: number }>;
-  /** What Gaff is waiting on someone else for (UX-DC-10, UX-DC-16), in words. */
+  /**
+   * What Gaff is waiting on someone else for (UX-DC-10, UX-DC-16), in words: one line for each
+   * thing, on a line of its own.
+   */
   waitingOn: string | null;
   /** The owner's answer, for a home let for an owner. Null where nobody is asked. */
   owner: 'not_asked' | 'waiting' | 'approved' | 'declined' | null;
@@ -113,15 +116,17 @@ export function pageStage(
 export function progressOf(stage: Stage): {
   segments: readonly string[];
   current: number;
-  /** The stage inside the current part, said after its name. */
-  detail: string;
+  /** The stage inside the current part, said after its name, where it isn't the same word. */
+  detail: string | undefined;
   label: string;
 } {
+  const part: string = lettingParts[partOf(stage)]!;
+  const detail = stageLabels[stage] === part ? undefined : stageLabels[stage];
   return {
     segments: lettingParts,
     current: partReached(stage),
-    detail: stageLabels[stage],
-    label: `${lettingParts[partOf(stage)]} · ${stageLabels[stage]}`,
+    detail,
+    label: detail ? `${part} · ${detail}` : part,
   };
 }
 

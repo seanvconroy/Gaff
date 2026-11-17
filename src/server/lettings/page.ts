@@ -94,7 +94,11 @@ export async function overviewFactsFor(
     }
     if (ownerAsked && approval?.approval) {
       waiting.push(
-        `${decisionsCopy.owner.waiting.line(ownerAsked, approval.approval.remindedAt ?? approval.approval.requestedAt, now)}.`,
+        decisionsCopy.owner.waiting.line(
+          ownerAsked,
+          approval.approval.remindedAt ?? approval.approval.requestedAt,
+          now,
+        ),
       );
     }
   }
@@ -188,7 +192,7 @@ export async function overviewFactsFor(
       back: r.checks.filter((c) => c.status !== 'to_do' && c.status !== 'in_progress').length,
       total: r.checks.length,
     })),
-    waitingOn: waiting.length > 0 ? waiting.join(' ') : null,
+    waitingOn: waiting.length > 0 ? waiting.join('\n') : null,
     owner: ownerState,
     offer,
     tenancy: tenancyFacts,

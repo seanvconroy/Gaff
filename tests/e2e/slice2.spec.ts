@@ -137,7 +137,9 @@ test('R17, UX-DC-7 to UX-DC-9: from Today, the operator chooses a preferred appl
   await expect(page.getByRole('heading', { name: 'Checks started' })).toBeVisible();
   await flowAtBothWidths(page, 'choose-started');
   await page.getByRole('link', { name: 'Done' }).click();
-  await expect(page.getByText('Step 6 of 9 · Checks')).toBeVisible();
+  await expect(page.getByRole('list', { name: 'How far it’s got' })).toContainText(
+    'Choose · Checks',
+  );
   // UX-DC-10: while checks run, there's nothing to do, and the letting says so.
   await expect(page.getByText(/Checks under way for Aoife and Ciarán/)).toBeVisible();
 
@@ -148,7 +150,7 @@ test('R17, UX-DC-7 to UX-DC-9: from Today, the operator chooses a preferred appl
 
   await page.setViewportSize({ width: 412, height: 915 });
   await expectNoSidewaysScroll(page);
-  await page.goto(`${lettingUrl}/timeline`);
+  await page.goto(`${lettingUrl}/history`);
   await expect(page.getByText('Preferred applicant and backup chosen')).toBeVisible();
 });
 
@@ -574,8 +576,10 @@ test('R20, R21, UX-DC-15, UX-DC-17 to UX-DC-20: the offer goes out with a deadli
   await page.goto(`${lettingUrl}/offer`);
   await expect(page.getByRole('heading', { name: 'Aoife accepted' })).toBeVisible();
   await page.goto(lettingUrl);
-  await expect(page.getByText('Step 8 of 9 · Tenancy')).toBeVisible();
-  await page.goto(`${lettingUrl}/timeline`);
+  await expect(page.getByRole('list', { name: 'How far it’s got' })).toContainText(
+    'Sign · Tenancy',
+  );
+  await page.goto(`${lettingUrl}/history`);
   await expect(page.getByText('Offer accepted: the home is let')).toBeVisible();
   await expect(page.getByText('Everyone else told')).toBeVisible();
 });

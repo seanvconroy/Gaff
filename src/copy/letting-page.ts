@@ -188,6 +188,7 @@ export const lettingPageCopy = {
     factsUsed: 'Gaff answers renters from these, as they are now.',
     details: 'Letting details',
     noDetails: 'Nothing asked. Everyone is ranked by when they enquired.',
+    notSet: 'Not set yet.',
     viewings: 'Viewing times',
     noViewings: 'No viewing times yet.',
     rentCheck: 'Rent check',

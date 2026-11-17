@@ -64,7 +64,11 @@ export function OverviewView({
           </>
         ) : (
           <>
-            <p className={styles.lead}>{needs.doing}</p>
+            {needs.doing.split('\n').map((line) => (
+              <p key={line} className={styles.lead}>
+                {line}
+              </p>
+            ))}
             {remindOwner ? (
               <form action={remindOwnerAction.bind(null, lettingId)}>
                 <input type="hidden" name="from" value="letting" />

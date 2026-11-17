@@ -16,6 +16,7 @@ import {
   signUpOperator,
   toGoLiveThroughUi,
 } from './support';
+import { closeLettingThroughUi } from './journeys';
 
 /**
  * Work package WP-9: adding a letting (UX-LT-1, UX-LT-4, UX-LT-5, UX-LT-8 to UX-LT-16, UX-LT-22
@@ -323,7 +324,9 @@ test('UX-LT-1, UX-LT-8 to UX-LT-15, UX-LT-22: a letting goes live from scratch, 
     ).toBeVisible();
     await page.getByRole('link', { name: 'Close' }).click();
     await expect(page.getByText('Gaff is now answering enquiries for this home.')).toBeVisible();
-    await expect(page.getByText('Step 2 of 9 · Enquiries')).toBeVisible();
+    await expect(page.getByRole('list', { name: 'How far it’s got' })).toContainText(
+      'Find · Enquiries',
+    );
     await expect(page.getByRole('link', { name: /^Set up forwarding/ })).toBeVisible();
     await expectAccessible(page);
     await screenshot(page, `ux-lt-11-live-${width}`);
@@ -408,11 +411,13 @@ test('UX-FL-2: Save and exit keeps what was typed, and Continue comes back to th
 
     // Its own page says how much is left, with one button: Continue.
     await page.goto(`/lettings/${id}`);
-    const setup = page.getByRole('region', { name: 'Finish setting up' });
-    await expect(setup.getByText('2 steps left.')).toBeVisible();
-    await expect(page.getByText('No pets (assistance dogs are always welcome)')).toBeVisible();
+    const setup = page.getByRole('region', { name: 'Needs you' });
+    await expect(setup.getByText('Finish setting up. 2 steps left.')).toBeVisible();
     await expectAccessible(page);
     await screenshot(page, `ux-lt-resume-letting-${width}`);
+    await page.getByRole('link', { name: 'Home', exact: true }).click();
+    await expect(page.getByText('No pets (assistance dogs are always welcome)')).toBeVisible();
+    await page.getByRole('link', { name: 'Overview', exact: true }).click();
     await setup.getByRole('link', { name: 'Continue' }).click();
     await expect(
       page.getByRole('heading', { level: 1, name: 'Has this home been let before?' }),
@@ -603,10 +608,8 @@ test('UX-LT-23: a closed letting is let again from the review screen, with every
     await expect(page.getByRole('list', { name: 'Photos' }).getByRole('img')).toHaveCount(1);
     await goLiveThroughUi(page);
     const before = homeIdIn(page.url());
-    await page.getByText('Close this letting').click();
-    await page.getByLabel('We’re not letting it now').check();
-    await page.getByRole('button', { name: 'Close the letting' }).click();
-    await expect(page.getByText('This letting is withdrawn')).toBeVisible();
+    await closeLettingThroughUi(page, address, 'We’re not letting it now');
+    await expect(page.getByText(/· Withdrawn$/)).toBeVisible();
 
     // "Let it again", in the closed letting's menu, opens the review with last time's home.
     await page.getByRole('button', { name: `More for ${address}` }).click();

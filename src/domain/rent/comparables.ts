@@ -188,7 +188,8 @@ export function comparableStepHref(lettingId: string, position: number, from: Co
 /** Where closing the comparables goes, and where they end once all three are in. */
 export function comparablesLeaveHref(lettingId: string, from: ComparablesFrom, saved = false) {
   if (from === 'offer') return `/lettings/${lettingId}/offer`;
-  return `/lettings/${lettingId}${saved ? '?saved=comparables' : ''}`;
+  // UX-LP-11: comparable rents are a part of Home on the letting's page.
+  return `/lettings/${lettingId}?view=home${saved ? '&saved=comparables' : ''}`;
 }
 
 /** Maps a parse error path ([1, "rent"]) to the form field name ("c2Rent"). */

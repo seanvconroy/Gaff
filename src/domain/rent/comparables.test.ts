@@ -134,7 +134,9 @@ describe('UX-LP-14: comparables opened from the offer go back to it', () => {
     expect(comparableStepHref('l1', 2, 'offer')).toBe('/lettings/l1/comparables/2?from=offer');
     expect(comparableStepHref('l1', 2, 'letting')).toBe('/lettings/l1/comparables/2');
     expect(comparablesLeaveHref('l1', 'offer', true)).toBe('/lettings/l1/offer');
-    expect(comparablesLeaveHref('l1', 'letting', true)).toBe('/lettings/l1?saved=comparables');
-    expect(comparablesLeaveHref('l1', 'letting')).toBe('/lettings/l1');
+    expect(comparablesLeaveHref('l1', 'letting', true)).toBe(
+      '/lettings/l1?view=home&saved=comparables',
+    );
+    expect(comparablesLeaveHref('l1', 'letting')).toBe('/lettings/l1?view=home');
   });
 });

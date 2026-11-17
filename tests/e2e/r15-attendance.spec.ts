@@ -97,7 +97,7 @@ test('R15: the operator marks who came, on a phone, with one tap per person', as
   await expectAccessible(renter);
   await phone.close();
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto(`${lettingUrl}/timeline`);
+  await page.goto(`${lettingUrl}/history`);
   await expect(page.getByText('Marked as came to the viewing').first()).toBeVisible();
   await expect(page.getByText('Marked as didn’t come')).toBeVisible();
 });

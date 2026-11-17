@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { rentDueDay, rtbDeadline } from '../../src/domain/tenancy/tenancy';
 import { formatDate } from '../../src/lib/format';
-import { AOIFE, anAcceptedOffer, onPhone } from './journeys';
+import { AOIFE, anAcceptedOffer, expectOverview, onPhone } from './journeys';
 import { enterLinkCode, expectFramePageAtBothWidths, expectRenterPageAtBothWidths } from './renter';
 import {
   AVAILABLE_IN_DAYS,
@@ -27,7 +27,6 @@ test('R22: the tenant reads and signs the agreement on their phone, then the ope
   // UX-TN-1: the Tenancy page lists the six steps; the one to do now is its one button.
   await page.goto(`${lettingUrl}/tenancy`);
   await expect(page.getByRole('heading', { name: 'The tenancy, step by step' })).toBeVisible();
-  await expect(page.getByText('Step 8 of 9 · Tenancy')).toBeVisible();
   await expect(tenancySteps(page)).toHaveText([
     /Send the agreement\s*Next/,
     /Sign the agreement\s*To come/,
@@ -620,15 +619,21 @@ test('R26: the operator finishes the let home; the record is archived and the da
   await expect(footer.getByRole('link')).toHaveCount(1);
   await expect(footer.getByRole('link', { name: 'Send Tom the summary' })).toBeVisible();
   await atBothWidths(page, 'ux-tn-5-let');
+  // UX-LP-1: stage 9, finished: nothing needs you, with how long it took and what it saved.
   await page.goto(lettingUrl);
-  await expect(page.getByText('Step 9 of 9 · Close')).toBeVisible();
+  await expectOverview(page, {
+    says: 'This letting is closed.',
+    figures: ['Days to let', 'Time saved'],
+    next: /Gaff deletes other applicants’ details on|Renters’ details have been deleted/,
+  });
+  await expect(page.getByRole('link', { name: 'See how it went' })).toBeVisible();
 
   // UX-HM-9: what the letting took is shown under the closed home in Lettings, not on Today.
   await page.goto('/lettings');
   await expect(
     page.getByRole('list', { name: 'Let', exact: true }).getByText(/^Let in 0 days/),
   ).toBeVisible();
-  await page.goto(`${lettingUrl}/timeline`);
+  await page.goto(`${lettingUrl}/history`);
   await expect(page.getByText('Letting finished and archived')).toBeVisible();
 
   // UX-OP-5: once it's let, the owner's page is a one-screen summary.
@@ -670,6 +675,6 @@ test('Testing tool: start the viewings now, only where dev tools are on', async 
   })
     .format(new Date())
     .replace(',', '');
-  await page.goto(lettingUrl);
+  await page.goto(`${lettingUrl}?view=home`);
   await expect(page.getByRole('region', { name: 'Viewing times' })).toContainText(today);
 });

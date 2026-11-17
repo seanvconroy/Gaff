@@ -121,7 +121,7 @@ test('UX-NV-1 to UX-NV-5: anyone running lettings has four destinations, in a to
     }
 
     // Every page of a letting, and settings, sit in the same shell.
-    for (const path of [lettingUrl, `${lettingUrl}/viewings`, `${lettingUrl}/timeline`]) {
+    for (const path of [lettingUrl, `${lettingUrl}/viewings`, `${lettingUrl}/history`]) {
       await page.goto(path);
       await expect(nav.getByRole('link', { name: 'Lettings' })).toHaveAttribute(
         'aria-current',

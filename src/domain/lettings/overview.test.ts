@@ -351,6 +351,7 @@ describe('UX-LP-3: four named parts, and never "Step n of 9"', () => {
       detail: 'Viewings',
       label: 'Find · Viewings',
     });
+    expect(progressOf('setup').label).toBe('Set up');
     for (const stage of stages) expect(progressOf(stage).label).not.toMatch(/of 9/);
   });
 });

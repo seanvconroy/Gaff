@@ -1,14 +1,15 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { lettingPageCopy } from '@/copy/letting-page';
-import { lettingDetailsLine } from '@/domain/criteria/criteria';
+import { describeCriteria, NO_SMOKING_INDOORS } from '@/domain/criteria/criteria';
 import { screenHref } from '@/domain/lettings/links';
 import { describeKeyFacts } from '@/domain/lettings/new-letting';
 import { previewBer } from '@/domain/lettings/preview';
 import { portals } from '@/domain/lettings/setup';
-import { medianRentCents } from '@/domain/rent/comparables';
+import { comparableWarnings, medianRentCents } from '@/domain/rent/comparables';
 import { formatDate, formatDateTime, formatRent } from '@/lib/format';
 import type { LettingDetail } from '@/server/lettings/queries';
+import { Notice } from '@/ui/Notice';
 import { SummaryList } from '@/ui/SummaryList';
 import styles from './letting.module.css';
 import { RentCheckResult } from './RentCheckResult';
@@ -59,7 +60,13 @@ export function HomeView({
     parking: letting.parking as Parameters<typeof describeKeyFacts>[0]['parking'],
   });
   const ber = previewBer(letting.berRating);
-  const details = lettingDetailsLine(letting.criteria, letting.noSmokingIndoors);
+  const details = letting.criteria
+    ? [
+        ...describeCriteria(letting.criteria),
+        // UX-MT-5: the one house rule sits with the letting details, and never ranks anyone.
+        ...(letting.noSmokingIndoors ? [NO_SMOKING_INDOORS] : []),
+      ]
+    : [];
   const advertised = [
     ...(shownOnGaff ? [copy.onGaff] : []),
     ...(letting.advertisedOn ?? []).map((p) => portals[p]),
@@ -127,7 +134,15 @@ export function HomeView({
         title={copy.details}
         action={detailsLocked ? null : change(alone('details'), 'the letting details')}
       >
-        <p className={details ? undefined : styles.muted}>{details ?? copy.noDetails}</p>
+        {details.length > 0 ? (
+          <ul className={styles.list}>
+            {details.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className={styles.muted}>{letting.criteria ? copy.noDetails : copy.notSet}</p>
+        )}
         {detailsLocked && open ? <p className={styles.muted}>{lockedWords}</p> : null}
       </Part>
 
@@ -188,6 +203,11 @@ export function HomeView({
               The middle rent is {formatRent(medianRentCents(comparables))}. You’re asking{' '}
               {formatRent(letting.monthlyRentCents)}.
             </p>
+            {comparableWarnings(letting, comparables).map((warning) => (
+              <Notice key={warning} tone="warning">
+                <p>{warning} Comparables should be similar homes in the same area.</p>
+              </Notice>
+            ))}
           </>
         )}
       </Part>

@@ -154,7 +154,10 @@ export async function chooseApplicant(
   await expect(page.getByRole('heading', { name: 'Checks started' })).toBeVisible();
 }
 
-/** UX-DC-19 (R4): the three comparable rents the offer waits for, made up. */
+/**
+ * UX-DC-19, UX-LP-14 (R4): the three comparable rents the offer waits for, made up, one home
+ * per screen. They end on Home on the letting's page.
+ */
 export async function recordComparablesThroughUi(page: Page, lettingUrl: string) {
   await page.goto(`${lettingUrl}/comparables`);
   for (const [n, rent] of [
@@ -162,13 +165,17 @@ export async function recordComparablesThroughUi(page: Page, lettingUrl: string)
     [2, '1,850'],
     [3, '1,950'],
   ] as const) {
-    const section = page.getByRole('region', { name: `Comparable ${n}` });
-    await section.getByLabel('Area').fill('Dublin 6');
-    await section.getByLabel('Type of home').selectOption('apartment');
-    await section.getByLabel('Bedrooms').fill('2');
-    await section.getByLabel('Rent a month').fill(rent);
+    await expect(
+      page.getByRole('heading', { level: 1, name: `Comparable rent ${n} of 3` }),
+    ).toBeVisible();
+    await page.getByLabel('Area').fill('Dublin 6');
+    await page.getByLabel('Type of home').selectOption('apartment');
+    await page.getByLabel('Bedrooms').fill('2');
+    await page.getByLabel('Rent a month').fill(rent);
+    await page
+      .getByRole('button', { name: n < 3 ? 'Next' : 'Save comparables', exact: true })
+      .click();
   }
-  await page.getByRole('button', { name: 'Save comparables' }).click();
   await expect(page.getByText('Comparables saved for the rent-setting pack.')).toBeVisible();
 }
 
@@ -194,4 +201,79 @@ export async function flowAtBothWidths(page: Page, name: string) {
     await expectNoSidewaysScroll(page);
     await screenshot(page, `wp17-${name}-${width}`);
   }
+}
+
+/** UX-LP-1: a letting's Overview, block by block. */
+export const needsYouBlock = (page: Page) =>
+  page.getByRole('region', { name: /^(Needs you|Nothing needs you)$/ });
+export const happeningBlock = (page: Page) =>
+  page.getByRole('region', { name: 'What’s happening' });
+export const nextBlock = (page: Page) => page.getByRole('region', { name: 'What’s next' });
+
+/**
+ * UX-LP-1, UX-LP-2: the letting's Overview as it should be: its three blocks and no more, the
+ * same three views, and either the one task (a primary button) or "Nothing needs you".
+ */
+export async function expectOverview(
+  page: Page,
+  expected: {
+    /** The page's one button, in Needs you. Left out: nothing needs you. */
+    task?: string;
+    /** Words in Needs you: the task's lead, or what Gaff is doing. */
+    says?: string | RegExp;
+    /** The figures' names under What's happening, in order. */
+    figures?: string[];
+    next?: string | RegExp;
+  },
+) {
+  const needs = needsYouBlock(page);
+  await expect(needs).toBeVisible();
+  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText([
+    expected.task ? 'Needs you' : 'Nothing needs you',
+    'What’s happening',
+    'What’s next',
+  ]);
+  await expect(page.getByRole('navigation', { name: 'This letting' }).getByRole('link')).toHaveText(
+    ['Overview', 'People', 'Home'],
+  );
+  if (expected.task) {
+    await expect(needs.getByRole('link', { name: expected.task, exact: true })).toBeVisible();
+  } else {
+    await expect(needs.getByRole('link')).toHaveCount(0);
+  }
+  if (expected.says) await expect(needs).toContainText(expected.says);
+  if (expected.figures) {
+    await expect(happeningBlock(page).getByRole('term')).toHaveText(expected.figures);
+  }
+  if (expected.next) await expect(nextBlock(page)).toContainText(expected.next);
+  await expect(page.getByText(/Step \d of 9/)).toHaveCount(0);
+}
+
+/** The letting's menu, opened: "More for 12 Ranelagh Road". */
+export async function openLettingMenu(page: Page, address = '12 Ranelagh Road') {
+  await page.getByRole('button', { name: `More for ${address}` }).click();
+  const menu = page.getByRole('menu', { name: `More for ${address}` });
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
+/** R26, UX-LP-5: "Close this letting", from the menu, answered and closed. */
+export async function closeLettingThroughUi(
+  page: Page,
+  address: string,
+  outcome: 'It’s let' | 'We’re not letting it now',
+) {
+  const menu = await openLettingMenu(page, address);
+  await menu.getByRole('menuitem', { name: 'Close this letting' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'How did it end?' })).toBeVisible();
+  await page.getByLabel(outcome).check();
+  await page.getByRole('button', { name: 'Close the letting' }).click();
+  await expect(page.getByText('Closed. Everyone who enquired has been told')).toBeVisible();
+}
+
+/** UX-LP-6: History, from the letting's menu. */
+export async function openHistory(page: Page, address = '12 Ranelagh Road') {
+  const menu = await openLettingMenu(page, address);
+  await menu.getByRole('menuitem', { name: 'History' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'History' })).toBeVisible();
 }

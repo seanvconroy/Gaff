@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import pg from 'pg';
+import { aPng } from '../fixtures/photos';
 import { E2E_DATABASE_URL } from '../../playwright.config';
 import {
   expectAccessible,
@@ -68,8 +69,8 @@ async function liveHomes(homes: Home[]): Promise<void> {
   if (made.length > 0) return;
   const userId = randomUUID();
   const [org] = await asSystem<{ id: string }>(
-    `insert into organisations (name, kind, confirmed_at, inbound_slug)
-     values ('Seaview Lettings', 'agency', now(), $1) returning id`,
+    `insert into organisations (name, kind, confirmed_at, psra_licence_number, inbound_slug)
+     values ('Seaview Lettings', 'agency', now(), '7770001', $1) returning id`,
     [`seaview-${userId.slice(0, 8)}`],
   );
   await asSystem('insert into users (id, name, email) values ($1, $2, $3)', [
@@ -77,13 +78,15 @@ async function liveHomes(homes: Home[]): Promise<void> {
     'Nora Test',
     `nora.${userId.slice(0, 8)}@seaview.test`,
   ]);
+  // UX-LT-22, UX-TS-1: a home is on Gaff with a BER and a photo, let by a confirmed lister.
+  const photo = aPng([36, 99, 168]);
   for (const home of homes) {
-    await asSystem(
+    const [letting] = await asSystem<{ id: string }>(
       `insert into lettings (organisation_id, address_line1, area, county, monthly_rent_cents,
          available_from, property_type, bedrooms, furnished, parking, criteria, stage, status,
-         created_by, live_at)
+         created_by, lead_user_id, live_at, ber_rating)
        values ($1, $2, $3, $4, $5, $6, $7, $8, 'furnished', 'street', $9, 'enquiries', 'live',
-         $10, now() - make_interval(hours => $11))`,
+         $10, $10, now() - make_interval(hours => $11), 'C1') returning id`,
       [
         org!.id,
         home.address,
@@ -97,6 +100,17 @@ async function liveHomes(homes: Home[]): Promise<void> {
         userId,
         home.hoursAgo,
       ],
+    );
+    const key = `homes/${org!.id}/${randomUUID()}.png`;
+    await asSystem(
+      'insert into dev_photo_store (key, content_type, bytes, size) values ($1, $2, $3, $4)',
+      [key, 'image/png', photo, photo.length],
+    );
+    await asSystem(
+      `insert into letting_photos (organisation_id, letting_id, position, storage_key,
+         content_type, bytes, created_by)
+       values ($1, $2, 0, $3, 'image/png', $4, $5)`,
+      [org!.id, letting!.id, key, photo.length, userId],
     );
   }
 }

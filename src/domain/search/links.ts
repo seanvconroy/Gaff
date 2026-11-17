@@ -1,8 +1,10 @@
+import { homeHref } from '@/domain/homes/home-page';
+
 /**
- * Where a home's public page lives: what a search result opens. That page is work package
- * WP-20 ("A home's page"); every card links through this one function, so pointing search at
- * the page's real address is a change here and nowhere else.
+ * Where a home's public page lives: what a search result opens. Every card links through this
+ * one function. A home is known in search by its public reference (UX-LS-1), never an internal
+ * ID.
  */
-export function homePageHref(lettingId: string): string {
-  return `/homes/${lettingId}`;
+export function homePageHref(ref: string): string {
+  return homeHref(ref);
 }

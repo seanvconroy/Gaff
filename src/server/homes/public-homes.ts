@@ -24,8 +24,8 @@ import { photoHref } from '@/ports/photo-store';
  * is known by its public reference.
  *
  * A visitor has no account and a search runs across every lister, so this reads as the system
- * (as `resolveAccessLink` does), and only through these columns. Work package WP-21's search
- * reads homes through `publicHomes`, adding its filters to `PublicHomesQuery`.
+ * (as `resolveAccessLink` does), and only through these columns. Search reads the same homes
+ * through `publicHomesForSearch`, so a home is in search exactly when it has a page.
  */
 
 /** A home's photo on its public page. Photos of homes only, served from Gaff's own address. */
@@ -98,6 +98,8 @@ const columns = {
   pageRemovedAt: lettings.pageRemovedAt,
   liveAt: lettings.liveAt,
   addressLine1: lettings.addressLine1,
+  addressLine2: lettings.addressLine2,
+  eircode: lettings.eircode,
   area: lettings.area,
   county: lettings.county,
   monthlyRentCents: lettings.monthlyRentCents,
@@ -220,6 +222,29 @@ function toPublicHome(loaded: Loaded): PublicHome {
     phone: row.phone?.trim() || null,
     liveAt: row.liveAt ?? new Date(0),
   };
+}
+
+/**
+ * What search matches a home on (UX-SR-4, UX-SR-5): where it is, and the same facts its page
+ * shows. The second address line and the Eircode are here only to place the home in a town or a
+ * Dublin district: search never shows them.
+ */
+export interface PlacedHome {
+  home: PublicHome;
+  addressLine2: string | null;
+  eircode: string | null;
+}
+
+/** Every live home on Gaff, newest first, for search to match. The same homes as `publicHomes`. */
+export async function publicHomesForSearch(): Promise<PlacedHome[]> {
+  const loaded = await withSystem((tx) => load(tx, and(eq(lettings.status, 'live'), onGaff)!));
+  return loaded
+    .filter((home) => stateOf(home) === 'live')
+    .map((home) => ({
+      home: toPublicHome(home),
+      addressLine2: home.row.addressLine2,
+      eircode: home.row.eircode,
+    }));
 }
 
 /** What a search can ask of the homes on Gaff. WP-21 adds its filters here. */

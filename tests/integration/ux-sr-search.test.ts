@@ -1,12 +1,27 @@
 import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
-import { withSystem } from '@/db/client';
+import { withOrg, withSystem } from '@/db/client';
 import { funnelEvents, lettings } from '@/db/schema';
+import { addPhoto } from '@/server/lettings/photos';
 import { liveHomesOnGaff, findHomes } from '@/server/search/homes';
 import { countSearch, searchFromWords } from '@/server/search/search';
-import { aLiveLetting, createTestMember } from './helpers';
+import { aPng } from '../fixtures/photos';
+import { aLiveLetting, createTestMember, type Member } from './helpers';
 
 const PLACE = 'Dalkey';
+
+/**
+ * A live home as search knows it: with a photo, which a home needs to be on Gaff (UX-LT-22),
+ * and by its public reference, never its ID (UX-LS-1).
+ */
+async function aHomeOnGaff(member: Member, facts: Record<string, string>) {
+  const { lettingId } = await aLiveLetting(member, facts);
+  await addPhoto(member, lettingId, aPng([36, 99, 168]));
+  const [row] = await withOrg(member.organisationId, (tx) =>
+    tx.select({ ref: lettings.publicRef }).from(lettings).where(eq(lettings.id, lettingId)),
+  );
+  return { lettingId, ref: row!.ref };
+}
 
 /** Every text in every table, as one string: to show a sentence was kept nowhere. */
 async function everythingStored(): Promise<string> {
@@ -30,25 +45,35 @@ const funnelRows = () => withSystem((tx) => tx.select().from(funnelEvents));
 describe('UX-SR-2, UX-SR-6: the homes search reads', () => {
   it('UX-SR-2: every live home on Gaff, and no draft, no home taken off Gaff and nothing about a person', async () => {
     const member = await createTestMember();
-    const { lettingId } = await aLiveLetting(member, {
+    const { lettingId, ref } = await aHomeOnGaff(member, {
       addressLine1: '3 Castle Street',
       area: `${PLACE}, Co. Dublin`,
       eircode: '',
     });
-    const { lettingId: offGaff } = await aLiveLetting(member, {
+    const { lettingId: offGaffId, ref: offGaff } = await aHomeOnGaff(member, {
       addressLine1: '5 Castle Street',
       area: `${PLACE}, Co. Dublin`,
       eircode: '',
     });
     await withSystem((tx) =>
-      tx.update(lettings).set({ onGaff: false }).where(eq(lettings.id, offGaff)),
+      tx.update(lettings).set({ onGaff: false }).where(eq(lettings.id, offGaffId)),
     );
+    // UX-LT-22: a live home with no photo has no page, so it isn't in search either.
+    const noPhoto = await aLiveLetting(member, {
+      addressLine1: '7 Castle Street',
+      area: `${PLACE}, Co. Dublin`,
+      eircode: '',
+    });
 
     const homes = await liveHomesOnGaff();
     const ids = homes.map((home) => home.id);
-    expect(ids).toContain(lettingId);
+    expect(ids).toContain(ref);
     expect(ids).not.toContain(offGaff);
-    const home = homes.find((h) => h.id === lettingId)!;
+    // UX-LS-1: a home is known by its public reference; no internal ID leaves the server.
+    expect(JSON.stringify(homes)).not.toContain(lettingId);
+    expect(homes.map((home) => home.addressLine1)).not.toContain('7 Castle Street');
+    expect(JSON.stringify(homes)).not.toContain(noPhoto.lettingId);
+    const home = homes.find((h) => h.id === ref)!;
     expect(Object.keys(home).sort()).toEqual(
       [
         'addressLine1',
@@ -71,8 +96,8 @@ describe('UX-SR-2, UX-SR-6: the homes search reads', () => {
     expect(JSON.stringify(home)).not.toContain('mary.byrne@example.ie');
 
     const { fits, close } = await findHomes({ where: 'dalkey', people: 4 });
-    expect(fits.map((h) => h.id)).not.toContain(lettingId);
-    expect(close.find((c) => c.home.id === lettingId)?.miss).toEqual({
+    expect(fits.map((h) => h.id)).not.toContain(ref);
+    expect(close.find((c) => c.home.id === ref)?.miss).toEqual({
       point: 'people',
       maxOccupants: 3,
       asked: 4,

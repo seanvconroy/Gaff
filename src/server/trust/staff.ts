@@ -87,6 +87,7 @@ const listingColumns = {
   psraLicenceNumber: organisations.psraLicenceNumber,
   confirmedAt: organisations.confirmedAt,
   licenceLapsedAt: organisations.licenceLapsedAt,
+  identityVerifiedAt: organisations.identityVerifiedAt,
 };
 
 type ListingRow = {
@@ -103,6 +104,7 @@ type ListingRow = {
   psraLicenceNumber: string | null;
   confirmedAt: Date | null;
   licenceLapsedAt: Date | null;
+  identityVerifiedAt: Date | null;
 };
 
 function factsOf(row: ListingRow): ListingFacts {
@@ -117,6 +119,7 @@ function factsOf(row: ListingRow): ListingFacts {
       psraLicenceNumber: row.psraLicenceNumber,
       confirmedAt: row.confirmedAt,
       licenceLapsedAt: row.licenceLapsedAt,
+      identityVerifiedAt: row.identityVerifiedAt,
     }),
   };
 }

@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 16 November 2026 (wave 1 of the UX redesign is built: navigation, sign-in, accounts and first run, and the page frame. Wave 2 is being built: Today and Lettings are in).
+Last updated: 16 November 2026 (wave 1 of the UX redesign is built: navigation, sign-in, accounts and first run, and the page frame. Wave 2 is being built: Today and Lettings, Inbox, adding a letting and the renter's pages are in).
 
 ## Done
 
@@ -85,8 +85,8 @@ Last updated: 16 November 2026 (wave 1 of the UX redesign is built: navigation, 
   | --- | --- | --- |
   | 0. Foundations | WP-1 funnel events and baselines; WP-2 design system | **Done**, 15 November 2026. See "Wave 0" below |
   | 1. Frame, sign-in and accounts | WP-3 shell and navigation; WP-4 sign-in; WP-5 accounts and first run; WP-6 the page frame | **Done**, 16 November 2026. See "Wave 1" below |
-  | 2A. Running a letting, part 1 | WP-7 Today and Lettings; WP-8 Inbox; WP-9 adding a letting; WP-10 reading an advert; WP-11 forwarding | WP-7 **done**, 16 November 2026 (see "Wave 2" below). WP-8 and WP-9 in progress |
-  | 2B. Inside a letting, for renters | WP-12 the renter's pages; WP-13 owner and referee pages; WP-14 profile and the renter's home | WP-12 in progress |
+  | 2A. Running a letting, part 1 | WP-7 Today and Lettings; WP-8 Inbox; WP-9 adding a letting; WP-10 reading an advert; WP-11 forwarding | WP-7, WP-8 and WP-9 **done**, 17 November 2026 (see "Wave 2" below). WP-10 in progress; WP-11 to come |
+  | 2B. Inside a letting, for renters | WP-12 the renter's pages; WP-13 owner and referee pages; WP-14 profile and the renter's home | WP-12 **done**, 17 November 2026 (see "Wave 2" below). WP-13 and WP-14 in progress |
   | 3A. Running a letting, part 2 | WP-15 a letting's page; WP-16 calendar; WP-17 decisions and the offer; WP-18 tenancy, close and settings; WP-19 teams | Not started |
   | 3B. The marketplace | WP-20 homes on Gaff; WP-21 search; WP-22 asking to view; WP-23 saved homes and alerts | Not started |
   | 4. Trust, fit and finish | WP-24 a verified identity; WP-25 fit; WP-26 trust and Gaff's internal page; WP-27 activation; WP-28 the end-to-end pass | Not started |
@@ -138,13 +138,20 @@ Left for later packages, on purpose:
 | Package | What | Proven by |
 | --- | --- | --- |
 | WP-7: Today and Lettings (UX-HM-1 to UX-HM-11; UX-NV-9 to UX-NV-12) | Today has four blocks: what needs you, today's viewings, what's waiting on others, and "While you were away" as one sentence of counts. Rows are ordered by one rule for everyone, and items of one kind for one home are one row with a count. With nothing waiting it says "You're all caught up" and offers one action at most. No row holds contact details or message text. An admin can switch between "Mine" and "Everyone". Lettings is a photo-led list under Live, Setting up and Let, three across on a desktop and one column on a phone, with one status line in words; the step counter, the meter and the times are gone | `src/domain/dashboard/*.test.ts`, `tests/integration/ux-hm-today.test.ts`, `tests/e2e/ux-hm-today.spec.ts` |
+| WP-8: Inbox (UX-NV-13 to UX-NV-18; UX-AI-11, UX-AI-15) | One place for every conversation: a list, newest first, with "Needs you" and "All"; a thread like a messaging app, with a draft waiting in the reply box under "Send", "Edit" and "Don't send". One email with a question Gaff can answer and one it can't is one conversation and one draft, with a field for the part Gaff doesn't know and one tick, "Remember this for {address}". An email Gaff couldn't place asks "Which home is this about?"; a forwarding confirmation from Gmail or Outlook has its code or link read out with a copy button. A person can write to a renter themselves. A drafted answer reads as a sentence, from the same fact. Approvals, Questions and Needs attention are gone, and Today's rows open the conversation, so a draft is approved in two taps | `src/domain/inbox/*.test.ts`, `src/domain/enquiries/*.test.ts`, `tests/integration/ux-nv-inbox.test.ts`, `tests/e2e/ux-nv-inbox.spec.ts`, `tests/e2e/r8-answers.spec.ts` |
+| WP-9: adding a letting (UX-LT-1, 4, 5, 8 to 16, 22 to 24) | A focused flow, one question per screen, with "Save and exit" and coming back to the same step: the address (search behind an interface, typed fields as the stand-in), rent and date, the home, photos (stored by Gaff, behind an interface, with a cover photo), letting details from the fixed criteria, the rent check a question at a time with its result, then "Ready to go live" with "On gaff.ie" and a number renters can call. Only what UX-LT-14 lists blocks go-live. "Is it advertised anywhere else?", "Let it again" from a closed letting, and "Send a test enquiry" | `src/domain/lettings/*.test.ts`, `tests/integration/ux-lt-*.test.ts`, `tests/e2e/ux-lt-adding-a-letting.spec.ts` |
+| WP-12: the renter's pages (UX-RN-1 to UX-RN-26) | Every page on the renter's path, one task at a time in the private frame: questions one per screen, then "Thanks"; booking by day, then time, then confirm; booked, cancelled and a place held from the waiting list; applying in two questions and a check screen; the checks one at a time with a short list; the offer with one total; the agreement with links to its sections; paying, with copy buttons and a number to ring; the PPS number as its own optional step; the inventory room by room with "Something's not right"; and each outcome. One primary button a page, nothing under 16px, and only the four notices of UX-PP-6 | `src/domain/renter/*.test.ts`, `tests/integration/ux-rn-*.test.ts`, `tests/e2e/ux-rn-renter-pages.spec.ts` and the Slice 1 to 3 journeys |
 
 Left for later packages, on purpose:
 
 - A letting's lead is whoever created it, until teams arrive (WP-19).
-- Lettings shows a house icon for every home until photos arrive (WP-9); the list reads a cover photo through `src/server/lettings/cover-photo.ts`.
 - Today has no primary button: the setup checklist is WP-27.
-- Today's rows still open the old Approvals, Questions and Needs attention pages until Inbox replaces them (WP-8).
+- The first screen of adding a letting offers only "Fill it in myself" until reading an advert is in (WP-10).
+- A home advertised elsewhere shows forwarding as its task, pointing at Settings, until the forwarding flow is built (WP-11).
+- "On gaff.ie" is stored on the letting; the public page it switches on is WP-20.
+- A private landlord's identity step is in place at go-live and does nothing yet (WP-24).
+- "Keep my details for next time" isn't on the application's check screen yet (WP-14).
+- These three packages were cut off by usage limits before their agents wrote final reports, so this list is from the code and the tests, not from their own account of what they left out.
 
 ## Known issues
 

@@ -462,5 +462,7 @@ test('UX-NV-10, UX-HM-6: with no homes, Lettings has no headings and one primary
     await screenshot(page, `lettings-empty-${width}`);
   }
   await main(page).getByRole('link', { name: 'Add a letting' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Tell Gaff about the home' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Tell Gaff about the home' }),
+  ).toBeVisible();
 });

@@ -1,0 +1,275 @@
+import { formatRent } from '@/lib/format';
+
+/**
+ * The words of adding a letting (section 4 of the UX redesign, UX-LT-1 to UX-LT-24). Plain,
+ * short, and each screen says one thing. Nothing here, and nothing in the product, is called
+ * "who it suits": the block is "Letting details" (section 6; rule 3).
+ */
+export const addLettingCopy = {
+  flow: 'Add a letting',
+  next: 'Next',
+  back: 'Back',
+  save: 'Save',
+  saving: 'Saving…',
+  saveAndExit: 'Save and exit',
+  change: 'Change',
+
+  start: {
+    title: 'Tell Gaff about the home',
+    box: 'Paste your advert, or describe the home in your own words.',
+    attach: 'Attach a brochure, screenshots or photos',
+    continue: 'Continue',
+    manual: 'Fill it in myself',
+    empty: 'Paste your advert or describe the home. Or fill it in yourself.',
+    /** UX-LT-8 (Q31): a Daft or MyHome link is kept, and never fetched. */
+    linkKept:
+      'Got it. Gaff will use this link to match enquiries. Paste the advert’s text too, and Gaff will fill in the details.',
+    /** Until the reader is switched on (work package WP-10). What was typed is kept. */
+    readerOff: 'Gaff can’t read adverts yet. Fill it in yourself: it takes a few minutes.',
+    drafts: 'Carry on with a home you started',
+    draftWithoutAddress: 'A home with no address yet',
+  },
+
+  address: {
+    title: 'Where is it?',
+    search: 'Eircode or address',
+    manual: 'Enter it myself',
+    notFound: 'We can’t find that. Check the Eircode, or enter the address yourself.',
+    choose: 'Choose an address from the list, or enter it yourself',
+    line1: 'Address',
+    line2: 'Address line 2',
+    area: 'Town or area',
+    areaHint: 'Like Ranelagh, Dublin 6',
+    county: 'County',
+    eircode: 'Eircode',
+  },
+
+  rent: {
+    title: 'Rent and date',
+    rent: 'Rent a month',
+    availableFrom: 'Available from',
+  },
+
+  home: {
+    title: 'The home',
+    type: 'Type of home',
+    bedrooms: 'Bedrooms',
+    studio: 'Studio',
+    bathrooms: 'Bathrooms',
+    furnishing: 'Furnishing',
+    ber: 'BER rating',
+    berChoose: 'Choose…',
+    berExempt: 'Exempt',
+    parking: 'Parking',
+    description: 'About this home',
+    descriptionHint: 'In your own words. Describe the home, not who should live in it.',
+    facts: 'Anything else renters often ask?',
+    factsHint: 'One fact on each line, like “Gas central heating”.',
+  },
+
+  photos: {
+    title: 'Photos',
+    skip: 'Skip for now',
+  },
+
+  details: {
+    title: 'Letting details',
+    lead: 'Switch on what matters for this let. Renters see it before they ask to view.',
+    moveIn: 'Move-in date',
+    moveInHint: 'For people who can move in by a date you choose',
+    moveInBy: 'Move in by',
+    stay: 'Length of stay',
+    stayHint: 'For people who plan to stay at least this long',
+    stayField: 'Plans to stay at least',
+    people: 'Most people',
+    peopleHint: 'The most people who can live there',
+    peopleField: 'Most people who can live there',
+    pets: 'No pets',
+    petsHint: 'Assistance dogs are always welcome. They never count as pets.',
+    houseRule: 'House rule',
+    noSmoking: 'No smoking indoors',
+    noSmokingHint: 'A term of the tenancy. Renters see it, and it isn’t used to rank anyone.',
+    preview: 'What renters will see',
+    nothing: 'Nothing asked. Everyone who enquires is ranked by when they enquired.',
+    nothingToAdd: 'Nothing to add',
+    why: 'Why only these?',
+    whyText:
+      'Equality law says a home can’t be advertised or let by who a person is. So Gaff asks only about the let itself: when, how long, how many people, and pets. Everyone is asked the same questions, and a person chooses who views.',
+  },
+
+  rentCheck: {
+    lastLet: {
+      title: 'Has this home been let before?',
+      never: 'No, this is its first letting',
+      before: 'Yes, and the last tenancy began before 1 March 2026',
+      under: 'Yes, and the last tenancy began on or after 1 March 2026',
+    },
+    ending: { title: 'How did the last tenancy end?' },
+    substantialChange: {
+      title: 'Has the home been substantially changed since then?',
+      hint: 'Rebuilt or extended, for example. Not redecorated.',
+      yes: 'Yes',
+      no: 'No',
+    },
+    previousRent: {
+      title: 'What was the last rent?',
+      rent: 'Last rent a month',
+      setOn: 'Date that rent was set',
+      setOnHint: 'Usually the day the last tenancy began, or the day of its last rent review.',
+    },
+    fromLastTime:
+      'Filled in from the last time this home was let on Gaff. Change anything that’s different.',
+  },
+
+  rentResult: {
+    market: {
+      title: 'You can set the rent at market level',
+      first_letting: 'This is the home’s first letting, so there’s no earlier rent to cap it.',
+      tenant_ended:
+        'The last tenancy began under the new rules and the tenant ended it, so the rent can be set afresh.',
+    },
+    capped: {
+      title: 'The rent cap applies',
+      tenancy_before_new_rules:
+        'The last tenancy began before 1 March 2026, so the rent can rise only by inflation, up to 2% a year.',
+      landlord_ended:
+        'The landlord ended the last tenancy, so the rent can rise only by inflation, up to 2% a year.',
+    },
+    get_advice: {
+      title: 'Get advice before you set the rent',
+      substantial_change:
+        'A home that has been substantially changed may be treated differently. Ask your solicitor or the RTB before you advertise it.',
+    },
+    overCap: (asking: number, most: number) =>
+      `You’re asking ${formatRent(asking)}. The most the rules allow is ${formatRent(most)}.`,
+    newRent: 'Rent a month',
+    newRentHint: (most: number) => `${formatRent(most)} or less`,
+    changeRent: 'Change the rent',
+    tooHigh: (most: number) =>
+      `Enter ${formatRent(most).replace(' a month', '')} or less. That’s the most the rules allow.`,
+    about: 'About these rules',
+    aboutText:
+      'From 1 March 2026 rent can be set at market level for a first letting, or where the last tenancy began on or after that date and the tenant ended it. Otherwise it can rise only by inflation, up to 2% a year. The exact figure comes from the RTB’s rent calculator. Gaff’s check is a guide, not legal advice.',
+    version: (version: string) => `Rules version ${version}.`,
+    comparables:
+      'Before you make an offer, Gaff will ask for three comparable rents from the RTB’s register.',
+  },
+
+  goLive: {
+    title: 'Ready to go live',
+    lead: 'This is what renters will see. Gaff answers every enquiry within minutes, as your AI assistant.',
+    onGaff: 'On gaff.ie',
+    onGaffHint:
+      'Renters can find this home on Gaff and ask to view. Switch it off to take enquiries from Daft and MyHome only.',
+    ber: 'BER rating',
+    berHint: 'A home needs its BER to be shown on gaff.ie.',
+    needsPhoto: 'A home needs one photo to be shown on gaff.ie.',
+    addPhoto: 'Add a photo',
+    shownLater: (needs: { ber: boolean; photo: boolean }) =>
+      `It will show on gaff.ie once it has ${[needs.ber ? 'a BER' : null, needs.photo ? 'a photo' : null].filter(Boolean).join(' and ')}. It can go live now.`,
+    phone: 'A number renters can call',
+    phoneHint: 'For anyone who’d rather ring. Renters see it on their pages.',
+    /** Q47: the private landlord's identity check, kept in place for work package WP-24. */
+    identity: 'Confirm it’s you',
+    identityLater:
+      'Before a first home goes live, Gaff will ask you to confirm who you are. That check isn’t open yet, so there’s nothing to do now.',
+    later: 'Later',
+    start: 'Start taking enquiries',
+    starting: 'Starting…',
+    rentCheckFirst: 'Finish the rent check first. Then this home can go live.',
+    toRentCheck: 'Go to the rent check',
+    backToLetting: 'Back to the letting',
+    letBy: (name: string) => `Let by ${name}`,
+    noDetails: 'No letting details. Renters are asked nothing before a viewing.',
+    noPhotos: 'No photos yet',
+    morePhotos: (count: number) => (count === 1 ? '1 photo' : `${count} photos`),
+  },
+
+  advertised: {
+    title: 'Is it advertised anywhere else?',
+    /** UX-FL-4: what was done, what Gaff does next, and when. */
+    live: (address: string) => `${address} is live`,
+    lead: 'Gaff answers every enquiry for this home from now on, within minutes of each one. If it’s on Daft or MyHome too, Gaff can answer those as well.',
+    daft: 'Daft',
+    myhome: 'MyHome',
+    no: 'No',
+    choose: 'Choose where it’s advertised, or No',
+    notBoth: 'Choose Daft, MyHome or both. Or choose No on its own.',
+    done: 'Done',
+  },
+
+  /** The forwarding task, until its own flow is built (work package WP-11). */
+  forwarding: {
+    title: (where: string) => `Send your ${where} enquiries to Gaff`,
+    text: 'Forward them to your Gaff address, and Gaff answers each one within minutes.',
+    action: 'See your Gaff address',
+  },
+
+  review: {
+    title: {
+      again: 'Here’s the home from last time',
+      advert: 'Here’s what Gaff found',
+      enquiry: 'Here’s what Gaff found',
+      manual: 'Here’s the home so far',
+    },
+    lead: {
+      again: 'Change what’s new. Tap anything to change it.',
+      other: 'Tap anything to change it.',
+    },
+    toCheck: (count: number) => (count === 1 ? '1 thing to check' : `${count} things to check`),
+    nothingToCheck: 'Nothing to check',
+    checkThis: 'Check this',
+    looksRight: 'Looks right',
+    photos: 'Photos',
+    address: 'Address',
+    rent: 'Rent and date',
+    facts: 'The home',
+    description: 'About this home',
+    details: 'Letting details',
+    missing: {
+      address: 'No address yet',
+      rent: 'No rent yet',
+      availableFrom: 'No date yet',
+      home: 'Type and bedrooms not chosen',
+      ber: 'No BER yet',
+      description: 'No description',
+      photos: 'No photos yet',
+      details: 'Nothing asked',
+    },
+    hasDescription: 'Described in your own words',
+    moreFacts: (count: number) => (count === 1 ? '1 more fact' : `${count} more facts`),
+    availableFrom: (date: string) => `Available from ${date}`,
+    datePassed: (date: string) => `Was available from ${date}`,
+    done: 'Done',
+  },
+
+  setup: {
+    /** UX-LP: the letting's page, while it's being set up. */
+    finish: 'Finish setting up',
+    stepsLeft: (count: number) => (count === 1 ? '1 step left.' : `${count} steps left.`),
+    continue: 'Continue',
+    next: 'When it’s live, Gaff answers every enquiry within minutes.',
+  },
+
+  testEnquiry: {
+    menu: 'Send a test enquiry',
+    title: 'Send a test enquiry',
+    lead: (address: string) =>
+      `Gaff will answer a made-up enquiry about ${address}, so you can see what a renter gets. Nothing is sent to anyone.`,
+    send: 'Send a test enquiry',
+    sending: 'Sending…',
+    resultTitle: 'Here’s what a renter gets',
+    resultLead: (name: string) =>
+      `Gaff’s first reply to ${name}, a made-up renter. A real one arrives within minutes of their enquiry.`,
+    subject: 'Subject',
+    asksQuestions:
+      'The link takes a renter to the questions your letting details need. It takes them about a minute.',
+    noQuestions: 'You asked for no letting details, so a renter is asked nothing before a viewing.',
+    done: 'Done',
+  },
+
+  letAgain: {
+    menu: 'Let it again',
+    starting: 'Getting it ready…',
+  },
+} as const;

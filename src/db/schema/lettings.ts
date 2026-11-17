@@ -1,5 +1,8 @@
+import { sql } from 'drizzle-orm';
 import {
+  type AnyPgColumn,
   boolean,
+  check,
   date,
   index,
   integer,
@@ -11,6 +14,8 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import type { Criteria } from '@/domain/criteria/criteria';
+import { draftOrigins, flowSteps, type DraftAnswers } from '@/domain/lettings/add-letting';
+import type { Portal } from '@/domain/lettings/setup';
 import { stages } from '@/domain/lettings/stages';
 import { users } from './auth';
 import { createdAt, tenantPolicy, updatedAt } from './columns';
@@ -55,16 +60,39 @@ export const lettings = pgTable(
     availableFrom: date({ mode: 'string' }).notNull(),
     propertyType: text().notNull(),
     bedrooms: integer().notNull(),
-    bathrooms: integer().notNull(),
-    furnished: text().notNull(),
-    berRating: text().notNull(),
+    /** UX-LT-14: bathrooms, furnishing and the BER are offered, not required. Null: not said. */
+    bathrooms: integer(),
+    furnished: text(),
+    berRating: text(),
     parking: text(),
+    /** UX-LS-6: the home in the lister's own words. Screened for protected grounds (rule 3). */
+    description: text(),
+    /** Before the redesign: a link to photos kept elsewhere. Photos are uploaded now (UX-LT-10). */
     photosUrl: text(),
     daftUrl: text(),
     myhomeUrl: text(),
     /** R2: the operator's criteria, from the fixed list only (null until set). */
     criteria: jsonb().$type<Criteria>(),
     criteriaSetAt: timestamp({ withTimezone: true }),
+    /**
+     * UX-MT-5 (Q36): the one house rule. A term of the tenancy, shown to renters. It is kept
+     * apart from the criteria on purpose: ranking reads the criteria, and never this.
+     */
+    noSmokingIndoors: boolean().notNull().default(false),
+    /**
+     * UX-LT-21: "On gaff.ie". On unless the lister switches it off at go-live or later. The
+     * public page that reads it is work package WP-20.
+     */
+    onGaff: boolean().notNull().default(true),
+    /**
+     * "Is it advertised anywhere else?", asked once after go-live: the portals named, an empty
+     * list for "No", null until it's answered. The forwarding task it sets up is WP-11.
+     */
+    advertisedOn: jsonb().$type<Portal[]>(),
+    /** UX-FL-2: the furthest step of adding it that was reached, to come back to. */
+    setupStep: text({ enum: flowSteps }),
+    /** UX-LT-23: the letting this one was started from by "Let it again". */
+    previousLettingId: uuid().references((): AnyPgColumn => lettings.id),
     stage: lettingStage().notNull().default('setup'),
     status: lettingStatus().notNull().default('draft'),
     createdBy: text()
@@ -83,6 +111,60 @@ export const lettings = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [index('lettings_organisation_idx').on(t.organisationId, t.status), tenantPolicy()],
+).enableRLS();
+
+/**
+ * UX-FL-2, UX-LT-5: a home being added, before it has what a letting can't exist without (an
+ * address, a rent, a date, a type and a bedroom count). It holds the answers so far, so the
+ * person can leave and come back, and so a draft can arrive filled in: from an advert (WP-10),
+ * an enquiry, or the letting before. When the last of those answers is in, the letting is made
+ * WITH THE SAME ID and the draft row is deleted. Facts about a home only: nothing about a person.
+ */
+export const lettingDrafts = pgTable(
+  'letting_drafts',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organisationId: organisationId(),
+    createdBy: text()
+      .notNull()
+      .references(() => users.id),
+    origin: text({ enum: draftOrigins }).notNull().default('manual'),
+    answers: jsonb().$type<DraftAnswers>().notNull().default({}),
+    /** Where to come back to: the review, or a step. Null: the first step. */
+    step: text({ enum: ['review', ...flowSteps] }),
+    /** UX-LT-23: the letting "Let it again" was pressed on. */
+    previousLettingId: uuid().references(() => lettings.id),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('letting_drafts_organisation_idx').on(t.organisationId), tenantPolicy()],
+).enableRLS();
+
+/**
+ * UX-LT-10: a home's photos, in the lister's order; the first is the cover. The picture itself
+ * is in the photo store (src/ports/photo-store.ts) under `storageKey`: Gaff's own copy, with no
+ * location or camera data. A photo belongs to a letting, or to a draft until it becomes one.
+ */
+export const lettingPhotos = pgTable(
+  'letting_photos',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organisationId: organisationId(),
+    lettingId: uuid().references(() => lettings.id, { onDelete: 'cascade' }),
+    draftId: uuid().references(() => lettingDrafts.id, { onDelete: 'cascade' }),
+    position: integer().notNull(),
+    storageKey: text().notNull(),
+    contentType: text().notNull(),
+    bytes: integer().notNull(),
+    createdBy: text().references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('letting_photos_letting_idx').on(t.lettingId, t.position),
+    index('letting_photos_draft_idx').on(t.draftId, t.position),
+    check('letting_photos_one_home', sql`(${t.lettingId} is null) <> (${t.draftId} is null)`),
+    tenantPolicy(),
+  ],
 ).enableRLS();
 
 /**

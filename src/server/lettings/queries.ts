@@ -1,8 +1,9 @@
-import { and, asc, count, desc, eq, isNull, sum } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNull, sum } from 'drizzle-orm';
 import { type Tx, withOrg } from '@/db/client';
 import {
   landlords,
   lettingFacts,
+  lettingPhotos,
   lettings,
   rentChecks,
   rentComparables,
@@ -10,10 +11,67 @@ import {
   viewingSlots,
 } from '@/db/schema';
 import type { SetupState } from '@/domain/lettings/setup';
+import { photoHref } from '@/ports/photo-store';
 import type { Member } from '@/server/auth/member';
 import { rentCheckProblem } from './rent-check';
 
 export type LettingRow = typeof lettings.$inferSelect;
+
+/** A home's photo as a page shows it: where to load it from, and nothing about where it's kept. */
+export interface HomePhoto {
+  id: string;
+  href: string;
+}
+
+/** A home's photos in the lister's order: the first is the cover (UX-LT-10). */
+export async function photosIn(
+  tx: Tx,
+  home: { lettingId: string } | { draftId: string },
+): Promise<HomePhoto[]> {
+  const rows = await tx
+    .select({ id: lettingPhotos.id, storageKey: lettingPhotos.storageKey })
+    .from(lettingPhotos)
+    .where(
+      'lettingId' in home
+        ? eq(lettingPhotos.lettingId, home.lettingId)
+        : eq(lettingPhotos.draftId, home.draftId),
+    )
+    .orderBy(asc(lettingPhotos.position), asc(lettingPhotos.createdAt));
+  return rows.map((row) => ({ id: row.id, href: photoHref(row.storageKey) }));
+}
+
+/**
+ * UX-LT-10, UX-NV-9: where to load each of these lettings' cover photos from, by letting ID. A
+ * letting with no photo isn't in the map. For a list of homes: one query, in a transaction
+ * already scoped to the organisation. (The Lettings list's `coverPhotosFor` reads this.)
+ */
+export async function coverPhotoHrefsIn(
+  tx: Tx,
+  lettingIds: readonly string[],
+): Promise<Map<string, string>> {
+  if (lettingIds.length === 0) return new Map();
+  const rows = await tx
+    .selectDistinctOn([lettingPhotos.lettingId], {
+      lettingId: lettingPhotos.lettingId,
+      storageKey: lettingPhotos.storageKey,
+    })
+    .from(lettingPhotos)
+    .where(inArray(lettingPhotos.lettingId, [...lettingIds]))
+    .orderBy(lettingPhotos.lettingId, asc(lettingPhotos.position), asc(lettingPhotos.createdAt));
+  return new Map(
+    rows.flatMap((row) =>
+      row.lettingId ? [[row.lettingId, photoHref(row.storageKey)] as const] : [],
+    ),
+  );
+}
+
+/** One letting's cover photo, or null if it has none. */
+export async function coverPhotoHref(member: Member, lettingId: string): Promise<string | null> {
+  return withOrg(
+    member.organisationId,
+    async (tx) => (await coverPhotoHrefsIn(tx, [lettingId])).get(lettingId) ?? null,
+  );
+}
 
 export async function listLettings(member: Member) {
   return withOrg(member.organisationId, (tx) =>
@@ -47,7 +105,12 @@ export async function lettingDetailIn(tx: Tx, lettingId: string) {
     ? await tx.select().from(landlords).where(eq(landlords.id, letting.landlordId))
     : [];
   const facts = await tx
-    .select({ id: lettingFacts.id, question: lettingFacts.question, answer: lettingFacts.answer })
+    .select({
+      id: lettingFacts.id,
+      question: lettingFacts.question,
+      answer: lettingFacts.answer,
+      source: lettingFacts.source,
+    })
     .from(lettingFacts)
     .where(and(eq(lettingFacts.lettingId, lettingId), isNull(lettingFacts.retiredAt)))
     .orderBy(asc(lettingFacts.createdAt));
@@ -68,6 +131,7 @@ export async function lettingDetailIn(tx: Tx, lettingId: string) {
     .from(rentComparables)
     .where(eq(rentComparables.lettingId, lettingId))
     .orderBy(asc(rentComparables.position));
+  const photos = await photosIn(tx, { lettingId });
 
   const setup: SetupState = {
     viewingSlots: slotTotals?.slots ?? 0,
@@ -84,6 +148,7 @@ export async function lettingDetailIn(tx: Tx, lettingId: string) {
     rentCheck: rentCheck ?? null,
     rentProblem,
     comparables,
+    photos,
     setup,
   };
 }

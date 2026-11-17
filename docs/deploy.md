@@ -136,6 +136,8 @@ Before the first real renter (see [launch-checklist.md](launch-checklist.md)):
   | AI | the Bedrock settings and AWS keys |
   | `IDENTITY_PROVIDER`, `INCOME_PROVIDER` | `none` |
   | `PSRA_REGISTER_SOURCE`, `PSRA_REGISTER_URL` | `url`, and the address of the PSRA register's download, once its format has been checked (see "The PSRA register") |
+  | `ADDRESS_SEARCH` | `off`: the address is typed into the manual fields. Autoaddress is added once its DPA is signed (Q40) |
+  | `PHOTO_STORE`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `PHOTO_BUCKET` | `supabase`, the project's address (`https://<ref>.supabase.co`), its service-role key, and the bucket for homes' photos (`homes` unless set). Create the bucket as **private** in the Ireland project: browsers load photos from Gaff's own address, which reads them from the bucket. Photos of homes only, never anything personal |
   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | from a Google OAuth client (web application), with the redirect URI `https://<domain>/api/auth/callback/google`. Without both, "Continue with Google" isn't shown |
   | `APPLE_CLIENT_ID`, `APPLE_CLIENT_SECRET` | Apple's Services ID and client secret, with the return URL `https://<domain>/api/auth/callback/apple`. Apple accepts a client secret for six months at most, so renew it. Without both, "Continue with Apple" isn't shown |
 

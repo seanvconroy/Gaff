@@ -1,0 +1,83 @@
+/*
+ * Option row: a choice row that is off until tapped, then opens one value under it. It looks and
+ * behaves as a choice row does (Field's): the same edge, the same brand edge and tint when on.
+ * One layout at every width.
+ */
+.row {
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  transition-property: background-color, border-color;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease-standard);
+}
+
+.row:hover {
+  border-color: var(--color-ink-muted);
+}
+
+/* The edge grows inwards, so nothing moves. */
+.on,
+.on:hover {
+  border-width: 2px;
+  border-color: var(--color-brand);
+}
+
+.head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  min-height: calc(var(--size-control) - 2px);
+  padding: calc(var(--space-3) - 1px) var(--space-4);
+  border-radius: calc(var(--radius-md) - 1px);
+  cursor: pointer;
+}
+
+.on .head {
+  min-height: calc(var(--size-control) - 4px);
+  padding: calc(var(--space-3) - 2px) calc(var(--space-4) - 1px);
+  background-color: var(--color-brand-bg);
+}
+
+.head:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Where the row can show the ring, the input doesn't need its own. */
+@supports selector(:has(*)) {
+  .head input:focus-visible {
+    outline: none;
+  }
+}
+
+.head input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: calc(var(--space-1) / 2) 0 0;
+  accent-color: var(--color-brand);
+  cursor: pointer;
+}
+
+.text {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.label {
+  font-weight: var(--type-title-weight);
+}
+
+.hint {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+/* The one value, under the row and inside its edge. */
+.value {
+  padding: var(--space-4) calc(var(--space-4) - 1px);
+  border-top: 1px solid var(--color-border);
+}

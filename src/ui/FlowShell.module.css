@@ -65,6 +65,16 @@
   color: var(--color-brand-text);
 }
 
+/* The same words as a button that sends the step's form first: it looks exactly like the link. */
+.exitButton {
+  background-color: transparent;
+  border: 0;
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  cursor: pointer;
+}
+
 .body {
   display: flex;
   flex: 1;

@@ -15,7 +15,7 @@ import {
   psraRegister,
   psraRegisterRefreshes,
   users,
-  viewingSlots,
+  rentChecks,
 } from '@/db/schema';
 import { listerFrom } from '@/domain/frame/frame';
 import { RegisterFormatError } from '@/domain/register/parse';
@@ -473,9 +473,10 @@ describe('UX-AG-4: an agency is "being confirmed" until someone at Gaff confirms
     const { member, organisationId } = await anAgencyBeingConfirmed();
     const lettingId = await aLettingReadyToGoLive(member);
     await startTakingEnquiries(member, lettingId);
-    // The viewing times are taken away while the agency waits, so the home isn't ready.
+    // UX-LT-14: only the rent check stands between a letting and going live. It is taken away
+    // while the agency waits, so the home isn't ready. (Viewing times never held a home back.)
     await withOrg(organisationId, (tx) =>
-      tx.delete(viewingSlots).where(eq(viewingSlots.lettingId, lettingId)),
+      tx.delete(rentChecks).where(eq(rentChecks.lettingId, lettingId)),
     );
     const { staff } = await aStaffMember();
     expect(await confirmAgency(staff, organisationId)).toEqual({ confirmed: true, wentLive: 0 });

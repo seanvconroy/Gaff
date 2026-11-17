@@ -4,7 +4,6 @@ import {
   expectAccessible,
   expectNoSidewaysScroll,
   goLiveThroughUi,
-  isoDateInDays,
   openAccountMenu,
   screenshot,
   signIn,
@@ -459,64 +458,65 @@ test('UX-NV-6, UX-FL-1, UX-FL-3: adding a letting opens full screen without the 
     await page.goto('/today');
     await expect(mainNav(page)).toBeVisible();
     await page.getByRole('link', { name: 'Add a letting' }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Add a letting' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Tell Gaff about the home' }),
+    ).toBeVisible();
 
     // UX-NV-6: no navigation, at either width: no bar, no tabs, no avatar.
     await expect(mainNav(page)).toHaveCount(0);
     await expect(page.getByRole('button', { name: /account/i })).toHaveCount(0);
     await expect(wordmark(page)).toHaveCount(0);
 
-    // UX-FL-1: its own header, with Close on the left and the progress in segments.
+    // UX-FL-1: its own header, with Close on the left. Nothing is kept on the first screen,
+    // so nothing there promises "Save and exit".
     const close = page.getByRole('link', { name: 'Close' });
     expect((await box(close)).x).toBeLessThan(viewport.width / 2);
-    const progress = page.getByRole('list', { name: 'Add a letting' });
-    await expect(progress.getByRole('listitem')).toHaveCount(3);
-    await expect(progress.locator('[aria-current="step"]')).toContainText('The home');
-    // Nothing is kept until the letting is saved, so nothing promises "Save and exit" yet.
     await expect(page.getByText('Save and exit')).toHaveCount(0);
+    await page.getByRole('link', { name: 'Fill it in myself' }).click();
 
-    // A fixed footer with the one primary button: across the width on a phone.
-    const primary = page.getByRole('button', { name: 'Continue' });
+    // The first step: the progress in segments, and "Save and exit" on the right.
+    await expect(page.getByRole('heading', { level: 1, name: 'Where is it?' })).toBeVisible();
+    const progress = page.getByRole('list', { name: 'Add a letting' });
+    await expect(progress.getByRole('listitem')).toHaveCount(7);
+    await expect(progress.locator('[aria-current="step"]')).toContainText('Address');
+    const exit = page.getByRole('button', { name: 'Save and exit' });
+    expect((await box(exit)).x).toBeGreaterThan(viewport.width / 2);
+
+    // A fixed footer with the one primary button: across the width on a phone, beside Back.
+    const primary = page.getByRole('button', { name: 'Next', exact: true });
     const button = await box(primary);
     expect(button.y + button.height).toBeLessThanOrEqual(viewport.height);
     expect(button.y).toBeGreaterThan(viewport.height - 80);
-    if (width === '390') expect(button.width).toBeCloseTo(viewport.width - 32, 0);
+    const back = page.getByRole('link', { name: 'Back' });
+    expect((await box(back)).x).toBeLessThan(button.x);
+    if (width === '390') expect(button.width).toBeGreaterThan(viewport.width / 2);
     else expect(button.width).toBeLessThan(200);
-    await expect(page.getByRole('button', { name: 'Back' })).toHaveCount(0);
     await expectNoSidewaysScroll(page);
     await expectAccessible(page);
     await screenshot(page, `nv-focused-task-${width}`);
 
     // UX-FL-3: pressing the button with errors. No box at the top; each error is at its field;
     // focus goes to the first; a screen reader hears how many.
+    await page.getByRole('button', { name: 'Enter it myself' }).click();
     await primary.click();
     await expect(page.getByRole('status').filter({ hasText: 'another look' })).toHaveText(
-      '4 things need another look',
+      '3 things need another look',
     );
     await expect(page.getByText('That didn’t save yet')).toHaveCount(0);
+    await expect(page.locator('main [class*="Notice-module"]')).toHaveCount(0);
     await expect(page.getByLabel('Address', { exact: true })).toBeFocused();
     await expect(page.locator('#field-addressLine1-error')).toBeVisible();
     await expectAccessible(page);
     await screenshot(page, `nv-focused-task-errors-${width}`);
 
     // An error goes as its field is edited, and comes back on leaving it with something wrong.
-    const rent = page.getByLabel('Rent a month');
-    await rent.fill('lots');
-    await expect(page.locator('#field-rent-error')).toHaveCount(0);
-    await page.keyboard.press('Tab');
-    await expect(page.locator('#field-rent-error')).toBeVisible();
-
-    // The second step has Back in the footer, to the left of the primary button.
+    const eircode = page.getByRole('textbox', { name: 'Eircode (optional)' });
     await page.getByLabel('Address', { exact: true }).fill('12 Ranelagh Road');
-    await page.getByLabel('Area').fill('Ranelagh, Dublin 6');
-    await rent.fill('1850');
-    await page.getByLabel('Available from').fill(isoDateInDays(30));
-    await primary.click();
-    await expect(page.getByRole('heading', { name: 'Key facts' })).toBeFocused();
-    await expect(progress.locator('[aria-current="step"]')).toContainText('Key facts');
-    const back = page.getByRole('button', { name: 'Back' });
-    expect((await box(back)).x).toBeLessThan((await box(primary)).x);
-    await expectAccessible(page);
+    await expect(page.locator('#field-addressLine1-error')).toHaveCount(0);
+    await eircode.fill('not an eircode');
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#field-eircode-error')).toBeVisible();
+    await expect(page.locator('#field-addressLine1-error')).toHaveCount(0);
 
     // Closing it goes back to where it was opened, and the navigation is there again.
     await close.click();

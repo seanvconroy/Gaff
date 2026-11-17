@@ -67,8 +67,12 @@ export async function expectFocusRings(page: Page): Promise<void> {
   expect(problems, 'focus rings').toEqual([]);
 }
 
-/** WCAG 1.4.10 reflow: nothing makes the page scroll sideways at this width. */
+/**
+ * WCAG 1.4.10 reflow: nothing makes the page scroll sideways at this width. Measured once the
+ * page is at rest: a step that is still sliding in is a few pixels to one side.
+ */
 export async function expectNoSidewaysScroll(page: Page): Promise<void> {
+  await settled(page);
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
@@ -407,29 +411,97 @@ export function isoDateInDays(days: number): string {
 export const AVAILABLE_IN_DAYS = 30;
 
 /**
- * Creates a letting with one evening of viewing slots, through the real screens: the three steps
- * of "Add a letting" (the home, key facts, adverts), then a viewing time.
+ * Chooses a date in a date picker (section 8, "Date and time pickers"): opens the field by its
+ * label, moves month by month to the date, and presses the day. `date` is YYYY-MM-DD.
+ */
+export async function pickDate(
+  page: Page,
+  label: string,
+  date: string,
+  within: Page | Locator = page,
+): Promise<void> {
+  await within.getByRole('button', { name: new RegExp(`^${label}`) }).click();
+  const picker = page
+    .locator('dialog[open]')
+    .filter({ has: page.getByRole('grid') })
+    .last();
+  await expect(picker).toBeVisible();
+  const day = picker.locator(`[data-date="${date}"]`);
+  for (let months = 0; months < 40 && (await day.count()) === 0; months++) {
+    const shown = await picker.locator('[data-date]').first().getAttribute('data-date');
+    await picker
+      .getByRole('button', { name: shown && date < shown ? 'Previous month' : 'Next month' })
+      .click();
+  }
+  await day.click();
+  await expect(picker).toBeHidden();
+}
+
+/** The ID of the home in a page of adding a letting, or of a letting's own pages. */
+export function homeIdIn(url: string): string {
+  const id = /\/lettings\/([0-9a-f-]{36})/.exec(url)?.[1];
+  if (!id) throw new Error(`No letting in ${url}`);
+  return id;
+}
+
+/**
+ * The first steps of "Add a letting", through the real screens (UX-LT-1, UX-LT-9): the first
+ * screen (a Daft link is pasted there, where one is given: UX-LT-8), "Fill it in myself", the
+ * address in the manual fields, the rent and date, and the home. It ends on the photos step,
+ * where the home has just become a letting in set-up.
+ */
+export async function addHomeThroughUi(
+  page: Page,
+  address = '12 Ranelagh Road',
+  daftUrl = '',
+): Promise<void> {
+  await page.goto('/lettings/new');
+  if (daftUrl) {
+    await page
+      .getByLabel('Paste your advert, or describe the home in your own words.')
+      .fill(daftUrl);
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await expect(page.getByText('Gaff will use this link to match enquiries.')).toBeVisible();
+  }
+  await page.getByRole('link', { name: 'Fill it in myself' }).click();
+  await expect(page.getByRole('heading', { name: 'Where is it?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Enter it myself' }).click();
+  await page.getByLabel('Address', { exact: true }).fill(address);
+  await page.getByLabel('Town or area').fill('Ranelagh, Dublin 6');
+  await page.getByLabel('County').selectOption('Dublin');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Rent and date' })).toBeVisible();
+  await page.getByLabel('Rent a month').fill('1850');
+  await pickDate(page, 'Available from', isoDateInDays(AVAILABLE_IN_DAYS));
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'The home', exact: true })).toBeVisible();
+  await page
+    .getByRole('group', { name: 'Type of home' })
+    .getByRole('radio', { name: 'Apartment' })
+    .check();
+  await page.getByRole('group', { name: 'Bedrooms' }).getByRole('radio', { name: '2' }).check();
+  await page.getByRole('group', { name: 'Bathrooms' }).getByRole('radio', { name: '1' }).check();
+  await page
+    .getByRole('group', { name: 'Furnishing' })
+    .getByRole('radio', { name: 'Furnished', exact: true })
+    .check();
+  await page.getByLabel('BER rating').selectOption('C1');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Photos', exact: true })).toBeVisible();
+}
+
+/**
+ * Creates a letting with one evening of viewing slots, through the real screens: the first
+ * steps of "Add a letting", then a viewing time on the letting's own page. It ends on the
+ * letting's viewing times, with the letting still in set-up.
  */
 export async function createLettingThroughUi(
   page: Page,
   address = '12 Ranelagh Road',
   daftUrl = '',
 ): Promise<void> {
-  await page.goto('/lettings/new');
-  await page.getByLabel('Address', { exact: true }).fill(address);
-  await page.getByLabel('Area').fill('Ranelagh, Dublin 6');
-  await page.getByLabel('Rent a month').fill('1850');
-  await page.getByLabel('Available from').fill(isoDateInDays(AVAILABLE_IN_DAYS));
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await page.getByLabel('Type of home').selectOption('apartment');
-  await page.getByLabel('Bedrooms').fill('2');
-  await page.getByLabel('Bathrooms').fill('1');
-  await page.getByLabel('Furnishing').selectOption('furnished');
-  await page.getByLabel('BER rating').selectOption('C1');
-  await page.getByRole('button', { name: 'Continue' }).click();
-  if (daftUrl) await page.getByLabel('Daft advert').fill(daftUrl);
-  await page.getByRole('button', { name: 'Save and add viewing times' }).click();
-  await expect(page.getByText(`${address} is saved`)).toBeVisible();
+  await addHomeThroughUi(page, address, daftUrl);
+  await page.goto(`/lettings/${homeIdIn(page.url())}/viewings`);
   await page.getByLabel('Date').fill(isoDateInDays(7));
   await page.getByLabel('From').fill('18:00');
   await page.getByLabel('Until').fill('19:00');
@@ -437,20 +509,38 @@ export async function createLettingThroughUi(
   await expect(page.getByText('Viewing time added')).toBeVisible();
 }
 
-/** From a letting's overview: sets criteria, checks the rent and starts taking enquiries. */
-export async function goLiveThroughUi(page: Page): Promise<void> {
-  const overview = page
-    .url()
-    .replace(/\/(viewings|criteria|rent-check|comparables).*$/, '')
-    .replace(/\?.*$/, '');
-  await page.goto(`${overview}/criteria`);
+/**
+ * From any page of a letting in set-up, the rest of "Add a letting": letting details (up to 3
+ * people, no pets), the rent check for a first letting, and its result. It ends on "Ready to go
+ * live", with nothing pressed.
+ */
+export async function toGoLiveThroughUi(page: Page): Promise<void> {
+  await page.goto(`/lettings/${homeIdIn(page.url())}/setup/details`);
+  await expect(page.getByRole('heading', { name: 'Letting details' })).toBeVisible();
+  await page.getByRole('checkbox', { name: 'Most people' }).check();
   await page.getByLabel('Most people who can live there').selectOption('3');
-  await page.getByLabel('No pets').check();
-  await page.getByRole('button', { name: 'Save criteria' }).click();
-  await page.getByRole('link', { name: 'Check the rent' }).click();
+  await page.getByRole('checkbox', { name: 'No pets' }).check();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Has this home been let before?' })).toBeVisible();
   await page.getByLabel('No, this is its first letting').check();
-  await page.getByRole('button', { name: 'Check the rent' }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'You can set the rent at market level' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Ready to go live' })).toBeVisible();
+}
+
+/**
+ * From any page of a letting in set-up: finishes adding it and starts taking enquiries. It
+ * answers "Is it advertised anywhere else?" with No, and ends on the letting's own page.
+ */
+export async function goLiveThroughUi(page: Page): Promise<void> {
+  await toGoLiveThroughUi(page);
   await page.getByRole('button', { name: 'Start taking enquiries' }).click();
+  await expect(page.getByRole('heading', { name: / is live$/ })).toBeVisible();
+  await page.getByRole('checkbox', { name: 'No', exact: true }).check();
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(page.getByText('Gaff is now answering enquiries for this home.')).toBeVisible();
 }
 

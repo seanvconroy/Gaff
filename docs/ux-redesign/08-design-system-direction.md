@@ -173,6 +173,7 @@ Every component adapts between phone and desktop. "Status" says whether it exist
 | **Button** | Primary, secondary, quiet, destructive | Primary spans the width at the foot of a task | Sized to its label | Changed; destructive is new |
 | **Field** | Text, number, money, email | Label above, then the control, then the error, then help | Same | Changed (one height, three widths) |
 | **Choice card / choice row** | One of a few options | Stacked, full width | Up to three across | Exists; restyled |
+| **Option row** | Something that is off until tapped, then asks for one value | Full width; the value's field opens under the row | Same | New |
 | **Chips** | Filters, quick answers | A row that scrolls sideways with a visible fade | A wrapping row | New |
 | **Address search** | Finding an address | A full-screen search with results | A field with a list under it | New |
 | **Date and time pickers** | Dates and times in Irish format | A sheet | A popover | New (replaces the browser's own controls) |

@@ -116,3 +116,115 @@ export function criteriaFormSchema(now: Date = new Date()) {
       }),
     );
 }
+
+/** UX-MT-3: "A year or longer", as renters read a length of stay. */
+function stayOrLonger(months: number): string {
+  const stay = describeStay(months);
+  return `${stay.charAt(0).toUpperCase()}${stay.slice(1)} or longer`;
+}
+
+/** The one house rule (UX-MT-5, Q36): a term of the tenancy. It is never used to rank anyone. */
+export const NO_SMOKING_INDOORS = 'No smoking indoors';
+
+/**
+ * UX-MT-3, UX-LT-11: the "Letting details" line renters see. Gaff writes it, from the four
+ * fixed criteria and the one house rule, in fixed wording: nobody can type who a home would
+ * suit (rule 3). Assistance dogs never count as pets, and the line says so wherever pets do.
+ * Null when nothing was asked.
+ */
+export function lettingDetailsLine(
+  criteria: Criteria | null,
+  noSmokingIndoors: boolean,
+  now: Date = new Date(),
+): string | null {
+  const parts: string[] = [];
+  if (criteria?.moveInBy) parts.push(`Move in by ${formatDate(criteria.moveInBy, now)}`);
+  if (criteria?.minStayMonths) parts.push(stayOrLonger(criteria.minStayMonths));
+  if (criteria?.maxOccupants) {
+    parts.push(
+      `Up to ${criteria.maxOccupants} ${criteria.maxOccupants === 1 ? 'person' : 'people'}`,
+    );
+  }
+  if (criteria?.noPets) parts.push('No pets (assistance dogs always welcome)');
+  if (noSmokingIndoors) parts.push(NO_SMOKING_INDOORS);
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
+const on = (value: string | undefined) => value === 'on';
+
+/**
+ * UX-LT-11: the "Letting details" step. Four rows, each off until tapped, then one value; and
+ * the house rule. A row that is off asks nothing, whatever its field holds. A row that is on
+ * with no value says so at that row. There is no field anywhere for free text (rule 3): anything
+ * else sent with the form is ignored.
+ */
+export function lettingDetailsFormSchema(now: Date = new Date()) {
+  const today = irishToday(now);
+  return z
+    .object({
+      moveInOn: z.string().optional(),
+      moveInBy: z.string().optional(),
+      stayOn: z.string().optional(),
+      minStayMonths: z.string().optional(),
+      peopleOn: z.string().optional(),
+      maxOccupants: z.string().optional(),
+      noPets: z.string().optional(),
+      noSmokingIndoors: z.string().optional(),
+    })
+    .transform((value, ctx) => {
+      const criteria: Criteria = { noPets: on(value.noPets) };
+      if (on(value.moveInOn)) {
+        const date = value.moveInBy ?? '';
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['moveInBy'],
+            message: 'Choose the latest move-in date, or switch this off',
+          });
+        } else if (date < today) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['moveInBy'],
+            message: 'The move-in date can’t be in the past',
+          });
+        } else criteria.moveInBy = date;
+      }
+      if (on(value.stayOn)) {
+        const months = Number(value.minStayMonths);
+        if (!minimumStays.includes(months as (typeof minimumStays)[number])) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['minStayMonths'],
+            message: 'Choose a length of stay, or switch this off',
+          });
+        } else criteria.minStayMonths = months as (typeof minimumStays)[number];
+      }
+      if (on(value.peopleOn)) {
+        const people = Number(value.maxOccupants);
+        if (!Number.isInteger(people) || people < 1 || people > MAX_OCCUPANTS_LIMIT) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['maxOccupants'],
+            message: `Choose a number from 1 to ${MAX_OCCUPANTS_LIMIT}, or switch this off`,
+          });
+        } else criteria.maxOccupants = people;
+      }
+      return { criteria, noSmokingIndoors: on(value.noSmokingIndoors) };
+    });
+}
+
+/** What the letting-details rows start with, from the criteria as they are stored. */
+export function lettingDetailsFormValues(
+  details: Partial<Criteria> & { noSmokingIndoors?: boolean },
+): Record<string, string> {
+  return {
+    moveInOn: details.moveInBy ? 'on' : '',
+    moveInBy: details.moveInBy ?? '',
+    stayOn: details.minStayMonths ? 'on' : '',
+    minStayMonths: details.minStayMonths ? String(details.minStayMonths) : '',
+    peopleOn: details.maxOccupants ? 'on' : '',
+    maxOccupants: details.maxOccupants ? String(details.maxOccupants) : '',
+    noPets: details.noPets ? 'on' : '',
+    noSmokingIndoors: details.noSmokingIndoors ? 'on' : '',
+  };
+}

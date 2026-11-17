@@ -30,11 +30,9 @@ export interface Lister {
 /**
  * The lister, from its organisation.
  *
- * THE PHONE NUMBER'S SEAM (Q43, UX-PP-3): organisations have no phone number yet. The package
- * that adds one adds the column and selects it wherever an organisation is loaded for a private
- * page or an email (`listerColumns` in `src/server/frame/lister.ts`); it arrives here as `phone`,
- * and "Talk to a person" shows it with nothing else to change. The component page shows the
- * sheet with a made-up number (`/dev/ui/frame`), and a journey holds it to that.
+ * Q43, UX-PP-3: the phone number is the lister's own, given at their first go-live. It is
+ * selected wherever an organisation is loaded for a private page or an email (`listerColumns`
+ * in `src/server/frame/lister.ts`) and arrives here as `phone`; "Talk to a person" shows it.
  */
 export function listerFrom(organisation: {
   name: string;
@@ -129,7 +127,7 @@ export function homeFrom(
   };
 }
 
-function kindOfHome(home: Pick<FrameHome, 'bedrooms' | 'propertyType'>): string {
+export function kindOfHome(home: Pick<FrameHome, 'bedrooms' | 'propertyType'>): string {
   if (home.propertyType === 'studio') return propertyTypes.studio;
   const known = propertyTypes[home.propertyType as keyof typeof propertyTypes];
   const type = known && home.propertyType !== 'other' ? known.toLowerCase() : 'home';

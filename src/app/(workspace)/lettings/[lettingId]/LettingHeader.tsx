@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { stageLabels, stageNumber, type Stage, stages } from '@/domain/lettings/stages';
 import { formatDate, formatRent } from '@/lib/format';
 import { PageHeader, Stack } from '@/ui/Layout';
@@ -41,7 +42,16 @@ interface HeaderLetting {
 }
 
 /** The letting's address as the page title, where it is in the nine stages, and its pages. */
-export function LettingHeader({ letting, tab }: { letting: HeaderLetting; tab: LettingTab }) {
+export function LettingHeader({
+  letting,
+  tab,
+  actions,
+}: {
+  letting: HeaderLetting;
+  tab: LettingTab;
+  /** Beside the title: the letting's menu of rare actions. */
+  actions?: ReactNode;
+}) {
   const reached = stages.indexOf(letting.stage);
   const visible = tabs.filter((t) => stages.indexOf(t.from) <= reached || t.key === tab);
   const [tone, words] = status[(letting.status ?? 'draft') as keyof typeof status] ?? status.draft;
@@ -59,6 +69,7 @@ export function LettingHeader({ letting, tab }: { letting: HeaderLetting; tab: L
         }
         title={letting.addressLine1}
         lead={`${letting.area} · ${formatRent(letting.monthlyRentCents)} · Available from ${formatDate(letting.availableFrom)}`}
+        actions={actions}
       />
       <StageTracker current={letting.stage} />
       <nav aria-label="Letting" className={styles.tabs}>
@@ -81,7 +92,7 @@ export function LettingHeader({ letting, tab }: { letting: HeaderLetting; tab: L
 }
 
 /**
- * A set-up task for one letting (viewing times, criteria, the rent check, comparables): one job
+ * A task for one letting (viewing times, comparable rents): one job
  * per screen, with a way back to the letting and no tabs to distract from it.
  */
 export function TaskHeader({

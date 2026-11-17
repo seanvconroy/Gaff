@@ -1,10 +1,116 @@
-import { withOrg } from '@/db/client';
+import { type Tx, withOrg } from '@/db/client';
 import { landlords, lettingFacts, lettings } from '@/db/schema';
+import type { Criteria } from '@/domain/criteria/criteria';
+import type { DraftOrigin, FlowStep } from '@/domain/lettings/add-letting';
 import type { NewLetting } from '@/domain/lettings/new-letting';
 import type { Member } from '@/server/auth/member';
 import { recordEvent } from '@/server/record/events';
 
-/** R1: creates a letting in set-up, with its landlord and key facts. */
+/** Everything a letting row is made from. Only the first seven are needed (UX-LT-14). */
+export interface LettingToMake {
+  /** Given when a draft becomes a letting: the letting keeps the draft's ID. */
+  id?: string;
+  addressLine1: string;
+  addressLine2?: string;
+  area: string;
+  county: string;
+  eircode?: string;
+  rentCents: number;
+  availableFrom: string;
+  propertyType: string;
+  bedrooms: number;
+  bathrooms?: number;
+  furnished?: string;
+  berRating?: string;
+  parking?: string;
+  description?: string;
+  otherFacts?: string[];
+  photosUrl?: string;
+  daftUrl?: string;
+  myhomeUrl?: string;
+  landlordId?: string | null;
+  /** Letting details carried in, for the person to confirm at that step. Not yet "set". */
+  criteria?: Criteria;
+  noSmokingIndoors?: boolean;
+  setupStep?: FlowStep;
+  origin?: DraftOrigin;
+  previousLettingId?: string | null;
+}
+
+/** Makes the letting row, its facts and its first event, in the caller's transaction. */
+export async function makeLettingIn(
+  tx: Tx,
+  member: Member,
+  input: LettingToMake,
+): Promise<{ lettingId: string }> {
+  const [letting] = await tx
+    .insert(lettings)
+    .values({
+      ...(input.id ? { id: input.id } : {}),
+      organisationId: member.organisationId,
+      landlordId: input.landlordId ?? null,
+      addressLine1: input.addressLine1,
+      addressLine2: input.addressLine2 ?? null,
+      area: input.area,
+      county: input.county,
+      eircode: input.eircode ?? null,
+      monthlyRentCents: input.rentCents,
+      availableFrom: input.availableFrom,
+      propertyType: input.propertyType,
+      bedrooms: input.bedrooms,
+      bathrooms: input.bathrooms ?? null,
+      furnished: input.furnished ?? null,
+      berRating: input.berRating ?? null,
+      parking: input.parking ?? null,
+      description: input.description ?? null,
+      photosUrl: input.photosUrl ?? null,
+      daftUrl: input.daftUrl ?? null,
+      myhomeUrl: input.myhomeUrl ?? null,
+      criteria: input.criteria ?? null,
+      noSmokingIndoors: input.noSmokingIndoors ?? false,
+      setupStep: input.setupStep ?? null,
+      previousLettingId: input.previousLettingId ?? null,
+      createdBy: member.userId,
+    })
+    .returning({ id: lettings.id });
+  const lettingId = letting!.id;
+
+  const facts = input.otherFacts ?? [];
+  if (facts.length > 0) {
+    await tx.insert(lettingFacts).values(
+      facts.map((answer, index) => ({
+        organisationId: member.organisationId,
+        lettingId,
+        answer,
+        source: 'setup' as const,
+        createdBy: member.userId,
+        // Kept in the order they were written: rows made together share a timestamp.
+        createdAt: new Date(Date.now() + index),
+      })),
+    );
+  }
+
+  await recordEvent(tx, {
+    organisationId: member.organisationId,
+    lettingId,
+    actor: { type: 'person', userId: member.userId },
+    type: 'letting.created',
+    subject: { type: 'letting', id: lettingId },
+    data: {
+      setupFacts: facts.length,
+      withLandlord: Boolean(input.landlordId),
+      ...(input.origin ? { origin: input.origin } : {}),
+      ...(input.previousLettingId ? { fromLettingId: input.previousLettingId } : {}),
+    },
+  });
+  return { lettingId };
+}
+
+/**
+ * R1: creates a letting in set-up from everything at once, with its landlord and key facts.
+ * The screens add a home a step at a time instead (src/server/lettings/drafts.ts); this is the
+ * way in for an import, and for tests.
+ */
 export async function createLetting(
   member: Member,
   input: NewLetting,
@@ -22,53 +128,26 @@ export async function createLetting(
         .returning({ id: landlords.id });
       landlordId = landlord!.id;
     }
-
-    const [letting] = await tx
-      .insert(lettings)
-      .values({
-        organisationId: member.organisationId,
-        landlordId,
-        addressLine1: input.addressLine1,
-        addressLine2: input.addressLine2 ?? null,
-        area: input.area,
-        county: input.county,
-        eircode: input.eircode ?? null,
-        monthlyRentCents: input.rent,
-        availableFrom: input.availableFrom,
-        propertyType: input.propertyType,
-        bedrooms: input.bedrooms,
-        bathrooms: input.bathrooms,
-        furnished: input.furnished,
-        berRating: input.berRating,
-        parking: input.parking ?? null,
-        photosUrl: input.photosUrl ?? null,
-        daftUrl: input.daftUrl ?? null,
-        myhomeUrl: input.myhomeUrl ?? null,
-        createdBy: member.userId,
-      })
-      .returning({ id: lettings.id });
-    const lettingId = letting!.id;
-
-    if (input.otherFacts.length > 0) {
-      await tx.insert(lettingFacts).values(
-        input.otherFacts.map((answer) => ({
-          organisationId: member.organisationId,
-          lettingId,
-          answer,
-          source: 'setup' as const,
-          createdBy: member.userId,
-        })),
-      );
-    }
-
-    await recordEvent(tx, {
-      organisationId: member.organisationId,
-      lettingId,
-      actor: { type: 'person', userId: member.userId },
-      type: 'letting.created',
-      subject: { type: 'letting', id: lettingId },
-      data: { setupFacts: input.otherFacts.length, withLandlord: landlordId !== null },
+    return makeLettingIn(tx, member, {
+      addressLine1: input.addressLine1,
+      addressLine2: input.addressLine2,
+      area: input.area,
+      county: input.county,
+      eircode: input.eircode,
+      rentCents: input.rent,
+      availableFrom: input.availableFrom,
+      propertyType: input.propertyType,
+      bedrooms: input.bedrooms,
+      bathrooms: input.bathrooms,
+      furnished: input.furnished,
+      berRating: input.berRating,
+      parking: input.parking,
+      description: input.description,
+      otherFacts: input.otherFacts,
+      photosUrl: input.photosUrl,
+      daftUrl: input.daftUrl,
+      myhomeUrl: input.myhomeUrl,
+      landlordId,
     });
-    return { lettingId };
   });
 }

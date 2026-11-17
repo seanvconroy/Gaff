@@ -4,11 +4,14 @@ import { Copy, Pencil, Share2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { AccountMenu as AccountMenuRows } from '@/domain/navigation/account-menu';
 import { AccountMenu } from '@/ui/AccountMenu';
+import { type AddressOption, AddressSearch } from '@/ui/AddressSearch';
 import { Button } from '@/ui/Button';
 import { Chips } from '@/ui/Chips';
 import { CodeInput } from '@/ui/CodeInput';
 import { TextField } from '@/ui/Field';
 import { Menu, MenuItem } from '@/ui/Menu';
+import { OptionRow } from '@/ui/OptionRow';
+import { PhotoUploader, type UploadedPhoto } from '@/ui/PhotoUploader';
 import { DateField, TimeField } from '@/ui/Pickers';
 import { Sheet } from '@/ui/Sheet';
 import { ToastProvider, useToast } from '@/ui/Toast';
@@ -189,5 +192,110 @@ export function CodeDemo() {
         error="That code isn’t right. Check the email and try again."
       />
     </div>
+  );
+}
+
+/** Made-up addresses: the component page looks nothing up. */
+const demoAddresses: AddressOption[] = [
+  { id: 'a', label: '12 Ranelagh Road, Ranelagh, Dublin 6, D06 F2X3' },
+  { id: 'b', label: '14 Ranelagh Road, Ranelagh, Dublin 6, D06 F2X5' },
+  { id: 'c', label: '22 Harbour Row, Cobh, P24 H9W3' },
+];
+const findDemoAddresses = async (query: string) =>
+  demoAddresses.filter((each) => each.label.toLowerCase().includes(query.toLowerCase()));
+
+/** Address search: type three letters ("ran"), or something that isn't there ("zzz"). */
+export function AddressSearchDemo() {
+  const [picked, setPicked] = useState('');
+  return (
+    <div className={styles.fields}>
+      <AddressSearch
+        name="ui-address-search"
+        label="Eircode or address"
+        search={findDemoAddresses}
+        notFound="We can’t find that. Check the Eircode, or enter the address yourself."
+        onPick={(option) => setPicked(option.label)}
+      />
+      <AddressSearch
+        name="ui-address-search-error"
+        label="Eircode or address"
+        search={findDemoAddresses}
+        notFound="We can’t find that. Check the Eircode, or enter the address yourself."
+        error="Choose an address from the list, or enter it yourself"
+        onPick={(option) => setPicked(option.label)}
+      />
+      <p role="status">{picked ? `Picked: ${picked}` : ''}</p>
+    </div>
+  );
+}
+
+/** Option rows: off, on with its one value, and a plain yes or no. */
+export function OptionRowDemo() {
+  return (
+    <div className={styles.fields}>
+      <OptionRow
+        name="ui-option-people"
+        label="Most people"
+        hint="The most people who can live there"
+        defaultOn
+      >
+        <TextField
+          name="ui-option-people-value"
+          label="Most people who can live there"
+          width="short"
+          inputMode="numeric"
+          defaultValue="3"
+        />
+      </OptionRow>
+      <OptionRow
+        name="ui-option-stay"
+        label="Length of stay"
+        hint="For people who plan to stay at least this long"
+      >
+        <TextField name="ui-option-stay-value" label="Months" width="short" />
+      </OptionRow>
+      <OptionRow
+        name="ui-option-pets"
+        label="No pets"
+        hint="Assistance dogs are always welcome. They never count as pets."
+        defaultOn
+      />
+    </div>
+  );
+}
+
+/** A square of one colour, as a picture: the component page stores nothing. */
+const swatch = (colour: string) =>
+  `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3"><rect width="4" height="3" fill="${colour}"/></svg>`,
+  )}`;
+const demoPhotos: UploadedPhoto[] = [
+  { id: 'front', href: swatch('#2f5d9b') },
+  { id: 'kitchen', href: swatch('#c98c3c') },
+  { id: 'garden', href: swatch('#5a8c5a') },
+];
+
+/**
+ * Photo uploader: three photos to reorder and remove, and room for more. A photo added here is
+ * shown from the browser's own memory; one named "fail" doesn't upload, to show that tile.
+ */
+export function PhotoUploaderDemo() {
+  return (
+    <PhotoUploader
+      photos={demoPhotos}
+      max={30}
+      upload={async (data) => {
+        const file = data.get('photo');
+        if (!(file instanceof File) || file.name.includes('fail')) {
+          return { ok: false, message: 'That photo is too big. Try one under 4 MB.' };
+        }
+        return {
+          ok: true,
+          photo: { id: `added-${Date.now()}`, href: swatch('#8a8a8a') },
+        };
+      }}
+      remove={async () => undefined}
+      reorder={async () => undefined}
+    />
   );
 }

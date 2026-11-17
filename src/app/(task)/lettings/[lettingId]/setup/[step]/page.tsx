@@ -43,11 +43,13 @@ import {
   advertisedAction,
   confirmReviewAction,
   goLiveAction,
+  photosChangedAction,
   photosDoneAction,
   removePhotoAction,
   reorderPhotosAction,
   rentResultAction,
   saveDetailsAction,
+  saveHomePartAction,
   saveRentCheckAction,
   saveReviewAction,
   saveStepAction,
@@ -64,7 +66,15 @@ import {
   type ReviewRow,
   ReviewStep,
 } from '../../../_flow/Review';
-import { AddressStep, DetailsStep, HomeStep, PhotosStep, RentStep } from '../../../_flow/Steps';
+import {
+  AddressStep,
+  DescriptionStep,
+  DetailsStep,
+  FactsStep,
+  HomeStep,
+  PhotosStep,
+  RentStep,
+} from '../../../_flow/Steps';
 import type { StepFrame } from '../../../_flow/StepForm';
 
 export const metadata: Metadata = { title: 'Add a letting' };
@@ -81,11 +91,18 @@ function allowed(home: FlowHome, screen: FlowScreen, alone: boolean): boolean {
   const { letting, rentCheck, setup } = home.detail;
   const closed = letting.status === 'let' || letting.status === 'withdrawn';
   if (letting.stage !== 'setup') {
-    // After go-live, three screens are still of use: the question that follows it, and the
-    // letting details and rent check opened on their own from the letting's page.
+    // After go-live, a few screens are still of use: the question that follows it, and, opened
+    // on their own from Home on the letting's page (UX-LP-11), the letting details, the rent
+    // check, the photos and the facts.
     if (screen === 'advertised') return letting.status === 'live';
     if (!alone || closed) return false;
-    return screen === 'details' || screen === 'rent_check' || screen === 'rent_result';
+    return (
+      screen === 'details' ||
+      screen === 'rent_check' ||
+      screen === 'rent_result' ||
+      screen === 'photos' ||
+      screen === 'home'
+    );
   }
   if (screen === 'review' || screen === 'advertised') return false;
   if (screen === 'rent_result') return Boolean(rentCheck);
@@ -252,7 +269,7 @@ export default async function SetupStepPage({
   const { today, inAYear } = availableWindow();
   const values = formValuesFrom(home.answers);
   const searchOn = addressSearch().name !== 'off';
-  const leaveHref = alone ? lettingHref : (from ?? '/lettings');
+  const leaveHref = alone ? (from ?? lettingHref) : (from ?? '/lettings');
   const at = (step: FlowStep) => flowSteps.indexOf(step);
   const frameFor = (step: FlowStep, exit = true): StepFrame => {
     if (alone) return { leaveHref };
@@ -341,6 +358,22 @@ export default async function SetupStepPage({
         />
       );
     case 'home':
+      // UX-LP-11: "Change" on the facts or the description, from Home.
+      if (alone) {
+        return query.edit === 'description' ? (
+          <DescriptionStep
+            frame={{ leaveHref }}
+            action={saveHomePartAction.bind(null, 'description', id)}
+            values={values}
+          />
+        ) : (
+          <FactsStep
+            frame={{ leaveHref }}
+            action={saveHomePartAction.bind(null, 'home', id)}
+            values={values}
+          />
+        );
+      }
       return (
         <HomeStep
           frame={frameFor('home')}
@@ -367,7 +400,10 @@ export default async function SetupStepPage({
           upload={uploadPhotoAction.bind(null, id)}
           remove={removePhotoAction.bind(null, id)}
           reorder={reorderPhotosAction.bind(null, id)}
-          done={photosDoneAction.bind(null, id, from, then)}
+          done={
+            alone ? photosChangedAction.bind(null, id) : photosDoneAction.bind(null, id, from, then)
+          }
+          doneLabel={alone ? copy.advertised.done : undefined}
         />
       );
     }

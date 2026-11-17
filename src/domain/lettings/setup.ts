@@ -142,3 +142,11 @@ export function needsForwarding(letting: {
 }): boolean {
   return (letting.advertisedOn?.length ?? 0) > 0 && !letting.forwardingInPlace;
 }
+
+/**
+ * R2, UX-LP-13: letting details can change until people are invited to view on them. From then
+ * on they're locked, so everyone is ranked on the same ones.
+ */
+export function lettingDetailsLocked(stage: string): boolean {
+  return !['setup', 'enquiries', 'shortlist'].includes(stage);
+}

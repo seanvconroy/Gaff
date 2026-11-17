@@ -348,6 +348,7 @@ describe('UX-LP-3: four named parts, and never "Step n of 9"', () => {
     expect(progressOf('viewings')).toEqual({
       segments: ['Set up', 'Find', 'Choose', 'Sign'],
       current: 1,
+      detail: 'Viewings',
       label: 'Find · Viewings',
     });
     for (const stage of stages) expect(progressOf(stage).label).not.toMatch(/of 9/);

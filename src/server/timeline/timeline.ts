@@ -11,6 +11,8 @@ export interface TimelineEntry {
   who: string;
   what: string;
   detail?: string;
+  /** A person's decision (ADR-0007): History's "Decisions only" (UX-LP-6). */
+  decision?: boolean;
 }
 
 type EventRow = typeof events.$inferSelect;
@@ -423,6 +425,12 @@ export function describeEvent(
 
 type Who = (event: EventRow, personName: string | null) => string;
 
+/** UX-LP-6: an event that records a person's decision carries the decision it was. */
+export function isDecision(event: Pick<EventRow, 'subjectType' | 'data'>): boolean {
+  const data = event.data as Record<string, unknown>;
+  return event.subjectType === 'decision' || typeof data.decisionId === 'string';
+}
+
 /** R27: the letting's events in order, in plain words, with "who" decided by the viewer. */
 export async function timelineEntries(
   tx: Tx,
@@ -439,6 +447,7 @@ export async function timelineEntries(
     id: event.id,
     at: event.occurredAt,
     who: who(event, personName),
+    decision: isDecision(event),
     ...describeEvent(event),
   }));
 }

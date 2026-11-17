@@ -1,108 +1,93 @@
-/* The step line: "Step 2 of 9 · Enquiries" and the letting's status, in sentence case. */
-.eyebrow {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-3);
-}
+/*
+ * A letting's page (section 4, "A letting's page"). Space and type first, then hairlines between
+ * the blocks: nothing here is a box but a photo. One layout change, at 900px.
+ */
 
-.eyebrow > :last-child {
-  letter-spacing: normal;
-  text-transform: none;
-}
-
-/* The letting's pages: one row that scrolls sideways on a phone rather than wrapping. */
-.tabs {
-  border-bottom: 1px solid var(--color-border);
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-
-.tabList {
-  display: flex;
-  gap: var(--space-6);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.tab,
-.tabCurrent {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--size-target);
-  color: var(--color-ink-muted);
-  text-decoration: none;
-  white-space: nowrap;
-  border-bottom: 2px solid transparent;
-  transition-property: color, border-color;
-  transition-duration: var(--motion-fast);
-  transition-timing-function: var(--ease-standard);
-}
-
-.tab:hover {
-  color: var(--color-ink);
-  border-bottom-color: var(--color-border-strong);
-}
-
-.tabCurrent {
-  color: var(--color-ink);
-  font-weight: var(--type-title-weight);
-  border-bottom-color: var(--color-ink);
-}
-
-/* Inside the scrolling row, so the ring isn't clipped. */
-.tab:focus-visible,
-.tabCurrent:focus-visible {
-  outline-offset: -2px;
-}
-
-@media (width <= 900px) {
-  .tabList {
-    gap: var(--space-5);
-  }
-}
-
-/* The overview's cards, two side by side on a laptop. */
-.grid {
+/* The header: back, the cover photo small, the address, one status line and the menu. */
+.top {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-6);
-  align-items: start;
+  gap: var(--space-5);
+  min-width: 0;
 }
 
-@media (width <= 900px) {
-  .grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  align-items: center;
 }
 
-/* A card that is a titled list: the header, then hairline rows edge to edge. */
-.listCard {
-  background-color: var(--color-surface-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+.cover {
+  display: grid;
+  place-items: center;
+  width: var(--size-control);
+  height: var(--size-control);
   overflow: hidden;
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  color: var(--color-ink-muted);
 }
 
-.listCardHeader {
+.coverPhoto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.headerText {
   display: grid;
   gap: var(--space-1);
-  padding: var(--space-5) var(--space-5) var(--space-4);
+  min-width: 0;
 }
 
-.listCardFooter {
+.title {
+  overflow-wrap: anywhere;
+}
+
+.status {
+  color: var(--color-ink-muted);
+}
+
+.menu {
+  align-self: start;
+}
+
+@media (width <= 900px) {
+  .title {
+    font-size: var(--type-display-mobile-size);
+    line-height: var(--type-display-mobile-line);
+    letter-spacing: var(--type-display-mobile-tracking);
+  }
+}
+
+/* Overview's three blocks, and each part of Home: a heading, then what it holds. */
+.blocks {
+  display: grid;
+  min-width: 0;
+}
+
+.block {
   display: grid;
   gap: var(--space-4);
-  padding: var(--space-5);
+  padding-block: var(--space-6);
   border-top: 1px solid var(--color-border);
 }
 
-@media (width <= 900px) {
-  .listCardHeader,
-  .listCardFooter {
-    padding-inline: var(--space-4);
-  }
+.block:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.blockHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lead {
+  max-width: 64ch;
 }
 
 .muted {
@@ -115,121 +100,43 @@
   line-height: var(--type-body-sm-line);
 }
 
-.headerRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.list {
+/* Up to three figures, side by side at every width: the number large, its name under it. */
+.figures {
   display: grid;
-  gap: var(--space-2);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
   margin: 0;
-  padding-left: var(--space-5);
 }
 
-/* A quiet "Change" link in a card's header: standalone, so no underline until it's hovered. */
-.change {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-height: var(--size-target);
-  font-weight: var(--type-title-weight);
-  text-decoration: none;
-}
-
-.change:hover {
-  color: var(--color-ink);
-  text-decoration: underline;
-}
-
-/* A small action that looks like a link, such as "Remove" on a row. */
-.linkButton {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--size-target);
-  padding: 0 var(--space-2);
-  background: none;
-  border: 0;
-  border-radius: var(--radius-sm);
-  color: var(--color-brand-text);
-  font-weight: var(--type-title-weight);
-  cursor: pointer;
-}
-
-.linkButton:hover {
-  color: var(--color-ink);
-  text-decoration: underline;
-}
-
-/* Viewing times on their set-up page. */
-.sessions {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.session {
+.figure {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-5);
-  border-top: 1px solid var(--color-border);
-}
-
-.sessionText {
-  display: grid;
+  flex-direction: column-reverse;
   gap: var(--space-1);
+  min-width: 0;
 }
 
-.sessionWhen {
+.figureValue {
+  margin: 0;
+  font-size: var(--type-title-size);
+  line-height: var(--type-title-line);
   font-weight: var(--type-title-weight);
+  overflow-wrap: anywhere;
+}
+
+.figureLabel {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
 }
 
 @media (width <= 900px) {
-  .session {
-    padding-inline: var(--space-4);
+  .figures {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
-/* Only the field for the chosen kind of viewing shows (progressive disclosure, no script). */
-.slotsOnly,
-.groupOnly {
-  display: grid;
-}
-
-.sessionForm:has(input[name='kind'][value='group']:checked) .slotsOnly,
-.sessionForm:has(input[name='kind'][value='slots']:checked) .groupOnly {
-  display: none;
-}
-
-/* The rent check asks only what applies to the answer before (progressive disclosure). */
-.ifLetBefore,
-.ifBeforeNewRules {
-  display: none;
-}
-
-.rentForm:has(input[name='lastLet'][value='before_new_rules']:checked) .ifLetBefore,
-.rentForm:has(input[name='lastLet'][value='under_new_rules']:checked) .ifLetBefore,
-.rentForm:has(input[name='lastLet'][value='before_new_rules']:checked) .ifBeforeNewRules {
-  display: grid;
-  gap: var(--space-6);
-}
-
-/* Without :has(), every question shows. */
-@supports not selector(:has(*)) {
-  .ifLetBefore,
-  .ifBeforeNewRules {
-    display: grid;
-    gap: var(--space-6);
-  }
-}
-
-.timeline {
+/* The last three things that happened, and the full record. */
+.entries {
   display: grid;
   margin: 0;
   padding: 0;
@@ -240,7 +147,7 @@
   display: grid;
   grid-template-columns: 13rem minmax(0, 1fr);
   gap: var(--space-1) var(--space-6);
-  padding: var(--space-4) var(--space-5);
+  padding-block: var(--space-3);
   border-top: 1px solid var(--color-border);
 }
 
@@ -258,6 +165,71 @@
 @media (width <= 900px) {
   .entry {
     grid-template-columns: minmax(0, 1fr);
-    padding-inline: var(--space-4);
   }
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+}
+
+/* A quiet link that is its own target: "Change", "See everything". */
+.change {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--size-target);
+  font-weight: var(--type-title-weight);
+  text-decoration: none;
+}
+
+.change:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+}
+
+.list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.description {
+  max-width: 64ch;
+  white-space: pre-line;
+}
+
+/* Home's photos: two across on a phone, four on a desktop. */
+.photos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+@media (width > 900px) {
+  .photos {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* People: a name that opens the person's sheet. */
+.person {
+  font-weight: var(--type-title-weight);
+}
+
+.people {
+  display: grid;
+  gap: var(--space-4);
 }

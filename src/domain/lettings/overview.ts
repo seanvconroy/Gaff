@@ -113,11 +113,14 @@ export function pageStage(
 export function progressOf(stage: Stage): {
   segments: readonly string[];
   current: number;
+  /** The stage inside the current part, said after its name. */
+  detail: string;
   label: string;
 } {
   return {
     segments: lettingParts,
     current: partReached(stage),
+    detail: stageLabels[stage],
     label: `${lettingParts[partOf(stage)]} · ${stageLabels[stage]}`,
   };
 }

@@ -19,7 +19,7 @@ import { Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { StatusPill, type PillTone } from '@/ui/StatusPill';
 import { loadLetting } from '../letting';
-import { LettingHeader } from '../LettingHeader';
+import { TaskHeader } from '../LettingHeader';
 import styles from './tenancy.module.css';
 
 export const metadata: Metadata = { title: 'Tenancy' };
@@ -44,7 +44,7 @@ export default async function TenancyPage({ params }: { params: Promise<{ lettin
   if (!view) {
     return (
       <Stack gap={8}>
-        <LettingHeader letting={letting} tab="tenancy" />
+        <TaskHeader letting={letting} title="Tenancy" />
         <EmptyState icon={FileSignature} title="No tenancy yet">
           <p>
             When your offer is accepted, the tenancy is set up here: the agreement, payment, RTB
@@ -63,7 +63,7 @@ export default async function TenancyPage({ params }: { params: Promise<{ lettin
 
   return (
     <Stack gap={8}>
-      <LettingHeader letting={letting} tab="tenancy" />
+      <TaskHeader letting={letting} title="Tenancy" />
       {tenancy.closedAt ? (
         <Notice tone="success" title="Finished" role="status">
           <p>

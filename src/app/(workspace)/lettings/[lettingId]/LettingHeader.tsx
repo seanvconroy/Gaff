@@ -1,111 +1,96 @@
-import Link from 'next/link';
+import { House } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { stageLabels, stageNumber, type Stage, stages } from '@/domain/lettings/stages';
-import { formatDate, formatRent } from '@/lib/format';
-import { PageHeader, Stack } from '@/ui/Layout';
-import { StageTracker } from '@/ui/StageTracker';
-import { StatusPill } from '@/ui/StatusPill';
+import { lettingPageCopy } from '@/copy/letting-page';
+import { progressOf } from '@/domain/lettings/overview';
+import type { Stage } from '@/domain/lettings/stages';
+import { ChipLinks } from '@/ui/Chips';
+import { BackLink, PageHeader } from '@/ui/Layout';
+import { SegmentedProgress } from '@/ui/SegmentedProgress';
 import styles from './letting.module.css';
 
+const copy = lettingPageCopy;
+
+export type LettingView = 'overview' | 'people' | 'home';
+
 /**
- * The letting's pages. Each appears once the letting reaches the stage it's for, so a home being
- * set up shows only what can be done now (progressive disclosure); the stage tracker shows what's
- * still to come. The decisions (who views, an applicant, the checks, the owner and the offer)
- * are focused flows of their own (WP-17), opened from what needs you.
+ * The top of a letting's page (section 4, "Layout"): back to Lettings, the cover photo small,
+ * the address as the title, one status line and the menu. Under it, the four parts (UX-LP-3:
+ * "Find · Viewings", never "Step n of 9") and the three views, the same at every stage (UX-LP-2).
  */
-const tabs = [
-  { key: 'overview', label: 'Overview', path: '', from: 'setup' },
-  { key: 'enquiries', label: 'Enquiries', path: '/enquiries', from: 'enquiries' },
-  { key: 'attendance', label: 'Attendance', path: '/attendance', from: 'viewings' },
-  { key: 'tenancy', label: 'Tenancy', path: '/tenancy', from: 'tenancy' },
-  { key: 'timeline', label: 'Timeline', path: '/timeline', from: 'setup' },
-] as const satisfies ReadonlyArray<{ key: string; label: string; path: string; from: Stage }>;
-
-export type LettingTab = (typeof tabs)[number]['key'];
-
-const status = {
-  draft: ['neutral', 'Not live yet'],
-  live: ['success', 'Live'],
-  let: ['success', 'Let'],
-  withdrawn: ['neutral', 'Withdrawn'],
-} as const;
-
-interface HeaderLetting {
-  id: string;
-  addressLine1: string;
-  area: string;
-  monthlyRentCents: number;
-  availableFrom: string;
-  stage: Stage;
-  status?: string;
-}
-
-/** The letting's address as the page title, where it is in the nine stages, and its pages. */
 export function LettingHeader({
   letting,
-  tab,
-  actions,
+  stage,
+  cover,
+  view,
+  menu,
 }: {
-  letting: HeaderLetting;
-  tab: LettingTab;
-  /** Beside the title: the letting's menu of rare actions. */
-  actions?: ReactNode;
+  letting: { id: string; addressLine1: string; area: string; status: string };
+  /** The stage the page is written for. */
+  stage: Stage;
+  cover: string | null;
+  view: LettingView;
+  menu: ReactNode;
 }) {
-  const reached = stages.indexOf(letting.stage);
-  const visible = tabs.filter((t) => stages.indexOf(t.from) <= reached || t.key === tab);
-  const [tone, words] = status[(letting.status ?? 'draft') as keyof typeof status] ?? status.draft;
+  const progress = progressOf(stage);
+  const status = copy.status[letting.status] ?? copy.status.draft;
+  const here = `/lettings/${letting.id}`;
   return (
-    <Stack gap={6}>
-      <PageHeader
-        back={{ href: '/lettings', label: 'Lettings' }}
-        eyebrow={
-          <span className={styles.eyebrow}>
-            <span>
-              Step {stageNumber(letting.stage)} of 9 · {stageLabels[letting.stage]}
-            </span>
-            <StatusPill tone={tone}>{words}</StatusPill>
-          </span>
-        }
-        title={letting.addressLine1}
-        lead={`${letting.area} · ${formatRent(letting.monthlyRentCents)} · Available from ${formatDate(letting.availableFrom)}`}
-        actions={actions}
+    <div className={styles.top}>
+      <BackLink href="/lettings">Lettings</BackLink>
+      <header className={styles.header}>
+        <div className={styles.cover}>
+          {cover ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={cover} alt="" className={styles.coverPhoto} />
+          ) : (
+            <House size={24} strokeWidth={1.75} aria-hidden="true" />
+          )}
+        </div>
+        <div className={styles.headerText}>
+          <h1 className={`${styles.title} type-display`}>{letting.addressLine1}</h1>
+          <p className={styles.status}>
+            {letting.area} · {status}
+          </p>
+        </div>
+        <div className={styles.menu}>{menu}</div>
+      </header>
+      <SegmentedProgress
+        label={copy.progress}
+        segments={progress.segments}
+        current={progress.current}
+        detail={progress.detail}
       />
-      <StageTracker current={letting.stage} />
-      <nav aria-label="Letting" className={styles.tabs}>
-        <ul className={styles.tabList}>
-          {visible.map((t) => (
-            <li key={t.key}>
-              <Link
-                href={`/lettings/${letting.id}${t.path}`}
-                className={t.key === tab ? styles.tabCurrent : styles.tab}
-                aria-current={t.key === tab ? 'page' : undefined}
-              >
-                {t.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </Stack>
+      <ChipLinks
+        label={copy.views.label}
+        items={(['overview', 'people', 'home'] as const).map((key) => ({
+          href: key === 'overview' ? here : `${here}?view=${key}`,
+          label: copy.views[key],
+          current: view === key,
+        }))}
+      />
+    </div>
   );
 }
 
 /**
- * A task for one letting (viewing times, comparable rents): one job
- * per screen, with a way back to the letting and no tabs to distract from it.
+ * A task for one letting (viewing times, the tenancy's steps, the record): one job per screen,
+ * with a way back to the letting.
  */
 export function TaskHeader({
   letting,
   title,
   lead,
+  back,
 }: {
-  letting: Pick<HeaderLetting, 'id' | 'addressLine1'>;
+  letting: { id: string; addressLine1: string };
   title: string;
   lead?: string;
+  /** Where "back" goes, if not the letting's Overview. */
+  back?: string;
 }) {
   return (
     <PageHeader
-      back={{ href: `/lettings/${letting.id}`, label: letting.addressLine1 }}
+      back={{ href: back ?? `/lettings/${letting.id}`, label: letting.addressLine1 }}
       title={title}
       lead={lead}
     />

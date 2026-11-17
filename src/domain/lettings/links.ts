@@ -73,3 +73,25 @@ export function decisionHref(
 ): string {
   return withQuery(`/lettings/${lettingId}/${flow}`, query);
 }
+
+/**
+ * WP-20's address for a home's public page on Gaff. Work package WP-20 builds that page; until
+ * it is merged there is no address, so "See it on Gaff" isn't offered anywhere. The lead points
+ * this one function at the page's address when WP-20 is in.
+ */
+export function homePageOnGaff(_lettingId: string): string | null {
+  return null;
+}
+
+/**
+ * UX-LP-5: "See it on Gaff", in a letting's menu: only for a live home that is shown on Gaff,
+ * and only once the public page exists (`homePageOnGaff`).
+ */
+export function seeItOnGaffHref(home: {
+  id: string;
+  status: string;
+  shownOnGaff: boolean;
+}): string | null {
+  if (home.status !== 'live' || !home.shownOnGaff) return null;
+  return homePageOnGaff(home.id);
+}

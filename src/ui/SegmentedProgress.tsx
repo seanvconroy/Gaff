@@ -15,6 +15,7 @@ export function SegmentedProgress({
   segments,
   current,
   large,
+  detail,
 }: {
   /** What this is progress through, for screen readers: "Add a letting". */
   label: string;
@@ -24,10 +25,18 @@ export function SegmentedProgress({
   current: number;
   /** Names at body size, for private pages. */
   large?: boolean;
+  /**
+   * Where it is inside the current part, said after its name at every width: a letting's
+   * "Find · Viewings" (UX-LP-3).
+   */
+  detail?: string;
 }) {
   const many = segments.length > 6;
   const at = Math.min(Math.max(current, 0), segments.length);
-  const name = segments[at];
+  const named = (segment: string, index: number) =>
+    detail && index === at ? `${segment} · ${detail}` : segment;
+  const here = segments[at];
+  const name = here === undefined ? undefined : named(here, at);
   return (
     <div
       className={`${styles.progress} ${large ? styles.large : ''}`}
@@ -44,7 +53,7 @@ export function SegmentedProgress({
             >
               <span className={styles.bar} />
               <span className={styles.name}>
-                {segment}
+                {named(segment, index)}
                 {state === 'done' ? <span className="visually-hidden"> (done)</span> : null}
               </span>
             </li>

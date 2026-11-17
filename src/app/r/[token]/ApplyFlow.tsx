@@ -138,7 +138,7 @@ export function ApplyFlow({
                     <>
                       {applyCopy.check.aMonth((values.monthlyIncome ?? '').replace(/^€\s*/, ''))}
                       <br />
-                      {keepCopy.saidOn(offered.saidOn)}
+                      <span>{keepCopy.saidOn(offered.saidOn)}</span>
                     </>
                   ) : (
                     applyCopy.check.aMonth((values.monthlyIncome ?? '').replace(/^€\s*/, ''))

@@ -116,12 +116,6 @@ export function placesLeftLine(left: number): string {
   return `${left} ${left === 1 ? 'place' : 'places'} left`;
 }
 
-/** "3 waiting for a place", for a viewing's sheet. */
-export function waitingLine(waiting: number): string {
-  if (waiting === 0) return 'Nobody on the waiting list';
-  return `${waiting} on the waiting list`;
-}
-
 /**
  * UX-VW-10, and the past-viewing state: a viewing whose marking has opened, with people still
  * to mark, shows "Mark who came".

@@ -183,8 +183,10 @@ test('UX-HM-1 to UX-HM-6, UX-HM-8 to UX-HM-10: Today lists what needs a person, 
   await expect(viewings.getByRole('listitem')).toHaveText([
     /^\d{1,2}(:\d{2})?(am|pm) to \d{1,2}(:\d{2})?(am|pm) · 12 Ranelagh Road\s*0 of 4 booked$/,
   ]);
-  // The blocks keep their order: Needs you, Viewings today, While you were away.
+  // The blocks keep their order: the setup checklist (its team step is still to do), Needs
+  // you, Viewings today, While you were away.
   await expect(main(page).getByRole('heading', { level: 2 })).toHaveText([
+    'Get set up',
     'Needs you',
     'Viewings today',
     'While you were away',

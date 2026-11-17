@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { formValues, invalid, type FormState } from '@/lib/forms';
 import { requireMember } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
@@ -16,7 +15,8 @@ export async function leadAction(
   const values = formValues(formData);
   try {
     const { leadName } = await changeLead(member, lettingId, values.lead);
-    revalidatePath('/', 'layout');
+    // No revalidation: an agent who handed their letting over couldn't open this page again,
+    // so the last screen would never show. The letting and Today are read fresh anyway.
     return invalid({}, { done: 'changed', leadName });
   } catch (error) {
     if (!(error instanceof UserFacingError)) throw error;

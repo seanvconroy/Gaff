@@ -113,6 +113,7 @@ async function joinFromEmail(
 
 /** An admin with a colleague on the team, each signed in in a browser of their own. */
 async function anAdminAndAnAgent(browser: Browser, page: Page, viewport: Viewport, agency: string) {
+  await page.context().clearCookies();
   await page.setViewportSize(viewport);
   const admin = await signUpOperator(page, agency);
   const agentEmail = uniqueEmail('brid');
@@ -128,6 +129,7 @@ test('UX-AG-11, UX-AG-12: an admin invites a colleague, who signs in straight in
 }) => {
   test.slow();
   for (const [width, viewport] of widths) {
+    await page.context().clearCookies();
     await page.setViewportSize(viewport);
     const agency = `Halcyon ${width} Lettings`;
     await signUpOperator(page, agency);
@@ -202,6 +204,7 @@ test('UX-AG-11, UX-AG-12: an admin invites a colleague, who signs in straight in
     await expectAccessible(colleague);
     await screenshot(colleague, `ux-ag-join-sign-in-${width}`);
     await colleague.getByRole('button', { name: 'Continue', exact: true }).click();
+    await expect(colleague.getByRole('heading', { name: 'Enter your code' })).toBeVisible();
     await colleague.getByLabel('Six-digit code').fill(await latestCodeFor(orla));
     // No questions: Today, in the agency, as an Agent.
     await expect(colleague).toHaveURL(/\/today$/);
@@ -228,6 +231,7 @@ test('UX-AG-3: an admin answers a request to join, and the person is told', asyn
 }) => {
   test.slow();
   for (const [width, viewport] of widths) {
+    await page.context().clearCookies();
     await page.setViewportSize(viewport);
     const agency = `Corrib ${width} Lettings`;
     const admin = await signUpOperator(page, agency);
@@ -240,6 +244,7 @@ test('UX-AG-3: an admin answers a request to join, and the person is told', asyn
     await signIn(asker, askerEmail);
     await answerName(asker, 'Fionn Ryan');
     await answerPurpose(asker, 'I work at a letting agency');
+    await expect(asker.getByRole('heading', { name: 'Which agency?' })).toBeVisible();
     await asker.goto('/welcome?step=agency&by=licence');
     await asker.getByLabel('Licence number').fill(licence);
     await asker.getByRole('button', { name: 'Continue', exact: true }).click();
@@ -251,7 +256,7 @@ test('UX-AG-3: an admin answers a request to join, and the person is told', asyn
     // The admin sees who asked, and says yes.
     await page.goto('/settings/team');
     const requests = page.getByRole('region', { name: 'Asked to join' });
-    await expect(requests.getByText('Fionn Ryan')).toBeVisible();
+    await expect(requests.getByText('Fionn Ryan', { exact: true })).toBeVisible();
     await expect(requests.getByText(`${askerEmail} · asked today`)).toBeVisible();
     await expectAccessible(page);
     await screenshot(page, `ux-ag-request-to-join-${width}`);
@@ -416,7 +421,7 @@ test('UX-AG-17: a member leaves an agency from their profile, and an admin is to
 
     await agent.goto('/profile');
     const teams = agent.getByRole('region', { name: 'Your teams' });
-    await expect(teams.getByText(agency)).toBeVisible();
+    await expect(teams.getByText(agency, { exact: true })).toBeVisible();
     await teams.getByRole('button', { name: `Leave ${agency}` }).click();
     const sheet = agent.getByRole('dialog', { name: `Leave ${agency}?` });
     await expect(sheet).toBeVisible();

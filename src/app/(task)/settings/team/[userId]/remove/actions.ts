@@ -1,8 +1,7 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { formValues, invalid, needsConfirming, type FormState } from '@/lib/forms';
-import { confirmationFor, forgetConfirmation } from '@/server/auth/confirm-request';
+import { confirmationFor } from '@/server/auth/confirm-request';
 import { requireMember } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { removeMember } from '@/server/team/team';
@@ -35,7 +34,8 @@ export async function removeAction(
     return invalid({ form: error.message }, values);
   }
   if (!result.ok) return needsConfirming('remove_member', values);
-  await forgetConfirmation();
-  revalidatePath('/settings/team', 'layout');
+  // The confirmation is spent, so it can't be used again; its cookie is left to expire, as
+  // changing a cookie here would draw this page again, and it would find nobody to remove. For
+  // the same reason nothing is revalidated: Team is read fresh when it opens.
   return invalid({}, { done: 'removed', name: result.name, handedOver: String(result.handedOver) });
 }

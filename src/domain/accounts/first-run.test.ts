@@ -62,6 +62,8 @@ describe('UX-AC-6: first run asks one question per screen, and never more than f
     expect(purposeFromNext('/lettings/new')).toBe('own_home');
     expect(purposeFromNext('/lettings/new?from=%2F')).toBe('own_home');
     expect(purposeFromNext('/saved')).toBe('renting');
+    // WP-23: someone signing in to save a home with the heart.
+    expect(purposeFromNext('/saved/save?home=3f9a1c2b7d4e')).toBe('renting');
     expect(purposeFromNext('/enquiries')).toBe('renting');
     // UX-RN-13: someone who ticked "Keep my details for next time" is on their way back to
     // that home's page.

@@ -156,12 +156,12 @@ describe('UX-SR-10: one email a day at most', () => {
 
   it('UX-SR-10: a day is an Irish day', () => {
     // 23:30 UTC on 19 November is already 20 November in Ireland's summer, not in its winter.
-    expect(
-      alertDueToday(new Date('2026-07-19T23:30:00Z'), new Date('2026-07-20T08:00:00Z')),
-    ).toBe(false);
-    expect(
-      alertDueToday(new Date('2026-11-19T23:30:00Z'), new Date('2026-11-20T08:00:00Z')),
-    ).toBe(true);
+    expect(alertDueToday(new Date('2026-07-19T23:30:00Z'), new Date('2026-07-20T08:00:00Z'))).toBe(
+      false,
+    );
+    expect(alertDueToday(new Date('2026-11-19T23:30:00Z'), new Date('2026-11-20T08:00:00Z'))).toBe(
+      true,
+    );
   });
 
   it('UX-SR-10: one email holds each home once, across every search, newest first', () => {

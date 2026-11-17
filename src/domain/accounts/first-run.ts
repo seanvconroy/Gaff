@@ -45,7 +45,8 @@ export function firstNameOf(name: string): string {
  * (section 2, "First run"): "List a home" is someone letting a home they own; Saved and
  * Enquiries are someone renting, and so is someone who ticked "Keep my details for next time" on
  * an application (UX-RN-13): they come back to that home's page. So is someone signing in from
- * a home's public page on Gaff (UX-LS-1), or from asking to view one.
+ * a home's public page on Gaff (UX-LS-1), or from asking to view one, and someone saving a home
+ * with the heart (WP-23).
  */
 const KEEPING_DETAILS = /^\/r\/[A-Za-z0-9_-]{43}\/keep$/;
 const A_HOME_ON_GAFF = /^\/homes\/[0-9a-f]{12}(?:\/ask)?$/;
@@ -54,7 +55,7 @@ export function purposeFromNext(next: string | null | undefined): Purpose | null
   if (!next) return null;
   const path = next.split(/[?#]/)[0] ?? '';
   if (path === '/lettings/new') return 'own_home';
-  if (path === '/saved' || path === '/enquiries') return 'renting';
+  if (path === '/saved' || path === '/saved/save' || path === '/enquiries') return 'renting';
   if (KEEPING_DETAILS.test(path) || A_HOME_ON_GAFF.test(path)) return 'renting';
   return null;
 }

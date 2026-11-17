@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { isPublicRef } from '@/domain/homes/home-page';
 import { PROFILE_UNUSED_YEARS } from '@/domain/profile/retention';
 import {
-  filterKeys,
+  type filterKeys,
   filtersToParams,
   hasFilters,
   type SearchFilters,
@@ -77,11 +77,7 @@ export function searchKey(filters: SearchFilters): string {
 }
 
 /** UX-SR-10: an email address is all a signed-out person gives. */
-export const alertEmailSchema = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .pipe(z.email().max(254));
+export const alertEmailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254));
 
 /** At most this many saved searches waiting on one address to be confirmed. */
 export const MAX_UNCONFIRMED_PER_EMAIL = 5;

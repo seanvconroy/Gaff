@@ -32,6 +32,8 @@ export interface RenterProfile extends KeptDetails {
   keepsDetails: boolean;
   lastUsedAt: Date | null;
   deletionNoticeSentAt: Date | null;
+  /** UX-SR-10: whether their saved searches email them when a new home fits. */
+  searchAlerts: boolean;
 }
 
 const EMPTY: RenterProfile = {
@@ -40,6 +42,7 @@ const EMPTY: RenterProfile = {
   keepsDetails: true,
   lastUsedAt: null,
   deletionNoticeSentAt: null,
+  searchAlerts: true,
 };
 
 /** Reads what a renter keeps, in a transaction that is already scoped to this person. */
@@ -57,6 +60,7 @@ export async function renterProfileIn(tx: Tx, userId: string): Promise<RenterPro
     incomeAt: row.incomeAt,
     lastUsedAt: row.lastUsedAt,
     deletionNoticeSentAt: row.deletionNoticeSentAt,
+    searchAlerts: row.searchAlerts,
   };
 }
 

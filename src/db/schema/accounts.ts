@@ -1,15 +1,20 @@
+import { sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
+  check,
   index,
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 import type { KeptAnswers } from '@/domain/profile/kept';
+import type { SearchFilters } from '@/domain/search/filters';
 import { users } from './auth';
 import { createdAt, personPolicy, updatedAt } from './columns';
 import { applications } from './enquiries';
@@ -84,10 +89,86 @@ export const renterProfiles = pgTable(
     incomeAt: timestamp({ withTimezone: true }),
     lastUsedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     deletionNoticeSentAt: timestamp({ withTimezone: true }),
+    /** UX-SR-10: whether their saved searches email them when a new home fits. */
+    searchAlerts: boolean().notNull().default(true),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   () => [personPolicy()],
+).enableRLS();
+
+/**
+ * Saved (UX-RH, UX-SR-6): the homes a renter saved with the heart. It belongs to the person and
+ * to no organisation: only their own path (`withPerson`) can read or write it, and no operator
+ * can see who saved their home (UX-AC-5, UX-MT-14).
+ *
+ * A home is held by its public reference (`lettings.public_ref`): it never changes when the
+ * letting is edited, and it is not the letting's internal ID, so nothing new is exposed in any
+ * address. It is deliberately not a foreign key: a home that leaves Gaff stays on the list,
+ * marked, until the renter removes it. It goes with the profile (UX-PF-6, UX-PF-7).
+ */
+export const savedHomes = pgTable(
+  'saved_homes',
+  {
+    userId: text()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    homeRef: text().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.homeRef] }), personPolicy()],
+).enableRLS();
+
+/**
+ * Saved searches (UX-SR-10, UX-MT-13 to UX-MT-16): a search a renter asked to hear about. It
+ * holds the chips' values (`src/domain/saved/saved.ts`, `filtersToKeep`) and never the sentence,
+ * and never step-free access or a lift (UX-MT-12).
+ *
+ * It is held either on a person's profile (`user_id`), or by an email address alone for someone
+ * who isn't signed in (`email`), never both. Like everything a person keeps it has
+ * `personPolicy()`: a profile's searches are read only through `withPerson()`, and one held by an
+ * email alone has no person, so only the system path reaches it, from the links in its own
+ * emails. No operator's path can read either (UX-MT-14), and operators don't choose who is told
+ * (UX-MT-16).
+ *
+ * Its links carry a random token: only its hash is used to find the search, and the token is
+ * kept sealed (ADR-0005) so a later email can carry "Stop these". Rule 9: one held by an email
+ * alone is deleted when stopped, if it isn't confirmed within a day, and two years after it was
+ * confirmed; one on a profile goes with the profile.
+ */
+export const savedSearches = pgTable(
+  'saved_searches',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    userId: text().references(() => users.id, { onDelete: 'cascade' }),
+    /** Only for a search held without a profile: where its email goes. Lower case. */
+    email: text(),
+    filters: jsonb().$type<SearchFilters>().notNull(),
+    /** The filters in their fixed order: the same search saved twice is one. */
+    searchKey: text().notNull(),
+    /** A profile's search is confirmed when saved; an email's, when its link is opened. */
+    confirmedAt: timestamp({ withTimezone: true }),
+    tokenHash: text().notNull().unique(),
+    tokenSealed: text().notNull(),
+    /** UX-SR-10: the homes already told about, by public reference: each home once. */
+    toldHomeRefs: text()
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    /** UX-SR-10: when its last alert went, for one email a day at most. */
+    lastAlertAt: timestamp({ withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('saved_searches_person_key')
+      .on(t.userId, t.searchKey)
+      .where(sql`${t.userId} is not null`),
+    uniqueIndex('saved_searches_email_key')
+      .on(t.email, t.searchKey)
+      .where(sql`${t.email} is not null`),
+    check('saved_searches_one_holder', sql`(${t.userId} is null) <> (${t.email} is null)`),
+    personPolicy(),
+  ],
 ).enableRLS();
 
 /**

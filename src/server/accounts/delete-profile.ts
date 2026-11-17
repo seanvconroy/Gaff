@@ -9,6 +9,8 @@ import {
   profiles,
   renterEnquiries,
   renterProfiles,
+  savedHomes,
+  savedSearches,
   users,
 } from '@/db/schema';
 import {
@@ -29,8 +31,8 @@ import { readRenterProfile } from './renter-profile';
  * UX-PF-6, UX-PF-7 (rule 9): deleting a renter's profile, and "Download my details".
  *
  * Deleting is immediate and whole: every row of every table that belongs to the person as a
- * renter goes in one transaction (what they keep, their list of enquiries, the record of their
- * profile), and nothing is queued. The sign-in goes too, unless they also let homes on Gaff
+ * renter goes in one transaction (what they keep, their list of enquiries, the homes and searches
+ * they saved, the record of their profile), and nothing is queued. The sign-in goes too, unless they also let homes on Gaff
  * (`deletionRemoves`). One line stays in the record, with IDs only, saying a profile was deleted.
  *
  * What does not go: an application to a letting. That is the operator's copy, and it is cleared
@@ -48,6 +50,9 @@ async function deleteProfileIn(
   by: 'person' | 'retention',
 ): Promise<{ account: boolean }> {
   await tx.delete(renterEnquiries).where(eq(renterEnquiries.userId, userId));
+  // Saved (WP-23): the homes they saved and the searches they asked to hear about.
+  await tx.delete(savedHomes).where(eq(savedHomes.userId, userId));
+  await tx.delete(savedSearches).where(eq(savedSearches.userId, userId));
   await tx.delete(renterProfiles).where(eq(renterProfiles.userId, userId));
   await tx.delete(profileEvents).where(eq(profileEvents.userId, userId));
   const [{ organisations } = { organisations: 0 }] = await tx
@@ -160,6 +165,12 @@ export interface ProfileDownload {
   kept: Awaited<ReturnType<typeof readRenterProfile>>;
   signIn: { providers: string[]; passkeys: number };
   enquiries: Array<{ applicationId: string; addedAt: Date }>;
+  /** Saved: each home by its public reference, and each search as its chips' values. */
+  saved: {
+    homes: Array<{ ref: string; savedAt: Date }>;
+    searches: Array<{ filters: Record<string, unknown>; savedAt: Date }>;
+    alerts: boolean;
+  };
 }
 
 /** Reads the person's own profile for the file, and notes that they took a copy. */
@@ -179,6 +190,14 @@ export async function profileForDownload(person: SignedInPerson): Promise<Profil
       .select({ id: passkeys.id })
       .from(passkeys)
       .where(and(eq(passkeys.userId, person.id)));
+    const homes = await tx
+      .select({ ref: savedHomes.homeRef, savedAt: savedHomes.createdAt })
+      .from(savedHomes)
+      .where(eq(savedHomes.userId, person.id));
+    const searches = await tx
+      .select({ filters: savedSearches.filters, savedAt: savedSearches.createdAt })
+      .from(savedSearches)
+      .where(eq(savedSearches.userId, person.id));
     await recordProfileEvent(tx, person.id, 'profile.downloaded', {});
     return {
       name: person.name,
@@ -190,6 +209,7 @@ export async function profileForDownload(person: SignedInPerson): Promise<Profil
         applicationId: enquiry.applicationId,
         addedAt: enquiry.addedAt,
       })),
+      saved: { homes, searches, alerts: kept.searchAlerts },
     };
   });
 }

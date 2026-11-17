@@ -1,4 +1,6 @@
 import { lettingPageCopy } from '@/copy/letting-page';
+import { hiddenCopy } from '@/copy/trust';
+import type { ReportReason } from '@/domain/homes/report';
 import type { TodayItem } from '@/domain/dashboard/today';
 import { type TodayRow, todayRows } from '@/domain/dashboard/today-rows';
 import { formatDate, formatDateTime, formatMinutes } from '@/lib/format';
@@ -36,6 +38,11 @@ export interface OverviewFacts {
   goLiveBlocked: { words: string; fix: { href: string; label: string } | null } | null;
   /** Where "Continue" picks up adding the home. */
   resumeHref: string;
+  /**
+   * UX-TS-4: Gaff's team took the home off gaff.ie after a report, and why; whether the lister
+   * has asked them to look again; and where that's asked. Null: it isn't hidden.
+   */
+  hidden: { reason: ReportReason; lookAgainAsked: boolean; href: string } | null;
   /** R3: the asking rent is above what the rent rules allow. */
   rentOverCap: boolean;
   rentCheckHref: string;
@@ -210,6 +217,18 @@ export function needsYouOn(facts: OverviewFacts, now: Date = new Date()): NeedsY
 
   // UX-LP-7: a blocking problem is the task, ahead of anything else.
   const rows = todayRows(facts.today, now, { withAddress: false });
+  // UX-TS-4: taken off gaff.ie after a report, the first of them: its enquiries wait for it.
+  if (facts.hidden) {
+    return facts.hidden.lookAgainAsked
+      ? { kind: 'nothing', doing: hiddenCopy.task.looking }
+      : {
+          kind: 'task',
+          lead: hiddenCopy.task.lead(facts.hidden.reason),
+          action: hiddenCopy.task.action,
+          href: facts.hidden.href,
+          also: rows,
+        };
+  }
   if (facts.rentOverCap) {
     return {
       kind: 'task',

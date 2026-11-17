@@ -23,6 +23,7 @@ const base: OverviewFacts = {
   setupStepsLeft: 0,
   goLiveBlocked: null,
   resumeHref: '/lettings/l1/setup',
+  hidden: null,
   rentOverCap: false,
   rentCheckHref: '/lettings/l1/setup/rent-check?alone=1',
   failedSends: { count: 0, href: '/inbox' },
@@ -305,6 +306,33 @@ describe('UX-LP-7: a blocking problem is the Needs you task, never a banner', ()
     const needs = needsYouOn(facts, now);
     expect(needs).toMatchObject({ kind: 'task', action: 'Check the rent again' });
     expect(needs.also?.map((row) => row.kind)).toEqual(['shortlist']);
+  });
+
+  it('UX-TS-4: a home Gaff’s team took off gaff.ie is the task, with why, before the rent', () => {
+    const facts = at({
+      rentOverCap: true,
+      hidden: { reason: 'wrong_details', lookAgainAsked: false, href: '/lettings/l1/hidden' },
+      today: [{ kind: 'shortlist', ...home, count: 2, placesFree: 4 }],
+    });
+    const needs = needsYouOn(facts, now);
+    expect(needs).toMatchObject({
+      kind: 'task',
+      lead: 'Gaff’s team took this home off gaff.ie after a report: some of its details look wrong. Its enquiries wait until it’s back.',
+      action: 'Ask Gaff to look again',
+      href: '/lettings/l1/hidden',
+    });
+    expect(needs.also?.map((row) => row.kind)).toEqual(['shortlist']);
+  });
+
+  it('UX-TS-4: once the lister has asked Gaff to look again, nothing needs them', () => {
+    const facts = at({
+      hidden: { reason: 'scam', lookAgainAsked: true, href: '/lettings/l1/hidden' },
+    });
+    expect(needsYouOn(facts, now)).toEqual({
+      kind: 'nothing',
+      doing:
+        'Gaff’s team is looking at this home again, and will email you within one working day.',
+    });
   });
 
   it('UX-LP-7: a message that didn’t send is the task, and opens it', () => {

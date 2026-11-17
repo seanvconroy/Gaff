@@ -119,6 +119,26 @@ export async function rememberKeepIntent(token: string): Promise<void> {
   (await cookies()).set(keepIntentCookie(token), '1', cookieOptions(KEEP_INTENT_MINUTES * 60));
 }
 
+/**
+ * UX-PF-8: "Keep it" on the ID check, pressed by someone who isn't signed in. The same as the
+ * tick's: a yes, for this link, for a short while, and nothing about them.
+ */
+export function identityKeepCookie(token: string): string {
+  return `gaff_keep_id_${hashToken(token).slice(0, 16)}`;
+}
+
+export async function rememberIdentityKeepIntent(token: string): Promise<void> {
+  (await cookies()).set(identityKeepCookie(token), '1', cookieOptions(KEEP_INTENT_MINUTES * 60));
+}
+
+export async function takeIdentityKeepIntent(token: string): Promise<boolean> {
+  const jar = await cookies();
+  const name = identityKeepCookie(token);
+  const pressed = jar.get(name)?.value === '1';
+  if (pressed) jar.delete(name);
+  return pressed;
+}
+
 /** Whether this browser ticked the box for this link a short while ago. Forgotten once read. */
 export async function takeKeepIntent(token: string): Promise<boolean> {
   const jar = await cookies();

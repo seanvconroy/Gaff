@@ -439,7 +439,11 @@ export async function confirmItsYouAction(id: string, from: string | null): Prom
   const back = screenHref(id, 'go_live', from);
   const started = await startPersonCheck(member.userId, 'go_live', back);
   if ('problem' in started) {
-    redirect(started.problem === 'done' ? back : `${back}${back.includes('?') ? '&' : '?'}identity_problem=${started.problem}`);
+    redirect(
+      started.problem === 'done'
+        ? back
+        : `${back}${back.includes('?') ? '&' : '?'}identity_problem=${started.problem}`,
+    );
   }
   redirect(started.redirectUrl);
 }

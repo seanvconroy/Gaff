@@ -9,6 +9,7 @@ import { SubmitButton } from '@/ui/SubmitButton';
 import styles from '../renter.module.css';
 import { startCheckAction } from './check-actions';
 import { CodeGate } from './CodeGate';
+import { KeepIdentity, KeptNote, ReuseKeptIdentity } from './KeptIdentity';
 import { PayslipsLink } from './PayslipsLink';
 import { ReferencesFlow } from './ReferencesFlow';
 import type { HubOptions } from './RenterHub';
@@ -37,11 +38,11 @@ function Keeps({ line, more }: { line: string; more: string }) {
  * Until the one-time code is entered (or they're signed in with the same email), the page shows
  * only that there are checks, and "Start" (UX-RN-14).
  *
- * THE VERIFIED IDENTITY'S SEAM (UX-RN-15's first row, Q35): "Use the ID check you did on 3
- * October?" before the provider's flow, and "Keep this, so you never have to do it again?" after
- * it, belong to the ID check's task below (`provider('identity')`). They need an identity kept on
- * a person's own profile, which work package WP-24 builds. Until then every ID check runs with
- * the provider, and nothing is offered to keep.
+ * A VERIFIED IDENTITY (UX-RN-15's first row, Q35): for a signed-in renter whose enquiry this is
+ * and who keeps one, the ID check is first "Use the ID check you did on 3 October?" (UX-PF-12),
+ * or "Check your name" when its name isn't the application's (UX-PF-14). After a check passes
+ * here, one screen asks "Keep this, so you never have to do it again?" (UX-PF-8). Nothing about
+ * it appears on any page before an operator has chosen the renter (UX-PF-13).
  */
 export function ChecksTask({
   token,
@@ -83,10 +84,29 @@ export function ChecksTask({
     );
   }
 
+  // UX-PF-8: the one screen after the ID check passes.
+  if (options.identity?.keep) return <KeepIdentity token={token} keep={options.identity.keep} />;
+
   const find = (kind: 'identity' | 'income') => checks.items.find((item) => item.kind === kind);
   const provider = (kind: 'identity' | 'income'): ReactNode => {
     const check = find(kind);
     const copy = checksCopy[kind];
+    const kept = kind === 'identity' ? options.identity?.step : null;
+    if (kept) {
+      return (
+        <ReuseKeptIdentity
+          token={token}
+          operator={operator}
+          step={kept}
+          notice={
+            <Keeps
+              line={notices.check.identity(operator, checks.retentionDays)}
+              more={checksCopy.identity.more}
+            />
+          }
+        />
+      );
+    }
     const failed = check?.status === 'not_passed';
     const started = check?.status === 'in_progress';
     return (
@@ -126,6 +146,12 @@ export function ChecksTask({
           <p>{checksCopy.problems[options.checkProblem]}</p>
         </Notice>
       ) : null}
+      {options.idProblem && checksCopy.keptId.problems[options.idProblem] ? (
+        <Notice tone="warning" role="alert">
+          <p>{checksCopy.keptId.problems[options.idProblem]}</p>
+        </Notice>
+      ) : null}
+      {options.identity?.kept ? <KeptNote kept={options.identity.kept} /> : null}
       {list}
       {checks.next === 'identity' || checks.next === 'income' ? provider(checks.next) : null}
       {checks.next === 'references' ? (

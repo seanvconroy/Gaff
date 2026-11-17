@@ -8,6 +8,8 @@ import { formatDate, formatEuro } from '@/lib/format';
 import { readRenterProfile } from '@/server/accounts/renter-profile';
 import { signInMethodsOf } from '@/server/accounts/sign-in-methods';
 import { hasPasskey } from '@/server/auth/confirm-request';
+import { keptIdentityOf } from '@/server/identity/kept';
+import { personCheckOf } from '@/server/identity/person-checks';
 import { membersOf } from '@/server/auth/member';
 import { requirePerson } from '@/server/context/current-person';
 import { savedSearchesOf } from '@/server/saved/searches';
@@ -31,11 +33,18 @@ export const metadata: Metadata = { title: profileCopy.title };
  * "What you're looking for" is the chips of each saved search (WP-23), each removable, with its
  * emails on or off.
  *
- * SEAM: "Identity" is a verified identity kept by choice (WP-24), which adds its row here.
+ * "ID check" is a verified identity they keep (UX-PF-9 to UX-PF-11), with "My name has
+ * changed" to do it again. It shows only when one is kept: nobody is invited to verify here
+ * (UX-PF-13).
  */
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ identity_problem?: string }>;
+}) {
   const person = await requirePerson();
-  const [kept, signIn, passkey, teams, saved] = await Promise.all([
+  const { identity_problem } = await searchParams;
+  const [kept, signIn, passkey, teams, saved, identity, redo] = await Promise.all([
     readRenterProfile(person.userId),
     signInMethodsOf(person.userId),
     hasPasskey(person.userId),
@@ -43,6 +52,8 @@ export default async function ProfilePage() {
     membersOf(person.userId).then(teamsToLeave),
     // "What you're looking for" (WP-23): the chips of their saved searches.
     savedSearchesOf(person.userId),
+    keptIdentityOf(person.userId),
+    personCheckOf(person.userId),
   ]);
   const a = kept.answers;
   const view: ProfileView = {
@@ -87,6 +98,13 @@ export default async function ProfilePage() {
     },
     hasPasskey: passkey,
     letsHomes: person.contexts.some((context) => context.side === 'letting'),
+    identity: identity
+      ? {
+          value: profileCopy.identity.value(identity.verifiedName, formatDate(identity.verifiedAt)),
+          notPassed: redo?.status === 'not_passed',
+          problem: identity_problem ?? null,
+        }
+      : null,
   };
   return (
     <Stack gap={8}>

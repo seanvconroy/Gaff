@@ -52,11 +52,7 @@ export default async function StandInCheckPage({
         <form action={action}>
           <Stack gap={6}>
             {kind === 'identity' ? (
-              <TextField
-                name="verifiedName"
-                label="Name on the ID"
-                defaultValue={name}
-              />
+              <TextField name="verifiedName" label="Name on the ID" defaultValue={name} />
             ) : (
               <TextField
                 name="monthlyIncome"

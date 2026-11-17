@@ -9,6 +9,7 @@ import {
 } from '@/domain/identity/identity';
 import { openJson, sealJson } from '@/lib/crypto';
 import { recordProfileEvent } from '@/server/accounts/profile-events';
+import { ensureRenterIn } from '@/server/accounts/renter-profile';
 import { resolveAccessLink } from '@/server/access/links';
 import { noteCheckProgress } from '@/server/checks/checks';
 import { recordEvent } from '@/server/record/events';
@@ -72,13 +73,17 @@ export async function keepQuestionFor(
 export async function keepPassedIdentity(token: string, userId: string): Promise<boolean> {
   const passed = await passedIdentityFor(token);
   if (!passed) return false;
-  await withPerson(userId, (tx) => keepIdentityIn(tx, userId, passed, 'check'));
+  await withPerson(userId, async (tx) => {
+    // Keeping it is renting with a profile: it goes with that profile, and the two-year rule
+    // for an unused profile covers it (UX-PF-7, UX-PF-9).
+    await ensureRenterIn(tx, userId);
+    await keepIdentityIn(tx, userId, passed, 'check');
+  });
   return true;
 }
 
-export type UseKeptIdentity =
-  | { ok: true }
-  | { ok: false; problem: 'nothing_kept' | 'not_chosen' | 'done' | 'name' };
+export type ReuseKeptIdentity =
+  { ok: true } | { ok: false; problem: 'nothing_kept' | 'not_chosen' | 'done' | 'name' };
 
 /**
  * UX-PF-12: "Use the ID check you did on 3 October?" The renter said yes, this time. Their kept
@@ -88,18 +93,18 @@ export type UseKeptIdentity =
  * chose "Use the name on my ID" (`useVerifiedName`): then the application takes the verified
  * name first, as their own correction.
  */
-export async function useKeptIdentity(
+export async function reuseKeptIdentity(
   token: string,
   userId: string,
   options: { useVerifiedName?: boolean } = {},
   now: Date = new Date(),
-): Promise<UseKeptIdentity> {
+): Promise<ReuseKeptIdentity> {
   const kept = await keptIdentityOf(userId);
   if (!kept) return { ok: false, problem: 'nothing_kept' };
   const found = await identityCheckOf(token);
   if (!found) return { ok: false, problem: 'not_chosen' };
   const { link } = found;
-  const result = await withOrg(link.organisationId, async (tx): Promise<UseKeptIdentity> => {
+  const result = await withOrg(link.organisationId, async (tx): Promise<ReuseKeptIdentity> => {
     const [row] = await tx
       .select({ check: checks, application: applications })
       .from(checks)

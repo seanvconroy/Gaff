@@ -1,4 +1,4 @@
-import { type SQL, and, asc, desc, eq, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
+import { type SQL, and, asc, desc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { type Tx, withSystem } from '@/db/client';
 import { lettingFacts, lettingPhotos, lettings, organisations } from '@/db/schema';
 import {

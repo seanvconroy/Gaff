@@ -66,7 +66,9 @@ describe('UX-AC-7: a landlord letting their own homes has no licence to find', (
 
   it('UX-TS-1: an agency is confirmed through its licence, never through anyone’s identity', () => {
     expect(goLiveGate({ ...confirmed, identityVerifiedAt: null })).toEqual({ open: true });
-    expect(goLiveGate({ ...confirmed, confirmedAt: null, identityVerifiedAt: new Date() })).toMatchObject({
+    expect(
+      goLiveGate({ ...confirmed, confirmedAt: null, identityVerifiedAt: new Date() }),
+    ).toMatchObject({
       reason: 'being_confirmed',
     });
   });

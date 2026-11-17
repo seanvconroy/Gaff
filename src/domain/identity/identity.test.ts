@@ -78,7 +78,10 @@ describe('UX-PF-12: what the operator’s copy of an ID check holds', () => {
   it('UX-PF-12: the name and when it passed; an older result’s date is when the check ended', () => {
     const ended = new Date('2026-11-01T09:00:00Z');
     expect(
-      identityFromResult({ verifiedName: 'Aoife Byrne', verifiedAt: kept.verifiedAt.toISOString() }, ended),
+      identityFromResult(
+        { verifiedName: 'Aoife Byrne', verifiedAt: kept.verifiedAt.toISOString() },
+        ended,
+      ),
     ).toEqual(kept);
     expect(identityFromResult({ verifiedName: 'Aoife Byrne' }, ended)).toEqual({
       verifiedName: 'Aoife Byrne',

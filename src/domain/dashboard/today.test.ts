@@ -196,6 +196,8 @@ describe('UX-HM-5: the same kind of thing for the same home is one row with a co
         lettingId: 'l1',
         address: '12 Ranelagh Road',
         count: 3,
+        // Three conversations, so the row opens the list, not one of them.
+        only: null,
         // How long the one who has waited longest has waited.
         since: at('10:00'),
         leadUserId: 'ann',
@@ -227,7 +229,9 @@ describe('UX-HM-5: the same kind of thing for the same home is one row with a co
       attention: [{ since: at('10:30') }, { since: at('09:15') }],
       lettings: [],
     });
-    expect(items).toEqual([{ kind: 'attention', count: 2, since: at('09:15'), leadUserId: null }]);
+    expect(items).toEqual([
+      { kind: 'attention', count: 2, only: null, since: at('09:15'), leadUserId: null },
+    ]);
   });
 
   it('UX-HM-10: names who asked, by first name, only when one person asked one question', () => {
@@ -246,6 +250,58 @@ describe('UX-HM-5: the same kind of thing for the same home is one row with a co
       lettings: [letting({})],
     });
     expect(several[0]).toMatchObject({ kind: 'questions', count: 2, firstName: null });
+  });
+
+  it('UX-NV-15: counts conversations, so a renter’s draft and their questions are one thing to do', () => {
+    const items = needsYouToday({
+      ...nothing,
+      approvals: [
+        // Aoife wrote twice before anyone looked: two drafts, one conversation.
+        { lettingId: 'l1', applicationId: 'aoife', since: at('10:20') },
+        { lettingId: 'l1', applicationId: 'aoife', since: at('10:00') },
+      ],
+      questions: [
+        // The part of Aoife's email Gaff couldn't answer is marked in her draft.
+        { lettingId: 'l1', applicationId: 'aoife', since: at('10:00'), firstName: 'Aoife' },
+        // Ciarán asked two things Gaff doesn't know, and has no draft.
+        { lettingId: 'l1', applicationId: 'ciaran', since: at('10:30'), firstName: 'Ciarán' },
+        { lettingId: 'l1', applicationId: 'ciaran', since: at('10:25'), firstName: 'Ciarán' },
+      ],
+      lettings: [letting({})],
+    });
+    expect(items).toMatchObject([
+      { kind: 'approvals', count: 1, only: 'aoife', since: at('10:00') },
+      { kind: 'questions', count: 1, only: 'ciaran', firstName: 'Ciarán', since: at('10:25') },
+    ]);
+  });
+
+  it('UX-NV-14: knows the one conversation a row is about, and none when it counts several', () => {
+    const one = needsYouToday({
+      ...nothing,
+      approvals: [{ lettingId: 'l1', applicationId: 'aoife', since: at('10:00') }],
+      attention: [{ id: 'email-1', since: at('10:30') }],
+      lettings: [letting({})],
+    });
+    expect(one.map((item) => ('only' in item ? item.only : undefined))).toEqual([
+      'aoife',
+      'email-1',
+    ]);
+    const several = needsYouToday({
+      ...nothing,
+      approvals: [
+        { lettingId: 'l1', applicationId: 'aoife', since: at('10:00') },
+        { lettingId: 'l1', applicationId: 'ciaran', since: at('10:05') },
+      ],
+      attention: [
+        { id: 'email-1', since: at('10:30') },
+        { id: 'email-2', since: at('10:31') },
+      ],
+      lettings: [letting({})],
+    });
+    expect(several).toMatchObject([
+      { kind: 'approvals', count: 2, only: null },
+      { kind: 'attention', count: 2, only: null },
+    ]);
   });
 
   it('never lists something for a home that isn’t this organisation’s', () => {

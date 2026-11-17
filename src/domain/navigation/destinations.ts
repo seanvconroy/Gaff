@@ -22,9 +22,8 @@ export const lettingDestinations = [
     key: 'inbox',
     label: 'Inbox',
     href: '/inbox',
-    // UX-NV-2: approvals, questions and needs attention are handled in Inbox. Their pages stay
-    // until work package WP-8 rebuilds Inbox, and they belong to it.
-    pages: ['/inbox', '/approvals', '/questions', '/attention'],
+    // UX-NV-2: approvals, questions and needs attention are handled in Inbox, as conversations.
+    pages: ['/inbox'],
   },
 ] as const satisfies readonly Destination[];
 

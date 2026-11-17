@@ -39,6 +39,8 @@ const messageTitles: Record<string, string> = {
   payment_request: 'Payment request sent',
   payment_received: 'Payment receipt sent',
   inventory_shared: 'Inventory sent to the tenant',
+  message: 'Message sent',
+  owner_message: 'Message sent to the owner',
 };
 
 const rentCheckTitles: Record<string, string> = {
@@ -185,6 +187,10 @@ export function describeEvent(
       return { what: data.edited ? 'Draft edited and approved' : 'Draft approved' };
     case 'message.discarded':
       return { what: 'Draft not sent' };
+    case 'message.written':
+      return {
+        what: data.to === 'owner' ? 'Message written to the owner' : 'Message written to a renter',
+      };
     case 'question.answered':
       return {
         what: 'Question answered by your team',

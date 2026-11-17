@@ -50,6 +50,20 @@ export const gmailForwardingConfirmation = {
   text: 'ann@halcyon.test has requested to automatically forward mail to your email address.\nConfirmation code: 123456789',
 };
 
+/** Outlook's confirmation, with a code and a link on its own site (made up, like the rest). */
+export const outlookForwardingConfirmation = {
+  from: 'Microsoft Outlook <no-reply@microsoft.com>',
+  replyTo: undefined,
+  subject: 'Verify your forwarding address',
+  text: [
+    'Niamh Kelly (niamh@halcyon.test) wants to forward email to this address.',
+    '',
+    'Your verification code is 482913.',
+    '',
+    'Or confirm it here: https://outlook.live.com/mail/options/forwarding/verify?t=made-up-token.',
+  ].join('\n'),
+};
+
 export const injectionEnquiry = {
   from: 'Daft.ie <noreply@daft.ie>',
   replyTo: 'Test Renter <test.renter@example.ie>',

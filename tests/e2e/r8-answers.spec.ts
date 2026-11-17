@@ -10,7 +10,7 @@ import {
   signUpOperator,
 } from './support';
 
-test('R8 and R29: the AI answers from the facts, a person approves, and answers what it can’t', async ({
+test('R8, R29 and UX-NV-2: the AI answers from the facts, a person approves in two taps from Today, and answers what it can’t', async ({
   page,
 }) => {
   await signUpOperator(page);
@@ -30,40 +30,52 @@ test('R8 and R29: the AI answers from the facts, a person approves, and answers 
     ),
   });
 
-  // R29: the AI's answer waits for approval.
+  // R29: the AI's answer waits for approval. UX-NV-2: it is one row on Today, which opens the
+  // renter's conversation in Inbox with the draft in the reply box.
+  const row = page.getByRole('link', { name: /Approve 1 answer · 12 Ranelagh Road/ });
   await expect(async () => {
-    await page.goto('/approvals');
-    await expect(page.getByRole('heading', { name: /Aoife Byrne asked about/ })).toBeVisible({
-      timeout: 1000,
-    });
+    await page.goto('/today');
+    await expect(row).toBeVisible({ timeout: 1000 });
   }).toPass({ timeout: 20_000 });
-  await expect(page.getByLabel('The AI’s draft')).toHaveValue(
-    /You asked: Is it furnished\?\nFurnishing: Furnished\./,
-  );
-  await expectAccessible(page);
-  await screenshot(page, '21-approvals');
-  await page.getByRole('button', { name: 'Approve and send' }).click();
-  await expect(page.getByText('Approved. It’s on its way.')).toBeVisible();
-
-  // R8: the garden question wasn't in the facts, so it's for a person.
-  // UX-NV-2: questions are reached through Inbox, which shows how many are waiting.
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Inbox' }).click();
-  await page.getByRole('link', { name: /Questions only you can answer/ }).click();
-  await expect(page.getByText('Is there a garden?')).toBeVisible();
-  await expect(page.getByText('Gaff doesn’t have this in the home’s facts.')).toBeVisible();
-  await page.getByLabel('Your answer').fill('Yes, a small back garden with a shed.');
-  await expectAccessible(page);
-  await screenshot(page, '22-questions');
-  await page.getByRole('button', { name: 'Send answer' }).click();
+  await row.click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Aoife Byrne' })).toBeVisible();
+  const reply = page.getByRole('region', { name: 'Reply to Aoife' });
+  // UX-AI-1: what the AI drafted says so. UX-AI-11: it answers in a sentence, from the fact.
+  await expect(reply.getByText('Drafted by AI')).toBeVisible();
   await expect(
-    page.getByText('Sent. Gaff will use your answer next time someone asks.'),
+    reply.getByText(/You asked: Is it furnished\?\s+Yes, it’s furnished\./),
   ).toBeVisible();
+  // R8: the garden question wasn't in the facts, so it's for a person, marked in the draft.
+  await expect(reply.getByLabel('Gaff doesn’t know: Is there a garden?')).toBeVisible();
+  await expectAccessible(page);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await screenshot(page, '21-approvals');
+  // The second tap: nothing else is needed to send what Gaff could answer.
+  await reply.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(page.getByRole('status').getByText('Sent')).toBeVisible();
+
+  // R8: the garden question is still the person's to answer, in the same conversation. Their
+  // answer is remembered for the home unless they untick it (UX-NV-16).
+  await expect(reply.getByText('Drafted by AI')).toHaveCount(0);
+  // The toast goes on its own, so the next "Sent" is a new one.
+  await expect(page.getByRole('status').getByText('Sent')).toHaveCount(0, { timeout: 10_000 });
+  await reply
+    .getByLabel('Gaff doesn’t know: Is there a garden?')
+    .fill('Yes, a small back garden with a shed.');
+  await expect(reply.getByLabel('Remember this for 12 Ranelagh Road')).toBeChecked();
+  await expectAccessible(page);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await screenshot(page, '22-questions');
+  await reply.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(page.getByRole('status').getByText('Sent')).toBeVisible();
+  // Nothing is waiting any more: the reply box is for writing to her.
+  await expect(page.getByRole('region', { name: 'Write to Aoife' })).toBeVisible();
 
   await expect(async () => {
     await page.goto('/dev/outbox');
     await expect(page.getByText(/Yes, a small back garden with a shed\./)).toBeVisible({
       timeout: 1000,
     });
-    await expect(page.getByText(/Furnishing: Furnished\./)).toBeVisible({ timeout: 1000 });
+    await expect(page.getByText(/Yes, it’s furnished\./)).toBeVisible({ timeout: 1000 });
   }).toPass({ timeout: 20_000 });
 });

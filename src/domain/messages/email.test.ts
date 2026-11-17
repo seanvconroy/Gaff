@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buttonLink, emailAudience, emailBlocks, inlineParts, siteName } from './email';
+import { buttonLink, emailAudience, emailBlocks, inlineParts, senderName, siteName } from './email';
 
 const APP = 'https://app.gaff.test';
 
@@ -14,6 +14,32 @@ describe('the email layout: who a message is written to', () => {
     for (const kind of ['first_reply', 'answer', 'invitation', 'offer', 'outcome', 'reminder']) {
       expect(emailAudience(kind)).toBe('renter');
     }
+  });
+});
+
+describe('UX-NV-18: who an email says it is from', () => {
+  const from = (kind: string, writer: string | null) =>
+    senderName({ kind, operatorName: 'Halcyon Lettings', writer });
+
+  it('UX-NV-18: a message a person wrote themselves is marked as theirs', () => {
+    expect(from('message', 'Ann Power')).toBe('Ann Power, Halcyon Lettings via Gaff');
+    expect(from('owner_message', 'Ann Power')).toBe('Ann Power, Halcyon Lettings via Gaff');
+    expect(emailAudience('owner_message')).toBe('owner');
+    expect(emailAudience('message')).toBe('renter');
+  });
+
+  it('every other message is from the lister, whoever pressed the button', () => {
+    for (const kind of ['first_reply', 'answer', 'operator_answer', 'invitation', 'offer']) {
+      expect(from(kind, 'Ann Power')).toBe('Halcyon Lettings via Gaff');
+    }
+    expect(from('message', null)).toBe('Halcyon Lettings via Gaff');
+    expect(from('message', '  ')).toBe('Halcyon Lettings via Gaff');
+  });
+
+  it('keeps a name from breaking out of the From header', () => {
+    expect(from('message', 'Ann "Power" <x@y.test>\r\nBcc: z')).toBe(
+      'Ann Power x@y.testBcc: z, Halcyon Lettings via Gaff',
+    );
   });
 });
 

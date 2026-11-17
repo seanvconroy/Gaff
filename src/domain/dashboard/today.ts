@@ -59,12 +59,24 @@ interface Home {
   address: string;
 }
 
+/**
+ * Where a row opens when it is about one conversation (UX-NV-14): the renter's application, or
+ * the email. Null, or left out, when the row counts several: it opens the list instead.
+ */
+interface OneConversation {
+  only?: string | null;
+}
+
 export type TodayItem = Waiting &
   (
-    | { kind: 'attention'; count: number }
-    | (Home & { kind: 'approvals'; count: number })
-    /** `firstName` is given only when one person asked one question (UX-HM-10). */
-    | (Home & { kind: 'questions'; count: number; firstName: string | null })
+    | ({ kind: 'attention'; count: number } & OneConversation)
+    /** `count` is conversations with an answer waiting to be approved. */
+    | (Home & { kind: 'approvals'; count: number } & OneConversation)
+    /**
+     * `count` is conversations with a question and no draft. `firstName` is given only when it
+     * is one person's (UX-HM-10).
+     */
+    | (Home & { kind: 'questions'; count: number; firstName: string | null } & OneConversation)
     | (Home & { kind: 'offer' })
     | (Home & { kind: 'rechoose'; reason: NewChoiceReason | null })
     | (Home & { kind: 'rtb'; dueBy: string })
@@ -171,6 +183,8 @@ export function inTodayOrder<T extends TodayItem>(items: readonly T[], today: st
 export interface WaitingReply {
   lettingId: string;
   since: Date;
+  /** The conversation it is in: the renter's application (UX-NV-13). */
+  applicationId?: string | null;
 }
 
 export interface WaitingQuestion extends WaitingReply {
@@ -190,25 +204,60 @@ function byHome<T extends WaitingReply>(waiting: readonly T[]): Map<string, T[]>
   return homes;
 }
 
+/**
+ * UX-NV-15: what is waiting, one per conversation. Two drafts for one renter are one thing to
+ * open, and so are two questions: each conversation keeps whichever has waited longest.
+ * Something Gaff can't tie to a conversation stands on its own.
+ */
+function byConversation<T extends WaitingReply>(waiting: readonly T[]): T[] {
+  const conversations = new Map<string, T>();
+  const alone: T[] = [];
+  for (const one of waiting) {
+    if (!one.applicationId) {
+      alone.push(one);
+      continue;
+    }
+    const known = conversations.get(one.applicationId);
+    if (!known || one.since.getTime() < known.since.getTime()) {
+      conversations.set(one.applicationId, one);
+    }
+  }
+  return [...conversations.values(), ...alone];
+}
+
+/** The one conversation a row is about, if it is about just one. */
+const onlyOne = (waiting: readonly WaitingReply[]) =>
+  waiting.length === 1 ? (waiting[0]!.applicationId ?? null) : null;
+
 export function needsYouToday(input: {
   /** Answers Gaff drafted that wait for a person's approval (R29). */
   approvals: readonly WaitingReply[];
   /** Questions only a person can answer (R8). */
   questions: readonly WaitingQuestion[];
   /** Emails Gaff couldn't place (R5, R6). They belong to no home. */
-  attention: ReadonlyArray<{ since: Date }>;
+  attention: ReadonlyArray<{ since: Date; id?: string }>;
   lettings: readonly LettingSnapshot[];
   /** The date in Ireland, as "2026-11-16". It decides whether a date is today's deadline. */
   today: string;
 }): TodayItem[] {
   const items: TodayItem[] = [];
-  const approvals = byHome(input.approvals);
-  const questions = byHome(input.questions);
+  // UX-NV-15: a conversation with a draft waiting holds its questions in that draft, so it is
+  // one thing to do, under "Approve": its questions aren't a second row.
+  const drafted = new Set(
+    input.approvals.flatMap((a) => (a.applicationId ? [a.applicationId] : [])),
+  );
+  const approvals = byHome(byConversation(input.approvals));
+  const questions = byHome(
+    byConversation(
+      input.questions.filter((q) => !q.applicationId || !drafted.has(q.applicationId)),
+    ),
+  );
 
   if (input.attention.length > 0) {
     items.push({
       kind: 'attention',
       count: input.attention.length,
+      only: input.attention.length === 1 ? (input.attention[0]!.id ?? null) : null,
       since: earliest(input.attention.map((a) => a.since)),
       leadUserId: null,
     });
@@ -224,6 +273,7 @@ export function needsYouToday(input: {
         kind: 'approvals',
         ...home,
         count: drafts.length,
+        only: onlyOne(drafts),
         since: earliest(drafts.map((d) => d.since)),
       });
     }
@@ -234,6 +284,7 @@ export function needsYouToday(input: {
         ...home,
         count: asked.length,
         firstName: asked.length === 1 ? (asked[0]!.firstName ?? null) : null,
+        only: onlyOne(asked),
         since: earliest(asked.map((q) => q.since)),
       });
     }

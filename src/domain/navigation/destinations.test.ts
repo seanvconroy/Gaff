@@ -39,9 +39,15 @@ describe('UX-NV-2: Approvals, Questions and Needs attention are not destinations
     }
   });
 
-  it('their pages belong to Inbox, which is marked as the page you are on', () => {
-    for (const path of ['/inbox', '/approvals', '/questions', '/attention']) {
+  it('their work is done in Inbox: the list and every conversation are its pages', () => {
+    for (const path of ['/inbox', '/inbox/renter-00000000-0000-4000-8000-000000000011']) {
       expect(currentDestination('letting', path)?.label).toBe('Inbox');
+    }
+  });
+
+  it('the three pages are gone, and belong to no destination', () => {
+    for (const path of ['/approvals', '/questions', '/attention']) {
+      expect(currentDestination('letting', path)).toBeNull();
     }
   });
 });

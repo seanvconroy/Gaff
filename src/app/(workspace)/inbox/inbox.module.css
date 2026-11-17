@@ -1,0 +1,37 @@
+/* Inbox: the list of conversations, and the one that is open. */
+
+/* The filter chips, then the list under them. */
+.list {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+/* UX-NV-17: the code or link read out of a forwarding confirmation, large enough to read off. */
+.code {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.link {
+  overflow-wrap: anywhere;
+}
+
+.muted {
+  color: var(--color-ink-muted);
+}
+
+@media (width <= 900px) {
+  /*
+   * With a conversation open, it has the screen: its own header says who it is with, and
+   * "Inbox" is the way back. The page's title stays for screen readers.
+   */
+  .titleWhenOpen {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

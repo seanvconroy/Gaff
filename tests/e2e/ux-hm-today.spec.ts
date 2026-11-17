@@ -101,8 +101,9 @@ test('UX-HM-1 to UX-HM-6, UX-HM-8 to UX-HM-10: Today lists what needs a person, 
   // They were last here two days ago: what Gaff does from now on happened while they were away.
   await lastActive(operator, 48);
 
-  // UX-HM-4: a decision first, then a renter waiting on a reply, then a question only a person
-  // can answer, then email Gaff couldn't place. UX-HM-5: one row per kind per home.
+  // UX-HM-4: a decision first, then a renter waiting on a reply, then email Gaff couldn't place.
+  // UX-HM-5: one row per kind per home. UX-NV-15: Aoife's draft and the question Gaff couldn't
+  // answer are one conversation, so one row: the question is answered in the draft.
   const rows = needsYou(page).getByRole('listitem');
   await expect(async () => {
     await page.goto('/today');
@@ -110,7 +111,6 @@ test('UX-HM-1 to UX-HM-6, UX-HM-8 to UX-HM-10: Today lists what needs a person, 
       [
         /^Choose who views · 12 Ranelagh Road/,
         /^Approve 1 answer · 12 Ranelagh Road/,
-        /^Aoife asked a question · 12 Ranelagh Road/,
         /^1 email Gaff couldn’t place/,
       ],
       { timeout: 1000 },
@@ -135,12 +135,12 @@ test('UX-HM-1 to UX-HM-6, UX-HM-8 to UX-HM-10: Today lists what needs a person, 
     expect(link.height).toBeGreaterThanOrEqual(64);
 
     // The count is the screen's one accent, and matches the badge in the navigation (UX-NV-5).
-    await expect(main(page).getByText('4 things', { exact: true })).toBeVisible();
-    await expect(
-      page
-        .getByRole('navigation', { name: 'Main' })
-        .getByRole('link', { name: 'Today 4 things need you' }),
-    ).toBeVisible();
+    await expect(main(page).getByText('3 things', { exact: true })).toBeVisible();
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    await expect(nav.getByRole('link', { name: 'Today 3 things need you' })).toBeVisible();
+    // Inbox counts the conversations that need a reply: Aoife's, and the email. Never the
+    // same thing twice, and never more than Today.
+    await expect(nav.getByRole('link', { name: 'Inbox 2 things need you' })).toBeVisible();
 
     // UX-HM-10: no contact details and no message text; a first name only.
     const words = await main(page).innerText();
@@ -184,9 +184,15 @@ test('UX-HM-1 to UX-HM-6, UX-HM-8 to UX-HM-10: Today lists what needs a person, 
   await expectAccessible(page);
   await screenshot(page, 'today-viewings-today-1280');
 
-  // Each row opens where its task is done.
+  // Each row opens where its task is done. UX-NV-2: an answer to approve opens the renter's
+  // conversation in Inbox, with the draft ready and "Send" as its primary button.
   await rows.nth(1).getByRole('link').click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Approvals' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Aoife Byrne' })).toBeVisible();
+  await expect(
+    page
+      .getByRole('region', { name: 'Reply to Aoife' })
+      .getByRole('button', { name: 'Send', exact: true }),
+  ).toBeVisible();
   await page.goto('/today');
   await rows.nth(0).getByRole('link').click();
   await expect(page.getByRole('heading', { name: 'Decide who views' })).toBeVisible();

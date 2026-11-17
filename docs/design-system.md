@@ -338,12 +338,13 @@ Everything is in `src/ui`. A screen is built only from these; a screen that need
 - **What happens next:** on private pages, a quiet `surface-2` panel ends each task with the next step and when. Once per screen, after the task.
 - **Disclosure:** detail most people need once, or a rare action, behind a summary line with a chevron. Native `<details>`.
 - **Table:** body size on a desktop, with a quiet header row in sentence case; below 900px each row becomes a small card with each value's column name beside it.
+- **Thread and reply box** (`Thread`): a conversation, like any messaging app, and the list it is chosen from. The list is hairline rows, each one link: who, when, the home, the last line, and a pill in words when something is waiting ("Needs you"). In a thread, their messages sit on the left on `surface-2`; ours on the right, held off the page by a hairline, each saying who sent it: "Gaff" for the assistant, "You", or a colleague's first name. The reply box is one bordered box at the foot. A draft is in it already written, under the "Drafted by AI" pill, with "Send" as the primary button and "Edit" and "Don't send" beside it. A part Gaff couldn't write is marked where it falls, on `surface-2`, holding the field a person answers in. Below 900px the list is a screen and the open conversation is a screen, with "Inbox" as the way back; above, the list is on the left and the conversation on the right. A conversation opens at its latest.
 - **Copy button:** beside anything people would otherwise retype: an IBAN, a reference, an address. It says "Copied", and screen readers hear it.
 - **Focus:** a 2px outline in `focus` at a 2px offset on every interactive element, in the navigation as everywhere else.
 
 ### Still to come, with the screens that need them
 
-The page frame for private pages and the email layout (WP-6), address search (WP-9), the photo uploader and gallery (WP-9, WP-20), the home card (WP-7, WP-20), the person card (WP-15), the calendar (WP-16), the thread and reply box (WP-8), the setup checklist (WP-27), the search box and the map (WP-21), the action card (WP-20) and the sign-in buttons (WP-4).
+The page frame for private pages and the email layout (WP-6), address search (WP-9), the photo uploader and gallery (WP-9, WP-20), the home card (WP-7, WP-20), the person card (WP-15), the calendar (WP-16), the setup checklist (WP-27), the search box and the map (WP-21), the action card (WP-20) and the sign-in buttons (WP-4).
 
 ## Iconography
 

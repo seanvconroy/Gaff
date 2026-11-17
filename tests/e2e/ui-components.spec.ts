@@ -71,6 +71,7 @@ test('UX-DS-16: the component page shows every component and its states at 390px
         'Status pill, notice and outcome',
         'Cards, rows and lists',
         'Home card',
+        'Thread and reply box',
       ]) {
         await expect(page.getByRole('heading', { level: 2, name: component })).toBeVisible();
       }
@@ -725,4 +726,60 @@ test('UX-DS-20: with reduced motion on, sheets, steps and toasts arrive without 
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await open(page);
   await expectFocusRings(page);
+});
+
+test('UX-NV-14, UX-NV-15: the thread and reply box: one screen at a time on a phone, the list beside the conversation on a desktop, with the draft and its gap in the reply box', async ({
+  page,
+}) => {
+  const closed = page.getByRole('list', { name: 'Conversations', exact: true });
+  const beside = page.getByRole('list', { name: 'Conversations, with one open' });
+  const choose = page.getByRole('heading', { name: 'Choose a conversation' });
+  const conversation = page.getByRole('region', { name: 'Aoife Byrne' });
+  const back = conversation.getByRole('link', { name: 'Inbox' });
+
+  // A phone: the list is a screen, and the open conversation is a screen with a way back.
+  await open(page, '/dev/ui', phone);
+  await expect(closed).toBeVisible();
+  await expect(choose).toBeHidden();
+  await expect(beside).toBeHidden();
+  await expect(conversation).toBeVisible();
+  await expect(back).toBeVisible();
+  await expectNoSidewaysScroll(page);
+
+  // A desktop: the list on the left, the conversation on the right, and nothing to go back to.
+  await open(page, '/dev/ui', desktop);
+  await expect(closed).toBeVisible();
+  await expect(choose).toBeVisible();
+  await expect(back).toBeHidden();
+  const list = (await beside.boundingBox())!;
+  const pane = (await conversation.boundingBox())!;
+  expect(list.x + list.width).toBeLessThanOrEqual(pane.x);
+  // The open conversation is marked in the list for screen readers, and each row is one link.
+  await expect(beside.locator('[aria-current="true"]')).toHaveCount(1);
+  await expect(beside.getByRole('listitem').nth(0).getByRole('link')).toHaveCount(1);
+  // What is waiting is said in words.
+  await expect(beside.getByRole('listitem').nth(0)).toContainText('Needs you');
+  await expect(beside.getByRole('listitem').nth(2)).toContainText('Tom · Owner');
+
+  // Theirs on the left, ours on the right; the assistant's are marked as the assistant's.
+  const messages = page.getByRole('list', { name: 'Messages with Aoife' }).getByRole('listitem');
+  await expect(messages).toHaveCount(5);
+  const thread = (await page.getByRole('list', { name: 'Messages with Aoife' }).boundingBox())!;
+  const theirs = (await messages.nth(0).boundingBox())!;
+  const ours = (await messages.nth(2).boundingBox())!;
+  expect(theirs.x).toBeCloseTo(thread.x, 0);
+  expect(ours.x + ours.width).toBeCloseTo(thread.x + thread.width, 0);
+  await expect(messages.nth(1)).toContainText('Gaff, the assistant');
+  await expect(messages.nth(2)).not.toContainText('the assistant');
+  await expect(messages.nth(3)).toContainText('Sending…');
+  // A message that didn't go says so in words, with an icon, in warning.
+  await expect(messages.nth(4)).toContainText('Not sent');
+  await expect(messages.nth(4)).toContainText('by text');
+
+  // The reply box: the draft, the "Drafted by AI" pill, the gap with its field and one tick.
+  const reply = page.getByRole('region', { name: 'Reply to Aoife' });
+  await expect(reply.getByText('Drafted by AI')).toBeVisible();
+  await expect(reply.getByLabel('Gaff doesn’t know: Is there a garden?')).toBeVisible();
+  await expect(reply.getByLabel('Remember this for 12 Ranelagh Road')).toBeChecked();
+  await expect(reply.getByRole('button')).toHaveText(['Send', 'Edit', 'Don’t send']);
 });

@@ -1,4 +1,8 @@
 import type { Metadata } from 'next';
+import { answersAsValues } from '@/domain/criteria/answers';
+import { answersToOffer } from '@/domain/profile/offer-back';
+import { irishToday } from '@/lib/format';
+import { personOnRenterPage } from '@/server/renter/person';
 import { LinkEnded, loadRenter } from './load';
 import { RenterHub } from './RenterHub';
 
@@ -20,13 +24,21 @@ export default async function RenterPage({
     change?: string;
     check_problem?: string;
     offer_problem?: string;
+    kept?: string;
   }>;
 }) {
   const { token } = await params;
-  const { q, change, check_problem, offer_problem } = await searchParams;
+  const { q, change, check_problem, offer_problem, kept } = await searchParams;
   const loaded = await loadRenter(token, { hub: true });
   if (!loaded) return <LinkEnded />;
   const { model } = loaded;
+  // UX-RH-4: a signed-in renter whose enquiry this is has it added to their Enquiries. UX-PF-3:
+  // their kept answers are offered back on the questions this home asks, and only there.
+  const person = await personOnRenterPage(token, loaded.page, { attach: true });
+  const offered =
+    person && model.view === 'questions'
+      ? answersToOffer(person.kept.answers, model.questions.asked, irishToday())
+      : {};
   return (
     <RenterHub
       token={token}
@@ -39,6 +51,11 @@ export default async function RenterPage({
         sentTo: loaded.sentTo,
         checkProblem: check_problem,
         offerProblem: offer_problem,
+        kept: kept === 'yes' || kept === 'no' ? kept : null,
+        offeredAnswers:
+          Object.keys(offered).length > 0
+            ? answersAsValues(offered, model.questions.criteria)
+            : null,
       }}
     />
   );

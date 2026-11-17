@@ -421,6 +421,33 @@ export const pages: Record<string, { label: string; render: (q?: string) => Reac
       </PrivateFrame>
     ),
   },
+  'apply-kept': {
+    label: 'Applying, with a kept income to confirm',
+    render: (q) => (
+      <PrivateFrame
+        audience="renter"
+        lister={lister('01 496 0000')}
+        home={model('after_viewing').home}
+        next={<p>{applyCopy.next(operator)}</p>}
+      >
+        <ApplyFlow
+          token={TOKEN}
+          operator={operator}
+          rule="2.5"
+          sentTo="a…@example.ie"
+          current={{
+            earning: 'employed',
+            monthlyIncome: '5,200',
+            fullName: 'Aoife Byrne',
+            email: 'aoife.byrne@example.ie',
+          }}
+          startAt={q}
+          keeping="on"
+          offered={{ saidOn: 'Monday 16 November' }}
+        />
+      </PrivateFrame>
+    ),
+  },
   applied: { label: 'Applied', render: () => hub(model('applied')) },
   'checks-start': { label: 'Chosen for checks', render: () => hub(model('checks')) },
   'checks-id': { label: 'Checks: your ID', render: () => hub(model('checks'), open) },

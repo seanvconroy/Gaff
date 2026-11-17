@@ -64,9 +64,7 @@ describe('UX-LT-19: the test enquiry is known by its reference when the rule for
     expect(isTestEnquiry({ subject: 'Fwd: something', text }, ref)).toBe(true);
     const quoted = ['---------- Forwarded message ---------', `> ${testRefLine(ref)}`].join('\n');
     expect(isTestEnquiry({ subject: 'Fwd: something', text: quoted }, ref)).toBe(true);
-    expect(isTestEnquiry({ subject: `Test enquiry from Gaff (${ref})`, text: '' }, ref)).toBe(
-      true,
-    );
+    expect(isTestEnquiry({ subject: `Test enquiry from Gaff (${ref})`, text: '' }, ref)).toBe(true);
   });
 
   it('UX-LT-19: anything else is not the test: another reference, none sent, or the ref in passing', () => {

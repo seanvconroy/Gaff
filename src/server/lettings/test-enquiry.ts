@@ -1,8 +1,9 @@
 import { asc, count, eq } from 'drizzle-orm';
 import { firstReply } from '@/copy/templates/first-reply';
-import { withOrg } from '@/db/client';
+import { type Tx, withOrg } from '@/db/client';
 import { applications, lettings, organisations, viewingSlots } from '@/db/schema';
 import { questionsFor } from '@/domain/criteria/criteria';
+import { TEST_RENTER } from '@/domain/enquiries/forwarding';
 import { canSendTestEnquiry } from '@/domain/lettings/setup';
 import { env } from '@/lib/env';
 import type { Member } from '@/server/auth/member';
@@ -10,7 +11,7 @@ import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
 
 /** The made-up renter a test enquiry comes from. Not a person, and never stored. */
-export const TEST_RENTER = 'Sam Sample';
+export { TEST_RENTER };
 
 /** How many people have enquired about a letting: a test enquiry is offered until one has. */
 export async function enquiryCount(member: Member, lettingId: string): Promise<number> {
@@ -37,8 +38,8 @@ export interface TestEnquiry {
  * real one. Nothing is sent to anyone, no renter is made, and no link in it opens: the record
  * notes only that the person looked.
  *
- * Work package WP-11 sends its test through the forwarding rule instead, and can show this
- * same reply at the end of it (UX-LT-19).
+ * The forwarding flow sends its test through the person's own rule instead, and shows this same
+ * reply at the end of it (UX-LT-19, `src/server/enquiries/forwarding.ts`).
  */
 export async function sendTestEnquiry(member: Member, lettingId: string): Promise<TestEnquiry> {
   return withOrg(member.organisationId, async (tx) => {
@@ -55,30 +56,7 @@ export async function sendTestEnquiry(member: Member, lettingId: string): Promis
           : 'A test enquiry can be sent once the home is live.',
       );
     }
-    const [organisation] = await tx
-      .select({ name: organisations.name, inboundSlug: organisations.inboundSlug })
-      .from(organisations)
-      .where(eq(organisations.id, member.organisationId));
-    const [firstSlot] = await tx
-      .select({ startsAt: viewingSlots.startsAt })
-      .from(viewingSlots)
-      .where(eq(viewingSlots.lettingId, lettingId))
-      .orderBy(asc(viewingSlots.startsAt))
-      .limit(1);
-    const appUrl = env().APP_URL;
-    const asksQuestions = questionsFor(letting.criteria ?? { noPets: false }).length > 0;
-    const { subject, body } = firstReply({
-      renterName: TEST_RENTER,
-      operatorName: organisation!.name,
-      address: letting.addressLine1,
-      area: letting.area,
-      rentCents: letting.monthlyRentCents,
-      availableFrom: letting.availableFrom,
-      // A real reply carries the renter's own private link here. A test has no renter.
-      questionsUrl: asksQuestions ? `${appUrl}/r/a-private-link` : null,
-      firstViewing: firstSlot?.startsAt ?? null,
-      privacyUrl: `${appUrl}/privacy/${organisation!.inboundSlug}`,
-    });
+    const reply = await firstReplyToTest(tx, member.organisationId, letting);
     await recordEvent(tx, {
       organisationId: member.organisationId,
       lettingId,
@@ -86,6 +64,42 @@ export async function sendTestEnquiry(member: Member, lettingId: string): Promis
       type: 'letting.test_enquiry_sent',
       data: {},
     });
-    return { subject, body, asksQuestions };
+    return reply;
   });
+}
+
+/**
+ * The first reply Gaff would send a made-up renter about this home, by the same fixed template as
+ * a real one (R7). Nothing is sent: it is shown to the person who asked for the test.
+ */
+export async function firstReplyToTest(
+  tx: Tx,
+  organisationId: string,
+  letting: typeof lettings.$inferSelect,
+): Promise<TestEnquiry> {
+  const [organisation] = await tx
+    .select({ name: organisations.name, inboundSlug: organisations.inboundSlug })
+    .from(organisations)
+    .where(eq(organisations.id, organisationId));
+  const [firstSlot] = await tx
+    .select({ startsAt: viewingSlots.startsAt })
+    .from(viewingSlots)
+    .where(eq(viewingSlots.lettingId, letting.id))
+    .orderBy(asc(viewingSlots.startsAt))
+    .limit(1);
+  const appUrl = env().APP_URL;
+  const asksQuestions = questionsFor(letting.criteria ?? { noPets: false }).length > 0;
+  const { subject, body } = firstReply({
+    renterName: TEST_RENTER,
+    operatorName: organisation!.name,
+    address: letting.addressLine1,
+    area: letting.area,
+    rentCents: letting.monthlyRentCents,
+    availableFrom: letting.availableFrom,
+    // A real reply carries the renter's own private link here. A test has no renter.
+    questionsUrl: asksQuestions ? `${appUrl}/r/a-private-link` : null,
+    firstViewing: firstSlot?.startsAt ?? null,
+    privacyUrl: `${appUrl}/privacy/${organisation!.inboundSlug}`,
+  });
+  return { subject, body, asksQuestions };
 }

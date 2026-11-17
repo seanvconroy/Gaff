@@ -39,7 +39,11 @@ export interface ForwardingFacts {
   testArrivedAt: Date | null;
 }
 
-export const noForwarding: ForwardingFacts = { worksAt: null, testSentAt: null, testArrivedAt: null };
+export const noForwarding: ForwardingFacts = {
+  worksAt: null,
+  testSentAt: null,
+  testArrivedAt: null,
+};
 
 export function forwardingInPlace(facts: Pick<ForwardingFacts, 'worksAt'>): boolean {
   return facts.worksAt !== null;

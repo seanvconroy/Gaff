@@ -309,9 +309,7 @@ describe('UX-HM-5: the same kind of thing for the same home is one row with a co
     expect(needsYouToday({ ...nothing, lettings: [onDaft] })).toMatchObject([
       { kind: 'forwarding', lettingId: 'daft', portals: ['daft'] },
     ]);
-    expect(needsYouToday({ ...nothing, lettings: [onDaft], forwardingInPlace: true })).toEqual(
-      [],
-    );
+    expect(needsYouToday({ ...nothing, lettings: [onDaft], forwardingInPlace: true })).toEqual([]);
     // Not advertised elsewhere, not answered yet, or not live: nothing to forward.
     for (const quiet of [
       letting({ advertisedOn: [] }),

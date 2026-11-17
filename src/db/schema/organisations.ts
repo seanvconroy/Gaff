@@ -70,6 +70,21 @@ export const organisations = pgTable(
      * log or a web address). Offered at the first go-live; "Talk to a person" shows it.
      */
     phone: text(),
+    /**
+     * UX-LT-19, UX-LT-20: when mail first came through the organisation's forwarding rule: the
+     * test enquiry coming back, or an enquiry from Daft or MyHome. Null: forwarding is still to
+     * do. One rule in the operator's mailbox covers every home, so it is kept here, not on each
+     * letting. Known only from what arrived: Gaff never looks into anyone's mail settings.
+     */
+    forwardingWorksAt: timestamp({ withTimezone: true }),
+    /**
+     * UX-LT-19: the latest test enquiry Gaff emailed to the person's mailbox, by its reference
+     * (random, no one's personal data), when it went, and when it came back through the rule.
+     * The address it went to is not kept.
+     */
+    forwardingTestRef: text(),
+    forwardingTestSentAt: timestamp({ withTimezone: true }),
+    forwardingTestArrivedAt: timestamp({ withTimezone: true }),
     /** Pilot baselines from the interviews, for time and days saved (R28). */
     baselineMinutesPerLetting: integer(),
     baselineDaysToLet: integer(),

@@ -36,6 +36,7 @@ import {
 } from '@/db/schema';
 import { firstNameOf } from '@/domain/accounts/first-run';
 import { type AwayCounts, lastVisitEnded } from '@/domain/dashboard/away';
+import { forwardingInPlace } from '@/domain/enquiries/forwarding';
 import {
   needsYouToday,
   type NewChoiceReason,
@@ -96,6 +97,7 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         criteriaSetAt: lettings.criteriaSetAt,
         goLiveHeldAt: lettings.goLiveHeldAt,
         setupStep: lettings.setupStep,
+        advertisedOn: lettings.advertisedOn,
       })
       .from(lettings)
       .orderBy(desc(lettings.createdAt));
@@ -329,6 +331,7 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
       .select({
         minutesPerLetting: organisations.baselineMinutesPerLetting,
         daysToLet: organisations.baselineDaysToLet,
+        forwardingWorksAt: organisations.forwardingWorksAt,
       })
       .from(organisations)
       .where(eq(organisations.id, member.organisationId));
@@ -368,6 +371,7 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         coverPhoto: coverPhotos.get(letting.id) ?? null,
         goLiveHeld: letting.goLiveHeldAt !== null,
         setupStepsLeft,
+        advertisedOn: letting.advertisedOn,
         enquiries: enquiries.get(letting.id)?.n ?? 0,
         undecided: undecided.get(letting.id)?.n ?? 0,
         places,
@@ -402,6 +406,8 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
       questions,
       attention,
       lettings: lettingsWithNumbers,
+      // UX-LT-20: one rule covers every home, so this is the organisation's, not each letting's.
+      forwardingInPlace: forwardingInPlace({ worksAt: usual?.forwardingWorksAt ?? null }),
       today,
     });
 

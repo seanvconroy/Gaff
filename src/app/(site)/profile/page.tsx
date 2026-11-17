@@ -10,8 +10,10 @@ import { signInMethodsOf } from '@/server/accounts/sign-in-methods';
 import { hasPasskey } from '@/server/auth/confirm-request';
 import { membersOf } from '@/server/auth/member';
 import { requirePerson } from '@/server/context/current-person';
+import { savedSearchesOf } from '@/server/saved/searches';
 import { teamsToLeave } from '@/server/team/team';
 import { Narrow, PageHeader, Stack } from '@/ui/Layout';
+import { searchRows } from '../saved/rows';
 import { ProfileRows, type ProfileView } from './ProfileRows';
 import { YourTeams } from './YourTeams';
 
@@ -26,17 +28,21 @@ export const metadata: Metadata = { title: profileCopy.title };
  * answers and how they earn, kept by choice. No photo, no free text, no document, nothing about
  * a protected ground, and never housing support as a fact of its own (rule 3).
  *
- * SEAMS: "What you're looking for" is the chips of a saved search (WP-23), and "Identity" is a
- * verified identity kept by choice (WP-24). Each adds its row here when it is built.
+ * "What you're looking for" is the chips of each saved search (WP-23), each removable, with its
+ * emails on or off.
+ *
+ * SEAM: "Identity" is a verified identity kept by choice (WP-24), which adds its row here.
  */
 export default async function ProfilePage() {
   const person = await requirePerson();
-  const [kept, signIn, passkey, teams] = await Promise.all([
+  const [kept, signIn, passkey, teams, saved] = await Promise.all([
     readRenterProfile(person.userId),
     signInMethodsOf(person.userId),
     hasPasskey(person.userId),
     // UX-AG-17: the teams they work in, each to leave from here.
     membersOf(person.userId).then(teamsToLeave),
+    // "What you're looking for" (WP-23): the chips of their saved searches.
+    savedSearchesOf(person.userId),
   ]);
   const a = kept.answers;
   const view: ProfileView = {
@@ -73,6 +79,7 @@ export default async function ProfilePage() {
           }
         : null,
     keepsDetails: kept.keepsDetails,
+    looking: { searches: searchRows(saved.searches), alerts: saved.alerts },
     nothingYet: !kept.exists,
     signIn: {
       methods: signIn.methods.map((method) => profileCopy.signIn.method(method)),

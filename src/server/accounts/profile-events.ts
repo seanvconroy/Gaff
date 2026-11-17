@@ -43,6 +43,17 @@ export const profileEventCatalogue = {
     applicationId: z.uuid(),
     part: z.enum(['answers', 'income']),
   }),
+  /**
+   * Saved (WP-23): a home was saved with the heart, or taken off. Which home is the person's
+   * own business: the record says only that it happened.
+   */
+  'profile.home_saved': z.object({}),
+  'profile.home_removed': z.object({}),
+  /** UX-SR-10: a search was saved on the profile, or removed from it. */
+  'profile.search_saved': z.object({ savedSearchId: z.uuid() }),
+  'profile.search_removed': z.object({ savedSearchId: z.uuid() }),
+  /** UX-SR-10: the alerts of their saved searches were switched on or off ("Stop these" too). */
+  'profile.search_alerts_set': z.object({ on: z.boolean(), from: z.enum(['profile', 'email']) }),
   /** "Download my details". */
   'profile.downloaded': z.object({}),
   /** UX-PF-7: the email that says the profile will be deleted, and on which date. */

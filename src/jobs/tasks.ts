@@ -16,6 +16,8 @@ import { sendRtbReminder } from '@/server/tenancy/rtb';
 import { refreshRegister } from '@/server/register/refresh';
 import { sweepPersonalData } from '@/server/retention/sweep';
 import { endLetHomePages } from '@/server/homes/let-pages';
+import { sendSearchAlerts, sweepEmailSearches } from '@/server/saved/alerts';
+import { sendSavedSearchEmail } from '@/server/saved/emails';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
 
 const inboundEmailJob = z.object({ organisationId: z.uuid(), inboundEmailId: z.uuid() });
@@ -31,6 +33,9 @@ export const CRONTAB = [
   // UX-AG-1, UX-AG-6 (Q39): the PSRA register, weekly, early on Monday. A missed week runs when
   // jobs next run. The job key matches the one a first load uses, so two never queue up.
   '15 3 * * 1 psra_register_refresh ?fill=8d&jobKey=psra_register_refresh&max=5',
+  // UX-SR-10: alerts for saved searches, once a day, in the morning in Ireland. A missed one runs
+  // when jobs next run; the job sends at most one email a day to anyone, however often it runs.
+  '0 8 * * * saved_search_alerts ?fill=1d&jobKey=saved_search_alerts',
 ].join('\n');
 
 /** Every background task. Tasks are thin: they call use cases in src/server. */
@@ -62,6 +67,17 @@ export const taskList: TaskList = {
     // UX-AV-6: any enquiry still waiting past its 24 hours, should its own job have missed it.
     const waiting = await dropExpiredWaitingEnquiries();
     console.log(`Asking to view: ${waiting} unconfirmed enquiries dropped.`);
+    // UX-SR-10 (rule 9): saved searches held by an email alone, unconfirmed or two years old.
+    const searches = await sweepEmailSearches();
+    console.log(`Saved searches: ${searches.deleted} held by an email alone deleted.`);
+  },
+  saved_search_alerts: async () => {
+    const sent = await sendSearchAlerts();
+    // Counts only: never who was told, or about which home.
+    console.log(`Saved searches: ${sent.emails} alerts queued, ${sent.homes} homes in them.`);
+  },
+  send_saved_search_email: async (payload) => {
+    await sendSavedSearchEmail(payload);
   },
   psra_register_refresh: async () => {
     const refreshed = await refreshRegister();

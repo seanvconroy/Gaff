@@ -302,6 +302,37 @@ export async function publicHomePage(ref: string): Promise<PublicHomePage | null
 }
 
 /**
+ * Saved (WP-23): the pages of several homes at once, by their public references, as each one's
+ * own address would show it: live, "has been let", or missing (no page any more, whatever the
+ * reason). The same rules as `publicHomePage`, read in one go.
+ */
+export async function publicHomePages(
+  refs: readonly string[],
+): Promise<Map<string, PublicHomePage>> {
+  const wanted = [...new Set(refs.filter(isPublicRef))];
+  const pages = new Map<string, PublicHomePage>();
+  if (wanted.length === 0) return pages;
+  const loaded = await withSystem((tx) =>
+    load(
+      tx,
+      and(inArray(lettings.publicRef, wanted), inArray(lettings.status, ['live', 'let']), onGaff)!,
+    ),
+  );
+  for (const found of loaded) {
+    const state = stateOf(found);
+    if (state === 'live') pages.set(found.row.publicRef, { state, home: toPublicHome(found) });
+    else if (state === 'let') {
+      pages.set(found.row.publicRef, {
+        state,
+        title: homeTitle(found.row),
+        place: placeOf(found.row.area),
+      });
+    }
+  }
+  return pages;
+}
+
+/**
  * The letting behind a live home's public reference, for what a visitor does from its page
  * (asking to view, WP-22; reporting it, WP-26). Everything after it is scoped to the lister.
  */

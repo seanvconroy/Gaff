@@ -44,7 +44,14 @@ import {
   queuedJobs,
 } from './helpers';
 
-const PERSON_TABLES = ['renter_profiles', 'renter_enquiries', 'profile_events'] as const;
+const PERSON_TABLES = [
+  'renter_profiles',
+  'renter_enquiries',
+  'profile_events',
+  // WP-23: Saved.
+  'saved_homes',
+  'saved_searches',
+] as const;
 
 const DAY = 86_400_000;
 

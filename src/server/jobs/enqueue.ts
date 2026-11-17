@@ -16,7 +16,9 @@ export type TaskName =
   | 'send_account_email'
   /** UX-AV-6: an enquiry made on Gaff from a typed email: its first reply, and its 24 hours. */
   | 'send_waiting_reply'
-  | 'drop_waiting_enquiry';
+  | 'drop_waiting_enquiry'
+  | 'send_saved_search_email'
+  | 'saved_search_alerts';
 
 /**
  * Queues a job in the caller's transaction (ADR-0003): the job exists only if the change that

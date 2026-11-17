@@ -1,0 +1,9 @@
+/* Saved: its homes, then its searches, each under its own heading. */
+.section {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.quiet {
+  color: var(--color-ink-muted);
+}

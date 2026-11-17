@@ -10,9 +10,11 @@ import { filtersFromParams, hasFilters, searchHref } from '@/domain/search/filte
 import { irishToday } from '@/lib/format';
 import { currentPerson } from '@/server/context/current-person';
 import { enquiriesNeedingThem } from '@/server/renter/enquiries';
+import { savedHomeRefs } from '@/server/saved/homes';
+import { keepsSearch } from '@/server/saved/searches';
 import { SearchBox } from '@/ui/SearchBox';
 import { searchWords } from './_search/actions';
-import { Results, ResultsLoading } from './_search/Results';
+import { Results, ResultsLoading, type Saver } from './_search/Results';
 import { SearchControls } from './_search/SearchControls';
 import styles from './_search/search.module.css';
 
@@ -48,6 +50,14 @@ export default async function FirstScreen({ searchParams }: { searchParams: Prom
   const filters = filtersFromParams(query);
   const searching = hasFilters(filters);
   const unclear = query.unclear === '1' && !searching;
+  // WP-23: the hearts and "Tell me when one comes up" know what this person already keeps.
+  const saver: Saver = person
+    ? {
+        signedIn: true,
+        savedRefs: await savedHomeRefs(person.userId),
+        keepsSearch: searching ? await keepsSearch(person.userId, filters) : false,
+      }
+    : { signedIn: false };
   return (
     <div className={styles.page}>
       <SearchBox
@@ -68,7 +78,7 @@ export default async function FirstScreen({ searchParams }: { searchParams: Prom
         <p className={styles.promise}>{searchCopy.promise}</p>
       </SearchBox>
       <Suspense key={searchHref(filters)} fallback={<ResultsLoading />}>
-        <Results filters={filters} />
+        <Results filters={filters} saver={saver} />
       </Suspense>
       <p className={styles.foot}>
         {searchCopy.foot.line}{' '}

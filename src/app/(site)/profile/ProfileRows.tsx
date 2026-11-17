@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
 import { ConfirmItsYou } from '@/app/(auth)/confirm/ConfirmItsYou';
 import { profileCopy } from '@/copy/profile';
+import { savedCopy } from '@/copy/saved';
 import { earningLabels } from '@/domain/applications/apply';
 import { MAX_OCCUPANTS_ANSWER, stayChoices } from '@/domain/criteria/answers';
 import type { KeptPart } from '@/domain/profile/kept';
@@ -17,6 +18,8 @@ import { SubmitButton } from '@/ui/SubmitButton';
 import { SummaryList } from '@/ui/SummaryList';
 import { useToast } from '@/ui/Toast';
 import { useSend } from '@/ui/useSend';
+import { setAlertsAction } from '../saved/actions';
+import { SavedSearchList, type SearchRow } from '../saved/SavedSearches';
 import {
   changeNameAction,
   changePartAction,
@@ -47,6 +50,8 @@ export interface ProfileView {
     values: Record<string, string>;
   } | null;
   keepsDetails: boolean;
+  /** "What you're looking for": their saved searches, as chips, and whether they email them. */
+  looking: { searches: SearchRow[]; alerts: boolean };
   /** Nothing has ever been kept. */
   nothingYet: boolean;
   signIn: { methods: string[]; passkeys: number };
@@ -143,6 +148,30 @@ export function ProfileRows({ view }: { view: ProfileView }) {
             },
           ]}
         />
+      </Section>
+
+      <Section id="looking" title={savedCopy.profile.title} lead={savedCopy.profile.lead}>
+        {view.looking.searches.length > 0 ? (
+          <>
+            <SavedSearchList searches={view.looking.searches} />
+            <OptionRow
+              name="searchAlerts"
+              label={savedCopy.profile.alertsLabel}
+              hint={savedCopy.profile.alertsHint}
+              defaultOn={view.looking.alerts}
+              onChange={(on) =>
+                startTransition(async () => {
+                  await setAlertsAction(on);
+                  toast.show({
+                    message: on ? savedCopy.profile.alertsOn : savedCopy.profile.alertsOff,
+                  });
+                })
+              }
+            />
+          </>
+        ) : (
+          <p className={styles.nothing}>{savedCopy.profile.none}</p>
+        )}
       </Section>
 
       <Section id="answers" title={c.answers.title} lead={c.answers.lead}>

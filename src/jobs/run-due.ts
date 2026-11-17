@@ -121,6 +121,12 @@ export async function runDueJobs(
 export async function queueDailyJobs(): Promise<void> {
   await db().execute(sql`
     select graphile_worker.add_job('retention_sweep', '{}'::json, job_key => 'retention_sweep')`);
+  // UX-SR-10: the day's alerts for saved searches, at 08:00 UTC (the morning in Ireland), which
+  // the minute tick runs when it's due. Called before then, it waits for 08:00; called after, it
+  // runs now. The job itself sends at most one email a day to anyone.
+  await db().execute(sql`
+    select graphile_worker.add_job('saved_search_alerts', '{}'::json, job_key => 'saved_search_alerts',
+      run_at => greatest(now(), date_trunc('day', now()) + interval '8 hours'))`);
   // UX-AG-1 (Q39): and, once a week, the refresh of the PSRA register.
   await queueRegisterRefreshIfDue();
 }

@@ -339,21 +339,19 @@ for (const [width, viewport] of widths) {
     await settled(page);
     await screenshot(page, `ux-sr-empty-${width}`);
     await expectAccessible(page);
-    // WP-23 builds saving a search; until then it says so, and keeps nothing.
+    // UX-SR-10 (WP-23): signed out, it asks for an email address and nothing more.
     await page.getByRole('button', { name: 'Tell me when one comes up' }).click();
-    await expect(
-      page.getByRole('status').filter({ hasText: 'Alerts are coming soon.' }),
-    ).toBeVisible();
+    const sheet = page.getByRole('dialog', { name: 'Tell me when one comes up' });
+    await expect(sheet.getByRole('textbox')).toHaveCount(1);
+    await expect(sheet.getByLabel('Your email')).toBeVisible();
   });
 }
 
-test('UX-SR-6: the heart is in place for saving, and says it isn’t here yet', async ({ page }) => {
+test('UX-SR-6: the heart, signed out, asks for a sign-in first', async ({ page }) => {
   await page.setViewportSize(phone);
   await page.goto('/?where=kinsale');
   await page.getByRole('button', { name: 'Save 1-bed apartment · Kinsale, Co. Cork' }).click();
-  await expect(
-    page.getByRole('status').filter({ hasText: 'Saving homes is coming soon.' }),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/\/sign-in\?next=%2Fsaved%2Fsave/);
 });
 
 test('UX-SR-12: a shared address reopens the same search, with no account', async ({ browser }) => {

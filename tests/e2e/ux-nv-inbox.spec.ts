@@ -122,7 +122,8 @@ test('UX-NV-13 to UX-NV-16, UX-NV-18: Inbox lists every conversation under two c
     await expect(rows.nth(0)).toContainText('Aoife');
     await expect(rows.nth(0)).toContainText('12 Ranelagh Road');
     await expect(rows.nth(0)).toContainText('Gaff: Thanks for your enquiry');
-    await expect(rows.nth(0)).toContainText(/\d{1,2}:\d{2}(am|pm)/);
+    // On the hour the time has no minutes: "10am".
+    await expect(rows.nth(0)).toContainText(/\d{1,2}(:\d{2})?(am|pm)/);
     await expect(rows.nth(0)).toContainText('Needs you');
     // UX-NV-5: Inbox's badge counts the conversations that need a reply.
     await expect(

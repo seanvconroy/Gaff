@@ -12,6 +12,11 @@ import { E2E_DATABASE_URL } from '../../playwright.config';
  */
 export async function expectAccessible(page: Page): Promise<void> {
   await settled(page);
+  // A page's title can arrive a moment after its content. Give it that moment; a page with no
+  // title at all still fails the check below.
+  await page
+    .waitForFunction(() => document.title.length > 0, null, { timeout: 5000 })
+    .catch(() => {});
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();

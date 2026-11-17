@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 16 November 2026 (wave 1 of the UX redesign is built: navigation, sign-in, accounts and first run, and the page frame. Wave 2 is being built: Today and Lettings, Inbox, adding a letting and the renter's pages are in).
+Last updated: 17 November 2026 (wave 1 of the UX redesign is built: navigation, sign-in, accounts and first run, and the page frame. Wave 2 is built except forwarding enquiries; wave 3A has started).
 
 ## Done
 
@@ -85,9 +85,9 @@ Last updated: 16 November 2026 (wave 1 of the UX redesign is built: navigation, 
   | --- | --- | --- |
   | 0. Foundations | WP-1 funnel events and baselines; WP-2 design system | **Done**, 15 November 2026. See "Wave 0" below |
   | 1. Frame, sign-in and accounts | WP-3 shell and navigation; WP-4 sign-in; WP-5 accounts and first run; WP-6 the page frame | **Done**, 16 November 2026. See "Wave 1" below |
-  | 2A. Running a letting, part 1 | WP-7 Today and Lettings; WP-8 Inbox; WP-9 adding a letting; WP-10 reading an advert; WP-11 forwarding | WP-7, WP-8 and WP-9 **done**, 17 November 2026 (see "Wave 2" below). WP-10 in progress; WP-11 to come |
-  | 2B. Inside a letting, for renters | WP-12 the renter's pages; WP-13 owner and referee pages; WP-14 profile and the renter's home | WP-12 and WP-13 **done**, 17 November 2026 (see "Wave 2" below). WP-14 merged, being verified |
-  | 3A. Running a letting, part 2 | WP-15 a letting's page; WP-16 calendar; WP-17 decisions and the offer; WP-18 tenancy, close and settings; WP-19 teams | Not started |
+  | 2A. Running a letting, part 1 | WP-7 Today and Lettings; WP-8 Inbox; WP-9 adding a letting; WP-10 reading an advert; WP-11 forwarding | WP-7 to WP-10 **done**, 17 November 2026 (see "Wave 2" below). WP-11 in progress |
+  | 2B. Inside a letting, for renters | WP-12 the renter's pages; WP-13 owner and referee pages; WP-14 profile and the renter's home | **Done**, 17 November 2026. See "Wave 2" below |
+  | 3A. Running a letting, part 2 | WP-15 a letting's page; WP-16 calendar; WP-17 decisions and the offer; WP-18 tenancy, close and settings; WP-19 teams | WP-16, WP-17 and WP-19 in progress |
   | 3B. The marketplace | WP-20 homes on Gaff; WP-21 search; WP-22 asking to view; WP-23 saved homes and alerts | Not started |
   | 4. Trust, fit and finish | WP-24 a verified identity; WP-25 fit; WP-26 trust and Gaff's internal page; WP-27 activation; WP-28 the end-to-end pass | Not started |
 - **Deploy the test copy** on Vercel and Supabase ([deploy.md](deploy.md), about 20 minutes).
@@ -142,16 +142,20 @@ Left for later packages, on purpose:
 | WP-9: adding a letting (UX-LT-1, 4, 5, 8 to 16, 22 to 24) | A focused flow, one question per screen, with "Save and exit" and coming back to the same step: the address (search behind an interface, typed fields as the stand-in), rent and date, the home, photos (stored by Gaff, behind an interface, with a cover photo), letting details from the fixed criteria, the rent check a question at a time with its result, then "Ready to go live" with "On gaff.ie" and a number renters can call. Only what UX-LT-14 lists blocks go-live. "Is it advertised anywhere else?", "Let it again" from a closed letting, and "Send a test enquiry" | `src/domain/lettings/*.test.ts`, `tests/integration/ux-lt-*.test.ts`, `tests/e2e/ux-lt-adding-a-letting.spec.ts` |
 | WP-12: the renter's pages (UX-RN-1 to UX-RN-26) | Every page on the renter's path, one task at a time in the private frame: questions one per screen, then "Thanks"; booking by day, then time, then confirm; booked, cancelled and a place held from the waiting list; applying in two questions and a check screen; the checks one at a time with a short list; the offer with one total; the agreement with links to its sections; paying, with copy buttons and a number to ring; the PPS number as its own optional step; the inventory room by room with "Something's not right"; and each outcome. One primary button a page, nothing under 16px, and only the four notices of UX-PP-6 | `src/domain/renter/*.test.ts`, `tests/integration/ux-rn-*.test.ts`, `tests/e2e/ux-rn-renter-pages.spec.ts` and the Slice 1 to 3 journeys |
 | WP-13: owner and referee pages (UX-OP-1 to UX-OP-9; UX-RF-1 to UX-RF-6; UX-OW-1, 2, 4) | "Share with the owner" in a letting's menu sends the owner a private link, and a new link replaces the old one. The owner's page is one screen: where the letting stands in plain words, what happens next and when, with renters as "Applicant 1" before the offer and no internal events. The owner approves one person at a time, the chosen tenant then the backup, and declining asks no reason. After the home is let the page is a summary. The reference form is one screen of up to four questions answered with taps, with no free text; "No" ends it, and "I can't give this reference" is recorded and stops the reminders. The agent is warned before asking for approval while checks are still out | `src/domain/landlord/owner-page.test.ts`, `src/domain/offers/approval.test.ts`, `src/domain/checks/checks.test.ts`, `tests/integration/r18-checks.test.ts`, `tests/e2e/r27-landlord.spec.ts`, `tests/e2e/slice2.spec.ts` |
+| WP-10: reading an advert (UX-LT-1 to 3, 6, 7; UX-AI-3 to 5, 8, 9, 12, 13) | Paste an advert's words and Gaff fills the letting in: "Here's what Gaff found", marked "Read by AI", with the words each value came from on tap and "Check this" on anything missing or unclear. A value with no words behind it in the advert is dropped by code. Lines about who should apply are left out, with the reason shown, and never become letting details. Names and contact details are stripped before the text reaches the model, and instructions inside the text change nothing. A pasted link is never opened: the screen asks for the advert's words. An enquiry Gaff couldn't match has "Start a letting from this enquiry", and joins the letting when it goes live. With the reader off (`ADVERT_READER=off`), the first screen offers only "Fill it in myself" | `src/domain/lettings/advert*.test.ts`, `tests/integration/ux-lt-reading-an-advert.test.ts`, `tests/e2e/ux-lt-reading-an-advert.spec.ts` |
+| WP-14: profile and the renter's home (UX-RH-1 to UX-RH-6; UX-PF-1 to UX-PF-7) | Enquiries lists a signed-in renter's homes, each with where it stands and the next thing to do, with the ones that need them first. Profile shows what Gaff keeps (details, the four answers, work and income with the date said), each row changed or removed, with no photo and no free text. "Keep my details for next time" is on the application's check screen, off by default; ticking it sends a sign-in code and starts the profile. On the next home, kept details are offered back to confirm, and nothing reaches the operator before the renter sends. A renter can download what's kept and delete their profile at once. The retention job deletes a profile unused for two years, after a notice. Profile tables belong to the person: tests show no operator path can read or write them | `src/domain/profile/*.test.ts`, `tests/integration/ux-pf-profile.test.ts`, `tests/e2e/ux-pf-profile.spec.ts` |
 
 Left for later packages, on purpose:
 
 - A letting's lead is whoever created it, until teams arrive (WP-19).
 - Today has no primary button: the setup checklist is WP-27.
-- The first screen of adding a letting offers only "Fill it in myself" until reading an advert is in (WP-10).
+- Reading an advert takes pasted text only. Brochures, screenshots and photos aren't read, so there is no attach button (`advertFilesAreRead` marks the place).
+- Today's "New enquiries for a home you haven't added. Set it up?" prompt (UX-LT-16) isn't built; starting a letting from an enquiry is in Inbox.
+- Answers confirmed from a profile aren't recorded as confirmed; only income is.
+- Profile has commented seams for "What you're looking for" (WP-23) and "Identity" (WP-24).
 - A home advertised elsewhere shows forwarding as its task, pointing at Settings, until the forwarding flow is built (WP-11).
 - "On gaff.ie" is stored on the letting; the public page it switches on is WP-20.
 - A private landlord's identity step is in place at go-live and does nothing yet (WP-24).
-- "Keep my details for next time" isn't on the application's check screen yet (WP-14).
 - The email that sends an owner their link is new wording, pinned by `src/copy/templates/owner.test.ts`. It goes to the solicitor with the other templates.
 - The reference email already says "It takes about two minutes" and is a fixed template, so UX-RF-6 changed nothing.
 - The operator's "Ask the landlord" card is unchanged apart from the warning; WP-17 replaces it.

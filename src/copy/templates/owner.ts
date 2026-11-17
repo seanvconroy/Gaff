@@ -4,7 +4,7 @@
  * link. Nothing in it invites the owner to use Gaff (Q45).
  *
  * NEW WORDING (work package WP-13), for the solicitor with the other templates. Until it's
- * agreed it is pinned by its own test (src/copy/templates/owner.test.ts), not yet by the
+ * agreed it is pinned by its own test (`owner.test.ts`, beside it), not yet by the
  * fingerprint of every fixed message (tests/compliance/template-words.test.ts).
  */
 export const OWNER_LINK_TEMPLATE = 'owner_link@1';

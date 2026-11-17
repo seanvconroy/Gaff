@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, inArray, lt, sum } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, inArray, lt, max, min, sum } from 'drizzle-orm';
 import { withOrg } from '@/db/client';
 import {
   applications,
@@ -99,11 +99,29 @@ export async function calendarFor(
     const homeIds = homes.map((home) => home.id);
     if (homeIds.length === 0) return { viewings: [], homes: [], ahead: [], members };
 
-    const sessions = await tx
-      .select()
-      .from(viewingSessions)
-      .where(inArray(viewingSessions.lettingId, homeIds))
-      .orderBy(asc(viewingSessions.startsAt));
+    // A viewing time is what its slots say it is: bookings and attendance go by the slots too.
+    const spans = new Map(
+      (
+        await tx
+          .select({
+            sessionId: viewingSlots.sessionId,
+            startsAt: min(viewingSlots.startsAt),
+            endsAt: max(viewingSlots.endsAt),
+          })
+          .from(viewingSlots)
+          .where(inArray(viewingSlots.lettingId, homeIds))
+          .groupBy(viewingSlots.sessionId)
+      ).map((row) => [row.sessionId, row]),
+    );
+    const sessions = (
+      await tx.select().from(viewingSessions).where(inArray(viewingSessions.lettingId, homeIds))
+    )
+      .map((s) => ({
+        ...s,
+        startsAt: spans.get(s.id)?.startsAt ?? s.startsAt,
+        endsAt: spans.get(s.id)?.endsAt ?? s.endsAt,
+      }))
+      .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
     const inRange = sessions.filter((s) => s.startsAt < range.to && s.endsAt > range.from);
     const ids = inRange.map((s) => s.id);
 
@@ -237,6 +255,14 @@ export async function viewingDetail(member: Member, sessionId: string) {
       .from(viewingSlots)
       .where(eq(viewingSlots.sessionId, sessionId))
       .orderBy(asc(viewingSlots.startsAt));
+    // A viewing time is what its slots say it is.
+    if (slots.length > 0) {
+      row.session = {
+        ...row.session,
+        startsAt: slots[0]!.startsAt,
+        endsAt: new Date(Math.max(...slots.map((slot) => slot.endsAt.getTime()))),
+      };
+    }
     const people = await tx
       .select({
         bookingId: bookings.id,

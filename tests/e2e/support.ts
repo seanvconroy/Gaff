@@ -498,7 +498,7 @@ export async function addHomeThroughUi(
 
 /**
  * Creates a letting with one evening of viewing slots, through the real screens: the first
- * steps of "Add a letting", then a viewing time on the letting's own page. It ends on the
+ * steps of "Add a letting", then "Add a time" on the letting's own calendar. It ends on the
  * letting's viewing times, with the letting still in set-up.
  */
 export async function createLettingThroughUi(
@@ -508,11 +508,41 @@ export async function createLettingThroughUi(
 ): Promise<void> {
   await addHomeThroughUi(page, address, daftUrl);
   await page.goto(`/lettings/${homeIdIn(page.url())}/viewings`);
-  await page.getByLabel('Date').fill(isoDateInDays(7));
-  await page.getByLabel('From').fill('18:00');
-  await page.getByLabel('Until').fill('19:00');
-  await page.getByRole('button', { name: 'Add viewing time' }).click();
-  await expect(page.getByText('Viewing time added')).toBeVisible();
+  await addATime(page, isoDateInDays(7));
+}
+
+/**
+ * UX-VW-3: "Add a time" on the calendar open on the screen: pick a day and press Add. The sheet's
+ * other fields keep their defaults (6pm to 7pm, one at a time, 15 minutes each) unless `fill`
+ * changes them. Ends with the sheet closed and "Viewing time added" said.
+ */
+export async function addATime(
+  page: Page,
+  date: string,
+  fill?: (sheet: Locator) => Promise<void>,
+): Promise<void> {
+  await page.getByRole('button', { name: 'Add a time' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Add a time' });
+  await expect(sheet).toBeVisible();
+  await pickDate(page, 'Day', date, sheet);
+  await fill?.(sheet);
+  await sheet.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(sheet).toBeHidden();
+  await expect(page.getByRole('status').filter({ hasText: 'Viewing time added' })).toBeVisible();
+}
+
+/** Chooses a time in a time picker: opens the field by its label and presses the time ("11am"). */
+export async function pickTime(
+  page: Page,
+  label: string,
+  time: string,
+  within: Page | Locator = page,
+): Promise<void> {
+  await within.getByRole('button', { name: new RegExp(`^${label}`) }).click();
+  const list = page.getByRole('listbox').last();
+  await expect(list).toBeVisible();
+  await list.getByRole('option', { name: time, exact: true }).click();
+  await expect(list).toBeHidden();
 }
 
 /**

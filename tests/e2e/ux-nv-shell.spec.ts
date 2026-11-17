@@ -105,13 +105,12 @@ test('UX-NV-1 to UX-NV-5: anyone running lettings has four destinations, in a to
       await screenshot(page, `nv-letting-${label.toLowerCase()}-${width}`);
     }
 
-    // Lettings lists every home (UX-NV-9); Calendar says what will be there.
+    // Lettings lists every home (UX-NV-9); Calendar has every viewing time (UX-VW-1).
     await page.goto('/lettings');
     await expect(page.getByRole('link', { name: '12 Ranelagh Road', exact: true })).toBeVisible();
     await page.goto('/calendar');
-    await expect(
-      page.getByRole('heading', { name: 'Viewing times for every home will appear here.' }),
-    ).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Viewing times' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add a time' })).toBeVisible();
 
     // UX-NV-2: Approvals, Questions and Needs attention aren't pages any more. Their work is
     // done in Inbox, which says what will appear there while it is empty.

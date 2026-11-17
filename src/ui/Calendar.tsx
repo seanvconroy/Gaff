@@ -103,7 +103,7 @@ export function Calendar({
                     href={day.href}
                     scroll={false}
                     className={styles.stripDay}
-                    aria-current={day.date === chosen ? 'page' : undefined}
+                    aria-current={day.date === chosen ? 'true' : undefined}
                     data-today={day.date === today ? '' : undefined}
                     aria-label={`${dayLabel(day.date)}${day.date === today ? ', today' : ''}${
                       count ? `, ${count} viewing ${count === 1 ? 'time' : 'times'}` : ''
@@ -197,7 +197,9 @@ export function Calendar({
                             <span className={styles.blockTime}>
                               {formatClock(time.start)} to {formatClock(time.end)}
                             </span>
+                            <span className="visually-hidden"> · </span>
                             <span className={styles.blockTitle}>{time.title}</span>
+                            <span className="visually-hidden">, </span>
                             <span className={styles.blockMeta}>{time.meta}</span>
                             {time.flag ? <StatusPill tone="warning">{time.flag}</StatusPill> : null}
                           </Link>

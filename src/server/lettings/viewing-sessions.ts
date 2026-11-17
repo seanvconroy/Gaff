@@ -138,14 +138,16 @@ async function lockedSession(tx: Tx, lettingId: string, sessionId: string, doing
         .for('update')
     : [];
   if (!letting || !session) throw new UserFacingError('That viewing time has already gone.');
-  if (session.startsAt <= new Date()) {
-    throw new UserFacingError(`This viewing has started, so it can’t be ${doing}.`);
-  }
   const slots = await tx
     .select()
     .from(viewingSlots)
     .where(eq(viewingSlots.sessionId, sessionId))
     .orderBy(asc(viewingSlots.startsAt));
+  const startsAt =
+    slots[0] && slots[0].startsAt < session.startsAt ? slots[0].startsAt : session.startsAt;
+  if (startsAt <= new Date()) {
+    throw new UserFacingError(`This viewing has started, so it can’t be ${doing}.`);
+  }
   const slotIds = slots.map((slot) => slot.id);
   const booked =
     slotIds.length === 0

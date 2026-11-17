@@ -16,6 +16,7 @@ export function ActionCard({
   call,
   line,
   aboveTabBar = false,
+  inPlace = false,
 }: {
   /** "€1,850 a month". */
   price: string;
@@ -30,11 +31,13 @@ export function ActionCard({
   line: string;
   /** A signed-in visitor has the tab bar at the foot of a phone's screen: sit above it. */
   aboveTabBar?: boolean;
+  /** Where it stands in the page at both widths, as on the component page (`/dev/ui`). */
+  inPlace?: boolean;
 }) {
   return (
     <>
       <aside
-        className={`${styles.card} ${call ? styles.withCall : ''} ${aboveTabBar ? styles.aboveTabBar : ''}`}
+        className={`${styles.card} ${call ? styles.withCall : ''} ${aboveTabBar ? styles.aboveTabBar : ''} ${inPlace ? styles.inPlace : ''}`}
         aria-label={action.label}
         data-action-bar=""
       >
@@ -55,7 +58,7 @@ export function ActionCard({
         <p className={styles.line}>{line}</p>
       </aside>
       {/* On a phone the page ends clear of the fixed card. */}
-      <div className={styles.room} aria-hidden="true" />
+      {inPlace ? null : <div className={styles.room} aria-hidden="true" />}
     </>
   );
 }

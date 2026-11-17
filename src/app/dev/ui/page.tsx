@@ -17,6 +17,7 @@ import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { env } from '@/lib/env';
 import { typeStyles } from '@/styles/tokens';
+import { ActionCard } from '@/ui/ActionCard';
 import { ActionList, ActionRow } from '@/ui/ActionList';
 import { Avatar, Badge } from '@/ui/Avatar';
 import { Button, ButtonLink } from '@/ui/Button';
@@ -29,10 +30,12 @@ import { Disclosure } from '@/ui/Disclosure';
 import { EmptyState } from '@/ui/EmptyState';
 import { ChoiceGroup, SelectField, TextArea, TextField } from '@/ui/Field';
 import { FormActions, formClass } from '@/ui/Form';
+import { Gallery } from '@/ui/Gallery';
 import { HomeCard, HomeGrid } from '@/ui/HomeCard';
 import { Card, CardHeader } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { Outcome } from '@/ui/Outcome';
+import { ShowMore } from '@/ui/ShowMore';
 import { SegmentedProgress } from '@/ui/SegmentedProgress';
 import { Skeleton, SkeletonGroup } from '@/ui/Skeleton';
 import { DraftedByAi, StatusPill } from '@/ui/StatusPill';
@@ -784,6 +787,39 @@ export default function ComponentsPage() {
               line="Let in 21 days · saved 9 days and 4 hours 20 minutes"
             />
           </HomeGrid>
+        </Section>
+
+        <Section
+          id="home-page"
+          title="A home’s page: gallery, action card, show more"
+          lead="The gallery swipes on a phone, with Previous and Next, and is a grid of five on a desktop; any photo opens full screen. The action card is fixed to the foot of a phone’s screen and held to the right on a desktop (shown here in place). Long text shows three lines, then Show more."
+        >
+          <Example label="Gallery: six photos">
+            <Gallery
+              label="12 Ranelagh Road"
+              photos={[1, 2, 3, 4, 5, 6].map((n) => ({ src: `${samplePhoto}#${n}` }))}
+            />
+          </Example>
+          <div className={styles.columns}>
+            <Example label="Action card, with Call">
+              <ActionCard
+                inPlace
+                price="€1,850 a month"
+                action={{ href: '#home-page', label: 'Ask to view' }}
+                call={{ label: 'Call', name: 'Call 01 234 5678', href: 'tel:012345678' }}
+                line="Free. You’ll hear back either way."
+              />
+            </Example>
+            <Example label="Show more">
+              <ShowMore
+                paragraphs={[
+                  'A bright apartment on the first floor of a quiet red-brick terrace, five minutes’ walk from the Luas.',
+                  'The kitchen was refitted last year, with a gas hob, a dishwasher and a washer-dryer. Both bedrooms are doubles with fitted wardrobes.',
+                  'There is a small garden to the back, shared with one other apartment.',
+                ]}
+              />
+            </Example>
+          </div>
         </Section>
 
         <Section

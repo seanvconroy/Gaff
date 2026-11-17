@@ -57,6 +57,14 @@
   align-self: start;
 }
 
+/* On the component page: in the flow, with the card's edge. */
+.card.inPlace {
+  position: relative;
+  z-index: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
 /* Room at the foot of the page for the fixed bar: about its height. */
 .room {
   height: calc(

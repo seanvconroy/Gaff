@@ -203,8 +203,9 @@ Every component adapts between phone and desktop. "Status" says whether it exist
 | **Copy button** | An IBAN, a reference, an address | | | Exists |
 | **Avatar and badge** | A person, an agency; "Identity verified" | | | New |
 | **Search box with chips** | Renter search; asking who's enquired | Full width; chips scroll sideways | Centred, up to 720px | New |
-| **Gallery** | A home's photos | Swipe; tap for full screen | A grid of five; click for full screen | New |
-| **Action card** | The one action on a home's page | Fixed to the foot of the screen | Fixed to the right of the content | New |
+| **Gallery** | A home's photos | Swipe, with Previous and Next; tap for full screen | A grid of five; click for full screen | Built (`src/ui/Gallery`; full screen is `Overlay`'s `full` kind) |
+| **Action card** | The one action on a home's page | Fixed to the foot of the screen, above the tab bar | Fixed to the right of the content | Built (`src/ui/ActionCard`) |
+| **Show more** | Long text, such as a home's description | Three lines, then "Show more" | Same | Built (`src/ui/ShowMore`) |
 | **Map** | Where a home is; search results | Behind a "Map" button | Beside the list | New |
 | **Sign-in buttons** | Google, Apple | The providers' own required styles | Same | New |
 

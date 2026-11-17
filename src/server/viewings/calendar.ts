@@ -81,7 +81,7 @@ export async function calendarFor(
         id: lettings.id,
         address: lettings.addressLine1,
         status: lettings.status,
-        createdBy: lettings.createdBy,
+        leadUserId: lettings.leadUserId,
       })
       .from(lettings)
       .where(inArray(lettings.status, ['draft', 'live']))
@@ -92,7 +92,7 @@ export async function calendarFor(
       .innerJoin(users, eq(users.id, memberships.userId))
       .where(eq(memberships.organisationId, member.organisationId));
     const memberIds = new Set(members.map((m) => m.userId));
-    const lead = (home: { createdBy: string }) => {
+    const lead = (home: { leadUserId: string }) => {
       const id = leadOf(home);
       return memberIds.has(id) ? id : null;
     };

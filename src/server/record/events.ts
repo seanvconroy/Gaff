@@ -235,7 +235,8 @@ export const eventCatalogue = {
   'check.completed': z.object({
     checkId: z.uuid(),
     kind: z.enum(['identity', 'income', 'landlord_reference', 'employer_reference']),
-    outcome: z.enum(['passed', 'not_passed', 'answered', 'no_answer', 'not_needed']),
+    /** `cant_give`: a referee said they can't give the reference (UX-RF-4). */
+    outcome: z.enum(['passed', 'not_passed', 'answered', 'no_answer', 'cant_give', 'not_needed']),
   }),
   /** R19: the operator added (or updated) the landlord's contact details. */
   'letting.landlord_added': z.object({ updated: z.boolean() }),

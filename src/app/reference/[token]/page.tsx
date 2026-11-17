@@ -1,67 +1,61 @@
 import type { Metadata } from 'next';
-import { questionsFor } from '@/domain/checks/checks';
+import { refereeCopy } from '@/copy/referee';
+import { firstNameOf } from '@/domain/accounts/first-run';
+import { referenceQuestions } from '@/domain/checks/checks';
 import { openReferenceRequest } from '@/server/checks/checks';
-import { Card, Stack } from '@/ui/Layout';
 import { Outcome } from '@/ui/Outcome';
 import { PrivateFrame } from '@/ui/PrivateFrame';
+import styles from '../../l/landlord.module.css';
 import { ReferenceForm } from './ReferenceForm';
 
-export const metadata: Metadata = { title: 'A reference' };
+export const metadata: Metadata = { title: refereeCopy.metaTitle };
 export const dynamic = 'force-dynamic';
 
 /**
- * R18: a referee answers a few fixed questions, with no account, in about two minutes. The frame
- * is the agency's (UX-PP-9): its name in the header, and no home, which a referee is never shown.
+ * R18, UX-RF-1 to UX-RF-6: a referee's page, by private link. Two lines on who's asking and who
+ * sees the answers, then the questions on one screen, then "Thanks". It asks nothing about the
+ * referee and never offers an account (UX-RF-5). The frame is the agency's (UX-PP-9): its name
+ * in the header, and no home, which a referee is never shown.
  */
-export default async function ReferencePage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ token: string }>;
-  searchParams: Promise<{ sent?: string }>;
-}) {
+export default async function ReferencePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const { sent } = await searchParams;
   const request = await openReferenceRequest(token);
   if (!request) {
     return (
       <PrivateFrame audience="referee" lister={null}>
-        <Outcome tone="info" title="This link isn’t working" headingLevel={1}>
-          <p>It may have expired. There’s nothing else you need to do.</p>
+        <Outcome tone="info" title={refereeCopy.ended.title} headingLevel={1}>
+          <p>{refereeCopy.ended.text}</p>
         </Outcome>
       </PrivateFrame>
     );
   }
-  const done = sent || request.status === 'answered';
+  const operator = request.operatorName;
+  if (request.status === 'answered' || request.cantGive) {
+    const copy = request.cantGive ? refereeCopy.told : refereeCopy.thanks;
+    return (
+      <PrivateFrame audience="referee" lister={request.lister}>
+        <Outcome
+          tone={request.cantGive ? 'info' : 'success'}
+          title={copy.title}
+          headingLevel={1}
+          role="status"
+        >
+          <p>{copy.text(operator)}</p>
+        </Outcome>
+      </PrivateFrame>
+    );
+  }
+  const firstName = firstNameOf(request.renterName) || request.renterName;
   return (
-    <PrivateFrame audience="referee" lister={request.lister}>
-      <Stack gap={6}>
-        <Stack gap={2}>
-          <h1 className="type-display-mobile">A reference for {request.renterName}</h1>
-          <p>
-            {request.renterName} has applied to rent a home through {request.operatorName}, and gave
-            your name as{' '}
-            {request.kind === 'landlord_reference' ? 'a previous landlord' : 'their employer'}.
-          </p>
-        </Stack>
-        {done ? (
-          <Outcome tone="success" title="Thank you" role="status">
-            <p>
-              Your reference is with {request.operatorName}. There’s nothing else you need to do.
-            </p>
-          </Outcome>
-        ) : (
-          <>
-            <p>
-              It takes about two minutes. Your answers go only to {request.operatorName}, and are
-              deleted once the tenancy starts or the letting closes.
-            </p>
-            <Card>
-              <ReferenceForm token={token} questions={questionsFor(request.kind)} />
-            </Card>
-          </>
-        )}
-      </Stack>
+    <PrivateFrame audience="referee" lister={request.lister} next={<p>{refereeCopy.next}</p>}>
+      <div className={styles.task}>
+        <div className={styles.titles}>
+          <h1 className={styles.title}>{refereeCopy.title(request.renterName)}</h1>
+          <p>{refereeCopy.asking(request.renterName, operator, request.kind)}</p>
+          <p>{refereeCopy.kept(operator)}</p>
+        </div>
+        <ReferenceForm token={token} questions={referenceQuestions(request.kind, firstName)} />
+      </div>
     </PrivateFrame>
   );
 }

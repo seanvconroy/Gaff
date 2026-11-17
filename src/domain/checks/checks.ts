@@ -91,23 +91,31 @@ export const refereesSchema = z.record(z.string(), z.unknown()).transform((value
 
 type Question = {
   name: string;
-  label: string;
+  /** The question, about the renter by their first name: "Did Aoife rent a home from you?" */
+  label: (firstName: string) => string;
   options: Array<{ value: string; label: string }>;
   /** Asked only when the first answer is yes. */
   ifYes?: boolean;
 };
+
+/** UX-RF-1: a reference is never more than four questions, each answered with one tap. */
+export const MAX_REFERENCE_QUESTIONS = 4;
 
 const yesNo = [
   { value: 'yes', label: 'Yes' },
   { value: 'no', label: 'No' },
 ];
 
-/** Fixed questions; no free text, so nothing touching a protected ground can be stored. */
+/**
+ * Fixed questions; no free text, so nothing touching a protected ground can be stored (UX-RF-3,
+ * rule 3). UX-RF-2: the first asks whether the referee is who the renter says. Answering no ends
+ * the reference there.
+ */
 export const landlordQuestions: Question[] = [
-  { name: 'rentedFromYou', label: 'Did they rent a home from you?', options: yesNo },
+  { name: 'rentedFromYou', label: (name) => `Did ${name} rent a home from you?`, options: yesNo },
   {
     name: 'paidOnTime',
-    label: 'Was the rent paid on time?',
+    label: () => 'Was the rent paid on time?',
     ifYes: true,
     options: [
       { value: 'always', label: 'Always' },
@@ -117,7 +125,7 @@ export const landlordQuestions: Question[] = [
   },
   {
     name: 'lookedAfter',
-    label: 'Did they look after the home?',
+    label: (name) => `Did ${name} look after the home?`,
     ifYes: true,
     options: [
       { value: 'yes', label: 'Yes' },
@@ -127,17 +135,17 @@ export const landlordQuestions: Question[] = [
   },
   {
     name: 'rentAgain',
-    label: 'Would you rent to them again?',
+    label: (name) => `Would you rent to ${name} again?`,
     ifYes: true,
     options: [...yesNo, { value: 'rather_not_say', label: 'I’d rather not say' }],
   },
 ];
 
 export const employerQuestions: Question[] = [
-  { name: 'worksForYou', label: 'Do they work for you?', options: yesNo },
+  { name: 'worksForYou', label: (name) => `Does ${name} work for you?`, options: yesNo },
   {
     name: 'contract',
-    label: 'What kind of job is it?',
+    label: () => 'What kind of job is it?',
     ifYes: true,
     options: [
       { value: 'permanent', label: 'Permanent' },
@@ -147,7 +155,7 @@ export const employerQuestions: Question[] = [
   },
   {
     name: 'howLong',
-    label: 'How long have they worked for you?',
+    label: (name) => `How long has ${name} worked for you?`,
     ifYes: true,
     options: [
       { value: 'under_1', label: 'Less than a year' },
@@ -159,6 +167,37 @@ export const employerQuestions: Question[] = [
 
 export function questionsFor(kind: 'landlord_reference' | 'employer_reference'): Question[] {
   return kind === 'landlord_reference' ? landlordQuestions : employerQuestions;
+}
+
+/** A reference's questions as its page shows them, about the renter by their first name. */
+export interface ReferenceQuestion {
+  name: string;
+  label: string;
+  options: Array<{ value: string; label: string }>;
+  ifYes: boolean;
+}
+
+export function referenceQuestions(
+  kind: 'landlord_reference' | 'employer_reference',
+  firstName: string,
+): ReferenceQuestion[] {
+  return questionsFor(kind).map((question) => ({
+    name: question.name,
+    label: question.label(firstName),
+    options: question.options,
+    ifYes: question.ifYes ?? false,
+  }));
+}
+
+/**
+ * UX-RF-2: the questions to show now. They are all on the one screen from the start; answering
+ * no to the first hides the rest, because a referee who says no is asked nothing more.
+ */
+export function questionsShown<Q extends { ifYes?: boolean }>(
+  questions: readonly Q[],
+  firstAnswer: string | undefined,
+): Q[] {
+  return questions.filter((question) => !question.ifYes || firstAnswer !== 'no');
 }
 
 /** Validates a referee's answers: the questions shown, from the fixed choices, nothing else. */

@@ -406,6 +406,7 @@ function checkOutcomeWords(kind: string, outcome: string): string {
     not_passed: kind === 'identity' ? 'not verified' : 'income not confirmed',
     answered: 'answered',
     no_answer: 'no answer after two reminders',
+    cant_give: 'the referee can’t give one',
     not_needed: 'not needed',
   };
   return `${name[kind] ?? 'Check'}: ${words[outcome] ?? outcome}`;

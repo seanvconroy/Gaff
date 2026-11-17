@@ -291,7 +291,10 @@ test('UX-LT-20: a home on MyHome with no forwarding has "Set up forwarding" as i
     const lettingPage = page.url().replace(/\?.*$/, '');
     const task = page.getByRole('link', { name: /^Set up forwarding/ });
     await expect(task).toBeVisible();
-    await expect(task).toContainText('Enquiries from MyHome aren’t reaching Gaff yet');
+    // UX-LP-1: Today's words say why, and the page's one button is the task.
+    await expect(page.getByRole('region', { name: 'Needs you' })).toContainText(
+      'Enquiries from MyHome aren’t reaching Gaff yet',
+    );
     await expectAccessible(page);
     await screenshot(page, `ux-lt-20-letting-task-${width}`);
 

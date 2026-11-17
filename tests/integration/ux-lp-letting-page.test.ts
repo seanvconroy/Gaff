@@ -53,7 +53,7 @@ describe('UX-LP-1: the task on a letting’s page is the item Today shows for it
     const { lettingId } = await aLiveLetting(member);
     await aRenterEnquires(member, 1);
     const detail = await getLetting(member, lettingId);
-    const { facts } = await overviewFactsFor(member, { member, ...detail! });
+    const { facts } = await overviewFactsFor(member, detail!);
     expect(facts.today.map((item) => item.kind)).toContain('shortlist');
     expect(needsYouOn(facts)).toMatchObject({
       kind: 'task',

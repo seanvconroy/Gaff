@@ -197,7 +197,7 @@ for (const [width, viewport] of widths) {
       .filter({ hasText: '2-bed apartment · Greystones, Co. Wicklow' });
     await expect(card.getByRole('link', { name: '€1,900 a month' })).toHaveAttribute(
       'href',
-      /^\/homes\/[0-9a-f-]{36}$/,
+      /^\/homes\/[0-9a-f]{12}$/,
     );
     await expect(card.getByText('Free now')).toBeVisible();
     await expect(page.getByText('Letting a home? Gaff runs it for you.')).toBeVisible();

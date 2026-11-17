@@ -95,6 +95,6 @@ export const firstRunCopy = {
     title: (agencyName: string) => `We’ve asked ${agencyName}`,
     text: 'Your request is with the agency’s admins. When one of them says yes, you’ll find the agency here in Gaff.',
     lookAround: 'Look around Gaff',
-    somethingElse: 'Choose something else',
+    somethingElse: 'Something else',
   },
 } as const;

@@ -198,7 +198,8 @@ function SuggestedAction({
     case 'add_viewing_times':
       return (
         <ButtonLink href={`/lettings/${suggestion.lettingId}/viewings`} variant="secondary">
-          Add viewing times for {suggestion.address}
+          {/* The address is in the link's name, not on its face: a button is one line (UX-DS-13). */}
+          Add viewing times<span className="visually-hidden"> for {suggestion.address}</span>
         </ButtonLink>
       );
     // Built by later packages: finishing setup (WP-27) and inviting a colleague (WP-19). The

@@ -502,7 +502,7 @@ test('UX-AG-2, UX-AG-3: the licence number instead, applying for a licence, and 
     ).toBeVisible();
 
     // UX-AG-2: "We're applying for a licence": everything can be set up; nothing goes live.
-    await page.getByRole('link', { name: 'Choose something else' }).click();
+    await page.getByRole('link', { name: 'Something else' }).click();
     await answerPurpose(page, 'I work at a letting agency');
     await page.getByLabel('Agency name').pressSequentially('Zzyzx', { delay: 30 });
     await page.getByRole('link', { name: 'We’re applying for a licence' }).click();

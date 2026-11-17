@@ -35,6 +35,11 @@ export async function settled(page: Page): Promise<void> {
  * choice row shows the ring on its row (design system).
  */
 export async function expectFocusRings(page: Page): Promise<void> {
+  // A page with a loading state arrives in two parts, and the second replaces the first just
+  // after it loads: wait for that, or the first Tab lands on something about to be swapped out.
+  await page.waitForFunction(
+    () => document.querySelectorAll('template[id^="B:"], div[hidden][id^="S:"]').length === 0,
+  );
   const seen = new Set<string>();
   const problems: string[] = [];
   for (let i = 0; i < 60; i++) {
@@ -50,7 +55,8 @@ export async function expectFocusRings(page: Page): Promise<void> {
       const expected = getComputedStyle(probe).color;
       probe.remove();
       return {
-        id: `${el.outerHTML.slice(0, 120)}@${Math.round(el.getBoundingClientRect().top + scrollY)}`,
+        // Where it is as well as what it is: links in one row can start with the same markup.
+        id: `${el.outerHTML.slice(0, 120)}@${Math.round(el.getBoundingClientRect().left)},${Math.round(el.getBoundingClientRect().top + scrollY)}`,
         name: (el.getAttribute('aria-label') || el.textContent || el.tagName).trim().slice(0, 40),
         ok:
           style.outlineStyle === 'solid' &&

@@ -380,7 +380,7 @@ describe('UX-NV-9, UX-NV-10: what Lettings is written from', () => {
       booked: 0,
       coverPhoto: null,
     });
-    expect(lettingStatusLine(home(draft.lettingId), board.now)).toBe('3 steps left');
+    expect(lettingStatusLine(home(draft.lettingId), board.now)).toBe('4 steps left');
     expect(lettingStatusLine(home(live.lettingId), board.now)).toBe('Enquiries · 1 so far');
     const { groups, older } = groupLettings(board.lettings, board.now);
     expect(groups.map((g) => [g.heading, g.lettings.map((l) => l.addressLine1)])).toEqual([

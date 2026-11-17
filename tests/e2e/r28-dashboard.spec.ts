@@ -32,7 +32,7 @@ test('R28: Today shows what needs a person, Lettings shows each letting’s stag
   // UX-NV-9, UX-NV-11: its stage is on Lettings, in words, with no "Step 1 of 9".
   await page.goto('/lettings');
   const settingUp = page.getByRole('list', { name: 'Setting up' });
-  await expect(settingUp.getByRole('listitem')).toHaveText([/^12 Ranelagh Road\s*2 steps left/]);
+  await expect(settingUp.getByRole('listitem')).toHaveText([/^12 Ranelagh Road\s*4 steps left/]);
 
   // Live, with an enquiry: a person decides who views.
   await page.goto(lettingUrl);

@@ -80,7 +80,7 @@ test('UX-HM-1 to UX-HM-6, UX-HM-8 to UX-HM-10: Today lists what needs a person, 
   const lettingUrl = page.url().replace(/\/viewings.*$/, '');
   await page.goto('/today');
   await expect(needsYou(page).getByRole('listitem')).toHaveText([
-    /^Finish setting up · 12 Ranelagh Road\s*2 steps left$/,
+    /^Finish setting up · 12 Ranelagh Road\s*4 steps left$/,
   ]);
   await expect(main(page).getByText('1 thing', { exact: true })).toBeVisible();
 
@@ -384,7 +384,7 @@ test('UX-NV-9 to UX-NV-12: Lettings is a photo-led list under Live, Setting up a
       /^12 Ranelagh Road\s*Enquiries · none yet$/,
     );
     await expect(settingUp.getByRole('listitem')).toHaveText([
-      /^9 Canal View\s*2 steps left\s*Needs you$/,
+      /^9 Canal View\s*4 steps left\s*Needs you$/,
     ]);
     await expect(let_.getByRole('listitem')).toHaveText([/^1 Abbey Court\s*Let$/]);
     await expect(live.getByText('Needs you')).toHaveCount(0);
@@ -462,5 +462,5 @@ test('UX-NV-10, UX-HM-6: with no homes, Lettings has no headings and one primary
     await screenshot(page, `lettings-empty-${width}`);
   }
   await main(page).getByRole('link', { name: 'Add a letting' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Add a letting' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Tell Gaff about the home' })).toBeVisible();
 });

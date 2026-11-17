@@ -342,7 +342,7 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
       const tenancy = tenancyByLetting.get(letting.id);
       const offer = offerState.get(letting.id);
       // UX-FL-2, UX-NV-9: the steps of adding it that are still ahead of the furthest one reached.
-      const setupStepsLeft = stepsLeft(letting.setupStep);
+      const setupStepsLeft = letting.status === 'draft' ? stepsLeft(letting.setupStep) : 0;
       const time = timeAgainstUsual(
         minutes.get(letting.id)?.n ?? 0,
         usual?.minutesPerLetting ?? null,

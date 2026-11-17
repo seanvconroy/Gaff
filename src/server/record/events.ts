@@ -370,6 +370,13 @@ export const eventCatalogue = {
     count: z.number().int(),
     medianRentCents: z.number().int(),
   }),
+  /** UX-LP-14: one comparable home entered on its own screen: which one, and how many now. */
+  'comparable.recorded': z.object({
+    position: z.number().int(),
+    count: z.number().int(),
+  }),
+  /** UX-TN-3 (rule 2): the tenant's PPS number was shown, for registering with the RTB. */
+  'tenancy.ppsn_shown': z.object({ tenancyId: z.uuid() }),
   /** The full criteria are kept, so the record shows what everyone was ranked against. */
   'criteria.set': z.object({
     moveInBy: z.iso.date().optional(),

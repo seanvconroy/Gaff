@@ -582,7 +582,41 @@ export async function goLiveThroughUi(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: / is live$/ })).toBeVisible();
   await page.getByRole('checkbox', { name: 'No', exact: true }).check();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await afterGoingLive(page);
+}
+
+/**
+ * UX-GR-3: just after "Is it advertised anywhere else?", a first letting goes to its test
+ * enquiry, which the person watches being answered; any later one goes to its own page. Either
+ * way it ends on the letting's page, saying it's live.
+ */
+export async function afterGoingLive(page: Page): Promise<void> {
+  await page.waitForURL(/\/lettings\/[0-9a-f-]+(\/test-enquiry\?live=1|\?saved=live)$/);
+  if (page.url().includes('/test-enquiry')) await watchTheTestEnquiry(page);
   await expect(page.getByText('Gaff is now answering enquiries for this home.')).toBeVisible();
+}
+
+/**
+ * UX-GR-1: an agency admin whose first letting is live finishes setup by answering "Invite your
+ * team" with "It's just me". Ends on Today, which says "You're all set" this once.
+ */
+export async function finishSetupThroughUi(page: Page): Promise<void> {
+  await page.goto('/today');
+  const checklist = page.getByRole('region', { name: 'Get set up' });
+  await checklist.getByRole('link', { name: 'Invite your team' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Invite your team' })).toBeVisible();
+  await page.getByRole('button', { name: 'It’s just me' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Today' })).toBeVisible();
+  await expect(page.getByText('You’re all set. Anything that needs you shows here.')).toBeVisible();
+  await expect(checklist).toHaveCount(0);
+}
+
+/** UX-GR-3, UX-LT-24: "Send a test enquiry", the reply a renter would get, then Done. */
+export async function watchTheTestEnquiry(page: Page): Promise<void> {
+  await expect(page.getByRole('heading', { level: 1, name: 'Send a test enquiry' })).toBeVisible();
+  await page.getByRole('button', { name: 'Send a test enquiry' }).click();
+  await expect(page.getByRole('heading', { name: 'Here’s what a renter gets' })).toBeVisible();
+  await page.getByRole('link', { name: 'Done', exact: true }).click();
 }
 
 /** The signed-in operator's Gaff address, from the settings page. */

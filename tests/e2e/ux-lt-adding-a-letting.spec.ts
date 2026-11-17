@@ -15,6 +15,7 @@ import {
   signUpLandlord,
   signUpOperator,
   toGoLiveThroughUi,
+  afterGoingLive,
 } from './support';
 import { closeLettingThroughUi } from './journeys';
 
@@ -528,7 +529,8 @@ test('UX-LT-14, Q47: a private landlord’s home goes live with the identity ste
     ).toBeVisible();
     await page.getByRole('checkbox', { name: 'No', exact: true }).check();
     await page.getByRole('button', { name: 'Done', exact: true }).click();
-    await expect(page.getByText('Gaff is now answering enquiries for this home.')).toBeVisible();
+    // UX-GR-3: a first letting ends with its test enquiry, watched being answered.
+    await afterGoingLive(page);
     const [kept] = await asSystem<Record<string, unknown>>(
       `select l.status, l.on_gaff, l.advertised_on, o.phone from lettings l
        join organisations o on o.id = l.organisation_id where l.id = $1`,

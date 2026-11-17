@@ -5,6 +5,7 @@ import {
   createLettingThroughUi,
   expectAccessible,
   expectNoSidewaysScroll,
+  finishSetupThroughUi,
   gaffAddress,
   goLiveThroughUi,
   screenshot,
@@ -55,16 +56,17 @@ test('UX-HM-1 to UX-HM-6, UX-HM-8 to UX-HM-10: Today lists what needs a person, 
   test.slow();
   const operator = await signUpOperator(page);
 
-  // UX-HM-1, first visit: Today, a greeting by first name, and the one way to start. No primary
-  // button: that belongs to the setup checklist (UX-HM-6), which a later package builds.
+  // UX-HM-1, first visit: Today, a greeting by first name, and the setup checklist with its
+  // first step as the one primary button (UX-HM-6, UX-GR-1). Nothing else.
   for (const [width, viewport] of widths) {
     await page.setViewportSize(viewport);
     await page.goto('/today');
     await expect(page.getByRole('heading', { level: 1, name: 'Today' })).toBeVisible();
     await expect(main(page).getByText('Hello, Ann.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Get set up' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Add your first letting' })).toBeVisible();
     await expect(main(page).getByRole('link')).toHaveText(['Add a letting']);
-    expect(await buttonFills(page)).not.toContain(ink);
+    expect((await buttonFills(page)).filter((fill) => fill === ink)).toHaveLength(1);
     await expect(needsYou(page)).toHaveCount(0);
     await expectNoSidewaysScroll(page);
     await expectAccessible(page);
@@ -150,8 +152,14 @@ test('UX-HM-1 to UX-HM-6, UX-HM-8 to UX-HM-10: Today lists what needs a person, 
     // UX-HM-9: nothing about counting time; UX-NV-11: no step numbers or stage meter.
     expect(words).not.toMatch(/time in Gaff|usual time|counts a minute|Step \d of 9/i);
     await expect(page.getByRole('link', { name: /usual times/i })).toHaveCount(0);
-    // UX-HM-6: no primary button; the rows are the actions. No list of lettings competes.
-    expect(await buttonFills(page)).not.toContain(ink);
+    // UX-HM-6: the rows are the actions. The one primary button is the setup checklist's,
+    // whose last step for an admin is still to do (UX-GR-1). No list of lettings competes.
+    expect((await buttonFills(page)).filter((fill) => fill === ink)).toHaveLength(1);
+    await expect(
+      page
+        .getByRole('region', { name: 'Get set up' })
+        .getByRole('link', { name: 'Invite your team' }),
+    ).toBeVisible();
     await expect(
       main(page).getByRole('link', { name: '12 Ranelagh Road', exact: true }),
     ).toHaveCount(0);
@@ -206,6 +214,8 @@ test('UX-HM-7: when nothing needs the person, Today says so in one line and offe
   const operator = await signUpOperator(page);
   await createLettingThroughUi(page);
   await goLiveThroughUi(page);
+  // UX-GR-1: setup is finished first, so the checklist has gone.
+  await finishSetupThroughUi(page);
 
   // A live home with viewing times, and nobody waiting: all caught up, and nothing to suggest.
   for (const [width, viewport] of widths) {

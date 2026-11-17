@@ -61,7 +61,8 @@ test('R10, R11, R12, R13, R14: a person decides who views; renters book, move an
   await expect(page.getByText(/^\d+ places · 2 chosen$/)).toBeVisible();
   // UX-DC-1: the reason in words on tap, and "How Gaff ranks" once.
   await page.getByRole('button', { name: 'Why here: Aoife Byrne' }).click();
-  await expect(page.getByText(/^(Meets (all \d+ criteria|the criterion)|No criteria set)\. Enquired /)).toBeVisible();
+  await expect(page.getByText(/\. Enquired \w+day \d+ \w+, /).first()).toBeVisible();
+  await expect(page.getByText(/\. Enquired \w+day \d+ \w+, /).nth(1)).toBeHidden();
   await expect(page.getByText('How Gaff ranks')).toHaveCount(1);
   await ciaranRow.uncheck();
   await expect(page.getByText(/^\d+ places · 1 chosen$/)).toBeVisible();

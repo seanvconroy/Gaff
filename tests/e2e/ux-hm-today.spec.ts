@@ -194,8 +194,9 @@ test('UX-HM-1 to UX-HM-6, UX-HM-8 to UX-HM-10: Today lists what needs a person, 
       .getByRole('button', { name: 'Send', exact: true }),
   ).toBeVisible();
   await page.goto('/today');
+  // WP-17: the decision opens its focused flow.
   await rows.nth(0).getByRole('link').click();
-  await expect(page.getByRole('heading', { name: 'Decide who views' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Choose who views' })).toBeVisible();
 });
 
 test('UX-HM-7: when nothing needs the person, Today says so in one line and offers at most one action', async ({

@@ -102,6 +102,7 @@ export function PickList({
                         <button
                           type="button"
                           className={styles.why}
+                          aria-label={`${detailLabel}: ${item.label}`}
                           aria-expanded={shown}
                           aria-controls={`${rowId}-detail`}
                           onClick={() => {
@@ -112,7 +113,6 @@ export function PickList({
                           }}
                         >
                           {detailLabel}
-                          <span className="visually-hidden">: {item.label}</span>
                         </button>
                         <p id={`${rowId}-detail`} className={styles.detail} hidden={!shown}>
                           {item.detail}

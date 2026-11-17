@@ -41,7 +41,12 @@ const nextConfig: NextConfig = {
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
         ]
       : securityHeaders;
-    return [{ source: '/:path*', headers }];
+    return [
+      { source: '/:path*', headers },
+      // UX-LS-11: a home's public page can be found by search engines. It holds nothing about
+      // any person. The page itself says noindex when the home has been let or isn't there.
+      { source: '/homes/:ref', headers: [{ key: 'X-Robots-Tag', value: 'index, follow' }] },
+    ];
   },
 };
 

@@ -78,6 +78,7 @@ describe('the page you are on', () => {
 
   it('Search is only the first screen itself, not every address under it', () => {
     expect(currentDestination('renting', '/')?.label).toBe('Search');
+    expect(currentDestination('renting', '/homes/3f9a1c2b7d4e')?.label).toBe('Search');
     expect(currentDestination('renting', '/profile')).toBeNull();
     expect(currentDestination('renting', '/help')).toBeNull();
   });

@@ -10,6 +10,7 @@ import { expireHomeOffer } from '@/server/offers/offer';
 import { sendRtbReminder } from '@/server/tenancy/rtb';
 import { refreshRegister } from '@/server/register/refresh';
 import { sweepPersonalData } from '@/server/retention/sweep';
+import { endLetHomePages } from '@/server/homes/let-pages';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
 
 const inboundEmailJob = z.object({ organisationId: z.uuid(), inboundEmailId: z.uuid() });
@@ -49,6 +50,9 @@ export const taskList: TaskList = {
     console.log(
       `Retention: ${profiles.deleted} unused profiles deleted; ${profiles.notices} told theirs will be in 30 days.`,
     );
+    // UX-LS-10: a let home's page on gaff.ie, 30 days after it was let. Counts only.
+    const pages = await endLetHomePages();
+    console.log(`Homes on Gaff: ${pages.removed} let homes' pages removed.`);
   },
   psra_register_refresh: async () => {
     const refreshed = await refreshRegister();

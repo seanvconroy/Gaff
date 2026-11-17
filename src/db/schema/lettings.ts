@@ -88,6 +88,27 @@ export const lettings = pgTable(
      */
     onGaff: boolean().notNull().default(true),
     /**
+     * UX-LS-11: the home's public page is at `/homes/<publicRef>`: twelve random hex characters,
+     * given when the letting is made and never changed. Not the letting's ID, and it names no
+     * home and no person (`PUBLIC_REF` in src/domain/homes/home-page.ts).
+     */
+    publicRef: text()
+      .notNull()
+      .unique()
+      .default(sql`substr(replace(gen_random_uuid()::text, '-', ''), 1, 12)`),
+    /** UX-LS-10: when the home was let: at the accepted offer, or closed as let. */
+    letAt: timestamp({ withTimezone: true }),
+    /**
+     * UX-LS-10: when the scheduled job took a let home's page down, 30 days after it was let
+     * (`endLetHomePages`). Until then the page says "This home has been let".
+     */
+    pageRemovedAt: timestamp({ withTimezone: true }),
+    /**
+     * UX-TS-4: when Gaff's team hid the listing after a report. THE SEAM for work package
+     * WP-26, which sets it; a hidden home has no page and isn't in search.
+     */
+    hiddenAt: timestamp({ withTimezone: true }),
+    /**
      * "Is it advertised anywhere else?", asked once after go-live: the portals named, an empty
      * list for "No", null until it's answered. A home on Daft or MyHome asks for forwarding
      * until mail comes through (UX-LT-20).

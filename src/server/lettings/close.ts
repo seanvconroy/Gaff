@@ -64,7 +64,13 @@ export async function closeLetting(
     });
     await tx
       .update(lettings)
-      .set({ status: outcome, stage: 'close', closedAt: new Date() })
+      .set({
+        status: outcome,
+        stage: 'close',
+        closedAt: new Date(),
+        // UX-LS-10: a home's page says it has been let, for 30 days from now.
+        ...(outcome === 'let' ? { letAt: new Date() } : {}),
+      })
       .where(eq(lettings.id, lettingId));
     await tx
       .update(applications)

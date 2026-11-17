@@ -394,7 +394,7 @@ export async function respondToOffer(
       .where(eq(applications.id, offer.applicationId));
     const [letting] = await tx
       .update(lettings)
-      .set({ status: 'let', stage: 'tenancy' })
+      .set({ status: 'let', stage: 'tenancy', letAt: now })
       .where(eq(lettings.id, offer.lettingId))
       .returning();
     // Nothing more goes out about viewings or places for anyone else.

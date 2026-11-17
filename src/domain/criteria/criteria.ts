@@ -137,6 +137,19 @@ export function lettingDetailsLine(
   noSmokingIndoors: boolean,
   now: Date = new Date(),
 ): string | null {
+  const parts = lettingDetailsParts(criteria, noSmokingIndoors, now);
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
+/**
+ * The same, a line at a time, as a home's page lists them (UX-LS-5): the same fixed words, in
+ * the same order. Empty when nothing was asked.
+ */
+export function lettingDetailsParts(
+  criteria: Criteria | null,
+  noSmokingIndoors: boolean,
+  now: Date = new Date(),
+): string[] {
   const parts: string[] = [];
   if (criteria?.moveInBy) parts.push(`Move in by ${formatDate(criteria.moveInBy, now)}`);
   if (criteria?.minStayMonths) parts.push(stayOrLonger(criteria.minStayMonths));
@@ -147,7 +160,7 @@ export function lettingDetailsLine(
   }
   if (criteria?.noPets) parts.push('No pets (assistance dogs always welcome)');
   if (noSmokingIndoors) parts.push(NO_SMOKING_INDOORS);
-  return parts.length > 0 ? parts.join(' · ') : null;
+  return parts;
 }
 
 const on = (value: string | undefined) => value === 'on';

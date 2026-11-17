@@ -225,6 +225,13 @@
       "when": 1794914476790,
       "tag": "0031_ux_dc_owner_approval_confirmed",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794930618104,
+      "tag": "0032_ux_ls_homes_on_gaff",
+      "breakpoints": true
     }
   ]
 }

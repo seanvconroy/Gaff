@@ -67,6 +67,10 @@ describe('UX-AC-6: first run asks one question per screen, and never more than f
     // that home's page.
     expect(purposeFromNext(`/r/${'a'.repeat(43)}/keep`)).toBe('renting');
     expect(purposeFromNext(`/r/${'a'.repeat(43)}`)).toBeNull();
+    // UX-LS-1: someone signing in from a home's page on Gaff is looking for a home.
+    expect(purposeFromNext('/homes/3f9a1c2b7d4e')).toBe('renting');
+    expect(purposeFromNext('/homes/3f9a1c2b7d4e/ask')).toBe('renting');
+    expect(purposeFromNext('/homes/3f9a1c2b7d4e/report')).toBeNull();
     // Anything else says nothing, so the question is asked.
     expect(purposeFromNext('/today')).toBeNull();
     expect(purposeFromNext('/profile')).toBeNull();

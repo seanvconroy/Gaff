@@ -237,3 +237,11 @@
   display: grid;
   gap: var(--space-4);
 }
+
+/* Where an enquiry came from, under the person's name (UX-AV-8). */
+.via {
+  display: block;
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}

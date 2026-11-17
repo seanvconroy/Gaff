@@ -265,6 +265,8 @@ async function countsFor(member: Member, lettingId: string, now: Date) {
 
 /** One person on People, with what their sheet shows (UX-LP-9). */
 export interface PersonRow extends PersonFacts {
+  /** UX-AV-8: where they came from, in words ("Gaff and Daft"). Empty once their details are deleted. */
+  via: string;
   sheet: {
     /** How they fit what was asked, and why: the ranking's own reason (R10). */
     fit: string | null;
@@ -353,6 +355,7 @@ export async function peopleFor(member: Member, lettingId: string): Promise<Pers
         appliedAt: p.appliedAt,
         meetsIncomeRule: income ? income.meetsRule : null,
         deleted,
+        via: deleted ? '' : sourcesInWords(p.sources),
         sheet: {
           // When they enquired is under what's happened; this says only how they fit.
           fit: r && !deleted && p.answersAt ? r.reason.replace(/ Enquired .*$/, '') : null,

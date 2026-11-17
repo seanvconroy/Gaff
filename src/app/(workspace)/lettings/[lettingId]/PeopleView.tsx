@@ -87,6 +87,12 @@ export function PeopleView({
                   >
                     {person.name}
                   </Link>
+                  {/* UX-AV-8: where they came from. A code about the enquiry, not the person. */}
+                  {person.via ? (
+                    <span className={styles.via}>
+                      {copy.via} {person.via}
+                    </span>
+                  ) : null}
                 </Cell>
                 <Cell label={copy.head[1]}>{standLine(person, group, now)}</Cell>
                 <Cell label={copy.head[2]}>

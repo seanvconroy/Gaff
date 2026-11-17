@@ -106,9 +106,10 @@ async function fieldNames(page: Page): Promise<string[]> {
     );
 }
 
+/** UX-AV-8: everyone who enquired, on the letting's People view. */
 async function theLettingsEnquiries(page: Page, lettingPath: string) {
-  await page.goto(`${lettingPath}/enquiries`);
-  return page.getByRole('table', { name: 'Enquiries' });
+  await page.goto(`${lettingPath}?view=people`);
+  return page.getByRole('region', { name: 'Everyone who enquired' });
 }
 
 test('UX-AV-1, UX-AV-4 to UX-AV-8: a renter with no account asks to view, confirms by email, and is in the letting from Gaff', async ({
@@ -186,7 +187,7 @@ test('UX-AV-1, UX-AV-4 to UX-AV-8: a renter with no account asks to view, confir
 
     // UX-AV-6: nothing reaches the letting until the link in the first email is opened.
     expect(await stored(home.lettingPath, renter)).toEqual([]);
-    await page.goto(`${home.lettingPath}/enquiries`);
+    await page.goto(`${home.lettingPath}?view=people`);
     await expect(page.getByRole('main')).not.toContainText(name);
 
     // UX-AV-7: the first email is the fixed first reply, with the link to the same private page.
@@ -268,7 +269,7 @@ test('UX-AV-2: a renter with a profile and kept answers asks in two taps', async
       { full_name: 'Aoife Byrne', answers: { occupants: 2, hasPets: false }, sources: ['gaff'] },
     ]);
     const table = await theLettingsEnquiries(page, home.lettingPath);
-    await expect(table.getByRole('row').filter({ hasText: email })).toContainText('Gaff');
+    await expect(table.getByRole('row').filter({ hasText: 'Aoife Byrne' })).toContainText('Gaff');
 
     // UX-AV-9: "Ask to view" again opens their enquiry, not a second one.
     await phone.goto(home.homePath);

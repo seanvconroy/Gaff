@@ -40,6 +40,8 @@ test('UX-ST-1 to UX-ST-3, UX-AI-14: Settings is a list of rows, each a page with
     /^The assistant\s*Checking Gaff’s answers before they go/,
     /^Income rule\s*2\.5 times the rent/,
     /^The agency\s*Halcyon Lettings/,
+    // UX-AG-8: Team is the last row, for an agency.
+    /^Team/,
   ]);
   await expect(page.getByRole('main').getByText(/usual|approve before send/i)).toHaveCount(0);
   await atBothWidths(page, 'ux-st-1-settings');

@@ -156,19 +156,22 @@ export async function chooseApplicant(
 
 /** UX-DC-19 (R4): the three comparable rents the offer waits for, made up. */
 export async function recordComparablesThroughUi(page: Page, lettingUrl: string) {
+  // UX-LP-14: one home per screen, filled in from this home; the person types each rent.
   await page.goto(`${lettingUrl}/comparables`);
   for (const [n, rent] of [
     [1, '1,800'],
     [2, '1,850'],
     [3, '1,950'],
   ] as const) {
-    const section = page.getByRole('region', { name: `Comparable ${n}` });
-    await section.getByLabel('Area').fill('Dublin 6');
-    await section.getByLabel('Type of home').selectOption('apartment');
-    await section.getByLabel('Bedrooms').fill('2');
-    await section.getByLabel('Rent a month').fill(rent);
+    await expect(
+      page.getByRole('heading', { level: 1, name: `Comparable rent ${n} of 3` }),
+    ).toBeVisible();
+    await page.getByLabel('Area').fill('Dublin 6');
+    await page.getByLabel('Rent a month').fill(rent);
+    await page
+      .getByRole('button', { name: n < 3 ? 'Next' : 'Save comparables', exact: true })
+      .click();
   }
-  await page.getByRole('button', { name: 'Save comparables' }).click();
   await expect(page.getByText('Comparables saved for the rent-setting pack.')).toBeVisible();
 }
 

@@ -72,6 +72,7 @@
 
 .facts {
   display: grid;
+  min-width: 0;
   align-content: start;
   gap: var(--space-3);
   margin: 0;
@@ -80,6 +81,7 @@
 .fact {
   display: grid;
   gap: var(--space-1);
+  min-width: 0;
 }
 
 .label {
@@ -89,7 +91,9 @@
 }
 
 .value {
+  min-width: 0;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 /* "Choose": a choice row inside the card, 48px high, ticked when the card is chosen. */

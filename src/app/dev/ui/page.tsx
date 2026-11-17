@@ -785,10 +785,8 @@ export default function ComponentsPage() {
                   label: 'Take-home income',
                   value: (
                     <>
-                      €4,000 a month, 2.1 times the rent{' '}
-                      <StatusPill tone="warning">
-                        Below your income rule of 2.5 times the rent
-                      </StatusPill>
+                      €4,000 a month, 2.1 times the rent. Your rule is 2.5 times the rent.{' '}
+                      <StatusPill tone="warning">Below your income rule</StatusPill>
                     </>
                   ),
                 },

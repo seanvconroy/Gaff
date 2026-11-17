@@ -108,7 +108,7 @@ test('R17, UX-DC-7 to UX-DC-9: from Today, the operator chooses a preferred appl
   await expect(aoife).toContainText('€5,200 a month, 2.8 times the rent');
   await expect(aoife).toContainText('Meets your income rule');
   await expect(ciaran).toContainText('€4,000 a month, 2.1 times the rent');
-  await expect(ciaran).toContainText('Below your income rule of 2.5 times the rent');
+  await expect(ciaran).toContainText('Your rule is 2.5 times the rent. Below your income rule');
   await expect(page.getByRole('radio')).toHaveCount(2);
   await expect(page.getByText(/Didn’t answer the questions/)).toHaveCount(0);
   await flowAtBothWidths(page, 'choose');

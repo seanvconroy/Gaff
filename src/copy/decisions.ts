@@ -135,8 +135,8 @@ export const decisionsCopy = {
     incomeWords: (amount: string, ratioTenths: number) =>
       `${amount} a month, ${formatRatio(ratioTenths)} times the rent`,
     meetsRule: 'Meets your income rule',
-    belowRule: (ruleTenths: number) =>
-      `Below your income rule of ${formatRatio(ruleTenths)} times the rent`,
+    belowRule: 'Below your income rule',
+    ruleIs: (ruleTenths: number) => `Your rule is ${formatRatio(ruleTenths)} times the rent.`,
     earns: 'How they earn',
     notGiven: 'Not given',
     applied: 'Applied',
@@ -227,14 +227,14 @@ export const decisionsCopy = {
       sees: (owner: string) => `What ${owner} will see`,
       preferred: 'The tenant you chose',
       backup: 'Your backup',
-      incomeLabel: 'Income',
+      incomeLabel: 'Income they gave',
       stillUnderWay: 'Still under way',
       incomeConfirmed: (ratioTenths: number) =>
         `Confirmed, ${formatRatio(ratioTenths)} times the rent`,
       income: (ratioTenths: number, meets: boolean) =>
-        `Income ${formatRatio(ratioTenths)} times the rent: ${meets ? 'meets' : 'below'} your rule`,
-      underWay: (n: number) =>
-        `${n === 1 ? '1 check isn’t' : `${n} checks aren’t`} back yet. The owner will see “Still under way” beside ${n === 1 ? 'it' : 'them'}.`,
+        `${formatRatio(ratioTenths)} times the rent: ${meets ? 'meets' : 'below'} your rule`,
+      underWay: (n: number, owner: string) =>
+        `${n === 1 ? '1 check isn’t' : `${n} checks aren’t`} back yet. ${cap(owner)} will see “Still under way” beside ${n === 1 ? 'it' : 'them'}.`,
       already: (owner: string) => `${cap(owner)} has already approved`,
       send: (owner: string) => `Send to ${owner}`,
       sending: 'Sending…',

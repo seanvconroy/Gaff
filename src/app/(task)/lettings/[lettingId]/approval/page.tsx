@@ -225,7 +225,7 @@ export default async function ApprovalPage({
       {/* UX-OP-7: warned before asking while checks are unfinished. */}
       {underWay > 0 ? (
         <Notice tone="warning">
-          <p>{copy.ask.underWay(underWay)}</p>
+          <p>{copy.ask.underWay(underWay, owner)}</p>
         </Notice>
       ) : null}
       <h2 className="type-title">{copy.ask.sees(owner)}</h2>

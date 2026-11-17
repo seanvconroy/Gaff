@@ -315,7 +315,8 @@ export default async function OfferPage({
             value: editing.has('deposit') ? (
               <TextField
                 name="deposit"
-                label={copy.deposit}
+                // The row already says what it is; the field keeps its name for screen readers.
+                label={<span className="visually-hidden">{copy.deposit}</span>}
                 hint={copy.depositHint(rent)}
                 prefix="€"
                 width="short"
@@ -338,7 +339,7 @@ export default async function OfferPage({
             value: editing.has('startDate') ? (
               <DateField
                 name="startDate"
-                label={copy.startDate}
+                label={<span className="visually-hidden">{copy.startDate}</span>}
                 min={today}
                 defaultValue={values.startDate}
                 error={errors.startDate}
@@ -354,6 +355,7 @@ export default async function OfferPage({
               <ChoiceGroup
                 name="deadlineHours"
                 legend={copy.deadline}
+                hideLegend
                 inline
                 defaultValue={values.deadlineHours}
                 error={errors.deadlineHours}

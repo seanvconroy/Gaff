@@ -245,9 +245,10 @@ export default async function ChoosePage({
                 label: copy.income,
                 value: (
                   <>
-                    {incomeLine(row)}{' '}
+                    {incomeLine(row)}
+                    {row.meetsRule ? '' : `. ${copy.ruleIs(listing!.incomeRuleTenths)}`}{' '}
                     <StatusPill tone={row.meetsRule ? 'success' : 'warning'}>
-                      {row.meetsRule ? copy.meetsRule : copy.belowRule(listing!.incomeRuleTenths)}
+                      {row.meetsRule ? copy.meetsRule : copy.belowRule}
                     </StatusPill>
                   </>
                 ),

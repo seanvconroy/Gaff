@@ -30,7 +30,10 @@ import { FormActions, formClass } from '@/ui/Form';
 import { HomeCard, HomeGrid } from '@/ui/HomeCard';
 import { Card, CardHeader } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
+import { MessagePreview } from '@/ui/MessagePreview';
 import { Outcome } from '@/ui/Outcome';
+import { PersonCard, PersonCards } from '@/ui/PersonCard';
+import { PickList } from '@/ui/PickList';
 import { SegmentedProgress } from '@/ui/SegmentedProgress';
 import { Skeleton, SkeletonGroup } from '@/ui/Skeleton';
 import { DraftedByAi, StatusPill } from '@/ui/StatusPill';
@@ -701,6 +704,122 @@ export default function ComponentsPage() {
           >
             <p>Add a time and renters book themselves.</p>
           </EmptyState>
+        </Section>
+
+        <Section
+          id="pick-list"
+          title="Pick list"
+          lead="Ticking people from a ranked list, as in Choose who views. The whole row is the tick; Why here shows the reason for the row's place. People who haven't answered come last, under a divider."
+        >
+          <PickList
+            name="dev-invite"
+            legend="Who to invite"
+            summary="2 places · {n} chosen"
+            groups={[
+              {
+                items: [
+                  {
+                    value: 'a',
+                    label: 'Aoife Byrne',
+                    meta: 'Meets 4 of 4',
+                    detail: 'Meets all 4 criteria. Enquired Monday 3 November, 9:20am.',
+                    defaultChecked: true,
+                  },
+                  {
+                    value: 'c',
+                    label: 'Ciarán Ó Súilleabháin',
+                    meta: 'Meets 3 of 4',
+                    detail: 'Meets 3 of 4 criteria (has pets). Enquired Monday 3 November, 10am.',
+                    defaultChecked: true,
+                  },
+                ],
+              },
+              {
+                heading: 'Haven’t answered the questions yet',
+                items: [
+                  {
+                    value: 'n',
+                    label: 'Niamh Walsh',
+                    meta: 'Hasn’t answered the questions yet',
+                    detail: 'Hasn’t answered the questions yet. Enquired Tuesday 4 November, 8am.',
+                  },
+                ],
+              },
+            ]}
+          />
+        </Section>
+
+        <Section
+          id="person-cards"
+          title="Person card"
+          lead="Applicants to choose between: stacked on a phone, three across on a desktop, then scrolling. Each card is a radio; the chosen card takes the brand edge and a tick."
+        >
+          <PersonCards name="dev-preferred" legend="Who to offer the home to">
+            <PersonCard
+              name="dev-preferred"
+              value="a"
+              person="Aoife Byrne"
+              defaultChecked
+              status={<StatusPill tone="success">Your choice now</StatusPill>}
+              facts={[
+                { label: 'Criteria', value: 'Meets 4 of 4' },
+                {
+                  label: 'Take-home income',
+                  value: (
+                    <>
+                      €5,200 a month, 2.8 times the rent{' '}
+                      <StatusPill tone="success">Meets your income rule</StatusPill>
+                    </>
+                  ),
+                },
+                { label: 'How they earn', value: 'From a job' },
+              ]}
+            />
+            <PersonCard
+              name="dev-preferred"
+              value="c"
+              person="Ciarán Ó Súilleabháin"
+              facts={[
+                { label: 'Criteria', value: 'Meets 3 of 4' },
+                {
+                  label: 'Take-home income',
+                  value: (
+                    <>
+                      €4,000 a month, 2.1 times the rent{' '}
+                      <StatusPill tone="warning">
+                        Below your income rule of 2.5 times the rent
+                      </StatusPill>
+                    </>
+                  ),
+                },
+                { label: 'How they earn', value: 'Self-employed' },
+              ]}
+            />
+            <PersonCard
+              name="dev-preferred"
+              value="n"
+              person="Niamh Walsh"
+              facts={[
+                { label: 'Criteria', value: 'Meets 4 of 4' },
+                { label: 'Take-home income', value: '€6,000 a month, 3.2 times the rent' },
+                { label: 'How they earn', value: 'Something else' },
+              ]}
+            />
+          </PersonCards>
+        </Section>
+
+        <Section
+          id="message-preview"
+          title="Message preview"
+          lead="A fixed message as the person will get it: to read, never to edit."
+        >
+          <MessagePreview
+            label="The invitation"
+            subject="Book a viewing: 12 Ranelagh Road"
+            body={
+              'Hi Aoife,\n\nThanks for your interest in 12 Ranelagh Road. Halcyon Lettings would like to invite you to view it.\n\nHalcyon Lettings'
+            }
+          />
         </Section>
 
         <Section

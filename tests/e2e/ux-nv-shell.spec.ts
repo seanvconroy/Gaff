@@ -276,7 +276,7 @@ test('UX-NV-8: the account menu on the avatar holds the name and context, Profil
     await expectAccessible(page);
 
     await (await openAccountMenu(page)).getByRole('menuitem', { name: 'Agency settings' }).click();
-    await expect(page.getByRole('heading', { name: 'Your Gaff address' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
   }
 
   // UX-AC-13: "Find a home to rent" adds Renting, and opens Search on the renting side.

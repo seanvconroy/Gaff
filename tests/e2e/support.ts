@@ -557,7 +557,7 @@ export async function goLiveThroughUi(page: Page): Promise<void> {
 
 /** The signed-in operator's Gaff address, from the settings page. */
 export async function gaffAddress(page: Page): Promise<string> {
-  await page.goto('/settings');
+  await page.goto('/settings/enquiries');
   return (await page.locator('code').first().innerText()).trim();
 }
 

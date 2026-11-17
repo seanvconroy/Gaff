@@ -623,7 +623,7 @@ test('UX-SI-8: after sign-in, on to where they were going, if it’s a path on t
 });
 
 async function fillPaymentAccount(page: Page): Promise<void> {
-  await page.goto('/settings');
+  await page.goto('/settings/payment');
   await page.getByLabel('Name on the account').fill('Halcyon Lettings client account');
   await page.getByLabel('IBAN').fill('IE29 AIBK 9311 5212 3456 78');
   await page.getByRole('button', { name: 'Save the account' }).click();

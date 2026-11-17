@@ -223,7 +223,7 @@ test('UX-LT-17, UX-LT-18: something else, from Settings with no home live: the l
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   const email = await signUpOperator(page);
-  await page.goto('/settings');
+  await page.goto('/settings/enquiries');
   await expect(page.getByText('Forward your Daft and MyHome enquiries here')).toBeVisible();
   await page.getByRole('link', { name: 'Set up forwarding' }).click();
   await page.getByRole('radio', { name: 'Something else' }).check();
@@ -268,7 +268,7 @@ test('UX-LT-17, UX-LT-18: something else, from Settings with no home live: the l
   ).toBeVisible();
   await expectAccessible(page);
   await page.getByRole('link', { name: 'Done', exact: true }).click();
-  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page).toHaveURL(/\/settings\/enquiries$/);
   await expect(
     page.getByText('Forwarding is working. Enquiries from Daft and MyHome reach Gaff.'),
   ).toBeVisible();

@@ -9,7 +9,7 @@ import {
   sendTestEmail,
   signUpOperator,
 } from './support';
-import { letAndClosed } from './today';
+import { letAndClosed, usualFromOnboarding } from './today';
 
 test('R28: Today shows what needs a person, Lettings shows each letting’s stage in words, and a closed home shows the time it saved against the usual', async ({
   page,
@@ -50,7 +50,8 @@ test('R28: Today shows what needs a person, Lettings shows each letting’s stag
     /^12 Ranelagh Road\s*Enquiries · 1 so far\s*Needs you$/,
   ]);
 
-  // Q15: a minute of active use on the letting counts; the usual time comes from Settings.
+  // Q15: a minute of active use on the letting counts; the usual time comes from the pilot's
+  // onboarding (UX-ST-3: it isn't in Settings).
   await page.clock.install();
   await page.goto(lettingUrl);
   await page.mouse.move(200, 200);
@@ -61,11 +62,8 @@ test('R28: Today shows what needs a person, Lettings shows each letting’s stag
   await heartbeat;
 
   await page.goto('/settings');
-  await page.getByLabel('Hours of your time a letting usually takes').fill('6.5');
-  await page.getByLabel('Days from advert to signed tenancy, usually').fill('30');
-  await page.getByRole('button', { name: 'Save usual times' }).click();
-  await expect(page.getByText('Saved.')).toBeVisible();
-  await expectAccessible(page);
+  await expect(page.getByRole('main').getByText(/usual/i)).toHaveCount(0);
+  await usualFromOnboarding(operator, { minutesPerLetting: 390, daysToLet: 30 });
 
   // UX-HM-9: none of that is on the home screen, nor on a home that is still being let.
   await page.goto('/today');

@@ -151,7 +151,9 @@ test('UX-LT-17 to UX-LT-20: Gmail, from go-live: the steps, the code read out, a
     const answer = page.getByRole('article', {
       name: 'Gaff’s answer to Sam Sample, a made-up renter',
     });
-    await expect(answer.getByText('Your enquiry about 12 Ranelagh Road')).toBeVisible();
+    await expect(
+      answer.getByText('Your enquiry about 12 Ranelagh Road', { exact: true }),
+    ).toBeVisible();
     await expect(answer.getByText(/I’m Halcyon Lettings’ AI assistant/)).toBeVisible();
     await expectAccessible(page);
     await screenshot(page, `ux-lt-19-it-works-${width}`);
@@ -208,7 +210,9 @@ test('UX-LT-17, UX-LT-19: Outlook: a rule with no confirmation, and the test enq
 
   const { mail, to } = await mailService(context);
   await testComesBack(page, mail, to, email, 1280, 'outlook');
-  await expect(page.getByText('Your enquiry about 12 Ranelagh Road')).toBeVisible();
+  await expect(
+    page.getByText('Your enquiry about 12 Ranelagh Road', { exact: true }),
+  ).toBeVisible();
   await context.close();
 });
 
@@ -281,6 +285,7 @@ test('UX-LT-20: a home on MyHome with no forwarding has "Set up forwarding" as i
     await signUpOperator(page);
     await liveAndAdvertisedOn(page, ['MyHome']);
     await page.getByRole('link', { name: 'Close' }).click();
+    await expect(page).toHaveURL(/\/lettings\/[0-9a-f-]{36}\?saved=live$/);
 
     // The letting's page: forwarding is its one task, and it opens the flow.
     const lettingPage = page.url().replace(/\?.*$/, '');

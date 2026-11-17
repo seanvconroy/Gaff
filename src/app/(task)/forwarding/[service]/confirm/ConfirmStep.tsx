@@ -55,7 +55,8 @@ export function ConfirmStep({
     >
       {children}
       <FlowProblems count={count} />
-      <div key={attempt}>
+      {/* A confirmation that arrives says which address forwards: the field starts from it. */}
+      <div key={`${attempt}-${defaultTo}`}>
         <TextField
           name="to"
           type="email"

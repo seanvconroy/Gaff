@@ -14,6 +14,7 @@ import { questionsFor } from '@/domain/criteria/criteria';
 import { renterPageStep } from '@/domain/funnels/steps';
 import { bookableSlots } from '@/domain/viewings/booking';
 import { resolveAccessLink } from '@/server/access/links';
+import { confirmWaitingEnquiry } from '@/server/enquiries/ask-to-view';
 import { noteFunnelStep } from '@/server/funnels/steps';
 import { recordEvent } from '@/server/record/events';
 import { checksOf } from '@/server/checks/checks';
@@ -24,8 +25,12 @@ import { currentBooking, slotAvailability } from '@/server/viewings/booking';
 /** R9: what a renter's private link shows: their application, the home and the questions. */
 export async function loadRenterPage(token: string) {
   const link = await resolveAccessLink(token, 'renter');
-  if (!link) return null;
-  return loadRenterPageFor(link.organisationId, link.subjectId);
+  if (link) return loadRenterPageFor(link.organisationId, link.subjectId);
+  // UX-AV-6: the link in the first email of an enquiry made on Gaff. Opening it proves the
+  // address is theirs: the enquiry goes into the letting now, and this is its page.
+  const confirmed = await confirmWaitingEnquiry(token);
+  if (!confirmed) return null;
+  return loadRenterPageFor(confirmed.organisationId, confirmed.applicationId);
 }
 
 /**

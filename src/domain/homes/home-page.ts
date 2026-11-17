@@ -30,7 +30,7 @@ export function isPublicRef(value: string): boolean {
 }
 
 export const homeHref = (ref: string) => `/homes/${ref}`;
-/** THE SEAM for work package WP-22, which builds asking to view at this address. */
+/** Asking to view (WP-22, UX-AV-1). With search's answers carried in: `askHref` in search/links. */
 export const askToViewHref = (ref: string) => `/homes/${ref}/ask`;
 /**
  * UX-LS-10: "See other homes in Ranelagh". THE SEAM for work package WP-21, whose search reads

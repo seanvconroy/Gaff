@@ -56,14 +56,3 @@ export const reportCopy = {
   },
   gone: 'This home isn’t on Gaff any more, so there’s nothing to report.',
 } as const;
-
-/**
- * THE SEAM for work package WP-22, which builds asking to view at `/homes/<ref>/ask`. Until then
- * the button leads here, and says how to reach the lister now.
- */
-export const askToViewCopy = {
-  title: 'Asking to view opens soon',
-  text: 'You’ll soon be able to ask to view this home here, in a couple of taps.',
-  call: (name: string, number: string) => `Until then, ring ${name} on ${number}.`,
-  back: 'Back to the home',
-} as const;

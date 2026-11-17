@@ -31,7 +31,7 @@ export async function Results({ filters }: { filters: SearchFilters }) {
           </h2>
           <HomeGrid labelledBy="homes-fit">
             {fits.map((home) => (
-              <Card key={home.id} home={home} today={today} />
+              <Card key={home.id} home={home} today={today} filters={filters} />
             ))}
           </HomeGrid>
         </section>
@@ -51,7 +51,13 @@ export async function Results({ filters }: { filters: SearchFilters }) {
           </h2>
           <HomeGrid labelledBy="homes-close">
             {close.map(({ home, miss }) => (
-              <Card key={home.id} home={home} today={today} note={missWords(miss)} />
+              <Card
+                key={home.id}
+                home={home}
+                today={today}
+                filters={filters}
+                note={missWords(miss)}
+              />
             ))}
           </HomeGrid>
         </section>
@@ -61,11 +67,21 @@ export async function Results({ filters }: { filters: SearchFilters }) {
 }
 
 /** UX-SR-6: the cover photo, the rent, one line, the date it's free, and the heart. */
-function Card({ home, today, note }: { home: HomeOnGaff; today: string; note?: string }) {
+function Card({
+  home,
+  today,
+  filters,
+  note,
+}: {
+  home: HomeOnGaff;
+  today: string;
+  filters: SearchFilters;
+  note?: string;
+}) {
   const line = cardLine(home);
   return (
     <HomeCard
-      href={homePageHref(home.id)}
+      href={homePageHref(home.id, filters)}
       title={formatRent(home.rentCents)}
       line={line}
       details={[freeFrom(home.availableFrom, today), ...(note ? [note] : [])]}

@@ -13,7 +13,10 @@ export type TaskName =
   | 'reference_overdue'
   | 'expire_home_offer'
   | 'rtb_reminder'
-  | 'send_account_email';
+  | 'send_account_email'
+  /** UX-AV-6: an enquiry made on Gaff from a typed email: its first reply, and its 24 hours. */
+  | 'send_waiting_reply'
+  | 'drop_waiting_enquiry';
 
 /**
  * Queues a job in the caller's transaction (ADR-0003): the job exists only if the change that

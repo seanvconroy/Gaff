@@ -3,6 +3,11 @@ import { z } from 'zod';
 import { sweepProfiles } from '@/server/accounts/delete-profile';
 import { sendAccountEmail } from '@/server/accounts/emails';
 import { draftAnswersFor } from '@/server/answers/draft';
+import {
+  dropExpiredWaitingEnquiries,
+  dropWaitingEnquiry,
+  sendWaitingReply,
+} from '@/server/enquiries/ask-to-view';
 import { processInboundEmail } from '@/server/enquiries/process';
 import { markReferenceOverdue } from '@/server/checks/checks';
 import { sendMessage } from '@/server/messages/outbox';
@@ -15,6 +20,7 @@ import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
 
 const inboundEmailJob = z.object({ organisationId: z.uuid(), inboundEmailId: z.uuid() });
 const messageJob = z.object({ organisationId: z.uuid(), messageId: z.uuid() });
+const waitingJob = z.object({ organisationId: z.uuid(), waitingEnquiryId: z.uuid() });
 
 /**
  * R26 (ADR-0005): the retention job, daily at 02:30 UTC. "?fill=2d" runs a missed one when jobs
@@ -53,6 +59,9 @@ export const taskList: TaskList = {
     // UX-LS-10: a let home's page on gaff.ie, 30 days after it was let. Counts only.
     const pages = await endLetHomePages();
     console.log(`Homes on Gaff: ${pages.removed} let homes' pages removed.`);
+    // UX-AV-6: any enquiry still waiting past its 24 hours, should its own job have missed it.
+    const waiting = await dropExpiredWaitingEnquiries();
+    console.log(`Asking to view: ${waiting} unconfirmed enquiries dropped.`);
   },
   psra_register_refresh: async () => {
     const refreshed = await refreshRegister();
@@ -79,6 +88,12 @@ export const taskList: TaskList = {
   },
   draft_answers: async (payload) => {
     await draftAnswersFor(messageJob.parse(payload));
+  },
+  send_waiting_reply: async (payload) => {
+    await sendWaitingReply(waitingJob.parse(payload));
+  },
+  drop_waiting_enquiry: async (payload) => {
+    await dropWaitingEnquiry(waitingJob.parse(payload));
   },
   send_message: async (payload, helpers) => {
     await sendMessage({

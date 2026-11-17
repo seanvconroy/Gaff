@@ -2,6 +2,7 @@ import { asc, eq } from 'drizzle-orm';
 import { withOrg, type Tx } from '@/db/client';
 import { events, users } from '@/db/schema';
 import { describeCriteria, NO_SMOKING_INDOORS, type Criteria } from '@/domain/criteria/criteria';
+import { sourcesInWords } from '@/domain/enquiries/sources';
 import { formatDate, formatEuro, formatRent } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 
@@ -199,12 +200,12 @@ export function describeEvent(
     case 'enquiry.received':
       return {
         what: 'Enquiry received',
-        detail: `Via ${data.portal === 'daft' ? 'Daft' : 'MyHome'}`,
+        detail: `Via ${sourcesInWords([String(data.portal)])}`,
       };
     case 'enquiry.repeated':
       return {
         what: 'The same renter enquired again',
-        detail: `Via ${data.portal === 'daft' ? 'Daft' : 'MyHome'}. Kept as one enquiry.`,
+        detail: `Via ${sourcesInWords([String(data.portal)])}. Kept as one enquiry.`,
       };
     case 'reply.received':
       return { what: 'Reply received' };

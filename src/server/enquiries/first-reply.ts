@@ -16,6 +16,7 @@ export async function queueFirstReply(
   tx: Tx,
   organisationId: string,
   applicationId: string,
+  options: { withLink?: boolean } = {},
 ): Promise<boolean> {
   const [row] = await tx
     .select({ application: applications, letting: lettings, organisation: organisations })
@@ -33,28 +34,17 @@ export async function queueFirstReply(
     .limit(1);
   if (already) return false;
 
-  const appUrl = env().APP_URL;
   const needsAnswers = questionsFor(letting.criteria ?? { noPets: false }).length > 0;
-  const token = needsAnswers
-    ? await createAccessLink(tx, { organisationId, purpose: 'renter', subjectId: applicationId })
-    : null;
-  const [firstSlot] = await tx
-    .select({ startsAt: viewingSlots.startsAt })
-    .from(viewingSlots)
-    .where(eq(viewingSlots.lettingId, letting.id))
-    .orderBy(asc(viewingSlots.startsAt))
-    .limit(1);
-
-  const { subject, body } = firstReply({
+  // UX-AV-7: an enquiry made on Gaff always has its link, to the same page a Daft enquiry's opens.
+  const token =
+    needsAnswers || options.withLink
+      ? await createAccessLink(tx, { organisationId, purpose: 'renter', subjectId: applicationId })
+      : null;
+  const { subject, body } = await writeFirstReply(tx, {
+    letting,
+    organisation,
     renterName: application.fullName,
-    operatorName: organisation.name,
-    address: letting.addressLine1,
-    area: letting.area,
-    rentCents: letting.monthlyRentCents,
-    availableFrom: letting.availableFrom,
-    questionsUrl: token ? `${appUrl}/r/${token}` : null,
-    firstViewing: firstSlot?.startsAt ?? null,
-    privacyUrl: `${appUrl}/privacy/${organisation.inboundSlug}`,
+    token,
   });
   await queueMessage(tx, {
     organisationId,
@@ -68,6 +58,41 @@ export async function queueFirstReply(
     body,
   });
   return true;
+}
+
+/**
+ * R7, UX-AV-7: the first reply's words, the fixed template filled in for one renter and one home.
+ * The one place they're written, for an enquiry from Daft or MyHome and one made on Gaff alike.
+ */
+export async function writeFirstReply(
+  tx: Tx,
+  input: {
+    letting: typeof lettings.$inferSelect;
+    organisation: typeof organisations.$inferSelect;
+    renterName: string;
+    /** The renter's private link token, if the reply carries one. */
+    token: string | null;
+  },
+): Promise<{ subject: string; body: string }> {
+  const appUrl = env().APP_URL;
+  const { letting, organisation } = input;
+  const [firstSlot] = await tx
+    .select({ startsAt: viewingSlots.startsAt })
+    .from(viewingSlots)
+    .where(eq(viewingSlots.lettingId, letting.id))
+    .orderBy(asc(viewingSlots.startsAt))
+    .limit(1);
+  return firstReply({
+    renterName: input.renterName,
+    operatorName: organisation.name,
+    address: letting.addressLine1,
+    area: letting.area,
+    rentCents: letting.monthlyRentCents,
+    availableFrom: letting.availableFrom,
+    questionsUrl: input.token ? `${appUrl}/r/${input.token}` : null,
+    firstViewing: firstSlot?.startsAt ?? null,
+    privacyUrl: `${appUrl}/privacy/${organisation.inboundSlug}`,
+  });
 }
 
 /** When a letting goes live, everyone who enquired during set-up gets their first reply. */

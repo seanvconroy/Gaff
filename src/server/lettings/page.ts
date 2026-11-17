@@ -1,4 +1,5 @@
 import { and, asc, count, eq, gt, min, ne } from 'drizzle-orm';
+import { sourcesInWords } from '@/domain/enquiries/sources';
 import { withOrg } from '@/db/client';
 import {
   applications,
@@ -278,7 +279,6 @@ export interface PersonRow extends PersonFacts {
   };
 }
 
-const sourceNames: Record<string, string> = { daft: 'Daft', myhome: 'MyHome', gaff: 'Gaff' };
 const earningWords: Record<string, string> = {
   employed: 'From a job',
   self_employed: 'Self-employed',
@@ -363,7 +363,7 @@ export async function peopleFor(member: Member, lettingId: string): Promise<Pers
                   ? [
                       {
                         label: 'Enquired through',
-                        value: p.sources.map((s) => sourceNames[s] ?? s).join(' and '),
+                        value: sourcesInWords(p.sources),
                       },
                     ]
                   : []),

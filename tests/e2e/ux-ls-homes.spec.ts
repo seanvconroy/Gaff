@@ -225,15 +225,12 @@ test('UX-LS-1 to UX-LS-11, UX-LT-21: a live letting’s page opens signed out at
     await about.getByRole('button', { name: 'Show more' }).click();
     await expect(about.getByRole('button', { name: 'Show less' })).toBeVisible();
 
-    // WP-22's seam: "Ask to view" leads to its stub, which says how to reach the lister now.
+    // WP-22: "Ask to view" opens asking to view, which needs no account (UX-AV-1).
     await action.getByRole('link', { name: 'Ask to view' }).click();
     await expect(
-      visitor.getByRole('heading', { level: 1, name: 'Asking to view opens soon' }),
+      visitor.getByRole('heading', { level: 1, name: 'Who should we reply to?' }),
     ).toBeVisible();
-    await expect(visitor.getByText(`Until then, ring ${agency} on 01 234 5678.`)).toBeVisible();
-    await expectAccessible(visitor);
-    await screenshot(visitor, `ux-ls-03-ask-to-view-stub-${width}`);
-    await visitor.getByRole('link', { name: 'Back to the home' }).last().click();
+    await visitor.getByRole('link', { name: 'Back to the home' }).click();
 
     // UX-TS-3: "Report this listing": one question, tap answers, no account.
     await visitor.getByRole('link', { name: 'Report this listing' }).click();

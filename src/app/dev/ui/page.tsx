@@ -770,6 +770,15 @@ export default function ComponentsPage() {
           lead="One box for a sentence, its button, and what Gaff understood as chips: Filters first, then one chip per filter, each opening its control. The heart saves a home."
         >
           <SearchBoxDemo />
+          <HomeGrid label="Search results">
+            <HomeCard
+              href="#homes"
+              title="€1,850 a month"
+              line="2-bed apartment · Ranelagh, Dublin 6"
+              details={['Free from Tuesday 1 December', 'Up to 2 people. You asked for 3.']}
+              photo={{ src: samplePhoto, alt: '' }}
+            />
+          </HomeGrid>
         </Section>
 
         <Section
@@ -786,13 +795,6 @@ export default function ComponentsPage() {
               needsYou="Needs you"
             />
             <HomeCard href="#homes" title="4 Rathmines Close" line="Enquiries · 23 so far" />
-            <HomeCard
-              href="#homes"
-              title="€1,850 a month"
-              line="2-bed apartment · Ranelagh, Dublin 6"
-              details={['Free from Tuesday 1 December', 'Up to 2 people. You asked for 3.']}
-              photo={{ src: samplePhoto, alt: '' }}
-            />
             <HomeCard href="#homes" title="9 Canal View" line="2 steps left" needsYou="Needs you" />
             <HomeCard
               href="#homes"

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { approvalAnswersSchema, approvalRoute, approvalScreen } from './approval';
+import {
+  approvalAnswersSchema,
+  approvalRoute,
+  approvalScreen,
+  checksStillUnderWay,
+} from './approval';
 
 describe('UX-OP-6: one person per screen', () => {
   const both = ['preferred', 'backup'] as const;
@@ -52,5 +57,22 @@ describe('R19: the landlord’s answer', () => {
       preferred: 'declined',
       backup: null,
     });
+  });
+});
+
+describe('UX-OP-7: checks still under way', () => {
+  it('UX-OP-7: counts the checks that aren’t back, so the agent is warned before asking', () => {
+    expect(
+      checksStillUnderWay([
+        { status: 'passed' },
+        { status: 'in_progress' },
+        { status: 'to_do' },
+        { status: 'no_answer' },
+        { status: 'not_needed' },
+        { status: 'answered' },
+        { status: 'not_passed' },
+      ]),
+    ).toBe(2);
+    expect(checksStillUnderWay([])).toBe(0);
   });
 });

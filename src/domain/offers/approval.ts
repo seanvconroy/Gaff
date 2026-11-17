@@ -49,3 +49,12 @@ export function approvalScreen(
   const wanted = roles.findIndex((role) => role === asked);
   return wanted >= 0 && wanted <= furthest ? wanted : furthest;
 }
+
+/**
+ * UX-OP-7: how many of the chosen people's checks aren't back yet. The owner sees "Still under
+ * way" beside each, so the agent is warned before asking for approval while any are unfinished.
+ */
+export function checksStillUnderWay(checks: ReadonlyArray<{ status: string }>): number {
+  return checks.filter((check) => check.status === 'to_do' || check.status === 'in_progress')
+    .length;
+}

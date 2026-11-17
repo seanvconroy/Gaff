@@ -114,20 +114,12 @@ test('UX-NV-1 to UX-NV-5: anyone running lettings has four destinations, in a to
       page.getByRole('heading', { name: 'Viewing times for every home will appear here.' }),
     ).toBeVisible();
 
-    // UX-NV-2: approvals, questions and needs attention are reached through Inbox, and belong to it.
-    for (const [row, heading] of [
-      ['Answers to approve', 'Approvals'],
-      ['Questions only you can answer', 'Questions for you'],
-      ['Emails Gaff couldn’t place', 'Needs attention'],
-    ] as const) {
-      await page.goto('/inbox');
-      await page.getByRole('link', { name: new RegExp(`${row}.*Nothing waiting`) }).click();
-      await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
-      await expect(nav.getByRole('link', { name: 'Inbox' })).toHaveAttribute(
-        'aria-current',
-        'page',
-      );
-      await expectNoSidewaysScroll(page);
+    // UX-NV-2: Approvals, Questions and Needs attention aren't pages any more. Their work is
+    // done in Inbox, which says what will appear there while it is empty.
+    await page.goto('/inbox');
+    await expect(page.getByRole('heading', { name: 'No conversations yet' })).toBeVisible();
+    for (const gone of ['/approvals', '/questions', '/attention']) {
+      expect((await page.request.get(gone)).status()).toBe(404);
     }
 
     // Every page of a letting, and settings, sit in the same shell.

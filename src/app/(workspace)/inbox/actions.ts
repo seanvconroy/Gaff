@@ -17,7 +17,7 @@ import { requireMember } from '@/server/auth/member';
 import { assignInboundEmail, dismissInboundEmail } from '@/server/enquiries/attention';
 import { UserFacingError } from '@/server/errors';
 import { writeToOwner, writeToRenter } from '@/server/messages/write';
-import type { DoneCode } from './done';
+import { type DoneCode, doneNote } from './done';
 
 const id = z.uuid();
 const showSchema = z.enum(['needs-you', 'all']).nullable().catch(null);
@@ -26,7 +26,7 @@ const showSchema = z.enum(['needs-you', 'all']).nullable().catch(null);
 function after(href: string, done: DoneCode): never {
   revalidatePath('/inbox', 'layout');
   revalidatePath('/today');
-  redirect(`${href}${href.includes('?') ? '&' : '?'}done=${done}`);
+  redirect(`${href}${href.includes('?') ? '&' : '?'}done=${doneNote(done)}`);
 }
 
 /** A problem the person can fix, back at the field it belongs to. Anything else is thrown. */

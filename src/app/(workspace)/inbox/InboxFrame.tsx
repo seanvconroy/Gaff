@@ -42,7 +42,7 @@ export function InboxFrame({
   asked: Show | null;
   /** The key of the conversation that is open, if one is. */
   open: string | null;
-  /** The code for what was just done, from the address. */
+  /** The note of what was just done, from the address (`doneNote`). */
   done?: string;
   now: Date;
   /** The open conversation, or what stands beside the list when none is. */
@@ -53,7 +53,7 @@ export function InboxFrame({
   const said = doneMessage(done);
   return (
     <Stack gap={6}>
-      {said ? <Done message={said} /> : null}
+      {said ? <Done key={done} message={said} /> : null}
       <div className={open ? styles.titleWhenOpen : undefined}>
         <PageHeader title="Inbox" />
       </div>

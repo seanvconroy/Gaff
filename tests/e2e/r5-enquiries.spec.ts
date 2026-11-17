@@ -64,11 +64,17 @@ test('R6: enquiries are read, matched to the home and merged; anything else wait
   await expect(firstReply.getByText(/I’m Halcyon Lettings’ AI assistant/)).toBeVisible();
   await screenshot(page, '20-first-reply');
 
+  // UX-NV-2, UX-NV-17: the email Gaff couldn't place is one row on Today, which opens it in
+  // Inbox. Nothing is dropped: the operator says what it is.
   await page.goto('/today');
   await page.getByRole('link', { name: /1 email Gaff couldn’t place/ }).click();
-  await expect(page.getByText('It might be a forwarding confirmation')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Gmail Team' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Gmail’s confirmation code' })).toBeVisible();
+  await expect(page.getByText('123456789', { exact: true })).toBeVisible();
   await expectAccessible(page);
   await screenshot(page, '19-needs-attention');
   await page.getByRole('button', { name: 'It’s not an enquiry' }).click();
-  await expect(page.getByText('Nothing needs you right now')).toBeVisible();
+  await expect(page.getByRole('status').getByText('Set aside')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Inbox' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Gmail Team/ })).toHaveCount(0);
 });

@@ -1,3 +1,4 @@
+import { lawfulVersion } from './lawful-version';
 import { findProtectedGrounds, groundLabels, type ProtectedGround } from './protected-grounds';
 
 /**
@@ -71,13 +72,26 @@ export function homeWordingWhy(reason: HomeWordingReason): string {
 }
 
 /**
+ * UX-MT-4: why a line was left out, and its lawful version where there is one ("Did you mean “Up
+ * to 2 people”?"), as the review of an imported advert says it.
+ */
+export function leftOutWhy(line: string, reason: HomeWordingReason): string {
+  const instead = lawfulVersion(line);
+  return instead ? `${homeWordingWhy(reason)} ${instead}` : homeWordingWhy(reason);
+}
+
+/**
  * A plain explanation at the field (UX-FL-3), or null if the words are fine. For a home's
- * description and its facts: what renters read about the home.
+ * description and its facts: what renters read about the home. Where there is a lawful version
+ * of what was meant, it is offered (UX-MT-4).
  */
 export function homeWordingProblem(text: string): string | null {
   const found = homeWordingReason(text);
   if (!found) return null;
-  return found.reason === 'about_who'
-    ? `“${found.phrase}” says who should live there, not what the home is like, so Gaff can't share it with renters. Describe the home instead, or leave it out.`
-    : `“${found.phrase}” touches on ${groundLabels[found.reason]}, which equality law protects, so Gaff can't share it with renters. Describe the home instead, or leave it out.`;
+  const problem =
+    found.reason === 'about_who'
+      ? `“${found.phrase}” says who should live there, not what the home is like, so Gaff can't share it with renters.`
+      : `“${found.phrase}” touches on ${groundLabels[found.reason]}, which equality law protects, so Gaff can't share it with renters.`;
+  const instead = lawfulVersion(found.phrase) ?? lawfulVersion(text);
+  return `${problem} ${instead ?? 'Describe the home instead, or leave it out.'}`;
 }

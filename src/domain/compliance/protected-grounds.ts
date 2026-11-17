@@ -51,7 +51,7 @@ const patterns: Array<[ProtectedGround, RegExp]> = [
   ['gender', /\b(male|female|men|women|ladies|gentlemen|girls|boys)\b/i],
   [
     'age',
-    /\b(mature|young|retired|retirees?|pensioners?|elderly|students?|age(d)?|over \d+|under \d+)\b/i,
+    /\b(mature|young|retired|retirees?|pensioners?|elderly|students?|age(d)?|(?:over|under) \d+s?)\b/i,
   ],
   [
     'religion',

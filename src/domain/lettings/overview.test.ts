@@ -199,6 +199,8 @@ describe('UX-LP-1: Overview has three blocks, right at each of the nine stages',
   it('UX-LP-1: stage 7, offer: make the offer, or wait for the answer', () => {
     const ready = at({ stage: 'offer', owner: 'approved', today: [{ kind: 'offer', ...home }] });
     expect(needsYouOn(ready, now)).toMatchObject({ action: 'Make the offer' });
+    // The stored stage can still say Checks when the offer is ready: the page is at the offer.
+    expect(pageStage(at({ stage: 'checks', today: [{ kind: 'offer', ...home }] }))).toBe('offer');
     const out = at({
       stage: 'offer',
       owner: 'approved',

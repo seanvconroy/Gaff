@@ -92,12 +92,19 @@ export interface OverviewFacts {
 /**
  * The stage the page is written for. The stored stage moves on at each decision; "Shortlist" is
  * never stored, so it is the stage while people wait to hear who views and nobody is invited
- * yet. A tenancy whose every step is done is at Close, where "Finish" is the task.
+ * yet. The offer can be ready, or out, while the stored stage still says Checks: it is at Offer
+ * then. A tenancy whose every step is done is at Close, where "Finish" is the task.
  */
 export function pageStage(
-  facts: Pick<OverviewFacts, 'stage' | 'status' | 'today' | 'tenancy'>,
+  facts: Pick<OverviewFacts, 'stage' | 'status' | 'today' | 'tenancy' | 'offer'>,
 ): Stage {
   if (facts.status === 'withdrawn') return 'close';
+  if (
+    facts.stage === 'checks' &&
+    (facts.offer.state !== 'not_sent' || facts.today.some((row) => row.kind === 'offer'))
+  ) {
+    return 'offer';
+  }
   if (facts.stage === 'enquiries' && facts.today.some((row) => row.kind === 'shortlist')) {
     return 'shortlist';
   }

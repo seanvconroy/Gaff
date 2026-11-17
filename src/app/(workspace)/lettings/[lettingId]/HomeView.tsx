@@ -101,7 +101,7 @@ export function HomeView({
       <Part
         id="home-description"
         title={copy.description}
-        action={change(alone('home', { edit: 'description' }), 'the description')}
+        action={change(alone('home', { edit: 'description' }), 'description')}
       >
         {letting.description ? (
           <p className={styles.description}>{letting.description}</p>
@@ -110,7 +110,7 @@ export function HomeView({
         )}
       </Part>
 
-      <Part id="home-facts" title={copy.facts} action={change(alone('home'), 'the facts')}>
+      <Part id="home-facts" title={copy.facts} action={change(alone('home'), 'facts')}>
         <SummaryList
           rows={[
             { label: copy.rent, value: formatRent(letting.monthlyRentCents) },
@@ -132,7 +132,7 @@ export function HomeView({
       <Part
         id="home-details"
         title={copy.details}
-        action={detailsLocked ? null : change(alone('details'), 'the letting details')}
+        action={detailsLocked ? null : change(alone('details'), 'letting details')}
       >
         {details.length > 0 ? (
           <ul className={styles.list}>
@@ -149,7 +149,7 @@ export function HomeView({
       <Part
         id="home-viewings"
         title={copy.viewings}
-        action={change(`/lettings/${id}/viewings`, 'the viewing times')}
+        action={change(`/lettings/${id}/viewings`, 'viewing times')}
       >
         {sessions.length === 0 ? (
           <p className={styles.muted}>{copy.noViewings}</p>
@@ -170,7 +170,7 @@ export function HomeView({
       <Part
         id="home-rent"
         title={copy.rentCheck}
-        action={change(alone('rent_check'), 'the rent check', copy.checkAgain)}
+        action={change(alone('rent_check'), 'rent check', copy.checkAgain)}
       >
         {rentCheck ? (
           <RentCheckResult
@@ -186,7 +186,7 @@ export function HomeView({
       <Part
         id="home-comparables"
         title={copy.comparables}
-        action={change(`/lettings/${id}/comparables`, 'the comparable rents')}
+        action={change(`/lettings/${id}/comparables`, 'comparable rents')}
       >
         {comparables.length === 0 ? (
           <p className={styles.muted}>{copy.noComparables}</p>
@@ -234,7 +234,7 @@ export function HomeView({
         <Part
           id="home-owner"
           title={copy.owner}
-          action={change(`/lettings/${id}/owner`, 'the owner')}
+          action={change(`/lettings/${id}/owner`, 'owner')}
         >
           <p className={landlord ? undefined : styles.muted}>{landlord?.name ?? copy.noOwner}</p>
         </Part>

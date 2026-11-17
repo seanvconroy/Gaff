@@ -67,6 +67,8 @@ export const tenancies = pgTable(
     paymentConfirmedBy: text().references(() => users.id),
     ppsnSealed: text(),
     ppsnGivenAt: timestamp({ withTimezone: true }),
+    /** UX-RN-24: the tenant chose "Skip", so the question isn't put to them again. */
+    ppsnSkippedAt: timestamp({ withTimezone: true }),
     rtbRegisteredAt: timestamp({ withTimezone: true }),
     rtbRegisteredBy: text().references(() => users.id),
     rtbReference: text(),
@@ -96,6 +98,12 @@ export const inventoryItems = pgTable(
     item: text().notNull(),
     condition: text({ enum: ['new', 'good', 'fair', 'worn', 'damaged'] }).notNull(),
     note: text(),
+    /**
+     * UX-RN-25: "Something's not right": the tenant's short note to the lister about this item.
+     * Their own words, so it goes with the tenant's other personal details (R26).
+     */
+    tenantNote: text(),
+    tenantNotedAt: timestamp({ withTimezone: true }),
     photo: bytea(),
     photoType: text(),
     createdAt: createdAt(),

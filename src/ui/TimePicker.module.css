@@ -1,0 +1,71 @@
+/*
+ * The time picker for renters: a short row of days (chips), then the chosen day's times as large
+ * buttons. Below 900px the times span the screen; above, the same list sits in a narrower column.
+ */
+.picker {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.day {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.times {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A time: a large button, 48px or taller, the whole of it the target. */
+.time {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--size-control);
+  padding: calc(var(--space-3) - 1px) var(--space-4);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-ink);
+  text-decoration: none;
+  transition-property: background-color, border-color;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease-standard);
+}
+
+.time:hover,
+.time:active {
+  background-color: var(--color-surface-2);
+  border-color: var(--color-ink-muted);
+}
+
+.time svg {
+  flex: none;
+  color: var(--color-ink-muted);
+}
+
+.words {
+  display: grid;
+  min-width: 0;
+}
+
+.label {
+  font-weight: var(--type-title-weight);
+}
+
+.note {
+  color: var(--color-ink-muted);
+}
+
+@media (width > 900px) {
+  .times {
+    max-width: var(--size-field-medium);
+  }
+}

@@ -36,6 +36,10 @@ import { StepCard } from '@/ui/StepCard';
 import { SummaryList } from '@/ui/SummaryList';
 import { Cell, Table } from '@/ui/Table';
 import { Wordmark, WordmarkImage } from '@/ui/Wordmark';
+import { DirectionsLink } from '@/ui/DirectionsLink';
+import { DocumentView } from '@/ui/Document';
+import { StepList } from '@/ui/StepList';
+import { TimePicker } from '@/ui/TimePicker';
 import {
   AddressSearchDemo,
   CodeDemo,
@@ -43,6 +47,7 @@ import {
   OptionRowDemo,
   PhotoUploaderDemo,
   PickerDemos,
+  QuestionStepsDemo,
   SheetDemo,
   ThemeSwitch,
   ToastDemo,
@@ -163,6 +168,9 @@ export default function ComponentsPage() {
             <Link href="/dev/ui/frame">
               See the frame of a private page, for a renter, an owner and a referee
             </Link>
+          </p>
+          <p>
+            <Link href="/dev/ui/renter">See every page a renter or a tenant can see</Link>
           </p>
         </div>
 
@@ -669,6 +677,71 @@ export default function ComponentsPage() {
               line="Let in 21 days · saved 9 days and 4 hours 20 minutes"
             />
           </HomeGrid>
+        </Section>
+
+        <Section
+          id="renter"
+          title="For a renter’s pages"
+          lead="A few questions one per screen; a viewing chosen by day, then time; steps as a short list; a document with links to its sections."
+        >
+          <div className={styles.columns}>
+            <Example label="Question steps: one question per screen, Back and one primary button">
+              <QuestionStepsDemo />
+            </Example>
+            <Example label="Time picker for renters: days, then the chosen day’s times">
+              <TimePicker
+                daysLabel="Days with a place"
+                days={[
+                  { href: '#renter', label: 'Fri 20 Nov', current: true },
+                  { href: '#renter', label: 'Sat 21 Nov' },
+                  { href: '#renter', label: 'Mon 23 Nov' },
+                ]}
+                dayHeading="Friday 20 November"
+                times={[
+                  { href: '#renter', label: '6pm' },
+                  { href: '#renter', label: '6:15pm' },
+                  { href: '#renter', label: '6:30pm', note: 'Group viewing, 3 places left' },
+                ]}
+              />
+            </Example>
+          </div>
+          <div className={styles.columns}>
+            <Example label="Step list: done, next and to come, in words">
+              <StepList
+                label="Your checks"
+                steps={[
+                  { name: 'Your ID', state: 'done', stateLabel: 'Done' },
+                  { name: 'Your income', state: 'next', stateLabel: 'Next' },
+                  {
+                    name: 'Your references',
+                    state: 'to_come',
+                    stateLabel: 'To come',
+                    note: 'Your last landlord, and an employer if there’s one to ask',
+                  },
+                ]}
+              />
+            </Example>
+            <Example label="Directions: the phone’s own maps app, or OpenStreetMap">
+              <div className={styles.row}>
+                <DirectionsLink address="12 Ranelagh Road, Ranelagh, Dublin 6">
+                  Get directions
+                </DirectionsLink>
+              </div>
+            </Example>
+          </div>
+          <Example label="A document with links that jump to each section">
+            <DocumentView
+              title="Tenancy agreement: 12 Ranelagh Road"
+              contents="In this agreement"
+              sections={[
+                { heading: '1. The home', paragraphs: ['12 Ranelagh Road, Ranelagh, Dublin 6.'] },
+                {
+                  heading: '2. The rent',
+                  paragraphs: ['€1,850 a month, paid in advance on the 13th day of each month.'],
+                },
+              ]}
+            />
+          </Example>
         </Section>
       </main>
     </div>

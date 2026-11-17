@@ -207,6 +207,11 @@ textarea.control {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 104px), 1fr));
 }
 
+/* Two across at every width: a run of short answers where one is a few words. */
+.pairs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .inline:has(.optionHint) {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
 }

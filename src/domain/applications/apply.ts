@@ -34,6 +34,55 @@ export const applicationSchema = z
 
 export type Application = z.output<typeof applicationSchema>;
 
+export const NAME_NEEDED = 'Enter your first and last name.';
+export const EMAIL_NEEDED = 'Enter an email address, like name@example.ie.';
+export const EMAIL_TAKEN =
+  'That email is already used for this home. Use another, or keep the one you have.';
+
+/**
+ * UX-RN-11: the check screen shows the applicant's name and email, each with "Change". Either
+ * may be left out, which keeps what Gaff has. Nothing else about the person can be sent here.
+ */
+export const applicantDetailsSchema = z.object({
+  fullName: z
+    .string()
+    .trim()
+    .max(120, NAME_NEEDED)
+    .optional()
+    .transform((value) => value || undefined)
+    .refine((value) => value === undefined || value.length >= 2, NAME_NEEDED),
+  email: z
+    .string()
+    .trim()
+    .max(254, EMAIL_NEEDED)
+    .optional()
+    .transform((value) => value || undefined)
+    .refine((value) => value === undefined || z.email().safeParse(value).success, EMAIL_NEEDED),
+});
+
+/** What's wrong with one screen of the application, by field. The page and the server share it. */
+export function applicationProblems(
+  values: Readonly<Record<string, string | undefined>>,
+  fields: ReadonlyArray<'earning' | 'monthlyIncome' | 'fullName' | 'email'>,
+): Record<string, string> {
+  const problems: Record<string, string> = {};
+  const issues = [
+    ...(applicationSchema.safeParse(values).error?.issues ?? []),
+    ...(applicantDetailsSchema.safeParse(values).error?.issues ?? []),
+  ];
+  for (const issue of issues) {
+    const field = String(issue.path[0]);
+    if ((fields as readonly string[]).includes(field)) problems[field] ??= issue.message;
+  }
+  if (fields.includes('fullName') && !problems.fullName && !values.fullName?.trim()) {
+    problems.fullName = NAME_NEEDED;
+  }
+  if (fields.includes('email') && !problems.email && !values.email?.trim()) {
+    problems.email = EMAIL_NEEDED;
+  }
+  return problems;
+}
+
 /**
  * The operator's income rule: take-home income at least this many tenths of the rent. Set by
  * the operator, the same for everyone, shown to renters before they apply (PRD fairness rules).

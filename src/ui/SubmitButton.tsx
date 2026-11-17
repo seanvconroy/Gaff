@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useFormStatus } from 'react-dom';
-import { buttonClass, type ButtonVariant, type ButtonWidth } from './Button';
+import { buttonProps, type ButtonVariant, type ButtonWidth } from './Button';
 
 /** A form's submit button. While the form is sending it says so, and can't be pressed twice. */
 export function SubmitButton({
@@ -26,7 +26,7 @@ export function SubmitButton({
       type="submit"
       name={name}
       value={value}
-      className={buttonClass(variant, fullWidth)}
+      {...buttonProps(variant, fullWidth)}
       aria-disabled={pending}
       disabled={pending}
     >

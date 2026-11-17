@@ -1,5 +1,6 @@
 import { devices, expect, test } from '@playwright/test';
 import { daftEnquiry } from '../fixtures/emails';
+import { expectRenterPageAtBothWidths } from './renter';
 import {
   createLettingThroughUi,
   expectAccessible,
@@ -55,7 +56,7 @@ test('R26 (basic): a person closes the letting, everyone hears back, and renters
   });
   const renter = await phone.newPage();
   await renter.goto(renterLink);
-  await expect(renter.getByText('This home has been let')).toBeVisible();
+  await expect(renter.getByRole('heading', { name: '9 Canal View has been let' })).toBeVisible();
   await expect(
     renter.getByText(/We’ll delete your details from Gaff by \w+day \d+ \w+\./),
   ).toBeVisible();
@@ -63,6 +64,11 @@ test('R26 (basic): a person closes the letting, everyone hears back, and renters
   await expect(renter.getByRole('main').getByRole('button')).toHaveCount(0);
   await expectAccessible(renter);
   await screenshot(renter, '34-renter-closed');
+  // UX-PP-6: the one notice on a closed home is when their details will be deleted.
+  await expectRenterPageAtBothWidths(renter, {
+    notices: ['deletion'],
+    shots: 'wp12-live-home-let',
+  });
   await phone.close();
 
   await page.goto(`${lettingUrl}/timeline`);

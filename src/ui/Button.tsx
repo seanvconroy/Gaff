@@ -21,6 +21,19 @@ export function buttonClass(variant: ButtonVariant, fullWidth: ButtonWidth = fal
     .join(' ');
 }
 
+/**
+ * What makes any element a button to look at: its classes, and `data-button` with its variant.
+ * Class names differ from build to build, so the attribute is how a test finds a button, and
+ * counts the primary ones on a page (UX-DS-2, UX-PP-1). Spread it onto a link that can't be a
+ * `ButtonLink`: a file to download, a phone number to ring.
+ */
+export function buttonProps(
+  variant: ButtonVariant,
+  fullWidth: ButtonWidth = false,
+): { className: string; 'data-button': ButtonVariant } {
+  return { className: buttonClass(variant, fullWidth), 'data-button': variant };
+}
+
 /** Every button is 48px high, wherever it is (UX-DS-13). */
 export function Button({
   variant = 'secondary',
@@ -31,7 +44,7 @@ export function Button({
   variant?: ButtonVariant;
   fullWidth?: ButtonWidth;
 }) {
-  return <button type={type} {...props} className={buttonClass(variant, fullWidth)} />;
+  return <button type={type} {...props} {...buttonProps(variant, fullWidth)} />;
 }
 
 export function ButtonLink({
@@ -46,7 +59,7 @@ export function ButtonLink({
   children: ReactNode;
 }) {
   return (
-    <Link href={href} className={buttonClass(variant, fullWidth)}>
+    <Link href={href} {...buttonProps(variant, fullWidth)}>
       {children}
     </Link>
   );

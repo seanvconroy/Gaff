@@ -1,5 +1,6 @@
 import { devices, expect, type Browser, type Page } from '@playwright/test';
 import { daftEnquiry, myhomeEnquiry } from '../fixtures/emails';
+import { applyThroughUi, bookFirstTime } from './renter';
 import {
   createLettingThroughUi,
   gaffAddress,
@@ -51,9 +52,7 @@ export async function twoPeopleWhoCame(browser: Browser, page: Page) {
       links[email] = await linkInEmail(email, 'Book a viewing: 12 Ranelagh Road');
     }).toPass({ timeout: 20_000 });
     const renter = await onPhone(browser, links[email]!);
-    await renter.page.getByRole('radio').first().check();
-    await renter.page.getByRole('button', { name: 'Book this time' }).click();
-    await expect(renter.page.getByText('You’re booked')).toBeVisible();
+    await bookFirstTime(renter.page);
     await renter.context.close();
   }
 
@@ -72,10 +71,7 @@ export async function twoPeopleWhoCame(browser: Browser, page: Page) {
 
 export async function applyOnPhone(browser: Browser, link: string, income: string) {
   const renter = await onPhone(browser, link);
-  await renter.page.getByLabel('From a job').check();
-  await renter.page.getByLabel('Your household’s take-home income each month').fill(income);
-  await renter.page.getByRole('button', { name: 'Send my application' }).click();
-  await expect(renter.page.getByText('Your application is with')).toBeVisible();
+  await applyThroughUi(renter.page, { earning: 'From a job', income });
   await renter.context.close();
 }
 
@@ -109,7 +105,7 @@ export async function anAcceptedOffer(browser: Browser, page: Page) {
   const aoife = await onPhone(browser, offerLink);
   await aoife.page.getByRole('button', { name: 'Accept the offer' }).click();
   await expect(
-    aoife.page.getByText('You’ve accepted the offer, and your tenancy starts on'),
+    aoife.page.getByText('You’ve accepted the offer. Your tenancy starts on'),
   ).toBeVisible();
   await aoife.context.close();
   return { ...setup, offerLink };

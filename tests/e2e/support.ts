@@ -103,7 +103,7 @@ export async function expectControlSizes(page: Page): Promise<void> {
     // One height: text inputs, selects, and anything styled as a button or a picker's control.
     const controls = document.querySelectorAll<HTMLElement>(
       'input:not([type=hidden], [type=radio], [type=checkbox], [type=file]), select, ' +
-        '[class*="Button-module"], [class*="Pickers-module"][aria-haspopup]',
+        '[data-button], [class*="Button-module"], [class*="Pickers-module"][aria-haspopup]',
     );
     for (const el of controls) {
       // The code input is one see-through input over its six boxes; the boxes are measured below.

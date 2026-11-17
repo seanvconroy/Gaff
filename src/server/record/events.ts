@@ -289,6 +289,16 @@ export const eventCatalogue = {
   }),
   'inventory.shared': z.object({ tenancyId: z.uuid(), items: z.number().int() }),
   'inventory.confirmed': z.object({ tenancyId: z.uuid() }),
+  /** UX-RN-25: the tenant said something's not right about an item. The note isn't here. */
+  'inventory.item_queried': z.object({ tenancyId: z.uuid(), itemId: z.uuid() }),
+  /** UX-RN-24: the tenant skipped the optional PPS number. */
+  'tenancy.ppsn_skipped': z.object({ tenancyId: z.uuid() }),
+  /** UX-RN-11: the renter corrected their name or their email when applying. Neither is here. */
+  'application.details_changed': z.object({
+    applicationId: z.uuid(),
+    name: z.boolean(),
+    email: z.boolean(),
+  }),
   /** R26, stage 9: the let home is finished; the record stays, personal details go later. */
   'letting.finished': z.object({
     tenancyId: z.uuid(),

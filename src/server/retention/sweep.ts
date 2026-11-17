@@ -108,10 +108,23 @@ export async function sweepPersonalData(
         .set({ revokedAt: now })
         .where(and(eq(accessLinks.subjectId, application.id), isNull(accessLinks.revokedAt)));
       // Stage 8: the typed signature and any PPS number go with the rest.
-      await tx
+      const theirTenancies = await tx
         .update(tenancies)
         .set({ tenantSignedName: null, ppsnSealed: null })
-        .where(eq(tenancies.applicationId, application.id));
+        .where(eq(tenancies.applicationId, application.id))
+        .returning({ id: tenancies.id });
+      // UX-RN-25: so do the notes they wrote about the inventory ("Something's not right").
+      if (theirTenancies.length > 0) {
+        await tx
+          .update(inventoryItems)
+          .set({ tenantNote: null, tenantNotedAt: null })
+          .where(
+            inArray(
+              inventoryItems.tenancyId,
+              theirTenancies.map((t) => t.id),
+            ),
+          );
+      }
       // R18: check results and referees' details go too; their links stop working.
       const theirChecks = await tx
         .update(checks)

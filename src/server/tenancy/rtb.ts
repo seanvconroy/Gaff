@@ -111,6 +111,36 @@ export async function givePpsn(
   });
 }
 
+/**
+ * UX-RN-24: the tenant chose "Skip". Nothing is kept but that they were asked, so the question
+ * isn't put to them again.
+ */
+export async function skipPpsn(token: string): Promise<boolean> {
+  const link = await resolveAccessLink(token, 'renter');
+  if (!link) return false;
+  return withOrg(link.organisationId, async (tx) => {
+    const [tenancy] = await tx
+      .select()
+      .from(tenancies)
+      .where(eq(tenancies.applicationId, link.subjectId));
+    if (!tenancy) return false;
+    if (tenancy.ppsnSkippedAt || tenancy.ppsnGivenAt) return true;
+    await tx
+      .update(tenancies)
+      .set({ ppsnSkippedAt: new Date() })
+      .where(eq(tenancies.id, tenancy.id));
+    await recordEvent(tx, {
+      organisationId: link.organisationId,
+      lettingId: tenancy.lettingId,
+      actor: { type: 'renter', applicationId: link.subjectId },
+      type: 'tenancy.ppsn_skipped',
+      subject: { type: 'tenancy', id: tenancy.id },
+      data: { tenancyId: tenancy.id },
+    });
+    return true;
+  });
+}
+
 /** R24: the rent-setting pack: the previous rent, the check, three comparables, the new rent. */
 export async function rentSettingPack(member: Member, lettingId: string) {
   return withOrg(member.organisationId, async (tx) => {

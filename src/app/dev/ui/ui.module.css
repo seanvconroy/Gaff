@@ -285,3 +285,17 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* The list of a renter's pages (/dev/ui/renter): each a line of its own, and a full target. */
+.pageList {
+  display: grid;
+  margin: 0;
+  padding: var(--space-6) 0 var(--space-16);
+  list-style: none;
+}
+
+.pageLink {
+  display: flex;
+  align-items: center;
+  min-height: var(--size-target);
+}

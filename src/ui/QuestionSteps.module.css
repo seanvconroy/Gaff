@@ -1,0 +1,55 @@
+/*
+ * Questions asked one per screen, inside a page: the progress, the question as the screen's
+ * title, its controls, then the one primary button and Back. Below 900px the buttons span the
+ * screen, the primary one first; above, they sit side by side and fit their labels.
+ */
+.form {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.titles {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* The question: display size, as any step-by-step flow's (section 8, Type). */
+.title {
+  font-family: var(--type-display-mobile-family);
+  font-size: var(--type-display-mobile-size);
+  line-height: var(--type-display-mobile-line);
+  font-weight: var(--type-display-mobile-weight);
+  letter-spacing: var(--type-display-mobile-tracking);
+  overflow-wrap: anywhere;
+}
+
+/* Takes focus when a screen opens, for screen readers: no ring, as it isn't a control. */
+.title:focus {
+  outline: none;
+}
+
+.lead {
+  color: var(--color-ink-muted);
+}
+
+.buttons {
+  display: grid;
+  gap: var(--space-2);
+}
+
+@media (width > 900px) {
+  .title {
+    font-family: var(--type-display-family);
+    font-size: var(--type-display-size);
+    line-height: var(--type-display-line);
+    font-weight: var(--type-display-weight);
+    letter-spacing: var(--type-display-tracking);
+  }
+
+  .buttons {
+    display: flex;
+    flex-flow: row-reverse wrap;
+    justify-content: flex-end;
+  }
+}

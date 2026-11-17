@@ -755,12 +755,12 @@ test('UX-SI-12: private links need no account, as before', async ({
   browser: Browser;
 }) => {
   // Signed out, a private link's page answers for itself (a made-up token: the link's own
-  // "may have expired" page), and never sends anyone to the sign-in screen. The renter, owner
+  // "This link has ended" page), and never sends anyone to the sign-in screen. The renter, owner
   // and referee journeys (r9, r27, slice2) open real links with no account.
   const context = await browser.newContext();
   const visitor = await context.newPage();
   await visitor.goto(`/r/${'a'.repeat(43)}`);
-  await expect(visitor.getByText('It may have expired.')).toBeVisible();
+  await expect(visitor.getByRole('heading', { name: 'This link has ended' })).toBeVisible();
   expect(visitor.url()).not.toContain('/sign-in');
   await expect(visitor.getByRole('heading', { name: 'Sign in or create an account' })).toHaveCount(
     0,

@@ -1,0 +1,171 @@
+import type { ReactNode } from 'react';
+import { checksCopy, notices } from '@/copy/renter';
+import type { RenterModel } from '@/server/renter/model';
+import { Disclosure } from '@/ui/Disclosure';
+import { Notice } from '@/ui/Notice';
+import { Outcome } from '@/ui/Outcome';
+import { StepList } from '@/ui/StepList';
+import { SubmitButton } from '@/ui/SubmitButton';
+import styles from '../renter.module.css';
+import { startCheckAction } from './check-actions';
+import { CodeGate } from './CodeGate';
+import { PayslipsLink } from './PayslipsLink';
+import { ReferencesFlow } from './ReferencesFlow';
+import type { HubOptions } from './RenterHub';
+import { Task } from './Task';
+
+/**
+ * UX-RN-16 (UX-PP-6, notice 1): before a check starts, one line says what's kept, who sees the
+ * result and when it's deleted, with "More" for the rest.
+ */
+function Keeps({ line, more }: { line: string; more: string }) {
+  return (
+    <div className={styles.keeps} data-notice="check">
+      <p>{line}</p>
+      <Disclosure summary={checksCopy.more}>
+        <p>{more}</p>
+      </Disclosure>
+    </div>
+  );
+}
+
+/**
+ * R18, UX-RN-14 to UX-RN-18: the chosen renter's checks, one at a time. The three are a short
+ * list (done, next, to come); under it is only the next one's task and button. A check that
+ * didn't pass is shown in "warning", never "danger", with a plain reason and a way to a person.
+ *
+ * Until the one-time code is entered (or they're signed in with the same email), the page shows
+ * only that there are checks, and "Start" (UX-RN-14).
+ *
+ * THE VERIFIED IDENTITY'S SEAM (UX-RN-15's first row, Q35): "Use the ID check you did on 3
+ * October?" before the provider's flow, and "Keep this, so you never have to do it again?" after
+ * it, belong to the ID check's task below (`provider('identity')`). They need an identity kept on
+ * a person's own profile, which work package WP-24 builds. Until then every ID check runs with
+ * the provider, and nothing is offered to keep.
+ */
+export function ChecksTask({
+  token,
+  model,
+  options,
+}: {
+  token: string;
+  model: RenterModel;
+  options: HubOptions;
+}) {
+  const { operator, checks } = model;
+  const list = (
+    <StepList
+      label={checksCopy.list}
+      steps={checks.list.map((item) => ({
+        name: checksCopy.names[item.check],
+        // Before the code, the list says what the checks are, not where each stands.
+        state: options.open ? (item.state === 'arranged' ? 'under_way' : item.state) : 'to_come',
+        stateLabel: options.open
+          ? item.state === 'arranged'
+            ? checksCopy.states.under_way
+            : checksCopy.states[item.state]
+          : checksCopy.states.to_come,
+        note:
+          options.open && item.state === 'arranged'
+            ? checksCopy.arranged(operator)
+            : options.open && item.check === 'references'
+              ? refereeNotes(model)
+              : undefined,
+      }))}
+    />
+  );
+  if (!options.open) {
+    return (
+      <Task title={checksCopy.title} lead={checksCopy.lead(operator)}>
+        {list}
+        <CodeGate token={token} sentTo={options.sentTo} button={checksCopy.start} />
+      </Task>
+    );
+  }
+
+  const find = (kind: 'identity' | 'income') => checks.items.find((item) => item.kind === kind);
+  const provider = (kind: 'identity' | 'income'): ReactNode => {
+    const check = find(kind);
+    const copy = checksCopy[kind];
+    const failed = check?.status === 'not_passed';
+    const started = check?.status === 'in_progress';
+    return (
+      <section className={styles.task} aria-labelledby="next-check">
+        <div className={styles.titles}>
+          <h3 id="next-check" className="type-title">
+            {checksCopy.names[kind]}
+          </h3>
+          <p>{copy.what}</p>
+        </div>
+        {failed ? (
+          <Notice tone="warning" title={checksCopy.notPassed.title}>
+            <p>
+              {checksCopy.notPassed.reasons[check.reason ?? ''] ?? checksCopy.notPassed.other}{' '}
+              {checksCopy.notPassed.after(operator)}
+            </p>
+          </Notice>
+        ) : null}
+        {started ? <p>{checksCopy.unfinished}</p> : null}
+        <Keeps line={notices.check[kind](operator, checks.retentionDays)} more={copy.more} />
+        <div className={styles.actions}>
+          <form action={startCheckAction.bind(null, token, kind)}>
+            <SubmitButton fullWidth="phone" pendingLabel={checksCopy.opening}>
+              {failed ? checksCopy.tryAgain : started ? checksCopy.startAgain : copy.button}
+            </SubmitButton>
+          </form>
+          {kind === 'income' ? <PayslipsLink operator={operator} /> : null}
+        </div>
+      </section>
+    );
+  };
+
+  return (
+    <Task title={checksCopy.title}>
+      {options.checkProblem && checksCopy.problems[options.checkProblem] ? (
+        <Notice tone="warning" role="alert">
+          <p>{checksCopy.problems[options.checkProblem]}</p>
+        </Notice>
+      ) : null}
+      {list}
+      {checks.next === 'identity' || checks.next === 'income' ? provider(checks.next) : null}
+      {checks.next === 'references' ? (
+        <div className={styles.task}>
+          <ReferencesFlow token={token} ask={checks.referees} startAt={options.q} />
+          <Keeps line={notices.check.references(operator)} more={checksCopy.references.more} />
+        </div>
+      ) : null}
+      {checks.next === null ? (
+        <Outcome tone="success" title={checksCopy.done.title} role="status">
+          <p>{checksCopy.done.text(operator)}</p>
+        </Outcome>
+      ) : null}
+    </Task>
+  );
+}
+
+/** Each referee the renter named, and where their answer stands. Nothing about what they said. */
+function refereeNotes(model: RenterModel): ReactNode {
+  const named = model.checks.items.filter(
+    (item) =>
+      (item.kind === 'landlord_reference' || item.kind === 'employer_reference') &&
+      ['in_progress', 'answered', 'no_answer'].includes(item.status),
+  );
+  if (named.length === 0) return undefined;
+  return named
+    .map((item) => {
+      const who =
+        item.kind === 'landlord_reference'
+          ? checksCopy.referee.landlord
+          : checksCopy.referee.employer;
+      const what =
+        item.status === 'answered'
+          ? checksCopy.referee.answered
+          : item.status === 'no_answer'
+            ? checksCopy.referee.noAnswer
+            : item.requestedOn
+              ? checksCopy.referee.asked(item.requestedOn)
+              : '';
+      return `${who}${item.refereeName ? `, ${item.refereeName}` : ''}: ${what}`;
+    })
+    .join('. ');
+}

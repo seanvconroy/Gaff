@@ -7,6 +7,7 @@ import {
   subjectsSentTo,
 } from './support';
 import { AOIFE, CIARAN, applyOnPhone, onPhone, twoChosen, twoPeopleWhoCame } from './journeys';
+import { enterLinkCode, expectRenterPageAtBothWidths } from './renter';
 
 test('R16: someone who came applies on their phone, with two questions and no documents', async ({
   browser,
@@ -15,25 +16,61 @@ test('R16: someone who came applies on their phone, with two questions and no do
   test.slow();
   const { links } = await twoPeopleWhoCame(browser, page);
   const aoife = await onPhone(browser, links[AOIFE]!);
+  const renter = aoife.page;
+  // Rule 2 (staged data): no page of the application takes a document.
+  const noDocuments = () => expect(renter.locator('input[type=file]')).toHaveCount(0);
   await expect(
-    aoife.page.getByRole('heading', { name: 'Apply for 12 Ranelagh Road' }),
+    renter.getByRole('heading', { name: 'Thanks for coming. Would you like to apply?' }),
   ).toBeVisible();
-  await expect(aoife.page.getByText('Aoife Byrne', { exact: true })).toBeVisible();
-  await expect(
-    aoife.page.getByText(/looks for at least 2\.5 times the rent: €4,625 a month/),
-  ).toBeVisible();
-  await expectAccessible(aoife.page);
-  await expectNoSidewaysScroll(aoife.page);
-  await screenshot(aoife.page, '35-renter-apply');
+  await expect(renter.getByText('you don’t need any documents')).toBeVisible();
+  await noDocuments();
+  await expectRenterPageAtBothWidths(renter, { shots: 'wp12-live-after-viewing' });
+  await renter.getByRole('link', { name: 'Apply', exact: true }).click();
 
-  await aoife.page.getByRole('button', { name: 'Send my application' }).click();
-  await expect(aoife.page.getByText('Choose how you earn most of your income.')).toBeVisible();
-  await aoife.page.getByLabel('From a job').check();
-  await aoife.page.getByLabel('Your household’s take-home income each month').fill('5,200');
-  await aoife.page.getByRole('button', { name: 'Send my application' }).click();
-  await expect(aoife.page.getByText('Thanks, Aoife')).toBeVisible();
-  await expect(aoife.page.getByText('we’ll email you either way')).toBeVisible();
-  await expectAccessible(aoife.page);
+  // UX-RN-11: two questions, one per screen.
+  const next = renter.getByRole('button', { name: 'Next', exact: true });
+  await expect(
+    renter.getByRole('heading', { name: 'How do you earn most of your income?' }),
+  ).toBeVisible();
+  await noDocuments();
+  await expectAccessible(renter);
+  await expectNoSidewaysScroll(renter);
+  await screenshot(renter, '35-renter-apply');
+  await expectRenterPageAtBothWidths(renter, { shots: 'wp12-live-apply-earning' });
+  await next.click();
+  await expect(renter.getByText('Choose how you earn most of your income.')).toBeVisible();
+  await renter.getByRole('radio', { name: 'From a job', exact: true }).check();
+  await next.click();
+
+  // The income rule is shown before they answer, and it's the same for everyone (UX-RN-12).
+  await expect(
+    renter.getByRole('heading', { name: 'What’s your household’s take-home income each month?' }),
+  ).toBeVisible();
+  await expect(
+    renter.getByText('Halcyon Lettings looks for 2.5 times the rent. Everyone is asked the same.'),
+  ).toBeVisible();
+  // Rule 3: housing support counts as income, and nothing asks whether they receive it.
+  await expect(renter.getByText('Include any housing support, such as HAP.')).toBeVisible();
+  await expect(renter.getByRole('checkbox')).toHaveCount(0);
+  await noDocuments();
+  await expectRenterPageAtBothWidths(renter, { shots: 'wp12-live-apply-income' });
+  await renter.getByLabel('Take-home income each month').fill('5,200');
+  await next.click();
+
+  // The check screen: her name and email, each with "Change", then one button.
+  await expect(renter.getByRole('heading', { name: 'Is this right?' })).toBeVisible();
+  await expect(renter.getByText('Aoife Byrne', { exact: true })).toBeVisible();
+  await expect(renter.getByText(AOIFE, { exact: true })).toBeVisible();
+  await expect(renter.getByText('€5,200 a month')).toBeVisible();
+  await expect(renter.getByRole('button', { name: 'Change name' })).toBeVisible();
+  await expect(renter.getByRole('button', { name: 'Change email' })).toBeVisible();
+  await noDocuments();
+  await expectRenterPageAtBothWidths(renter, { shots: 'wp12-live-apply-check' });
+  await renter.getByRole('button', { name: 'Send my application' }).click();
+  await expect(renter.getByRole('heading', { name: 'Your application is in' })).toBeVisible();
+  await expect(renter.getByText('We’ll email you either way.')).toBeVisible();
+  await expectAccessible(renter);
+  await expectRenterPageAtBothWidths(renter, { shots: 'wp12-live-applied' });
   await aoife.context.close();
 });
 
@@ -85,38 +122,83 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   const aoife = await onPhone(browser, checksLink);
   const renter = aoife.page;
   await expect(renter.getByRole('heading', { name: 'A few checks before an offer' })).toBeVisible();
-  await expect(renter.getByText('Gaff keeps only whether it worked')).toBeVisible();
+  // UX-RN-14: the link alone shows that there are checks, and nothing about where each stands.
+  const list = renter.getByRole('list', { name: 'Your checks' }).getByRole('listitem');
+  await expect(list).toHaveText([
+    /Your ID.*To come/,
+    /Your income.*To come/,
+    /Your references.*To come/,
+  ]);
+  await expect(renter.getByRole('button', { name: /Check my/ })).toHaveCount(0);
+  await expectRenterPageAtBothWidths(renter, { shots: 'wp12-live-checks-start' });
+  await enterLinkCode(renter, AOIFE, 'Start');
+
+  // UX-RN-15: one at a time: the three as a short list, and only the next one's task and button.
+  await expect(list).toHaveText([
+    /Your ID.*Next/,
+    /Your income.*To come/,
+    /Your references.*To come/,
+  ]);
+  await expect(renter.getByRole('button', { name: 'Check my income' })).toHaveCount(0);
+  // UX-RN-16: what's kept, who sees it and when it goes, said before the check starts.
+  await expect(renter.locator('[data-notice="check"]')).toContainText(
+    'Gaff keeps only the result and the name on your ID, never the photos. Only Halcyon Lettings sees it',
+  );
   await expectAccessible(renter);
   await screenshot(renter, '37-renter-checks');
+  await expectRenterPageAtBothWidths(renter, { notices: ['check'], shots: 'wp12-live-checks-id' });
 
-  // ID: through the stand-in provider, back to a page that shows nothing private.
+  // ID: through the stand-in provider, which is never given her link. This browser remembers
+  // the way back, so she lands on her own page, at the next check (UX-RN-17).
   await renter.getByRole('button', { name: 'Check my ID' }).click();
   await expect(renter.getByRole('heading', { name: 'Stand-in ID check' })).toBeVisible();
+  expect(renter.url()).not.toContain(checksLink.split('/r/')[1]!);
   await renter.getByRole('button', { name: 'The ID and selfie match' }).click();
-  await expect(
-    renter.getByRole('heading', { name: 'Thanks, that’s your ID check done' }),
-  ).toBeVisible();
+  await expect(renter).toHaveURL(checksLink);
+  await expect(list).toHaveText([/Your ID.*Done/, /Your income.*Next/, /Your references.*To come/]);
 
   // Income: the first try doesn't work, and that's said kindly, then it's confirmed.
-  await renter.goto(checksLink);
   await renter.getByRole('button', { name: 'Check my income' }).click();
   await renter.getByRole('button', { name: 'No regular income found' }).click();
-  await renter.waitForURL(/\/checks\/done/);
-  await renter.goto(checksLink);
-  await expect(renter.getByText('That didn’t work this time')).toBeVisible();
+  await expect(renter).toHaveURL(checksLink);
+  // A check that didn't work is shown in "warning", never "danger", with a plain reason.
+  const failed = renter.locator('[data-box="notice"]').filter({ hasText: 'That didn’t work' });
+  await expect(failed).toContainText('The check couldn’t find a regular income in your account.');
+  await expect(failed).toHaveAttribute('data-tone', 'warning');
+  await expect(renter.locator('[data-tone="danger"]')).toHaveCount(0);
   await expectAccessible(renter);
+  await expectRenterPageAtBothWidths(renter, {
+    notices: ['check'],
+    shots: 'wp12-live-checks-income-failed',
+  });
   await renter.getByRole('button', { name: 'Try again' }).click();
   await renter.getByRole('button', { name: 'Confirm this income' }).click();
-  await renter.waitForURL(/\/checks\/done/);
+  await expect(renter).toHaveURL(checksLink);
 
-  // References: a previous landlord, and no employer to ask.
-  await renter.goto(checksLink);
-  await renter.getByLabel('Your last landlord’s name').fill('Mary Kelly');
-  await renter.getByLabel('Your last landlord’s email').fill('mary.kelly@example.ie');
-  await renter.getByLabel('I don’t have an employer to ask').check();
-  await renter.getByRole('button', { name: 'Ask for my references' }).click();
-  await expect(renter.getByText('We’ve asked for your references.')).toBeVisible();
-  await expect(renter.getByText(/Your last landlord, Mary Kelly:/)).toBeVisible();
+  // References, one referee per screen: a previous landlord, and no employer to ask.
+  await expect(list).toHaveText([/Your ID.*Done/, /Your income.*Done/, /Your references.*Next/]);
+  const next = renter.getByRole('button', { name: 'Next', exact: true });
+  await expect(renter.getByRole('heading', { name: 'Have you rented before?' })).toBeVisible();
+  await expectRenterPageAtBothWidths(renter, {
+    notices: ['check'],
+    shots: 'wp12-live-checks-references',
+  });
+  await renter.getByRole('radio', { name: 'Yes', exact: true }).check();
+  await next.click();
+  await renter.getByLabel('Their name').fill('Mary Kelly');
+  await renter.getByLabel('Their email').fill('mary.kelly@example.ie');
+  await next.click();
+  // UX-RN-18: "No" is an answer like any other. Nothing is called missing.
+  await expect(
+    renter.getByRole('heading', { name: 'Is there an employer we can ask?' }),
+  ).toBeVisible();
+  await renter.getByRole('radio', { name: 'No', exact: true }).check();
+  await renter.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(renter.getByRole('heading', { name: 'That’s everything from you' })).toBeVisible();
+  await expect(list).toHaveText([/Your ID.*Done/, /Your income.*Done/, /Your references.*Done/]);
+  await expect(renter.getByText(/Your last landlord, Mary Kelly: asked on/)).toBeVisible();
+  expect(await renter.getByRole('main').innerText()).not.toMatch(/missing|incomplete/i);
+  await expectRenterPageAtBothWidths(renter, { shots: 'wp12-live-checks-done' });
   await aoife.context.close();
 
   // The referee answers on their phone, with no account.
@@ -237,15 +319,41 @@ test('R20, R21: the offer goes out with a deadline, the renter accepts on their 
   await expect(
     aoife.page.getByRole('heading', { name: 'An offer for 12 Ranelagh Road' }),
   ).toBeVisible();
-  await expect(aoife.page.getByText(/^Please answer by \w+day \d+ \w+, /)).toBeVisible();
-  await expect(aoife.page.getByText('nothing is paid through Gaff')).toBeVisible();
+  // UX-RN-19: the terms, one total with what makes it up, one line of caution, and the deadline.
+  await expect(aoife.page.getByText(/^Answer by \w+day \d+ \w+, .+\.$/)).toBeVisible();
+  await expect(
+    aoife.page.getByRole('heading', { name: 'To pay before you move in' }),
+  ).toBeVisible();
+  await expect(aoife.page.getByText('€3,700', { exact: true })).toBeVisible();
+  // Rules 4 and 5: no fee of any kind, and the money goes to the lister, never to Gaff.
+  await expect(aoife.page.locator('[data-notice="fees"]')).toHaveText(
+    'No other fees. You pay Halcyon Lettings directly.',
+  );
+  expect(await aoife.page.getByRole('main').innerText()).not.toMatch(
+    /booking fee|admin fee|holding deposit|pay gaff/i,
+  );
+  await expect(aoife.page.getByRole('link', { name: 'Decline', exact: true })).toBeVisible();
   await expectAccessible(aoife.page);
   await screenshot(aoife.page, '42-renter-offer');
+  await expectRenterPageAtBothWidths(aoife.page, { notices: ['fees'], shots: 'wp12-live-offer' });
+  // UX-RN-20: declining is one screen that asks for no reason. She goes back and accepts.
+  await aoife.page.getByRole('link', { name: 'Decline', exact: true }).click();
+  await expect(aoife.page.getByRole('heading', { name: 'Decline the offer?' })).toBeVisible();
+  await expect(
+    aoife.page.getByRole('main').locator('input:not([type=hidden]), textarea, select'),
+  ).toHaveCount(0);
+  await expectRenterPageAtBothWidths(aoife.page, { shots: 'wp12-live-decline' });
+  await aoife.page.getByRole('link', { name: 'Back to the offer' }).click();
   await aoife.page.getByRole('button', { name: 'Accept the offer' }).click();
   await expect(
-    aoife.page.getByText('You’ve accepted the offer, and your tenancy starts on'),
+    aoife.page.getByText('You’ve accepted the offer. Your tenancy starts on'),
   ).toBeVisible();
+  // UX-RN-26: her three steps, with the first one next.
+  await expect(
+    aoife.page.getByRole('list', { name: 'Your tenancy, step by step' }).getByRole('listitem'),
+  ).toHaveText([/Sign your agreement.*Next/, /Pay.*To come/, /inventory.*To come/]);
   await expectAccessible(aoife.page);
+  await expectRenterPageAtBothWidths(aoife.page, { shots: 'wp12-live-tenancy-agreement-coming' });
   await aoife.context.close();
 
   // Ciarán, the backup, hears straight away, with when his details go.
@@ -255,11 +363,18 @@ test('R20, R21: the offer goes out with a deadline, the renter accepts on their 
     );
   }).toPass({ timeout: 20_000 });
   const ciaran = await onPhone(browser, links[CIARAN]!);
-  await expect(ciaran.page.getByText('The home has been let')).toBeVisible();
+  await expect(
+    ciaran.page.getByRole('heading', { name: '12 Ranelagh Road has been let' }),
+  ).toBeVisible();
   await expect(
     ciaran.page.getByText(/We’ll delete your details from Gaff by \w+day \d+ \w+\./),
   ).toBeVisible();
   await expectAccessible(ciaran.page);
+  // UX-PP-6: the one notice on a closed home is when their details will be deleted.
+  await expectRenterPageAtBothWidths(ciaran.page, {
+    notices: ['deletion'],
+    shots: 'wp12-live-let-to-someone-else',
+  });
   await ciaran.context.close();
 
   await page.goto(`${lettingUrl}/applications`);

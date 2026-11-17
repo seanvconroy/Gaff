@@ -53,6 +53,29 @@ export const inventoryItemSchema = z.object({
     .transform((v) => (v ? v : null)),
 });
 
+/**
+ * UX-RN-25: "Something's not right": the tenant's short note to the lister about one item of the
+ * inventory. Their own words about the home; nothing is asked beyond the note.
+ */
+export const INVENTORY_QUERY_MAX = 500;
+
+export const inventoryQuerySchema = z.object({
+  note: z
+    .string({ error: 'Write a short note about what’s not right.' })
+    .trim()
+    .min(1, 'Write a short note about what’s not right.')
+    .max(INVENTORY_QUERY_MAX, `Keep the note to ${INVENTORY_QUERY_MAX} characters.`),
+});
+
+/** UX-RN-25: the inventory room by room, in the order the rooms were first recorded. */
+export function byRoom<T extends { room: string }>(
+  items: readonly T[],
+): Array<{ room: string; items: T[] }> {
+  const rooms = new Map<string, T[]>();
+  for (const item of items) rooms.set(item.room, [...(rooms.get(item.room) ?? []), item]);
+  return [...rooms.entries()].map(([room, list]) => ({ room, items: list }));
+}
+
 export { MAX_PHOTO_BYTES } from './photos';
 
 /** The real type of a photo, from its first bytes, never from what the browser claims. */

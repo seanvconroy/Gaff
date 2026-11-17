@@ -6,11 +6,15 @@ import styles from './SegmentedProgress.module.css';
  * name sits beside the bar; on a desktop every part is named under its segment. There is no
  * "Step 3 of 7" in words unless there are more than six steps. Screen readers get a list: each
  * part, whether it's done, and which one you're on.
+ *
+ * The names are 14px in the workspace. A private page passes `large`, so they're body size
+ * there: nothing a renter reads is under 16px (UX-PP-4).
  */
 export function SegmentedProgress({
   label,
   segments,
   current,
+  large,
 }: {
   /** What this is progress through, for screen readers: "Add a letting". */
   label: string;
@@ -18,12 +22,17 @@ export function SegmentedProgress({
   segments: readonly string[];
   /** Which part you're on, counting from 0. Past the end means every part is done. */
   current: number;
+  /** Names at body size, for private pages. */
+  large?: boolean;
 }) {
   const many = segments.length > 6;
   const at = Math.min(Math.max(current, 0), segments.length);
   const name = segments[at];
   return (
-    <div className={styles.progress} data-many={many ? '' : undefined}>
+    <div
+      className={`${styles.progress} ${large ? styles.large : ''}`}
+      data-many={many ? '' : undefined}
+    >
       <ol className={styles.segments} aria-label={label}>
         {segments.map((segment, index) => {
           const state = index < at ? 'done' : index === at ? 'current' : 'todo';

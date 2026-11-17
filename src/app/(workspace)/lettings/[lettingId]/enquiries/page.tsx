@@ -1,5 +1,6 @@
 import { Inbox } from 'lucide-react';
 import type { Metadata } from 'next';
+import { sourcesInWords } from '@/domain/enquiries/sources';
 import { formatDateTime } from '@/lib/format';
 import { listApplications } from '@/server/enquiries/queries';
 import { EmptyState } from '@/ui/EmptyState';
@@ -11,8 +12,6 @@ import { LettingHeader } from '../LettingHeader';
 import styles from '../letting.module.css';
 
 export const metadata: Metadata = { title: 'Enquiries' };
-
-const portalNames: Record<string, string> = { daft: 'Daft', myhome: 'MyHome' };
 
 /** R6: everyone who has enquired, with duplicates across portals merged. */
 export default async function EnquiriesPage({
@@ -41,8 +40,8 @@ export default async function EnquiriesPage({
               {enquiries.length} {enquiries.length === 1 ? 'enquiry' : 'enquiries'}
             </h2>
             <span className={styles.small}>
-              {answered} of {enquiries.length} have sent their answers · the same person on Daft and
-              MyHome shows once
+              {answered} of {enquiries.length} have sent their answers · the same person on Gaff, Daft
+              and MyHome shows once
             </span>
           </div>
           <Table caption="Enquiries" head={['Name', 'Contact', 'Via', 'Enquired', 'Questions']}>
@@ -58,7 +57,7 @@ export default async function EnquiriesPage({
                   ) : null}
                 </Cell>
                 <Cell label="Via">
-                  {application.sources.map((s) => portalNames[s] ?? s).join(' and ')}
+                  {sourcesInWords(application.sources)}
                 </Cell>
                 <Cell label="Enquired">{formatDateTime(application.firstEnquiredAt)}</Cell>
                 <Cell label="Questions">

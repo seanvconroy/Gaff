@@ -1,8 +1,8 @@
-import { and, eq, inArray, or, sql } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { withOrg, type Tx } from '@/db/client';
 import { applications, inboundEmails, lettings, messages } from '@/db/schema';
 import { matchLetting } from '@/domain/enquiries/match';
-import { normaliseEmail, normalisePhone, parseEnquiry } from '@/domain/enquiries/parse';
+import { parseEnquiry } from '@/domain/enquiries/parse';
 import { stripQuotedReply } from '@/domain/enquiries/reply';
 import { env } from '@/lib/env';
 import { parseGaffAddress } from '@/ports/inbound-email';
@@ -10,6 +10,10 @@ import { recordEvent } from '@/server/record/events';
 import { needsAnswers, queueDraft } from '@/server/answers/draft';
 import { queueFirstReply } from './first-reply';
 import { enquiryArrived, takeForwardingTest } from './forwarding';
+import { confirmWaitingIn, waitingByRef } from './ask-to-view';
+import { placeEnquiry } from './place';
+
+export { newApplicationRef } from './place';
 
 export type ProcessOutcome =
   | { kind: 'enquiry'; applicationId: string; lettingId: string }
@@ -26,14 +30,6 @@ type Problem =
   | 'no_matching_letting'
   | 'unknown_thread'
   | 'details_deleted';
-
-const REF_ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789';
-
-/** A short random reference for a renter's reply address (not guessable). */
-export function newApplicationRef(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(12));
-  return Array.from(bytes, (b) => REF_ALPHABET[b % REF_ALPHABET.length]).join('');
-}
 
 /**
  * R6: reads a stored email and turns it into an application for the right home, merging
@@ -97,7 +93,7 @@ export async function processInboundEmailIn(
     // A reply in a renter's thread arrives at <slug>+<ref>@.
     const address = parseGaffAddress(email.recipient, env().INBOUND_DOMAIN);
     if (address?.ref) {
-      const [application] = await tx
+      let [application] = await tx
         .select({
           id: applications.id,
           lettingId: applications.lettingId,
@@ -105,6 +101,19 @@ export async function processInboundEmailIn(
         })
         .from(applications)
         .where(eq(applications.ref, address.ref));
+      // UX-AV-6: a reply to the first email of an enquiry made on Gaff that's still waiting.
+      // Replying proves the address is theirs as well as opening the link does.
+      const waitingId = application ? null : await waitingByRef(tx, address.ref);
+      const confirmed = waitingId
+        ? await confirmWaitingIn(tx, input.organisationId, waitingId, 'reply')
+        : null;
+      if (confirmed) {
+        application = {
+          id: confirmed.applicationId,
+          lettingId: confirmed.lettingId,
+          deletedAt: null,
+        };
+      }
       if (!application) return setAside('unknown_thread');
       // R26: never re-attach new details to someone whose details were deleted. A person sees
       // it under "Needs attention", and it's cleared on the same schedule as other unplaced mail.
@@ -168,53 +177,17 @@ export async function processInboundEmailIn(
         : matchLetting(enquiry, email.subject, candidates);
     if (!lettingId) return setAside('no_matching_letting');
 
-    const emailNormalised = normaliseEmail(enquiry.email);
-    const phoneE164 = normalisePhone(enquiry.phone);
-    const [existing] = await tx
-      .select({ id: applications.id, sources: applications.sources })
-      .from(applications)
-      .where(
-        and(
-          eq(applications.lettingId, lettingId),
-          or(
-            eq(applications.emailNormalised, emailNormalised),
-            phoneE164 ? eq(applications.phoneE164, phoneE164) : sql`false`,
-          ),
-        ),
-      )
-      .for('update');
-
-    let applicationId: string;
-    if (existing) {
-      applicationId = existing.id;
-      await tx
-        .update(applications)
-        .set({
-          lastEnquiredAt: email.receivedAt,
-          sources: [...new Set([...existing.sources, enquiry.portal])],
-          phone: sql`coalesce(${applications.phone}, ${enquiry.phone})`,
-          phoneE164: sql`coalesce(${applications.phoneE164}, ${phoneE164})`,
-        })
-        .where(eq(applications.id, existing.id));
-    } else {
-      const [created] = await tx
-        .insert(applications)
-        .values({
-          organisationId: input.organisationId,
-          lettingId,
-          ref: newApplicationRef(),
-          fullName: enquiry.name,
-          email: enquiry.email,
-          emailNormalised,
-          phone: enquiry.phone,
-          phoneE164,
-          sources: [enquiry.portal],
-          firstEnquiredAt: email.receivedAt,
-          lastEnquiredAt: email.receivedAt,
-        })
-        .returning({ id: applications.id });
-      applicationId = created!.id;
-    }
+    const placed = await placeEnquiry(tx, {
+      organisationId: input.organisationId,
+      lettingId,
+      fullName: enquiry.name,
+      email: enquiry.email,
+      phone: enquiry.phone,
+      source: enquiry.portal,
+      at: email.receivedAt,
+    });
+    const applicationId = placed.applicationId;
+    const existing = placed.existing;
 
     const [message] = await tx
       .insert(messages)

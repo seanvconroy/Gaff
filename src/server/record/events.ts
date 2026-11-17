@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Tx } from '@/db/client';
 import { events } from '@/db/schema';
 import { draftOrigins } from '@/domain/lettings/add-letting';
+import { enquirySources } from '@/domain/enquiries/sources';
 import { organisationKinds } from '@/domain/organisations/kinds';
 import { assertNoPersonalData } from '@/domain/record/personal-data';
 
@@ -9,6 +10,9 @@ import { assertNoPersonalData } from '@/domain/record/personal-data';
  * Every event type and the shape of its payload (ADR-0006). Payload fields must be IDs,
  * enums, numbers, booleans or dates: a compliance test rejects plain strings here.
  */
+/** UX-AV-6: how an enquiry made on Gaff was shown to come from its renter's own address. */
+const confirmedBy = ['signed_in', 'email_link', 'reply'] as const;
+
 export const eventCatalogue = {
   'organisation.created': z.object({ kind: z.enum(organisationKinds) }),
   'member.joined': z.object({ role: z.enum(['admin', 'negotiator']) }),
@@ -195,9 +199,34 @@ export const eventCatalogue = {
   }),
   'email.dismissed': z.object({ inboundEmailId: z.uuid() }),
   /** R6: a new renter enquired. */
-  'enquiry.received': z.object({ applicationId: z.uuid(), portal: z.enum(['daft', 'myhome']) }),
-  /** R6: the same renter enquired again (maybe on the other portal): merged, not duplicated. */
-  'enquiry.repeated': z.object({ applicationId: z.uuid(), portal: z.enum(['daft', 'myhome']) }),
+  /**
+   * R6, UX-AV-8: a new enquiry, from a portal or made on Gaff. For one made on Gaff,
+   * `confirmed` says how its address was shown to be the renter's (UX-AV-6): they were signed
+   * in, or they opened the link in their first email, or replied to it.
+   */
+  'enquiry.received': z.object({
+    applicationId: z.uuid(),
+    portal: z.enum(enquirySources),
+    confirmed: z.enum(confirmedBy).optional(),
+  }),
+  /** R6, UX-AV-9: the same renter enquired again (maybe elsewhere): merged, not duplicated. */
+  'enquiry.repeated': z.object({
+    applicationId: z.uuid(),
+    portal: z.enum(enquirySources),
+    confirmed: z.enum(confirmedBy).optional(),
+  }),
+  /**
+   * UX-AV-6: an enquiry made on Gaff from a typed email, waiting for its link to be opened. It
+   * names no letting: nothing reaches the letting until the renter confirms.
+   */
+  'enquiry.waiting': z.object({ waitingEnquiryId: z.uuid(), again: z.boolean() }),
+  /** UX-AV-6: it was confirmed, and is now this application. */
+  'enquiry.confirmed': z.object({ waitingEnquiryId: z.uuid(), applicationId: z.uuid() }),
+  /** UX-AV-6: unconfirmed after 24 hours, or its home stopped taking enquiries: dropped. */
+  'enquiry.dropped': z.object({
+    waitingEnquiryId: z.uuid(),
+    reason: z.enum(['unconfirmed', 'not_available']),
+  }),
   'reply.received': z.object({ applicationId: z.uuid(), messageId: z.uuid() }),
   /** R9: the renter answered the pre-viewing questions (which ones isn't personal; the answers are). */
   'application.answered': z.object({

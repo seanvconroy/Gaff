@@ -18,9 +18,9 @@ const all = ['moveInDate', 'stayMonths', 'occupants', 'hasPets'] as const;
 
 describe('UX-AV-1, UX-AV-4: what asking to view collects', () => {
   it('UX-AV-1: a name and an email are enough', () => {
-    expect(askContactSchema.parse({ fullName: ' Aoife Byrne ', email: 'aoife@example.ie ' })).toEqual(
-      { fullName: 'Aoife Byrne', email: 'aoife@example.ie' },
-    );
+    expect(
+      askContactSchema.parse({ fullName: ' Aoife Byrne ', email: 'aoife@example.ie ' }),
+    ).toEqual({ fullName: 'Aoife Byrne', email: 'aoife@example.ie' });
   });
 
   it('UX-AV-4: nothing else can be sent: a phone number, income or anything else is dropped', () => {
@@ -139,9 +139,9 @@ describe('Asking to view: which screens a renter sees', () => {
       }).twoTaps,
     ).toBe(true);
     expect(askPlan({ signedIn: { hasName: true }, asked: [], filled: {} }).twoTaps).toBe(true);
-    expect(
-      askPlan({ signedIn: { hasName: true }, asked: ['occupants'], filled: {} }).twoTaps,
-    ).toBe(false);
+    expect(askPlan({ signedIn: { hasName: true }, asked: ['occupants'], filled: {} }).twoTaps).toBe(
+      false,
+    );
     // A sign-in that gave no name asks for one, and nothing else about them.
     const nameless = askPlan({ signedIn: { hasName: false }, asked: [], filled: {} });
     expect([nameless.askName, nameless.askEmail, nameless.twoTaps]).toEqual([true, false, false]);

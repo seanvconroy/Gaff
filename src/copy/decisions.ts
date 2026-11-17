@@ -184,9 +184,12 @@ export const decisionsCopy = {
     },
     back: {
       title: (first: string) => `The checks are back for ${first}`,
-      lead: 'Each result is in words. A check that didn’t pass is never a refusal: you decide.',
+      lead: 'Here is what each check found. Next, the offer.',
       continue: 'Continue to the offer',
     },
+    /** A check's state beside its result. */
+    done: 'Done',
+    underWay: 'Under way',
     none: {
       title: 'Nobody has checks yet',
       text: 'Checks start when you choose an applicant.',
@@ -221,6 +224,10 @@ export const decisionsCopy = {
       sees: (owner: string) => `What ${owner} will see`,
       preferred: 'The tenant you chose',
       backup: 'Your backup',
+      incomeLabel: 'Income',
+      stillUnderWay: 'Still under way',
+      incomeConfirmed: (ratioTenths: number) =>
+        `Confirmed, ${formatRatio(ratioTenths)} times the rent`,
       income: (ratioTenths: number, meets: boolean) =>
         `Income ${formatRatio(ratioTenths)} times the rent: ${meets ? 'meets' : 'below'} your rule`,
       underWay: (n: number) =>

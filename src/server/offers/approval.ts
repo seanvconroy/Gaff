@@ -101,8 +101,8 @@ export async function withdrawStaleApprovals(
     .where(and(eq(accessLinks.purpose, 'landlord_approval'), inArray(accessLinks.subjectId, ids)));
 }
 
-const contactSchema = z.object({
-  name: z.string().trim().min(1, 'Enter the landlord’s name.').max(120),
+export const contactSchema = z.object({
+  name: z.string().trim().min(1, 'Enter the owner’s name.').max(120),
   email: z
     .string()
     .trim()

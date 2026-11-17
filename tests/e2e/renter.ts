@@ -130,6 +130,32 @@ export async function expectRenterPageAtBothWidths(
   if (was) await page.setViewportSize(was);
 }
 
+/**
+ * UX-PP-1, UX-PP-4, UX-PP-9: an owner's or a referee's page, at 390px and at 1280px: in the
+ * agency's frame, accessible, one primary button at most, nothing under 16px, no sideways scroll,
+ * and nothing that invites them to use Gaff (Q45). `shots` saves `<shots>-390` and `-1280`.
+ */
+export async function expectFramePageAtBothWidths(
+  page: Page,
+  frame: 'owner' | 'referee',
+  shots?: string,
+): Promise<void> {
+  const was = page.viewportSize();
+  for (const width of WIDTHS) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(page.locator(`[data-frame="${frame}"]`)).toBeVisible();
+    await expectAccessible(page);
+    await expectOnePrimary(page);
+    await expectReadable(page);
+    await expectNoSidewaysScroll(page);
+    expect(await page.locator('body').innerText()).not.toMatch(
+      /sign up|create an account|try gaff|join gaff/i,
+    );
+    if (shots) await screenshot(page, `${shots}-${width}`);
+  }
+  if (was) await page.setViewportSize(was);
+}
+
 /** The newest one-time code emailed for a renter's link (UX-RN-14): the start of its subject. */
 export async function latestLinkCodeFor(email: string): Promise<string> {
   const client = new pg.Client({ connectionString: E2E_DATABASE_URL });

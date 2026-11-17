@@ -69,19 +69,25 @@ describe('UX-HM-7: all caught up offers one next most valuable action, in a fixe
 });
 
 describe('UX-HM-7: only actions that exist are offered, each in its place in the order', () => {
-  it('today that is adding a letting and adding viewing times', () => {
-    expect(suggestionsBuilt).toEqual(['add_letting', 'add_viewing_times']);
+  it('every action is built: setup (WP-27), adding a letting, inviting (WP-19), viewing times', () => {
+    expect(suggestionsBuilt).toEqual([
+      'finish_setup',
+      'add_letting',
+      'invite_colleague',
+      'add_viewing_times',
+    ]);
   });
 
-  it('skips setup (WP-27) and inviting (WP-19) until they are built, and offers the next', () => {
-    expect(suggestedAction({ ...base, setupUnfinished: true, members: 1, lettings: [] })).toEqual({
-      kind: 'add_letting',
-    });
-    expect(suggestedAction({ ...base, members: 1, lettings: [live('a', 0)] })).toEqual({
+  it('skips an action left out (a prompt the person declined), and offers the next', () => {
+    const built: SuggestionKind[] = ['add_letting', 'add_viewing_times'];
+    expect(
+      suggestedAction({ ...base, setupUnfinished: true, members: 1, lettings: [] }, built),
+    ).toEqual({ kind: 'add_letting' });
+    expect(suggestedAction({ ...base, members: 1, lettings: [live('a', 0)] }, built)).toEqual({
       kind: 'add_viewing_times',
       lettingId: 'a',
       address: '12 Ranelagh Road',
     });
-    expect(suggestedAction({ ...base, members: 1 })).toBeNull();
+    expect(suggestedAction({ ...base, members: 1 }, built)).toBeNull();
   });
 });

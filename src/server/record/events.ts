@@ -4,6 +4,7 @@ import { events } from '@/db/schema';
 import { draftOrigins } from '@/domain/lettings/add-letting';
 import { enquirySources } from '@/domain/enquiries/sources';
 import { reportReasons } from '@/domain/homes/report';
+import { promptCodes } from '@/domain/activation/prompts';
 import { organisationKinds } from '@/domain/organisations/kinds';
 import { assertNoPersonalData } from '@/domain/record/personal-data';
 
@@ -54,6 +55,12 @@ export const eventCatalogue = {
     role: z.enum(['admin', 'negotiator']),
     handedOver: z.number().int().min(0),
   }),
+  /** UX-GR-1: an admin answered the checklist's "Invite your team" with "It's just me". */
+  'team.just_me': z.object({}),
+  /** UX-GR-1: the person's setup checklist was complete: it never shows again. */
+  'setup.finished': z.object({ steps: z.number().int().min(1) }),
+  /** UX-GR-5: "Not now" to a prompt. It waits fourteen days, or for good if shown once. */
+  'prompt.declined': z.object({ prompt: z.enum(promptCodes) }),
   /**
    * UX-AG-9: the letting has a new lead: someone chose them (`changed`), or the lead left or
    * was removed (`handover`).

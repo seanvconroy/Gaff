@@ -10,6 +10,7 @@ import {
   screenshot,
   signUpOperator,
   toGoLiveThroughUi,
+  afterGoingLive,
 } from './support';
 import { expectOverview, openHistory } from './journeys';
 
@@ -289,7 +290,8 @@ test('Stage 1 and R27: the operator confirms set-up, and the timeline shows ever
   await expect(page.getByRole('heading', { name: '12 Ranelagh Road is live' })).toBeVisible();
   await page.getByRole('checkbox', { name: 'No', exact: true }).check();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
-  await expect(page.getByText('Gaff is now answering enquiries for this home.')).toBeVisible();
+  // UX-GR-3: a first letting ends with its test enquiry, watched being answered.
+  await afterGoingLive(page);
   await expect(page.getByRole('list', { name: 'How far it’s got' })).toContainText(
     'Find · Enquiries',
   );

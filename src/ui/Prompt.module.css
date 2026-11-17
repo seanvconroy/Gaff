@@ -1,0 +1,63 @@
+/*
+ * A prompt: a line of its own between hairlines, in the page's flow. No box, no colour of its
+ * own: it is a suggestion, not a status.
+ */
+.prompt {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3) var(--space-4);
+  align-items: center;
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tile {
+  display: inline-grid;
+  place-items: center;
+  width: var(--size-target);
+  height: var(--size-target);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-surface-2);
+  color: var(--color-ink);
+}
+
+.words {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-weight: var(--type-title-weight);
+}
+
+.text {
+  color: var(--color-ink-muted);
+}
+
+.text p {
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.actions form {
+  display: contents;
+}
+
+@media (width <= 900px) {
+  .prompt {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .actions {
+    grid-column: 1 / -1;
+  }
+}

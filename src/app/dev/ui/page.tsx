@@ -10,6 +10,7 @@ import {
   Sparkles,
   Trash2,
   UserRound,
+  Users,
 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -62,6 +63,8 @@ import { DirectionsLink } from '@/ui/DirectionsLink';
 import { DocumentView } from '@/ui/Document';
 import { NumberedSteps } from '@/ui/NumberedSteps';
 import { StepList } from '@/ui/StepList';
+import { SetupChecklist } from '@/ui/SetupChecklist';
+import { Prompt } from '@/ui/Prompt';
 import { TimePicker } from '@/ui/TimePicker';
 import {
   AddressSearchDemo,
@@ -1023,6 +1026,48 @@ export default function ComponentsPage() {
                   Get directions
                 </DirectionsLink>
               </div>
+            </Example>
+          </div>
+          <div className={styles.columns}>
+            <Example label="Setup checklist: a ring, the next step and its one button">
+              <SetupChecklist
+                title="Get set up"
+                done={1}
+                total={3}
+                steps={[
+                  { name: 'Add your first letting', done: true },
+                  { name: 'Send your Daft enquiries to Gaff', done: false },
+                  { name: 'Invite your team', done: false },
+                ]}
+                next={{
+                  name: 'Send your Daft enquiries to Gaff',
+                  why: 'One rule in your email, about two minutes. Then Gaff answers those too.',
+                  action: (
+                    <ButtonLink href="#lists" variant="secondary" fullWidth="phone">
+                      Set up forwarding
+                    </ButtonLink>
+                  ),
+                }}
+              />
+            </Example>
+            <Example label="Prompt: one line, one action, and Not now">
+              <Prompt
+                id="demo-prompt"
+                icon={Users}
+                title="Invite your team"
+                action={
+                  <ButtonLink href="#lists" variant="secondary">
+                    Invite your team
+                  </ButtonLink>
+                }
+                decline={
+                  <Button variant="quiet">
+                    Not now<span className="visually-hidden"> (Invite your team)</span>
+                  </Button>
+                }
+              >
+                <p>Colleagues see every letting and can cover for each other.</p>
+              </Prompt>
             </Example>
           </div>
           <Example label="A document with links that jump to each section">

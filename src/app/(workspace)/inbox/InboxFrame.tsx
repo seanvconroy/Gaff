@@ -31,6 +31,7 @@ export function InboxFrame({
   open,
   done,
   now,
+  prompt,
   children,
 }: {
   conversations: readonly Conversation[];
@@ -45,6 +46,11 @@ export function InboxFrame({
   /** The note of what was just done, from the address (`doneNote`). */
   done?: string;
   now: Date;
+  /**
+   * UX-GR-5, UX-GR-6: Inbox's one prompt, "Gaff can answer more if you add…", under the list.
+   * Never above it, and never while a conversation is open.
+   */
+  prompt?: ReactNode;
   /** The open conversation, or what stands beside the list when none is. */
   children: ReactNode;
 }) {
@@ -109,6 +115,7 @@ export function InboxFrame({
                   })}
                 </ConversationList>
               )}
+              {open ? null : prompt}
             </div>
           }
         >

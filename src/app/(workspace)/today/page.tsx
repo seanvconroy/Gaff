@@ -2,20 +2,25 @@ import { CalendarDays, CircleCheck, House } from 'lucide-react';
 import type { Metadata } from 'next';
 import { firstNameOf } from '@/domain/accounts/first-run';
 import { awayCountsIn, awaySentence } from '@/domain/dashboard/away';
-import { suggestedAction, type Suggestion } from '@/domain/dashboard/caught-up';
-import { setupChecklistFor } from '@/domain/dashboard/setup-checklist';
+import { checklistCopy } from '@/copy/activation';
+import { promptFor, suggestionsAllowed } from '@/domain/activation/prompts';
+import { suggestedAction, suggestionsBuilt, type Suggestion } from '@/domain/dashboard/caught-up';
+import type { SetupChecklist as Checklist } from '@/domain/dashboard/setup-checklist';
 import { todayRows } from '@/domain/dashboard/today-rows';
 import { chosenView, isMine, lettingsIn, todayIn, todayViews } from '@/domain/dashboard/views';
 import { navCounts } from '@/domain/navigation/counts';
 import { withReturn } from '@/domain/navigation/return-to';
 import { formatTimeRange } from '@/lib/format';
+import { setupFor, todayPromptFactsFor } from '@/server/activation/activation';
 import { requireMember } from '@/server/auth/member';
 import { dashboardForRequest } from '@/server/dashboard/dashboard';
 import { ActionList, ActionRow } from '@/ui/ActionList';
 import { ButtonLink } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
 import { PageHeader, Stack } from '@/ui/Layout';
+import { SetupChecklist } from '@/ui/SetupChecklist';
 import styles from '../dashboard.module.css';
+import { PromptLine } from '../PromptLine';
 import { TodayList } from '../TodayList';
 import { ViewSwitch } from '../ViewSwitch';
 
@@ -29,13 +34,17 @@ const addALetting = withReturn('/lettings/new', '/today');
  * question: what needs me? At most four blocks, in a fixed order, each only when it has
  * something in it:
  *
- * 1. the setup checklist (work package WP-27; see `setupChecklistFor`);
+ * 1. the setup checklist (UX-GR-1 to UX-GR-4; `setupChecklistFor`), while setup isn't done;
  * 2. Needs you: one row per thing waiting on this person, most urgent first;
  * 3. Viewings today;
  * 4. While you were away: one sentence of what Gaff did.
  *
- * UX-HM-6: the only primary button Today ever has belongs to the setup checklist, so today
- * there is none. The rows are the actions. UX-HM-9: nothing here counts the person's time.
+ * UX-HM-6: the only primary button Today ever has belongs to the setup checklist. The rows are
+ * the actions. UX-HM-9: nothing here counts the person's time.
+ *
+ * UX-GR-5, UX-GR-6: at most one prompt, chosen by `promptFor`: the checklist while it shows,
+ * otherwise one line after Needs you, or the "all caught up" line's one action. Never a banner
+ * across the top, and never anything that stands in front of a task.
  */
 export default async function TodayPage({
   searchParams,
@@ -70,15 +79,47 @@ export default async function TodayPage({
     ]),
   );
 
-  // Block 1 (WP-27): the setup checklist, with Today's one primary button. Nobody has one yet.
-  const checklist = setupChecklistFor({ userId: viewer.userId });
+  // Block 1: the setup checklist, with Today's one primary button (UX-GR-1, UX-HM-6).
+  const [setup, promptFacts] = await Promise.all([setupFor(member), todayPromptFactsFor(member)]);
+  const { checklist } = setup;
   const firstVisit = board.lettings.length === 0;
-  const suggestion = suggestedAction({
-    setupUnfinished: checklist !== null,
-    organisationKind: viewer.organisationKind,
-    members: viewer.members,
-    lettings: homes,
-  });
+  // UX-GR-5: one prompt at most. While the checklist shows, it is the prompt.
+  const prompt = promptFor(
+    'today',
+    {
+      viewer,
+      checklistShowing: checklist !== null,
+      unknownHomeEnquiries: board.everyone
+        .filter((item) => item.kind === 'attention')
+        .reduce((total, item) => total + ('count' in item ? item.count : 0), 0),
+      homes: board.lettings.map((home) => ({
+        id: home.id,
+        addressLine1: home.addressLine1,
+        status: home.status,
+        leadUserId: home.leadUserId,
+        answered: home.undecided,
+        viewingTimesAhead: home.viewingTimesAhead,
+      })),
+      inviteSent: setup.inviteSent,
+      approveBeforeSend: promptFacts.approveBeforeSend,
+      recentApprovals: promptFacts.recentApprovals,
+    },
+    promptFacts.declines,
+    now,
+  );
+  // UX-HM-7: with nothing in the table to offer, "all caught up" may offer one action.
+  const suggestion =
+    prompt === null
+      ? suggestedAction(
+          {
+            setupUnfinished: checklist !== null,
+            organisationKind: viewer.organisationKind,
+            members: viewer.members,
+            lettings: homes,
+          },
+          suggestionsAllowed(suggestionsBuilt, promptFacts.declines, now),
+        )
+      : null;
 
   return (
     <Stack gap={8}>
@@ -104,7 +145,14 @@ export default async function TodayPage({
 
       {views.length > 1 ? <ViewSwitch path="/today" view={view} label="Whose tasks" /> : null}
 
-      {/* Block 1: the setup checklist goes here, when WP-27 builds it. */}
+      {checklist ? (
+        <SetupChecklistCard
+          checklist={checklist}
+          ownHome={viewer.organisationKind === 'private_landlord'}
+        />
+      ) : setup.justFinished ? (
+        <p role="status">{checklistCopy.allSet}</p>
+      ) : null}
 
       {rows.length > 0 ? (
         <section className={styles.block} aria-labelledby="needs-you-heading">
@@ -118,7 +166,8 @@ export default async function TodayPage({
             labelledBy="needs-you-heading"
           />
         </section>
-      ) : firstVisit ? (
+      ) : firstVisit && checklist ? null : firstVisit ? (
+        // UX-GR-4: someone with no checklist opens on "Add a letting".
         <EmptyState
           icon={House}
           title={
@@ -134,7 +183,7 @@ export default async function TodayPage({
           </p>
         </EmptyState>
       ) : (
-        // UX-HM-7: one line, and at most one suggested action.
+        // UX-HM-7: one line, and at most one suggested action (or the prompt below it).
         <EmptyState
           icon={CircleCheck}
           title="You’re all caught up"
@@ -143,6 +192,8 @@ export default async function TodayPage({
           }
         />
       )}
+
+      <PromptLine prompt={prompt} back="/today" />
 
       {viewings.length > 0 ? (
         <section className={styles.block} aria-labelledby="viewings-today-heading">
@@ -203,10 +254,40 @@ function SuggestedAction({
           Add viewing times<span className="visually-hidden"> for {suggestion.address}</span>
         </ButtonLink>
       );
-    // Built by later packages: finishing setup (WP-27) and inviting a colleague (WP-19). The
-    // rule doesn't offer them until then (`suggestionsBuilt`).
-    case 'finish_setup':
     case 'invite_colleague':
+      return (
+        <ButtonLink href={withReturn('/settings/team/invite', '/today')} variant="secondary">
+          Invite a colleague
+        </ButtonLink>
+      );
+    // The checklist above is the way to finish setup: nothing is said twice.
+    case 'finish_setup':
       return null;
   }
+}
+
+/** UX-GR-1: the checklist card. Its next step's button is Today's one primary button. */
+function SetupChecklistCard({ checklist, ownHome }: { checklist: Checklist; ownHome: boolean }) {
+  const who = { ownHome, portals: checklist.portals };
+  const next = checklistCopy.step(checklist.next.code, who);
+  return (
+    <SetupChecklist
+      title={checklistCopy.title}
+      done={checklist.done}
+      total={checklist.total}
+      steps={checklist.steps.map((step) => ({
+        name: checklistCopy.listName(step.code, who),
+        done: step.done,
+      }))}
+      next={{
+        name: next.name,
+        why: next.why,
+        action: (
+          <ButtonLink href={checklist.next.href} variant="primary" fullWidth="phone">
+            {next.action}
+          </ButtonLink>
+        ),
+      }}
+    />
+  );
 }

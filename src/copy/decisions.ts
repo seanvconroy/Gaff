@@ -66,7 +66,9 @@ export const decisionsCopy = {
     },
     title: 'Choose who views',
     lead: (places: number) =>
-      `Gaff ticked the top ${people(places)}, one for each place. Change any tick. Nothing is sent until you press Send invitations.`,
+      places === 0
+        ? 'Every place is taken, so nobody is ticked. Tick anyone you’d like to invite. Nothing is sent until you press Send invitations.'
+        : `Gaff ticked the top ${people(places)}, one for each place. Change any tick. Nothing is sent until you press Send invitations.`,
     howRanks: 'How Gaff ranks',
     howRanksText:
       'Everyone is ranked the same way: by how many of your criteria they meet, then by when they enquired. People who haven’t answered yet come after everyone who has. The ranking reads only the answers to your criteria and the time of each enquiry, never anything else about a person.',

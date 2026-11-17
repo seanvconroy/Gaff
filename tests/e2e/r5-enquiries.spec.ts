@@ -19,7 +19,11 @@ test('R5: an operator finds their Gaff address and how to forward enquiries to i
   await (await openAccountMenu(page)).getByRole('menuitem', { name: 'Agency settings' }).click();
   await expect(page.getByRole('heading', { name: 'Your Gaff address' })).toBeVisible();
   await expect(page.getByText(/^halcyon-lettings(-\d+)?@in\.gaff\.test$/)).toBeVisible();
-  await expect(page.getByText('Set up forwarding once')).toBeVisible();
+  // UX-LT-17: forwarding is a guided flow, opened from here.
+  await expect(page.getByRole('link', { name: 'Set up forwarding' })).toHaveAttribute(
+    'href',
+    '/forwarding',
+  );
   await expectAccessible(page);
   await screenshot(page, '17-gaff-address');
 });

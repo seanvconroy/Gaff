@@ -491,7 +491,8 @@ export async function submitReference(
     if (!check || (check.kind !== 'landlord_reference' && check.kind !== 'employer_reference')) {
       return null;
     }
-    if (check.status === 'answered') return { ok: true };
+    // UX-RF-4: a referee who said they can't give it has nothing more to send.
+    if (check.status === 'answered' || check.reason === CANT_GIVE) return { ok: true };
     const parsed = referenceAnswersSchema(check.kind).safeParse(values);
     if (!parsed.success) {
       const errors: Record<string, string> = {};

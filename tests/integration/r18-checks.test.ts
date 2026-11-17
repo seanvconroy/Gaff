@@ -6,6 +6,7 @@ import { sendMessage } from '@/server/messages/outbox';
 import { chooseApplicants } from '@/server/applications/choose';
 import {
   checkResultsFor,
+  declineReference,
   loadReferenceRequest,
   markReferenceOverdue,
   recordProviderResult,
@@ -209,6 +210,96 @@ describe('R18: references', () => {
         .filter((c) => c.kind.endsWith('reference'))
         .map((c) => c.status),
     ).toEqual(['not_needed', 'not_needed']);
+  });
+
+  it('UX-RF-2: a referee who says the renter didn’t rent from them sends that alone', async () => {
+    const { member, ids, token } = await chosen();
+    await submitReferees(token, {
+      landlordName: 'Mary Kelly',
+      landlordEmail: 'mary.kelly@example.ie',
+      employerNone: 'yes',
+    });
+    const [request] = await withOrg(member.organisationId, (tx) =>
+      tx
+        .select()
+        .from(messages)
+        .where(and(eq(messages.applicationId, ids[0]!), eq(messages.kind, 'reference_request'))),
+    );
+    const landlordToken = refereeToken(request!.body);
+    expect(await submitReference(landlordToken, { rentedFromYou: 'no' })).toEqual({ ok: true });
+    const results = await withOrg(member.organisationId, (tx) => checkResultsFor(tx, [ids[0]!]));
+    expect(results.get(ids[0]!)!.find((c) => c.kind === 'landlord_reference')).toMatchObject({
+      status: 'answered',
+    });
+  });
+
+  it('UX-RF-4: "I can’t give this reference" tells the agency at once, and stops the reminders', async () => {
+    const { member, ids, token } = await chosen();
+    await submitReferees(token, {
+      landlordName: 'Mary Kelly',
+      landlordEmail: 'mary.kelly@example.ie',
+      employerName: 'Seán Daly',
+      employerEmail: 'sean.daly@example.ie',
+    });
+    const requests = await withOrg(member.organisationId, (tx) =>
+      tx
+        .select()
+        .from(messages)
+        .where(and(eq(messages.applicationId, ids[0]!), eq(messages.kind, 'reference_request'))),
+    );
+    const landlordToken = refereeToken(
+      requests.find((m) => m.toAddress === 'mary.kelly@example.ie')!.body,
+    );
+    const employerToken = refereeToken(
+      requests.find((m) => m.toAddress === 'sean.daly@example.ie')!.body,
+    );
+
+    expect(await declineReference(landlordToken)).toEqual({ ok: true });
+    const landlord = (await checksOfPerson(member, ids[0]!)).find(
+      (c) => c.kind === 'landlord_reference',
+    )!;
+    expect(landlord).toMatchObject({
+      status: 'no_answer',
+      reason: 'cant_give',
+      resultSealed: null,
+    });
+    expect(await loadReferenceRequest(landlordToken)).toMatchObject({ cantGive: true });
+    const reminders = await withOrg(member.organisationId, (tx) =>
+      tx
+        .select()
+        .from(messages)
+        .where(
+          and(
+            eq(messages.toAddress, 'mary.kelly@example.ie'),
+            eq(messages.kind, 'reference_reminder'),
+          ),
+        ),
+    );
+    expect(reminders.map((m) => m.status)).toEqual(['cancelled', 'cancelled']);
+    const logged = await withOrg(member.organisationId, (tx) =>
+      tx.select().from(events).where(eq(events.type, 'check.completed')),
+    );
+    expect(logged.map((e) => e.data)).toEqual([
+      { checkId: landlord.id, kind: 'landlord_reference', outcome: 'cant_give' },
+    ]);
+
+    // Once said, it stays said: the form can't be sent after, and the overdue job leaves it.
+    expect(await submitReference(landlordToken, { rentedFromYou: 'yes' })).toEqual({ ok: true });
+    await markReferenceOverdue({ organisationId: member.organisationId, checkId: landlord.id });
+    expect((await checksOfPerson(member, ids[0]!)).find((c) => c.id === landlord.id)).toMatchObject(
+      { status: 'no_answer', reason: 'cant_give' },
+    );
+
+    // A reference that's already in stays as it is.
+    await submitReference(employerToken, {
+      worksForYou: 'yes',
+      contract: 'permanent',
+      howLong: 'over_3',
+    });
+    expect(await declineReference(employerToken)).toEqual({ ok: true });
+    expect(
+      (await checksOfPerson(member, ids[0]!)).find((c) => c.kind === 'employer_reference'),
+    ).toMatchObject({ status: 'answered', reason: null });
   });
 
   it('deletes check results and referees’ details on schedule, and their links stop working', async () => {

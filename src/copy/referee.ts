@@ -13,7 +13,11 @@ export const refereeCopy = {
   metaTitle: 'A reference',
   title: (renterName: string) => `A reference for ${renterName}`,
   /** Line one: who's asking, and why. */
-  asking: (renterName: string, operator: string, kind: 'landlord_reference' | 'employer_reference') =>
+  asking: (
+    renterName: string,
+    operator: string,
+    kind: 'landlord_reference' | 'employer_reference',
+  ) =>
     `${renterName} has applied to rent a home through ${operator}, and gave your name as ${
       kind === 'landlord_reference' ? 'a previous landlord' : 'their employer'
     }.`,
@@ -36,8 +40,7 @@ export const refereeCopy = {
   },
   told: {
     title: 'That’s fine',
-    text: (operator: string) =>
-      `We’ve told ${operator}. You won’t get any more emails about this.`,
+    text: (operator: string) => `We’ve told ${operator}. You won’t get any more emails about this.`,
   },
   /** The link has expired, or the renter's details have been deleted. It names nobody. */
   ended: {

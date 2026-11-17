@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 17 November 2026 (wave 1 of the UX redesign is built: navigation, sign-in, accounts and first run, and the page frame. Wave 2 is built except forwarding enquiries; wave 3A has started).
+Last updated: 17 November 2026 (waves 0, 1 and 2 of the UX redesign are built; wave 3A is being built).
 
 ## Done
 
@@ -85,7 +85,7 @@ Last updated: 17 November 2026 (wave 1 of the UX redesign is built: navigation, 
   | --- | --- | --- |
   | 0. Foundations | WP-1 funnel events and baselines; WP-2 design system | **Done**, 15 November 2026. See "Wave 0" below |
   | 1. Frame, sign-in and accounts | WP-3 shell and navigation; WP-4 sign-in; WP-5 accounts and first run; WP-6 the page frame | **Done**, 16 November 2026. See "Wave 1" below |
-  | 2A. Running a letting, part 1 | WP-7 Today and Lettings; WP-8 Inbox; WP-9 adding a letting; WP-10 reading an advert; WP-11 forwarding | WP-7 to WP-10 **done**, 17 November 2026 (see "Wave 2" below). WP-11 in progress |
+  | 2A. Running a letting, part 1 | WP-7 Today and Lettings; WP-8 Inbox; WP-9 adding a letting; WP-10 reading an advert; WP-11 forwarding | **Done**, 17 November 2026. See "Wave 2" below |
   | 2B. Inside a letting, for renters | WP-12 the renter's pages; WP-13 owner and referee pages; WP-14 profile and the renter's home | **Done**, 17 November 2026. See "Wave 2" below |
   | 3A. Running a letting, part 2 | WP-15 a letting's page; WP-16 calendar; WP-17 decisions and the offer; WP-18 tenancy, close and settings; WP-19 teams | WP-16, WP-17 and WP-19 in progress |
   | 3B. The marketplace | WP-20 homes on Gaff; WP-21 search; WP-22 asking to view; WP-23 saved homes and alerts | Not started |
@@ -144,6 +144,7 @@ Left for later packages, on purpose:
 | WP-13: owner and referee pages (UX-OP-1 to UX-OP-9; UX-RF-1 to UX-RF-6; UX-OW-1, 2, 4) | "Share with the owner" in a letting's menu sends the owner a private link, and a new link replaces the old one. The owner's page is one screen: where the letting stands in plain words, what happens next and when, with renters as "Applicant 1" before the offer and no internal events. The owner approves one person at a time, the chosen tenant then the backup, and declining asks no reason. After the home is let the page is a summary. The reference form is one screen of up to four questions answered with taps, with no free text; "No" ends it, and "I can't give this reference" is recorded and stops the reminders. The agent is warned before asking for approval while checks are still out | `src/domain/landlord/owner-page.test.ts`, `src/domain/offers/approval.test.ts`, `src/domain/checks/checks.test.ts`, `tests/integration/r18-checks.test.ts`, `tests/e2e/r27-landlord.spec.ts`, `tests/e2e/slice2.spec.ts` |
 | WP-10: reading an advert (UX-LT-1 to 3, 6, 7; UX-AI-3 to 5, 8, 9, 12, 13) | Paste an advert's words and Gaff fills the letting in: "Here's what Gaff found", marked "Read by AI", with the words each value came from on tap and "Check this" on anything missing or unclear. A value with no words behind it in the advert is dropped by code. Lines about who should apply are left out, with the reason shown, and never become letting details. Names and contact details are stripped before the text reaches the model, and instructions inside the text change nothing. A pasted link is never opened: the screen asks for the advert's words. An enquiry Gaff couldn't match has "Start a letting from this enquiry", and joins the letting when it goes live. With the reader off (`ADVERT_READER=off`), the first screen offers only "Fill it in myself" | `src/domain/lettings/advert*.test.ts`, `tests/integration/ux-lt-reading-an-advert.test.ts`, `tests/e2e/ux-lt-reading-an-advert.spec.ts` |
 | WP-14: profile and the renter's home (UX-RH-1 to UX-RH-6; UX-PF-1 to UX-PF-7) | Enquiries lists a signed-in renter's homes, each with where it stands and the next thing to do, with the ones that need them first. Profile shows what Gaff keeps (details, the four answers, work and income with the date said), each row changed or removed, with no photo and no free text. "Keep my details for next time" is on the application's check screen, off by default; ticking it sends a sign-in code and starts the profile. On the next home, kept details are offered back to confirm, and nothing reaches the operator before the renter sends. A renter can download what's kept and delete their profile at once. The retention job deletes a profile unused for two years, after a notice. Profile tables belong to the person: tests show no operator path can read or write them | `src/domain/profile/*.test.ts`, `tests/integration/ux-pf-profile.test.ts`, `tests/e2e/ux-pf-profile.spec.ts` |
+| WP-11: forwarding enquiries (UX-LT-17 to UX-LT-20) | A four-screen flow: choose Gmail, Outlook or something else; the Gaff address with a copy button and numbered steps for that service; the confirmation code or link read out of the mail service's email as it arrives; then a test enquiry sent through the rule and shown answered. Forwarding counts as in place only when something arrives through it. A home advertised on Daft or MyHome with no forwarding in place shows "Set up forwarding" as its task, on Today and on its page. Nothing is fetched from a portal or a mail service | `src/domain/enquiries/forwarding.test.ts`, `tests/integration/ux-lt-forwarding.test.ts`, `tests/e2e/ux-lt-forwarding.spec.ts` |
 
 Left for later packages, on purpose:
 
@@ -153,7 +154,8 @@ Left for later packages, on purpose:
 - Today's "New enquiries for a home you haven't added. Set it up?" prompt (UX-LT-16) isn't built; starting a letting from an enquiry is in Inbox.
 - Answers confirmed from a profile aren't recorded as confirmed; only income is.
 - Profile has commented seams for "What you're looking for" (WP-23) and "Identity" (WP-24).
-- A home advertised elsewhere shows forwarding as its task, pointing at Settings, until the forwarding flow is built (WP-11).
+- The steps for Gmail and Outlook were written without the real settings screens to hand. Check them against the live screens before a pilot.
+- A mail service's confirmation email still waits in Inbox after the forwarding flow has read it.
 - "On gaff.ie" is stored on the letting; the public page it switches on is WP-20.
 - A private landlord's identity step is in place at go-live and does nothing yet (WP-24).
 - The email that sends an owner their link is new wording, pinned by `src/copy/templates/owner.test.ts`. It goes to the solicitor with the other templates.

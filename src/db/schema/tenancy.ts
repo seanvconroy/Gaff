@@ -96,7 +96,8 @@ export const inventoryItems = pgTable(
       .references(() => tenancies.id, { onDelete: 'cascade' }),
     room: text().notNull(),
     item: text().notNull(),
-    condition: text({ enum: ['new', 'good', 'fair', 'worn', 'damaged'] }).notNull(),
+    // UX-TN-4: good, fair or poor from now on; the older words stay for items recorded before.
+    condition: text({ enum: ['good', 'fair', 'poor', 'new', 'worn', 'damaged'] }).notNull(),
     note: text(),
     /**
      * UX-RN-25: "Something's not right": the tenant's short note to the lister about this item.

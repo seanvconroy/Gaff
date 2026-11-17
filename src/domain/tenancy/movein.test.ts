@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   MAX_PHOTO_BYTES,
   checklistSchema,
+  conditionChoices,
+  conditions,
   inventoryItemSchema,
+  needsALook,
   photoKind,
   stripJpegMetadata,
 } from './movein';
@@ -25,6 +28,22 @@ describe('R25: the move-in checklist', () => {
 });
 
 describe('R25: the inventory', () => {
+  it('UX-TN-4: a new item is good, fair or poor', () => {
+    for (const condition of ['good', 'fair', 'poor']) {
+      expect(inventoryItemSchema.safeParse({ room: 'Hall', item: 'Door', condition }).success).toBe(
+        true,
+      );
+    }
+    for (const condition of ['new', 'worn', 'damaged']) {
+      expect(inventoryItemSchema.safeParse({ room: 'Hall', item: 'Door', condition }).success).toBe(
+        false,
+      );
+    }
+    expect(conditionChoices.map((c) => conditions[c])).toEqual(['Good', 'Fair', 'Poor']);
+    expect(needsALook('poor')).toBe(true);
+    expect(needsALook('fair')).toBe(false);
+  });
+
   it('takes a room, an item, its condition and an optional short note', () => {
     expect(
       inventoryItemSchema.parse({ room: 'Kitchen', item: 'Fridge', condition: 'good', note: '' }),
@@ -33,7 +52,7 @@ describe('R25: the inventory', () => {
     expect(bad.error!.issues.map((i) => i.message)).toEqual([
       'Enter the room.',
       'Enter the item.',
-      'Choose its condition.',
+      'Choose its condition: good, fair or poor.',
     ]);
   });
 

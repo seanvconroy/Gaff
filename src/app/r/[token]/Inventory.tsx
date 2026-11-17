@@ -1,5 +1,5 @@
 import { tenancyCopy } from '@/copy/renter';
-import { byRoom, conditions } from '@/domain/tenancy/movein';
+import { byRoom, conditions, needsALook } from '@/domain/tenancy/movein';
 import type { RenterModel } from '@/server/renter/model';
 import { ButtonLink } from '@/ui/Button';
 import { Outcome } from '@/ui/Outcome';
@@ -75,7 +75,7 @@ export function InventoryPage({
                       <div className={styles.itemText}>
                         <span className={styles.itemName}>{item.item}</span>
                         <StatusPill
-                          tone={item.condition === 'damaged' ? 'warning' : 'neutral'}
+                          tone={needsALook(item.condition) ? 'warning' : 'neutral'}
                           large
                         >
                           {conditions[item.condition]}

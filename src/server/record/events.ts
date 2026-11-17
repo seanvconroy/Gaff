@@ -144,6 +144,7 @@ export const eventCatalogue = {
       'reference_request',
       'reference_reminder',
       'landlord_approval',
+      'owner_link',
       'offer',
       'offer_expired',
       'outcome',
@@ -207,7 +208,11 @@ export const eventCatalogue = {
     notInvited: z.number().int(),
   }),
   /** R27, Q4: a private read-only link for the landlord (renters pseudonymised). */
-  'letting.shared_with_landlord': z.object({ linkId: z.uuid() }),
+  'letting.shared_with_landlord': z.object({
+    linkId: z.uuid(),
+    /** UX-OW-1: how many earlier links this one replaced. They stop working. */
+    replaced: z.number().int().optional(),
+  }),
   'letting.landlord_link_revoked': z.object({ links: z.number().int() }),
   /** R16: someone who came to view applied (stage 5), or changed their application. */
   'application.submitted': z.object({ applicationId: z.uuid(), changed: z.boolean() }),

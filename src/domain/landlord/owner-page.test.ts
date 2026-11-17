@@ -23,7 +23,9 @@ const none = {
   applied: 0,
 };
 
-function facts(over: Partial<OwnerFacts> & { numbers?: Partial<OwnerFacts['numbers']> }) {
+function facts(
+  over: Partial<Omit<OwnerFacts, 'numbers'>> & { numbers?: Partial<OwnerFacts['numbers']> },
+): OwnerFacts {
   return {
     stage: 'enquiries',
     status: 'live',
@@ -34,7 +36,7 @@ function facts(over: Partial<OwnerFacts> & { numbers?: Partial<OwnerFacts['numbe
     offer: 'none',
     ...over,
     numbers: { ...none, ...over.numbers },
-  } satisfies OwnerFacts;
+  };
 }
 
 describe('UX-OP-1: where the letting stands, in one sentence', () => {

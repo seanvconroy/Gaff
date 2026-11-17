@@ -205,6 +205,9 @@ export const OWNER_RECORD = [
   'letting.finished',
 ] as const;
 
+/** UX-OP-1: the page fits on about one phone screen, so it shows the newest few decisions. */
+export const DECISIONS_SHOWN = 3;
+
 const newestFirst = (a: RecordStep, b: RecordStep) =>
   b.at.getTime() - a.at.getTime() || b.id - a.id;
 

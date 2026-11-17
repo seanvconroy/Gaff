@@ -118,28 +118,51 @@ export async function saveLandlordContact(
 ): Promise<void> {
   const parsed = contactSchema.safeParse(values);
   if (!parsed.success) throw new UserFacingError(parsed.error.issues[0]!.message);
-  await withOrg(member.organisationId, async (tx) => {
-    const [letting] = await tx.select().from(lettings).where(eq(lettings.id, lettingId));
-    if (!letting) throw new UserFacingError('We couldn’t find that letting.');
-    if (letting.landlordId) {
-      await tx
-        .update(landlords)
-        .set({ name: parsed.data.name, email: parsed.data.email })
-        .where(eq(landlords.id, letting.landlordId));
-    } else {
-      const [landlord] = await tx
-        .insert(landlords)
-        .values({ organisationId: member.organisationId, ...parsed.data })
-        .returning({ id: landlords.id });
-      await tx.update(lettings).set({ landlordId: landlord!.id }).where(eq(lettings.id, lettingId));
-    }
-    await recordEvent(tx, {
-      organisationId: member.organisationId,
-      lettingId,
-      actor: { type: 'person', userId: member.userId },
-      type: 'letting.landlord_added',
-      data: { updated: letting.landlordId !== null },
-    });
+  await withOrg(member.organisationId, (tx) =>
+    saveLandlordContactIn(tx, member, lettingId, parsed.data),
+  );
+}
+
+/**
+ * The owner's name and email, kept on the letting, in the caller's transaction (R19, UX-OW-1).
+ * The values are already checked. The record notes that the details were added or updated,
+ * never what they are, and notes nothing when nothing changed.
+ */
+export async function saveLandlordContactIn(
+  tx: Tx,
+  member: Member,
+  lettingId: string,
+  contact: { name: string; email: string },
+): Promise<void> {
+  const [row] = await tx
+    .select({
+      landlordId: lettings.landlordId,
+      name: landlords.name,
+      email: landlords.email,
+    })
+    .from(lettings)
+    .leftJoin(landlords, eq(landlords.id, lettings.landlordId))
+    .where(eq(lettings.id, lettingId));
+  if (!row) throw new UserFacingError('We couldn’t find that letting.');
+  if (row.landlordId && row.name === contact.name && row.email === contact.email) return;
+  if (row.landlordId) {
+    await tx
+      .update(landlords)
+      .set({ name: contact.name, email: contact.email })
+      .where(eq(landlords.id, row.landlordId));
+  } else {
+    const [landlord] = await tx
+      .insert(landlords)
+      .values({ organisationId: member.organisationId, ...contact })
+      .returning({ id: landlords.id });
+    await tx.update(lettings).set({ landlordId: landlord!.id }).where(eq(lettings.id, lettingId));
+  }
+  await recordEvent(tx, {
+    organisationId: member.organisationId,
+    lettingId,
+    actor: { type: 'person', userId: member.userId },
+    type: 'letting.landlord_added',
+    data: { updated: row.landlordId !== null },
   });
 }
 
@@ -250,6 +273,8 @@ export async function loadApprovalSummary(token: string) {
         checks: (results.get(id) ?? []).map((c) => ({
           kind: c.kind,
           status: c.status,
+          /** Why a reference has no answer, as a code (UX-RF-4). */
+          reason: c.reason,
           summary: c.summary ?? null,
           incomeConfirmed:
             c.monthlyIncomeCents === undefined

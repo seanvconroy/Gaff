@@ -27,6 +27,8 @@ export type OutboundKind =
   | 'reference_request'
   | 'reference_reminder'
   | 'landlord_approval'
+  /** UX-OW-1: the owner's private link to follow the letting, when the agent shares it. */
+  | 'owner_link'
   | 'offer'
   | 'offer_expired'
   | 'outcome'

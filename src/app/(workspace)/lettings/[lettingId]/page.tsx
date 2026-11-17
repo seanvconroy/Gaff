@@ -1,8 +1,10 @@
-import { Forward } from 'lucide-react';
+import { Forward, Share2 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { addLettingCopy } from '@/copy/add-letting';
 import { goLiveCopy } from '@/copy/go-live';
+import { shareCopy } from '@/copy/owner';
+import { letsOwnHomes } from '@/domain/organisations/kinds';
 import { describeCriteria, NO_SMOKING_INDOORS } from '@/domain/criteria/criteria';
 import { stepsLeft } from '@/domain/lettings/add-letting';
 import {
@@ -64,6 +66,8 @@ export default async function LettingPage({
   // Let at the offer, the letting runs on through the tenancy until it's finished (stage 9).
   const finished = letting.stage === 'close';
   const here = `/lettings/${letting.id}`;
+  // UX-OW-1: a home let for someone else can be shared with its owner from the day it's added.
+  const hasOwner = !letsOwnHomes(member.organisationKind);
   // UX-AG-4: a home a member decided to put live while their agency is being confirmed.
   const { organisationName } = await goLiveGateFor(member);
   const criteriaLines = letting.criteria
@@ -117,6 +121,7 @@ export default async function LettingPage({
             lettingId={letting.id}
             address={letting.addressLine1}
             testEnquiry={canSendTestEnquiry({ status: letting.status, enquiries })}
+            shareWithOwner={hasOwner}
             letAgain={canLetAgain(letting)}
           />
         }
@@ -126,6 +131,18 @@ export default async function LettingPage({
         <Notice tone="success" role="status">
           <p>{savedCopy[saved]}</p>
         </Notice>
+      ) : null}
+      {/* UX-OW-1: asked once, just after go-live, where Gaff doesn't know the owner yet. */}
+      {saved === 'live' && hasOwner && !letting.landlordId ? (
+        <ActionList>
+          <ActionRow
+            id="share-with-owner"
+            href={`${here}/owner`}
+            icon={Share2}
+            title={shareCopy.prompt.title}
+            meta={shareCopy.prompt.text}
+          />
+        </ActionList>
       ) : null}
       {problem === 'close' ? (
         <Notice tone="warning" role="alert">

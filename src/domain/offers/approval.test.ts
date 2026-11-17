@@ -1,5 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { approvalAnswersSchema, approvalRoute } from './approval';
+import { approvalAnswersSchema, approvalRoute, approvalScreen } from './approval';
+
+describe('UX-OP-6: one person per screen', () => {
+  const both = ['preferred', 'backup'] as const;
+
+  it('UX-OP-6: opens on the chosen tenant, then the backup once the tenant has an answer', () => {
+    expect(approvalScreen(both, {})).toBe(0);
+    expect(approvalScreen(both, { preferred: 'approve' })).toBe(1);
+    expect(approvalScreen(both, { preferred: 'decline' })).toBe(1);
+    expect(approvalScreen(['preferred'], {})).toBe(0);
+  });
+
+  it('UX-OP-6: never opens the backup’s screen before the tenant has an answer', () => {
+    expect(approvalScreen(both, {}, 'backup')).toBe(0);
+    expect(approvalScreen(both, { preferred: 'approve' }, 'backup')).toBe(1);
+  });
+
+  it('UX-OP-6: Back returns to the tenant’s screen, with nothing lost', () => {
+    expect(approvalScreen(both, { preferred: 'approve' }, 'preferred')).toBe(0);
+    expect(approvalScreen(both, { preferred: 'approve' }, 'nobody')).toBe(1);
+  });
+});
 
 describe('R19: who approves, and how (Q22)', () => {
   it('a landlord letting their own homes approves by making the offer', () => {

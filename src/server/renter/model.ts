@@ -23,6 +23,7 @@ import {
   viewingDays,
   type ViewingDay,
 } from '@/domain/viewings/choosing';
+import { env } from '@/lib/env';
 import { formatDate, formatDateTime, formatEuro } from '@/lib/format';
 import type { loadRenterPage } from './answers';
 
@@ -234,4 +235,16 @@ export function renterModel(
           }
         : null,
   };
+}
+
+/** The model as this deployment shows it: which checks have a provider, and how long is kept. */
+export function renterModelFor(page: Loaded, now?: Date): RenterModel {
+  return renterModel(page, {
+    providers: {
+      identity: env().IDENTITY_PROVIDER !== 'none',
+      income: env().INCOME_PROVIDER !== 'none',
+    },
+    retentionDays: env().RETENTION_PERSONAL_DAYS,
+    now,
+  });
 }

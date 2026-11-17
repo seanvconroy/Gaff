@@ -64,7 +64,10 @@ const groups: Array<[string, string[]]> = [
       'missed-viewing',
     ],
   ],
-  ['UX-RN-11 to UX-RN-13: applying', ['after-viewing', 'apply', 'apply-check', 'applied']],
+  [
+    'UX-RN-11 to UX-RN-13: applying',
+    ['after-viewing', 'apply', 'apply-check', 'apply-kept', 'applied'],
+  ],
   [
     'UX-RN-14 to UX-RN-18: the checks',
     [
@@ -383,8 +386,10 @@ test('UX-RN-11, UX-RN-12: applying is two questions, then a check screen with â€
   await expectAccessible(page);
   await expectOnePrimary(page);
   await screenshot(page, 'wp12-apply-check-screen-390');
-  // UX-RN-13: the profile tick belongs to a later package (WP-14). Nothing is offered until then.
-  await expect(page.getByText(/keep my details/i)).toHaveCount(0);
+  // UX-RN-13: one tick for someone without a profile, off by default.
+  const keep = page.getByRole('checkbox', { name: 'Keep my details for next time' });
+  await expect(keep).toBeVisible();
+  await expect(keep).not.toBeChecked();
 
   await page.getByRole('button', { name: 'Change name' }).click();
   await expect(page.getByRole('heading', { name: 'Whatâ€™s your name?' })).toBeVisible();

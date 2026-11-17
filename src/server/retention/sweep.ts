@@ -11,6 +11,7 @@ import {
   messages,
   inventoryItems,
   operatorQuestions,
+  renterEnquiries,
   tenancies,
 } from '@/db/schema';
 import { BACKSTOP_DAYS, isDue } from '@/domain/retention/retention';
@@ -18,6 +19,7 @@ import { recordCutoff } from '@/domain/tenancy/steps';
 import { env } from '@/lib/env';
 import { irishToday } from '@/lib/format';
 import { purgeExpiredInvites } from '@/server/accounts/invites';
+import { purgeProfileEvents } from '@/server/accounts/profile-events';
 import { purgeOldCodes } from '@/server/auth/codes';
 import { purgeOldConfirmations } from '@/server/auth/confirm';
 import { purgeFunnelEvents } from '@/server/funnels/steps';
@@ -107,6 +109,9 @@ export async function sweepPersonalData(
         .update(accessLinks)
         .set({ revokedAt: now })
         .where(and(eq(accessLinks.subjectId, application.id), isNull(accessLinks.revokedAt)));
+      // UX-RH-5: it leaves the renter's own Enquiries too: there is nothing left to open. Their
+      // profile is theirs, and stays (Q25).
+      await tx.delete(renterEnquiries).where(eq(renterEnquiries.applicationId, application.id));
       // Stage 8: the typed signature and any PPS number go with the rest.
       const theirTenancies = await tx
         .update(tenancies)
@@ -244,6 +249,8 @@ export async function sweepPersonalData(
     // UX-ME-1: funnel events are part of that anonymous record. They belong to no organisation,
     // so they go when the sweep runs for everyone.
     if (!onlyOrganisationId) await purgeFunnelEvents(tx, cutoff);
+    // Rule 8: so is the record of people's own profiles, which belongs to no organisation either.
+    if (!onlyOrganisationId) await purgeProfileEvents(tx, cutoff);
     // UX-SI-2, UX-SI-10: one-time codes and confirmations belong to no organisation either.
     // They are deleted a day after they were sent or ran out.
     if (!onlyOrganisationId) {

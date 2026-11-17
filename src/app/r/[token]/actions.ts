@@ -4,6 +4,7 @@ import { common } from '@/copy/renter';
 import { formValues, invalid, type FormState } from '@/lib/forms';
 import { saveRenterAnswers } from '@/server/renter/answers';
 import { toRenterPage } from './back';
+import { keepFromPage } from './keep';
 
 /** R9, UX-RN-2: the renter sends their answers. Whatever they are, the next page is "Thanks". */
 export async function saveAnswersAction(
@@ -18,5 +19,7 @@ export async function saveAnswersAction(
     if ('locked' in result) toRenterPage(token);
     return invalid(result.errors, values);
   }
+  // UX-PF-2: their answers are kept, for a renter whose profile keeps what they enter.
+  await keepFromPage(token, 'answers', (entered) => ({ answers: entered.answers }));
   toRenterPage(token);
 }

@@ -1,10 +1,13 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { keepCopy } from '@/copy/profile';
 import { applyCopy, codeGateCopy, common } from '@/copy/renter';
 import { applicationProblems, earningLabels, type Earning } from '@/domain/applications/apply';
+import type { Keeping } from '@/domain/profile/offer-back';
 import { Button } from '@/ui/Button';
 import { ChoiceGroup, TextField } from '@/ui/Field';
+import { OptionRow } from '@/ui/OptionRow';
 import { QuestionSteps, type QuestionStep } from '@/ui/QuestionSteps';
 import { Sheet } from '@/ui/Sheet';
 import { SummaryList } from '@/ui/SummaryList';
@@ -19,11 +22,12 @@ import { CodeGate } from './CodeGate';
  *
  * A changed email asks for the one-time code first (UX-SI-12), in a sheet over the check screen.
  *
- * THE PROFILE'S SEAM (UX-RN-13, Q25): "Keep my details for next time" belongs on the check
- * screen, as one tick, off by default, under the summary. It creates a renter's profile, which
- * work package WP-14 builds. Pass it to `QuestionSteps` as the check step's last control, and
- * read `keepDetails` in `applyAction`. Nothing is offered until then, rather than a tick that
- * does nothing.
+ * THE PROFILE (UX-RN-13, UX-PF-2, UX-PF-3, UX-PF-5, Q25). `keeping` says what the check screen
+ * says about keeping (`keepingFor`): one tick, off by default, "Keep my details for next time",
+ * for someone with no profile here; one line for someone whose profile keeps what they enter;
+ * nothing if they switched keeping off. `offered` is a kept income, already filled in: the page
+ * opens on the check screen, which says it is from their profile and when they said so, for
+ * them to confirm or change. Nothing reaches the operator until they press the button.
  */
 export function ApplyFlow({
   token,
@@ -32,6 +36,8 @@ export function ApplyFlow({
   sentTo,
   current,
   startAt,
+  keeping = 'tick',
+  offered = null,
 }: {
   token: string;
   operator: string;
@@ -41,6 +47,9 @@ export function ApplyFlow({
   sentTo: string;
   current: Record<string, string>;
   startAt?: string | null;
+  keeping?: Keeping;
+  /** A kept income, offered back: when they said it, in words. */
+  offered?: { saidOn: string } | null;
 }) {
   const [state, action] = useSend(applyAction.bind(null, token), common.sendFailed);
   const form = useRef<HTMLFormElement>(null);
@@ -101,32 +110,55 @@ export function ApplyFlow({
       id: 'check',
       name: applyCopy.names.check,
       title: applyCopy.check.title,
+      lead: offered ? `${keepCopy.stillRight} ${keepCopy.fromProfile}` : undefined,
       fields: [],
       content: ({ values, goTo }) => (
-        <SummaryList
-          rows={[
-            {
-              label: applyCopy.check.name,
-              value: values.fullName,
-              action: change('name', () => goTo('name')),
-            },
-            {
-              label: applyCopy.check.email,
-              value: values.email,
-              action: change('email', () => goTo('email')),
-            },
-            {
-              label: applyCopy.check.earning,
-              value: earningLabels[values.earning as Earning] ?? '',
-              action: change('how you earn', () => goTo('earning')),
-            },
-            {
-              label: applyCopy.check.income,
-              value: applyCopy.check.aMonth((values.monthlyIncome ?? '').replace(/^€\s*/, '')),
-              action: change('income', () => goTo('income')),
-            },
-          ]}
-        />
+        <>
+          <SummaryList
+            rows={[
+              {
+                label: applyCopy.check.name,
+                value: values.fullName,
+                action: change('name', () => goTo('name')),
+              },
+              {
+                label: applyCopy.check.email,
+                value: values.email,
+                action: change('email', () => goTo('email')),
+              },
+              {
+                label: applyCopy.check.earning,
+                value: earningLabels[values.earning as Earning] ?? '',
+                action: change('how you earn', () => goTo('earning')),
+              },
+              {
+                label: applyCopy.check.income,
+                value:
+                  offered && values.monthlyIncome === current.monthlyIncome ? (
+                    <>
+                      {applyCopy.check.aMonth((values.monthlyIncome ?? '').replace(/^€\s*/, ''))}
+                      <br />
+                      <span>{keepCopy.saidOn(offered.saidOn)}</span>
+                    </>
+                  ) : (
+                    applyCopy.check.aMonth((values.monthlyIncome ?? '').replace(/^€\s*/, ''))
+                  ),
+                action: change('income', () => goTo('income')),
+              },
+            ]}
+          />
+          {offered ? <input type="hidden" name="offered" value="income" /> : null}
+          {keeping === 'tick' ? (
+            <OptionRow
+              name="keepDetails"
+              label={keepCopy.tick}
+              hint={keepCopy.tickHint}
+              defaultOn={defaults.keepDetails === 'on'}
+            />
+          ) : keeping === 'on' ? (
+            <p>{keepCopy.kept}</p>
+          ) : null}
+        </>
       ),
     },
     {

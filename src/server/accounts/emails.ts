@@ -8,11 +8,20 @@ import {
   licenceLapsedEmail,
   licenceRenewedEmail,
   memberConflictEmail,
+  profileUnusedEmail,
 } from '@/copy/account-emails';
 import { layOutGaffEmail } from '@/copy/email-layout';
-import { withOrg } from '@/db/client';
-import { lettings, memberships, organisationInvites, organisations, users } from '@/db/schema';
+import { db, withOrg, withSystem } from '@/db/client';
+import {
+  lettings,
+  memberships,
+  organisationInvites,
+  organisations,
+  renterProfiles,
+  users,
+} from '@/db/schema';
 import { env } from '@/lib/env';
+import { formatDate } from '@/lib/format';
 import { INVITE_LASTS_DAYS } from './invites';
 
 /**
@@ -39,6 +48,11 @@ export const accountEmailJob = z.discriminatedUnion('kind', [
     lettingId: z.uuid(),
     memberUserId: z.uuid(),
   }),
+  /**
+   * UX-PF-7: a renter's profile will be deleted for want of use. This one is to a person, about
+   * their own profile, and belongs to no organisation.
+   */
+  z.object({ kind: z.literal('profile_unused'), userId: z.uuid(), deleteOn: z.iso.date() }),
 ]);
 export type AccountEmailJob = z.infer<typeof accountEmailJob>;
 
@@ -65,6 +79,31 @@ async function send(to: string, email: AccountEmail, key: string): Promise<void>
 export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promise<void> {
   const job = accountEmailJob.parse(payload);
   const app = env().APP_URL.replace(/\/$/, '');
+  if (job.kind === 'profile_unused') {
+    // Used since the notice was queued, or already gone: there's nothing to say.
+    const [stillDue] = await withSystem((tx) =>
+      tx
+        .select({ noticeSentAt: renterProfiles.deletionNoticeSentAt })
+        .from(renterProfiles)
+        .where(eq(renterProfiles.userId, job.userId)),
+    );
+    if (!stillDue?.noticeSentAt) return;
+    const [person] = await db()
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, job.userId));
+    if (!person) return;
+    await send(
+      person.email,
+      profileUnusedEmail({
+        // The year is always said: the date is weeks away, and may fall in the next one.
+        deleteOn: formatDate(job.deleteOn, new Date(0)),
+        profileUrl: `${app}/profile`,
+      }),
+      `account-profile_unused-${job.userId}-${job.deleteOn}`,
+    );
+    return;
+  }
   const found = await withOrg(job.organisationId, async (tx) => {
     const [agency] = await tx
       .select({ name: organisations.name, licenceNumber: organisations.psraLicenceNumber })

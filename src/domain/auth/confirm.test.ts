@@ -12,7 +12,12 @@ const after = (seconds: number) => new Date(at.getTime() + seconds * 1000);
 
 describe('UX-SI-10: three actions ask the person to confirm it’s them again', () => {
   it('names the three', () => {
-    expect(sensitiveActions).toEqual(['change_payment_account', 'remove_member', 'delete_agency']);
+    expect(sensitiveActions).toEqual([
+      'change_payment_account',
+      'remove_member',
+      'delete_agency',
+      'delete_profile',
+    ]);
   });
 
   it('lasts five minutes, for the action in front of them', () => {

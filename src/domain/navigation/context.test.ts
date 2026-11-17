@@ -9,6 +9,7 @@ import {
   listAHomeHref,
   listAHomeSignedOutHref,
   lookAroundHref,
+  rentingOpensOn,
   switcherFor,
 } from './context';
 
@@ -180,6 +181,17 @@ describe('the public site’s first screen, which is also where sign-in lands', 
 
   it('UX-NV-19, UX-AC-6: someone renting stays: this screen is Search', () => {
     expect(firstScreenRedirect({ side: 'renting' }, {})).toBeNull();
+  });
+
+  it('UX-RH-2: a renter opens on Enquiries when something needs them, and on Search when not', () => {
+    expect(rentingOpensOn(0)).toBe('/');
+    expect(rentingOpensOn(2)).toBe('/enquiries');
+    expect(firstScreenRedirect({ side: 'renting' }, {}, { needsThem: 2 })).toBe('/enquiries');
+    expect(firstScreenRedirect({ side: 'renting' }, {}, { needsThem: 0 })).toBeNull();
+    // Tapping Search in the bar is always Search, whatever is waiting.
+    expect(firstScreenRedirect({ side: 'renting' }, {}, null)).toBeNull();
+    // Someone letting still opens on Today.
+    expect(firstScreenRedirect({ side: 'letting' }, {}, { needsThem: 2 })).toBe('/today');
   });
 
   it('UX-NV-20: a signed-out visitor stays on the public site', () => {

@@ -7,11 +7,13 @@ import { z } from 'zod';
  * - `change_payment_account`: Settings, "Where tenants pay". Built.
  * - `remove_member`: removing someone from an agency. A later package (WP-19) adds it.
  * - `delete_agency`: deleting an agency. A later package adds it.
+ * - `delete_profile`: Profile, "Delete my profile" (UX-PF-6). It can't be undone. Built.
  */
 export const sensitiveActions = [
   'change_payment_account',
   'remove_member',
   'delete_agency',
+  'delete_profile',
 ] as const;
 export const sensitiveActionSchema = z.enum(sensitiveActions);
 export type SensitiveAction = z.infer<typeof sensitiveActionSchema>;

@@ -1,9 +1,8 @@
 import { linkEnded } from '@/copy/renter';
-import { env } from '@/lib/env';
 import { maskedEmail } from '@/server/access/link-codes';
 import { loadRenterPage, openRenterPage } from '@/server/renter/answers';
 import { linkIsOpen } from '@/server/renter/gate';
-import { renterModel } from '@/server/renter/model';
+import { renterModelFor } from '@/server/renter/model';
 import { Outcome } from '@/ui/Outcome';
 import { PrivateFrame } from '@/ui/PrivateFrame';
 
@@ -15,13 +14,7 @@ import { PrivateFrame } from '@/ui/PrivateFrame';
 export async function loadRenter(token: string, options: { hub?: boolean } = {}) {
   const page = await (options.hub ? openRenterPage(token) : loadRenterPage(token));
   if (!page) return null;
-  const model = renterModel(page, {
-    providers: {
-      identity: env().IDENTITY_PROVIDER !== 'none',
-      income: env().INCOME_PROVIDER !== 'none',
-    },
-    retentionDays: env().RETENTION_PERSONAL_DAYS,
-  });
+  const model = renterModelFor(page);
   return {
     page,
     model,

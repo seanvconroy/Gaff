@@ -1,0 +1,34 @@
+/* Profile: each part of what is kept, under its own heading, with hairlines between rows. */
+.section {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* Something not kept, said quietly, in the value's place. */
+.nothing {
+  color: var(--color-ink-muted);
+}
+
+/* "You said so on …", under the figure it dates. */
+.said {
+  display: block;
+  color: var(--color-ink-muted);
+}
+
+.hint {
+  color: var(--color-ink-muted);
+}
+
+/* A row's "Change" and "Remove", side by side. */
+.actions,
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.sheetButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}

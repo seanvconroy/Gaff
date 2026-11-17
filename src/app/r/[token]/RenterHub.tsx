@@ -1,6 +1,7 @@
 import { CalendarPlus } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { keepCopy } from '@/copy/profile';
 import {
   answersSentCopy,
   applyCopy,
@@ -43,6 +44,16 @@ export interface HubOptions {
   /** A code for something that just went wrong, said once at the task. */
   checkProblem?: string;
   offerProblem?: string;
+  /**
+   * UX-RN-13: they ticked "Keep my details for next time" and came back from its code: whether
+   * the details were kept.
+   */
+  kept?: 'yes' | 'no' | null;
+  /**
+   * UX-PF-3: kept answers offered back on the questions, as the form takes them, for the
+   * questions this home asks. They fill the answers in; the renter confirms or changes each.
+   */
+  offeredAnswers?: Record<string, string> | null;
 }
 
 /**
@@ -62,6 +73,21 @@ export function RenterHub({
 }) {
   const here = `/r/${token}`;
   const { operator, view } = model;
+  const keptNote =
+    options.kept === 'yes' ? (
+      <Notice tone="success" title={keepCopy.done} role="status">
+        <p>
+          {keepCopy.doneNext}{' '}
+          <Link href="/enquiries" className={styles.lineLink}>
+            {keepCopy.enquiries}
+          </Link>
+        </p>
+      </Notice>
+    ) : options.kept === 'no' ? (
+      <Notice tone="info" role="status">
+        <p>{keepCopy.notKept}</p>
+      </Notice>
+    ) : null;
   const page = (task: ReactNode, next?: ReactNode) => (
     <PrivateFrame
       audience="renter"
@@ -69,6 +95,7 @@ export function RenterHub({
       home={model.home}
       next={typeof next === 'string' ? <p>{next}</p> : next}
     >
+      {keptNote}
       {task}
     </PrivateFrame>
   );
@@ -90,10 +117,18 @@ export function RenterHub({
           model.questions.criteria.moveInBy ? formatDate(model.questions.criteria.moveInBy) : ''
         }
         today={irishToday()}
-        lead={questionsCopy.lead(model.firstName, operator)}
-        current={model.questions.values}
+        lead={
+          options.offeredAnswers
+            ? `${questionsCopy.lead(model.firstName, operator)} ${keepCopy.fromProfile}`
+            : questionsCopy.lead(model.firstName, operator)
+        }
+        current={
+          options.offeredAnswers
+            ? { ...options.offeredAnswers, ...model.questions.values }
+            : model.questions.values
+        }
         startAt={options.q}
-        fromStart={options.changing}
+        fromStart={options.changing || Boolean(options.offeredAnswers)}
       />,
       questionsCopy.next(operator, model.viewings.first),
     );

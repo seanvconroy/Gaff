@@ -1,4 +1,4 @@
-import { Bot, Building2, Inbox, Landmark, Scale } from 'lucide-react';
+import { Bot, Building2, Inbox, Landmark, Scale, Users } from 'lucide-react';
 import type { Metadata } from 'next';
 import { forwardingCopy } from '@/copy/forwarding';
 import { settingsCopy as copy } from '@/copy/settings';
@@ -23,12 +23,13 @@ const icons = {
   income: Scale,
   payment: Landmark,
   agency: Building2,
+  team: Users,
 } as const;
 
 /**
  * UX-ST-1 to UX-ST-3: Settings, from the account menu, as a list of rows. Each opens a page with
  * one subject and one save button. "Your usual times" isn't here: it's asked at the first close
- * (UX-TN-7). Team (WP-19) adds its own row to this list.
+ * (UX-TN-7). Team is the last row, for an agency or a landlord's team.
  */
 export default async function SettingsPage() {
   const { member, organisation } = await loadSettings();
@@ -47,13 +48,13 @@ export default async function SettingsPage() {
       ? `${organisation.paymentAccountName ?? ''}, ${formatIban(organisation.paymentIban)}`
       : '',
     agency: organisation.name,
+    team: copy.team.row,
   };
   return (
     <Stack gap={8}>
       <PageHeader title={copy.title} lead={copy.lead} />
-      {rows.length === 0 ? (
-        <p>{copy.noRows}</p>
-      ) : (
+      {member.role !== 'admin' ? <p>{copy.noRows}</p> : null}
+      {rows.length === 0 ? null : (
         <ActionList bare>
           {rows.map((row) => (
             <ActionRow

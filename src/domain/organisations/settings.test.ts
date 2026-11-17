@@ -8,6 +8,7 @@ describe('UX-ST-1: Settings is a list of rows, each its own page', () => {
       'assistant',
       'income',
       'agency',
+      'team',
     ]);
     expect(settingsRows({ kind: 'agency', role: 'admin', paymentAccountSet: true })).toEqual([
       'enquiries',
@@ -15,19 +16,20 @@ describe('UX-ST-1: Settings is a list of rows, each its own page', () => {
       'income',
       'payment',
       'agency',
+      'team',
     ]);
   });
 
-  it('UX-ST-1: a private landlord has no agency row', () => {
+  it('UX-ST-1, UX-AG-10: a private landlord has no agency row and no team', () => {
     expect(
       settingsRows({ kind: 'private_landlord', role: 'admin', paymentAccountSet: true }),
     ).toEqual(['enquiries', 'assistant', 'income', 'payment']);
   });
 
-  it('UX-ST-1: an agent who isn’t an admin changes none of them', () => {
-    expect(settingsRows({ kind: 'agency', role: 'negotiator', paymentAccountSet: true })).toEqual(
-      [],
-    );
+  it('UX-ST-1, UX-AG-8: an agent who isn’t an admin changes none of them, and sees the team', () => {
+    expect(settingsRows({ kind: 'agency', role: 'negotiator', paymentAccountSet: true })).toEqual([
+      'team',
+    ]);
   });
 
   it('UX-ST-3, UX-AI-14: no usual times, and one row for the assistant', () => {

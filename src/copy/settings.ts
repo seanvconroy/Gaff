@@ -16,7 +16,9 @@ export const settingsCopy = {
     income: 'Income rule',
     payment: 'Where tenants pay',
     agency: 'The agency',
+    team: 'Team',
   },
+  team: { row: 'Who’s in your team, and who’s been invited.' },
   enquiries: {
     title: 'Enquiries',
     lead: 'Send your Daft and MyHome enquiries to your Gaff address, and Gaff answers every one.',

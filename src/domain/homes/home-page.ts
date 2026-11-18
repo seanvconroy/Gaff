@@ -36,10 +36,10 @@ export const homeHref = (ref: string) => `/homes/${ref}`;
  * the deployment says so (`SEARCH_INDEXING=on`, set in production alone), so a test copy of
  * Gaff is never found.
  */
-export function homePageRobots(page: {
-  live: boolean;
-  searchIndexing: boolean;
-}): { index: boolean; follow: boolean } {
+export function homePageRobots(page: { live: boolean; searchIndexing: boolean }): {
+  index: boolean;
+  follow: boolean;
+} {
   const index = page.live && page.searchIndexing;
   return { index, follow: index };
 }

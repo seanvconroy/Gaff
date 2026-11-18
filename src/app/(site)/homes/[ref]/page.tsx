@@ -17,6 +17,7 @@ import {
   homeLettingDetails,
   homesInHref,
   homeSummary,
+  homePageRobots,
   homeTitle,
   reportHref,
   sharePreview,
@@ -49,8 +50,8 @@ type Params = {
 
 /**
  * UX-LS-11: a sharing preview (the address, the rent and the cover photo), and a page search
- * engines may index. Only a live home's page is indexed; "has been let" and "not available"
- * aren't. Nothing about any person, and the lister isn't named.
+ * engines may index where the deployment allows it (`SEARCH_INDEXING=on`, production only). Only
+ * a live home's page is indexed; "has been let" and "not available" aren't. Nothing about any person, and the lister isn't named.
  */
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const page = await pageFor((await params).ref);

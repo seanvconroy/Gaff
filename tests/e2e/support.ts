@@ -34,6 +34,8 @@ export async function expectAccessible(page: Page): Promise<void> {
  * is the view: the page behind it doesn't count.
  */
 export async function expectOnePrimary(page: Page): Promise<void> {
+  // The component page shows every component side by side, primary buttons included.
+  if (new URL(page.url()).pathname === '/dev/ui') return;
   const primaries = await page.evaluate(() => {
     const open = [...document.querySelectorAll('dialog[open]')].at(-1);
     const within: ParentNode = open ?? document;

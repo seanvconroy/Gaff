@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import pg from 'pg';
 import { E2E_DATABASE_URL } from '../../playwright.config';
-import { expectAccessible, expectNoSidewaysScroll, screenshot } from './support';
+import { expectAccessible, expectNoSidewaysScroll, expectOnePrimary, screenshot } from './support';
 
 /**
  * The rules every one of a renter's pages is held to (work package WP-12; UX-PP-1, UX-PP-4,
@@ -17,23 +17,8 @@ export const RENTER_NOTICES: readonly RenterNotice[] = ['check', 'fees', 'ring',
 /** The two widths every screen is checked at (rules for every package, 3). */
 export const WIDTHS = [390, 1280] as const;
 
-/**
- * UX-PP-1, UX-DS-2: at most one primary button in view. A sheet that is open is the view: the
- * page behind it doesn't count.
- */
-export async function expectOnePrimary(page: Page): Promise<void> {
-  const primaries = await page.evaluate(() => {
-    const open = document.querySelector('dialog[open]');
-    const within: ParentNode = open ?? document;
-    return [...within.querySelectorAll<HTMLElement>('[data-button="primary"]')]
-      .filter((el) => {
-        const box = el.getBoundingClientRect();
-        return box.width > 1 && box.height > 1 && getComputedStyle(el).visibility !== 'hidden';
-      })
-      .map((el) => (el.textContent ?? '').trim());
-  });
-  expect(primaries.length, `primary buttons: ${primaries.join(' | ')}`).toBeLessThanOrEqual(1);
-}
+/** UX-PP-1, UX-DS-2: at most one primary button in view (every page's check, in support). */
+export { expectOnePrimary };
 
 /**
  * UX-PP-4: nothing a renter must read or act on is smaller than 16px. Every piece of text that

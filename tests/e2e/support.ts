@@ -25,7 +25,26 @@ export async function expectAccessible(page: Page): Promise<void> {
   );
   expect(summary, 'accessibility violations').toEqual([]);
   await expectUniqueIds(page);
+  await expectOnePrimary(page);
   await expectControlSizes(page);
+}
+
+/**
+ * UX-PP-1, UX-DS-2 (P2): at most one primary button in view, on every page. A sheet that is open
+ * is the view: the page behind it doesn't count.
+ */
+export async function expectOnePrimary(page: Page): Promise<void> {
+  const primaries = await page.evaluate(() => {
+    const open = [...document.querySelectorAll('dialog[open]')].at(-1);
+    const within: ParentNode = open ?? document;
+    return [...within.querySelectorAll<HTMLElement>('[data-button="primary"]')]
+      .filter((el) => {
+        const box = el.getBoundingClientRect();
+        return box.width > 1 && box.height > 1 && getComputedStyle(el).visibility !== 'hidden';
+      })
+      .map((el) => (el.textContent ?? '').trim());
+  });
+  expect(primaries.length, `primary buttons: ${primaries.join(' | ')}`).toBeLessThanOrEqual(1);
 }
 
 /**

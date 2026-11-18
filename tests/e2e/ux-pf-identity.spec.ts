@@ -3,7 +3,7 @@ import pg from 'pg';
 import { E2E_DATABASE_URL } from '../../playwright.config';
 import { daftEnquiry } from '../fixtures/emails';
 import { aPng } from '../fixtures/photos';
-import { chooseApplicant, chooseWhoViews } from './journeys';
+import { chooseApplicant, chooseTheOnlyApplicant, chooseWhoViews } from './journeys';
 import { applyThroughUi, bookFirstTime, expectReadable } from './renter';
 import {
   addHomeThroughUi,
@@ -170,22 +170,6 @@ async function applicantsAt(
     }
   }
   return { lettings, links };
-}
-
-/**
- * "Choose an applicant" with one person and no backup to choose from: their radio, then straight
- * to "Check and confirm" (the flow's Next asks for a backup only when there's someone to ask
- * about), and "Start the checks".
- */
-async function chooseTheOnlyApplicant(page: Page, lettingUrl: string, name: string) {
-  await page.goto(`${lettingUrl}/choose`);
-  const radio = page.getByRole('radio', { name: `Choose ${name}` });
-  await radio.check();
-  const id = await radio.getAttribute('value');
-  await page.goto(`${lettingUrl}/choose?step=check&preferred=${id}`);
-  await expect(page.getByRole('heading', { name: 'Check and confirm' })).toBeVisible();
-  await page.getByRole('button', { name: 'Start the checks' }).click();
-  await expect(page.getByRole('heading', { name: 'Checks started' })).toBeVisible();
 }
 
 /** The renter's checks link for a home, from the email that says they were chosen. */

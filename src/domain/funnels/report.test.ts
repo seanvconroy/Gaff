@@ -60,11 +60,11 @@ describe('UX-ME-2: funnel maths, from counts only', () => {
       fact('sign_in.method_chosen', 'a', 10),
       fact('sign_in.method_chosen', 'b', 20),
       fact('sign_in.method_chosen', 'c', 60),
-      // No screen-opened step for this one, so there's no time to count.
+      // No screen-opened step for this one: it isn't in the funnel, and has no time to count.
       fact('sign_in.method_chosen', 'z', 1),
     ]);
     expect(report.steps[1]).toMatchObject({
-      reached: 4,
+      reached: 3,
       timedFromLabel: 'Screen opened',
       medianMs: 20_000,
     });
@@ -122,6 +122,30 @@ describe('UX-ME-2: funnel maths, from counts only', () => {
     });
   });
 
+  it('UX-ME-2: a funnel counts only the subjects that started it, so its end never exceeds its start', () => {
+    // An offer made on a path that never recorded "checks back", and an application sent with no
+    // invitation delivered: neither is in the funnel.
+    const offer = catalogue.find((funnel) => funnel.code === 'offer')!;
+    const report = funnelReport(offer, [
+      fact('offer.checks_back', 'x', 0),
+      fact('offer.owner_approved', 'x', 10),
+      fact('offer.offer_sent', 'x', 20),
+      fact('offer.owner_approved', 'y', 10),
+      fact('offer.offer_sent', 'y', 20),
+      fact('offer.offer_sent', 'z', 20),
+    ]);
+    expect(report.steps.map((step) => step.reached)).toEqual([1, 1, 1]);
+    for (const funnel of allFunnelReports([
+      fact('renter_applying.opened', 'a', 0),
+      fact('renter_applying.sent', 'a', 10),
+      fact('renter_applying.sent', 'b', 10),
+      fact('renter_applying.invited', 'b', 0),
+    ])) {
+      const [first, ...rest] = funnel.steps;
+      for (const step of rest) expect(step.reached).toBeLessThanOrEqual(first!.reached);
+    }
+  });
+
   it('UX-ME-2: splits a funnel by its code, such as the sign-in method', () => {
     const report = funnelReport(signIn, [
       fact('sign_in.screen_opened', 'a', 0),
@@ -153,7 +177,10 @@ describe('UX-ME-2: funnel maths, from counts only', () => {
   });
 
   it('UX-ME-2: reports every funnel in the catalogue, in order', () => {
-    const reports = allFunnelReports([fact('renter_booking.opened', 'a', 0)]);
+    const reports = allFunnelReports([
+      fact('renter_booking.invitation_delivered', 'a', 0),
+      fact('renter_booking.opened', 'a', 0),
+    ]);
     expect(reports.map((report) => report.code)).toEqual(catalogue.map((funnel) => funnel.code));
     expect(reports.find((r) => r.code === 'renter_booking')!.steps[1]!.reached).toBe(1);
   });

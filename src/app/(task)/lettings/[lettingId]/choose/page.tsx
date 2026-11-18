@@ -106,8 +106,13 @@ export default async function ChoosePage({
   const incomeLine = (row: (typeof rows)[number]) =>
     copy.incomeWords(formatEuro(row.monthlyIncomeCents), row.ratioTenths);
 
-  // Step 3: check and confirm. Nothing has gone yet.
-  if (step === 'check' && preferred && (backup || others.length === 0)) {
+  // Step 3: check and confirm. Nothing has gone yet. With nobody else to offer as a backup, Next
+  // on step 1 comes straight here: there is no step 2 to show.
+  const noBackupToOffer = Boolean(preferred) && others.length === 0;
+  if (
+    (step === 'check' && preferred && (backup || others.length === 0)) ||
+    (step === 'backup' && noBackupToOffer)
+  ) {
     const first = firstNameOf(nameOf(preferred));
     const second = backup && backup !== 'none' ? firstNameOf(nameOf(backup)) : null;
     const change = (href: string, what: string) => (
@@ -118,7 +123,11 @@ export default async function ChoosePage({
     );
     return (
       <FlowShell
-        leave={{ kind: 'back', href: link({ step: 'backup' }), label: decisionsCopy.back }}
+        leave={{
+          kind: 'back',
+          href: others.length > 0 ? link({ step: 'backup' }) : link({}),
+          label: decisionsCopy.back,
+        }}
         progress={progress(2)}
         form={{ action: chooseAction.bind(null, letting.id) }}
         back={

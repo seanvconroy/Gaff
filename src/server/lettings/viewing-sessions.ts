@@ -24,6 +24,7 @@ import { UserFacingError } from '@/server/errors';
 import { cancelBookingMessages, queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
 import { queueBookingMessages } from '@/server/viewings/booking';
+import { assertMayActOn } from '@/server/team/permissions';
 
 /** Sessions on the same letting never overlap (R1): this one is refused, at its start time. */
 async function refuseClash(
@@ -78,6 +79,7 @@ export async function addViewingSession(
   session: ViewingSession,
 ): Promise<{ sessionId: string }> {
   return withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const [letting] = await tx
       .select({ id: lettings.id })
       .from(lettings)
@@ -188,6 +190,7 @@ export async function changeViewingSession(
   next: ViewingSession,
 ): Promise<{ moved: boolean; told: number }> {
   return withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const found = await lockedSession(tx, lettingId, sessionId, 'changed');
     const { session, letting, organisation, booked } = found;
     await refuseClash(tx, lettingId, next, sessionId);
@@ -282,6 +285,7 @@ export async function removeViewingSession(
   sessionId: string,
 ): Promise<{ told: number }> {
   return withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const found = await lockedSession(tx, lettingId, sessionId, 'cancelled');
     const { letting, organisation, booked } = found;
     const others = await tx

@@ -9,6 +9,11 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] Pick the first pilot operator(s)
 - [x] Price per letting for the pilots: free (Q33)
 - [ ] Confirm two decisions made for you: private landlords verify their identity before their first home goes live (Q47), and Veriff for identity checks (Q48)
+- [ ] Confirm that a private landlord's identity is kept at their first go-live without the "Keep this?" question a renter gets (Q47): their homes can't stay on gaff.ie without it. "Confirm it's you" says, before the check, that Gaff keeps the result, the name and the date so they aren't asked again, and that deleting their profile removes it and takes their homes off gaff.ie
+- [ ] Confirm two places where the redesign's PRD disagrees with itself, each built one way: the results screen's one next action is "Send the owner the summary" first (UX-TN-6), not "Add your next letting" (section 9's table); and the reference form is one screen (section 5), not one question per screen
+- [ ] Run the current flows on the test copy, open `/internal/funnels`, and copy the numbers into the note at the end of section 9 as baselines
+- [ ] Check the forwarding steps for Gmail and Outlook (`/forwarding`) against the live settings screens
+- [ ] Replace the hand-made list of places search knows (26 counties, Dublin's districts, about 150 towns and 90 neighbourhoods) by running `scripts/places/build-places.ts` against OpenStreetMap, which couldn't be reached from the build
 
 ## Accounts (founders create; CTO wires in)
 
@@ -24,6 +29,8 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] **ID checks:** Veriff is recommended (Q48). Confirm it, get EU hosting in writing, sign the DPA, and add its adapter. Private landlords now need this check before their first home goes live (Q47), as well as chosen applicants.
 - [ ] **Income checks:** choose an open banking provider (for example TrueLayer, Tink or Yapily, checking AIB, Bank of Ireland, PTSB and Revolut coverage), sign the DPA, and add its adapter. Until both exist, production runs with `IDENTITY_PROVIDER=none` and `INCOME_PROVIDER=none`, and operators arrange those checks themselves.
 - [ ] **GitHub:** push access and Actions enabled for CI.
+- [ ] **Search indexing:** set `SEARCH_INDEXING=on` in production only, so search engines may find live homes' pages. Leave it off on the test copy and on preview deployments ([deploy.md](deploy.md)).
+- [ ] **The RTB's Rent Register (OQ-2):** whether software may read it. Until it's settled, people type three comparable rents themselves.
 
 ## Solicitor (before the first pilot letting)
 
@@ -36,6 +43,9 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] Criteria list, pets wording and assistance-dog rule (Q9)
 - [ ] Fixed answers on protected grounds (Q7)
 - [ ] Message templates in `src/copy/templates/`: first reply (with AI disclosure), holding message, invitation, waiting list, booking confirmation, reminders (email and SMS), place offered, letting closed, and later offer and outcome
+- [ ] The new email wordings from the redesign, each pinned by a test so it can't change unnoticed: the email that sends an owner their link (`src/copy/templates/owner.test.ts`); a saved search's confirmation and its alert (`src/copy/saved.test.ts`); and the two emails to a lister about a listing taken off gaff.ie and put back (`src/copy/trust-emails.test.ts`)
+- [ ] Reports of a listing: deleted six months after Gaff's team answers them, and the reporter, who gives no contact details, is never told the outcome
+- [ ] "Stop taking enquiries" (UX-LP-5) needs a new fixed message to everyone who enquired; it isn't built until the wording is agreed
 - [ ] Privacy notice for renters (GDPR Article 14), now also covering Gaff as controller for profiles, saved searches and verified identities (Q25, Q35), and naming Google and Apple
 - [ ] Terms of use for both sides: operators and renters (they carry what the screens no longer say, Q46)
 - [ ] The matching design: objective fit, the Letting details line, "No smoking indoors", asking who fits (Q36)

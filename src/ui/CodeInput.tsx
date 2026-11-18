@@ -26,7 +26,7 @@ export function CodeInput({
   autoFocus?: boolean;
 }) {
   const [code, setCode] = useState(() => codeDigits(defaultValue, length));
-  const ids = fieldIds(field.name);
+  const ids = fieldIds(field.name, field.idScope);
   return (
     <FieldFrame {...field}>
       <div className={styles.code} data-invalid={field.error ? '' : undefined}>
@@ -45,7 +45,7 @@ export function CodeInput({
           spellCheck={false}
           autoFocus={autoFocus}
           aria-invalid={field.error ? true : undefined}
-          aria-describedby={describedBy(field.name, field.hint, field.error)}
+          aria-describedby={describedBy(field.name, field.hint, field.error, field.idScope)}
           // A paste can be longer than the field and hold spaces: take its digits ourselves.
           onPaste={(event) => {
             event.preventDefault();

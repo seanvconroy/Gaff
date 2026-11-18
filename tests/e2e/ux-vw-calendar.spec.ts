@@ -151,6 +151,12 @@ test('UX-VW-1 to UX-VW-3, UX-VW-7, UX-VW-9: every home’s viewing times on one 
   await expect(timeOnCalendar(page, /^6:30pm to 7:30pm · 4 Harbour View/)).toHaveCount(1);
   // Both of 12 Ranelagh Road's evenings are in the week.
   await expect(timeOnCalendar(page, /^6pm to 7pm · 12 Ranelagh Road/)).toHaveCount(2);
+  // Side by side, each block shows the home first, in full; the time is on its sheet and still
+  // read out first (WP-28: "6pm t…" was all that showed).
+  const harbour = timeOnCalendar(page, /^6:30pm to 7:30pm · 4 Harbour View/);
+  await expect(harbour).toHaveAttribute('data-shared', '');
+  await expect(harbour.getByText('4 Harbour View', { exact: true })).toBeVisible();
+  await expect(harbour.getByText('6:30pm to 7:30pm')).toHaveClass(/visually-hidden/);
   await shot(page, 'wp16-calendar-overlap-1280');
 });
 

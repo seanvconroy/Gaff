@@ -46,7 +46,7 @@ Inside the code, dependencies point inwards:
 - `app/` (Next.js routes) and `jobs/` (worker tasks) are thin. They call...
 - `server/` use cases, which load data, apply a domain rule, then save the result and its event in one transaction. Use cases call...
 - `domain/`: pure business rules with no I/O and no framework code, unit-tested first. Criteria, ranking, rent rules, viewing capacity, reminder times and message templates all live here.
-- `ports/` are interfaces to the outside world (email, SMS, AI, clock). `adapters/` implement them: local stand-ins for development and tests, real providers once approved.
+- `ports/` are interfaces to the outside world. `adapters/` implement them: local stand-ins for development and tests, real providers once approved (see "Ports" below).
 
 The web framework, the email provider and the AI provider can each be swapped without touching the rules.
 
@@ -125,10 +125,34 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 | `activity_minutes` | Operator active minutes per letting, for time saved | Operator staff |
 | `funnel_events` | Funnel steps the record has no event for (UX-ME-1): a step code, an ID, an optional split code and a time, once per step per subject. No `organisation_id`: any use case may add a row, and only `withSystem()` can read them, for Gaff's internal page | **Never** |
 
-### Later slices (sketch)
+### Slices 2 and 3, and the UX redesign
 
-- **Slice 2:** `applications` gains self-declared employment and income (stage 5 only). Plus `checks` (provider, result, expiry, deletion date; no document images), `references`, `guarantors`, `offers`.
-- **Slice 3:** `tenancy_packs` (agreement, signatures, payment request, rent-setting pack, RTB pack; PPSN encrypted at application level) and `renter_profiles` (opt-in, owned by the renter).
+| Table | Holds | Personal data? |
+| --- | --- | --- |
+| `checks` | The ID, income and reference checks of the two people chosen: kind, status, the sealed result (a verified name or a confirmed income), deletion date. No document image, no date of birth | Yes, sealed |
+| `landlord_approvals`, `offers` | The owner's answer for the people chosen, and the offer with its terms and deadline | IDs and terms |
+| `tenancies`, `inventory_items` | The tenancy from the accepted offer: agreement and signatures, payment request, RTB registration (the PPSN sealed, deleted once registered), move-in checklist; the inventory, item by item, with photos | Yes |
+| `letting_drafts`, `letting_photos` | A letting part-way through "Add a letting" (Save and exit), and a home's photos, with a cover photo. The photo bytes are in the photo store | No |
+| `letting_helpers` | Who chose "Help with this letting" on a colleague's letting (UX-AG-8) | IDs only |
+| `viewing_sessions` | A run of viewing times added in one go on the calendar | No |
+| `waiting_enquiries`, `waitlist_offers` | An ask to view not yet confirmed from its email (dropped after 24 hours), and places offered from a waiting list | Yes, until confirmed or dropped |
+| `listing_reports` | A report of a listing: the home, the reason tapped, an optional note. Nothing about who reported | No |
+| `one_time_codes`, `confirmations`, `passkeys`, `accounts`, `verifications` | Sign-in by email code, passkey, Google or Apple (ADR-0015), and "Confirm it's you" before a sensitive change | The person's own |
+
+### Data that belongs to a person (ADR-0016)
+
+A person is one person whatever they do on Gaff. What belongs to them, not to an organisation, has no `organisation_id`. It carries `personPolicy()` instead of `tenantPolicy()` and is read only through `withPerson()`, with the signed-in person's own ID; `withOrg()` can't read it, and a test holds that.
+
+| Table | Holds |
+| --- | --- |
+| `profiles` | Whether they rent, the context they used last, where they are in first run |
+| `renter_profiles` | What a renter chose to keep for next time: their details, the four answers, work and income with its date (Q25) |
+| `verified_identities`, `identity_checks` | A kept identity: that the check passed, the verified name and the date (Q35, Q47). Never an image, document details, country or date of birth. An operator sees it only at the checks stage, with the renter's yes |
+| `saved_homes`, `saved_searches` | Homes saved and searches to hear about; a search keeps the chips, never the sentence |
+| `renter_enquiries` | The renter's own list of enquiries, pointing at the operator's application |
+| `profile_events` | The record of the profile, with IDs and codes only |
+
+An application to one letting stays the operator's copy, in `applications`, and is deleted on the letting's own schedule. A renter's profile is kept while they choose to keep it, deleted at once from Profile, and deleted after two years unused, 30 days after an email that says so (UX-PF-7).
 
 ## Project structure
 
@@ -140,12 +164,21 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 ├── scripts/build-tokens.ts      tokens JSON → src/styles/tokens.css + tokens.ts
 ├── src/
 │   ├── app/                     Next.js routes only: thin pages, server actions, route handlers
-│   │   ├── _shell/              the one shell: the navigation round the page
-│   │   ├── (workspace)/         the letting side: Today, Lettings, Calendar, Inbox; sign-in required
-│   │   ├── (task)/              its focused tasks: full screen, no navigation
-│   │   ├── (site)/              the public site's first screen, the renting side, Profile, Help
-│   │   ├── r/[token]/           renter pages: questions, booking (no account)
-│   │   ├── l/[token]/           landlord pages: read-only timeline (no account)
+│   │   ├── _shell/              the one shell: the navigation round the page (NavBar)
+│   │   ├── (workspace)/         the letting side: Today, Lettings, Calendar, Inbox, Settings
+│   │   ├── (task)/              its focused tasks on FlowShell: no navigation, one question a screen
+│   │   ├── (site)/              Search (the public site's first screen), a home's page, Saved,
+│   │   │                        Enquiries, Profile, Help
+│   │   ├── (open-task)/         focused tasks open to anyone: asking to view, reporting a listing
+│   │   ├── (first-run)/         /welcome: at most four questions, one a screen
+│   │   ├── (auth)/              sign-in: email code, passkey, Google and Apple; privacy and terms
+│   │   ├── r/[token]/           a renter's private pages: questions, booking, applying, checks,
+│   │   │                        the offer, the tenancy (no account)
+│   │   ├── l/[token]/           the owner's page (no account)
+│   │   ├── approve/[token]/     the owner approves the people chosen (no account)
+│   │   ├── reference/[token]/   a referee's form (no account)
+│   │   ├── internal/            Gaff's own team: agencies to confirm, reported listings, funnels
+│   │   ├── dev/                 development tools (outbox, inbound, stand-in checks, /dev/ui)
 │   │   └── api/                 inbound email webhooks, cron tick, health check
 │   ├── domain/                  pure rules, unit-tested first
 │   │   ├── criteria/  ranking/  rent/  viewings/  enquiries/
@@ -153,7 +186,8 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 │   ├── server/                  use cases: one transaction each, writes its event
 │   ├── db/                      Drizzle schema, migrations, RLS policies, withOrg()
 │   ├── jobs/                    task handlers, local worker, time-boxed runner for the tick
-│   ├── ports/                   interfaces: email, SMS, AI, clock
+│   ├── ports/                   interfaces: email, SMS, AI, checks, address search, photos,
+│   │                            the PSRA register, sign-in providers
 │   ├── adapters/                dev outbox, fakes, real providers once approved
 │   ├── ui/                      design-system components with CSS Modules (tokens only)
 │   ├── copy/                    every word renters see, in one place, for voice review
@@ -167,6 +201,40 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 ├── evals/                       AI guardrail evals, run on demand against the real model
 └── .github/workflows/ci.yml
 ```
+
+## Ports
+
+Every outside service sits behind an interface in `src/ports/` with a local stand-in in `src/adapters/`, so nothing needs a real account to build or test (rule 10). Each is chosen by a setting ([deploy.md](deploy.md)); production refuses a stand-in.
+
+| Port | What it does | Stand-in | Real |
+| --- | --- | --- | --- |
+| `email.ts`, `inbound-email.ts` | Sending, and receiving with signed webhooks | Development outbox (`/dev/outbox`), `/dev/inbound` | Resend; Mailgun EU |
+| `sms.ts` | Text reminders | Fake SMS | Sinch (EU) |
+| `ai.ts` | Drafting answers, reading a pasted advert (`ADVERT_READER`), and reading a question about who's enquired into chips | Fake AI | Claude on Amazon Bedrock (EU) |
+| `checks.ts` | ID and income checks: a chosen applicant's, and a private landlord's "Confirm it's you" (Q47) | A stand-in page (`/dev/checks`) | None chosen yet (Q48); `none` in production until then |
+| `address-search.ts` | Finding an address when adding a letting (`ADDRESS_SEARCH`) | A made-up list | Autoaddress, once its DPA is signed (Q40); `off` types it in |
+| `photo-store.ts` | Homes' photos (`PHOTO_STORE`) | A table in this database | Supabase Storage (Ireland), a private bucket |
+| `register.ts` | Gaff's weekly copy of the PSRA register (`PSRA_REGISTER_SOURCE`) | A made-up register | The PSRA's download, once its format is checked |
+| `sign-in-providers.ts` | Google and Apple sign-in, for sign-in only (Q30) | `/dev/sign-in` | Google, Apple |
+
+## Jobs
+
+Background tasks wait in graphile-worker's queue in Postgres (`src/jobs/tasks.ts`). A use case queues one in the same transaction as its change.
+
+| Job | When | What |
+| --- | --- | --- |
+| `send_message` | Queued with each message | Sends it through the outbox, with retries |
+| `process_inbound_email` | Each email received | Reads, matches and merges an enquiry |
+| `draft_answers` | A renter's question | Drafts a grounded answer for a person to approve |
+| `send_waiting_reply`, `drop_waiting_enquiry` | An ask to view from someone without an account (UX-AV-6) | Sends the first reply, which they confirm from; drops it unconfirmed after 24 hours |
+| `offer_place` | A cancelled booking | Offers the place down the waiting list |
+| `expire_offer`, `expire_home_offer` | An offer's deadline | Closes a waiting-list place or a home's offer |
+| `reference_overdue` | Six days after a referee is asked | Marks the reference overdue |
+| `rtb_reminder` | A week before the RTB deadline | Reminds the admins |
+| `saved_search_alerts`, `send_saved_search_email` | Daily at 08:00 UTC, and per alert | Tells people who saved a search about new homes |
+| `psra_register_refresh` | Weekly | Refreshes Gaff's copy of the PSRA register; a lapsed licence holds go-live |
+| `send_account_email` | Sign-in codes, invitations | Sends account emails |
+| `retention_sweep` | Daily (02:30 UTC) | Deletes personal data on its date (rule 9); renters' profiles unused for two years; a let home's page 30 days after it was let; reports six months after they're answered; unconfirmed asks to view; saved searches held by an email alone; and the anonymous record after `RETENTION_RECORD_MONTHS` |
 
 ## Two flows in detail
 

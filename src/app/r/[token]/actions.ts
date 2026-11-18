@@ -20,6 +20,12 @@ export async function saveAnswersAction(
     return invalid(result.errors, values);
   }
   // UX-PF-2: their answers are kept, for a renter whose profile keeps what they enter.
-  await keepFromPage(token, 'answers', (entered) => ({ answers: entered.answers }));
+  // UX-PF-3: kept answers that were offered back are recorded as confirmed, as income is.
+  await keepFromPage(
+    token,
+    'answers',
+    (entered) => ({ answers: entered.answers }),
+    values.offered === 'answers' ? 'answers' : undefined,
+  );
   toRenterPage(token);
 }

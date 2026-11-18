@@ -33,6 +33,7 @@ import { enqueue } from '@/server/jobs/enqueue';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordPersonCheckResult } from '@/server/identity/person-checks';
 import { recordEvent } from '@/server/record/events';
+import { assertMayActOn } from '@/server/team/permissions';
 
 const CHOSEN = ['preferred', 'backup'] as const;
 /** Why a reference has no answer, where the referee said they can't give it (UX-RF-4). */
@@ -606,6 +607,7 @@ export async function remindAboutCheck(
   now: Date = new Date(),
 ): Promise<{ to: 'renter' | 'referee' }> {
   return withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const [row] = await tx
       .select({ check: checks, application: applications, organisation: organisations })
       .from(checks)

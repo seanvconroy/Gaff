@@ -9,6 +9,7 @@ import {
   homeHighlights,
   homeHref,
   homeLettingDetails,
+  homePageRobots,
   homePageState,
   homeSummary,
   homeTitle,
@@ -282,5 +283,25 @@ describe('rule 3: nothing on a home’s page says who should live there', () => 
       ...homeHighlights(home).map((highlight) => highlight.text),
     ].join(' ');
     expect(words).not.toMatch(/suit/i);
+  });
+});
+
+describe('UX-LS-11: search engines index a home’s page only where the deployment allows it', () => {
+  it('UX-LS-11: a live home’s page is indexed when search indexing is on', () => {
+    expect(homePageRobots({ live: true, searchIndexing: true })).toEqual({
+      index: true,
+      follow: true,
+    });
+  });
+
+  it('UX-LS-11: with search indexing off (the default), no page is indexed or followed', () => {
+    expect(homePageRobots({ live: true, searchIndexing: false })).toEqual({
+      index: false,
+      follow: false,
+    });
+  });
+
+  it('UX-LS-11: a home that isn’t live is never indexed', () => {
+    expect(homePageRobots({ live: false, searchIndexing: true }).index).toBe(false);
   });
 });

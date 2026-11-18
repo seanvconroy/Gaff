@@ -75,10 +75,22 @@ function firstTimes(facts: readonly Fact[]): Map<string, Reached> {
 
 const share = (part: number, whole: number): number | null => (whole > 0 ? part / whole : null);
 
+/**
+ * A funnel's report. Its subjects are those that reached its first step: a later step counts
+ * only those of them that reached it too. A subject seen at a later step that never started the
+ * funnel (a path the first step isn't recorded on, or one that started before Gaff counted) is
+ * left out, so no step ever counts more than the funnel started with.
+ */
 export function funnelReport(funnel: Funnel, facts: readonly Fact[]): FunnelReport {
   const codes = new Set(funnel.steps.map((step) => stepCode(funnel, step)));
   const byStep = firstTimes(facts.filter((fact) => codes.has(fact.step)));
-  const reachedAt = (code: string): Reached => byStep.get(stepCode(funnel, { code })) ?? new Map();
+  const firstCode = funnel.steps[0]?.code;
+  const started = byStep.get(stepCode(funnel, { code: firstCode ?? '' })) ?? new Map();
+  const reachedAt = (code: string): Reached => {
+    const reached: Reached = byStep.get(stepCode(funnel, { code })) ?? new Map();
+    if (code === firstCode) return reached;
+    return new Map([...reached].filter(([subject]) => started.has(subject)));
+  };
 
   const steps = funnel.steps.map((step, index): StepReport => {
     const reached = reachedAt(step.code);

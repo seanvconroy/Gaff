@@ -84,7 +84,7 @@ function PickerControl({
   current: string;
   children: ReactNode;
 }) {
-  const ids = fieldIds(field.name);
+  const ids = fieldIds(field.name, field.idScope);
   const valueId = `${ids.input}-value`;
   return (
     <FieldFrame {...field} width={field.width ?? 'medium'}>
@@ -96,7 +96,7 @@ function PickerControl({
         aria-haspopup={popup}
         aria-expanded={open}
         aria-labelledby={`${ids.label} ${valueId}`}
-        aria-describedby={describedBy(field.name, field.hint, field.error)}
+        aria-describedby={describedBy(field.name, field.hint, field.error, field.idScope)}
         data-invalid={field.error ? '' : undefined}
         onClick={onOpen}
         onKeyDown={(event) => {

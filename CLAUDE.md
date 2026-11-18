@@ -3,7 +3,7 @@
 Gaff runs the letting of a home in Ireland, from the first enquiry to a signed tenancy, for letting agents and for landlords with one home or many. Renters find homes on Gaff, or arrive from Daft or MyHome, and use it free. The AI does the work. People make three decisions: who views, who is offered the home, and what is signed.
 
 - **What to build:** `docs/prd.md` is the source of truth. Requirement IDs (R1, R2…) come from it.
-- **How every screen should work and look (the redesign, being built now):** `docs/ux-redesign/`. Its requirement IDs start `UX-`. See "Building the UX redesign" below.
+- **How every screen should work and look (the redesign, now built):** `docs/ux-redesign/`. Its requirement IDs start `UX-`. See "The product as built" below.
 - **How it looks and sounds:** `docs/design-system.md` and `docs/design-tokens.json`.
 - **How it's built:** `docs/architecture.md` and the ADRs in `docs/adr/`.
 - **Decisions on PRD questions:** `docs/open-questions.md`.
@@ -63,27 +63,26 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
 - A renter who fails a check is shown in `warning` with a plain reason, never `danger`.
 - Renter-facing copy and message templates live in `src/copy/`.
 
-## Building the UX redesign
+## The product as built (the UX redesign)
 
-The founder agreed the redesign on 14 November 2026. The decisions are Q27 to Q48 in `docs/open-questions.md`. The MVP is two-sided: running a letting, and finding and applying for a home.
+The founder agreed the redesign on 14 November 2026 (Q27 to Q49 in `docs/open-questions.md`), and it is built (work packages WP-1 to WP-28; what remains open is at the top of `docs/ux-redesign/BUILD.md`). The MVP is two-sided: running a letting, and finding and applying for a home. Any change to a screen follows `docs/ux-redesign/`, its principles P1 to P14 and its "Rules for every package" in `13-work-packages.md`. Open pull requests into the default branch, `claude/gaff-mvp`.
 
-- When asked to build a wave or a work package of the UX redesign, follow `docs/ux-redesign/13-work-packages.md`: its "How a wave is built" steps, its "Rules for every package", and the brief for each package. Read the sections each brief lists before writing code.
-- Use sub-agents, one per work package, each in its own worktree, when the request asks for them. Integration and end-to-end tests share one database and one port, so run those one at a time.
-- Open the pull request into the default branch, `claude/gaff-mvp`.
-- One design: build each screen at phone width first, with the same steps and words at every width.
-- The redesign's design system is in (work package WP-2): role-named tokens, one type family, 48px controls and the components in `src/ui`. Every component and its states are on one page, `/dev/ui`, when `DEV_TOOLS` is on.
-- The shell and the navigation are in (work package WP-3). There is no sidebar: one bar (`src/ui/NavBar`), a top bar at 900px and up and a tab bar at the foot of the screen below it.
+- **One design.** Build each screen at phone width first, with the same steps and words at every width. Every component and its states are on `/dev/ui` when `DEV_TOOLS` is on.
+- **Navigation.** One bar (`src/ui/NavBar`): a top bar at 900px and up, a tab bar at the foot of the screen below it. There is no sidebar.
   - Letting has Today (`/today`), Lettings (`/lettings`), Calendar (`/calendar`) and Inbox (`/inbox`). Renting has Search (`/`), Saved (`/saved`) and Enquiries (`/enquiries`). Signed out, `/` is the public site, with a header alone. Settings, Profile, Help and Sign out are in the account menu on the avatar.
   - "Letting or renting?" is answered in one place: `currentPerson()` in `src/server/context`, by the rules in `src/domain/navigation/context.ts`. A workspace page is always on the letting side, for the organisation the person let for last.
-  - A step-by-step task hides the navigation: its page goes under `(task)` and is built on `FlowShell`, with errors at the field and no error box at the top.
-
-- The account model is in (work package WP-5, ADR-0016). A person is one person whatever they do.
+  - A step-by-step task hides the navigation: its page goes under `(task)` (or `(open-task)`, for one anyone may open, such as asking to view) and is built on `FlowShell`, one question per screen, with errors at the field and no error box at the top.
+- **Accounts (ADR-0016).** A person is one person whatever they do.
   - Their contexts are each organisation they belong to (an agency by name, or "My own homes") and "Renting". The account menu switches between them and adds new ones. The one that's open is remembered on their profile, and changes only in `src/server/accounts`.
   - A private landlord's lettings live in an organisation of one, kind `private_landlord`, made silently by `ensureOwnHomes`. It is never asked for a name or a licence. `landlord` is a landlord's team.
-  - A person's own profile (`profiles`, and later what a renter keeps and a verified identity) has no `organisation_id`. Reach it only through `withPerson()`, with the signed-in person's own ID. `withOrg()` can't read it, and a test holds that.
-  - First run is `/welcome`, in `(first-run)`: one question per screen in `FlowShell`, at most four. Which screen opens is worked out from what is known (`src/domain/accounts/first-run.ts`).
-  - An agency is found on Gaff's copy of the PSRA register, which a weekly job refreshes. It is "being confirmed" until someone on Gaff's team presses Confirm on `/internal/agencies`. Until then the one thing held is go-live; the one rule is `goLiveGate` in `src/domain/organisations`. Staff confirm agencies and do nothing else.
-  - In tests, `createTestMember()` gives a confirmed agency, and `signUpOperator()` in `tests/e2e/support.ts` does too. Pass `confirmed: false` for one that is still being confirmed.
+  - A person's own data (`profiles`, `renter_profiles`, `verified_identities`, saved homes and searches, their list of enquiries) has no `organisation_id`. Reach it only through `withPerson()`, with the signed-in person's own ID. `withOrg()` can't read it, and a test holds that.
+  - First run is `/welcome`, in `(first-run)`: at most four questions, one per screen. Which screen opens is worked out from what is known (`src/domain/accounts/first-run.ts`).
+  - Sign-in is a six-digit email code, a passkey, Google or Apple (ADR-0015). A sensitive change asks "Confirm it's you" first.
+- **Going live.** One rule, `goLiveGate` in `src/domain/organisations`, holds go-live and nothing else: an agency is "being confirmed" until someone on Gaff's team presses Confirm on `/internal/agencies` (found on Gaff's weekly copy of the PSRA register), and a private landlord confirms it's them once, at their first go-live (Q47). Staff confirm agencies and hide reported listings, and do nothing else.
+- **Teams.** Every member sees every letting. Acting on a letting someone else leads takes "Help with this letting": every use case that changes a letting calls `assertMayActOn` in `src/server/team/permissions.ts`, and an integration test walks the list.
+- **The marketplace.** A live home that's switched on has a public page at `/homes/<reference>`, found by Search. A renter asks to view with a name and an email, or in two taps from a profile. Search engines may index a home's page only where `SEARCH_INDEXING=on` (production).
+- **Activation and measures.** The setup checklist is Today's one primary button; a prompt is decided by `promptFor` in `src/domain/activation/prompts.ts`. Funnels come from Gaff's own events (`src/domain/funnels`), shown on `/internal`; a funnel counts only the subjects that started it.
+- **Tests.** `createTestMember()` gives a confirmed agency, and `signUpOperator()` in `tests/e2e/support.ts` does too; pass `confirmed: false` for one still being confirmed. `signUpLandlord()` is verified unless `verified: false`. Integration and end-to-end tests share one database and one port, so run them one at a time. `tests/e2e/ux-e2e-both-sides.spec.ts` walks a letting end to end from both sides.
 
 ## Architecture
 
@@ -95,9 +94,9 @@ A TypeScript modular monolith: one Next.js app on Vercel (Dublin) and one Postgr
   - Pages on the letting side are in `(workspace)`, and its focused tasks, which have no navigation, in `(task)`.
   - The public site, the renting side, Profile and Help are in `(site)`. First run is in `(first-run)`.
   - Both use the one shell in `_shell`.
-  - Renter pages by private link are in `r/[token]`, and landlord pages in `l/[token]`.
+  - Renter pages by private link are in `r/[token]`, and the owner's page in `l/[token]`. The owner approves in `approve/[token]`, and a referee answers in `reference/[token]`. Sign-in is in `(auth)`, and Gaff's own team's pages in `internal`.
 - `src/jobs/`: background tasks (graphile-worker), the local worker, and the time-boxed runner used by the cron tick.
-- `src/ports/` and `src/adapters/`: email, SMS and AI behind interfaces. There are local stand-ins (dev outbox, fake SMS, fake AI) and real EU providers.
+- `src/ports/` and `src/adapters/`: email, SMS, AI, ID and income checks, address search, the photo store, the PSRA register and sign-in providers, behind interfaces. There are local stand-ins (dev outbox, fake SMS, fake AI, stand-in checks) and real EU providers.
 - `src/db/`: Drizzle schema and migrations.
   - Every tenant table has `organisation_id` and the `tenantPolicy()` row-level security policy.
   - Reach tenant data only through `withOrg()`. Use `withSystem()` only for cross-organisation jobs.

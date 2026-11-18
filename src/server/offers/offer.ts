@@ -39,6 +39,7 @@ import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent, type Actor } from '@/server/record/events';
 import { createTenancy } from '@/server/tenancy/tenancy';
 import { approvalState } from './approval';
+import { assertMayActOn } from '@/server/team/permissions';
 
 type Letting = typeof lettings.$inferSelect;
 
@@ -151,6 +152,7 @@ export async function makeOffer(
   values: Record<string, string>,
 ): Promise<MakeOfferResult> {
   return withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const [letting] = await tx
       .select()
       .from(lettings)

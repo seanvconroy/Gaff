@@ -191,7 +191,7 @@ export const addLettingCopy = {
       lead: 'One check before your home goes live: confirm it’s you. About two minutes, once.',
       what: 'You’ll photograph your passport or driving licence and take a selfie.',
       keeps:
-        'Gaff keeps only that it passed, your name and the date, on your own profile. Never the photos.',
+        'Gaff keeps that it passed, your name and the date on your own profile, so you’re not asked again. Never the photos. If you delete your profile, these go too, and your homes come off gaff.ie until you confirm it’s you again.',
       more: 'A secure ID service checks that the photo and the selfie match. Renters see “Identity verified” beside your first name. If you rent a home through Gaff later, you can use the same check.',
       moreLabel: 'More',
       button: 'Confirm it’s you',

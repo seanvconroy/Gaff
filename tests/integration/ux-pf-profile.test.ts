@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { db, withOrg, withPerson, withSystem } from '@/db/client';
 import {
@@ -31,6 +31,7 @@ import { resolveAccessLink } from '@/server/access/links';
 import { ConfirmationNeeded, findConfirmation, grantConfirmation } from '@/server/auth/confirm';
 import { holdingsOf } from '@/server/auth/member';
 import { loadRenterPageFor } from '@/server/renter/answers';
+import { keepAfter } from '@/server/renter/person';
 import { enquiriesNeedingThem, enquiryRowsFor, openEnquiry } from '@/server/renter/enquiries';
 import { sweepPersonalData } from '@/server/retention/sweep';
 import {
@@ -274,6 +275,31 @@ describe('UX-PF-2: keeping what a renter enters', () => {
         type: 'profile.details_kept',
         data: { from: 'tick', applicationId, mobile: false, answers: true, income: true },
       },
+    ]);
+  });
+
+  it('UX-PF-3: kept answers offered back and sent on are recorded as confirmed, as income is', async () => {
+    const { renter } = await aRenterWhoKept();
+    const member = await createTestMember();
+    const { lettingId, ids } = await peopleWhoApplied(member, [6100]);
+    await attachEnquiry(renter.id, pointer(member, lettingId, ids[0]!));
+    const person = {
+      userId: renter.id,
+      keepsDetails: true,
+      kept: await readRenterProfile(renter.id),
+    };
+    const sent = await entered(member, ids[0]!);
+    await keepAfter(person, ids[0]!, 'answers', { answers: sent.answers }, 'answers');
+    await keepAfter(person, ids[0]!, 'application', { income: sent.income }, 'income');
+    const record = await withPerson(renter.id, (tx) =>
+      tx
+        .select({ data: profileEvents.data })
+        .from(profileEvents)
+        .where(eq(profileEvents.type, 'profile.details_confirmed')),
+    );
+    expect(record.map((row) => row.data)).toEqual([
+      { applicationId: ids[0], part: 'answers' },
+      { applicationId: ids[0], part: 'income' },
     ]);
   });
 
@@ -629,7 +655,10 @@ describe('rule 8: the record of a profile holds IDs, codes, yes/no values and da
     await setKeeping(renter.id, false);
     await profileForDownload(renter);
     const record = await withPerson(renter.id, (tx) =>
-      tx.select({ type: profileEvents.type, data: profileEvents.data }).from(profileEvents),
+      tx
+        .select({ type: profileEvents.type, data: profileEvents.data })
+        .from(profileEvents)
+        .orderBy(asc(profileEvents.id)),
     );
     expect(record.map((event) => event.type)).toEqual([
       'profile.enquiry_added',

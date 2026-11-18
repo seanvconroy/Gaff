@@ -155,6 +155,21 @@ export async function chooseApplicant(
 }
 
 /**
+ * UX-DC-7: "Choose an applicant" with one person and no backup to choose from. Next on their card
+ * goes straight to "Check and confirm" (step 2 asks for a backup only when there's someone to ask
+ * about), and "Start the checks".
+ */
+export async function chooseTheOnlyApplicant(page: Page, lettingUrl: string, name: string) {
+  await page.goto(`${lettingUrl}/choose`);
+  await page.getByRole('radio', { name: `Choose ${name}` }).check();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Check and confirm' })).toBeVisible();
+  await expect(page.getByText('No backup', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Start the checks' }).click();
+  await expect(page.getByRole('heading', { name: 'Checks started' })).toBeVisible();
+}
+
+/**
  * UX-DC-19, UX-LP-14 (R4): the three comparable rents the offer waits for, made up, one home
  * per screen. They end on Home on the letting's page.
  */

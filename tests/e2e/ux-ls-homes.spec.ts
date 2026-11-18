@@ -120,8 +120,9 @@ test('UX-LS-1 to UX-LS-11, UX-LT-21: a live letting’s page opens signed out at
     const { context, page: visitor } = await signedOut(browser, viewport);
     const response = await visitor.goto(home.homePath);
     expect(response?.status()).toBe(200);
-    // UX-LS-11: a page search engines may find.
-    expect(response?.headers()['x-robots-tag']).toBe('index, follow');
+    // UX-LS-11: a page search engines may find only where SEARCH_INDEXING=on (production). A
+    // test copy of Gaff, like this one, is never indexed (the rule is unit-tested both ways).
+    expect(response?.headers()['x-robots-tag']).toBe('noindex, nofollow');
 
     // Title: the address and one summary line.
     await expect(
@@ -188,7 +189,7 @@ test('UX-LS-1 to UX-LS-11, UX-LT-21: a live letting’s page opens signed out at
       'content',
       /^http:\/\/localhost:\d+\/media\/homes\//,
     );
-    await expect(visitor.locator('meta[name="robots"]')).toHaveAttribute('content', /^index/);
+    await expect(visitor.locator('meta[name="robots"]')).toHaveAttribute('content', /^noindex/);
 
     await expectNoBrokenImages(visitor);
     await expectNoSidewaysScroll(visitor);

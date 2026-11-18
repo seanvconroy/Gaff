@@ -26,6 +26,7 @@ import { recordFunnelStep } from '@/server/funnels/steps';
 import { recordEvent } from '@/server/record/events';
 import { makeLettingIn } from './create-letting';
 import { type HomePhoto, type LettingDetail, lettingDetailIn, photosIn } from './queries';
+import { assertMayActOn } from '@/server/team/permissions';
 
 /**
  * Adding a letting, a step at a time (UX-FL-2, UX-LT-5). A home being added is a DRAFT until it
@@ -442,6 +443,7 @@ export async function saveAnswers(
 
     const detail = await lettingDetailIn(tx, id);
     if (!detail) throw new UserFacingError('We couldn’t find that home.');
+    await assertMayActOn(tx, member, id);
     // UX-LP-12: a live home's facts and description can change at any time, and Gaff answers
     // from them as they are from then on. The address and rent are set up once.
     const live = detail.letting.status === 'live';

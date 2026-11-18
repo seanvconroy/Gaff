@@ -24,7 +24,45 @@ export async function expectAccessible(page: Page): Promise<void> {
     (v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(' ')).join(', ')})`,
   );
   expect(summary, 'accessibility violations').toEqual([]);
+  await expectUniqueIds(page);
+  await expectOnePrimary(page);
   await expectControlSizes(page);
+}
+
+/**
+ * UX-PP-1, UX-DS-2 (P2): at most one primary button in view, on every page. A sheet that is open
+ * is the view: the page behind it doesn't count.
+ */
+export async function expectOnePrimary(page: Page): Promise<void> {
+  // The component page shows every component side by side, primary buttons included.
+  if (new URL(page.url()).pathname === '/dev/ui') return;
+  const primaries = await page.evaluate(() => {
+    const open = [...document.querySelectorAll('dialog[open]')].at(-1);
+    const within: ParentNode = open ?? document;
+    return [...within.querySelectorAll<HTMLElement>('[data-button="primary"]')]
+      .filter((el) => {
+        const box = el.getBoundingClientRect();
+        return box.width > 1 && box.height > 1 && getComputedStyle(el).visibility !== 'hidden';
+      })
+      .map((el) => (el.textContent ?? '').trim());
+  });
+  expect(primaries.length, `primary buttons: ${primaries.join(' | ')}`).toBeLessThanOrEqual(1);
+}
+
+/**
+ * No two elements on a page share an `id` (UX-DS-13). A label, a hint or an error is tied to its
+ * control by id, so a repeated form whose fields share ids sends a label to the wrong control:
+ * a page that repeats a form gives each one an `idScope`.
+ */
+export async function expectUniqueIds(page: Page): Promise<void> {
+  const duplicates = await page.evaluate(() => {
+    const seen = new Map<string, number>();
+    for (const element of document.querySelectorAll('[id]')) {
+      seen.set(element.id, (seen.get(element.id) ?? 0) + 1);
+    }
+    return [...seen].filter(([, count]) => count > 1).map(([id, count]) => `${id} (${count})`);
+  });
+  expect(duplicates, `duplicate ids on ${page.url()}`).toEqual([]);
 }
 
 /** Waits until nothing on the page is still moving or fading (UX-DS-20: all motion is short). */

@@ -11,10 +11,11 @@ export async function keepFromPage(
   token: string,
   from: 'answers' | 'booking',
   part: (entered: DetailsToKeep) => DetailsToKeep,
+  confirmed?: 'answers',
 ): Promise<void> {
   const page = await loadRenterPage(token);
   if (!page) return;
   const person = await personOnRenterPage(token, page);
   if (!person) return;
-  await keepAfter(person, page.application.id, from, part(enteredOn(page)));
+  await keepAfter(person, page.application.id, from, part(enteredOn(page)), confirmed);
 }

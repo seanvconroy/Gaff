@@ -22,6 +22,7 @@ export function QuestionsFlow({
   current,
   startAt,
   fromStart,
+  offered = false,
 }: {
   token: string;
   asked: readonly CriterionQuestion[];
@@ -35,6 +36,11 @@ export function QuestionsFlow({
   startAt?: string | null;
   /** They asked to change their answers: start at the first question, not after the last. */
   fromStart?: boolean;
+  /**
+   * UX-PF-3: kept answers were offered back and filled in. Sending them notes that they were
+   * confirmed by the renter's own press of the button, as a kept income is.
+   */
+  offered?: boolean;
 }) {
   const [state, action] = useSend(saveAnswersAction.bind(null, token), common.sendFailed);
   const defaults = state.values ?? current;
@@ -53,6 +59,7 @@ export function QuestionsFlow({
       startAt={startAt ?? (fromStart ? steps[0]?.id : undefined)}
       submit={questionsCopy.send}
       pending={questionsCopy.sending}
+      after={offered ? <input type="hidden" name="offered" value="answers" /> : undefined}
     />
   );
 }

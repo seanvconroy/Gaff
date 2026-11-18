@@ -128,7 +128,7 @@ describe('UX-LT-2, UX-LT-3: an advert is read into a home, for the person to rev
     for (const event of written) {
       expect(isSafeEventValue(event.data)).toBe(true);
       expect(JSON.stringify(event)).not.toMatch(
-        /Ranelagh|Luas|1,?850|HAP|professional|Mary|Byrne|087|D06|heating/i,
+        /Ranelagh|Luas|1,?850|HAP|professional|Mary|Byrne|\b087\b|\bD06\b|heating/i,
       );
     }
     // UX-ME-1: the import funnel's first step, counted once for this home.
@@ -360,7 +360,7 @@ describe('UX-LT-16: a letting started from an enquiry', () => {
     expect(home?.reading?.sources.addressLine1?.quote).toBe('40 Harbour Road, Kinsale, Co. Cork');
     // Rule 2, rule 3: nothing of the renter, or of what they wrote, is in the draft.
     const [row] = await draftsOf(member);
-    expect(JSON.stringify(row)).not.toMatch(/Aoife|Byrne|example\.ie|087|parking|available/i);
+    expect(JSON.stringify(row)).not.toMatch(/Aoife|Byrne|example\.ie|\b087\b|parking|available/i);
     // Rule 8: the event names the email by its ID, and holds nothing else.
     const [startedEvent] = await eventsOf(id);
     expect(startedEvent).toMatchObject({

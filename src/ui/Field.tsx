@@ -20,18 +20,31 @@ export interface FieldBase {
    * `medium` for about 16 (a licence number, a date), or, left out, the full column.
    */
   width?: 'short' | 'medium';
+  /**
+   * Where a page repeats a form (a list of cards that each hold one), a scope that is different
+   * for each, such as the item's ID. A field's ids come from its name and this scope, so two
+   * forms with the same field names never share an id and each label reaches its own control.
+   */
+  idScope?: string;
 }
 
-function ids(name: string) {
-  const base = `field-${name.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+const idSafe = (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, '-');
+
+function ids(name: string, scope?: string) {
+  const base = `field-${scope ? `${idSafe(scope)}-` : ''}${idSafe(name)}`;
   return { input: base, label: `${base}-label`, hint: `${base}-hint`, error: `${base}-error` };
 }
 
 /** The ids a field's parts carry, for a control that is built outside this file. */
 export const fieldIds = ids;
 
-export function describedBy(name: string, hint: unknown, error: unknown): string | undefined {
-  const { hint: hintId, error: errorId } = ids(name);
+export function describedBy(
+  name: string,
+  hint: unknown,
+  error: unknown,
+  scope?: string,
+): string | undefined {
+  const { hint: hintId, error: errorId } = ids(name, scope);
   return [error ? errorId : '', hint ? hintId : ''].filter(Boolean).join(' ') || undefined;
 }
 
@@ -47,33 +60,44 @@ export function FieldError({ id, children }: { id: string; children: ReactNode }
   );
 }
 
-function Label({ name, label, optional }: Pick<FieldBase, 'name' | 'label' | 'optional'>) {
+function Label({
+  name,
+  idScope,
+  label,
+  optional,
+}: Pick<FieldBase, 'name' | 'idScope' | 'label' | 'optional'>) {
+  const id = ids(name, idScope);
   return (
-    <label id={ids(name).label} htmlFor={ids(name).input} className={styles.label}>
+    <label id={id.label} htmlFor={id.input} className={styles.label}>
       {label}
       {optional ? <span className={styles.optional}> (optional)</span> : null}
     </label>
   );
 }
 
-function Hint({ name, hint }: Pick<FieldBase, 'name' | 'hint'>) {
+function Hint({ name, idScope, hint }: Pick<FieldBase, 'name' | 'idScope' | 'hint'>) {
   return hint ? (
-    <p id={ids(name).hint} className={styles.hint}>
+    <p id={ids(name, idScope).hint} className={styles.hint}>
       {hint}
     </p>
   ) : null;
 }
 
-function ErrorMessage({ name, error }: Pick<FieldBase, 'name' | 'error'>) {
-  return error ? <FieldError id={ids(name).error}>{error}</FieldError> : null;
+function ErrorMessage({ name, idScope, error }: Pick<FieldBase, 'name' | 'idScope' | 'error'>) {
+  return error ? <FieldError id={ids(name, idScope).error}>{error}</FieldError> : null;
 }
 
 /** Under a control: what's wrong first, then the hint. One element, so a row of fields aligns. */
-function Messages({ name, hint, error }: Pick<FieldBase, 'name' | 'hint' | 'error'>) {
+function Messages({
+  name,
+  idScope,
+  hint,
+  error,
+}: Pick<FieldBase, 'name' | 'idScope' | 'hint' | 'error'>) {
   return error || hint ? (
     <div className={styles.messages}>
-      <ErrorMessage name={name} error={error} />
-      <Hint name={name} hint={hint} />
+      <ErrorMessage name={name} idScope={idScope} error={error} />
+      <Hint name={name} idScope={idScope} hint={hint} />
     </div>
   ) : null;
 }
@@ -85,11 +109,12 @@ export const controlClass = styles.control;
 
 /**
  * The frame every field shares: the label above, then the control, then the error, then the help
- * (section 8, "Field"). The control inside takes `fieldIds(name).input` as its id, and
- * `describedBy(name, hint, error)`.
+ * (section 8, "Field"). The control inside takes `fieldIds(name, idScope).input` as its id, and
+ * `describedBy(name, hint, error, idScope)`.
  */
 export function FieldFrame({
   name,
+  idScope,
   label,
   hint,
   error,
@@ -99,16 +124,17 @@ export function FieldFrame({
 }: FieldBase & { children: ReactNode }) {
   return (
     <div className={styles.field}>
-      <Label name={name} label={label} optional={optional} />
+      <Label name={name} idScope={idScope} label={label} optional={optional} />
       {/* One element, whatever is inside, so a row of fields still lines up. */}
       <div className={widthClass(width)}>{children}</div>
-      <Messages name={name} hint={hint} error={error} />
+      <Messages name={name} idScope={idScope} hint={hint} error={error} />
     </div>
   );
 }
 
 export function TextField({
   name,
+  idScope,
   label,
   hint,
   error,
@@ -123,16 +149,16 @@ export function TextField({
   const control = (
     <input
       {...input}
-      id={ids(name).input}
+      id={ids(name, idScope).input}
       name={name}
       className={`${styles.control} ${prefix ? '' : widthClass(width)}`}
       aria-invalid={error ? true : undefined}
-      aria-describedby={describedBy(name, hint, error)}
+      aria-describedby={describedBy(name, hint, error, idScope)}
     />
   );
   return (
     <div className={styles.field}>
-      <Label name={name} label={label} optional={optional} />
+      <Label name={name} idScope={idScope} label={label} optional={optional} />
       {prefix ? (
         <div className={`${styles.affixed} ${widthClass(width)}`}>
           <span className={styles.prefix} aria-hidden="true">
@@ -143,13 +169,14 @@ export function TextField({
       ) : (
         control
       )}
-      <Messages name={name} hint={hint} error={error} />
+      <Messages name={name} idScope={idScope} hint={hint} error={error} />
     </div>
   );
 }
 
 export function TextArea({
   name,
+  idScope,
   label,
   hint,
   error,
@@ -159,22 +186,23 @@ export function TextArea({
   Omit<ComponentProps<'textarea'>, 'name' | 'id' | 'className' | 'style'>) {
   return (
     <div className={styles.field}>
-      <Label name={name} label={label} optional={optional} />
+      <Label name={name} idScope={idScope} label={label} optional={optional} />
       <textarea
         {...textarea}
-        id={ids(name).input}
+        id={ids(name, idScope).input}
         name={name}
         className={styles.control}
         aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy(name, hint, error)}
+        aria-describedby={describedBy(name, hint, error, idScope)}
       />
-      <Messages name={name} hint={hint} error={error} />
+      <Messages name={name} idScope={idScope} hint={hint} error={error} />
     </div>
   );
 }
 
 export function SelectField({
   name,
+  idScope,
   label,
   hint,
   error,
@@ -187,15 +215,15 @@ export function SelectField({
 } & Omit<ComponentProps<'select'>, 'name' | 'id' | 'className' | 'style' | 'children' | 'width'>) {
   return (
     <div className={styles.field}>
-      <Label name={name} label={label} optional={optional} />
+      <Label name={name} idScope={idScope} label={label} optional={optional} />
       <span className={`${styles.selectWrap} ${widthClass(width)}`}>
         <select
           {...select}
-          id={ids(name).input}
+          id={ids(name, idScope).input}
           name={name}
           className={styles.control}
           aria-invalid={error ? true : undefined}
-          aria-describedby={describedBy(name, hint, error)}
+          aria-describedby={describedBy(name, hint, error, idScope)}
         >
           {options.map((option) => (
             <option key={option.value} value={option.value}>
@@ -205,7 +233,7 @@ export function SelectField({
         </select>
         <ChevronDown className={styles.chevron} size={20} strokeWidth={1.75} aria-hidden="true" />
       </span>
-      <Messages name={name} hint={hint} error={error} />
+      <Messages name={name} idScope={idScope} hint={hint} error={error} />
     </div>
   );
 }
@@ -219,6 +247,7 @@ export function SelectField({
  */
 export function ChoiceGroup({
   name,
+  idScope,
   legend,
   hint,
   error,
@@ -229,6 +258,8 @@ export function ChoiceGroup({
   hideLegend,
 }: {
   name: string;
+  /** As on every field: a scope for its ids where a page repeats the form. */
+  idScope?: string;
   legend: ReactNode;
   hint?: ReactNode;
   error?: string;
@@ -247,10 +278,13 @@ export function ChoiceGroup({
         : [],
   );
   return (
-    <fieldset className={styles.fieldset} aria-describedby={describedBy(name, hint, error)}>
+    <fieldset
+      className={styles.fieldset}
+      aria-describedby={describedBy(name, hint, error, idScope)}
+    >
       <legend className={hideLegend ? 'visually-hidden' : styles.legend}>{legend}</legend>
-      <Hint name={name} hint={hint} />
-      <ErrorMessage name={name} error={error} />
+      <Hint name={name} idScope={idScope} hint={hint} />
+      <ErrorMessage name={name} idScope={idScope} error={error} />
       <div
         className={`${styles.options} ${
           inline === 'pairs' ? styles.pairs : inline ? styles.inline : ''
@@ -259,7 +293,7 @@ export function ChoiceGroup({
         {options.map((option) => {
           // The whole card is clickable, but the accessible name is the label alone and
           // the hint is its description.
-          const optionId = `${ids(name).input}-${option.value}`;
+          const optionId = `${ids(name, idScope).input}-${idSafe(option.value)}`;
           return (
             <label key={option.value} className={styles.option}>
               <input

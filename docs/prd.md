@@ -212,11 +212,32 @@ The core objects mirror the workflow, and every change to them writes an event t
 - Operator screens work on a laptop and a phone.
 - Enquiry intake never loses a message: failed parses are queued and shown to the operator.
 
+### Status after the UX redesign (18 November 2026)
+
+R1 to R31 are kept as written. The redesign built them again as the screens in [ux-redesign/](ux-redesign/README.md), and changed or added to them as below. Its own requirements (`UX-` IDs) say how each screen works.
+
+| ID | Status | What the redesign changed or added |
+| --- | --- | --- |
+| R1 | Built | "Add a letting" is one question per screen, with Save and exit. A pasted advert is read into the letting for the person to check (UX-LT-1 to UX-LT-7). Photos are uploaded and stored by Gaff, not linked |
+| R4 | Built | One comparable rent per screen, filled in from the home; the person types each rent. Gaff doesn't read the RTB's Rent Register (OQ-2) |
+| R5 | Built | A forwarding flow for Gmail, Outlook and others reads the mail service's confirmation and sends a test enquiry through the rule (UX-LT-17 to UX-LT-20) |
+| R9, R16 | Built | Asking to view on Gaff (UX-AV-1 to UX-AV-9): a name, an email and the home's questions, with no account; two taps with a profile. Enquiries from Daft and MyHome arrive as before |
+| R11, R17 to R20 | Built | Each decision is a focused flow that ends on a check screen before anything is sent (UX-DC-1 to UX-DC-20) |
+| R18 | Built, with stand-in providers | A renter may keep a passed ID check and reuse it at the next home's checks, with their yes each time (Q35). A private landlord confirms it's them once, before their first home goes live (Q47). No ID or income vendor is chosen yet (Q48) |
+| R22 | Built, Gaff's agreement only | Signed on the phone by the tenant and by the operator for the landlord, or recorded as signed on paper (Q23). "Use our own agreement" isn't built |
+| R27 | Built | The timeline is History, in a letting's menu. The owner's page is one screen in plain words (UX-OP-1 to UX-OP-9) |
+| R28 | Built | Today lists what needs a person; Lettings lists every letting; the results screen at close shows days to let and time saved (UX-HM-1 to UX-HM-11, UX-TN-5 to UX-TN-7) |
+| R30, R31 | Not built | WhatsApp, and calendar sync, stay "Should" |
+
+Added by the redesign (Q27 to Q49): one account for each person, whatever they do, with an agency found on the PSRA register and confirmed by Gaff's team; teams, with "Help with this letting"; Calendar and Inbox; homes on gaff.ie with a public page, search, saved homes and alerts; a renter's profile they keep while they choose; fit shown as a count ("Meets 3 of 4"), never a recommendation; reporting a listing, and Gaff's internal page; activation (a setup checklist and prompts) and funnels from Gaff's own events.
+
+Left open on purpose: "Stop taking enquiries" (UX-LP-5, a fixed message for the solicitor first), the map (Q49), reading files in an advert, dragging on the calendar, "Use our own agreement", turning a private landlord into a team, and reading the RTB's Rent Register (OQ-2).
+
 ## Out of scope for the MVP
 
 These wait until the pilots prove agents will pay:
 
-- Creating or posting adverts on Daft, MyHome or elsewhere
+- Creating or posting adverts on Daft, MyHome or elsewhere (a home's own page on gaff.ie is in scope since Q27)
 - Answering phone calls
 - Holding deposits or collecting rent
 - Property management after move-in: maintenance, rent reviews, renewals

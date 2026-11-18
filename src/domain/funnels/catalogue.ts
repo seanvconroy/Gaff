@@ -266,8 +266,13 @@ export const funnels = [
       {
         code: 'owner_approved',
         label: 'Owner approved',
+        // The owner's answer by their link; or the operator recording that the owner already
+        // approved (UX-DC-15), which counts as the owner's answer; or, for a private landlord,
+        // who is the owner, their own offer.
         sources: [
           record('landlord.approval_answered', 'letting', { where: { preferred: 'approved' } }),
+          record('landlord.approval_confirmed', 'letting'),
+          record('offer.made', 'letting', { organisationKind: 'private_landlord' }),
         ],
         timedFrom: 'checks_back',
       },

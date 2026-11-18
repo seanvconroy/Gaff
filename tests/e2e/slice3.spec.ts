@@ -668,15 +668,18 @@ test('Testing tool: start the viewings now, only where dev tools are on', async 
     ),
     page.getByRole('button', { name: 'Start the viewings now' }).click(),
   ]);
-  // The viewing times are now today's, in Ireland.
-  const today = new Intl.DateTimeFormat('en-IE', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    timeZone: 'Europe/Dublin',
-  })
-    .format(new Date())
-    .replace(',', '');
+  // The viewing times have just finished, in Ireland: the evening's hour of times ended a minute
+  // ago, so they started about an hour ago, which is yesterday in the first hour after midnight.
+  const day = (at: Date) =>
+    new Intl.DateTimeFormat('en-IE', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      timeZone: 'Europe/Dublin',
+    })
+      .format(at)
+      .replace(',', '');
+  const started = day(new Date(Date.now() - 61 * 60_000));
   await page.goto(`${lettingUrl}?view=home`);
-  await expect(page.getByRole('region', { name: 'Viewing times' })).toContainText(today);
+  await expect(page.getByRole('region', { name: 'Viewing times' })).toContainText(started);
 });

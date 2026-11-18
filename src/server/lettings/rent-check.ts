@@ -15,6 +15,7 @@ import { irishToday } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
+import { assertMayActOn } from '@/server/team/permissions';
 
 /**
  * R3: records the rent check. Re-checking replaces the previous check; the record keeps every
@@ -30,6 +31,7 @@ export async function recordRentCheck(
 ): Promise<RentCheckOutcome> {
   const outcome = checkRent(input);
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const [letting] = await tx
       .select({ rent: lettings.monthlyRentCents, status: lettings.status })
       .from(lettings)
@@ -110,6 +112,7 @@ export async function changeAskingRent(
     throw new UserFacingError('Enter a monthly rent between €100 and €20,000', 'rent');
   }
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const [letting] = await tx
       .select({ rent: lettings.monthlyRentCents, status: lettings.status })
       .from(lettings)

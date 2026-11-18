@@ -85,6 +85,11 @@
     font-weight: var(--type-title-weight);
   }
 
+  /* A cell that says what it is by itself: the whole width, with no column name. */
+  .table td[data-bare] {
+    display: block;
+  }
+
   /* A cell with nothing in it, such as a checkbox column for someone already invited. */
   .table td:empty {
     display: none;

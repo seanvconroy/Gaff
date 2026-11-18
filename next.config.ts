@@ -1,6 +1,8 @@
 import type { NextConfig } from 'next';
 
 const isProduction = process.env.NODE_ENV === 'production';
+// UX-LS-11: read when the app is built and started; "off" unless set (see src/lib/env.ts).
+const searchIndexing = process.env.SEARCH_INDEXING === 'on';
 
 // Renter and landlord pages are reached through private links, so pages must
 // never leak their URL to another site: no referrer, no framing, no indexing.
@@ -43,9 +45,13 @@ const nextConfig: NextConfig = {
       : securityHeaders;
     return [
       { source: '/:path*', headers },
-      // UX-LS-11: a home's public page can be found by search engines. It holds nothing about
-      // any person. The page itself says noindex when the home has been let or isn't there.
-      { source: '/homes/:ref', headers: [{ key: 'X-Robots-Tag', value: 'index, follow' }] },
+      // UX-LS-11: a home's public page can be found by search engines, but only where the
+      // deployment says so (SEARCH_INDEXING=on, set in production alone), so a test or preview
+      // copy of Gaff is never indexed. It holds nothing about any person. The page itself says
+      // noindex when the home has been let or isn't there.
+      ...(searchIndexing
+        ? [{ source: '/homes/:ref', headers: [{ key: 'X-Robots-Tag', value: 'index, follow' }] }]
+        : []),
     ];
   },
 };

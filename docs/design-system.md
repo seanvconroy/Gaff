@@ -342,9 +342,38 @@ Everything is in `src/ui`. A screen is built only from these; a screen that need
 - **Copy button:** beside anything people would otherwise retype: an IBAN, a reference, an address. It says "Copied", and screen readers hear it.
 - **Focus:** a 2px outline in `focus` at a 2px offset on every interactive element, in the navigation as everywhere else.
 
-### Still to come, with the screens that need them
+### Built in the later waves
 
-The page frame for private pages and the email layout (WP-6), address search (WP-9), the photo uploader and gallery (WP-9, WP-20), the home card (WP-7, WP-20), the person card (WP-15), the calendar (WP-16), the setup checklist (WP-27), the search box and the map (WP-21), the action card (WP-20) and the sign-in buttons (WP-4).
+Every component the redesign named is built except the map (Q49). Each is on `/dev/ui` with its states, and has a row in [section 8's table](ux-redesign/08-design-system-direction.md#core-components).
+
+| Component | In `src/ui` | What it's for |
+| --- | --- | --- |
+| **Private frame** | `PrivateFrame`, `WhatHappensNext`, `FromAssistant` | Every page reached by a private link: the wordmark and "Talk to a person", the home, the page's one task, then what happens next. For an owner or a referee, the agency's frame. What the assistant wrote is marked as its, in words |
+| **Talk to a person** | `TalkToAPerson` | On every renter's page (rule 6): a sheet with replying by email, and the lister's number where they gave one |
+| **Question steps** | `QuestionSteps` | A few questions one per screen inside a page: the pre-viewing questions, applying, referees |
+| **Step list** | `StepList` | Where someone stands in a few steps done in order: done, next, to come |
+| **Numbered steps** | `NumberedSteps` | Steps to follow somewhere else, such as forwarding in Gmail |
+| **Option row** | `OptionRow` | Something off until tapped, which then asks for one value (letting details) |
+| **Address search** | `AddressSearch` | Finding an address behind the address-search port, with "Enter it myself" |
+| **Photo uploader and gallery** | `PhotoUploader`, `PhotoField`, `Gallery` | Adding, ordering and showing a home's photos with a cover photo; one photo for an inventory item; a home's gallery, full screen on `Overlay` |
+| **Person card** | `PersonCard` | Applicants to choose between, a radio each: stacked on a phone, three across on a desktop |
+| **Pick list** | `PickList` | Ticking people from the ranked list, with "Why here" for each row and a divider before people who haven't answered |
+| **Message preview** | `MessagePreview` | A fixed message as it will be sent, to read and not to edit |
+| **Calendar** | `Calendar` | Viewing times: a week strip and the day's rows on a phone, a week grid on a desktop. Overlapping times lead with the home's name |
+| **Time picker for renters** | `TimePicker` | Booking a viewing: days, then times |
+| **Directions link** | `DirectionsLink` | "Get directions": the phone's own maps app, or a map in a new tab |
+| **Search box and filter chips** | `SearchBox`, `FilterChips` | Renter search and "Ask about who's enquired": the box, then a chip per filter, each opening its control |
+| **Home card, heart** | `HomeCard`, `HomeGrid`, `HeartButton` | A home in a list; in search the rent is its title, with the heart over the photo |
+| **Action card** | `ActionCard` | The one action on a home's page: at the foot of the screen on a phone, beside the content on a desktop |
+| **Show more** | `ShowMore` | Long text, three lines then "Show more" |
+| **Setup checklist** | `SetupChecklist` | First-run progress: a ring, "1 of 3 done", and the next step's one button. Today's one primary button while it shows |
+| **Prompt** | `Prompt` | One suggestion at the moment it's useful, between hairlines, with its one button and "Not now". Never a banner |
+| **Document and signing** | `DocumentView`, `SignForm` | A document to read, sign and print, with links to each section; a typed name and consent to sign electronically |
+| **Thread at its latest** | `OpenAtLatest` | Opens a conversation at its latest message, as a messaging app does |
+| **Layout** | `Stack`, `Row`, `Card`, `CardHeader`, `PageHeader`, `BackLink`, `Narrow`, `Muted`, `FormSection`, `FormPanel`, `Columns`, `FormActions` | Spacing and columns from the tokens, so no screen sets its own |
+
+- **Field ids.** A field's label, hint and error reach its control by id, and the ids come from the field's `name`. A page that repeats a form (a list of cards that each hold one) gives each field an `idScope`, such as the item's ID, so no two share an id. Every journey's accessibility check fails on a duplicate id.
+- **Table on a phone.** Each row is a card with each value's column name beside it. A cell that says what it is by itself (the card's name with where they came from under it, a sentence, a status) is `bare`: full width, with no column name, which screen readers still hear from the table's header.
 
 ## Iconography
 

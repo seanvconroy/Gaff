@@ -186,13 +186,22 @@ export function Calendar({
                   <ul className={styles.blocks}>
                     {onDay.map((time) => {
                       const { from, span } = gridPlace(time.start, time.end);
+                      // Times that share the hour sit side by side, too narrow for "6pm to 7pm"
+                      // and the address both: the home comes first, and the time is on its sheet
+                      // (and still read out first by a screen reader).
+                      const shared = onDay.some((other) => other !== time && overlaps(time, other));
                       return (
                         <li
                           key={time.id}
                           className={`${styles.slot} ${styles[`from${from}`]} ${styles[`span${span}`]}`}
                         >
-                          <Link href={time.href} scroll={false} className={styles.block}>
-                            <span className={styles.blockTime}>
+                          <Link
+                            href={time.href}
+                            scroll={false}
+                            className={styles.block}
+                            data-shared={shared ? '' : undefined}
+                          >
+                            <span className={shared ? 'visually-hidden' : styles.blockTime}>
                               {formatClock(time.start)} to {formatClock(time.end)}
                             </span>
                             <span className="visually-hidden"> · </span>
@@ -213,6 +222,11 @@ export function Calendar({
       </div>
     </section>
   );
+}
+
+/** Two times on one day overlap: one starts before the other ends. */
+function overlaps(a: CalendarTime, b: CalendarTime): boolean {
+  return a.start < b.end && b.start < a.end;
 }
 
 /** 8am, 9am … 8pm: the hours the grid's day starts with. */

@@ -303,6 +303,19 @@ test('UX-LP-8, UX-LP-9, UX-LP-10: People lists everyone, with the stage’s chip
     await expect
       .poll(() => row.evaluate((element) => getComputedStyle(element).display))
       .toBe(width === 1280 ? 'table-row' : 'grid');
+    // UX-LP-10: each card reads the name with where they came from under it, one line on where
+    // they stand, then the status. Where they came from starts under the name, not beside it.
+    const name = row.getByRole('link', { name: 'Aoife Byrne' });
+    const via = row.getByText('Through Daft');
+    const [nameBox, viaBox] = [await name.boundingBox(), await via.boundingBox()];
+    expect(viaBox!.x).toBe(nameBox!.x);
+    expect(viaBox!.y).toBeGreaterThan(nameBox!.y);
+    if (width === 390) {
+      const stand = row.getByText('Hasn’t answered the questions yet');
+      const standBox = await stand.boundingBox();
+      expect(standBox!.x).toBe(nameBox!.x);
+      await expect(row.getByRole('cell').first()).not.toHaveAttribute('data-label');
+    }
     await expectNoSidewaysScroll(page);
     await expectAccessible(page);
     await screenshot(page, `ux-lp-people-${width}`);

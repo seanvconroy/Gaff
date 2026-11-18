@@ -134,6 +134,7 @@ export function RenterHub({
         }
         startAt={options.q}
         fromStart={options.changing || Boolean(options.offeredAnswers)}
+        offered={Boolean(options.offeredAnswers)}
       />,
       questionsCopy.next(operator, model.viewings.first),
     );

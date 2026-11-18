@@ -3,7 +3,7 @@ import pg from 'pg';
 import { E2E_DATABASE_URL } from '../../playwright.config';
 import { daftEnquiry } from '../fixtures/emails';
 import { aPng } from '../fixtures/photos';
-import { chooseApplicant, chooseWhoViews } from './journeys';
+import { chooseApplicant, chooseTheOnlyApplicant, chooseWhoViews } from './journeys';
 import { applyThroughUi, bookFirstTime, expectReadable } from './renter';
 import {
   addHomeThroughUi,
@@ -172,22 +172,6 @@ async function applicantsAt(
   return { lettings, links };
 }
 
-/**
- * "Choose an applicant" with one person and no backup to choose from: their radio, then straight
- * to "Check and confirm" (the flow's Next asks for a backup only when there's someone to ask
- * about), and "Start the checks".
- */
-async function chooseTheOnlyApplicant(page: Page, lettingUrl: string, name: string) {
-  await page.goto(`${lettingUrl}/choose`);
-  const radio = page.getByRole('radio', { name: `Choose ${name}` });
-  await radio.check();
-  const id = await radio.getAttribute('value');
-  await page.goto(`${lettingUrl}/choose?step=check&preferred=${id}`);
-  await expect(page.getByRole('heading', { name: 'Check and confirm' })).toBeVisible();
-  await page.getByRole('button', { name: 'Start the checks' }).click();
-  await expect(page.getByRole('heading', { name: 'Checks started' })).toBeVisible();
-}
-
 /** The renter's checks link for a home, from the email that says they were chosen. */
 async function checksLink(email: string, home: string): Promise<string> {
   let link = '';
@@ -219,9 +203,10 @@ test('UX-TS-1, UX-TS-2, UX-PF-11, UX-PF-12: a private landlord confirms it’s t
       'One check before your home goes live: confirm it’s you. About two minutes, once.',
     ),
   ).toBeVisible();
+  // Before the check: what's kept and why, and what deleting her profile does (Q47).
   await expect(
     mary.page.getByText(
-      'Gaff keeps only that it passed, your name and the date, on your own profile. Never the photos.',
+      'Gaff keeps that it passed, your name and the date on your own profile, so you’re not asked again. Never the photos. If you delete your profile, these go too, and your homes come off gaff.ie until you confirm it’s you again.',
     ),
   ).toBeVisible();
   // UX-TS-1: it can't go live from anywhere else meanwhile.

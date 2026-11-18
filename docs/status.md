@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 18 November 2026 (waves 0 to 3 of the UX redesign are built; wave 4 is built except the end-to-end pass).
+Last updated: 18 November 2026 (the UX redesign is built: all 28 work packages, waves 0 to 4. What's left open is under "Wave 4" below).
 
 ## Done
 
@@ -79,7 +79,7 @@ Last updated: 18 November 2026 (waves 0 to 3 of the UX redesign are built; wave 
 
 ## Next
 
-- **Build the UX redesign.** The founder agreed it on 14 November 2026 (Q27 to Q48 in [open-questions.md](open-questions.md)). The MVP is now two-sided: running a letting, and finding and applying for a home. The plan is [ux-redesign/](ux-redesign/README.md); the steps to build it are [ux-redesign/BUILD.md](ux-redesign/BUILD.md). Each wave updates its row here.
+- **The UX redesign is built** (18 November 2026). The founder agreed it on 14 November 2026 (Q27 to Q49 in [open-questions.md](open-questions.md)). The MVP is two-sided: running a letting, and finding and applying for a home. The plan is [ux-redesign/](ux-redesign/README.md); what remains open is at the top of [ux-redesign/BUILD.md](ux-redesign/BUILD.md) and under "Wave 4" below. It is on the branch `claude/gaff-ux-redesign-prd-bua8q5`, waiting for a pull request into `claude/gaff-mvp`.
 
   | Wave | Packages | Status |
   | --- | --- | --- |
@@ -89,11 +89,11 @@ Last updated: 18 November 2026 (waves 0 to 3 of the UX redesign are built; wave 
   | 2B. Inside a letting, for renters | WP-12 the renter's pages; WP-13 owner and referee pages; WP-14 profile and the renter's home | **Done**, 17 November 2026. See "Wave 2" below |
   | 3A. Running a letting, part 2 | WP-15 a letting's page; WP-16 calendar; WP-17 decisions and the offer; WP-18 tenancy, close and settings; WP-19 teams | **Done**, 17 November 2026. See "Wave 3" below |
   | 3B. The marketplace | WP-20 homes on Gaff; WP-21 search; WP-22 asking to view; WP-23 saved homes and alerts | **Done**, 17 November 2026. See "Wave 3" below |
-  | 4. Trust, fit and finish | WP-24 a verified identity; WP-25 fit; WP-26 trust and Gaff's internal page; WP-27 activation; WP-28 the end-to-end pass | WP-24 to WP-27 **done**, 18 November 2026 (see "Wave 4" below). WP-28 in progress |
+  | 4. Trust, fit and finish | WP-24 a verified identity; WP-25 fit; WP-26 trust and Gaff's internal page; WP-27 activation; WP-28 the end-to-end pass | **Done**, 18 November 2026. See "Wave 4" below |
 - **Deploy the test copy** on Vercel and Supabase ([deploy.md](deploy.md), about 20 minutes).
 - **Your end-to-end test** (see [testing-guide.md](testing-guide.md)), then feedback and iteration.
 - **Before the first pilot:** everything in [launch-checklist.md](launch-checklist.md), including the providers for ID and income checks (stand-ins today) and the solicitor’s answers on electronic signing (Q23) and the agreement wording.
-- **Later:** joint tenants on one agreement; guarantors when affordability isn’t met (renters can explain or add one by replying, today); an e-signature provider if the solicitor wants an advanced signature; renter profiles they can keep and reuse (decided in Q25; a slice of its own after the end-to-end test); an export of the signed agreement, packs and inventory as PDFs; moving the renter pages’ words into `src/copy/`.
+- **Later:** joint tenants on one agreement; guarantors when affordability isn’t met (renters can explain or add one by replying, today); an e-signature provider if the solicitor wants an advanced signature; an export of the signed agreement, packs and inventory as PDFs; moving the renter pages’ words into `src/copy/`.
 
 ## UX redesign, wave 0 (foundations)
 
@@ -108,7 +108,7 @@ Left for later packages, on purpose:
 - Not recorded yet: "draft reviewed" when adding a letting (it isn't a separate step today), the first tap on Today, and time spent inside a decision. Times between steps are clock time, not active minutes.
 - The sign-in screen's "opened" step can be inflated by anyone who calls it repeatedly, and email link scanners count as "page opened". WP-4 rebuilds sign-in.
 - Baselines: nobody has used the product for real, so there are no numbers yet. Run the current flows on the test copy, open `/internal/funnels`, and copy the numbers into the note at the end of section 9 before the first redesigned screen ships.
-- `STAFF_EMAILS` needs setting on the test copy and in production. ADR-0011 still says Fraunces is self-hosted; WP-28 brings the documents up to date.
+- `STAFF_EMAILS` needs setting on the test copy and in production. (ADR-0011 now carries a note that the redesign uses one family, DM Sans: closed by WP-28.)
 
 ## UX redesign, wave 1 (frame, sign-in and accounts)
 
@@ -152,7 +152,7 @@ Left for later packages, on purpose:
 - Today has no primary button: the setup checklist is WP-27.
 - Reading an advert takes pasted text only. Brochures, screenshots and photos aren't read, so there is no attach button (`advertFilesAreRead` marks the place).
 - Today's "New enquiries for a home you haven't added. Set it up?" prompt (UX-LT-16) isn't built; starting a letting from an enquiry is in Inbox.
-- Answers confirmed from a profile aren't recorded as confirmed; only income is.
+- Answers confirmed from a profile are now recorded as confirmed, as income is (closed by WP-28).
 - Profile has commented seams for "What you're looking for" (WP-23) and "Identity" (WP-24).
 - The steps for Gmail and Outlook were written without the real settings screens to hand. Check them against the live screens before a pilot.
 - A mail service's confirmation email still waits in Inbox after the forwarding flow has read it.
@@ -182,7 +182,7 @@ Left for later packages, on purpose:
 
 - Dragging on the desktop calendar (UX-VW-5) isn't built. Everything it would do is done with "Add a time".
 - The calendar has no fading-in loading state.
-- "Help with this letting" is enforced on decisions, messages and answers. Other actions on a colleague's letting (adding a viewing time, sending a reminder, a tenancy step) don't ask for it yet: the end-to-end pass (WP-28) covers every use case that changes a letting.
+- "Help with this letting" is now asked by every use case that changes a letting someone else leads (`assertMayActOn`; an integration test walks the list). Closed by WP-28.
 - Turning a private landlord into a team ("Add someone to help") isn't built. Joining by email domain (UX-AG-14) is later.
 - Ticks in a decision flow travel in the address between steps, so leaving a flow part-way resets them to Gaff's defaults.
 - "Stop taking enquiries" in a letting's menu (UX-LP-5) isn't built. It needs a new column and a new fixed message for the solicitor to review.
@@ -202,8 +202,9 @@ Left for later packages, on purpose:
 | WP-25: fit (UX-MT-1 to 11, 16 to 18; UX-LP-15; UX-AI-6, UX-AI-7) | The Letting details line has one writer, in fixed words, and can't be edited or stored. Unlawful wording is left out and a lawful version offered where there is one ("Did you mean 'Up to 2 people'?"). Fit is always a count with words ("Meets 3 of 4") with the detail a tap away, on the person's sheet and in the decision flow. A pool summary on a letting's Overview is written from counts and names nobody; before invitations it shows what each criterion is costing. A renter's "Thanks" page shows their answers beside the letting details, without judgement. "Ask about who's enquired" turns a question into a filter on the four answers and the time of enquiry, and declines anything else in fixed words. Ranking is unchanged, nobody is hidden for not fitting, and Gaff never recommends a person | `src/domain/fit/*.test.ts`, `tests/compliance/fit.test.ts`, `tests/e2e/ux-mt-fit.spec.ts` |
 | WP-26: trust and Gaff's internal page (UX-TS-3 to UX-TS-6; UX-AG-4) | "Report this listing" is kept: the home, the reason tapped and an optional note, and nothing about who reported. Gaff's internal page has three lists: agencies waiting to be confirmed, reported listings, and the funnels. Staff can hide a listing for one of four fixed reasons: it leaves its public page and search at once and its enquiries wait. The lister is emailed, sees it as the letting's task, and can ask Gaff to look again. Putting it back answers the enquiries that waited. Staff can do this and confirm agencies, and nothing else: tests show they can't open a letting, read a renter, send a message or make a decision | `src/domain/homes/report.test.ts`, `tests/compliance/staff-reach.test.ts`, `tests/integration/ux-ts-trust.test.ts`, `tests/e2e/ux-ts-trust.spec.ts` |
 | WP-27: activation (UX-GR-1 to UX-GR-9) | A setup checklist for each kind of user is Today's one primary button: at most three steps, one next step, and no way to dismiss it. When it's complete Today says "You're all set" once and it never returns. Someone who joins an existing team has none. A first letting ends on a test enquiry the person watches being answered. The prompts of section 9 are decided by one rule, so no screen shows two, and none is a banner or a pop-up that blocks a task; "Not now" puts one off for 14 days. "Invite your team" is offered at its three moments. A compliance test lists the only places allowed to send email or SMS, so nobody's contact details are used for anything but their own letting | `src/domain/dashboard/setup-checklist.test.ts`, `src/domain/activation/prompts.test.ts`, `tests/compliance/growth-loops.test.ts`, `tests/e2e/ux-gr-activation.spec.ts` |
+| WP-28: the end-to-end pass (UX-E2E-1, UX-E2E-2; every section) | Two journeys let a home from both sides (`tests/e2e/ux-e2e-both-sides.spec.ts`): an agency's home, pasted from an advert, found on Gaff by a renter with no account and let through to keys and the results screen, with the owner approving on their phone; and a private landlord's home, let to a renter whose kept answers and kept identity make asking two taps, with nothing about their identity shown until the checks stage and their yes. Every accessibility check now also fails on more than one primary button in view and on any duplicate id. Closed from earlier packages: the one-applicant loop in "Choose an applicant"; "Help with this letting" on every use case that changes a letting; "Delete my profile" as a quiet action; overlapping calendar blocks; answers confirmed from a profile; People on a phone (name, "Through Daft", where they stand, status); funnels whose end exceeded their start; field ids on a page that repeats a form; what a landlord is told before "Confirm it's you". A home's page is `noindex` unless `SEARCH_INDEXING=on` (production only). The PRD, architecture, design system, launch checklist, deploy guide, `CLAUDE.md` and `BUILD.md` say what is built | `tests/e2e/ux-e2e-both-sides.spec.ts`, `tests/integration/ux-ag-teams.test.ts`, `src/domain/funnels/report.test.ts`, `src/domain/homes/home-page.test.ts`, `src/ui/field-ids.test.ts`; `pnpm check` and all 166 journeys pass |
 
-Left for later, on purpose:
+Left open, on purpose:
 
 - **For the founder to confirm (Q47):** a private landlord's identity is kept at their first go-live without the "Keep this?" question a renter gets, because their homes can't stay public without it. The screen says what is kept before the check starts. Deleting their profile takes their homes off Gaff until they confirm again.
 - The identity check still runs against the local stand-in. No vendor is chosen (Q48).
@@ -213,6 +214,12 @@ Left for later, on purpose:
 - "Why here" in the decision flow still shows the ranking's existing reason.
 - The results screen's next action follows UX-TN-6 (send the owner the summary first), not section 9's table, which puts "Add your next letting" above it: in the table's order the summary would never be offered.
 - The private landlord's identity check isn't on the setup checklist: it stays a step inside going live (UX-GR-2).
+- **For the founder to confirm:** two places where the PRD disagrees with itself and the build picked one. The results screen offers "Send the owner the summary" first (UX-TN-6), and the reference form is one screen.
+- Not built, and listed at the top of [ux-redesign/BUILD.md](ux-redesign/BUILD.md): "Stop taking enquiries" (its fixed message needs the solicitor first); the map (Q49); reading files in an advert; dragging on the calendar; "Use our own agreement"; turning a private landlord into a team; the RTB register lookup (OQ-2).
+- Search engines can't index any home until `SEARCH_INDEXING=on` is set, in production only.
+- Renter pages fade in briefly, so an accessibility scan taken mid-fade can report low contrast. The journeys wait for the fade; the motion is unchanged.
+- Funnel baselines still need recording from the test copy (section 9's note).
+- Everything the founder and the solicitor need to do before real users is in [launch-checklist.md](launch-checklist.md).
 
 ## Known issues
 

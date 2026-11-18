@@ -13,6 +13,7 @@ import { UserFacingError } from '@/server/errors';
 import { queueMessage } from '@/server/messages/outbox';
 import { saveLandlordContactIn } from '@/server/offers/approval';
 import { recordEvent } from '@/server/record/events';
+import { assertMayActOn } from '@/server/team/permissions';
 
 const activeLandlordLinks = (lettingId: string) =>
   and(
@@ -50,6 +51,7 @@ export async function shareWithOwner(
   if (!parsed.success) return { ok: false, errors: fieldErrors(parsed.error) };
   const owner = parsed.data;
   return withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const [row] = await tx
       .select({
         address: lettings.addressLine1,
@@ -109,6 +111,7 @@ export async function shareWithOwner(
 /** R27, UX-OW-4: stops every owner's link for the letting working, straight away. */
 export async function stopSharingWithLandlord(member: Member, lettingId: string): Promise<number> {
   return withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const revoked = await tx
       .update(accessLinks)
       .set({ revokedAt: new Date() })

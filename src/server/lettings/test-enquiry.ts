@@ -9,6 +9,7 @@ import { env } from '@/lib/env';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
+import { assertMayActOn } from '@/server/team/permissions';
 
 /** The made-up renter a test enquiry comes from. Not a person, and never stored. */
 export { TEST_RENTER };
@@ -43,6 +44,7 @@ export interface TestEnquiry {
  */
 export async function sendTestEnquiry(member: Member, lettingId: string): Promise<TestEnquiry> {
   return withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const [letting] = await tx.select().from(lettings).where(eq(lettings.id, lettingId));
     if (!letting) throw new UserFacingError('We couldn’t find that letting.');
     const [enquired] = await tx

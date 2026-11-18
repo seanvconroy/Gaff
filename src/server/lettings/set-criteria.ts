@@ -6,6 +6,7 @@ import { lettingDetailsLocked } from '@/domain/lettings/setup';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
+import { assertMayActOn } from '@/server/team/permissions';
 
 /** UX-LP-13: why letting details can't change once people have been invited on them. */
 export const DETAILS_LOCKED =
@@ -17,6 +18,7 @@ async function setCriteriaIn(
   lettingId: string,
   criteria: Criteria,
 ): Promise<{ noSmokingIndoors: boolean }> {
+  await assertMayActOn(tx, member, lettingId);
   const [letting] = await tx
     .select({ stage: lettings.stage, noSmokingIndoors: lettings.noSmokingIndoors })
     .from(lettings)

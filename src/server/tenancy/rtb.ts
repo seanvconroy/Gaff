@@ -23,6 +23,7 @@ import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { enqueue } from '@/server/jobs/enqueue';
 import { recordEvent } from '@/server/record/events';
+import { assertMayActOn } from '@/server/team/permissions';
 
 /** R24: a reminder a week before the RTB deadline, queued with the tenancy. */
 export async function scheduleRtbReminder(
@@ -220,6 +221,7 @@ export async function markRtbRegistered(
     );
   }
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const [tenancy] = await tx.select().from(tenancies).where(eq(tenancies.lettingId, lettingId));
     if (!tenancy) throw new UserFacingError('There’s no tenancy for this home yet.');
     if (tenancy.rtbRegisteredAt) return;

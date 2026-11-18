@@ -24,6 +24,7 @@ import { recordFunnelStep } from '@/server/funnels/steps';
 import { setListerPhoneIn } from '@/server/organisations/phone';
 import { recordEvent } from '@/server/record/events';
 import { type LettingDetail, lettingDetailIn } from './queries';
+import { assertMayActOn } from '@/server/team/permissions';
 
 const gateColumns = {
   name: organisations.name,
@@ -123,6 +124,7 @@ export async function startTakingEnquiries(
   choices: GoLiveChoices = {},
 ): Promise<'live' | 'held'> {
   return withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     let detail = await lettingDetailIn(tx, lettingId);
     if (!detail) throw new UserFacingError('We couldn’t find that letting.');
     if (detail.letting.stage !== 'setup') return 'live';
@@ -314,6 +316,7 @@ export async function releaseHeldLettings(
  */
 export async function setOnGaff(member: Member, lettingId: string, on: boolean): Promise<void> {
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const [letting] = await tx
       .select({ onGaff: lettings.onGaff })
       .from(lettings)
@@ -345,6 +348,7 @@ export async function setAdvertisedOn(
 ): Promise<void> {
   const chosen = (Object.keys(portals) as Portal[]).filter((portal) => on.includes(portal));
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const updated = await tx
       .update(lettings)
       .set({ advertisedOn: chosen })

@@ -129,7 +129,10 @@ describe('UX-SR-11, UX-MT-12: a search is not kept', () => {
     const before = await funnelRows();
     await countSearch({ fits: 2, close: 1 });
     const after = await funnelRows();
-    const added = after.filter((row) => !before.some((old) => old.id === row.id));
+    // Other files record funnel steps at the same time: only searches are this test's.
+    const added = after.filter(
+      (row) => row.step.startsWith('search.') && !before.some((old) => old.id === row.id),
+    );
     expect(added).toHaveLength(1);
     expect(added[0]).toMatchObject({ step: 'search.search_made', variant: 'fit', data: {} });
   });

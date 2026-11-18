@@ -14,7 +14,7 @@ import { createAccessLink } from '@/server/access/links';
 import { ConfirmationNeeded, spendConfirmation, type Confirmation } from '@/server/auth/confirm';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
-import { requirePermission } from '@/server/team/permissions';
+import { assertMayActOn, requirePermission } from '@/server/team/permissions';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
 
@@ -71,6 +71,7 @@ export async function setPaymentAccount(
 
 async function loadForPayment(member: Member, lettingId: string) {
   return withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const [row] = await tx
       .select({
         tenancy: tenancies,

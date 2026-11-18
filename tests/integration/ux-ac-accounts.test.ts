@@ -25,6 +25,7 @@ import { findMember, holdingsOf } from '@/server/auth/member';
 import { recordDecision } from '@/server/decisions/record-decision';
 import { createLetting } from '@/server/lettings/create-letting';
 import { startTakingEnquiries } from '@/server/lettings/go-live';
+import { helpWithLetting } from '@/server/team/lead';
 import { listLettings } from '@/server/lettings/queries';
 import { aLetting } from '../fixtures/lettings';
 import {
@@ -479,7 +480,9 @@ describe('UX-AC-14: a member can’t work on a letting they applied for as a ren
       .values({ organisationId: member.organisationId, userId: colleague.id, role: 'negotiator' });
     const asColleague = (await findMember(colleague.id, member.organisationId))!;
     expect(await stoppedByConflict(asColleague, lettingId)).toBe(false);
-    // And the home they did go live with is untouched by any of this.
+    // And the home they did go live with is untouched by any of this. The colleague doesn't
+    // lead it, so they choose "Help with this letting" first (UX-AG-8).
+    await helpWithLetting(asColleague, lettingId);
     expect(await startTakingEnquiries(asColleague, lettingId)).toBe('live');
   });
 });

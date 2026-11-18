@@ -33,6 +33,7 @@ import { UserFacingError } from '@/server/errors';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
 import { scheduleRtbReminder } from './rtb';
+import { assertMayActOn } from '@/server/team/permissions';
 
 type Offer = typeof offers.$inferSelect;
 type Tenancy = typeof tenancies.$inferSelect;
@@ -153,6 +154,7 @@ async function renterLink(tx: Tx, tenancy: Tenancy, path = ''): Promise<string> 
 /** R22: the operator sends the agreement to the tenant to read and sign. */
 export async function sendAgreement(member: Member, lettingId: string): Promise<void> {
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const view = await loadTenancy(tx, { lettingId });
     if (!view) throw new UserFacingError('There’s no tenancy for this home yet.');
     if (!['draft', 'with_tenant'].includes(view.tenancy.agreementStatus)) {
@@ -274,6 +276,7 @@ export async function countersign(
   values: Record<string, string>,
 ): Promise<{ ok: true } | { ok: false; errors: Record<string, string> }> {
   return withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const view = await loadTenancy(tx, { lettingId });
     if (!view || view.tenancy.agreementStatus !== 'tenant_signed') {
       throw new UserFacingError('The tenant needs to sign first.');
@@ -339,6 +342,7 @@ export async function countersign(
  */
 export async function markSignedOnPaper(member: Member, lettingId: string): Promise<void> {
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const view = await loadTenancy(tx, { lettingId });
     if (!view) throw new UserFacingError('There’s no tenancy for this home yet.');
     if (['signed', 'signed_on_paper'].includes(view.tenancy.agreementStatus)) {

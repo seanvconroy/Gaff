@@ -23,6 +23,7 @@ import { noteFunnelStep } from '@/server/funnels/steps';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
 import { rankLetting } from '@/server/shortlist/shortlist';
+import { assertMayActOn } from '@/server/team/permissions';
 
 /** Who's chosen now, and where the landlord's approval stands for that choice. */
 export async function approvalState(tx: Tx, lettingId: string) {
@@ -134,6 +135,7 @@ export async function saveLandlordContactIn(
   lettingId: string,
   contact: { name: string; email: string },
 ): Promise<void> {
+  await assertMayActOn(tx, member, lettingId);
   const [row] = await tx
     .select({
       landlordId: lettings.landlordId,
@@ -213,6 +215,7 @@ async function sendApprovalLink(
  */
 export async function askLandlord(member: Member, lettingId: string): Promise<void> {
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const state = await approvalState(tx, lettingId);
     if (!state) throw new UserFacingError('We couldn’t find that letting.');
     if (state.route !== 'link' || !state.landlord) {
@@ -254,6 +257,7 @@ export async function askLandlord(member: Member, lettingId: string): Promise<vo
  */
 export async function remindOwner(member: Member, lettingId: string): Promise<void> {
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const state = await approvalState(tx, lettingId);
     if (!state) throw new UserFacingError('We couldn’t find that letting.');
     if (state.approval?.status !== 'requested' || !state.landlord) {
@@ -290,6 +294,7 @@ export async function remindOwner(member: Member, lettingId: string): Promise<vo
  */
 export async function recordOwnerApproved(member: Member, lettingId: string): Promise<void> {
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const state = await approvalState(tx, lettingId);
     if (!state) throw new UserFacingError('We couldn’t find that letting.');
     if (state.route === 'own_home') {

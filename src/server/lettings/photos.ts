@@ -16,6 +16,7 @@ import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
 import type { HomePhoto } from './queries';
+import { assertMayActOn } from '@/server/team/permissions';
 
 /**
  * UX-LT-10: a home's photos. Gaff keeps its own copy of each, checked by its real type and with
@@ -108,6 +109,7 @@ export async function addPhoto(
   const result = await withOrg(member.organisationId, async (tx) => {
     const home = await homeFor(tx, homeId);
     if (!home) throw new UserFacingError('We couldn’t find that home.');
+    if (home.kind === 'letting') await assertMayActOn(tx, member, home.id);
     if (home.closed) return { ok: false as const, problem: 'closed' as const };
     const existing = await rowsOf(tx, home);
     if (existing.length >= MAX_HOME_PHOTOS) return { ok: false as const, problem: 'full' as const };
@@ -145,6 +147,7 @@ export async function removePhoto(
   const key = await withOrg(member.organisationId, async (tx) => {
     const home = await homeFor(tx, homeId);
     if (!home) throw new UserFacingError('We couldn’t find that home.');
+    if (home.kind === 'letting') await assertMayActOn(tx, member, home.id);
     if (home.closed) throw new UserFacingError(photoProblems.closed);
     const rows = await rowsOf(tx, home);
     const row = rows.find((photo) => photo.id === photoId);
@@ -170,6 +173,7 @@ export async function reorderPhotos(
   await withOrg(member.organisationId, async (tx) => {
     const home = await homeFor(tx, homeId);
     if (!home) throw new UserFacingError('We couldn’t find that home.');
+    if (home.kind === 'letting') await assertMayActOn(tx, member, home.id);
     if (home.closed) throw new UserFacingError(photoProblems.closed);
     const current = (await rowsOf(tx, home)).map((photo) => photo.id);
     const next =

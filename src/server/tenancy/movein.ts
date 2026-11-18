@@ -16,6 +16,7 @@ import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
+import { assertMayActOn } from '@/server/team/permissions';
 
 async function tenancyOf(tx: Tx, lettingId: string) {
   const [tenancy] = await tx.select().from(tenancies).where(eq(tenancies.lettingId, lettingId));
@@ -32,6 +33,7 @@ export async function saveChecklist(
   const parsed = checklistSchema.safeParse(values);
   if (!parsed.success) throw new UserFacingError(parsed.error.issues[0]!.message);
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const tenancy = await tenancyOf(tx, lettingId);
     const keys = parsed.data.keys === 'yes';
     await tx
@@ -82,6 +84,7 @@ export async function addInventoryItem(
   }
   if (!parsed.success || Object.keys(errors).length > 0) return { ok: false, errors };
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const tenancy = await tenancyOf(tx, lettingId);
     if (tenancy.inventoryConfirmedAt) {
       throw new UserFacingError('The tenant has confirmed the inventory, so it can’t change.');
@@ -115,6 +118,7 @@ export async function removeInventoryItem(
   itemId: string,
 ): Promise<void> {
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const tenancy = await tenancyOf(tx, lettingId);
     if (tenancy.inventoryConfirmedAt) {
       throw new UserFacingError('The tenant has confirmed the inventory, so it can’t change.');
@@ -153,6 +157,7 @@ export async function inventoryFor(member: Member, lettingId: string) {
 /** R25: the tenant gets the inventory to look over and confirm. */
 export async function shareInventory(member: Member, lettingId: string): Promise<void> {
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const tenancy = await tenancyOf(tx, lettingId);
     const items = await inventoryOf(tx, tenancy.id);
     if (items.length === 0) throw new UserFacingError('Add what’s in the home first.');

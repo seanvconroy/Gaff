@@ -273,14 +273,21 @@ test('UX-PF-6: “Download my details” holds what the profile keeps, and “De
   expect(file.mobile).toBe('087 765 4321');
   expect(JSON.stringify(file)).not.toMatch(/organisation|photo|hap/i);
 
-  // Delete: one sheet saying what stays, "Confirm it's you", and it's gone.
-  await page.getByRole('button', { name: 'Delete my profile' }).click();
+  // Delete: a quiet action at rest (the red button is in the sheet), one sheet saying what stays,
+  // "Confirm it's you", and it's gone.
+  const atRest = page.getByRole('button', { name: 'Delete my profile' });
+  await expect(atRest).toHaveAttribute('data-button', 'quiet');
+  await atRest.click();
   const sheet = page.getByRole('dialog', { name: 'Delete your profile?' });
   await expect(
     sheet.getByText('Homes you’ve applied for keep your application until that letting ends.'),
   ).toBeVisible();
   await expectAccessible(page);
   await screenshot(page, 'wp14-delete-sheet-390');
+  await expect(sheet.getByRole('button', { name: 'Delete my profile' })).toHaveAttribute(
+    'data-button',
+    'destructive',
+  );
   await sheet.getByRole('button', { name: 'Delete my profile' }).click();
   await confirmItsYou(page);
   await expect(

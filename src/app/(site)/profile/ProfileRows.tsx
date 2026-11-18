@@ -487,7 +487,8 @@ function DeleteProfile({
   return (
     <div>
       <p className={styles.hint}>{c.data.deleteHint}</p>
-      <Button variant="destructive" fullWidth="phone" onClick={() => setOpen(true)}>
+      {/* A quiet action at rest: the destructive button is in the sheet it opens (P2, P10). */}
+      <Button variant="quiet" onClick={() => setOpen(true)}>
         {c.data.delete}
       </Button>
       {/* The form sits outside the sheets, so it can send itself again once they've confirmed. */}

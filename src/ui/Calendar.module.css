@@ -300,6 +300,17 @@
   color: var(--color-ink-muted);
 }
 
+/* Side by side with another time: the home's name wraps rather than being cut short. */
+.block[data-shared] .blockTitle,
+.block[data-shared] .blockMeta {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.block[data-shared] .blockTitle {
+  font-weight: var(--type-heading-weight);
+}
+
 /* Where each time falls: the quarter hour it starts in, and how many it spans. */
 .from0 {
   grid-row-start: 1;

@@ -1,5 +1,7 @@
 # How to build this: start here
 
+> **The build is complete (18 November 2026).** Every work package, WP-1 to WP-28, is built and merged; the last, the end-to-end pass, added two journeys that let a home from both sides (`tests/e2e/ux-e2e-both-sides.spec.ts`). What stays open, on purpose: "Stop taking enquiries" (UX-LP-5, which needs a new fixed message the solicitor reviews first), the map (Q49), reading files (brochures, screenshots) in an advert, dragging on the calendar, "Use our own agreement", turning a private landlord into a team, and reading the RTB's Rent Register (OQ-2). What a founder or the solicitor must do before real users is in [`docs/launch-checklist.md`](../launch-checklist.md). The rest of this page is how it was built.
+
 For Sean. This is the whole path from "the plan is agreed" to "the MVP is built". You never paste a document. Every build session reads the plan from the repository by itself. You paste one sentence per session.
 
 ## The short version

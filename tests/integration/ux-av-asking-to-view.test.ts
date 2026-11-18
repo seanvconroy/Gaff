@@ -310,7 +310,8 @@ describe('UX-AV-4: nothing beyond a name, an email and the answers is collected'
     );
     const waiting = await waitingFor(member, email);
     expect(waiting!.answers).toEqual({ occupants: 2, hasPets: false });
-    expect(JSON.stringify(waiting)).not.toMatch(/087|3,200|employed|baby|couple/);
+    // The phone number as typed, not three digits that a random token's hash may happen to hold.
+    expect(JSON.stringify(waiting)).not.toMatch(/087 123|3,200|employed|baby|couple/);
     const page = await loadRenterPage(await firstEmailToken(member, email));
     const stored = (await applicationsOf(member, lettingId))[0]!;
     expect(page?.application.id).toBe(stored.id);

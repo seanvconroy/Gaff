@@ -43,6 +43,37 @@ const thread = (messages: InboxMessage[]) =>
   threadFrom(messages, { readers, theirName: 'Aoife', now: NOW });
 
 describe('UX-NV-14: a conversation opens as a thread, oldest first', () => {
+  it('UX-NV-14: a draft a person has just sent comes after the reply before it, though Gaff wrote it earlier', () => {
+    // Gaff drafted the answer the moment the enquiry arrived, before the first reply went.
+    const entries = threadFrom(
+      [
+        message({ minutesAgo: 10, body: 'Is it furnished?' }),
+        message({
+          minutesAgo: 10,
+          direction: 'outbound',
+          author: 'ai',
+          status: 'sending',
+          body: 'Yes, it’s furnished.',
+          sendAt: ago(1),
+          sentAt: null,
+        }),
+        message({
+          minutesAgo: 10,
+          direction: 'outbound',
+          body: 'Thanks for your enquiry.',
+          sendAt: ago(10),
+          sentAt: ago(9),
+        }),
+      ],
+      { readers, theirName: 'Aoife', now: NOW },
+    );
+    expect(entries.map((entry) => entry.text)).toEqual([
+      'Is it furnished?',
+      'Thanks for your enquiry.',
+      'Yes, it’s furnished.',
+    ]);
+  });
+
   it('marks what Gaff sent as Gaff’s, and what a person wrote as theirs (UX-AI-15, UX-NV-18)', () => {
     const entries = thread([
       message({ minutesAgo: 1, direction: 'outbound', author: 'person', authorUserId: NIAMH }),

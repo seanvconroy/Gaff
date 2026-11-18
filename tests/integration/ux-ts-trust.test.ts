@@ -514,7 +514,7 @@ describe('Q13, UX-TS-5: staff can hide a listing and nothing else', () => {
     const { lettingId, ref } = await aHomeOnGaff(member);
     await reportListing(ref, { reason: 'scam', note: undefined });
     const formData = new FormData();
-    formData.set('reason', 'scam');
+    formData.set(`reason-${lettingId}`, 'scam');
 
     await expect(hideListingAction(lettingId, formData)).rejects.toMatchObject(NOT_FOUND);
     signedIn.user = {

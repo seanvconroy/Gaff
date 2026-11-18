@@ -97,9 +97,13 @@ export function isSaid(message: Pick<InboxMessage, 'status' | 'sendAt'>, now: Da
   }
 }
 
-/** When a message was said: when it went, or when it arrived. */
-export function saidAt(message: Pick<InboxMessage, 'createdAt' | 'sentAt'>): Date {
-  return message.sentAt ?? message.createdAt;
+/**
+ * When a message was said: when it went, or when it arrived. One that is on its way was said
+ * when it was set to go (the moment a person pressed Send on a draft), not when Gaff first wrote
+ * it: a draft can be older than the reply before it.
+ */
+export function saidAt(message: Pick<InboxMessage, 'createdAt' | 'sendAt' | 'sentAt'>): Date {
+  return message.sentAt ?? message.sendAt ?? message.createdAt;
 }
 
 /**
@@ -107,8 +111,8 @@ export function saidAt(message: Pick<InboxMessage, 'createdAt' | 'sentAt'>): Dat
  * first reply is written the moment an enquiry arrives, and it is still the reply.
  */
 export function inOrderSaid(
-  a: Pick<InboxMessage, 'id' | 'direction' | 'createdAt' | 'sentAt'>,
-  b: Pick<InboxMessage, 'id' | 'direction' | 'createdAt' | 'sentAt'>,
+  a: Pick<InboxMessage, 'id' | 'direction' | 'createdAt' | 'sendAt' | 'sentAt'>,
+  b: Pick<InboxMessage, 'id' | 'direction' | 'createdAt' | 'sendAt' | 'sentAt'>,
 ): number {
   const ours = (message: Pick<InboxMessage, 'direction'>) =>
     message.direction === 'outbound' ? 1 : 0;

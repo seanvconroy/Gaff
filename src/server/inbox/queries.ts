@@ -59,7 +59,8 @@ const said = (now: Date) =>
     and(eq(messages.status, 'scheduled'), or(isNull(messages.sendAt), lte(messages.sendAt, now))),
   );
 
-const saidAt = sql`coalesce(${messages.sentAt}, ${messages.createdAt})`;
+// As `saidAt` in the domain: when it went, or was set to go, or arrived.
+const saidAt = sql`coalesce(${messages.sentAt}, ${messages.sendAt}, ${messages.createdAt})`;
 /** At the same instant, theirs was said before ours (`inOrderSaid` in the domain). */
 const ours = sql`(${messages.direction} = 'outbound')`;
 

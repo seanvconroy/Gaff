@@ -26,7 +26,8 @@ async function then(done: string, act: () => Promise<unknown>): Promise<never> {
 /** "Hide this listing", with the reason chosen. */
 export async function hideListingAction(lettingId: string, formData: FormData): Promise<void> {
   const staff = await requireStaff();
-  const reason = String(formData.get('reason') ?? '');
+  // The field is named for its listing, so two cards on one page don't share an id.
+  const reason = String(formData.get(`reason-${lettingId}`) ?? '');
   await then('hidden', () => hideListing(staff, { lettingId, reason }));
 }
 

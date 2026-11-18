@@ -1,6 +1,6 @@
 # ADR-0011: Design tokens drive all styling
 
-- Status: Accepted
+- Status: Accepted. Amended by the UX redesign (WP-2) on 15 November 2026: see the note at the end.
 - Date: 2026-10-31
 
 ## Context
@@ -29,3 +29,13 @@ The design system is a first version built from the pitch deck. "Gaff" is a work
 
 - **Tailwind v4 with a generated theme.** Workable, but the default palette and spacing scale would need stripping out, and arbitrary values (`p-[13px]`) need extra linting. CSS Modules plus custom properties is plainer.
 - **CSS-in-JS.** Adds runtime cost and fights server rendering.
+
+## Note added on 18 November 2026 (the UX redesign)
+
+The decision stands: the tokens file drives all styling, it is generated, linted and contrast-tested. What changed, and supersedes the details above (this record is otherwise left as it was written):
+
+- **One type family, DM Sans.** Fraunces was removed in WP-2, and there is no `--font-display`. The wordmark is a drawing (`src/ui/Wordmark`), never live text.
+- **Tokens are named by role, never by hue:** `brand`, `brand-text`, `brand-bg`, `primary`, `surface-0` to `surface-2` and so on. Names such as `brick` and `forest` above are the first version's and are gone. The contrast pairs are listed in `docs/design-tokens.json` and checked in both themes.
+- **Sizes are tokens too:** `--size-control` (every control 48px high), `--size-target` (44px), the field widths, and the motion tokens with their easings.
+
+See `docs/ux-redesign/08-design-system-direction.md` and `docs/design-system.md`.

@@ -96,12 +96,56 @@ async function emailAsPage(browser: Browser, to: string, subject: string, name: 
   return mail!.text;
 }
 
-test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, its enquiries wait, the lister is told and asks again, and it comes back', async ({
+/** On Gaff's internal page: hides the reported listing, for the reason most reports gave. */
+async function hideThroughInternal(staffPage: Page, title: string, reports: string) {
+  await staffPage.goto('/internal');
+  const card = staffPage
+    .getByRole('region', { name: title })
+    .filter({ has: staffPage.getByText(reports) });
+  await card.getByLabel('Why it’s hidden').selectOption('wrong_details');
+  await card.getByRole('button', { name: `Hide this listing ${title}` }).click();
+  await expect(staffPage.getByText(/^Hidden\. It’s out of search/)).toBeVisible();
+}
+
+/** How many first replies Gaff has sent for this letting. */
+async function firstRepliesTo(lettingId: string): Promise<number> {
+  const [row] = await asSystem<{ n: number }>(
+    `select count(*)::int as n from messages where letting_id = $1 and kind = 'first_reply'`,
+    [lettingId],
+  );
+  return row!.n;
+}
+
+/** A Daft enquiry to the hidden home: it is placed on the letting, and nobody is answered. */
+async function anEnquiryWhileHidden(page: Page, address: string, lettingId: string) {
+  await sendTestEmail(page, {
+    to: await gaffAddress(page),
+    from: daftEnquiry.from,
+    replyTo: daftEnquiry.replyTo,
+    subject: daftEnquiry.subject.replace('12 Ranelagh Road', address),
+    text: daftEnquiry.text.replace(/12 Ranelagh Road/g, address),
+  });
+  await expect
+    .poll(
+      async () =>
+        (
+          await asSystem<{ n: number }>(
+            'select count(*)::int as n from applications where letting_id = $1',
+            [lettingId],
+          )
+        )[0]!.n,
+    )
+    .toBe(1);
+  expect(await firstRepliesTo(lettingId)).toBe(0);
+}
+
+test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, it leaves search at once, its enquiries wait, and the lister is told', async ({
   browser,
   page,
 }) => {
-  // The longest journey: four people's screens, at two widths, with emails in between.
-  test.setTimeout(240_000);
+  // Three people's screens, at two widths, with an email at the end. The lister's side, and the
+  // home coming back, are the next journey.
+  test.setTimeout(180_000);
   // An address no other journey uses, so its card is the only one by that name.
   const address = '5 Willow Terrace';
   const operatorEmail = await signUpOperator(
@@ -166,12 +210,7 @@ test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, i
   expect(await reportsList.innerText()).not.toMatch(/Aoife|@example\.ie/);
 
   // UX-TS-4: staff hide it, for the reason most reports gave.
-  const card = staffPage
-    .getByRole('region', { name: title })
-    .filter({ has: staffPage.getByText('2 reports') });
-  await card.getByLabel('Why it’s hidden').selectOption('wrong_details');
-  await card.getByRole('button', { name: `Hide this listing ${title}` }).click();
-  await expect(staffPage.getByText(/^Hidden\. It’s out of search/)).toBeVisible();
+  await hideThroughInternal(staffPage, title, '2 reports');
   await expect(staffPage).toHaveTitle(/Gaff internal/);
   await expectAccessible(staffPage);
   await screenshot(staffPage, 'ux-ts-internal-hidden-1280');
@@ -190,32 +229,7 @@ test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, i
   }
 
   // A new enquiry to it waits: it is placed, and nobody is answered while it's hidden.
-  await sendTestEmail(page, {
-    to: await gaffAddress(page),
-    from: daftEnquiry.from,
-    replyTo: daftEnquiry.replyTo,
-    subject: daftEnquiry.subject.replace('12 Ranelagh Road', address),
-    text: daftEnquiry.text.replace(/12 Ranelagh Road/g, address),
-  });
-  await expect
-    .poll(
-      async () =>
-        (
-          await asSystem<{ n: number }>(
-            'select count(*)::int as n from applications where letting_id = $1',
-            [home.lettingId],
-          )
-        )[0]!.n,
-    )
-    .toBe(1);
-  const firstReplies = async () =>
-    (
-      await asSystem<{ n: number }>(
-        `select count(*)::int as n from messages where letting_id = $1 and kind = 'first_reply'`,
-        [home.lettingId],
-      )
-    )[0]!.n;
-  expect(await firstReplies()).toBe(0);
+  await anEnquiryWhileHidden(page, address, home.lettingId);
 
   // The lister is emailed, with the reason, in the Gaff layout.
   const told = await emailAsPage(
@@ -227,6 +241,49 @@ test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, i
   expect(told).toContain(
     `Gaff’s team has taken ${address} off gaff.ie after a report: some of its details look wrong.`,
   );
+  await staffContext.close();
+});
+
+test('UX-TS-4, UX-TS-5: the lister of a hidden home sees why, asks Gaff to look again, staff put it back, and the enquiry that waited is answered', async ({
+  browser,
+  page,
+}) => {
+  test.setTimeout(180_000);
+  // Another address no other journey uses. Reported once and hidden, as in the journey above.
+  const address = '7 Willow Terrace';
+  const operatorEmail = await signUpOperator(
+    page,
+    `Halcyon Lettings ${String(Date.now()).slice(-5)}`,
+  );
+  const home = await aLiveHomeOnGaff(page, address);
+  const title = `${address}, Ranelagh, Dublin 6`;
+  {
+    const { context, page: visitor } = await signedOut(browser, phone);
+    await visitor.goto(home.homePath);
+    await visitor.getByRole('link', { name: 'Report this listing' }).click();
+    await visitor.getByRole('radio', { name: 'The details are wrong' }).check();
+    await visitor.getByRole('button', { name: 'Send report' }).click();
+    await expect(
+      visitor.getByRole('heading', { level: 1, name: 'Thanks for telling us' }),
+    ).toBeVisible();
+    await context.close();
+  }
+  const staffContext = await browser.newContext({ locale: 'en-IE', viewport: desktop });
+  const staffPage = await staffContext.newPage();
+  await signIn(staffPage, E2E_STAFF_EMAIL);
+  await hideThroughInternal(staffPage, title, '1 report');
+  await anEnquiryWhileHidden(page, address, home.lettingId);
+  const firstReplies = () => firstRepliesTo(home.lettingId);
+  await expect
+    .poll(async () =>
+      (
+        await asSystem<{ subject: string }>(
+          'select subject from dev_outbox where to_address = $1',
+          [operatorEmail],
+        )
+      ).map((row) => row.subject),
+    )
+    .toContain(`${address} is off gaff.ie for now`);
 
   // The lister sees it on the letting, as its Needs you task, and asks Gaff to look again.
   for (const [width, viewport] of widths) {
@@ -289,7 +346,6 @@ test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, i
     [home.lettingId],
   );
   expect(record).toEqual([
-    { type: 'listing.reported', actor_type: 'system' },
     { type: 'listing.reported', actor_type: 'system' },
     { type: 'listing.hidden', actor_type: 'staff' },
     { type: 'listing.look_again_asked', actor_type: 'person' },

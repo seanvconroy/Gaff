@@ -36,15 +36,24 @@ export function Table({
   );
 }
 
-/** A table cell that knows its column's name, for the stacked view on a phone. */
+/**
+ * A table cell that knows its column's name, for the stacked view on a phone. Its content is one
+ * piece beside the name, however many lines it has (a name with where they came from under it).
+ * `bare` leaves the column name out on a phone, for a cell that says what it is by itself: the
+ * card's name at the top, a sentence, a status pill. The table's header still names it for screen
+ * readers.
+ */
 export function Cell({
   label,
+  bare,
   children,
   ...td
-}: { label: string; children?: ReactNode } & Omit<ComponentProps<'td'>, 'style'>) {
+}: { label: string; bare?: boolean; children?: ReactNode } & Omit<ComponentProps<'td'>, 'style'>) {
   return (
-    <td {...td} data-label={label}>
-      {children}
+    <td {...td} data-label={bare ? undefined : label} data-bare={bare ? '' : undefined}>
+      {children === undefined || children === null || children === false ? null : (
+        <div>{children}</div>
+      )}
     </td>
   );
 }

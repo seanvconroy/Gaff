@@ -158,7 +158,7 @@ export function PeopleView({
             const status = statusWords[person.status];
             return (
               <tr key={person.id}>
-                <Cell label={copy.head[0]}>
+                <Cell label={copy.head[0]} bare>
                   <Link href={href({ person: person.id })} className={styles.person} scroll={false}>
                     {person.name}
                   </Link>
@@ -169,8 +169,10 @@ export function PeopleView({
                     </span>
                   ) : null}
                 </Cell>
-                <Cell label={copy.head[1]}>{standLine(person, group, now)}</Cell>
-                <Cell label={copy.head[2]}>
+                <Cell label={copy.head[1]} bare>
+                  {standLine(person, group, now)}
+                </Cell>
+                <Cell label={copy.head[2]} bare>
                   <StatusPill tone={status.tone}>{status.words}</StatusPill>
                 </Cell>
               </tr>

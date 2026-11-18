@@ -30,6 +30,19 @@ export function isPublicRef(value: string): boolean {
 }
 
 export const homeHref = (ref: string) => `/homes/${ref}`;
+
+/**
+ * UX-LS-11: whether search engines may index a home's page. Only a live home's, and only where
+ * the deployment says so (`SEARCH_INDEXING=on`, set in production alone), so a test copy of
+ * Gaff is never found.
+ */
+export function homePageRobots(page: {
+  live: boolean;
+  searchIndexing: boolean;
+}): { index: boolean; follow: boolean } {
+  const index = page.live && page.searchIndexing;
+  return { index, follow: index };
+}
 /** Asking to view (WP-22, UX-AV-1). With search's answers carried in: `askHref` in search/links. */
 export const askToViewHref = (ref: string) => `/homes/${ref}/ask`;
 /**

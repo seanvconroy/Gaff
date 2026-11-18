@@ -57,6 +57,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (page?.state !== 'live') {
     return { title: page ? copy.let.title : copy.notAvailable.title };
   }
+  const robots = homePageRobots({ live: true, searchIndexing: env().SEARCH_INDEXING === 'on' });
   const { home, photos, href } = page.home;
   const preview = sharePreview(home);
   return {
@@ -64,7 +65,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     title: preview.title,
     description: preview.description,
     alternates: { canonical: href },
-    robots: { index: true, follow: true },
+    robots,
     openGraph: {
       type: 'website',
       siteName: 'Gaff',

@@ -99,6 +99,12 @@ const schema = z
      * local work and tests; "supabase" is Supabase Storage in Ireland (an approved vendor).
      */
     PHOTO_STORE: z.enum(['local', 'supabase']).default('local'),
+    /**
+     * UX-LS-11: whether search engines may index live homes' public pages. "off" (the default)
+     * marks every page noindex, so a test or preview deployment is never found. Set "on" in
+     * production only.
+     */
+    SEARCH_INDEXING: z.enum(['on', 'off']).default('off'),
     /** The Supabase project's address, and its service-role key, which stays on the server. */
     SUPABASE_URL: z.url().optional(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),

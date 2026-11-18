@@ -203,9 +203,10 @@ test('UX-TS-1, UX-TS-2, UX-PF-11, UX-PF-12: a private landlord confirms it’s t
       'One check before your home goes live: confirm it’s you. About two minutes, once.',
     ),
   ).toBeVisible();
+  // Before the check: what's kept and why, and what deleting her profile does (Q47).
   await expect(
     mary.page.getByText(
-      'Gaff keeps only that it passed, your name and the date, on your own profile. Never the photos.',
+      'Gaff keeps that it passed, your name and the date on your own profile, so you’re not asked again. Never the photos. If you delete your profile, these go too, and your homes come off gaff.ie until you confirm it’s you again.',
     ),
   ).toBeVisible();
   // UX-TS-1: it can't go live from anywhere else meanwhile.

@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { db, withOrg, withPerson, withSystem } from '@/db/client';
 import {
@@ -655,7 +655,10 @@ describe('rule 8: the record of a profile holds IDs, codes, yes/no values and da
     await setKeeping(renter.id, false);
     await profileForDownload(renter);
     const record = await withPerson(renter.id, (tx) =>
-      tx.select({ type: profileEvents.type, data: profileEvents.data }).from(profileEvents),
+      tx
+        .select({ type: profileEvents.type, data: profileEvents.data })
+        .from(profileEvents)
+        .orderBy(asc(profileEvents.id)),
     );
     expect(record.map((event) => event.type)).toEqual([
       'profile.enquiry_added',

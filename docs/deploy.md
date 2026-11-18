@@ -111,6 +111,7 @@ An agency finds itself by name on Gaff's copy of the PSRA's register of licensed
 
 - **Vercel's sign-in protects the test copy.** New Vercel projects ask for a Vercel sign-in on every `vercel.app` address, so only you can open the test copy and its Outbox, which shows every email, sign-in codes included. Keep it on. Sign in to Vercel once on your phone too. The minute tick passes it with the project's automation bypass secret. Production, on Gaff's own domain, is open to renters and has no Outbox.
 - **Preview deployments** of other branches share the test database but never migrate it.
+- **Search engines don't index the test copy.** Every page says `noindex` unless `SEARCH_INDEXING=on`, which is set in production alone (UX-LS-11). Leave it unset here.
 - **Logs:** Vercel shows function logs per request. They hold IDs and counts, never personal data.
 - **Seeing the data:** Supabase's **Table Editor** shows Gaff's tables. Remember it's the test copy: made-up details only.
 

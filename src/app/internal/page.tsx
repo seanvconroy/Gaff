@@ -76,9 +76,10 @@ function ReportedCard({ listing }: { listing: ReportedListing }) {
       </p>
       <form action={hideListingAction.bind(null, listing.lettingId)}>
         <Stack gap={4}>
-          {/* Named for its listing: a field's id comes from its name, and each card has one. */}
+          {/* Scoped to its listing, so two cards on one page don't share a field id. */}
           <SelectField
-            name={`reason-${listing.lettingId}`}
+            name="reason"
+            idScope={listing.lettingId}
             label="Why it’s hidden"
             hint="The lister is told this, in these words."
             options={reasonOptions}

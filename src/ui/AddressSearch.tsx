@@ -35,7 +35,7 @@ export function AddressSearch({
   defaultValue = '',
   onQueryChange,
   foundWords = (count) => (count === 1 ? '1 address found' : `${count} addresses found`),
-}: Omit<FieldBase, 'width' | 'optional'> & {
+}: Omit<FieldBase, 'width' | 'optional' | 'idScope'> & {
   search: (query: string) => Promise<AddressOption[]>;
   onPick: (option: AddressOption) => void;
   /** Under the field when nothing matches: what to do next, in a sentence. */

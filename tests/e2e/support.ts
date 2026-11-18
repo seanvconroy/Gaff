@@ -24,7 +24,24 @@ export async function expectAccessible(page: Page): Promise<void> {
     (v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(' ')).join(', ')})`,
   );
   expect(summary, 'accessibility violations').toEqual([]);
+  await expectUniqueIds(page);
   await expectControlSizes(page);
+}
+
+/**
+ * No two elements on a page share an `id` (UX-DS-13). A label, a hint or an error is tied to its
+ * control by id, so a repeated form whose fields share ids sends a label to the wrong control:
+ * a page that repeats a form gives each one an `idScope`.
+ */
+export async function expectUniqueIds(page: Page): Promise<void> {
+  const duplicates = await page.evaluate(() => {
+    const seen = new Map<string, number>();
+    for (const element of document.querySelectorAll('[id]')) {
+      seen.set(element.id, (seen.get(element.id) ?? 0) + 1);
+    }
+    return [...seen].filter(([, count]) => count > 1).map(([id, count]) => `${id} (${count})`);
+  });
+  expect(duplicates, `duplicate ids on ${page.url()}`).toEqual([]);
 }
 
 /** Waits until nothing on the page is still moving or fading (UX-DS-20: all motion is short). */

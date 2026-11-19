@@ -445,11 +445,13 @@ test('UX-LP-5, UX-LP-6: the menu holds the rare actions, and History is the full
   await page.goto(lettingUrl);
   const menu = await openLettingMenu(page);
   // UX-LP-5: "See it on Gaff" waits for a home's public page (WP-20); the rest are here.
+  // "Add test enquiries" is there only because these runs have the development tools on (BA-1).
   await expect(menu.getByRole('menuitem')).toHaveText([
     'Change the home’s details',
     'Share with the owner',
     'Share with a colleague',
     'Change lead',
+    'Add test enquiries',
     'History',
     'Close this letting',
   ]);

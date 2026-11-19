@@ -21,6 +21,7 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0015](0015-sign-in-google-apple-codes-passkeys.md) | People with accounts sign in with Google, Apple, an email code or a passkey; private links unchanged | Accepted |
 | [0016](0016-one-person-several-roles.md) | One person, several roles; a silent organisation for a private landlord; profiles outside every organisation | Accepted; extends 0004 |
 | [0017](0017-one-ai-provider-with-usage-budget-and-switches.md) | One AI provider (the Claude API on the test copy, Bedrock in Dublin in production) for three tasks, with a usage log, a monthly budget and switches | Proposed; amends 0009 |
+| [0018](0018-id-check-on-stripe-identity-and-booking-mobile.md) | The ID check on Stripe Identity (a verified webhook re-read from Stripe, one session across three tries, redaction after 30 days), and a mobile confirmed by text code to book a viewing | Accepted |
 
 ## Template
 

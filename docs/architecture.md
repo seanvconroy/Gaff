@@ -209,9 +209,10 @@ Every outside service sits behind an interface in `src/ports/` with a local stan
 | Port | What it does | Stand-in | Real |
 | --- | --- | --- | --- |
 | `email.ts`, `inbound-email.ts` | Sending, and receiving with signed webhooks | Development outbox (`/dev/outbox`), `/dev/inbound` | Resend; Mailgun EU |
-| `sms.ts` | Text reminders | Fake SMS | Sinch (EU) |
+| `sms.ts` | Text reminders, and the code that confirms a renter's mobile before booking (P16) | Fake SMS (on the test copy, the code is shown on screen) | Sinch (EU) |
 | `ai.ts` | One `AiProvider` for three tasks: drafting answers, reading a pasted advert (`ADVERT_READER`), and reading a question about who's enquired into chips. Called only through `runAi` (`src/server/ai/usage.ts`), which logs each call in `ai_calls`, keeps to `AI_MONTHLY_BUDGET_USD` and honours `AI_TASKS_OFF` | Fake AI | Claude on Amazon Bedrock (Dublin) in production; the Claude API on the test copy and in development, made-up data only |
-| `checks.ts` | ID and income checks: a chosen applicant's, and a private landlord's "Confirm it's you" (Q47) | A stand-in page (`/dev/checks`) | None chosen yet (Q48); `none` in production until then |
+| `identity.ts` | The ID check, a photo ID and a live selfie: a chosen applicant's, and a private landlord's "Confirm it's you" (Q47). Start, read the outcome from the provider, redact ([ADR-0018](adr/0018-id-check-on-stripe-identity-and-booking-mobile.md)) | A stand-in page (`/dev/checks`), opened by its own link on the test copy | Stripe Identity (Q51), with a signed webhook at `/api/webhooks/stripe-identity` |
+| `checks.ts` | The income check | A stand-in page (`/dev/checks`) | None (`none` in production; documents later, Q51) |
 | `address-search.ts` | Finding an address when adding a letting (`ADDRESS_SEARCH`) | A made-up list | Autoaddress, once its DPA is signed (Q40); `off` types it in |
 | `photo-store.ts` | Homes' photos (`PHOTO_STORE`) | A table in this database | Supabase Storage (Ireland), a private bucket |
 | `register.ts` | Gaff's weekly copy of the PSRA register (`PSRA_REGISTER_SOURCE`) | A made-up register | The PSRA's download, once its format is checked |
@@ -288,7 +289,7 @@ All checks run with one command, `pnpm check`, and in CI on every push.
 | --- | --- | --- | --- |
 | Local | Your machine or this container: Postgres 16 and Node | Synthetic seed data | Dev outbox, fake SMS, fake AI |
 | CI | GitHub Actions with a Postgres service | Synthetic | Fakes |
-| Test copy | Vercel and Supabase, a separate project of each ([deploy.md](deploy.md)), on a public address with a banner on every page | Synthetic only | Real email for real addresses (made-up ones to the outbox); fake SMS and AI, test check page. Everything under `/dev` but `/dev/ui` is for Gaff's own team only; no Google or Apple stand-in |
+| Test copy | Vercel and Supabase, a separate project of each ([deploy.md](deploy.md)), on a public address with a banner on every page | Synthetic only | Real email for real addresses (made-up ones to the outbox); fake SMS (the booking code shown on screen) and AI, Stripe Identity's test mode or the test check page. Everything under `/dev` but `/dev/ui` is for Gaff's own team only; no Google or Apple stand-in |
 | Production | Vercel (Dublin) and Supabase (Ireland) | Real | Real |
 
 Production needs, before the first pilot letting: the DPIA, the solicitor's sign-off, the retention job (R26), backups with tested restores, and error alerts. A provider for error alerts is a later approval.

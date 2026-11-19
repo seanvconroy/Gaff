@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import pg from 'pg';
-import { E2E_DATABASE_URL, E2E_STAFF_EMAIL } from '../../playwright.config';
+import { E2E_DATABASE_URL, E2E_SECOND_STAFF_EMAIL, E2E_STAFF_EMAIL } from '../../playwright.config';
 import { daftEnquiry } from '../fixtures/emails';
 import { aPng } from '../fixtures/photos';
 import { needsYouBlock } from './journeys';
@@ -18,7 +18,10 @@ import {
   signUpOperator,
 } from './support';
 
-/** Work package WP-26: trust and Gaff's internal page (UX-TS-3 to UX-TS-6, UX-AG-4). */
+/**
+ * Work package WP-26 and BA-9: trust and Gaff's internal page (UX-TS-3 to UX-TS-6, UX-AG-4), with
+ * every report handled as a case a person decides (M96 to M98, M106).
+ */
 
 const phone = { width: 390, height: 844 };
 const desktop = { width: 1280, height: 900 };
@@ -70,7 +73,13 @@ async function inSearch(page: Page, homePath: string): Promise<number> {
 }
 
 /** The development outbox's newest email to this address with this subject, as a page. */
-async function emailAsPage(browser: Browser, to: string, subject: string, name: string) {
+async function emailAsPage(
+  browser: Browser,
+  to: string,
+  subject: string,
+  name: string,
+  button = 'Open the letting',
+) {
   await expect
     .poll(async () =>
       (
@@ -88,7 +97,7 @@ async function emailAsPage(browser: Browser, to: string, subject: string, name: 
   const context = await browser.newContext({ locale: 'en-IE' });
   const letter = await context.newPage();
   await letter.setContent(mail!.html);
-  await expect(letter.getByRole('link', { name: 'Open the letting' })).toHaveCount(1);
+  await expect(letter.getByRole('link', { name: button })).toHaveCount(1);
   await expect(letter.getByRole('img', { name: 'Gaff' })).toBeVisible();
   await expectAccessible(letter);
   await letter.screenshot({ path: `screenshots/${name}.png`, fullPage: true });
@@ -96,15 +105,53 @@ async function emailAsPage(browser: Browser, to: string, subject: string, name: 
   return mail!.text;
 }
 
-/** On Gaff's internal page: hides the reported listing, for the reason most reports gave. */
-async function hideThroughInternal(staffPage: Page, title: string, reports: string) {
-  await staffPage.goto('/internal');
-  const card = staffPage
+/** The open case card for this home on Gaff's internal page. */
+function caseCard(staffPage: Page, title: string) {
+  return staffPage
     .getByRole('region', { name: title })
-    .filter({ has: staffPage.getByText(reports) });
-  await card.getByLabel('Why it’s hidden').selectOption('wrong_details');
-  await card.getByRole('button', { name: `Hide this listing ${title}` }).click();
-  await expect(staffPage.getByText(/^Hidden\. It’s out of search/)).toBeVisible();
+    .filter({ has: staffPage.getByText(/Decide by /) });
+}
+
+/**
+ * M98: on Gaff's internal page, a person decides the case to hide it (or keep it off), for this
+ * reason, relying on the reports and the photos.
+ */
+async function hideThroughInternal(staffPage: Page, title: string, reason: string) {
+  await staffPage.goto('/internal');
+  const card = caseCard(staffPage, title);
+  await card.getByLabel('Why it’s hidden').selectOption(reason);
+  await expect(card.getByRole('checkbox', { name: 'The reports we received' })).toBeChecked();
+  await card.getByRole('checkbox', { name: 'The home’s photos' }).check();
+  await card.getByRole('button', { name: /^(Hide this listing|Keep it off gaff\.ie) / }).click();
+  await expect(
+    staffPage.getByText(/^(Hidden\. It’s out of search|Decided: it stays off gaff\.ie)/),
+  ).toBeVisible();
+}
+
+/** UX-TS-3, M96: a visitor with no account reports it, for this reason, maybe with an email. */
+async function reportThroughUi(visitor: Page, homePath: string, reason: string, email?: string) {
+  await visitor.goto(homePath);
+  await visitor.getByRole('link', { name: 'Report this listing' }).click();
+  await visitor.getByRole('radio', { name: reason }).check();
+  await visitor.getByRole('button', { name: 'Continue' }).click();
+  await expect(
+    visitor.getByRole('heading', { level: 1, name: 'Would you like to hear what we decide?' }),
+  ).toBeVisible();
+  if (email) await visitor.getByLabel('Your email').fill(email);
+  await visitor.getByRole('button', { name: 'Send report' }).click();
+  await expect(
+    visitor.getByRole('heading', { level: 1, name: 'Thanks for telling us' }),
+  ).toBeVisible();
+  await expect(visitor.getByText(/^A person on Gaff’s team will look at it by /)).toBeVisible();
+}
+
+/** The development outbox's subjects to this address. */
+async function subjectsTo(to: string): Promise<string[]> {
+  return (
+    await asSystem<{ subject: string }>('select subject from dev_outbox where to_address = $1', [
+      to,
+    ])
+  ).map((row) => row.subject);
 }
 
 /** How many first replies Gaff has sent for this letting. */
@@ -139,14 +186,13 @@ async function anEnquiryWhileHidden(page: Page, address: string, lettingId: stri
   expect(await firstRepliesTo(lettingId)).toBe(0);
 }
 
-test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, it leaves search at once, its enquiries wait, and the lister is told', async ({
+test('UX-TS-3 to UX-TS-5, M96 to M98: two scam reports take a listing off at once, the lister is told it was automatic, and a person decides with reasons', async ({
   browser,
   page,
 }) => {
-  // Three people's screens, at two widths, with an email at the end. The lister's side, and the
-  // home coming back, are the next journey.
-  test.setTimeout(180_000);
-  // An address no other journey uses, so its card is the only one by that name.
+  // Four people's screens, at two widths, with three emails. The appeal is the next journey.
+  test.setTimeout(240_000);
+  // An address no other journey uses, so its cards are the only ones by that name.
   const address = '5 Willow Terrace';
   const operatorEmail = await signUpOperator(
     page,
@@ -154,31 +200,72 @@ test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, i
   );
   const home = await aLiveHomeOnGaff(page, address);
   const title = `${address}, Ranelagh, Dublin 6`;
+  const visitorEmail = `visitor.${String(Date.now()).slice(-6)}@example.ie`;
 
-  // UX-TS-3: a visitor with no account reports it, at each width.
-  const reasons = { '390': 'The details are wrong', '1280': 'It looks like a scam' } as const;
-  for (const [width, viewport] of widths) {
-    const { context, page: visitor } = await signedOut(browser, viewport);
+  // UX-TS-3, M96: a visitor with no account reports it as a scam, and asks to hear the outcome.
+  // One scam report takes nothing off.
+  {
+    const { context, page: visitor } = await signedOut(browser, phone);
     expect(await inSearch(visitor, home.homePath)).toBe(1);
-    await visitor.goto(home.homePath);
-    await visitor.getByRole('link', { name: 'Report this listing' }).click();
-    await visitor.getByRole('radio', { name: reasons[width] }).check();
-    await visitor.getByRole('button', { name: 'Send report' }).click();
-    await expect(
-      visitor.getByRole('heading', { level: 1, name: 'Thanks for telling us' }),
-    ).toBeVisible();
+    await reportThroughUi(visitor, home.homePath, 'It looks like a scam', visitorEmail);
+    await expect(visitor.getByText(/We’ll email you what we decide\.$/)).toBeVisible();
+    await expectAccessible(visitor);
+    await screenshot(visitor, 'ux-ts-report-sent-390');
+    expect(await inSearch(visitor, home.homePath)).toBe(1);
     await context.close();
   }
-  const reports = await asSystem<{ reason: string; note: string | null }>(
-    `select r.reason, r.note from listing_reports r where r.letting_id = $1 order by received_at`,
+  // M97: a second scam report takes it off at once, by the rules, until a person looks.
+  {
+    const { context, page: visitor } = await signedOut(browser, desktop);
+    await reportThroughUi(visitor, home.homePath, 'It looks like a scam');
+    await expect(visitor.getByText(/You don’t need to do anything else\.$/)).toBeVisible();
+    await expectAccessible(visitor);
+    await screenshot(visitor, 'ux-ts-report-sent-1280');
+    await context.close();
+  }
+  const reports = await asSystem<{ reason: string; asked: boolean }>(
+    `select reason, outcome_email is not null as asked from listing_reports where letting_id = $1 order by received_at`,
     [home.lettingId],
   );
   expect(reports).toEqual([
-    { reason: 'wrong_details', note: null },
-    { reason: 'scam', note: null },
+    { reason: 'scam', asked: true },
+    { reason: 'scam', asked: false },
   ]);
+  for (const [width, viewport] of widths) {
+    const { context, page: visitor } = await signedOut(browser, viewport);
+    const response = await visitor.goto(home.homePath);
+    expect(response?.status()).toBe(404);
+    await expect(visitor.getByRole('heading', { name: 'This home isn’t on Gaff' })).toBeVisible();
+    await expect(visitor.getByText(address)).toHaveCount(0);
+    expect(await inSearch(visitor, home.homePath)).toBe(0);
+    await expectAccessible(visitor);
+    await screenshot(visitor, `ux-ts-hidden-home-page-${width}`);
+    await context.close();
+  }
 
-  // UX-TS-5: it is on Gaff's internal page, for Gaff's own team.
+  // The lister is told it was automatic, and that a person will look; nothing asks them to act.
+  const held = await emailAsPage(
+    browser,
+    operatorEmail,
+    `${address} is off gaff.ie while we check a report`,
+    'ux-ts-email-held',
+  );
+  expect(held).toContain('Nobody has decided anything about it yet.');
+  for (const [width, viewport] of widths) {
+    await page.setViewportSize(viewport);
+    await page.goto(home.lettingPath);
+    await expect(needsYouBlock(page)).toContainText(
+      'Gaff’s rules took this home off gaff.ie automatically after reports that it may be a scam.',
+    );
+    await expect(
+      needsYouBlock(page).getByRole('link', { name: 'Ask Gaff to look again' }),
+    ).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+    await expectAccessible(page);
+    await screenshot(page, `ux-ts-letting-held-${width}`);
+  }
+
+  // UX-TS-5, M106: the case is on Gaff's internal page, for Gaff's own team.
   const staffContext = await browser.newContext({ locale: 'en-IE' });
   const staffPage = await staffContext.newPage();
   await signIn(staffPage, E2E_STAFF_EMAIL);
@@ -193,14 +280,19 @@ test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, i
       'Reported listings',
       'Funnels',
     ]);
-    const reported = staffPage.getByRole('region', { name: title }).first();
-    await expect(reported.getByText('2 reports')).toBeVisible();
-    await expect(reported.getByText('The details are wrong', { exact: true })).toBeVisible();
-    await expect(reported.getByText(/Answer by /)).toBeVisible();
+    const card = caseCard(staffPage, title);
+    await expect(card.getByText('2 reports')).toBeVisible();
+    await expect(card.getByText('Off gaff.ie automatically')).toBeVisible();
+    await expect(card.getByText('It looks like a scam', { exact: true })).toHaveCount(2);
+    await expect(
+      card.getByRole('button', { name: `Put it back on gaff.ie ${title}` }),
+    ).toBeVisible();
+    await card.getByText(/^History \(/).click();
+    await expect(card.getByText('Taken off automatically: strong signs of a scam')).toBeVisible();
     await expect(staffPage.getByRole('region', { name: 'Funnels' })).toBeVisible();
     await expectNoSidewaysScroll(staffPage);
     await expectAccessible(staffPage);
-    await screenshot(staffPage, `ux-ts-internal-reported-${width}`);
+    await screenshot(staffPage, `ux-ts-internal-case-${width}`);
   }
   // Nothing about any renter or message is in the reports. (The agencies list above it names
   // each agency's own admin, who asked to be confirmed: that's a lister, never a renter.)
@@ -209,29 +301,13 @@ test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, i
   });
   expect(await reportsList.innerText()).not.toMatch(/Aoife|@example\.ie/);
 
-  // UX-TS-4: staff hide it, for the reason most reports gave.
-  await hideThroughInternal(staffPage, title, '2 reports');
+  // M98: a person keeps it off, with a reason and what it relies on.
+  await hideThroughInternal(staffPage, title, 'scam');
   await expect(staffPage).toHaveTitle(/Gaff internal/);
   await expectAccessible(staffPage);
-  await screenshot(staffPage, 'ux-ts-internal-hidden-1280');
+  await screenshot(staffPage, 'ux-ts-internal-decided-1280');
 
-  // It's gone from search and its page says it isn't available, at once.
-  for (const [width, viewport] of widths) {
-    const { context, page: visitor } = await signedOut(browser, viewport);
-    const response = await visitor.goto(home.homePath);
-    expect(response?.status()).toBe(404);
-    await expect(visitor.getByRole('heading', { name: 'This home isn’t on Gaff' })).toBeVisible();
-    await expect(visitor.getByText(address)).toHaveCount(0);
-    expect(await inSearch(visitor, home.homePath)).toBe(0);
-    await expectAccessible(visitor);
-    await screenshot(visitor, `ux-ts-hidden-home-page-${width}`);
-    await context.close();
-  }
-
-  // A new enquiry to it waits: it is placed, and nobody is answered while it's hidden.
-  await anEnquiryWhileHidden(page, address, home.lettingId);
-
-  // The lister is emailed, with the reason, in the Gaff layout.
+  // The lister receives the statement of reasons, in the Gaff layout.
   const told = await emailAsPage(
     browser,
     operatorEmail,
@@ -239,17 +315,39 @@ test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, i
     'ux-ts-email-hidden',
   );
   expect(told).toContain(
-    `Gaff’s team has taken ${address} off gaff.ie after a report: some of its details look wrong.`,
+    `Gaff’s team has taken ${address} off gaff.ie after a report: it may not be a genuine listing.`,
   );
+  expect(told).toContain('What we relied on: the reports we received and the home’s photos.');
+  expect(told).toContain('A person on Gaff’s team decided this on');
+  // M96: the visitor who asked hears the outcome, and their address is gone.
+  const outcome = await emailAsPage(
+    browser,
+    visitorEmail,
+    'What we decided about the listing you reported',
+    'ux-ts-email-report-outcome',
+    'Search homes on Gaff',
+  );
+  expect(outcome).toContain(`the listing for ${address} that you reported, and took it off`);
+  await expect
+    .poll(
+      async () =>
+        (
+          await asSystem<{ n: number }>(
+            'select count(*)::int as n from listing_reports where letting_id = $1 and outcome_email is not null',
+            [home.lettingId],
+          )
+        )[0]!.n,
+    )
+    .toBe(0);
   await staffContext.close();
 });
 
-test('UX-TS-4, UX-TS-5: the lister of a hidden home sees why, asks Gaff to look again, staff put it back, and the enquiry that waited is answered', async ({
+test('UX-TS-4, M98: the lister of a hidden home reads why, asks Gaff to look again, someone else puts it back, and the enquiry that waited is answered', async ({
   browser,
   page,
 }) => {
-  test.setTimeout(180_000);
-  // Another address no other journey uses. Reported once and hidden, as in the journey above.
+  test.setTimeout(240_000);
+  // Another address no other journey uses. Reported once and hidden by a person.
   const address = '7 Willow Terrace';
   const operatorEmail = await signUpOperator(
     page,
@@ -259,33 +357,18 @@ test('UX-TS-4, UX-TS-5: the lister of a hidden home sees why, asks Gaff to look 
   const title = `${address}, Ranelagh, Dublin 6`;
   {
     const { context, page: visitor } = await signedOut(browser, phone);
-    await visitor.goto(home.homePath);
-    await visitor.getByRole('link', { name: 'Report this listing' }).click();
-    await visitor.getByRole('radio', { name: 'The details are wrong' }).check();
-    await visitor.getByRole('button', { name: 'Send report' }).click();
-    await expect(
-      visitor.getByRole('heading', { level: 1, name: 'Thanks for telling us' }),
-    ).toBeVisible();
+    await reportThroughUi(visitor, home.homePath, 'The details are wrong');
     await context.close();
   }
   const staffContext = await browser.newContext({ locale: 'en-IE', viewport: desktop });
   const staffPage = await staffContext.newPage();
   await signIn(staffPage, E2E_STAFF_EMAIL);
-  await hideThroughInternal(staffPage, title, '1 report');
+  await hideThroughInternal(staffPage, title, 'wrong_details');
   await anEnquiryWhileHidden(page, address, home.lettingId);
   const firstReplies = () => firstRepliesTo(home.lettingId);
-  await expect
-    .poll(async () =>
-      (
-        await asSystem<{ subject: string }>(
-          'select subject from dev_outbox where to_address = $1',
-          [operatorEmail],
-        )
-      ).map((row) => row.subject),
-    )
-    .toContain(`${address} is off gaff.ie for now`);
+  await expect.poll(() => subjectsTo(operatorEmail)).toContain(`${address} is off gaff.ie for now`);
 
-  // The lister sees it on the letting, as its Needs you task, and asks Gaff to look again.
+  // The lister sees it on the letting, as its Needs you task, reads why, and asks once.
   for (const [width, viewport] of widths) {
     await page.setViewportSize(viewport);
     await page.goto(home.lettingPath);
@@ -303,6 +386,9 @@ test('UX-TS-4, UX-TS-5: the lister of a hidden home sees why, asks Gaff to look 
       page.getByRole('heading', { level: 1, name: 'This home is off gaff.ie for now' }),
     ).toBeVisible();
     await expect(page.getByText(/after a report: some of its details look wrong\.$/)).toBeVisible();
+    await expect(
+      page.getByText('What we relied on: the reports we received and the home’s photos.'),
+    ).toBeVisible();
     await expect(page.getByRole('link', { name: 'Change the home’s details' })).toBeVisible();
     await expect(page.locator('[data-button="primary"]')).toHaveCount(1);
     await expectNoSidewaysScroll(page);
@@ -315,17 +401,41 @@ test('UX-TS-4, UX-TS-5: the lister of a hidden home sees why, asks Gaff to look 
     'Gaff’s team is looking at this home again, and will email you within one working day.',
   );
 
-  // Staff see that the lister asked, and put it back.
+  // M98: the person who decided can't decide the appeal.
   await staffPage.goto('/internal');
-  const hidden = staffPage.getByRole('region', { name: title }).filter({
+  const asFounder = caseCard(staffPage, title).filter({
     has: staffPage.getByText('Asked to look again'),
   });
-  await expect(hidden).toBeVisible();
+  await expect(asFounder).toBeVisible();
+  await expect(
+    asFounder.getByText(
+      'You made the first decision, so someone else on Gaff’s team must decide this.',
+    ),
+  ).toBeVisible();
+  await expect(asFounder.getByRole('button')).toHaveCount(0);
   await settled(staffPage);
-  await screenshot(staffPage, 'ux-ts-internal-asked-again-1280');
-  await hidden.getByRole('button', { name: `Put it back on gaff.ie ${title}` }).click();
-  await expect(staffPage.getByText(/^It’s back on gaff\.ie\./)).toBeVisible();
-  await expectAccessible(staffPage);
+  await screenshot(staffPage, 'ux-ts-internal-appeal-first-decider-1280');
+  await staffContext.close();
+
+  // Someone else on Gaff's team decides it, at each width, and puts it back.
+  const otherContext = await browser.newContext({ locale: 'en-IE' });
+  const other = await otherContext.newPage();
+  await signIn(other, E2E_SECOND_STAFF_EMAIL);
+  for (const [width, viewport] of widths) {
+    await other.setViewportSize(viewport);
+    await other.goto('/internal');
+    const appeal = caseCard(other, title).filter({ has: other.getByText('Asked to look again') });
+    await expect(appeal.getByText('Relied on', { exact: true })).toBeVisible();
+    await expect(appeal.getByText('The details are wrong').first()).toBeVisible();
+    await expectNoSidewaysScroll(other);
+    await expectAccessible(other);
+    await screenshot(other, `ux-ts-internal-appeal-${width}`);
+  }
+  await caseCard(other, title)
+    .getByRole('button', { name: `Put it back on gaff.ie ${title}` })
+    .click();
+  await expect(other.getByText(/^It’s back on gaff\.ie\./)).toBeVisible();
+  await expectAccessible(other);
 
   // It returns: its page, its place in search, and the enquiry that waited is answered.
   {
@@ -340,7 +450,7 @@ test('UX-TS-4, UX-TS-5: the lister of a hidden home sees why, asks Gaff to look 
   await page.goto(home.lettingPath);
   await expect(needsYouBlock(page)).not.toContainText('off gaff.ie');
 
-  // Every staff action is recorded as Gaff's, and the lister's record says what happened.
+  // Every decision is recorded as Gaff's team's, and the lister's record says what happened.
   const record = await asSystem<{ type: string; actor_type: string }>(
     `select type, actor_type from events where letting_id = $1 and type like 'listing.%' order by id`,
     [home.lettingId],
@@ -349,9 +459,10 @@ test('UX-TS-4, UX-TS-5: the lister of a hidden home sees why, asks Gaff to look 
     { type: 'listing.reported', actor_type: 'system' },
     { type: 'listing.hidden', actor_type: 'staff' },
     { type: 'listing.look_again_asked', actor_type: 'person' },
+    { type: 'listing.appeal_decided', actor_type: 'staff' },
     { type: 'listing.unhidden', actor_type: 'staff' },
   ]);
-  await staffContext.close();
+  await otherContext.close();
 });
 
 test('UX-TS-5, Q13: nobody but Gaff’s own team can open any internal page', async ({ page }) => {

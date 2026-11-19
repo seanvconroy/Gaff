@@ -22,6 +22,11 @@ export const sessions = pgTable(
     token: text().notNull().unique(),
     ipAddress: text(),
     userAgent: text(),
+    /**
+     * BA-8 (M5, AU8): how this session began: `email_code`, `google`, `apple` or `passkey`. Set
+     * as the session is made, and never by a browser. Gaff's team need `passkey` in production.
+     */
+    signInMethod: text(),
     userId: text()
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -154,4 +159,20 @@ export const confirmations = pgTable(
     usedAt: timestamp({ withTimezone: true }),
   },
   (t) => [index('confirmations_user_idx').on(t.userId, t.action)],
+);
+
+/**
+ * AU12: the counters behind the limits on signing in (src/domain/auth/limits.ts), kept in
+ * Postgres so a limit holds across every serverless instance. The key is a SHA-256 of what's
+ * limited and who by (a network address, or an organisation): neither is stored. Counters whose
+ * window began over a day ago are deleted by the nightly job (AU14).
+ */
+export const authLimits = pgTable(
+  'auth_limits',
+  {
+    keyHash: text().primaryKey(),
+    hits: integer().notNull(),
+    windowStartedAt: timestamp({ withTimezone: true }).notNull(),
+  },
+  (t) => [index('auth_limits_window_idx').on(t.windowStartedAt)],
 );

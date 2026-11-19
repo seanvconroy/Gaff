@@ -10,7 +10,8 @@ import { checkSignInCode, sendNewSignInCode, type CodeState } from '../actions';
 import styles from '../sign-in.module.css';
 
 /** What to say under the code input, from the last answer. The words are section 2's. */
-export function codeError(status: CodeState['status']): string | undefined {
+export function codeError(status: CodeState['status'], waitSeconds = 60): string | undefined {
+  if (status === 'slow_down') return signInCopy.errors.slowDown(waitSeconds);
   if (status === 'wrong') return codeCopy.wrong;
   if (status === 'expired') return codeCopy.expired;
   if (status === 'not_sent') return signInCopy.errors.notSent;
@@ -73,7 +74,7 @@ export function CodeScreen({
             key={state.stamp}
             name="code"
             label={codeCopy.label}
-            error={codeError(state.status)}
+            error={codeError(state.status, state.wait)}
             autoFocus
             onComplete={(code) => send('check', code)}
           />

@@ -302,3 +302,77 @@ export function listingBackEmail(input: { address: string; lettingUrl: string })
     ].join('\n'),
   };
 }
+
+/** BA-8 (AU11): the ways in a security email can be about, as a person says them. */
+const wayInWords = { google: 'Google', apple: 'Apple' } as const;
+export type ChangedWayIn = 'google' | 'apple' | 'passkey';
+
+/**
+ * BA-8 (AU11, for the solicitor): a way in was added to, or removed from, the person's own
+ * account. To the person, about their own sign-in. It says what happened and when, and what to
+ * do if it wasn't them. New wording, pinned by its own test (`security-emails.test.ts`).
+ */
+export function signInChangedEmail(input: {
+  change: 'added' | 'removed';
+  method: ChangedWayIn;
+  /** "Thursday 6 November, 6pm" */
+  when: string;
+  profileUrl: string;
+}): AccountEmail {
+  const happened =
+    input.method === 'passkey'
+      ? input.change === 'added'
+        ? 'A passkey was added to your Gaff account'
+        : 'A passkey was removed from your Gaff account'
+      : input.change === 'added'
+        ? `${wayInWords[input.method]} was connected to your Gaff account`
+        : `${wayInWords[input.method]} was disconnected from your Gaff account`;
+  return {
+    subject: happened,
+    button: 'See how you sign in',
+    text: [
+      'Hello,',
+      '',
+      `${happened} on ${input.when}.`,
+      '',
+      'If that was you, there’s nothing to do.',
+      '',
+      'If it wasn’t, sign in to Gaff with a code from your email and open your profile. Under “How you sign in” you can remove anything you don’t recognise, and sign out every other device.',
+      '',
+      input.profileUrl,
+      '',
+      'Gaff',
+    ].join('\n'),
+  };
+}
+
+/**
+ * BA-8 (AU4, AU11, for the solicitor): someone tried to sign in to Gaff with Google or Apple
+ * using the person's address, and wasn't let in, because that provider doesn't look after the
+ * address. It goes to the address's owner only, so nobody else learns whether it has an
+ * account. Pinned with the above.
+ */
+export function signInRefusedEmail(input: {
+  provider: 'google' | 'apple';
+  when: string;
+  profileUrl: string;
+}): AccountEmail {
+  const provider = wayInWords[input.provider];
+  return {
+    subject: 'Someone tried to sign in to Gaff with your email',
+    button: 'See how you sign in',
+    text: [
+      'Hello,',
+      '',
+      `On ${input.when}, someone tried to sign in to Gaff with ${provider}, using this email address. We didn’t let them in, because ${provider} doesn’t look after this address.`,
+      '',
+      `If that was you, sign in with a code from your email instead. Then connect ${provider} under “How you sign in” on your profile, and you can use it from then on.`,
+      '',
+      input.profileUrl,
+      '',
+      'If it wasn’t you, there’s nothing to do. Nothing has changed on your account.',
+      '',
+      'Gaff',
+    ].join('\n'),
+  };
+}

@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { signInCodeEmail } from '@/copy/sign-in';
 import type { SignInMethod } from '@/domain/auth/methods';
 import { safeNextPath } from '@/domain/auth/next-path';
@@ -7,6 +7,7 @@ import { sendCode, waitingCode, type SendCodeResult, type WaitingCode } from './
 import { startRentingIfArriving } from '@/server/accounts/contexts';
 import { acceptInvitesFor } from '@/server/accounts/invites';
 import { cookieLifetimes, cookieNames, cookieOptions } from './cookies';
+import { limitFromAddress, type Limited } from './limits';
 import { noteSignInMethodChosen, noteSignedIn } from './sign-in-steps';
 
 /**
@@ -60,11 +61,19 @@ export async function afterSignIn(
 /** UX-SI-3: where the email's button points. The route there finishes the sign-in. */
 export const SIGN_IN_LINK_PATH = '/sign-in/open';
 
+/** AU12: too many codes asked for from this network address: when to try again. */
+export type SlowDown = { sent: false; reason: 'slow_down' } & Pick<Limited, 'retryAfterSeconds'>;
+
 async function send(input: {
   email: string;
   attemptId: string | null;
   nextPath: string | null;
-}): Promise<SendCodeResult> {
+}): Promise<SendCodeResult | SlowDown> {
+  // AU12: counted by network address, before the code store's own limits for the address.
+  const limited = await limitFromAddress('send_code', await headers());
+  if (limited) {
+    return { sent: false, reason: 'slow_down', retryAfterSeconds: limited.retryAfterSeconds };
+  }
   const jar = await cookies();
   const result = await sendCode({
     purpose: 'sign_in',
@@ -87,7 +96,7 @@ export function requestSignInCode(input: {
   email: string;
   attemptId: string | null;
   nextPath: string | null;
-}): Promise<SendCodeResult> {
+}): Promise<SendCodeResult | SlowDown> {
   return send({ ...input, email: input.email.trim().toLowerCase() });
 }
 
@@ -99,7 +108,7 @@ export async function currentSignInCode(): Promise<WaitingCode | null> {
 
 /** "Send a new code": another code to the same address, for this browser. */
 export async function resendSignInCode(): Promise<
-  SendCodeResult | { sent: false; reason: 'nothing' }
+  SendCodeResult | SlowDown | { sent: false; reason: 'nothing' }
 > {
   const waiting = await currentSignInCode();
   if (!waiting) return { sent: false, reason: 'nothing' };

@@ -45,6 +45,11 @@ export type FunnelVariant = z.infer<typeof funnelVariantSchema>;
 export const funnelDataSchema = z.strictObject({
   /** Import: how many fields the person changed on review. */
   fieldsChanged: z.number().int().min(0).optional(),
+  /**
+   * BA-8 (AU4): `account.sign_in_failed` with the reason `not_joined`: Google or Apple couldn't
+   * be joined to anyone, because the provider doesn't host the address.
+   */
+  notJoined: z.literal(true).optional(),
 });
 export type FunnelData = z.infer<typeof funnelDataSchema>;
 

@@ -29,11 +29,25 @@ export function standInPath(provider: SignInProvider): string {
 /** The made-up person, from what the tester typed on the stand-in page. */
 export function standInPerson(
   provider: SignInProvider,
-  input: { name: string; email: string; hideEmail?: boolean; unverified?: boolean },
+  input: {
+    name: string;
+    email: string;
+    hideEmail?: boolean;
+    unverified?: boolean;
+    /**
+     * AU4: a Google account made with an address Google doesn't look after (a work address on
+     * Microsoft, say). Otherwise the stand-in's Google hosts the address, as Google Workspace.
+     */
+    notHosted?: boolean;
+  },
 ): ProviderPerson {
   const typed = input.email.trim().toLowerCase();
   const digest = createHash('sha256').update(`${provider}:${typed}`).digest('hex');
+  const domain = typed.slice(typed.lastIndexOf('@') + 1);
+  const workspace =
+    provider === 'google' && !input.notHosted && !['gmail.com', 'googlemail.com'].includes(domain);
   return {
+    ...(workspace ? { hostedDomain: domain } : {}),
     provider,
     id: `stand-in-${digest.slice(0, 24)}`,
     // UX-SI-11: Apple's "Hide My Email" hands over a relay address in place of the person's own.
@@ -85,6 +99,8 @@ export function standInProviders(
         email: person.email,
         emailVerified: person.emailVerified,
         name: person.name,
+        // As Google's ID token says it: the provider's profile, which AU4's rule reads.
+        ...(person.hostedDomain ? { hd: person.hostedDomain } : {}),
       };
     },
   }));

@@ -22,6 +22,7 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0016](0016-one-person-several-roles.md) | One person, several roles; a silent organisation for a private landlord; profiles outside every organisation | Accepted; extends 0004 |
 | [0017](0017-one-ai-provider-with-usage-budget-and-switches.md) | One AI provider (the Claude API on the test copy, Bedrock in Dublin in production) for three tasks, with a usage log, a monthly budget and switches | Proposed; amends 0009 |
 | [0018](0018-own-place-index-from-openstreetmap.md) | Search uses Gaff's own place index, built from OpenStreetMap and kept in Postgres | Accepted (Q51) |
+| [0019](0019-sign-in-hardened.md) | Sign-in, hardened: limits in Postgres, closed library routes, joining by the address's host, How you sign in, devices | Accepted; extends 0015 |
 
 ## Template
 

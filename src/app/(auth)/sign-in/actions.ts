@@ -13,6 +13,7 @@ import {
 import { safeNextPath } from '@/domain/auth/next-path';
 import { invalid, type FormState } from '@/lib/forms';
 import { auth, signInProviderModes } from '@/server/auth/auth';
+import { refusal } from '@/server/auth/limits';
 import { finishSignIn, requestSignInCode, resendSignInCode } from '@/server/auth/sign-in';
 import {
   noteSignInMethodChosen,
@@ -61,7 +62,12 @@ export async function continueWithEmail(_state: FormState, formData: FormData): 
   if (result.sent || result.reason === 'wait') redirect('/sign-in/code');
   return invalid(
     {
-      email: result.reason === 'too_many' ? signInCopy.errors.tooMany : signInCopy.errors.notSent,
+      email:
+        result.reason === 'slow_down'
+          ? signInCopy.errors.slowDown(result.retryAfterSeconds)
+          : result.reason === 'too_many'
+            ? signInCopy.errors.tooMany
+            : signInCopy.errors.notSent,
     },
     { email: typed },
   );
@@ -80,15 +86,23 @@ export async function continueWithProvider(
 
   const back = new URLSearchParams({ from: provider.data });
   if (next) back.set('next', next);
-  const started = await auth().api.signInSocial({
-    body: {
-      provider: provider.data,
-      callbackURL: returnPath(provider.data, attemptId, next),
-      errorCallbackURL: `/sign-in?${back.toString()}`,
-      disableRedirect: true,
-    },
-    headers: await headers(),
-  });
+  let started: { url?: string | undefined };
+  try {
+    started = await auth().api.signInSocial({
+      body: {
+        provider: provider.data,
+        callbackURL: returnPath(provider.data, attemptId, next),
+        errorCallbackURL: `/sign-in?${back.toString()}`,
+        disableRedirect: true,
+      },
+      headers: await headers(),
+    });
+  } catch (error) {
+    // AU12: too many tries from here: said plainly, with when to try again.
+    const limited = refusal(error);
+    if (!limited) throw error;
+    return invalid({ [provider.data]: signInCopy.errors.slowDown(limited.retryAfterSeconds) }, {});
+  }
   if (!started.url) return providerFailed(provider.data);
   redirect(started.url);
 }
@@ -97,9 +111,22 @@ function providerFailed(provider: SignInProvider): FormState {
   return invalid({ [provider]: signInCopy.errors.provider(provider) }, {});
 }
 
+/** Gaff's own code endpoint, with the limiter's refusal turned into an answer of its own. */
+async function tryTheCode(code: string) {
+  try {
+    return await auth().api.signInWithCode({ body: { code }, headers: await headers() });
+  } catch (error) {
+    const limited = refusal(error);
+    if (!limited) throw error;
+    return { result: 'slow_down' as const, wait: limited.retryAfterSeconds };
+  }
+}
+
 /** What the code screen knows after a try, or after asking for a new code. */
 export interface CodeState {
-  status: 'waiting' | 'wrong' | 'expired' | 'resent' | 'not_sent' | 'too_many';
+  status: 'waiting' | 'wrong' | 'expired' | 'resent' | 'not_sent' | 'too_many' | 'slow_down';
+  /** AU12: with `slow_down`, the seconds until they may try again. */
+  wait?: number;
   /** Seconds until "Send a new code" unlocks, counted from when this state was made. */
   resendIn: number;
   /** Changes with every answer, so the screen can clear the input and restart its countdown. */
@@ -111,7 +138,16 @@ export async function checkSignInCode(state: CodeState, formData: FormData): Pro
   const code = String(formData.get('code') ?? '').replace(/\D/g, '');
   // A stray Enter on a half-typed code isn't a try: nothing is counted against the code.
   if (code.length !== CODE_LENGTH) return state;
-  const result = await auth().api.signInWithCode({ body: { code }, headers: await headers() });
+  const result = await tryTheCode(code);
+  const waited = Math.ceil((Date.now() - state.stamp) / 1000);
+  if (result.result === 'slow_down') {
+    return {
+      status: 'slow_down',
+      wait: result.wait,
+      resendIn: Math.max(0, state.resendIn - waited),
+      stamp: Date.now(),
+    };
+  }
   if (result.result === 'correct') {
     redirect(
       await finishSignIn({
@@ -122,7 +158,6 @@ export async function checkSignInCode(state: CodeState, formData: FormData): Pro
       }),
     );
   }
-  const waited = Math.ceil((Date.now() - state.stamp) / 1000);
   return {
     status: result.result === 'wrong' ? 'wrong' : 'expired',
     resendIn: Math.max(0, state.resendIn - waited),
@@ -138,6 +173,9 @@ export async function sendNewSignInCode(state: CodeState): Promise<CodeState> {
   if (result.sent) return { status: 'resent', resendIn: secondsUntilResend(now, now), stamp: +now };
   if (result.reason === 'wait') {
     return { ...state, resendIn: secondsUntilResend(result.sentAt, now), stamp: +now };
+  }
+  if (result.reason === 'slow_down') {
+    return { status: 'slow_down', wait: result.retryAfterSeconds, resendIn: 0, stamp: +now };
   }
   return { status: result.reason, resendIn: 0, stamp: +now };
 }

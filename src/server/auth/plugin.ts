@@ -38,8 +38,9 @@ async function signInVerifiedEmail(ctx: GenericEndpointContext, email: string): 
 /**
  * Gaff's own sign-in endpoints, on Better Auth (ADR-0015). Each proves the email itself before
  * it creates a session: it reads the code or the button's token, and the key in the asking
- * browser's cookie. So they are safe to reach over HTTP, though the screens call them from the
- * server (`auth().api.signInWithCode`, `auth().api.signInWithCodeLink`).
+ * browser's cookie. The screens call them from the server (`auth().api.signInWithCode`,
+ * `auth().api.signInWithCodeLink`); over HTTP they answer "not found" (AU12, ADR-0019), and
+ * every call is counted against the limits by network address (src/server/auth/limits.ts).
  */
 export const gaffSignIn = () =>
   ({
@@ -89,8 +90,6 @@ export const gaffSignIn = () =>
         },
       ),
     },
-    // A second line of defence behind the limits on the codes themselves.
-    rateLimit: [{ pathMatcher: (path) => path.startsWith('/gaff/sign-in/'), window: 60, max: 20 }],
   }) satisfies BetterAuthPlugin;
 
 /** The header the "Confirm it's you" sheet sends with a passkey, naming the action. */

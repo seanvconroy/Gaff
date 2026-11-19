@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isAppleRelayAddress,
   isProviderCancel,
+  methodForPath,
   providerMode,
   signInMethodFrom,
   signInMethods,
@@ -50,5 +51,19 @@ describe('UX-SI states: Google or Apple cancelled', () => {
     expect(isProviderCancel('user_cancelled_authorize')).toBe(true);
     expect(isProviderCancel('account_not_linked')).toBe(false);
     expect(isProviderCancel('')).toBe(false);
+  });
+});
+
+describe('BA-8: the method a session begins with', () => {
+  it('reads it from the sign-in call that makes the session', () => {
+    expect(methodForPath('/gaff/sign-in/code')).toBe('email_code');
+    expect(methodForPath('/gaff/sign-in/link')).toBe('email_code');
+    expect(methodForPath('/passkey/verify-authentication')).toBe('passkey');
+    expect(methodForPath('/callback/:id', 'google')).toBe('google');
+    expect(methodForPath('/callback/apple')).toBe('apple');
+    expect(methodForPath('/callback/:id', 'github')).toBeNull();
+    expect(methodForPath('/get-session')).toBeNull();
+    // No passwords (Q30).
+    expect(methodForPath('/sign-in/email')).toBeNull();
   });
 });

@@ -69,7 +69,21 @@ export default async function StandInSignInPage({
                   },
                 ]}
               />
-            ) : null}
+            ) : (
+              <ChoiceGroup
+                name="notHosted"
+                type="checkbox"
+                legend="Who looks after the address"
+                hideLegend
+                options={[
+                  {
+                    value: 'yes',
+                    label: 'Google doesn’t look after this address',
+                    hint: 'A Google account made with a work address on another service. Gaff asks for a code first (AU4).',
+                  },
+                ]}
+              />
+            )}
             <Row>
               <Button type="submit" variant="primary" name="answer" value="continue">
                 Continue

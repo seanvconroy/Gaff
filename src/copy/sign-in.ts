@@ -44,8 +44,48 @@ export const signInCopy = {
     /** Google or Apple answered with something other than a cancel. */
     provider: (provider: SignInProvider) =>
       `We couldn’t sign you in with ${providerNames[provider]}. Try again, or use your email.`,
+    /**
+     * AU4: the provider doesn't look after the address, so the mailbox has to say yes first.
+     * The same words whether or not someone has the address: nobody learns who has an account.
+     */
+    notJoined: (provider: SignInProvider) =>
+      `${providerNames[provider]} can’t confirm that email is still yours. This time, enter your email below for a code. Then you can connect ${providerNames[provider]} under “How you sign in” on your profile.`,
+    /** AU4: the provider says it never checked the address. */
+    notVerified: (provider: SignInProvider) =>
+      `${providerNames[provider]} hasn’t confirmed that email address. Enter your email below for a code instead.`,
+    /** AU12: too many tries from this network address. */
+    slowDown: (seconds: number) =>
+      `You’ve tried a few times from here. Try again ${inAWhile(seconds)}.`,
   },
 } as const;
+
+/** "in a minute", "in 5 minutes": how long until someone may try again, rounded up. */
+export function inAWhile(seconds: number): string {
+  if (seconds <= 60) return 'in a minute';
+  return `in ${Math.ceil(seconds / 60)} minutes`;
+}
+
+/**
+ * What the sign-in screen says when Google or Apple comes back without signing anyone in, by the
+ * code in the address. A cancel isn't a problem, and says nothing (states table).
+ */
+export function providerProblemWords(
+  error: string,
+  provider: SignInProvider,
+  waitSeconds: number,
+): string {
+  switch (error) {
+    case 'account_not_linked':
+    case 'confirm_email_first':
+      return signInCopy.errors.notJoined(provider);
+    case 'email_not_verified':
+      return signInCopy.errors.notVerified(provider);
+    case 'slow_down':
+      return signInCopy.errors.slowDown(waitSeconds);
+    default:
+      return signInCopy.errors.provider(provider);
+  }
+}
 
 export const codeCopy = {
   title: 'Enter your code',
@@ -96,11 +136,23 @@ export const passkeyCopy = {
   continue: 'Continue',
 } as const;
 
+/** BA-8 (M5): Gaff's own team, opening /internal in production on another kind of sign-in. */
+export const staffPasskeyCopy = {
+  title: 'Sign in with your passkey',
+  lead: 'Gaff’s own pages need a passkey sign-in from the last 8 hours. Use your passkey, and you go straight on to them.',
+  use: 'Use your passkey',
+  waiting: 'Waiting for your device…',
+  failed: 'That didn’t work. Try again with your passkey.',
+  /** On Profile, for someone on Gaff's team with no passkey yet. */
+  needOne: 'Gaff’s own pages need a passkey. Add one below, then sign in with it to open them.',
+} as const;
+
 const actionWords: Record<SensitiveAction, string> = {
   change_payment_account: 'change the account tenants pay into',
   remove_member: 'remove someone from your agency',
   delete_agency: 'delete your agency',
   delete_profile: 'delete your profile',
+  change_sign_in: 'change how you sign in',
 };
 
 /** UX-SI-10: confirming it's you again, before a sensitive action. */

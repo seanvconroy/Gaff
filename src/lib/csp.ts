@@ -39,6 +39,11 @@ export function configuredProviders(source: Record<string, string | undefined>):
 } {
   return {
     google: Boolean(source.GOOGLE_CLIENT_ID && source.GOOGLE_CLIENT_SECRET),
-    apple: Boolean(source.APPLE_CLIENT_ID && source.APPLE_CLIENT_SECRET),
+    // BA-8: a static secret, or what the server makes one from.
+    apple: Boolean(
+      source.APPLE_CLIENT_ID &&
+      (source.APPLE_CLIENT_SECRET ||
+        (source.APPLE_TEAM_ID && source.APPLE_KEY_ID && source.APPLE_PRIVATE_KEY)),
+    ),
   };
 }

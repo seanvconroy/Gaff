@@ -17,6 +17,7 @@ describe('UX-SI-10: three actions ask the person to confirm it’s them again', 
       'remove_member',
       'delete_agency',
       'delete_profile',
+      'change_sign_in',
     ]);
   });
 

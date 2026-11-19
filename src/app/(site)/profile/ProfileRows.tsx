@@ -20,6 +20,7 @@ import { SummaryList } from '@/ui/SummaryList';
 import { useToast } from '@/ui/Toast';
 import { useSend } from '@/ui/useSend';
 import { setAlertsAction } from '../saved/actions';
+import { SignInSection, type SignInView } from './SignInSection';
 import { SavedSearchList, type SearchRow } from '../saved/SavedSearches';
 import {
   changeNameAction,
@@ -56,7 +57,8 @@ export interface ProfileView {
   looking: { searches: SearchRow[]; alerts: boolean };
   /** Nothing has ever been kept. */
   nothingYet: boolean;
-  signIn: { methods: string[]; passkeys: number };
+  /** BA-8: "How you sign in" and "Signed-in devices". */
+  signIn: SignInView;
   hasPasskey: boolean;
   /** They also let homes on Gaff: deleting the profile leaves their sign-in. */
   letsHomes: boolean;
@@ -300,16 +302,7 @@ export function ProfileRows({ view }: { view: ProfileView }) {
         />
       </Section>
 
-      <Section id="sign-in" title={c.signIn.title}>
-        <SummaryList
-          rows={[
-            { label: c.signIn.methods, value: view.signIn.methods.join(', ') },
-            ...(view.signIn.passkeys > 0
-              ? [{ label: c.signIn.passkeysLabel, value: c.signIn.passkeys(view.signIn.passkeys) }]
-              : []),
-          ]}
-        />
-      </Section>
+      <SignInSection view={view.signIn} />
 
       <Section id="data" title={c.data.title}>
         <Stack gap={4}>

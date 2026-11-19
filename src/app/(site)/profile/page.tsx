@@ -4,10 +4,15 @@ import { earningLabels } from '@/domain/applications/apply';
 import { stayLabel } from '@/domain/criteria/answers';
 import { answersAsFormValues } from '@/domain/profile/forms';
 import { incomeAsTyped } from '@/domain/profile/offer-back';
-import { formatDate, formatEuro } from '@/lib/format';
+import { formatDate, formatDateTime, formatEuro } from '@/lib/format';
 import { readRenterProfile } from '@/server/accounts/renter-profile';
-import { signInMethodsOf } from '@/server/accounts/sign-in-methods';
-import { hasPasskey } from '@/server/auth/confirm-request';
+import { profileCopy as pc } from '@/copy/profile';
+import { providerProblemWords } from '@/copy/sign-in';
+import { isAppleRelayAddress, signInProviderSchema, signInProviders } from '@/domain/auth/methods';
+import { signInProviderModes } from '@/server/auth/auth';
+import { currentSession } from '@/server/auth/member';
+import { signInOverview } from '@/server/auth/security';
+import { staffFrom } from '@/server/auth/staff';
 import { keptIdentityOf } from '@/server/identity/kept';
 import { personCheckOf } from '@/server/identity/person-checks';
 import { membersOf } from '@/server/auth/member';
@@ -40,14 +45,22 @@ export const metadata: Metadata = { title: profileCopy.title };
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ identity_problem?: string }>;
+  searchParams: Promise<{
+    identity_problem?: string;
+    need?: string;
+    connected?: string;
+    not_connected?: string;
+    error?: string;
+  }>;
 }) {
   const person = await requirePerson();
-  const { identity_problem } = await searchParams;
-  const [kept, signIn, passkey, teams, saved, identity, redo] = await Promise.all([
+  const query = await searchParams;
+  const { identity_problem } = query;
+  const session = await currentSession();
+  const [kept, signIn, teams, saved, identity, redo] = await Promise.all([
     readRenterProfile(person.userId),
-    signInMethodsOf(person.userId),
-    hasPasskey(person.userId),
+    // BA-8: how they sign in, and where they're signed in now.
+    signInOverview(person.userId, session?.session.id ?? null),
     // UX-AG-17: the teams they work in, each to leave from here.
     membersOf(person.userId).then(teamsToLeave),
     // "What you're looking for" (WP-23): the chips of their saved searches.
@@ -92,11 +105,8 @@ export default async function ProfilePage({
     keepsDetails: kept.keepsDetails,
     looking: { searches: await searchRows(saved.searches), alerts: saved.alerts },
     nothingYet: !kept.exists,
-    signIn: {
-      methods: signIn.methods.map((method) => profileCopy.signIn.method(method)),
-      passkeys: signIn.passkeys,
-    },
-    hasPasskey: passkey,
+    signIn: signInView(signIn, query, Boolean(staffFrom(session?.user))),
+    hasPasskey: signIn.passkeys.length > 0,
     letsHomes: person.contexts.some((context) => context.side === 'letting'),
     identity: identity
       ? {
@@ -117,4 +127,54 @@ export default async function ProfilePage({
       </Narrow>
     </Stack>
   );
+}
+
+const providerNames = { google: 'Google', apple: 'Apple' } as const;
+
+/** BA-8 (AU6 to AU8): "How you sign in" and "Signed-in devices", in words. */
+function signInView(
+  overview: Awaited<ReturnType<typeof signInOverview>>,
+  query: { need?: string; connected?: string; not_connected?: string; error?: string },
+  staff: boolean,
+): ProfileView['signIn'] {
+  const modes = signInProviderModes();
+  const connected = signInProviderSchema.safeParse(query.connected);
+  const notConnected = signInProviderSchema.safeParse(query.not_connected);
+  return {
+    email: overview.email,
+    hasPasskey: overview.passkeys.length > 0,
+    providers: signInProviders
+      // A provider that's off isn't offered, unless it's already one of their ways in.
+      .filter((provider) => modes[provider] !== 'off' || overview.providers[provider])
+      .map((provider) => {
+        const on = overview.providers[provider];
+        return {
+          provider,
+          name: providerNames[provider],
+          connected: on ? pc.signIn.connectedOn(formatDate(on)) : null,
+          stays:
+            provider === 'apple' && isAppleRelayAddress(overview.email)
+              ? pc.signIn.hideMyEmail
+              : null,
+        };
+      }),
+    passkeys: overview.passkeys.map((key) => ({
+      id: key.id,
+      name: key.name ?? pc.signIn.passkeyNamed,
+      added: key.addedOn ? pc.signIn.passkeyAdded(formatDate(key.addedOn)) : null,
+    })),
+    devices: overview.devices.map((device) => ({
+      id: device.id,
+      words: device.words,
+      when: pc.devices.lastUsed(formatDateTime(device.lastActive)),
+      current: device.current,
+    })),
+    connected: connected.success && !query.error ? providerNames[connected.data] : null,
+    problem: notConnected.success
+      ? query.error === 'slow_down'
+        ? providerProblemWords('slow_down', notConnected.data, 60)
+        : pc.signIn.problems.connect(providerNames[notConnected.data])
+      : null,
+    staffNeedsPasskey: staff && query.need === 'passkey',
+  };
 }

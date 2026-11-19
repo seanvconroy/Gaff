@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { signInCopy } from '@/copy/sign-in';
+import { providerProblemWords, signInCopy } from '@/copy/sign-in';
 import {
   isProviderCancel,
   signInMethodFrom,
@@ -29,7 +29,7 @@ export const dynamic = 'force-dynamic';
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; from?: string; error?: string }>;
+  searchParams: Promise<{ next?: string; from?: string; error?: string; wait?: string }>;
 }) {
   const query = await searchParams;
   const next = safeNextPath(query.next);
@@ -40,8 +40,14 @@ export default async function SignInPage({
   const modes = signInProviderModes();
   // Back from Google or Apple without signing in. Cancelling isn't an error (states table).
   const from = signInProviderSchema.safeParse(query.from);
-  const failedProvider =
-    from.success && query.error && !isProviderCancel(query.error) ? from.data : null;
+  // AU4, AU12: why it didn't, in plain words: the address it can't vouch for, or wait a minute.
+  const providerProblem =
+    from.success && query.error && !isProviderCancel(query.error)
+      ? {
+          provider: from.data,
+          words: providerProblemWords(query.error, from.data, Number(query.wait) || 60),
+        }
+      : null;
 
   return (
     <SignInScreen
@@ -52,7 +58,7 @@ export default async function SignInPage({
       providers={signInProviders.filter((provider) => modes[provider] !== 'off')}
       // UX-SI-6: the method used last on this device. Only its code is kept, on the device.
       lastMethod={signInMethodFrom((await cookies()).get(cookieNames.lastMethod)?.value)}
-      failedProvider={failedProvider}
+      providerProblem={providerProblem}
       invite={invite ? { agencyName: invite.organisationName, email: invite.email } : null}
     />
   );

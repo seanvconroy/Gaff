@@ -51,6 +51,7 @@ export async function POST(
   const person = standInPerson(provider.data, {
     ...parsed.data,
     hideEmail: form.get('hideEmail') === 'yes',
+    notHosted: form.get('notHosted') === 'yes',
   });
   callback.searchParams.set('code', sealStandInPerson(person));
   return NextResponse.redirect(callback, 303);

@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { db } from '@/db/client';
 import { passkeys } from '@/db/schema';
 import type { SensitiveAction } from '@/domain/auth/confirm';
@@ -11,6 +11,7 @@ import {
   type Confirmation,
 } from './confirm';
 import { cookieLifetimes, cookieNames, cookieOptions } from './cookies';
+import { limitFromAddress, type Limited } from './limits';
 
 /**
  * UX-SI-10, for server actions: the cookie side of "Confirm it's you again". The rules and the
@@ -33,7 +34,12 @@ export async function confirmationFor(
 export async function startConfirmation(
   user: { id: string; email: string },
   action: SensitiveAction,
-): Promise<SendCodeResult> {
+): Promise<SendCodeResult | ({ sent: false; reason: 'slow_down' } & Omit<Limited, 'limited'>)> {
+  // AU12: counted by network address, before the code store's own limits for the person.
+  const limited = await limitFromAddress('confirm_send', await headers());
+  if (limited) {
+    return { sent: false, reason: 'slow_down', retryAfterSeconds: limited.retryAfterSeconds };
+  }
   const jar = await cookies();
   const result = await sendConfirmationCode(
     user,
@@ -51,7 +57,9 @@ export async function finishConfirmation(
   user: { id: string },
   action: SensitiveAction,
   code: string,
-): Promise<'correct' | 'wrong' | 'finished'> {
+): Promise<'correct' | 'wrong' | 'finished' | 'slow_down'> {
+  // AU12: tries at a code, counted by network address as well as five to a code.
+  if (await limitFromAddress('confirm_check', await headers())) return 'slow_down';
   const jar = await cookies();
   const tried = await confirmWithCode(
     user,

@@ -112,9 +112,17 @@ const schema = z
      */
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
-    /** Apple's Services ID, and the client secret (a signed token Apple accepts for six months). */
+    /**
+     * Apple's Services ID, and what its client secret is made from (BA-8): the team ID, the
+     * Sign in with Apple key's ID, and the key itself (the .p8 file's text). Gaff makes the
+     * secret on the server, so it never lapses. A static APPLE_CLIENT_SECRET (a signed token
+     * Apple accepts for six months) still works in their place.
+     */
     APPLE_CLIENT_ID: z.string().optional(),
     APPLE_CLIENT_SECRET: z.string().optional(),
+    APPLE_TEAM_ID: z.string().optional(),
+    APPLE_KEY_ID: z.string().optional(),
+    APPLE_PRIVATE_KEY: z.string().optional(),
     /**
      * UX-AG-1 (Q39): where Gaff's weekly copy of the PSRA register comes from. "sample" is a
      * made-up register for local work and tests, never for production; "url" downloads the
@@ -152,17 +160,33 @@ const schema = z
     PHOTO_BUCKET: z.string().min(1).default('homes'),
   })
   .superRefine((env, ctx) => {
-    for (const [id, secret] of [
-      ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
-      ['APPLE_CLIENT_ID', 'APPLE_CLIENT_SECRET'],
-    ] as const) {
-      if (Boolean(env[id]) !== Boolean(env[secret])) {
-        ctx.addIssue({
-          code: 'custom',
-          path: [env[id] ? secret : id],
-          message: `${id} and ${secret} are set together, or not at all`,
-        });
-      }
+    if (Boolean(env.GOOGLE_CLIENT_ID) !== Boolean(env.GOOGLE_CLIENT_SECRET)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [env.GOOGLE_CLIENT_ID ? 'GOOGLE_CLIENT_SECRET' : 'GOOGLE_CLIENT_ID'],
+        message: 'GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set together, or not at all',
+      });
+    }
+    // BA-8: Apple's Services ID, with a static secret or the three things one is made from.
+    const makers = [env.APPLE_TEAM_ID, env.APPLE_KEY_ID, env.APPLE_PRIVATE_KEY];
+    const someMakers = makers.some(Boolean);
+    const allMakers = makers.every(Boolean);
+    if (someMakers && !allMakers) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['APPLE_PRIVATE_KEY'],
+        message:
+          'APPLE_TEAM_ID, APPLE_KEY_ID and APPLE_PRIVATE_KEY are set together, or not at all',
+      });
+    }
+    const appleSecret = Boolean(env.APPLE_CLIENT_SECRET) || allMakers;
+    if (Boolean(env.APPLE_CLIENT_ID) !== appleSecret) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [env.APPLE_CLIENT_ID ? 'APPLE_CLIENT_SECRET' : 'APPLE_CLIENT_ID'],
+        message:
+          'APPLE_CLIENT_ID is set with APPLE_CLIENT_SECRET, or with APPLE_TEAM_ID, APPLE_KEY_ID and APPLE_PRIVATE_KEY, or not at all',
+      });
     }
     if (env.GAFF_ENV === 'production' || env.GAFF_ENV === 'staging') {
       if (!env.CRON_SECRET) {

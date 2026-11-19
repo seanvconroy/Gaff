@@ -216,4 +216,21 @@ describe('UX-SI-1: Google and Apple are switched on by their credentials (Q30)',
       'APPLE_CLIENT_ID',
     ]);
   });
+
+  it('BA-8: takes Apple’s Services ID with the three values its secret is made from', () => {
+    const made = {
+      APPLE_CLIENT_ID: 'ie.gaff.signin',
+      APPLE_TEAM_ID: 'TEAM123456',
+      APPLE_KEY_ID: 'KEY1234567',
+      APPLE_PRIVATE_KEY: '-----BEGIN PRIVATE KEY-----',
+    };
+    expect(environmentProblems({ ...production, ...made })).toEqual([]);
+    expect(environmentProblems({ ...base, ...made, APPLE_KEY_ID: undefined })).toEqual([
+      'APPLE_PRIVATE_KEY',
+      'APPLE_CLIENT_SECRET',
+    ]);
+    expect(environmentProblems({ ...base, ...made, APPLE_CLIENT_ID: undefined })).toEqual([
+      'APPLE_CLIENT_ID',
+    ]);
+  });
 });

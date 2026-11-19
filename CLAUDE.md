@@ -100,6 +100,7 @@ A TypeScript modular monolith: one Next.js app on Vercel (Dublin) and one Postgr
   - Every call to the model goes through `runAi()` in `src/server/ai`, one adapter for the Claude API (test copy and development) and Bedrock (production). It logs the call's usage, never its words, and keeps to the month's budget (ADR-0017). A new AI task is added to `aiTasks` in `src/domain/ai`.
   - Wherever email is really sent, everything under `/dev` except `/dev/ui` is for Gaff's own team only (`requireDevTools()` in `src/server/dev/gate.ts`). The Google and Apple stand-in exists only in development and tests.
   - The ID check goes through the identity port (`src/ports/identity.ts`): Stripe Identity, or the stand-in. Gaff never believes a webhook: it reads the result from the provider (ADR-0020).
+  - A home's photos go through one pipeline (`src/server/lettings/photo-pipeline.ts`, ADR-0023): read by their bytes, turned upright, stripped of metadata, kept at fixed sizes. A floor plan is a kind of photo.
 - `src/db/`: Drizzle schema and migrations.
   - Every tenant table has `organisation_id` and the `tenantPolicy()` row-level security policy.
   - Reach tenant data only through `withOrg()`. Use `withSystem()` only for cross-organisation jobs.

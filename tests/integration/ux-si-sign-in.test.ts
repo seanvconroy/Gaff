@@ -5,7 +5,7 @@ import { sealStandInPerson, standInPerson } from '@/adapters/sign-in/stand-in';
 import { signInCodeEmail } from '@/copy/sign-in';
 import { db } from '@/db/client';
 import { accounts, sessions, users } from '@/db/schema';
-import { isAppleRelayAddress, type SignInProvider } from '@/domain/auth/methods';
+import { isAppleRelayAddress } from '@/domain/auth/methods';
 import { SESSION_LASTS_DAYS } from '@/domain/auth/session';
 import { auth, signInProviderModes } from '@/server/auth/auth';
 import { sendCode } from '@/server/auth/codes';
@@ -15,7 +15,7 @@ import {
   readSignInAttempt,
   signedSignInAttempt,
 } from '@/server/auth/sign-in-steps';
-import type { ProviderPerson } from '@/ports/sign-in-providers';
+import { askForCode, cookiesFrom, continueWith, signInByCode, whoIs } from './sign-in-helpers';
 
 // The stand-ins for Google and Apple are registered only with the development tools on, and
 // Better Auth's own rate limit is off only in tests: set both before anything reads them.
@@ -28,93 +28,12 @@ vi.hoisted(() => {
  * UX-SI-8, UX-AC-1: accounts made by signing in, and methods joined by a verified email. The
  * real Better Auth endpoints run against the test database; Google and Apple are the stand-ins.
  */
-const APP = process.env.APP_URL!;
 const anEmail = () => `${randomUUID()}@test.gaff.ie`;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const usersWith = (email: string) => db().select().from(users).where(eq(users.email, email));
 const accountsOf = (userId: string) =>
   db().select().from(accounts).where(eq(accounts.userId, userId)).orderBy(accounts.providerId);
-
-/** The cookies a response sets, as the browser would send them back. */
-function cookiesFrom(headers: Headers): string {
-  return headers
-    .getSetCookie()
-    .map((cookie) => cookie.split(';')[0])
-    .join('; ');
-}
-
-/** Asks for a sign-in code, as the sign-in screen does. */
-async function askForCode(email: string, browserKey: string | null = null) {
-  let code = '';
-  const result = await sendCode({
-    purpose: 'sign_in',
-    subject: email,
-    to: email,
-    browserKey,
-    linkPath: '/sign-in/open',
-    compose: (sent, link) => {
-      code = sent;
-      return signInCodeEmail(sent, link);
-    },
-  });
-  if (!result.sent) throw new Error(`the code was not sent: ${result.reason}`);
-  return { code, cookie: `${cookieNames.signInCode}=${result.browserKey}` };
-}
-
-/** Signs in by email code, through Gaff's own endpoint. Returns the session's cookies. */
-async function signInByCode(email: string) {
-  const { code, cookie } = await askForCode(email);
-  const { headers, response } = await auth().api.signInWithCode({
-    body: { code },
-    headers: new Headers({ cookie }),
-    returnHeaders: true,
-  });
-  if (response.result !== 'correct') throw new Error(`not signed in: ${response.result}`);
-  return { userId: response.userId, cookie: cookiesFrom(headers) };
-}
-
-/**
- * "Continue with Google" or "Continue with Apple", through Better Auth's own endpoints, with
- * the stand-in answering as the provider. Returns where the person is sent, and their cookies.
- */
-async function continueWith(person: ProviderPerson) {
-  const provider: SignInProvider = person.provider;
-  const start = await auth().handler(
-    new Request(`${APP}/api/auth/sign-in/social`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', origin: APP },
-      body: JSON.stringify({
-        provider,
-        callbackURL: '/sign-in/return',
-        errorCallbackURL: '/sign-in',
-        disableRedirect: true,
-      }),
-    }),
-  );
-  expect(start.status).toBe(200);
-  const { url } = (await start.json()) as { url: string };
-  // The stand-in's own page, on this site.
-  expect(url.startsWith(`${APP}/dev/sign-in/${provider}?`)).toBe(true);
-  const callback = new URL(`${APP}/api/auth/callback/${provider}`);
-  callback.searchParams.set('state', new URL(url).searchParams.get('state')!);
-  callback.searchParams.set('code', sealStandInPerson(person));
-  const back = await auth().handler(
-    new Request(callback, { headers: { cookie: cookiesFrom(start.headers) } }),
-  );
-  expect(back.status).toBe(302);
-  const cookie = cookiesFrom(back.headers);
-  return {
-    location: new URL(back.headers.get('location')!, APP),
-    cookie,
-    signedIn: /session_token=[^;]+/.test(cookie),
-  };
-}
-
-async function whoIs(cookie: string) {
-  const session = await auth().api.getSession({ headers: new Headers({ cookie }) });
-  return session?.user ?? null;
-}
 
 describe('UX-SI-8: new and returning people take the same path', () => {
   it('creates a person for an email nobody has, and signs them in', async () => {
@@ -228,22 +147,33 @@ describe('UX-SI-1, UX-AC-1: Google and Apple, joined to one person by a verified
   });
 
   it('joins a code, Google and Apple with the same verified email to one person', async () => {
-    const email = anEmail();
-    const byCode = await signInByCode(email);
-    const google = await continueWith(standInPerson('google', { name: 'Orla Kelly', email }));
-    const apple = await continueWith(standInPerson('apple', { name: 'Orla Kelly', email }));
-    expect(google.signedIn && apple.signedIn).toBe(true);
-    expect(await usersWith(email)).toHaveLength(1);
+    // AU4: each provider joins only an address it looks after. Google Workspace looks after a
+    // work address (the stand-in's Google does, unless told otherwise); Apple looks after iCloud.
+    const work = anEmail();
+    const byCode = await signInByCode(work);
+    const google = await continueWith(standInPerson('google', { name: 'Orla Kelly', email: work }));
+    expect(google.signedIn).toBe(true);
     expect((await whoIs(google.cookie))?.id).toBe(byCode.userId);
-    expect((await whoIs(apple.cookie))?.id).toBe(byCode.userId);
+    // And back again by Google: the same person, and still one method.
+    const again = await continueWith(standInPerson('google', { name: 'Orla Kelly', email: work }));
+    expect((await whoIs(again.cookie))?.id).toBe(byCode.userId);
     expect((await accountsOf(byCode.userId)).map((account) => account.providerId)).toEqual([
-      'apple',
       'google',
     ]);
-    // And back again by Google: the same person, and still two methods.
-    const again = await continueWith(standInPerson('google', { name: 'Orla Kelly', email }));
-    expect((await whoIs(again.cookie))?.id).toBe(byCode.userId);
-    expect(await accountsOf(byCode.userId)).toHaveLength(2);
+    expect(await usersWith(work)).toHaveLength(1);
+
+    const icloud = `${randomUUID()}@icloud.com`;
+    const owner = await signInByCode(icloud);
+    const google2 = await continueWith(
+      standInPerson('google', { name: 'Orla Kelly', email: icloud, notHosted: true }),
+    );
+    expect(google2.signedIn).toBe(false);
+    const apple = await continueWith(standInPerson('apple', { name: 'Orla Kelly', email: icloud }));
+    expect(apple.signedIn).toBe(true);
+    expect((await whoIs(apple.cookie))?.id).toBe(owner.userId);
+    expect((await accountsOf(owner.userId)).map((account) => account.providerId)).toEqual([
+      'apple',
+    ]);
   });
 
   it('never joins a provider whose email isn’t verified to someone’s account', async () => {
@@ -260,21 +190,29 @@ describe('UX-SI-1, UX-AC-1: Google and Apple, joined to one person by a verified
     expect(await usersWith(email)).toHaveLength(1);
   });
 
-  it('lets the owner of an address take it over from a provider that never verified it', async () => {
+  it('AU4: makes nobody from a provider that never verified the address', async () => {
     const email = anEmail();
     const squatter = await continueWith(
       standInPerson('google', { name: 'Not Orla', email, unverified: true }),
     );
-    const [unproven] = await usersWith(email);
-    expect(unproven).toMatchObject({ emailVerified: false });
-    expect(await accountsOf(unproven!.id)).toHaveLength(1);
+    expect(squatter.signedIn).toBe(false);
+    expect(squatter.location.searchParams.get('error')).toBe('email_not_verified');
+    expect(await usersWith(email)).toEqual([]);
+  });
 
+  it('lets the owner of an address take back one a provider made without verifying it', async () => {
+    // Made before AU4, when a provider's unverified claim could still make someone.
+    const email = anEmail();
+    const id = randomUUID();
+    await db().insert(users).values({ id, email, name: 'Not Orla', emailVerified: false });
+    await db()
+      .insert(accounts)
+      .values({ id: randomUUID(), userId: id, providerId: 'google', accountId: randomUUID() });
     // The mailbox's owner proves the address with a code: what was attached before goes.
     const owner = await signInByCode(email);
-    expect(owner.userId).toBe(unproven!.id);
+    expect(owner.userId).toBe(id);
     expect((await usersWith(email))[0]).toMatchObject({ emailVerified: true });
-    expect(await accountsOf(unproven!.id)).toEqual([]);
-    if (squatter.signedIn) expect(await whoIs(squatter.cookie)).toBeNull();
+    expect(await accountsOf(id)).toEqual([]);
     expect(await whoIs(owner.cookie)).toMatchObject({ id: owner.userId });
   });
 

@@ -150,6 +150,9 @@ function createAuth() {
     session: {
       expiresIn: SESSION_LASTS_DAYS * DAY,
       updateAge: SESSION_RENEWED_EVERY_DAYS * DAY,
+      // BA-8: no "signed in within the last day" of the library's own. A change to how someone
+      // signs in asks "Confirm it's you" instead (UX-SI-10: ./passkey-guard, ./security).
+      freshAge: 0,
       // BA-8 (M5, AU8): each session keeps the way in it began with. A browser can't set it.
       additionalFields: { signInMethod: { type: 'string', required: false, input: false } },
     },

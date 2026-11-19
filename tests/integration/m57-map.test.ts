@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { inArray } from 'drizzle-orm';
+import { afterAll, describe, expect, it } from 'vitest';
 import { withSystem } from '@/db/client';
-import { mapDailyCounts } from '@/db/schema';
+import { lettings, mapDailyCounts } from '@/db/schema';
 import { distanceMetres } from '@/domain/places/geo';
 import { irishToday } from '@/lib/format';
 import { setHomePoint } from '@/server/lettings/location';
@@ -8,7 +9,7 @@ import { addPhoto } from '@/server/lettings/photos';
 import { mapCard, mapPins } from '@/server/search/map';
 import { mapUseFor, recordMapCount, sweepMapCounts } from '@/server/search/map-counts';
 import { findHomes } from '@/server/search/homes';
-import { resolveSearch } from '@/server/search/where';
+import { forgetHomeAddresses, resolveSearch } from '@/server/search/where';
 import { aPng } from '../fixtures/photos';
 import { aLiveLetting, createTestMember } from './helpers';
 
@@ -17,6 +18,16 @@ import { aLiveLetting, createTestMember } from './helpers';
 const BROWSER =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36';
 const view = { minLat: 51.7, minLng: -8.7, maxLat: 51.75, maxLng: -8.45 };
+
+/** The homes made here, taken off Gaff afterwards: other tests count Kinsale's homes. */
+const made: string[] = [];
+afterAll(async () => {
+  if (made.length === 0) return;
+  await withSystem((tx) =>
+    tx.update(lettings).set({ status: 'withdrawn' }).where(inArray(lettings.id, made)),
+  );
+  forgetHomeAddresses();
+});
 
 async function aHomeOnGaff(
   member: Awaited<ReturnType<typeof createTestMember>>,
@@ -29,6 +40,7 @@ async function aHomeOnGaff(
     county: 'Cork',
     eircode: '',
   });
+  made.push(lettingId);
   await addPhoto(member, lettingId, aPng([36, 99, 168]));
   if (point) await setHomePoint(member, lettingId, point);
   return lettingId;

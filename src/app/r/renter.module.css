@@ -74,6 +74,11 @@
   gap: var(--space-2);
 }
 
+/* A form that holds one button among others, laid out as if it were the button alone. */
+.inlineForm {
+  display: contents;
+}
+
 /* Quiet actions side by side: "Change the time", "Cancel". */
 .quietRow {
   display: flex;

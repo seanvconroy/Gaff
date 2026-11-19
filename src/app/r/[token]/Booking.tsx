@@ -278,8 +278,8 @@ export function ConfirmCode({
           pending={copy.confirm.booking}
           error={atField}
         />
-        <div className={styles.quietRow}>
-          <form action={resendCodeAction.bind(null, token, slotId)}>
+        <div className={styles.actions}>
+          <form action={resendCodeAction.bind(null, token, slotId)} className={styles.inlineForm}>
             <SubmitButton variant="quiet" fullWidth="phone" pendingLabel={copy.confirm.sending}>
               {copy.code.newCode}
             </SubmitButton>

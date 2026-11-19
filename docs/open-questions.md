@@ -442,3 +442,11 @@ Raised by Sean on 19 November 2026, with Q52. Today an agency is found on the PS
 
 **Banked, to come back to.** Things to weigh when it is picked up: an ID check for whoever sets an agency up or for every member (the other line's Q60); matching a verified name to the licence holder or to an agent's own licence (the other line's P24, and Q38 here); a letter or a call to the agency's registered address or number; joining by the agency's email domain (UX-AG-14); and what an agency will put up with during a pilot.
 
+### Q56. Loose ends from the place index (**Open**)
+
+Found while bringing the place index across (BA-2, 19 November 2026). None holds up the build.
+
+- **A copy of the index for anyone who asks.** OpenStreetMap's licence asks Gaff to offer its place index to anyone who asks for it. `/map-and-place-data` credits the data; how someone asks for a copy isn't said yet (Help is still short). **Solicitor**, with the other licence terms.
+- **What a renter types, in the request log.** The place search sends what is typed to Gaff's own server as part of a web address, so it may appear in Vercel's request logs. It holds no name or contact details, and the count of misses already drops anything with digits. To check before launch.
+- **Recent searches** are kept in the browser tab only, for everyone, because searching isn't recorded against a person (UX-SR-11). The other line kept them on the server for signed-in renters.
+

@@ -80,7 +80,7 @@ The founder agreed the redesign on 14 November 2026 (Q27 to Q49 in `docs/open-qu
   - Sign-in is a six-digit email code, a passkey, Google or Apple (ADR-0015). A sensitive change asks "Confirm it's you" first.
 - **Going live.** One rule, `goLiveGate` in `src/domain/organisations`, holds go-live and nothing else: an agency is "being confirmed" until someone on Gaff's team presses Confirm on `/internal/agencies` (found on Gaff's weekly copy of the PSRA register), and a private landlord confirms it's them once, at their first go-live (Q47). Staff confirm agencies and hide reported listings, and do nothing else.
 - **Teams.** Every member sees every letting. Acting on a letting someone else leads takes "Help with this letting": every use case that changes a letting calls `assertMayActOn` in `src/server/team/permissions.ts`, and an integration test walks the list.
-- **The marketplace.** A live home that's switched on has a public page at `/homes/<reference>`, found by Search. A renter asks to view with a name and an email, or in two taps from a profile. Search engines may index a home's page only where `SEARCH_INDEXING=on` (production).
+- **The marketplace.** A live home that's switched on has a public page at `/homes/<reference>`, found by Search. "Where" in Search suggests from Gaff's own place index (`places`, built from OpenStreetMap, ADR-0018); nothing a renter types is sent to a map or address provider. A renter asks to view with a name and an email, or in two taps from a profile. Search engines may index a home's page only where `SEARCH_INDEXING=on` (production).
 - **Activation and measures.** The setup checklist is Today's one primary button; a prompt is decided by `promptFor` in `src/domain/activation/prompts.ts`. Funnels come from Gaff's own events (`src/domain/funnels`), shown on `/internal`; a funnel counts only the subjects that started it.
 - **Tests.** `createTestMember()` gives a confirmed agency, and `signUpOperator()` in `tests/e2e/support.ts` does too; pass `confirmed: false` for one still being confirmed. `signUpLandlord()` is verified unless `verified: false`. Integration and end-to-end tests share one database and one port, so run them one at a time. `tests/e2e/ux-e2e-both-sides.spec.ts` walks a letting end to end from both sides.
 
@@ -144,6 +144,7 @@ Local set-up uses Postgres 16 with a non-superuser `gaff` role, so row-level sec
 cp .env.example .env   # then set AUTH_SECRET
 pnpm install
 pnpm db:migrate        # apply migrations (also forces RLS, installs the job queue)
+pnpm places:load       # load the place index that search suggests from (once, and after it changes)
 pnpm dev               # http://localhost:3000; sign-in links appear at /dev/outbox
 pnpm worker            # background jobs
 ```

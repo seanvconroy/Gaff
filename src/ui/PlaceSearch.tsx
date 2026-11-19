@@ -231,7 +231,10 @@ export function PlaceSearch({
     }
   }
 
-  let index = -1;
+  // Each group's first option's place among them all, for the arrow keys.
+  const starts = groups.map((_, g) =>
+    groups.slice(0, g).reduce((count, group) => count + group.options.length, 0),
+  );
   return (
     <FieldFrame name={name} label={label} hint={hint} error={error}>
       <div className={styles.search}>
@@ -283,9 +286,8 @@ export function PlaceSearch({
                   {heading}
                 </span>
                 <ul role="group" aria-labelledby={headingId} className={styles.options}>
-                  {group.options.map((option) => {
-                    index += 1;
-                    const at = index;
+                  {group.options.map((option, i) => {
+                    const at = starts[g]! + i;
                     const Icon = icons[option.icon];
                     return (
                       <li

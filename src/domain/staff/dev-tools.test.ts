@@ -24,11 +24,7 @@ describe('BA-6: a tester’s own stand-in check on the test copy', () => {
   it('is Gaff’s team only without that link, and nobody’s with the tools off', () => {
     expect(standInCheckAccess({ devTools: true, realEmail: true, ownLink: false })).toBe('staff');
     expect(standInCheckAccess({ devTools: false, realEmail: true, ownLink: true })).toBe('nobody');
-    expect(standInCheckAccess({ devTools: false, realEmail: false, ownLink: true })).toBe(
-      'nobody',
-    );
-    expect(standInCheckAccess({ devTools: true, realEmail: false, ownLink: false })).toBe(
-      'anyone',
-    );
+    expect(standInCheckAccess({ devTools: false, realEmail: false, ownLink: true })).toBe('nobody');
+    expect(standInCheckAccess({ devTools: true, realEmail: false, ownLink: false })).toBe('anyone');
   });
 });

@@ -99,6 +99,7 @@ describe('UX-PF-10: a kept identity is three things, and nothing else is stored'
       order by ordinal_position`);
     expect(rows.map((row) => row.column)).toEqual([...keptIdentityColumns]);
     // A person's own check while it runs holds codes and dates, never a result or a document.
+    // P18, P25, P26 (BA-6): the provider's bookkeeping is codes, a count and dates too.
     const { rows: running } = await db().execute<{ column: string }>(sql`
       select column_name as column from information_schema.columns
       where table_schema = 'public' and table_name = 'identity_checks'`);
@@ -112,8 +113,15 @@ describe('UX-PF-10: a kept identity is three things, and nothing else is stored'
         'provider',
         'provider_ref',
         'started_at',
+        'attempts',
+        'consent_version',
+        'redact_after',
+        'provider_redacted_at',
       ].sort(),
     );
+    for (const { column } of running) {
+      expect(column).not.toMatch(/name|image|photo|document|country|birth|dob|nationality/);
+    }
   });
 
   it('UX-PF-10: after a check passes and is kept, no row or event holds more than the result, the name and the date', async () => {

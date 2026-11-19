@@ -126,7 +126,9 @@ describe('P17 to P26: Stripe Identity', () => {
     });
     const outcome = await stripeIdentity({ secretKey: 'sk_test' }).outcome('vs_1');
     expect(outcome).toEqual({ status: 'passed', verifiedName: { first: 'Niamh', last: 'Kelly' } });
-    expect(calls[0]!.url).toContain('/identity/verification_sessions/vs_1?expand[]=verified_outputs');
+    expect(calls[0]!.url).toContain(
+      '/identity/verification_sessions/vs_1?expand[]=verified_outputs',
+    );
     expect(calls[0]!.headers.authorization).toBe('Bearer sk_test');
   });
 

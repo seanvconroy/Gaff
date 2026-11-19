@@ -71,7 +71,8 @@ describe('R18: ID and income checks, through a provider', () => {
     const { member, ids, token } = await chosen();
     const started = await startProviderCheck(token, 'identity');
     expect('redirectUrl' in started && started.redirectUrl).toMatch(
-      /\/dev\/checks\/[0-9a-f-]{36}\?return=.*%2Fchecks%2Fdone%3Fkind%3Didentity$/,
+      // The way back, and the stand-in check's own key (BA-6): never the renter's link.
+      /\/dev\/checks\/[0-9a-f-]{36}\?return=.*%2Fchecks%2Fdone%3Fkind%3Didentity&key=[\w-]{43}$/,
     );
     expect(JSON.stringify(started)).not.toContain(token);
     const [identity] = (await checksOfPerson(member, ids[0]!)).filter((c) => c.kind === 'identity');

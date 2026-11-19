@@ -2,11 +2,7 @@ import { and, desc, eq, inArray, ne } from 'drizzle-orm';
 import { identityProvider } from '@/adapters/identity';
 import { withPerson, withSystem } from '@/db/client';
 import { identityChecks, memberships, organisations, users } from '@/db/schema';
-import {
-  ID_CHECK_NOTICE_VERSION,
-  mayAttempt,
-  redactAfter,
-} from '@/domain/identity/attempts';
+import { ID_CHECK_NOTICE_VERSION, mayAttempt, redactAfter } from '@/domain/identity/attempts';
 import { type PersonCheckPurpose, mayStartPersonCheck } from '@/domain/identity/identity';
 import { env } from '@/lib/env';
 import type { IdentityResult } from '@/ports/checks';

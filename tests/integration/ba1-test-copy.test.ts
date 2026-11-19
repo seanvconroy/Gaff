@@ -163,7 +163,13 @@ describe('BA-1: the test copy on a public address', () => {
     ).toBeTruthy();
     const other = crypto.randomUUID();
     await expect(
-      standInResultAction(other, keyOf(other), 'identity', '/checks/done', form({ outcome: 'pass' })),
+      standInResultAction(
+        other,
+        keyOf(other),
+        'identity',
+        '/checks/done',
+        form({ outcome: 'pass' }),
+      ),
     ).rejects.toMatchObject(REDIRECT);
     // The key opens nothing else under /dev.
     await expect(DevOutboxPage()).rejects.toMatchObject(NOT_FOUND);

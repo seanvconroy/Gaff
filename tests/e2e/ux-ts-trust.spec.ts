@@ -187,11 +187,12 @@ test('UX-TS-3 to UX-TS-5: a visitor reports a listing, Gaff’s team hides it, i
     const response = await staffPage.goto('/internal');
     expect(response?.status()).toBe(200);
     await expect(staffPage.getByRole('heading', { level: 1, name: 'Gaff internal' })).toBeVisible();
-    // The three lists, and nothing more.
+    // The three lists and the search map's counts (BA-5, M133: numbers only), and nothing more.
     await expect(staffPage.getByRole('main').getByRole('heading', { level: 2 })).toHaveText([
       'Agencies waiting to be confirmed',
       'Reported listings',
       'Funnels',
+      'The search map',
     ]);
     const reported = staffPage.getByRole('region', { name: title }).first();
     await expect(reported.getByText('2 reports')).toBeVisible();

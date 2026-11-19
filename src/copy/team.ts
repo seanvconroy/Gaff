@@ -83,6 +83,11 @@ export const teamCopy = {
     },
     send: 'Send invites',
     sending: 'Sending…',
+    /** AU12: an organisation sends at most 30 invites an hour. */
+    tooMany: (left: number, minutes: number) =>
+      left > 0
+        ? `You can send ${left} more ${left === 1 ? 'invite' : 'invites'} this hour. Send fewer now, or the rest in ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}.`
+        : `You’ve sent 30 invites this hour. You can send more in ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}.`,
     sent: {
       title: (n: number) => (n === 1 ? 'Invite sent' : `${n} invites sent`),
       text: (organisation: string) =>

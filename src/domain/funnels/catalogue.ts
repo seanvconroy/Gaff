@@ -576,6 +576,18 @@ export const funnels = [
       },
     ],
   },
+  // BA-8 (AU4, Q66): not a funnel, a count. Each time a Google or Apple sign-in couldn't be
+  // joined to anyone, because the provider doesn't host the address, one try is counted, split
+  // by the provider, with the reason `not_joined` and nothing about the person.
+  {
+    code: 'account',
+    label: 'Sign-in not joined',
+    measure: 'Google or Apple sign-ins refused because the provider doesn’t host the address',
+    target: 'Few: a lot means the rule gets in people’s way',
+    subject: 'attempt',
+    split: 'Method',
+    steps: [{ code: 'sign_in_failed', label: 'Not joined', sources: [own] }],
+  },
 ] as const satisfies readonly Funnel[];
 
 type Catalogue = typeof funnels;

@@ -22,7 +22,10 @@ import {
 } from '@/domain/team/members';
 import { hasTeam, may, type Role, roles } from '@/domain/team/permissions';
 import { INVITE_LASTS_DAYS } from '@/server/accounts/invites';
+import { teamCopy } from '@/copy/team';
+import { INVITES_PER_ORGANISATION, secondsUntilRetry } from '@/domain/auth/limits';
 import { type Confirmation, ConfirmationNeeded, spendConfirmation } from '@/server/auth/confirm';
+import { countTry, room, windowOf } from '@/server/auth/limits';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { enqueue } from '@/server/jobs/enqueue';
@@ -173,6 +176,10 @@ export async function inviteColleagues(
       .where(eq(memberships.organisationId, member.organisationId));
     const already = new Set(onTeam.map((row) => row.email.trim().toLowerCase()));
     const alreadyIn = parsed.emails.filter((email) => already.has(email));
+    // AU12: at most 30 invites an hour from one organisation, new or sent again.
+    const toSend = parsed.emails.length - alreadyIn.length;
+    const limited = await roomForInvites(member.organisationId, toSend, now);
+    if (limited) return { ok: false, errors: { emails: limited } };
     const expiresAt = new Date(now.getTime() + INVITE_LASTS_DAYS * 86_400_000);
     let invited = 0;
     for (const email of parsed.emails.filter((each) => !already.has(each))) {
@@ -215,11 +222,33 @@ export async function inviteColleagues(
   });
 }
 
+/**
+ * AU12: counts `count` invites against the organisation's hour, or says, in words, why they
+ * can't go: how many more may, and when. Nothing is counted for invites that don't go.
+ */
+async function roomForInvites(
+  organisationId: string,
+  count: number,
+  now: Date,
+): Promise<string | null> {
+  if (count <= 0) return null;
+  const limit = room(INVITES_PER_ORGANISATION);
+  const sofar = await windowOf('invites', organisationId, limit.windowSeconds, now);
+  if (sofar.hits + count > limit.max) {
+    const minutes = Math.ceil(secondsUntilRetry(sofar.startedAt ?? now, limit, now) / 60);
+    return teamCopy.inviteFlow.tooMany(Math.max(0, limit.max - sofar.hits), minutes);
+  }
+  await countTry('invites', organisationId, limit.windowSeconds, now, count);
+  return null;
+}
+
 /** UX-AG-12: "Send again". A new link, and seven more days; the old link stops working. */
 export async function resendInvite(member: Member, inviteId: string, now = new Date()) {
   needTeam(member);
   await requirePermission(member, 'manage_team');
   if (!id.safeParse(inviteId).success) throw new UserFacingError('That invite has gone.');
+  const limited = await roomForInvites(member.organisationId, 1, now);
+  if (limited) throw new UserFacingError(limited);
   await withOrg(member.organisationId, async (tx) => {
     const [invite] = await tx
       .update(organisationInvites)

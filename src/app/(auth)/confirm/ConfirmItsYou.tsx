@@ -15,9 +15,9 @@ import { checkConfirmCode, sendConfirmCode } from './actions';
 /** The header that tells the server a passkey is confirming an action, not signing in. */
 const CONFIRM_HEADER = 'x-gaff-confirm';
 
-type Problem = 'wrong' | 'expired' | 'not_sent' | 'too_many' | 'passkey';
+type Problem = 'wrong' | 'expired' | 'not_sent' | 'too_many' | 'passkey' | 'slow_down';
 
-const problemWords: Record<Problem, string> = {
+const problemWords: Record<Exclude<Problem, 'slow_down'>, string> = {
   wrong: codeCopy.wrong,
   expired: codeCopy.expired,
   not_sent: signInCopy.errors.notSent,
@@ -51,6 +51,10 @@ export function ConfirmItsYou({
   const [step, setStep] = useState<'choose' | 'code'>('choose');
   const [working, setWorking] = useState<'passkey' | 'send' | 'check' | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
+  // AU12: with `slow_down`, the seconds until they may try again.
+  const [wait, setWait] = useState(60);
+  const words = (shown: Problem) =>
+    shown === 'slow_down' ? signInCopy.errors.slowDown(wait) : problemWords[shown];
   const [sent, setSent] = useState({ resendIn: 0, stamp: 0 });
   const resendIn = useCountdown(sent.resendIn, sent.stamp);
 
@@ -61,6 +65,8 @@ export function ConfirmItsYou({
       fetchOptions: { headers: { [CONFIRM_HEADER]: action } },
     });
     setWorking(null);
+    // AU12: too many tries from here, said plainly.
+    if (result?.error?.status === 429) return setProblem('slow_down');
     if (!result || result.error || !result.data) return setProblem('passkey');
     onConfirmed();
   };
@@ -70,7 +76,12 @@ export function ConfirmItsYou({
     setProblem(null);
     const result = await sendConfirmCode(action);
     setWorking(null);
-    if (!result.sent) return setProblem(result.reason === 'too_many' ? 'too_many' : 'not_sent');
+    if (!result.sent) {
+      if (result.reason === 'slow_down') setWait(result.retryAfterSeconds);
+      return setProblem(
+        result.reason === 'too_many' || result.reason === 'slow_down' ? result.reason : 'not_sent',
+      );
+    }
     setSent({ resendIn: result.resendIn, stamp: Date.now() });
     setStep('code');
   };
@@ -81,7 +92,7 @@ export function ConfirmItsYou({
     const result = await checkConfirmCode(action, code);
     setWorking(null);
     if (result === 'correct') return onConfirmed();
-    setProblem(result === 'wrong' ? 'wrong' : 'expired');
+    setProblem(result === 'wrong' || result === 'slow_down' ? result : 'expired');
     // A new input after each answer: a wrong code clears it.
     setSent((previous) => ({ resendIn: resendIn, stamp: previous.stamp + 1 }));
   };
@@ -137,7 +148,7 @@ export function ConfirmItsYou({
             key={sent.stamp}
             name="confirmCode"
             label={codeCopy.label}
-            error={problem && problem !== 'passkey' ? problemWords[problem] : undefined}
+            error={problem && problem !== 'passkey' ? words(problem) : undefined}
             autoFocus
             onComplete={(code) => void checkCode(code)}
           />
@@ -146,7 +157,7 @@ export function ConfirmItsYou({
           </p>
         </form>
       ) : problem ? (
-        <FieldError id="confirm-error">{problemWords[problem]}</FieldError>
+        <FieldError id="confirm-error">{words(problem)}</FieldError>
       ) : null}
     </Sheet>
   );

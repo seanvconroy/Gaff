@@ -16,5 +16,10 @@ export interface ProviderPerson {
   email: string;
   /** Whether the provider has checked the address is theirs. Only then is it trusted. */
   emailVerified: boolean;
+  /**
+   * AU4: Google's `hd`, the Google Workspace domain, which Google sends only for an address it
+   * hosts. With a Gmail address, Google hosts it without one.
+   */
+  hostedDomain?: string;
   name: string;
 }

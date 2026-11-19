@@ -7,8 +7,10 @@ import {
   codeShownCopy,
   confirmCodeEmail,
   confirmCopy,
+  inAWhile,
   linkCodeEmail,
   passkeyCopy,
+  providerProblemWords,
   signInCodeEmail,
   signInCopy,
 } from './sign-in';
@@ -28,6 +30,9 @@ function everySentence(): string[] {
     errors: {
       ...signInCopy.errors,
       provider: [signInCopy.errors.provider('google'), signInCopy.errors.provider('apple')],
+      notJoined: [signInCopy.errors.notJoined('google'), signInCopy.errors.notJoined('apple')],
+      notVerified: [signInCopy.errors.notVerified('google')],
+      slowDown: [signInCopy.errors.slowDown(30), signInCopy.errors.slowDown(600)],
     },
   });
   walk({
@@ -163,6 +168,34 @@ describe('UX-SI-10, UX-SI-12: the other two code emails', () => {
     expect(subject).toBe('042917 is your code for 12 Ranelagh Road');
     expect(text.trimEnd().endsWith('Halcyon Lettings')).toBe(true);
     expect(text).not.toMatch(/https?:\/\//);
+  });
+});
+
+describe('AU4, AU12: when Google or Apple doesn’t sign anyone in', () => {
+  it('AU4: says the same, whether or not anyone has the address, and what to do instead', () => {
+    expect(providerProblemWords('account_not_linked', 'google', 0)).toBe(
+      'Google can’t confirm that email is still yours. This time, enter your email below for a code. Then you can connect Google under “How you sign in” on your profile.',
+    );
+    expect(providerProblemWords('confirm_email_first', 'google', 0)).toBe(
+      providerProblemWords('account_not_linked', 'google', 0),
+    );
+    expect(providerProblemWords('email_not_verified', 'apple', 0)).toBe(
+      'Apple hasn’t confirmed that email address. Enter your email below for a code instead.',
+    );
+    expect(providerProblemWords('something_else', 'apple', 0)).toBe(
+      signInCopy.errors.provider('apple'),
+    );
+  });
+
+  it('AU12: says plainly when to try again', () => {
+    expect(signInCopy.errors.slowDown(42)).toBe(
+      'You’ve tried a few times from here. Try again in a minute.',
+    );
+    expect(providerProblemWords('slow_down', 'google', 290)).toBe(
+      'You’ve tried a few times from here. Try again in 5 minutes.',
+    );
+    expect(inAWhile(60)).toBe('in a minute');
+    expect(inAWhile(61)).toBe('in 2 minutes');
   });
 });
 

@@ -37,11 +37,18 @@ export interface Member {
 }
 
 export async function currentUser() {
+  return (await currentSession())?.user ?? null;
+}
+
+/**
+ * The signed-in person and this device's session: when it began, and how (BA-8: Gaff's team
+ * need a passkey sign-in in production; "Signed-in devices" marks this one).
+ */
+export async function currentSession() {
   // Read the request before anything else: it marks the page as one rendered per request, so
   // the build never tries to render it ahead of time, without the app's settings.
   const requestHeaders = await headers();
-  const session = await auth().api.getSession({ headers: requestHeaders });
-  return session?.user ?? null;
+  return auth().api.getSession({ headers: requestHeaders });
 }
 
 /** The person in each organisation they belong to, in the order they joined. */

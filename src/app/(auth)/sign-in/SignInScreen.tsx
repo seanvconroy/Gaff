@@ -57,15 +57,15 @@ export function SignInScreen({
   next,
   providers,
   lastMethod,
-  failedProvider,
+  providerProblem,
   invite = null,
 }: {
   attempt: string;
   next: string | null;
   providers: SignInProvider[];
   lastMethod: SignInMethod | null;
-  /** Google or Apple came back with a problem that wasn't the person cancelling. */
-  failedProvider: SignInProvider | null;
+  /** Google or Apple came back with a problem that wasn't the person cancelling, in words. */
+  providerProblem: { provider: SignInProvider; words: string } | null;
   /** UX-AG-11: signing in to accept an invite: "Join {agency}", with the address filled in. */
   invite?: { agencyName: string; email: string } | null;
 }) {
@@ -116,7 +116,7 @@ export function SignInScreen({
               {providers.map((name) => {
                 const error =
                   provider[name].error ??
-                  (failedProvider === name ? signInCopy.errors.provider(name) : undefined);
+                  (providerProblem?.provider === name ? providerProblem.words : undefined);
                 return (
                   <form key={name} action={provider[name].action} className={styles.actions}>
                     <input type="hidden" name="provider" value={name} />

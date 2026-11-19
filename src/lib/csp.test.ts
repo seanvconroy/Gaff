@@ -29,6 +29,15 @@ describe('BA-1, AU1: forms may send the browser on to a configured sign-in provi
       google: false,
       apple: false,
     });
+    // BA-8: Apple's secret made on the server, from its three values.
+    expect(
+      configuredProviders({
+        APPLE_CLIENT_ID: 'ie.gaff.signin',
+        APPLE_TEAM_ID: 'TEAM123456',
+        APPLE_KEY_ID: 'KEY1234567',
+        APPLE_PRIVATE_KEY: 'a key',
+      }),
+    ).toEqual({ google: false, apple: true });
   });
 
   it('keeps the rest of the policy as it was', () => {

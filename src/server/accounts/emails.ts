@@ -14,6 +14,8 @@ import {
   listingHiddenEmail,
   memberConflictEmail,
   profileUnusedEmail,
+  signInChangedEmail,
+  signInRefusedEmail,
 } from '@/copy/account-emails';
 import { layOutGaffEmail } from '@/copy/email-layout';
 import { hiddenReasons } from '@/copy/trust';
@@ -28,7 +30,7 @@ import {
 } from '@/db/schema';
 import { env } from '@/lib/env';
 import { shownName } from '@/domain/team/members';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatDateTime } from '@/lib/format';
 import { invitePath } from '@/server/team/invite-links';
 import { INVITE_LASTS_DAYS } from './invites';
 
@@ -81,6 +83,24 @@ export const accountEmailJob = z.discriminatedUnion('kind', [
    * their own profile, and belongs to no organisation.
    */
   z.object({ kind: z.literal('profile_unused'), userId: z.uuid(), deleteOn: z.iso.date() }),
+  /**
+   * BA-8 (AU11): a way in was added to or removed from a person's own account. To that person,
+   * about their own sign-in. `at` is when it happened.
+   */
+  z.object({
+    kind: z.literal('sign_in_changed'),
+    userId: z.uuid(),
+    change: z.enum(['added', 'removed']),
+    method: z.enum(['google', 'apple', 'passkey']),
+    at: z.iso.datetime(),
+  }),
+  /** BA-8 (AU4, AU11): someone tried to sign in with Google or Apple using their address. */
+  z.object({
+    kind: z.literal('sign_in_refused'),
+    userId: z.uuid(),
+    provider: z.enum(['google', 'apple']),
+    at: z.iso.datetime(),
+  }),
 ]);
 export type AccountEmailJob = z.infer<typeof accountEmailJob>;
 
@@ -104,6 +124,24 @@ async function send(to: string, email: AccountEmail, key: string): Promise<void>
 export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promise<void> {
   const job = accountEmailJob.parse(payload);
   const app = env().APP_URL.replace(/\/$/, '');
+  if (job.kind === 'sign_in_changed' || job.kind === 'sign_in_refused') {
+    const [person] = await db()
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, job.userId));
+    // The account has gone since: there's nobody to tell.
+    if (!person) return;
+    const when = formatDateTime(new Date(job.at));
+    const profileUrl = `${app}/profile#profile-sign-in`;
+    await send(
+      person.email,
+      job.kind === 'sign_in_changed'
+        ? signInChangedEmail({ change: job.change, method: job.method, when, profileUrl })
+        : signInRefusedEmail({ provider: job.provider, when, profileUrl }),
+      `account-${job.kind}-${job.userId}-${job.kind === 'sign_in_changed' ? `${job.change}-${job.method}` : job.provider}-${job.at}`,
+    );
+    return;
+  }
   if (job.kind === 'profile_unused') {
     // Used since the notice was queued, or already gone: there's nothing to say.
     const [stillDue] = await withSystem((tx) =>

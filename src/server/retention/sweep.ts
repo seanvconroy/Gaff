@@ -22,6 +22,8 @@ import { purgeExpiredInvites } from '@/server/accounts/invites';
 import { purgeProfileEvents } from '@/server/accounts/profile-events';
 import { purgeOldCodes } from '@/server/auth/codes';
 import { purgeOldConfirmations } from '@/server/auth/confirm';
+import { purgeOldLimits } from '@/server/auth/limits';
+import { purgeEndedSignIns } from '@/server/auth/housekeeping';
 import { purgeFunnelEvents } from '@/server/funnels/steps';
 import { recordEvent } from '@/server/record/events';
 
@@ -256,6 +258,10 @@ export async function sweepPersonalData(
     if (!onlyOrganisationId) {
       await purgeOldCodes(tx, now);
       await purgeOldConfirmations(tx, now);
+      // AU14: sessions that have ended, provider sign-ins and passkey challenges that ran out,
+      // and the limiter's counters a day after their window began.
+      await purgeEndedSignIns(tx, now);
+      await purgeOldLimits(tx, now);
       // UX-AG-5: an invite holds an email address. One that has expired unanswered is deleted.
       await purgeExpiredInvites(tx, now);
     }

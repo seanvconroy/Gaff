@@ -59,3 +59,16 @@ export function isAppleRelayAddress(email: string): boolean {
 export function isProviderCancel(error: string): boolean {
   return ['access_denied', 'user_cancelled_authorize', 'user_cancelled_login'].includes(error);
 }
+
+/**
+ * BA-8 (M5, AU8): the method a session began with, from the sign-in call that's making it, so
+ * the session can keep it. Null for anything that isn't a sign-in.
+ */
+export function methodForPath(path: string, providerId?: string): SignInMethod | null {
+  if (path === '/gaff/sign-in/code' || path === '/gaff/sign-in/link') return 'email_code';
+  if (path === '/passkey/verify-authentication') return 'passkey';
+  // Coming back from Google or Apple: the route is "/callback/:id", or the path with its name.
+  if (!path.startsWith('/callback/')) return null;
+  const id = providerId ?? path.slice('/callback/'.length);
+  return id === 'google' || id === 'apple' ? id : null;
+}

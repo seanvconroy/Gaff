@@ -47,6 +47,8 @@ interface HomeBase {
   /** How far the person has got. `review`: it arrived filled in and hasn't been confirmed. */
   reached: FlowStep | 'review' | null;
   photos: HomePhoto[];
+  /** M44: its floor plans, shown after the photos. */
+  floorPlans: HomePhoto[];
   /** UX-AI-4: where each value came from, for a draft that was read. Null for any other home. */
   reading: DraftReading | null;
 }
@@ -105,6 +107,7 @@ async function homeIn(tx: Tx, id: string): Promise<FlowHome | null> {
       reached: draft.step,
       previousLettingId: draft.previousLettingId,
       photos: await photosIn(tx, { draftId: id }),
+      floorPlans: await photosIn(tx, { draftId: id }, 'floor_plan'),
       reading: draft.reading ? draftReadingSchema.parse(draft.reading) : null,
       detail: null,
     };
@@ -118,6 +121,7 @@ async function homeIn(tx: Tx, id: string): Promise<FlowHome | null> {
     answers: answersOfLetting(detail),
     reached: detail.letting.setupStep,
     photos: detail.photos,
+    floorPlans: detail.floorPlans,
     reading: null,
     detail,
   };

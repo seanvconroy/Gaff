@@ -293,11 +293,12 @@ describe('UX-LT-10: photos', () => {
     expect(taken.toString('latin1')).toContain('53.3254');
     const added = await addPhoto(member, id, taken);
     if (!added.ok) throw new Error(added.problem);
+    // M43: kept at its fixed sizes, as WebP, in a folder named by IDs alone.
     expect(added.photo.href).toMatch(
-      new RegExp(`^/media/homes/${member.organisationId}/[0-9a-f-]{36}\\.png$`),
+      new RegExp(`^/media/homes/${member.organisationId}/[0-9a-f-]{36}/480\\.webp$`),
     );
     const kept = await localPhotoStore.get(added.photo.href.replace('/media/', ''));
-    expect(kept?.contentType).toBe('image/png');
+    expect(kept?.contentType).toBe('image/webp');
     expect(kept!.bytes.toString('latin1')).not.toContain('53.3254');
     expect(kept!.bytes.length).toBeLessThan(taken.length);
 
@@ -363,7 +364,7 @@ describe('UX-LT-10: photos', () => {
   it('UX-LT-10: a home takes up to 30 photos', async () => {
     const member = await createTestMember();
     const id = await aHomeAdded(member);
-    const photo = aPng([10, 20, 30], { size: 8 });
+    const photo = aPng([10, 20, 30], { size: 400 });
     for (let n = 0; n < MAX_HOME_PHOTOS; n++) {
       expect((await addPhoto(member, id, photo)).ok).toBe(true);
     }

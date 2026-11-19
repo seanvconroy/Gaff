@@ -24,14 +24,14 @@ function chunk(type: string, data: Buffer): Buffer {
 }
 
 /**
- * A PNG of one colour. `text` adds a text chunk, as a camera or an editor writes one: the kind
+ * A PNG of one colour, 480 pixels square unless `size` says (big enough to show: M43). `text` adds a text chunk, as a camera or an editor writes one: the kind
  * of thing Gaff takes out before it keeps a photo (UX-LT-10).
  */
 export function aPng(
   [r, g, b]: readonly [number, number, number],
   options: { size?: number; text?: string } = {},
 ): Buffer {
-  const size = options.size ?? 64;
+  const size = options.size ?? 480;
   const header = Buffer.alloc(13);
   header.writeUInt32BE(size, 0);
   header.writeUInt32BE(size, 4);

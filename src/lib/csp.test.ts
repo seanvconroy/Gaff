@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { configuredProviders, contentSecurityPolicy } from './csp';
+import { configuredProviders, contentSecurityPolicy, photoUploadOrigin } from './csp';
 
 const formAction = (policy: string) =>
   policy.split('; ').find((directive) => directive.startsWith('form-action '));
@@ -45,5 +45,22 @@ describe('BA-1, AU1: forms may send the browser on to a configured sign-in provi
     expect(policy).toContain("default-src 'self'");
     expect(policy).toContain("frame-ancestors 'none'");
     expect(policy).toContain("object-src 'none'");
+  });
+
+  it('M43: lets a page send photos to the photo store only where photos go straight to it', () => {
+    const none = { google: false, apple: false };
+    expect(contentSecurityPolicy(none)).toContain("connect-src 'self';");
+    const origin = photoUploadOrigin({
+      PHOTO_STORE: 'supabase',
+      SUPABASE_URL: 'https://example-ref.supabase.co/',
+    });
+    expect(origin).toBe('https://example-ref.supabase.co');
+    expect(contentSecurityPolicy(none, origin)).toContain(
+      "connect-src 'self' https://example-ref.supabase.co;",
+    );
+    expect(
+      photoUploadOrigin({ PHOTO_STORE: 'local', SUPABASE_URL: 'https://x.supabase.co' }),
+    ).toBeNull();
+    expect(photoUploadOrigin({ PHOTO_STORE: 'supabase' })).toBeNull();
   });
 });

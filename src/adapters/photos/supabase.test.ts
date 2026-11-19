@@ -70,4 +70,54 @@ describe('UX-LT-10: homes’ photos in Supabase Storage', () => {
     expect(failure).not.toContain(key);
     expect(failure).not.toContain('made-up-service-key');
   });
+
+  it('M43: signs one upload, under uploads/, and gives the browser the address and the type', async () => {
+    const upload =
+      'uploads/0b0f7c3e-2a31-4d3c-9a43-0f0d2b8a6c11.7d6a3f0e-51c2-4c59-8d0f-3f3a1b2c4d5e';
+    const { store, asked } = storeWith(
+      () =>
+        new Response(
+          JSON.stringify({ url: `/object/upload/sign/homes/${upload}?token=made-up-token` }),
+          { status: 200 },
+        ),
+    );
+    const target = await store.signedUpload!(upload, 'image/jpeg');
+    expect(asked[0]!.url).toBe(
+      `https://example-ref.supabase.co/storage/v1/object/upload/sign/homes/${upload}`,
+    );
+    expect(asked[0]!.init?.method).toBe('POST');
+    expect(target).toEqual({
+      url: `https://example-ref.supabase.co/storage/v1/object/upload/sign/homes/${upload}?token=made-up-token`,
+      method: 'PUT',
+      headers: { 'content-type': 'image/jpeg' },
+    });
+    // The service key never goes to the browser.
+    expect(JSON.stringify(target)).not.toContain('made-up-service-key');
+    const refused = storeWith(() => new Response('{}', { status: 200 }));
+    await expect(refused.store.signedUpload!(upload, 'image/jpeg')).rejects.toThrow(
+      /didn't give an upload address/,
+    );
+  });
+
+  it('M43: deletes originals that were sent and never finished, and leaves newer ones', async () => {
+    const before = new Date('2026-11-18T02:30:00Z');
+    const { store, asked } = storeWith((url) =>
+      url.includes('/list/')
+        ? new Response(
+            JSON.stringify([
+              { name: 'a.b', created_at: '2026-11-16T10:00:00Z' },
+              { name: 'c.d', created_at: '2026-11-17T10:00:00Z' },
+              { name: 'e.f', created_at: '2026-11-18T10:00:00Z' },
+            ]),
+          )
+        : new Response('{}', { status: 200 }),
+    );
+    expect(await store.removeUploadsBefore!(before)).toBe(2);
+    expect(JSON.parse(String(asked[0]!.init?.body))).toMatchObject({ prefix: 'uploads' });
+    expect(asked[1]!.init?.method).toBe('DELETE');
+    expect(JSON.parse(String(asked[1]!.init?.body))).toEqual({
+      prefixes: ['uploads/a.b', 'uploads/c.d'],
+    });
+    expect(asked).toHaveLength(2);
+  });
 });

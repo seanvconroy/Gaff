@@ -1,6 +1,7 @@
 /**
  * The Content Security Policy (next.config.ts). Fonts are self-hosted and no third-party
- * scripts load, so 'self' covers everything, except where a form's answer goes.
+ * scripts load, so 'self' covers everything, except where a form's answer goes and, with
+ * Supabase Storage, where a photo is sent (M43).
  *
  * BA-1, AU1: "Continue with Google" and "Continue with Apple" are forms whose answer sends the
  * browser on to the provider, and browsers apply form-action to where a form's answer
@@ -12,7 +13,11 @@ export const providerHosts = {
   apple: 'https://appleid.apple.com',
 } as const;
 
-export function contentSecurityPolicy(providers: { google: boolean; apple: boolean }): string {
+export function contentSecurityPolicy(
+  providers: { google: boolean; apple: boolean },
+  /** M43: the photo store's origin, where browsers send photos straight to it. */
+  photoUploads: string | null = null,
+): string {
   const formAction = [
     "'self'",
     ...(providers.google ? [providerHosts.google] : []),
@@ -24,7 +29,7 @@ export function contentSecurityPolicy(providers: { google: boolean; apple: boole
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
     "font-src 'self'",
-    "connect-src 'self'",
+    `connect-src 'self'${photoUploads ? ` ${photoUploads}` : ''}`,
     "frame-ancestors 'none'",
     "base-uri 'self'",
     `form-action ${formAction}`,
@@ -46,4 +51,18 @@ export function configuredProviders(source: Record<string, string | undefined>):
         (source.APPLE_TEAM_ID && source.APPLE_KEY_ID && source.APPLE_PRIVATE_KEY)),
     ),
   };
+}
+
+/**
+ * M43 (ADR-0020): where browsers send photos straight to the photo store, its origin, so the
+ * page may reach it (connect-src) and nothing else. Only Supabase Storage takes them; with the
+ * local store, photos go through Gaff's own server and the policy stays 'self'.
+ */
+export function photoUploadOrigin(source: Record<string, string | undefined>): string | null {
+  if (source.PHOTO_STORE !== 'supabase' || !source.SUPABASE_URL) return null;
+  try {
+    return new URL(source.SUPABASE_URL).origin;
+  } catch {
+    return null;
+  }
 }

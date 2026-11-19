@@ -219,6 +219,12 @@
   border-radius: var(--radius-md);
 }
 
+/* M44: a floor plan is shown whole, on a quiet fill, never cropped. */
+.plan {
+  background-color: var(--color-surface-2);
+  object-fit: contain;
+}
+
 @media (width > 900px) {
   .photos {
     grid-template-columns: repeat(4, minmax(0, 1fr));

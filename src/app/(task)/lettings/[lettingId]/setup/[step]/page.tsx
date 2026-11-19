@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { photosGoStraightToStore } from '@/server/lettings/photos';
 import { notFound, redirect } from 'next/navigation';
 import { addressSearch } from '@/adapters/address';
 import { addLettingCopy } from '@/copy/add-letting';
@@ -55,6 +56,9 @@ import {
   saveRentCheckAction,
   saveReviewAction,
   saveStepAction,
+  setPhotoKindAction,
+  startPhotoUploadAction,
+  finishPhotoUploadAction,
   uploadPhotoAction,
 } from '../../../_flow/actions';
 import { AdvertisedStep } from '../../../_flow/Advertised';
@@ -277,6 +281,13 @@ export default async function SetupStepPage({
   const { today, inAYear } = availableWindow();
   const values = formValuesFrom(home.answers);
   const searchOn = addressSearch().name !== 'off';
+  // M43: where the photo store can take photos straight from the browser, they go there.
+  const direct = photosGoStraightToStore()
+    ? {
+        start: startPhotoUploadAction.bind(null, id),
+        finish: finishPhotoUploadAction.bind(null, id),
+      }
+    : undefined;
   const leaveHref = alone ? (from ?? lettingHref) : (from ?? '/lettings');
   const at = (step: FlowStep) => flowSteps.indexOf(step);
   const frameFor = (step: FlowStep, exit = true): StepFrame => {
@@ -339,10 +350,12 @@ export default async function SetupStepPage({
           today={today}
           inAYear={inAYear}
           searchOn={searchOn}
-          photos={home.photos}
+          photos={[...home.photos, ...home.floorPlans]}
           upload={uploadPhotoAction.bind(null, id)}
+          direct={direct}
           remove={removePhotoAction.bind(null, id)}
           reorder={reorderPhotosAction.bind(null, id)}
+          setKind={setPhotoKindAction.bind(null, id)}
         />
       );
     }
@@ -404,10 +417,12 @@ export default async function SetupStepPage({
       return (
         <PhotosStep
           frame={frameFor('photos')}
-          photos={home.photos}
+          photos={[...home.photos, ...home.floorPlans]}
           upload={uploadPhotoAction.bind(null, id)}
+          direct={direct}
           remove={removePhotoAction.bind(null, id)}
           reorder={reorderPhotosAction.bind(null, id)}
+          setKind={setPhotoKindAction.bind(null, id)}
           done={
             alone ? photosChangedAction.bind(null, id) : photosDoneAction.bind(null, id, from, then)
           }

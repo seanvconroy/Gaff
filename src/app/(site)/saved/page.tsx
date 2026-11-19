@@ -98,7 +98,7 @@ function SavedCard({ home, today }: { home: SavedHome; today: string }) {
         title={formatRent(facts.monthlyRentCents)}
         line={line}
         details={[freeFrom(facts.availableFrom, today)]}
-        photo={home.home.photos[0] ? { src: home.home.photos[0].src, alt: '' } : null}
+        photo={home.home.photos[0] ? { src: home.home.photos[0].small, alt: '' } : null}
         action={
           <SaveHome homeRef={home.ref} label={saveLabel(line)} saved signedIn back="/saved" />
         }

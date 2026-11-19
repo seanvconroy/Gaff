@@ -9,6 +9,8 @@ import type { PhotoStore } from '@/ports/photo-store';
  *
  * Photos of homes only. Never an identity document or anything personal.
  */
+const LIST_PAGE = 1000;
+
 export function supabasePhotoStore(config: {
   /** The project's address: https://<ref>.supabase.co */
   url: string;
@@ -18,7 +20,8 @@ export function supabasePhotoStore(config: {
   fetch?: typeof fetch;
 }): PhotoStore {
   const send = config.fetch ?? fetch;
-  const base = `${config.url.replace(/\/+$/, '')}/storage/v1/object`;
+  const storage = `${config.url.replace(/\/+$/, '')}/storage/v1`;
+  const base = `${storage}/object`;
   const authorised = { authorization: `Bearer ${config.serviceKey}`, apikey: config.serviceKey };
   const path = (key: string) => key.split('/').map(encodeURIComponent).join('/');
 
@@ -73,6 +76,48 @@ export function supabasePhotoStore(config: {
         body: JSON.stringify({ prefixes: [...keys] }),
       });
       if (!response.ok) await failed('remove the photo', response);
+    },
+    /**
+     * M43: a signed address for one original, valid for two hours (Supabase's own limit), that
+     * holds no key of Gaff's. The browser sends the photo there itself, so no photo passes
+     * through a function's 4.5 MB request limit; Gaff reads it back to clean it.
+     */
+    async signedUpload(key, contentType) {
+      const response = await send(`${base}/upload/sign/${config.bucket}/${path(key)}`, {
+        method: 'POST',
+        headers: authorised,
+      });
+      if (!response.ok) await failed('sign an upload', response);
+      const { url } = (await response.json()) as { url?: string };
+      if (!url?.startsWith('/object/upload/sign/')) {
+        throw new Error("The photo store didn't give an upload address.");
+      }
+      return { url: `${storage}${url}`, method: 'PUT', headers: { 'content-type': contentType } };
+    },
+    /** M43: originals under `uploads/` that were sent and never finished, oldest first. */
+    async removeUploadsBefore(before) {
+      let removed = 0;
+      for (;;) {
+        const response = await send(`${base}/list/${config.bucket}`, {
+          method: 'POST',
+          headers: { ...authorised, 'content-type': 'application/json' },
+          body: JSON.stringify({
+            prefix: 'uploads',
+            limit: LIST_PAGE,
+            offset: 0,
+            sortBy: { column: 'created_at', order: 'asc' },
+          }),
+        });
+        if (!response.ok) await failed('list waiting uploads', response);
+        const listed = (await response.json()) as Array<{ name: string; created_at?: string }>;
+        const old = listed.filter(
+          (each) => each.created_at && new Date(each.created_at).getTime() < before.getTime(),
+        );
+        if (old.length === 0) return removed;
+        await this.remove(old.map((each) => `uploads/${each.name}`));
+        removed += old.length;
+        if (old.length < LIST_PAGE) return removed;
+      }
     },
   };
 }

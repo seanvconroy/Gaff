@@ -1,5 +1,9 @@
 import type { NextConfig } from 'next';
-import { configuredProviders, contentSecurityPolicy as policyFor } from './src/lib/csp';
+import {
+  configuredProviders,
+  contentSecurityPolicy as policyFor,
+  photoUploadOrigin,
+} from './src/lib/csp';
 
 const isProduction = process.env.NODE_ENV === 'production';
 // UX-LS-11: read when the app is built and started; "off" unless set (see src/lib/env.ts).
@@ -16,15 +20,20 @@ const securityHeaders = [
 ];
 
 // The policy, with Google's and Apple's sign-in hosts in form-action once each is configured
-// (BA-1, AU1). Read when the app is built, so redeploy after setting a provider.
-const contentSecurityPolicy = policyFor(configuredProviders(process.env));
+// (BA-1, AU1), and the photo store's origin in connect-src where photos go straight to it (M43).
+// Read when the app is built, so redeploy after setting a provider or the photo store.
+const contentSecurityPolicy = policyFor(
+  configuredProviders(process.env),
+  photoUploadOrigin(process.env),
+);
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   serverExternalPackages: ['graphile-worker', 'pg'],
   // R25: inventory photos are uploaded through a server action, each under 4 MB, inside
-  // Vercel's 4.5 MB limit for a whole request (ADR-0014).
+  // Vercel's 4.5 MB limit for a whole request (ADR-0014). So are homes' photos with the local
+  // store; with Supabase Storage they go straight to it (M43, ADR-0020).
   experimental: { serverActions: { bodySizeLimit: '4.5mb' } },
   async headers() {
     const headers = isProduction

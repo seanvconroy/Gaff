@@ -81,6 +81,12 @@
   object-fit: cover;
 }
 
+/* M44: a floor plan is shown whole, on white, never cropped. */
+.plan {
+  background-color: var(--color-surface-0);
+  object-fit: contain;
+}
+
 /* "Cover": words on the page's own white, so it reads on any photo. */
 .cover {
   position: absolute;

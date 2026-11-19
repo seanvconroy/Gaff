@@ -140,11 +140,15 @@ export function describeEvent(
       return { what: changedSteps[String(data.step)] ?? 'The home’s details changed' };
     case 'letting.photos_changed':
       return {
-        what: data.reordered
-          ? 'Photos put in a new order'
-          : Number(data.removed) > 0
-            ? 'Photo removed'
-            : 'Photo added',
+        what: data.floorPlan
+          ? data.floorPlan === 'marked'
+            ? 'Photo marked as a floor plan'
+            : 'Floor plan marked as a photo'
+          : data.reordered
+            ? 'Photos put in a new order'
+            : Number(data.removed) > 0
+              ? 'Photo removed'
+              : 'Photo added',
         detail: `${data.count} ${data.count === 1 ? 'photo' : 'photos'} now`,
       };
     case 'letting.house_rules_set':

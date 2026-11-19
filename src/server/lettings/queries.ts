@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, isNull, sum } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNull, sql, sum } from 'drizzle-orm';
 import { type Tx, withOrg } from '@/db/client';
 import {
   landlords,
@@ -11,7 +11,8 @@ import {
   viewingSlots,
 } from '@/db/schema';
 import type { SetupState } from '@/domain/lettings/setup';
-import { photoHref } from '@/ports/photo-store';
+import { SHOWN_WIDTH, type PhotoKind } from '@/domain/lettings/photo-files';
+import { photoSources } from '@/ports/photo-store';
 import type { Member } from '@/server/auth/member';
 import { rentCheckProblem } from './rent-check';
 
@@ -20,24 +21,58 @@ export type LettingRow = typeof lettings.$inferSelect;
 /** A home's photo as a page shows it: where to load it from, and nothing about where it's kept. */
 export interface HomePhoto {
   id: string;
+  /** M43: the photo at a width a page usually shows (960 px), from Gaff's own address. */
   href: string;
+  /** M43: every size kept, for the browser to choose from. None for a photo kept as one file. */
+  srcSet?: string;
+  /** M44: a photo, or a floor plan, shown after the photos and never the cover. */
+  kind: PhotoKind;
 }
 
-/** A home's photos in the lister's order: the first is the cover (UX-LT-10). */
+export function homePhotoOf(row: {
+  id: string;
+  storageKey: string;
+  widths: readonly number[];
+  kind: PhotoKind;
+}): HomePhoto {
+  const { src, srcSet } = photoSources(row, SHOWN_WIDTH);
+  return { id: row.id, href: src, ...(srcSet ? { srcSet } : {}), kind: row.kind };
+}
+
+/**
+ * Photos first, in the lister's order, then floor plans (M44): the order a home's pictures are
+ * always shown in. The first photo is the cover.
+ */
+export const showingOrder = [
+  sql`(${lettingPhotos.kind} = 'floor_plan')`,
+  asc(lettingPhotos.position),
+  asc(lettingPhotos.createdAt),
+];
+
+/** A home's photos (or, with `kind`, its floor plans) in the lister's order (UX-LT-10). */
 export async function photosIn(
   tx: Tx,
   home: { lettingId: string } | { draftId: string },
+  kind: PhotoKind = 'photo',
 ): Promise<HomePhoto[]> {
   const rows = await tx
-    .select({ id: lettingPhotos.id, storageKey: lettingPhotos.storageKey })
+    .select({
+      id: lettingPhotos.id,
+      storageKey: lettingPhotos.storageKey,
+      widths: lettingPhotos.widths,
+      kind: lettingPhotos.kind,
+    })
     .from(lettingPhotos)
     .where(
-      'lettingId' in home
-        ? eq(lettingPhotos.lettingId, home.lettingId)
-        : eq(lettingPhotos.draftId, home.draftId),
+      and(
+        'lettingId' in home
+          ? eq(lettingPhotos.lettingId, home.lettingId)
+          : eq(lettingPhotos.draftId, home.draftId),
+        eq(lettingPhotos.kind, kind),
+      ),
     )
-    .orderBy(asc(lettingPhotos.position), asc(lettingPhotos.createdAt));
-  return rows.map((row) => ({ id: row.id, href: photoHref(row.storageKey) }));
+    .orderBy(...showingOrder);
+  return rows.map(homePhotoOf);
 }
 
 /**
@@ -54,13 +89,14 @@ export async function coverPhotoHrefsIn(
     .selectDistinctOn([lettingPhotos.lettingId], {
       lettingId: lettingPhotos.lettingId,
       storageKey: lettingPhotos.storageKey,
+      widths: lettingPhotos.widths,
     })
     .from(lettingPhotos)
-    .where(inArray(lettingPhotos.lettingId, [...lettingIds]))
+    .where(and(inArray(lettingPhotos.lettingId, [...lettingIds]), eq(lettingPhotos.kind, 'photo')))
     .orderBy(lettingPhotos.lettingId, asc(lettingPhotos.position), asc(lettingPhotos.createdAt));
   return new Map(
     rows.flatMap((row) =>
-      row.lettingId ? [[row.lettingId, photoHref(row.storageKey)] as const] : [],
+      row.lettingId ? [[row.lettingId, photoSources(row, SHOWN_WIDTH).src] as const] : [],
     ),
   );
 }
@@ -132,6 +168,7 @@ export async function lettingDetailIn(tx: Tx, lettingId: string) {
     .where(eq(rentComparables.lettingId, lettingId))
     .orderBy(asc(rentComparables.position));
   const photos = await photosIn(tx, { lettingId });
+  const floorPlans = await photosIn(tx, { lettingId }, 'floor_plan');
 
   const setup: SetupState = {
     viewingSlots: slotTotals?.slots ?? 0,
@@ -149,6 +186,7 @@ export async function lettingDetailIn(tx: Tx, lettingId: string) {
     rentProblem,
     comparables,
     photos,
+    floorPlans,
     setup,
   };
 }

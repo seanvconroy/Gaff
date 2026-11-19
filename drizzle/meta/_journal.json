@@ -281,6 +281,13 @@
       "when": 1795115031136,
       "tag": "0039_ba8_sign_in_hardened",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1795115523614,
+      "tag": "0040_photo_pipeline",
+      "breakpoints": true
     }
   ]
 }

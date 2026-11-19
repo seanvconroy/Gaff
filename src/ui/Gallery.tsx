@@ -8,9 +8,26 @@ import { Overlay } from './Overlay';
 
 export interface GalleryPhoto {
   src: string;
+  /** M43: every size kept ("…/480.webp 480w, …"), for the browser to pick the one it needs. */
+  srcSet?: string;
+  /** M44: a floor plan is shown whole, after the photos, and named as one. */
+  kind?: 'photo' | 'floor_plan';
 }
 
 const counter = (index: number, count: number) => `${index + 1} of ${count}`;
+
+/** What a picture is called: "Photo 2 of 8", or "Floor plan, 8 of 8". */
+const nameOf = (photo: GalleryPhoto, index: number, count: number) =>
+  photo.kind === 'floor_plan'
+    ? `Floor plan, ${counter(index, count)}`
+    : `Photo ${counter(index, count)}`;
+
+/**
+ * How wide each picture is shown, for the browser to choose a size (M43): the whole width on a
+ * phone; on a desktop, half the width for the cover and a quarter for the rest of the grid.
+ */
+const sizesFor = (index: number) =>
+  index === 0 ? '(min-width: 900px) 50vw, 100vw' : '(min-width: 900px) 25vw, 100vw';
 
 function reducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -23,7 +40,8 @@ function reducedMotion(): boolean {
  *   same, so nothing needs a swipe (UX-DS-17), and where you are in words ("2 of 8");
  * - on a desktop, a grid of the first five, the cover large.
  * Tapping or clicking a photo opens it full screen, where Previous, Next, the arrow keys and
- * Escape work. "Show all" opens the first. A home on Gaff always has a photo (`onGaffNeeds`), so
+ * Escape work. "Show all" opens the first. Floor plans come after the photos and are shown
+ * whole, never cropped (M44); each picture is loaded at the size it is shown at (M43). A home on Gaff always has a photo (`onGaffNeeds`), so
  * there is never a broken image; the photos have no words of their own, so each is named by
  * where it is in the list.
  */
@@ -64,14 +82,16 @@ export function Gallery({
             <button
               type="button"
               className={styles.open}
-              aria-label={`Photo ${counter(index, count)}, full screen`}
+              aria-label={`${nameOf(photo, index, count)}, full screen`}
               onClick={() => setOpen(index)}
             >
               {/* A home's own photo, already sized where it is stored. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                className={styles.image}
+                className={`${styles.image} ${photo.kind === 'floor_plan' ? styles.plan : ''}`}
                 src={photo.src}
+                srcSet={photo.srcSet}
+                sizes={photo.srcSet ? sizesFor(index) : undefined}
                 alt=""
                 loading={index === 0 ? 'eager' : 'lazy'}
                 decoding="async"
@@ -169,7 +189,9 @@ function FullScreen({
             <img
               className={styles.fullImage}
               src={photo.src}
-              alt={`Photo ${counter(index, count)}`}
+              srcSet={photo.srcSet}
+              sizes={photo.srcSet ? '100vw' : undefined}
+              alt={nameOf(photo, index, count)}
             />
           </div>
           {count > 1 ? (

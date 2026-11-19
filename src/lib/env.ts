@@ -29,9 +29,26 @@ const schema = z
       .optional(),
     INBOUND_DOMAIN: z.string().min(3).default('in.gaff.test'),
     MAIL_FROM_DOMAIN: z.string().min(3).default('mail.gaff.test'),
-    /** Resend (ADR-0014): sending, and the signing secret of the email.received webhook. */
+    /**
+     * Resend (ADR-0014): sending, and the signing secret of the email.received webhook. Without
+     * the secret, Gaff sends but doesn't receive: on the test copy, a send-only key is enough,
+     * and each email that would invite a reply says to use its link instead. Production needs it.
+     */
     RESEND_API_KEY: z.string().optional(),
     RESEND_WEBHOOK_SECRET: z.string().optional(),
+    /**
+     * The test copy only (GAFF_ENV=staging): real email goes to these people alone (addresses,
+     * or "@domain" for a whole domain; "+tags" don't matter), and everyone else's to the outbox.
+     * Unset, real email goes to everyone except made-up addresses (example.com, .test and the
+     * like). Never in production.
+     */
+    TEST_EMAIL_RECIPIENTS: z.string().optional(),
+    /**
+     * The test copy only: the name the deployed test copy already uses for Gaff's own team. On
+     * staging it is read as part of STAFF_EMAILS; anywhere else it is ignored, and production
+     * refuses it.
+     */
+    TEST_STAFF_EMAILS: staffEmailsSchema,
     MAILGUN_API_KEY: z.string().optional(),
     MAILGUN_DOMAIN: z.string().optional(),
     MAILGUN_WEBHOOK_SIGNING_KEY: z.string().optional(),
@@ -158,6 +175,20 @@ const schema = z
           message: 'DATA_ENCRYPTION_KEY is required in production',
         });
       }
+      if (env.TEST_EMAIL_RECIPIENTS) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['TEST_EMAIL_RECIPIENTS'],
+          message: 'TEST_EMAIL_RECIPIENTS is for the test copy only',
+        });
+      }
+      if (env.TEST_STAFF_EMAILS.length > 0) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['TEST_STAFF_EMAILS'],
+          message: 'TEST_STAFF_EMAILS is for the test copy only: use STAFF_EMAILS',
+        });
+      }
       for (const [key, value, standIn] of standIns) {
         if (value === standIn) {
           ctx.addIssue({
@@ -187,7 +218,13 @@ const schema = z
       }
     }
     if (env.EMAIL_PROVIDER === 'resend') {
-      for (const key of ['RESEND_API_KEY', 'RESEND_WEBHOOK_SECRET'] as const) {
+      // Production receives replies and forwarded enquiries, so it needs the webhook's secret.
+      // The test copy can send with a send-only key and receive nothing (docs/deploy.md).
+      const keys =
+        env.GAFF_ENV === 'production'
+          ? (['RESEND_API_KEY', 'RESEND_WEBHOOK_SECRET'] as const)
+          : (['RESEND_API_KEY'] as const);
+      for (const key of keys) {
         if (!env[key])
           ctx.addIssue({ code: 'custom', path: [key], message: `${key} is required for Resend` });
       }
@@ -212,6 +249,12 @@ const schema = z
   .transform((env) => ({
     ...env,
     DEV_TOOLS: env.DEV_TOOLS === undefined ? env.GAFF_ENV === 'staging' : env.DEV_TOOLS === '1',
+    // The test copy: TEST_STAFF_EMAILS is the same list as STAFF_EMAILS, under the deployed
+    // project's older name, so nobody has to enter it again. Nowhere else.
+    STAFF_EMAILS:
+      env.GAFF_ENV === 'staging'
+        ? [...new Set([...env.STAFF_EMAILS, ...env.TEST_STAFF_EMAILS])]
+        : env.STAFF_EMAILS,
   }));
 
 export type Env = z.infer<typeof schema>;
@@ -243,17 +286,26 @@ export function environmentProblems(source: Source): string[] {
   return parsed.success ? [] : parsed.error.issues.map((i) => i.path.join('.'));
 }
 
-let cached: Env | undefined;
-
-export function env(): Env {
-  if (cached) return cached;
-  const parsed = schema.safeParse(withPlatformDefaults(process.env));
+/** The settings these variables make, with the platform's defaults. Throws on a problem. */
+export function readEnvironment(source: Source): Env {
+  const parsed = schema.safeParse(withPlatformDefaults(source));
   if (!parsed.success) {
     const problems = parsed.error.issues
       .map((i) => `  ${i.path.join('.')}: ${i.message}`)
       .join('\n');
     throw new Error(`Environment is not configured correctly:\n${problems}`);
   }
-  cached = parsed.data;
+  return parsed.data;
+}
+
+let cached: Env | undefined;
+
+export function env(): Env {
+  cached ??= readEnvironment(process.env);
   return cached;
+}
+
+/** Tests that change a setting read the environment again, then put it back. */
+export function resetEnvForTests(): void {
+  cached = undefined;
 }

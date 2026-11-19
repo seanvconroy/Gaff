@@ -18,6 +18,7 @@ import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { env } from '@/lib/env';
 import { typeStyles } from '@/styles/tokens';
+import { TestCopyBanner } from '@/ui/TestCopyBanner';
 import { ActionCard } from '@/ui/ActionCard';
 import { ActionList, ActionRow } from '@/ui/ActionList';
 import { Avatar, Badge } from '@/ui/Avatar';
@@ -638,6 +639,14 @@ export default function ComponentsPage() {
               <p>We’ll email you the day before. You can change or cancel from that email.</p>
             </Outcome>
           </div>
+        </Section>
+
+        <Section
+          id="test-copy"
+          title="Test copy banner"
+          lead="On every page of the test copy (GAFF_ENV=staging), above everything else. Never in development, tests or production."
+        >
+          <TestCopyBanner />
         </Section>
 
         <Section

@@ -20,18 +20,20 @@ const DAY = 60 * 60 * 24;
 
 /**
  * UX-SI-1: how Google and Apple are switched on here. Real when the provider's credentials are
- * set; a local stand-in when they aren't and the development tools are on; otherwise off, and
- * the sign-in screen shows no button for it.
+ * set; a local stand-in when they aren't and the development tools are on in development or
+ * tests (never on the test copy: BA-1); otherwise off, and the sign-in screen shows no button.
  */
 export function signInProviderModes(config: Env = env()): Record<SignInProvider, ProviderMode> {
   return {
     google: providerMode({
       credentialsSet: Boolean(config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET),
       devTools: config.DEV_TOOLS,
+      gaffEnv: config.GAFF_ENV,
     }),
     apple: providerMode({
       credentialsSet: Boolean(config.APPLE_CLIENT_ID && config.APPLE_CLIENT_SECRET),
       devTools: config.DEV_TOOLS,
+      gaffEnv: config.GAFF_ENV,
     }),
   };
 }

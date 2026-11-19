@@ -7,7 +7,8 @@ import type { ProviderPerson } from '@/ports/sign-in-providers';
 /**
  * A local stand-in for Google and Apple (rule 10: nothing needs a real account to build). It is
  * registered only when the development tools are on and the provider's real credentials aren't
- * set, and never in production, which refuses DEV_TOOLS.
+ * set, in development and tests only: never on the test copy (staging) or in production, where
+ * anyone who reached its page could sign in as anybody (BA-1).
  *
  * "Continue with Google" then goes to a development page, /dev/sign-in/google, where a tester
  * says who is signing in, or cancels. The page comes back to Better Auth's own callback with a

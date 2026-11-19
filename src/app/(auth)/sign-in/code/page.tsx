@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { sendsRealEmail } from '@/adapters/email';
 import { codeCopy } from '@/copy/sign-in';
 import { secondsUntilResend } from '@/domain/auth/codes';
 import { signInPath } from '@/domain/auth/next-path';
@@ -27,7 +28,8 @@ export default async function SignInCodePage() {
         stamp: now.getTime(),
       }}
       differentEmailHref={signInPath(waiting.nextPath)}
-      devOutbox={env().DEV_TOOLS}
+      // Where email is really sent (the test copy), the code is in the person's own inbox.
+      devOutbox={env().DEV_TOOLS && !sendsRealEmail()}
     />
   );
 }

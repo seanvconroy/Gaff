@@ -3,6 +3,7 @@
 import {
   DoorClosed,
   ExternalLink,
+  FlaskConical,
   History,
   Pencil,
   Repeat,
@@ -16,8 +17,10 @@ import { addLettingCopy } from '@/copy/add-letting';
 import { lettingPageCopy } from '@/copy/letting-page';
 import { shareCopy } from '@/copy/owner';
 import { teamCopy } from '@/copy/team';
+import { TEST_ENQUIRIES } from '@/copy/test-copy';
 import { letAgainAction } from '@/app/(task)/lettings/_flow/actions';
 import { Menu, MenuItem } from '@/ui/Menu';
+import { addTestEnquiriesAction } from './dev-actions';
 
 const copy = lettingPageCopy.menu;
 
@@ -29,6 +32,9 @@ const copy = lettingPageCopy.menu;
  *
  * Two more belong to earlier packages and stay: "Send a test enquiry" until the first real one
  * arrives (UX-LT-24), and "Change lead" for whoever may change it (UX-AG-9).
+ *
+ * Where the development tools are on (never in production), a live letting also has "Add test
+ * enquiries" (BA-1): five made-up renters enquire, and People opens to show them.
  */
 export function LettingMenu({
   lettingId,
@@ -40,6 +46,7 @@ export function LettingMenu({
   changeLead,
   close,
   letAgain,
+  testEnquiries,
 }: {
   lettingId: string;
   address: string;
@@ -50,6 +57,8 @@ export function LettingMenu({
   changeLead: boolean;
   close: boolean;
   letAgain: boolean;
+  /** BA-1: the development tools are on and the letting is live. */
+  testEnquiries: boolean;
 }) {
   const [starting, start] = useTransition();
   const here = `/lettings/${lettingId}`;
@@ -86,6 +95,14 @@ export function LettingMenu({
             {teamCopy.help.menu}
           </MenuItem>
         ) : null}
+        {testEnquiries ? (
+          <MenuItem
+            icon={FlaskConical}
+            onSelect={() => start(() => addTestEnquiriesAction(lettingId))}
+          >
+            {TEST_ENQUIRIES.menu}
+          </MenuItem>
+        ) : null}
         <MenuItem icon={History} href={`${here}/history`}>
           {copy.history}
         </MenuItem>
@@ -101,7 +118,7 @@ export function LettingMenu({
         ) : null}
       </Menu>
       <p className="visually-hidden" role="status">
-        {starting ? addLettingCopy.letAgain.starting : ''}
+        {starting ? (letAgain ? addLettingCopy.letAgain.starting : TEST_ENQUIRIES.adding) : ''}
       </p>
     </>
   );

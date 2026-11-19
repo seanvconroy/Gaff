@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { env } from '@/lib/env';
 import { recordProviderResult } from '@/server/checks/checks';
+import { requireDevTools } from '@/server/dev/gate';
 
 /** Development stand-in for an ID or income provider: the tester picks the result. */
 export async function standInResultAction(
@@ -11,7 +12,7 @@ export async function standInResultAction(
   returnUrl: string,
   formData: FormData,
 ): Promise<void> {
-  if (!env().DEV_TOOLS) throw new Error('Dev tools are off');
+  await requireDevTools();
   const outcome = String(formData.get('outcome') ?? '');
   if (kind === 'identity') {
     await recordProviderResult(checkId, {

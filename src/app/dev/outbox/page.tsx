@@ -1,9 +1,10 @@
 import { desc } from 'drizzle-orm';
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
 import { db } from '@/db/client';
 import { devOutbox } from '@/db/schema';
-import { env } from '@/lib/env';
+import { sendsRealEmail } from '@/adapters/email';
+import { TEST_COPY_OUTBOX } from '@/copy/test-copy';
+import { requireDevTools } from '@/server/dev/gate';
 import { Card, PageHeader, Stack } from '@/ui/Layout';
 import { EmailPreview } from './EmailPreview';
 import styles from './outbox.module.css';
@@ -12,19 +13,26 @@ export const metadata: Metadata = { title: 'Development outbox' };
 export const dynamic = 'force-dynamic';
 
 /**
- * Local development only (DEV_TOOLS=1): mail the dev adapter "sent" (ADR-0010). An email sent in
- * the email layout (UX-PP-10) is shown as a mail app would show it, then as its plain text.
+ * Development and the test copy (DEV_TOOLS=1): mail and texts the stand-ins "sent" (ADR-0010).
+ * An email sent in the email layout (UX-PP-10) is shown as a mail app would show it, then as its
+ * plain text. On the test copy only made-up people's mail is here, and only Gaff's own team can
+ * open it (BA-1); real people get real email.
  */
 export default async function DevOutboxPage() {
-  if (!env().DEV_TOOLS) notFound();
+  await requireDevTools();
+  const realEmail = sendsRealEmail();
   const mail = await db().select().from(devOutbox).orderBy(desc(devOutbox.createdAt)).limit(50);
   return (
     <main className={styles.main}>
       <Stack gap={6}>
         <PageHeader
-          eyebrow="Development only"
+          eyebrow={realEmail ? TEST_COPY_OUTBOX.eyebrow : 'Development only'}
           title="Outbox"
-          lead="Email Gaff would have sent, as it looks and as plain text. Links work as they would in a real inbox."
+          lead={
+            realEmail
+              ? TEST_COPY_OUTBOX.lead
+              : 'Email Gaff would have sent, as it looks and as plain text. Links work as they would in a real inbox.'
+          }
         />
         {mail.length === 0 ? <p>Nothing sent yet.</p> : null}
         {mail.map((message) => (

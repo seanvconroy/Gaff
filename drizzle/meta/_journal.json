@@ -267,6 +267,13 @@
       "when": 1795107647728,
       "tag": "0037_ai_calls",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1795111522706,
+      "tag": "0038_identity_provider_and_booking_mobile",
+      "breakpoints": true
     }
   ]
 }

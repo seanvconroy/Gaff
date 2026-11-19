@@ -108,6 +108,24 @@ export function ChecksTask({
     }
     const failed = check?.status === 'not_passed';
     const started = check?.status === 'in_progress';
+    // P25: three tries used: a plain way to a person, in "warning", and no button.
+    if (failed && check.noTriesLeft) {
+      return (
+        <section className={styles.task} aria-labelledby="next-check">
+          <div className={styles.titles}>
+            <h3 id="next-check" className="type-title">
+              {checksCopy.names[kind]}
+            </h3>
+          </div>
+          <Notice tone="warning" title={checksCopy.noTriesLeft.title}>
+            <p>
+              {checksCopy.notPassed.reasons[check.reason ?? ''] ?? checksCopy.notPassed.other}{' '}
+              {checksCopy.noTriesLeft.text(operator)}
+            </p>
+          </Notice>
+        </section>
+      );
+    }
     return (
       <section className={styles.task} aria-labelledby="next-check">
         <div className={styles.titles}>

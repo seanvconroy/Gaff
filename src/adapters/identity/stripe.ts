@@ -78,6 +78,11 @@ export function stripeIdentity(config: { secretKey: string }): IdentityProvider 
         if (existing.status === 'requires_input' && existing.url) {
           return { providerRef: existing.id, redirectUrl: existing.url };
         }
+        // Stripe is still checking (or has just finished): no new session, or its result would
+        // be lost. The person goes straight back to Gaff, which reads the result when it's in.
+        if (existing.status === 'processing' || existing.status === 'verified') {
+          return { providerRef: existing.id, redirectUrl: returnUrl };
+        }
       }
       const session = await call('/identity/verification_sessions', {
         method: 'POST',

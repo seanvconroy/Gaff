@@ -7,6 +7,7 @@ import {
   type RenterCheck,
 } from '@/domain/checks/renter-checks';
 import type { CheckKind, CheckStatus } from '@/domain/checks/checks';
+import { mayAttempt } from '@/domain/identity/attempts';
 import { answersAsValues, answersInWords } from '@/domain/criteria/answers';
 import type { Criteria, CriterionQuestion } from '@/domain/criteria/criteria';
 import { homeFrom, listerFrom, type FrameHome, type Lister } from '@/domain/frame/frame';
@@ -84,6 +85,8 @@ export interface RenterModel {
       reason: string | null;
       refereeName: string | null;
       requestedOn: string | null;
+      /** P25: an ID check that didn't pass in three tries. */
+      noTriesLeft?: boolean;
     }>;
     referees: Array<'landlord' | 'employer'>;
     retentionDays: number;
@@ -212,6 +215,10 @@ export function renterModel(
         reason: check.reason,
         refereeName: check.refereeName,
         requestedOn: check.requestedAt ? formatDate(check.requestedAt, now) : null,
+        noTriesLeft:
+          check.kind === 'identity' &&
+          check.status === 'not_passed' &&
+          !mayAttempt({ attempts: check.attempts ?? 0, passed: false }),
       })),
       referees: refereesToAsk(page.checks),
       retentionDays: options.retentionDays,

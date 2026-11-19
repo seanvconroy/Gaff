@@ -135,4 +135,20 @@ describe('P17 to P26: Stripe Identity', () => {
     await stripeIdentity({ secretKey: 'sk_test' }).redact('vs_1');
     expect(calls[0]!.url).toMatch(/\/identity\/verification_sessions\/vs_1\/redact$/);
   });
+
+  it('P25: never opens a second session while Stripe is still checking the first', async () => {
+    const calls = stubFetch({ id: 'vs_1', status: 'processing', url: null });
+    const started = await stripeIdentity({ secretKey: 'sk_test' }).start({
+      checkId: 'c1',
+      kind: 'letting',
+      returnUrl: 'https://gaff.test/checks/done?kind=identity',
+      providerRef: 'vs_1',
+      attempt: 2,
+    });
+    expect(started).toEqual({
+      providerRef: 'vs_1',
+      redirectUrl: 'https://gaff.test/checks/done?kind=identity',
+    });
+    expect(calls).toHaveLength(1);
+  });
 });

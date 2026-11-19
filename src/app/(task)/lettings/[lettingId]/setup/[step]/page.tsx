@@ -38,6 +38,7 @@ import {
 import { formatDate, formatRent } from '@/lib/format';
 import type { FlowHome } from '@/server/lettings/drafts';
 import { personCheckOf } from '@/server/identity/person-checks';
+import { settlePersonIdentity } from '@/server/identity/provider-results';
 import { goLiveStepFor } from '@/server/lettings/go-live';
 import { rentAnswersFromLettingBefore } from '@/server/lettings/rent-check';
 import {
@@ -481,6 +482,8 @@ export default async function SetupStepPage({
       );
     }
     case 'go_live': {
+      // P54: back from Stripe's pages, their own check is read from Stripe if it's due.
+      await settlePersonIdentity(member.userId);
       const step = await goLiveStepFor(member, detail);
       const preview = (
         <HomePreview home={answers} photos={home.photos} letBy={step.organisationName} />

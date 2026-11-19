@@ -117,6 +117,20 @@ export const applications = pgTable(
     status: applicationStatus().notNull().default('enquired'),
     /** R13 (Q12): the renter gave a mobile number for text reminders when they booked. */
     smsReminders: boolean().notNull().default(false),
+    /**
+     * P16 (Q51): before booking a viewing, the renter confirms their mobile with a 6-digit text
+     * code, keyed to this application, so a renter from Daft or MyHome needs no account. The
+     * number waits in `mobile_pending` until the code matches; the code is kept only as a hash,
+     * for 10 minutes and 5 tries, with at most 5 texts a day. Once confirmed, the number is the
+     * application's `phone_e164`, and the 2-hour reminder goes to it.
+     */
+    mobileConfirmedAt: timestamp({ withTimezone: true }),
+    mobilePending: text(),
+    mobileCodeHash: text(),
+    mobileCodeExpiresAt: timestamp({ withTimezone: true }),
+    mobileCodeAttempts: integer().notNull().default(0),
+    mobileCodesToday: integer().notNull().default(0),
+    mobileCodeSentAt: timestamp({ withTimezone: true }),
     /** R16, stage 5 only: how they mainly earn, and household take-home income (cents). */
     earning: text({ enum: ['employed', 'self_employed', 'other'] }),
     monthlyIncomeCents: integer(),

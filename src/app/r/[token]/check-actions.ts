@@ -7,6 +7,7 @@ import { formValues, invalid, type FormState } from '@/lib/forms';
 import { cookieOptions } from '@/server/auth/cookies';
 import { startProviderCheck, submitReferees } from '@/server/checks/checks';
 import { requestSignInCode } from '@/server/auth/sign-in';
+import { settleRenterIdentity } from '@/server/identity/provider-results';
 import { keepPassedIdentity, reuseKeptIdentity } from '@/server/identity/renter';
 import { loadRenterPage } from '@/server/renter/answers';
 import { CHECK_RETURN_COOKIE, CHECK_RETURN_MINUTES } from '@/server/renter/check-return';
@@ -26,6 +27,8 @@ async function open(token: string): Promise<boolean> {
  */
 export async function startCheckAction(token: string, kind: 'identity' | 'income'): Promise<void> {
   if (!(await open(token))) toRenterPage(token);
+  // P54: a result Stripe already has is read first, so a finished check isn't started again.
+  if (kind === 'identity') await settleRenterIdentity(token);
   const started = await startProviderCheck(token, kind);
   if ('problem' in started) toRenterPage(token, `?check_problem=${started.problem}`);
   (await cookies()).set(CHECK_RETURN_COOKIE, token, cookieOptions(CHECK_RETURN_MINUTES * 60));

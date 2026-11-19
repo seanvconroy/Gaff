@@ -388,6 +388,12 @@ export const checksCopy = {
     after: (operator: string) =>
       `You can try again. If you’d rather explain, or add a guarantor, talk to a person at ${operator}.`,
   },
+  /** P25: three tries at the ID check, and it didn't pass. Never "danger" (CLAUDE.md, Voice). */
+  noTriesLeft: {
+    title: 'You’ve used your three tries',
+    text: (operator: string) =>
+      `The ID check can’t be started again from here. Reply to any email from us and say you’d like to talk to a person. Someone at ${operator} will answer you and help you finish your checks.`,
+  },
   referee: {
     landlord: 'Your last landlord',
     employer: 'Your employer',
@@ -404,6 +410,8 @@ export const checksCopy = {
   startNext: 'You can stop after any check and come back to the next one.',
   problems: {
     no_provider: 'That check can’t be started here yet. We’ll be in touch about it.',
+    no_attempts_left:
+      'You’ve used your three tries at the ID check. Reply to any email from us to talk to a person.',
     done: 'That check is already done.',
     not_chosen: 'Checks aren’t needed from this link.',
     link: common.linkEnded,

@@ -16,6 +16,7 @@ import { ConfirmationNeeded } from '@/server/auth/confirm';
 import { confirmationFor, forgetConfirmation } from '@/server/auth/confirm-request';
 import { currentUser } from '@/server/auth/member';
 import { startPersonCheck } from '@/server/identity/person-checks';
+import { settlePersonIdentity } from '@/server/identity/provider-results';
 
 /**
  * Profile (UX-PF-2 to UX-PF-6): each row is changed or removed on its own, by the signed-in
@@ -118,6 +119,7 @@ export async function deleteProfileAction(
 export async function nameChangedAction(): Promise<void> {
   const user = await currentUser();
   if (!user) redirect('/sign-in');
+  await settlePersonIdentity(user.id);
   const started = await startPersonCheck(user.id, 'name_changed', '/profile#profile-identity');
   if ('problem' in started) redirect(`/profile?identity_problem=${started.problem}`);
   redirect(started.redirectUrl);

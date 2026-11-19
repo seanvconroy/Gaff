@@ -62,7 +62,8 @@ export function GoLiveIdentity({
       {failed ? (
         <Notice tone="warning" title={c.notPassed}>
           <p>
-            {c.reasons[last.reason ?? ''] ?? c.reasons.gave_up} {c.tryAgain}
+            {c.reasons[last.reason ?? ''] ?? c.reasons.gave_up}{' '}
+            {last.noTriesLeft ? c.noTriesLeft : c.tryAgain}
           </p>
         </Notice>
       ) : null}

@@ -3,16 +3,20 @@
 import { redirect } from 'next/navigation';
 import { env } from '@/lib/env';
 import { recordProviderResult } from '@/server/checks/checks';
-import { requireDevTools } from '@/server/dev/gate';
+import { requireStandInCheck } from '@/server/dev/gate';
 
-/** Development stand-in for an ID or income provider: the tester picks the result. */
+/**
+ * Development stand-in for an ID or income provider: the tester picks the result. On the test
+ * copy, the person whose check it is may, through their check's own link (BA-6).
+ */
 export async function standInResultAction(
   checkId: string,
+  key: string | null,
   kind: 'identity' | 'income',
   returnUrl: string,
   formData: FormData,
 ): Promise<void> {
-  await requireDevTools();
+  await requireStandInCheck(checkId, key);
   const outcome = String(formData.get('outcome') ?? '');
   if (kind === 'identity') {
     await recordProviderResult(checkId, {

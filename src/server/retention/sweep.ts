@@ -78,6 +78,10 @@ export async function sweepPersonalData(
           phone: null,
           phoneE164: null,
           smsReminders: false,
+          // P16: a number waiting for its code, and the code's hash, go too.
+          mobilePending: null,
+          mobileCodeHash: null,
+          mobileCodeExpiresAt: null,
           answers: null,
           earning: null,
           monthlyIncomeCents: null,
@@ -133,9 +137,35 @@ export async function sweepPersonalData(
       // R18: check results and referees' details go too; their links stop working.
       const theirChecks = await tx
         .update(checks)
-        .set({ refereeName: null, refereeEmail: null, resultSealed: null, providerRef: null })
+        .set({ refereeName: null, refereeEmail: null, resultSealed: null })
         .where(eq(checks.applicationId, application.id))
         .returning({ id: checks.id });
+      // P26: a session Stripe still holds is redacted tonight (src/server/identity/redact.ts),
+      // which lets its reference go; any other provider's reference goes now.
+      await tx
+        .update(checks)
+        .set({ redactAfter: now })
+        .where(
+          and(
+            eq(checks.applicationId, application.id),
+            eq(checks.provider, 'stripe'),
+            isNotNull(checks.providerRef),
+            isNull(checks.providerRedactedAt),
+          ),
+        );
+      await tx
+        .update(checks)
+        .set({ providerRef: null })
+        .where(
+          and(
+            eq(checks.applicationId, application.id),
+            or(
+              isNull(checks.provider),
+              ne(checks.provider, 'stripe'),
+              isNotNull(checks.providerRedactedAt),
+            ),
+          ),
+        );
       if (theirChecks.length > 0) {
         await tx
           .update(accessLinks)

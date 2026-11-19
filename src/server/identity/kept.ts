@@ -3,6 +3,7 @@ import { type Tx, withPerson } from '@/db/client';
 import { identityChecks, memberships, organisations, verifiedIdentities } from '@/db/schema';
 import { type KeptIdentity, verifiedNameSchema } from '@/domain/identity/identity';
 import { recordProfileEvent } from '@/server/accounts/profile-events';
+import { redactOwnSessionsSoon } from './redact';
 
 /**
  * A verified identity on a person's own profile (Q35, rule 2, UX-PF-8 to UX-PF-11). Everything
@@ -82,6 +83,8 @@ export async function keepIdentityIn(
  * until they confirm it's them again (UX-TS-1).
  */
 export async function forgetIdentityIn(tx: Tx, userId: string): Promise<void> {
+  // P26: anything Stripe still holds for their own checks is redacted straight after.
+  await redactOwnSessionsSoon(tx, userId);
   await tx.delete(verifiedIdentities).where(eq(verifiedIdentities.userId, userId));
   await tx.delete(identityChecks).where(eq(identityChecks.userId, userId));
   await setListerStanding(tx, userId, null);

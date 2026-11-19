@@ -34,6 +34,15 @@ export const checks = pgTable(
     /** Why it didn't pass, as a code, e.g. "face_mismatch" or "no_regular_income". */
     reason: text(),
     remindersSent: integer().notNull().default(0),
+    /**
+     * The ID check's provider bookkeeping (P18, P25, P26; ADR-0018): tries started with the
+     * provider (one session reused across them), the version of the words shown before the
+     * latest, and by when the provider must have deleted the document and selfie it holds.
+     */
+    attempts: integer().notNull().default(0),
+    consentVersion: text(),
+    redactAfter: timestamp({ withTimezone: true }),
+    providerRedactedAt: timestamp({ withTimezone: true }),
     requestedAt: timestamp({ withTimezone: true }),
     completedAt: timestamp({ withTimezone: true }),
     createdAt: createdAt(),

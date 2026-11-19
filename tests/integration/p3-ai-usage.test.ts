@@ -30,7 +30,7 @@ function paidAi(reply: Partial<Awaited<ReturnType<AiProvider['draftAnswers']>>> 
     name: 'anthropic' as const,
     model: 'claude-opus-5-5',
     promptVersion: (task: string) => `${task}@test`,
-    draftAnswers: vi.fn(async () => ({
+    draftAnswers: vi.fn(async (_input: Parameters<AiProvider['draftAnswers']>[0]) => ({
       output: { items: [{ question: 'Is there parking?', answer: null, factIds: [] }] },
       refused: false,
       model: 'claude-opus-5-5',
@@ -209,8 +209,13 @@ describe('P3, P4, P8: every AI call is logged, kept to the budget, and can be sw
     expect((await callsFor(organisationId))[0]?.outcome).toBe('switched_off');
     // Only the task named.
     expect(
-      (await runAi({ task: 'people', organisationId, call: (p) => p.readPeopleQuestion(request) }))
-        .outcome,
+      (
+        await runAi({
+          task: 'people',
+          organisationId,
+          call: (p) => p.readPeopleQuestion({ text: 'small households', today: '2026-11-17' }),
+        })
+      ).outcome,
     ).toBe('ok');
   });
 

@@ -13,6 +13,7 @@ import { SubmitButton } from '@/ui/SubmitButton';
 import { SummaryList } from '@/ui/SummaryList';
 import { TimePicker } from '@/ui/TimePicker';
 import styles from '../renter.module.css';
+import { MobileCodeForm } from './MobileCodeForm';
 import {
   bookAction,
   cancelAction,
@@ -270,21 +271,13 @@ export function ConfirmCode({
           </Notice>
         ) : null}
         {codeOnScreen ? <p>{testCopyMobileCode(codeOnScreen)}</p> : null}
-        <form action={confirmCodeAction.bind(null, token, slotId)} className={styles.task}>
-          <TextField
-            name="code"
-            label={copy.code.label}
-            width="short"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            error={atField}
-          />
-          <div className={styles.actions}>
-            <SubmitButton fullWidth="phone" pendingLabel={copy.confirm.booking}>
-              {place ? copy.code.placeButton : copy.code.button}
-            </SubmitButton>
-          </div>
-        </form>
+        <MobileCodeForm
+          action={confirmCodeAction.bind(null, token, slotId)}
+          label={copy.code.label}
+          button={place ? copy.code.placeButton : copy.code.button}
+          pending={copy.confirm.booking}
+          error={atField}
+        />
         <div className={styles.quietRow}>
           <form action={resendCodeAction.bind(null, token, slotId)}>
             <SubmitButton variant="quiet" fullWidth="phone" pendingLabel={copy.confirm.sending}>

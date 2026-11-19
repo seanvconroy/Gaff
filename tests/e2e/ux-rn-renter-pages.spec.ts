@@ -50,6 +50,9 @@ const groups: Array<[string, string[]]> = [
       'choose-time-gone',
       'confirm-time',
       'confirm-time-problem',
+      'confirm-time-mobile-confirmed',
+      'confirm-code',
+      'confirm-code-wrong',
       'booked',
       'change-time',
       'confirm-move',
@@ -73,6 +76,7 @@ const groups: Array<[string, string[]]> = [
     [
       'checks-start',
       'checks-id',
+      'checks-id-no-tries',
       'checks-income',
       'checks-income-failed',
       'checks-references',
@@ -269,19 +273,37 @@ test('UX-RN-5, UX-RN-6, UX-RN-8, UX-RN-10: days then times, a held place with no
   await page.goto(page_('choose-time-day'));
   await expect(page.getByText('Group viewing, 3 places left')).toBeVisible();
 
-  // UX-RN-7: the confirm step: the day, time and address, and one optional field.
+  // UX-RN-7: the confirm step: the day, time and address. P16: a new booking asks for a mobile,
+  // to confirm by text code, and nothing else.
   await page.goto(page_('confirm-time'));
   await expect(page.getByText('Friday 20 November, 6:15pm')).toBeVisible();
   await expect(page.getByText('12 Ranelagh Road, Ranelagh, Dublin 6')).toBeVisible();
-  const mobile = page.getByLabel('Mobile number for a text reminder');
+  const mobile = page.getByLabel('Your mobile number');
   // Q12: never filled in from the enquiry.
   await expect(mobile).toHaveValue('');
   await expect(page.getByRole('main').locator('input:not([type=hidden])')).toHaveCount(1);
-  // Asked once: a number they gave is shown with "Change", not asked for again.
-  await page.goto(page_('confirm-move'));
-  await expect(page.getByLabel('Mobile number for a text reminder')).toHaveCount(0);
-  await expect(page.getByText('087 123 4567')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Text me a code' })).toBeVisible();
+  // Asked once: a number they confirmed is shown, masked, with "Change", not asked for again.
+  await page.goto(page_('confirm-time-mobile-confirmed'));
+  await expect(page.getByLabel('Your mobile number')).toHaveCount(0);
+  await expect(page.getByText('087 ••• 4567')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Change the mobile number' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Book this viewing' })).toBeVisible();
+  // Moving a booking asks nothing about the mobile.
+  await page.goto(page_('confirm-move'));
+  await expect(page.getByLabel('Your mobile number')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Move my viewing' })).toBeVisible();
+  // P16: the code screen: where it went, masked; a wrong code is said at the field. Where texts
+  // aren't sent (the test copy), the code is on the screen.
+  await page.goto(page_('confirm-code'));
+  await expect(page.getByRole('heading', { name: 'Enter the code we texted you' })).toBeVisible();
+  await expect(page.getByText(/to 087 ••• 4567\. It works for 10 minutes\./)).toBeVisible();
+  await expect(page.getByLabel('The code from the text')).toBeVisible();
+  await page.goto(page_('confirm-code-wrong'));
+  await expect(
+    page.getByText('That code isn’t right. Check the text and try again.'),
+  ).toBeVisible();
+  await expect(page.getByText('here’s your code: 123456.')).toBeVisible();
 
   // UX-RN-6, UX-RN-10: one time on offer, so no picker; the hold's end is in words.
   await page.goto(page_('place-offered'));

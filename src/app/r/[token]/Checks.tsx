@@ -117,10 +117,10 @@ export function ChecksTask({
               {checksCopy.names[kind]}
             </h3>
           </div>
-          <Notice tone="warning" title={checksCopy.noTriesLeft.title}>
+          <Notice tone="warning" title={checksCopy.notPassed.title}>
             <p>
               {checksCopy.notPassed.reasons[check.reason ?? ''] ?? checksCopy.notPassed.other}{' '}
-              {checksCopy.noTriesLeft.text(operator)}
+              {checksCopy.noTriesLeft(operator)}
             </p>
           </Notice>
         </section>

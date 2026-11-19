@@ -9,7 +9,7 @@ import { chosenTime, viewingDays } from '@/domain/viewings/choosing';
 import type { RenterModel } from '@/server/renter/model';
 import { PrivateFrame } from '@/ui/PrivateFrame';
 import { ApplyFlow } from '../../../r/[token]/ApplyFlow';
-import { CancelViewing, ChooseTime, ConfirmTime } from '../../../r/[token]/Booking';
+import { CancelViewing, ChooseTime, ConfirmCode, ConfirmTime } from '../../../r/[token]/Booking';
 import { DeclineOffer } from '../../../r/[token]/Decline';
 import { InventoryPage, type InventoryItem } from '../../../r/[token]/Inventory';
 import { LinkEnded } from '../../../r/[token]/load';
@@ -299,6 +299,48 @@ export const pages: Record<string, { label: string; render: (q?: string) => Reac
       <ConfirmTime token={TOKEN} model={model('invited')} chosen={groupTime} problem="phone" />
     ),
   },
+  'confirm-time-mobile-confirmed': {
+    label: 'Confirming a time, with a mobile already confirmed',
+    render: () => (
+      <ConfirmTime
+        token={TOKEN}
+        model={model('invited', {
+          viewings: { ...model('invited').viewings, reminderNumber: '087 ••• 4567' },
+        })}
+        chosen={firstTime}
+      />
+    ),
+  },
+  'confirm-code': {
+    label: 'The code from the text (P16)',
+    render: () => (
+      <ConfirmCode
+        token={TOKEN}
+        model={model('invited', {
+          viewings: { ...model('invited').viewings, pendingMobile: '087 ••• 4567' },
+        })}
+        slotId={firstTime.time.slotId}
+        when={`${firstTime.day.label}, ${firstTime.time.label}`}
+        place={false}
+      />
+    ),
+  },
+  'confirm-code-wrong': {
+    label: 'The code from the text, not right',
+    render: () => (
+      <ConfirmCode
+        token={TOKEN}
+        model={model('invited', {
+          viewings: { ...model('invited').viewings, pendingMobile: '087 ••• 4567' },
+        })}
+        slotId={firstTime.time.slotId}
+        when={`${firstTime.day.label}, ${firstTime.time.label}`}
+        place={false}
+        problem="wrong"
+        codeOnScreen="123456"
+      />
+    ),
+  },
   booked: {
     label: 'Booked',
     render: () =>
@@ -457,6 +499,28 @@ export const pages: Record<string, { label: string; render: (q?: string) => Reac
   applied: { label: 'Applied', render: () => hub(model('applied')) },
   'checks-start': { label: 'Chosen for checks', render: () => hub(model('checks')) },
   'checks-id': { label: 'Checks: your ID', render: () => hub(model('checks'), open) },
+  'checks-id-no-tries': {
+    label: 'Checks: three tries at the ID check (P25)',
+    render: () => {
+      const made = model('checks', {
+        checkItems: checks('not_passed', 'to_do', 'to_do', 'to_do'),
+      });
+      return hub(
+        {
+          ...made,
+          checks: {
+            ...made.checks,
+            items: made.checks.items.map((item) =>
+              item.kind === 'identity'
+                ? { ...item, reason: 'face_mismatch', noTriesLeft: true }
+                : item,
+            ),
+          },
+        },
+        open,
+      );
+    },
+  },
   'checks-income': {
     label: 'Checks: your income',
     render: () =>

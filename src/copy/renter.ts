@@ -419,11 +419,8 @@ export const checksCopy = {
       `You can try again. If you’d rather explain, or add a guarantor, talk to a person at ${operator}.`,
   },
   /** P25: three tries at the ID check, and it didn't pass. Never "danger" (CLAUDE.md, Voice). */
-  noTriesLeft: {
-    title: 'You’ve used your three tries',
-    text: (operator: string) =>
-      `The ID check can’t be started again from here. Reply to any email from us and say you’d like to talk to a person. Someone at ${operator} will answer you and help you finish your checks.`,
-  },
+  noTriesLeft: (operator: string) =>
+    `You’ve used your three tries, so it can’t be started again from here. Reply to any email from us and say you’d like to talk to a person. Someone at ${operator} will answer you and help you finish your checks.`,
   referee: {
     landlord: 'Your last landlord',
     employer: 'Your employer',

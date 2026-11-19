@@ -138,10 +138,7 @@ async function seedAgency(lister: SeedLister, team: Staff): Promise<Seeded> {
     .from(memberships)
     .innerJoin(organisations, eq(organisations.id, memberships.organisationId))
     .where(
-      and(
-        eq(memberships.userId, person.id),
-        eq(organisations.psraRegisterEntryId, found.entry.id),
-      ),
+      and(eq(memberships.userId, person.id), eq(organisations.psraRegisterEntryId, found.entry.id)),
     );
   let organisationId = own?.id ?? null;
   const created = !organisationId;

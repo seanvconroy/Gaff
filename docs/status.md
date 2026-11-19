@@ -32,8 +32,8 @@ Sean agreed the plan on 19 November 2026. The decisions are Q50 to Q54 in [open-
 | 1 | BA-4 made-up agencies, homes and photos seeded by the build | Next |
 | 1 | BA-5 coordinates, the lister's pin and the search map on Google Maps (M38, M57, M117 to M137) | In progress |
 | 1 | BA-6 Stripe Identity and a mobile confirmed by text code (P15 to P29) | In progress. Who verifies is decided (Q52) |
-| 1 | BA-7 the photo pipeline (M43) | Next |
-| 1 | BA-8 sign-in hardening: limits by address, stricter joining, devices, "How you sign in", security emails, clean-up (AU4, AU6 to AU8, AU11, AU12, AU14) | In progress |
+| 1 | BA-7 the photo pipeline (M43) | In progress |
+| 1 | BA-8 sign-in hardening (AU4, AU6 to AU8, AU11, AU12, AU14, M5) | **Done**, 19 November 2026. Every sign-in call is limited by network address, counted in Postgres. Only the routes a browser needs answer. Google or Apple joins an existing account only for an address it hosts; otherwise the person signs in by code and connects it from Profile. On Profile a person can connect or disconnect Google and Apple, add, rename or remove a passkey, and see and sign out their devices, each after "Confirm it's you". Security emails in fixed words (for the solicitor). The nightly job clears sign-in's leftovers. In production Gaff's team need a passkey to open `/internal`. No passwords. ADR-0019. `tests/integration/ba8-sign-in.test.ts`, `tests/e2e/ba8-*.spec.ts` |
 | Switch | Settings, a reset database, deploy, the minute tick, a walk through both sides | After stage 1. The founder has agreed to erasing the test copy's data (Q54) |
 | 2. After the switch | Drafted descriptions and the AI wording check (P10 to P14); publishing checks and risk holds (M29, M46, M48); reports handled as cases with reasons and appeals (M96 to M98, M106, M107); freshness (M49); area pages, sitemap and structured data (M62, M111); richer listing facts and search as a database query; developments (M32 to M35, M75); listing stats, similar homes, saved-home changes, instant alerts, the enquiry limit | Not started |
 | 3 | Work and income documents (P30 to P49): specified on the live line, built on neither | Not started |

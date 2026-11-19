@@ -450,3 +450,13 @@ Found while bringing the place index across (BA-2, 19 November 2026). None holds
 - **What a renter types, in the request log.** The place search sends what is typed to Gaff's own server as part of a web address, so it may appear in Vercel's request logs. It holds no name or contact details, and the count of misses already drops anything with digits. To check before launch.
 - **Recent searches** are kept in the browser tab only, for everyone, because searching isn't recorded against a person (UX-SR-11). The other line kept them on the server for signed-in renters.
 
+### Q57. Notes from hardening sign-in (BA-8, 19 November 2026)
+
+Recorded, not open, unless Sean wants one changed.
+
+- **Signing up with Google from an address Google doesn't host** (a work address on another mail service) is refused: the person signs in with a code and connects Google from Profile. It stops an account being joined on a provider's say-so alone (the other line's Q66).
+- **The list of signed-in devices** was left for later in the redesign's section 2 and is now built.
+- **"Confirm it's you"** is the one check before a sensitive change. The sign-in library's own "signed in recently" check is off.
+- **Two events** (a provider joined, a passkey added) are written just after the sign-in library's own write, not in the same transaction (the other line's Q67). A failure between the two loses the event, never the change.
+- **The security emails** are new fixed wording, for the solicitor with the other templates.
+

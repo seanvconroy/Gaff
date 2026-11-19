@@ -15,7 +15,7 @@ export function StaffPasskey({ returnTo }: { returnTo: string }) {
   const [working, setWorking] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
-  const usePasskey = async () => {
+  const signInByPasskey = async () => {
     setWorking(true);
     setProblem(null);
     const result = await authClient.signIn.passkey();
@@ -36,7 +36,7 @@ export function StaffPasskey({ returnTo }: { returnTo: string }) {
         fullWidth
         disabled={working}
         aria-describedby={problem ? 'staff-passkey-error' : undefined}
-        onClick={() => void usePasskey()}
+        onClick={() => void signInByPasskey()}
       >
         {working ? staffPasskeyCopy.waiting : staffPasskeyCopy.use}
       </Button>

@@ -203,6 +203,58 @@ export const profileCopy = {
     passkeys: (count: number) => (count === 1 ? '1 passkey' : `${count} passkeys`),
     method: (method: SignInMethod) => methodWords[method],
     codeByEmail: methodWords.email_code,
+    /** BA-8 (AU7): what each way in is, and whether it's on. */
+    lead: 'A code to your email always works. Add another way in, or take one off, here.',
+    codeTo: (email: string) => `Always works, to ${email}`,
+    connectedOn: (date: string) => `Connected on ${date}`,
+    notConnected: 'Not connected',
+    connect: 'Connect',
+    disconnect: 'Disconnect',
+    hideMyEmail: 'Apple made your email address, so Apple stays connected.',
+    passkeyAdded: (date: string) => `Added on ${date}`,
+    passkeyNamed: 'Passkey',
+    rename: 'Rename',
+    remove: 'Remove',
+    addPasskey: 'Add a passkey',
+    addingPasskey: 'Waiting for your device…',
+    renameSheet: 'Rename this passkey',
+    renameLabel: 'Name',
+    renameHint: 'So you can tell your passkeys apart, like “Work laptop”.',
+    nameMissing: 'Give it a name, like “Work laptop”.',
+    removedNote:
+      'Your device may still offer this passkey. You can delete it from your device’s passwords too.',
+    toasts: {
+      connected: (provider: string) => `${provider} is connected. You can sign in with it now.`,
+      disconnected: (provider: string) => `${provider} is disconnected.`,
+      passkeyAdded: 'Passkey added. You can sign in with it now.',
+      passkeyRenamed: 'Passkey renamed.',
+      passkeyRemoved: 'Passkey removed.',
+    },
+    problems: {
+      hide_my_email: 'Apple made your email address, so Apple stays connected.',
+      last_way_in: 'That’s your only way in, so it stays. Add another first.',
+      not_found: 'That’s already gone.',
+      passkey: 'That didn’t work. Try again.',
+      already_here: 'This device already has a passkey for you.',
+      /** Back from Google or Apple without connecting it. */
+      connect: (provider: string) =>
+        `We couldn’t connect ${provider}. It may already be another account’s way in. Try again, or keep using a code from your email.`,
+    },
+  },
+  /** BA-8 (AU8): where the person is signed in. */
+  devices: {
+    title: 'Signed-in devices',
+    lead: 'Where you’re signed in now. Sign out anything you don’t recognise.',
+    thisDevice: 'This device',
+    lastUsed: (when: string) => `Last used ${when}`,
+    signOut: 'Sign out',
+    signOutOthers: 'Sign out all other devices',
+    signingOut: 'Signing out…',
+    toasts: {
+      one: 'Signed out of that device.',
+      others: (n: number) =>
+        n === 1 ? 'Signed out of 1 other device.' : `Signed out of ${n} other devices.`,
+    },
   },
   data: {
     title: 'Your data',

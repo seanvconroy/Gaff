@@ -258,7 +258,7 @@ export function SignInSection({ view }: { view: SignInView }) {
       </Section>
 
       <Sheet
-        open={renaming !== null}
+        open={renaming !== null && !confirming}
         onClose={() => setRenaming(null)}
         title={c.renameSheet}
         footer={

@@ -392,10 +392,16 @@ test('UX-SI-1, UX-SI-8, UX-SI-11: Google and Apple, joined to one person by a ve
     const remembered = (await context.cookies()).find((c) => c.name === 'gaff_last_method');
     expect(remembered?.value).toBe('google');
 
-    // The same verified email with Apple, then by code: the same person each time.
+    // AU4 (BA-8): Apple doesn't look after a work address, so it can't join her by it. She's
+    // back on the sign-in screen with one plain line, and a code gets her in as herself. She can
+    // connect Apple from Profile once signed in (ba8-how-you-sign-in.spec.ts).
     await throughStandIn(page, 'Apple', { email });
-    await signedIn(page);
-    await signOutHere(context);
+    await expect(page).toHaveURL(/\/sign-in\?/);
+    await expect(
+      page.getByText('Apple can’t confirm that email is still yours.', { exact: false }),
+    ).toBeVisible();
+    await expectAccessible(page);
+    await screenshot(page, `ba8-sign-in-not-joined-${width}`);
     await signIn(page, email);
     expect((await usersWith(email)).map((user) => user.id)).toEqual([person!.id]);
     const methods = await rows<{ provider_id: string; kept: number }>(
@@ -405,10 +411,7 @@ test('UX-SI-1, UX-SI-8, UX-SI-11: Google and Apple, joined to one person by a ve
       [person!.id],
     );
     // Sign-in only (Q30): nothing the provider hands over beyond who it is is kept.
-    expect(methods).toEqual([
-      { provider_id: 'apple', kept: 0 },
-      { provider_id: 'google', kept: 0 },
-    ]);
+    expect(methods).toEqual([{ provider_id: 'google', kept: 0 }]);
 
     // UX-SI-11: Apple's "Hide My Email": the relay address is the person's email.
     await signOutHere(context);

@@ -1,5 +1,9 @@
+import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { withOrg } from '@/db/client';
+import { applications } from '@/db/schema';
 import { resetEnvForTests } from '@/lib/env';
+import { addTestEnquiries } from '@/server/dev/test-enquiries';
 import type * as checksModule from '@/server/checks/checks';
 import type * as memberModule from '@/server/auth/member';
 import { signInProviderModes } from '@/server/auth/auth';
@@ -10,7 +14,7 @@ import { simulateInboundEmail } from '@/app/dev/inbound/actions';
 import DevOutboxPage from '@/app/dev/outbox/page';
 import StandInSignInPage from '@/app/dev/sign-in/[provider]/page';
 import { POST as standInAnswer } from '@/app/dev/sign-in/[provider]/answer/route';
-import { createTestMember } from './helpers';
+import { aLiveLetting, createTestMember } from './helpers';
 
 type User = { id: string; email: string; emailVerified: boolean };
 
@@ -163,5 +167,52 @@ describe('BA-1: local development and tests stay as they are', () => {
     signedIn.user = null;
     expect(await DevOutboxPage()).toBeTruthy();
     expect(signInProviderModes()).toEqual({ google: 'stand_in', apple: 'stand_in' });
+  });
+});
+
+describe('BA-1: made-up renters enquire about a letting (dev tools only)', () => {
+  const before = { DEV_TOOLS: process.env.DEV_TOOLS };
+  beforeAll(() => setEnvironment({ DEV_TOOLS: '1' }));
+  afterAll(() => setEnvironment(before));
+
+  it('adds five enquiries from Daft and MyHome, most with answers, from made-up addresses', async () => {
+    const member = await createTestMember();
+    const { lettingId } = await aLiveLetting(member);
+    expect(await addTestEnquiries(member, lettingId, 5)).toEqual({ added: 5, answered: 4 });
+    const rows = await withOrg(member.organisationId, (tx) =>
+      tx
+        .select({
+          sources: applications.sources,
+          email: applications.email,
+          answersAt: applications.answersAt,
+        })
+        .from(applications)
+        .where(eq(applications.lettingId, lettingId)),
+    );
+    expect(rows).toHaveLength(5);
+    expect(new Set(rows.flatMap((r) => r.sources))).toEqual(new Set(['daft', 'myhome']));
+    for (const row of rows) expect(row.email).toMatch(/@example\.ie$/);
+    expect(rows.filter((r) => r.answersAt)).toHaveLength(4);
+    // Five more are new people, not repeats of the first five.
+    expect(await addTestEnquiries(member, lettingId, 5)).toMatchObject({ added: 5 });
+  });
+
+  it('adds nobody to a letting that isn’t live', async () => {
+    const member = await createTestMember();
+    const { aLetting } = await import('../fixtures/lettings');
+    const { createLetting } = await import('@/server/lettings/create-letting');
+    const { lettingId } = await createLetting(member, aLetting());
+    expect(await addTestEnquiries(member, lettingId, 5)).toEqual({ added: 0, answered: 0 });
+  });
+
+  it('is refused when the dev tools are off', async () => {
+    const member = await createTestMember();
+    const { lettingId } = await aLiveLetting(member);
+    setEnvironment({ DEV_TOOLS: '0' });
+    try {
+      await expect(addTestEnquiries(member, lettingId, 5)).rejects.toThrow('Dev tools are off');
+    } finally {
+      setEnvironment({ DEV_TOOLS: '1' });
+    }
   });
 });

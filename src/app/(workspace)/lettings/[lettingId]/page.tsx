@@ -17,6 +17,8 @@ import { goLiveGateFor } from '@/server/lettings/go-live';
 import { overviewFactsFor, peopleFor } from '@/server/lettings/page';
 import { poolFor } from '@/server/lettings/pool';
 import { DETAILS_LOCKED } from '@/server/lettings/set-criteria';
+import { env } from '@/lib/env';
+import { testEnquiriesAdded } from '@/copy/test-copy';
 import { lettingStandingFor } from '@/server/team/lead';
 import { ActionList, ActionRow } from '@/ui/ActionList';
 import { Stack } from '@/ui/Layout';
@@ -162,6 +164,7 @@ export default async function LettingPage({
             changeLead={standing?.mayChangeLead ?? false}
             close={letting.status === 'live'}
             letAgain={canLetAgain(letting)}
+            testEnquiries={env().DEV_TOOLS && letting.status === 'live'}
           />
         }
       />
@@ -171,6 +174,12 @@ export default async function LettingPage({
           leadName={standing.leadName}
           offersHelp={standing.offersHelp}
         />
+      ) : null}
+      {/* BA-1: what "Add test enquiries" did (development tools only). */}
+      {env().DEV_TOOLS && query.added !== undefined && /^\d+$/.test(query.added) ? (
+        <Notice tone="success" role="status">
+          <p>{testEnquiriesAdded(Number(query.added))}</p>
+        </Notice>
       ) : null}
       {saved && !(saved === 'rent-check' && detail.rentProblem) ? (
         <Notice tone="success" role="status">

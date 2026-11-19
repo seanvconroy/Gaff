@@ -352,9 +352,11 @@ The PSRA register is public, so picking an agency from it proves nothing about t
 
 Gaff now shows homes to the public and shows renters where to pay a deposit. A private landlord has no licence to check.
 
-**Decision (CTO, for Sean to confirm):** a private landlord verifies their identity once, at the go-live step of their first home. It takes about two minutes and is never asked again (Q35). Renters see "Identity verified" beside the landlord's first name. Agencies are confirmed through their licence (Q32) and don't do this.
+**Decision (CTO; confirmed by Sean on 19 November 2026, see Q52):** a private landlord verifies their identity once, at the go-live step of their first home. It takes about two minutes and is never asked again (Q35). Renters see "Identity verified" beside the landlord's first name. Agencies are confirmed through their licence (Q32) and don't do this.
 
 ### Q48. The identity check provider
+
+**Replaced on 19 November 2026 by Q51: Stripe Identity, which Sean had already chosen on 8 November.** The recommendation below was written without sight of that decision.
 
 **Recommendation (CTO, for the founders to confirm):** Veriff, an EU company with self-serve pricing. Before real checks run, the founders confirm in writing that data stays in the EU and sign its DPA. Until then the build uses the stand-in provider, as now.
 
@@ -374,6 +376,8 @@ Gaff now shows homes to the public and shows renters where to pay a deposit. A p
 
 ### Q49. A map beside the search results (OQ-7, UX-SR-8)
 
+**Replaced on 19 November 2026 by Q51: the search map is on Google Maps, which Sean approved on 8 November, and it is being brought across.** The answer below was written without sight of that decision.
+
 **Answer (build, WP-21): not practical yet. Search ships with the list alone, and the list is complete without a map.** The "Map" button is left off the screen rather than shown doing nothing.
 
 Why, in this package:
@@ -389,3 +393,52 @@ What it would take, all inside the approved vendors and with no visitor's reques
 5. Credit "© OpenStreetMap contributors" on the map. The ODbL's share-alike applies to the database, not to the pictures of the map.
 
 Gaff's list of places for "Where" is in the repository (`src/domain/search/places-list.ts`), hand-made for now because of the same blocked download; `scripts/places/build-places.ts` builds the full list from OpenStreetMap when it can reach it.
+
+## G. One project
+
+Found on 19 November 2026: Gaff had two lines of work from the same starting point. The test copy ran one (the marketplace, the providers work, the place index, the map and sign-in: requirements `M`, `P` and `AU`); the redesign was built from the other. Sean's objective: "one live project, with all of the changes we intended to build." The plan and its packages are in [status.md](status.md) under "Going live".
+
+The other line kept its own list of decisions, numbered from Q27 with different questions. Below, "the other line's Q48" means that list, which is on the branch `claude/gallant-darwin-dpy9oz`.
+
+### Q50. Which line carries on?
+
+**Decision (Sean, 19 November 2026):** the redesign is the base. Everything the other line can do that the redesign can't is brought across and fitted to the redesign's screens, account model and rules. Then the test copy switches to it and one branch carries on.
+
+### Q51. Where the two lines disagree
+
+**Decision (Sean, 19 November 2026, on the CTO's recommendation):** Sean's latest explicit decision wins. Where the redesign only had a stopgap, or a recommendation waiting to be confirmed, Sean's earlier decision on the other line wins. So:
+
+- **No passwords.** Q30 (14 November) replaces Sean's request for email and password on 8 November (the other line's Q63).
+- **Google Maps for the search map** (the other line's Q58, ADR-0027), replacing Q49 here. Google Maps Platform, the Maps JavaScript API only, is an approved vendor.
+- **The place index from OpenStreetMap** (the other line's Q57), replacing the hand-made list.
+- **Stripe Identity for ID checks** (the other line's Q48), replacing Q48 here. A photo ID with a live selfie. Before real people use it: Stripe's DPA, the privacy notice, and the solicitor's answer on consent to the selfie (the other line's Q45).
+- **The Claude API on the test copy and in development; Claude on Bedrock in the EU in production** (the other line's Q37).
+- **Chosen renters show work and income with documents, not open banking** (the other line's Q49). Not built on either line yet.
+- **Agents' own PSRA licences aren't checked for the pilots** (Q38, 14 November), though the other line checked them.
+- **A renter is asked once whether Gaff keeps their ID check** (Q35, UX-PF-8). The other line kept it automatically.
+- **Renters confirm their mobile by text code before booking a viewing** (the other line's Q60). Listers aren't asked to.
+- **Alerts go out as soon as a home is listed, with a daily option** (the other line's M86, M87), replacing "one email a day at most" (UX-SR-10).
+- **Kept as the redesign has them:** one photo and a BER to publish; the short list of filters; a let home's page comes down after 30 days; a home's web address is a random reference.
+
+### Q52. Who proves who they are before listing?
+
+On 8 November Sean decided on one standard with no opt-outs: everyone who lists, agents included, does the photo ID and selfie check (the other line's Q60). The redesign checks private landlords only and confirms agencies through their licence (Q32, Q47).
+
+**Decision (Sean, 19 November 2026):** the redesign's version, for the pilots. Private landlords verify once, at their first go-live. Renters verify when they are chosen. An agency is confirmed through its PSRA licence, and its staff aren't asked for a selfie. See Q55, which this leaves open.
+
+### Q53. What Gaff's own team may do
+
+The redesign held Gaff's team to two things: confirming agencies and hiding reported listings. Stopping scams, and the EU's rules for marketplaces (the Digital Services Act), need more.
+
+**Decision (Sean, 19 November 2026):** Gaff's team may also review a listing that is held as suspicious, and handle a report as a case, with a statement of reasons and an appeal. They still never open a letting, read a renter, send a message or make a decision about a person. The tests that hold those limits stay.
+
+### Q54. Erasing the test copy when it switches
+
+**Decision (Sean, 19 November 2026):** yes. Everything testers created on the test copy is erased at the switch. The made-up homes are created again by the build.
+
+### Q55. How does Gaff know someone belongs to an agency, and is who they say they are? (**Open**)
+
+Raised by Sean on 19 November 2026, with Q52. Today an agency is found on the PSRA register and confirmed by Gaff's team, and colleagues join by an invitation to their email address. Nothing shows that the person who set the agency up works there, or that a person is who they say they are.
+
+**Banked, to come back to.** Things to weigh when it is picked up: an ID check for whoever sets an agency up or for every member (the other line's Q60); matching a verified name to the licence holder or to an agent's own licence (the other line's P24, and Q38 here); a letter or a call to the agency's registered address or number; joining by the agency's email domain (UX-AG-14); and what an agency will put up with during a pilot.
+

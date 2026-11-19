@@ -50,7 +50,7 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
     - its EU region, wherever it has one;
     - a lawful basis for anything outside the EU (the EU–US Data Privacy Framework or standard contractual clauses), named in the privacy notice.
 
-    Approved so far (Q26, ADR-0014): Vercel (functions in Dublin), Supabase (Ireland), Resend (email), Claude on Amazon Bedrock (EU), Sinch (EU), Mailgun (EU, as an alternative), and later Stripe, only to charge operators. Added on 14 November 2026: Google and Apple, for sign-in only (Q30); Autoaddress, for address search, once its DPA is signed (Q40). Every vendor sits behind an interface with a local stand-in, so nothing needs a real account to build.
+    Approved so far (Q26, ADR-0014): Vercel (functions in Dublin), Supabase (Ireland), Resend (email), Claude on Amazon Bedrock (EU), Sinch (EU), Mailgun (EU, as an alternative), and later Stripe, only to charge operators. Added on 14 November 2026: Google and Apple, for sign-in only (Q30); Autoaddress, for address search, once its DPA is signed (Q40). Added on 19 November 2026, from the founder's decisions of 8 November on the other line (Q51): the Claude API, on the test copy and in development only; Stripe Identity, for ID checks, once its DPA is signed; Google Maps Platform, the Maps JavaScript API only, for the search map. Every vendor sits behind an interface with a local stand-in, so nothing needs a real account to build.
 
 ## Voice: every word renters see
 

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { type propertyTypes } from '@/domain/lettings/new-letting';
-import { placeById } from './places';
+import { canonicalPlaceSlug, MAX_PLACE_SLUG, PLACE_SLUG } from './place-slug';
 
 /**
  * UX-SR-4, UX-MT-12: everything a search can hold, and nothing else. These are facts about a
@@ -35,10 +35,16 @@ export const MAX_SEARCH_RENT = 20_000;
 
 export const searchFiltersSchema = z
   .object({
-    /** A place's ID from Gaff's own list (places.ts). */
+    /**
+     * A place's slug in Gaff's own place index (places.ts, ADR-0017). Its shape is checked here;
+     * whether the index knows it is checked where the index is, on the server, and a place it
+     * doesn't know is left out of the search (src/server/places).
+     */
     where: z
       .string()
-      .refine((id) => placeById(id) !== null)
+      .max(MAX_PLACE_SLUG)
+      .transform(canonicalPlaceSlug)
+      .pipe(z.string().regex(PLACE_SLUG))
       .optional(),
     /** The most rent a month, in whole euros. */
     maxRent: z.number().int().min(MIN_SEARCH_RENT).max(MAX_SEARCH_RENT).optional(),

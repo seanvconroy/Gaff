@@ -9,11 +9,15 @@ import { chipLabel } from './search';
  * what the renter asked, and nothing more.
  */
 
-/** A saved search in words: its chips, as search shows them. "Greystones · 2 bedrooms". */
-export function searchWords(filters: SearchFilters, now = new Date()): string {
+/**
+ * A saved search in words: its chips, as search shows them. "Greystones, Co. Wicklow · 2
+ * bedrooms". `placeName` is its place as the index names it (src/server/places).
+ */
+export function searchWords(filters: SearchFilters, now = new Date(), placeName = ''): string {
   return filterKeys
     .filter((key) => filters[key] !== undefined)
-    .map((key) => chipLabel(key, filters, now))
+    .map((key) => chipLabel(key, filters, now, placeName))
+    .filter(Boolean)
     .join(' · ');
 }
 

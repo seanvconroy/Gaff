@@ -1,7 +1,7 @@
 import type { Criteria } from '@/domain/criteria/criteria';
 import type { furnishing, parkingOptions, propertyTypes } from '@/domain/lettings/new-letting';
 import type { SearchFilters, SearchType, Stay } from './filters';
-import { type HomeAddress, placeById, placeHasHome } from './places';
+import { type Gazetteer, type HomeAddress, placeHasHome, searchPlace } from './places';
 
 /**
  * UX-SR-7, UX-MT-14, UX-MT-15: which homes fit a search. It reads a home's own facts and the
@@ -97,13 +97,16 @@ const newestFirst = (a: SearchableHome, b: SearchableHome): number =>
 
 /**
  * UX-SR-7: the homes for a search. With no filters, every home fits: the first screen shows all
- * of them, newest first (UX-SR-2).
+ * of them, newest first (UX-SR-2). `g` holds the search's place (src/server/places); a place it
+ * doesn't know finds no homes, as a search of nowhere should.
  */
 export function searchHomes<H extends SearchableHome>(
   homes: readonly H[],
   filters: SearchFilters,
+  g: Gazetteer,
 ): SearchResults<H> {
-  const place = filters.where ? placeById(filters.where) : null;
+  const place = filters.where ? searchPlace(filters.where, g) : null;
+  if (filters.where && !place) return { fits: [], close: [] };
   const fits: H[] = [];
   const close: Array<{ home: H; miss: Miss }> = [];
   for (const home of [...homes].sort(newestFirst)) {

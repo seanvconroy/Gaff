@@ -18,6 +18,8 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   await admin.query(`create database "${name}"`);
   await admin.end();
   await runMigrations(url.toString());
+  // M56 (ADR-0017): the whole place index, loaded as a production deployment loads it.
+  await loadThePlaceIndex();
 
   // UX-AG-1: the weekly job loads Gaff's copy of the PSRA register (the made-up sample here). It
   // is run now, on the empty database, so every journey finds the same register from the start.
@@ -51,6 +53,19 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   return async () => {
     worker.kill('SIGTERM');
   };
+}
+
+/** `pnpm places:load` against this run's database: every place in Ireland the index knows. */
+async function loadThePlaceIndex(): Promise<void> {
+  const loader = spawn('pnpm', ['places:load'], {
+    env: { ...process.env, ...e2eEnv },
+    stdio: ['ignore', 'inherit', 'inherit'],
+  });
+  await new Promise<void>((resolve, reject) => {
+    loader.on('exit', (code) =>
+      code === 0 ? resolve() : reject(new Error(`The place index didn't load (${code})`)),
+    );
+  });
 }
 
 /**

@@ -28,7 +28,8 @@ describe('UX-SR-12: a search’s address can be shared and reopened', () => {
   it('UX-SR-12: a value that isn’t allowed is left out, and the rest still works', () => {
     expect(
       filtersFromParams({
-        where: 'narnia',
+        // Not a place's slug. One the index doesn't know is dropped on the server (m56-places).
+        where: '../narnia',
         beds: '9',
         max: '2400',
         from: 'soon',

@@ -34,7 +34,7 @@ export default async function SavedPage() {
     savedSearchesOf(person.userId),
   ]);
   const today = irishToday();
-  const rows = searchRows(searches);
+  const rows = await searchRows(searches);
 
   if (homes.length === 0 && rows.length === 0) {
     return (

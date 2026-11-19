@@ -44,7 +44,11 @@ async function main(): Promise<number> {
   process.env.AUTH_SECRET = 'places-check-only-never-a-real-secret';
   process.env.GAFF_ENV = 'test';
   const { PLACE_FILE, readPlaceFile, replacePlaces } = await import('@/server/places/load');
-  const { suggestPlaces } = await import('@/server/places/places');
+  const { candidatePlaces } = await import('@/server/places/places');
+  const { rankSuggestions } = await import('@/domain/places/suggest');
+  // The Where box's ranking, without the homes on Gaff beside each place.
+  const suggestPlaces = async (query: string) =>
+    rankSuggestions(query, await candidatePlaces(query));
   const { pool } = await import('@/db/client');
 
   const file = arg('--file') ?? PLACE_FILE;

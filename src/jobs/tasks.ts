@@ -15,6 +15,7 @@ import { expireHomeOffer } from '@/server/offers/offer';
 import { sendRtbReminder } from '@/server/tenancy/rtb';
 import { refreshRegister } from '@/server/register/refresh';
 import { sweepPersonalData } from '@/server/retention/sweep';
+import { sweepPlaceMisses } from '@/server/places/places';
 import { endLetHomePages } from '@/server/homes/let-pages';
 import { purgeListingReports } from '@/server/homes/report';
 import { sendSearchAlerts, sweepEmailSearches } from '@/server/saved/alerts';
@@ -65,6 +66,9 @@ export const taskList: TaskList = {
     // UX-LS-10: a let home's page on gaff.ie, 30 days after it was let. Counts only.
     const pages = await endLetHomePages();
     console.log(`Homes on Gaff: ${pages.removed} let homes' pages removed.`);
+    // M124 (rule 9): counts of places nobody found, after 30 days. Counts only.
+    const misses = await sweepPlaceMisses();
+    console.log(`Place search: ${misses.deleted} counts of places not found deleted.`);
     // UX-TS-3 (rule 9): reports of listings, six months after Gaff's team answered them.
     const reports = await purgeListingReports();
     console.log(`Reports: ${reports} reports of listings deleted.`);

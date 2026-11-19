@@ -8,7 +8,7 @@ import { searchFromWords } from '@/server/search/search';
  * stored, logged or put in the address (UX-SR-11, UX-SR-12).
  */
 export async function searchWords(formData: FormData): Promise<void> {
-  const { href } = searchFromWords({
+  const { href } = await searchFromWords({
     words: formData.get('words') ?? '',
     rent: formData.get('rent') ?? undefined,
   });

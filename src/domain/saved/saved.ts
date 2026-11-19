@@ -9,6 +9,7 @@ import {
   searchFiltersSchema,
 } from '@/domain/search/filters';
 import { type SearchableHome, searchHomes } from '@/domain/search/match';
+import type { Gazetteer } from '@/domain/search/places';
 import { irishToday } from '@/lib/format';
 
 /**
@@ -133,11 +134,13 @@ export interface SearchToAlert {
 export function newHomesFor<H extends SearchableHome>(
   search: SearchToAlert,
   homes: readonly H[],
+  g: Gazetteer,
 ): H[] {
   const told = new Set(search.told);
   return searchHomes(
     homes.filter((home) => home.liveAt.getTime() > search.since.getTime() && !told.has(home.id)),
     search.filters,
+    g,
   ).fits;
 }
 

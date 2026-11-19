@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { savedCopy, searchWords } from '@/copy/saved';
 import { filtersFromParams, searchHref } from '@/domain/search/filters';
+import { resolveSearch } from '@/server/search/where';
 import { ButtonLink } from '@/ui/Button';
 import { Outcome } from '@/ui/Outcome';
 import styles from '../alerts.module.css';
@@ -14,8 +15,8 @@ type Query = Record<string, string | string[] | undefined>;
  * happens next (an email when a new home fits, once a day at most), and how it stops.
  */
 export default async function SearchConfirmed({ searchParams }: { searchParams: Promise<Query> }) {
-  const filters = filtersFromParams(await searchParams);
-  const words = searchWords(filters);
+  const { filters, placeName } = await resolveSearch(filtersFromParams(await searchParams));
+  const words = searchWords(filters, new Date(), placeName);
   return (
     <div className={styles.page}>
       <Outcome tone="success" title={savedCopy.confirmed.title} headingLevel={1}>

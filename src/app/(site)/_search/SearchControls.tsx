@@ -12,13 +12,19 @@ import {
   searchHref,
   without,
 } from '@/domain/search/filters';
-import { placeById, placeLabel, searchPlaces } from '@/domain/search/places';
-import { AddressSearch, type AddressOption } from '@/ui/AddressSearch';
+import type { WhereGroupKind, WhereOption, WhereSuggestions } from '@/server/search/where';
 import { Button } from '@/ui/Button';
 import { Chips } from '@/ui/Chips';
 import { SelectField, TextField } from '@/ui/Field';
 import { FilterChips } from '@/ui/FilterChips';
 import { DateField } from '@/ui/Pickers';
+import {
+  type PlaceIcon,
+  type PlaceOption,
+  PlaceSearch,
+  type PlaceSuggestions,
+} from '@/ui/PlaceSearch';
+import { recentPlaces, rememberPlace } from './recent';
 import { Sheet } from '@/ui/Sheet';
 import styles from './search.module.css';
 
@@ -27,25 +33,71 @@ import styles from './search.module.css';
  * opens every filter as an ordinary control; a chip opens just its own. Pressing "Show homes"
  * makes the search's address from the controls' values alone (UX-SR-12) and opens it.
  *
- * The place search runs here, in the visitor's browser, against Gaff's own list: nothing typed
- * into it is sent anywhere (UX-SR-5).
+ * The place search asks Gaff's own place index (/api/places, ADR-0017) and nothing else: no map
+ * or address provider sees what is typed (UX-SR-5, rule 10). What was searched this visit stays
+ * in this browser tab (./recent.ts).
  */
 
 /** Which controls a sheet shows: furnished and parking are asked together, as "The home". */
 type Panel = 'all' | Exclude<FilterKey, 'parking'>;
 const panelOf = (key: FilterKey): Panel => (key === 'parking' ? 'furnished' : key);
 
-const findPlaces = (query: string): Promise<AddressOption[]> =>
-  Promise.resolve(searchPlaces(query).map((place) => ({ id: place.id, label: placeLabel(place) })));
+const groupLabels: Record<WhereGroupKind, string> = {
+  places: searchCopy.where.groups.places,
+  streets: searchCopy.where.groups.streets,
+  landmarks: searchCopy.where.groups.landmarks,
+  popular: searchCopy.where.groups.popular,
+};
 
-const placeWords = (count: number) => (count === 1 ? '1 place found' : `${count} places found`);
+function iconOf(option: WhereOption): PlaceIcon {
+  if (option.kind === 'street') return 'street';
+  if (option.kind === 'routing_key') return 'routing_key';
+  if (option.kind === 'landmark') return option.landmarkKind ?? 'landmark';
+  return 'place';
+}
+
+/** Suggestions from Gaff's own place index; before typing, this visit's places first. */
+async function findPlaces(query: string): Promise<PlaceSuggestions> {
+  const response = await fetch(`/api/places?q=${encodeURIComponent(query)}`);
+  if (!response.ok) throw new Error(`Place search: ${response.status}`);
+  const found = (await response.json()) as WhereSuggestions;
+  const groups = found.groups.map((group) => ({
+    label: groupLabels[group.kind],
+    options: group.items.map((item): PlaceOption => ({
+      id: item.slug,
+      name: item.name,
+      label: item.label,
+      description: item.description,
+      icon: iconOf(item),
+    })),
+  }));
+  if (query) return { groups, didYouMean: found.didYouMean };
+  const recent = recentPlaces();
+  const seen = new Set(recent.map((o) => o.id));
+  return {
+    groups: [
+      ...(recent.length ? [{ label: searchCopy.where.groups.recent, options: recent }] : []),
+      ...groups
+        .map((group) => ({ ...group, options: group.options.filter((o) => !seen.has(o.id)) }))
+        .filter((group) => group.options.length > 0),
+    ],
+    didYouMean: false,
+  };
+}
+
+function notFound(typed: string) {
+  return `${searchCopy.where.notFound(typed)} ${searchCopy.whereNotFound}`;
+}
 
 export function SearchControls({
   filters,
+  placeName,
   keepRent,
   today,
 }: {
   filters: SearchFilters;
+  /** The search's place as the index names it: "Ranelagh, Dublin 6". */
+  placeName: string;
   keepRent: boolean;
   /** Today in Ireland: the earliest move-in date. */
   today: string;
@@ -54,7 +106,7 @@ export function SearchControls({
   const [panel, setPanel] = useState<Panel | null>(null);
   const chips = filterKeys
     .filter((key) => filters[key] !== undefined)
-    .map((key) => ({ key, label: chipLabel(key, filters) }));
+    .map((key) => ({ key, label: chipLabel(key, filters, new Date(), placeName) }));
   const go = (next: SearchFilters) => {
     setPanel(null);
     router.push(searchHref(next, { rent: keepRent }));
@@ -78,6 +130,7 @@ export function SearchControls({
           key={panel}
           panel={panel}
           filters={filters}
+          placeName={placeName}
           today={today}
           onClose={() => setPanel(null)}
           onShow={(next) =>
@@ -103,6 +156,7 @@ const RENT_PROBLEM = 'Enter the most rent a month in euro, like 2,400.';
 function FilterSheet({
   panel,
   filters,
+  placeName,
   today,
   onClose,
   onShow,
@@ -110,6 +164,7 @@ function FilterSheet({
 }: {
   panel: Panel;
   filters: SearchFilters;
+  placeName: string;
   today: string;
   onClose: () => void;
   onShow: (filters: SearchFilters) => void;
@@ -119,7 +174,6 @@ function FilterSheet({
   const [where, setWhere] = useState(filters.where ?? '');
   const [rentError, setRentError] = useState<string | undefined>();
   const shows = (key: Panel) => panel === 'all' || panel === key;
-  const place = filters.where ? placeById(filters.where) : null;
   const words = searchCopy.labels;
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -176,17 +230,22 @@ function FilterSheet({
     >
       <form id={formId} className={styles.sheetForm} onSubmit={submit} noValidate>
         {shows('where') ? (
-          <AddressSearch
+          <PlaceSearch
             name="where-place"
             label={words.where}
-            defaultValue={place ? placeLabel(place) : ''}
-            search={findPlaces}
-            onPick={(option) => setWhere(option.id)}
+            defaultValue={placeName}
+            suggest={findPlaces}
+            onPick={(option) => {
+              setWhere(option.id);
+              rememberPlace(option);
+            }}
             onQueryChange={(query) => {
               if (!query.trim()) setWhere('');
             }}
-            notFound={searchCopy.whereNotFound}
-            foundWords={placeWords}
+            notFound={notFound}
+            didYouMeanLabel={searchCopy.where.didYouMean}
+            foundWords={searchCopy.where.found}
+            credit={{ text: searchCopy.where.credit, href: '/map-and-place-data' }}
           />
         ) : null}
         {shows('beds') ? (

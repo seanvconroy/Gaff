@@ -256,7 +256,6 @@ export const fromRow =
     ...(kind === 'area' && dublinAreaContexts[name] ? { context: dublinAreaContexts[name] } : {}),
   });
 
-
 /**
  * The first version's hand-checked places: every county and Dublin district, the main towns and
  * the Dublin areas. The place index keeps them as they are (slugs, names, radii and aliases), so
@@ -284,4 +283,3 @@ export const curatedPlaces: readonly Place[] = [
   ...towns.map(fromRow('town')),
   ...dublinAreas.map(fromRow('area')),
 ];
-

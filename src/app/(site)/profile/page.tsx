@@ -90,7 +90,7 @@ export default async function ProfilePage({
           }
         : null,
     keepsDetails: kept.keepsDetails,
-    looking: { searches: searchRows(saved.searches), alerts: saved.alerts },
+    looking: { searches: await searchRows(saved.searches), alerts: saved.alerts },
     nothingYet: !kept.exists,
     signIn: {
       methods: signIn.methods.map((method) => profileCopy.signIn.method(method)),

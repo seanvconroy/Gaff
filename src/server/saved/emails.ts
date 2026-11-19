@@ -13,6 +13,7 @@ import { openJson } from '@/lib/crypto';
 import { env } from '@/lib/env';
 import { formatRent } from '@/lib/format';
 import { publicHomePages } from '@/server/homes/public-homes';
+import { placeNames } from '@/server/search/where';
 
 /**
  * The emails of saved searches (UX-SR-10): the one that confirms an address, and the alert. Each
@@ -83,12 +84,18 @@ export async function sendSavedSearchEmail(payload: unknown): Promise<void> {
   const to = lead.email ?? lead.accountEmail;
   if (!to) return;
   const token = openJson<string>(lead.tokenSealed);
+  // Each search's place, as Gaff's own place index names it.
+  const names = await placeNames(searches.map((search) => filtersToKeep(search.filters)));
+  const wordsOf = (filters: unknown) => {
+    const kept = filtersToKeep(filters);
+    return searchWords(kept, new Date(), names.get(kept.where ?? '') ?? '');
+  };
 
   if (job.kind === 'confirm') {
     await send(
       to,
       confirmSearchEmail({
-        search: searchWords(filtersToKeep(lead.filters)),
+        search: wordsOf(lead.filters),
         confirmUrl: `${app}${alertPaths.confirm(token)}`,
       }),
       `saved-search-confirm-${lead.id}`,
@@ -115,7 +122,7 @@ export async function sendSavedSearchEmail(payload: unknown): Promise<void> {
     to,
     searchAlertEmail({
       homes,
-      searches: searches.map((search) => searchWords(filtersToKeep(search.filters))),
+      searches: searches.map((search) => wordsOf(search.filters)),
       searchUrl: `${app}${searchHref(filtersToKeep(lead.filters))}`,
       stopUrl: `${app}${alertPaths.stop(token)}`,
     }),

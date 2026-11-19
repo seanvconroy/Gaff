@@ -1,120 +1,146 @@
-import { counties } from '@/domain/lettings/new-letting';
-import { countyPlaces, dublinDistricts, type ListedPlace } from './places-list';
+import { curatedPlaces } from '@/domain/places/curated';
+import { COUNTY_POPULATION } from '@/domain/places/counties';
+import { parseRoutingKey, routingKeyAreaName } from '@/domain/places/eircode';
+import { isArea, type Gazetteer, type Place, type PlaceKind } from '@/domain/places/gazetteer';
+import { distanceMetres, distanceToLineMetres, type Point } from '@/domain/places/geo';
+import { normalise, queryWords } from '@/domain/places/normalise';
+import { rankSuggestions } from '@/domain/places/suggest';
+import { canonicalPlaceSlug, PLACE_SLUG } from './place-slug';
 
 /**
- * UX-SR-5: "Where" in a search is one of Gaff's own places: a county, a town, a Dublin postal
- * district or a neighbourhood. Words are matched against this list here, in Gaff's own code, and
- * a place is matched against a home's own address. Nothing is sent to a map or address provider
- * (rule 10), so no search leaves Gaff.
+ * UX-SR-4, UX-SR-5, M56, M113: "Where" in a search is one place from Gaff's own place index
+ * (ADR-0017): a county, city, town, village, Dublin district or area, an Eircode routing key, or
+ * a street, landmark or townland to search near. A search's address carries the place's slug.
+ * Nothing typed is sent to a map or address provider (rule 10): the index is Gaff's own copy.
+ *
+ * Domain code never loads the index. The server passes a Gazetteer in (src/server/places).
  */
 
-export type County = (typeof counties)[number];
-export type PlaceKind = 'county' | 'town' | 'district' | 'area';
+export { normalise };
+export { canonicalPlaceSlug, LEGACY_PLACE_IDS, MAX_PLACE_SLUG, PLACE_SLUG } from './place-slug';
+export type { Gazetteer, Place };
 
-export interface Place {
-  /** A stable slug, as the search's address carries it: "ranelagh", "dublin-6w". */
-  id: string;
-  name: string;
-  kind: PlaceKind;
-  county: County;
-  /** What else it is written as, already in `normalise` form. */
-  aliases: readonly string[];
-  /** For a neighbourhood or town: where it is, as a person would say it ("Dublin 6"). */
-  context: string | null;
-  /** The name is also an everyday word or a first name: a sentence must say "in" before it. */
-  cue: boolean;
-  /** A Dublin district's Eircode routing key, "D06" or "D6W". */
-  routingKey: string | null;
+/**
+ * What a search's place means:
+ * - an area: the home's address names it (UX-SR-4);
+ * - near: within a distance of a street, landmark or townland (M113);
+ * - a routing key: the home's Eircode starts with it.
+ */
+export type SearchPlace =
+  | { kind: 'area'; slug: string; place: Place }
+  | { kind: 'near'; slug: string; place: Place; withinMetres: number }
+  | { kind: 'routing_key'; slug: string; routingKey: string; town: string | null };
+
+/** M113: how far "near" reaches, by default: 1 km in Dublin or a city, 3 km elsewhere. */
+export const NEAR_IN_A_CITY_METRES = 1000;
+export const NEAR_ELSEWHERE_METRES = 3000;
+/** Within this of a city's centre, a street is a city street. */
+const CITY_REACH_METRES = 8000;
+
+export function defaultNearMetres(place: Place, g: Gazetteer): number {
+  if (place.county === 'Dublin') return NEAR_IN_A_CITY_METRES;
+  const inCity = g.places.some(
+    (p) => p.kind === 'city' && distanceMetres(p.centre, place.centre) <= CITY_REACH_METRES,
+  );
+  return inCity ? NEAR_IN_A_CITY_METRES : NEAR_ELSEWHERE_METRES;
+}
+
+/** The place a slug names, or null if the index doesn't know it. */
+export function searchPlace(slug: string, g: Gazetteer): SearchPlace | null {
+  const canonical = canonicalPlaceSlug(slug);
+  const place = g.bySlug(canonical);
+  if (place && isArea(place)) return { kind: 'area', slug: canonical, place };
+  if (place) {
+    return { kind: 'near', slug: canonical, place, withinMetres: defaultNearMetres(place, g) };
+  }
+  const key = PLACE_SLUG.test(canonical) ? parseRoutingKey(canonical) : null;
+  if (key) {
+    // A Dublin district is its own place: "d06" is Dublin 6.
+    const district = g.byRoutingKey(key);
+    if (district) return { kind: 'area', slug: district.slug, place: district };
+    return { kind: 'routing_key', slug: key.toLowerCase(), routingKey: key, town: null };
+  }
+  return null;
+}
+
+/** "Area in Cork city" → "Cork city"; "County Dublin" → "Co. Dublin". */
+function contextWords(context: string): string {
+  return context
+    .replace(/^(?:area|village|town|city|townland|suburb) (?:in|near) /i, '')
+    .replace(/\bCounty (?=[A-Z])/g, 'Co. ');
+}
+
+const countyWords = (county: string) => (county === 'Dublin' ? 'Co. Dublin' : `Co. ${county}`);
+
+/**
+ * How a place is named on a chip, in the place search and in a saved search: "Ranelagh,
+ * Dublin 6", "Bray, Co. Wicklow", "Co. Cork", "Near Highfield Road, Rathgar", "P17, Kinsale".
+ */
+export function placeLabel(where: SearchPlace): string {
+  if (where.kind === 'routing_key') {
+    const town = where.town ?? routingKeyAreaName(where.routingKey);
+    return town ? `${where.routingKey}, ${town}` : `Eircode area ${where.routingKey}`;
+  }
+  const { place } = where;
+  if (where.kind === 'near') {
+    const at = place.context ? contextWords(place.context).split(',')[0]!.trim() : '';
+    return at && normalise(at) !== normalise(place.name)
+      ? `Near ${place.name}, ${at}`
+      : `Near ${place.name}`;
+  }
+  switch (place.kind) {
+    case 'county':
+      return place.county === 'Dublin' ? 'Dublin' : `Co. ${place.name}`;
+    case 'district':
+    case 'city':
+      return place.name;
+    case 'area':
+      return place.context
+        ? `${place.name}, ${contextWords(place.context)}`
+        : `${place.name}, ${countyWords(place.county)}`;
+    default:
+      return `${place.name}, ${countyWords(place.county)}`;
+  }
 }
 
 /**
- * Text as places are compared: lower case, without accents, apostrophes or punctuation, single
- * spaces. "Harold’s Cross" and "harolds cross" are the same; so are "Dún Laoghaire" and "dun
- * laoghaire".
+ * The names a place goes by, normalised: its name (each side of a "/"), Irish name, aliases.
+ * In an address, "Cork city" is also written "Cork"; in a sentence, "Cork" is the county.
  */
-export function normalise(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .replace(/['’‘`]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
-}
-
-export const slug = (text: string): string => normalise(text).replace(/ /g, '-');
-
-function fromListed(listed: ListedPlace, kind: PlaceKind, county: County): Place {
-  return {
-    id: slug(listed.name),
-    name: listed.name,
-    kind,
-    county,
-    aliases: [...new Set([normalise(listed.name), ...(listed.aliases ?? []).map(normalise)])],
-    context: listed.context ?? (kind === 'town' ? `Co. ${county}` : null),
-    cue: listed.cue ?? false,
-    routingKey: null,
-  };
-}
-
-function district(code: (typeof dublinDistricts)[number]): Place {
-  const number = code.replace('W', '');
-  const west = code.endsWith('W');
-  const key = west ? 'D6W' : `D${number.padStart(2, '0')}`;
-  const said = west ? ['6w', '6 w'] : [number, number.padStart(2, '0')];
-  return {
-    id: `dublin-${code.toLowerCase()}`,
-    name: `Dublin ${code}`,
-    kind: 'district',
-    county: 'Dublin',
-    aliases: [...new Set(said.flatMap((n) => [`dublin ${n}`, `d${n}`, `d ${n}`]))],
-    context: null,
-    cue: false,
-    routingKey: key,
-  };
-}
-
-function buildPlaces(): readonly Place[] {
-  const all: Place[] = [];
-  for (const county of counties) {
-    const entry = countyPlaces[county];
-    all.push({
-      id: slug(county),
-      name: county,
-      kind: 'county',
-      county,
-      aliases: [normalise(county), ...(entry.aliases ?? [])],
-      context: null,
-      cue: entry.cue ?? false,
-      routingKey: null,
-    });
+export function namesOf(place: Place, inAddress = false): string[] {
+  const names = [
+    place.name,
+    ...place.name.split(' / '),
+    place.irishName,
+    ...(place.aliases ?? []),
+  ].filter((n): n is string => Boolean(n));
+  const said = names.map(normalise);
+  if (place.kind === 'district' && place.routingKey) said.push(...districtWords(place.routingKey));
+  if (place.kind === 'city' && inAddress) {
+    said.push(...said.filter((n) => n.endsWith(' city')).map((n) => n.slice(0, -5)));
   }
-  for (const code of dublinDistricts) all.push(district(code));
-  for (const county of counties) {
-    const entry = countyPlaces[county];
-    for (const town of entry.towns) all.push(fromListed(town, 'town', county));
-    for (const area of entry.areas ?? []) all.push(fromListed(area, 'area', county));
+  return [...new Set(said.filter(Boolean))];
+}
+
+const addressNames = new WeakMap<Place, string[]>();
+
+/** A place's names as an address would write them, worked out once for each place. */
+function addressNamesOf(place: Place): string[] {
+  let names = addressNames.get(place);
+  if (!names) {
+    names = namesOf(place, true).map(streetName);
+    addressNames.set(place, names);
   }
-  return all;
+  return names;
 }
 
-export const places: readonly Place[] = buildPlaces();
-const byId = new Map(places.map((place) => [place.id, place]));
-
-export function placeById(id: string): Place | null {
-  return byId.get(id) ?? null;
+/** "D06" is also "dublin 6", "dublin 06", "d6", "d 6" and "d06"; "D6W" is "dublin 6w" and "d6w". */
+function districtWords(routingKey: string): string[] {
+  const west = routingKey === 'D6W';
+  const number = west ? '6' : String(Number(routingKey.slice(1)));
+  const forms = west ? ['6w', '6 w'] : [number, number.padStart(2, '0')];
+  return forms.flatMap((n) => [`dublin ${n}`, `d${n}`, `d ${n}`]);
 }
-
-/** How a place is named on a chip and in the place search: "Ranelagh, Dublin 6", "Co. Cork". */
-export function placeLabel(place: Place): string {
-  if (place.kind === 'county') return place.county === 'Dublin' ? 'Dublin' : `Co. ${place.name}`;
-  return place.context ? `${place.name}, ${place.context}` : place.name;
-}
-
-/** The more specific a place, the better it says what the renter meant. */
-const specificity: Record<PlaceKind, number> = { county: 0, town: 1, district: 2, area: 3 };
-
-const CUES = new Set(['in', 'near', 'around', 'at', 'co', 'county', 'to', 'of']);
 
 /** Where `needle` (normalised) sits in `words`, as whole words. -1 if it doesn't. */
 function wordIndex(words: readonly string[], needle: string): number {
@@ -126,20 +152,159 @@ function wordIndex(words: readonly string[], needle: string): number {
   return -1;
 }
 
+/** What of a home a place is matched against: the home's own facts. */
+export interface HomeAddress {
+  addressLine1: string;
+  addressLine2: string | null;
+  area: string;
+  county: string;
+  eircode: string | null;
+  /**
+   * SEAM (the map package): where the home is. Homes carry no point yet; once they do, a "near"
+   * search measures the distance from the street or landmark, as M113 asks, instead of reading
+   * the address.
+   */
+  point?: Point | null;
+}
+
+const routingKeyOf = (eircode: string | null): string | null =>
+  eircode ? eircode.replace(/\s+/g, '').slice(0, 3).toUpperCase() : null;
+
+/** A street's name in one form: "Highfield Rd" and "Highfield Road" are both "highfield road". */
+export function streetName(street: string): string {
+  const words = queryWords(street);
+  return words
+    .map((forms, i) => {
+      if (forms.length === 1) return forms[0]!;
+      // "St" is a street at the end of a name, and a saint anywhere else.
+      return i === words.length - 1 ? forms[1]! : forms[forms.length - 1]!;
+    })
+    .join(' ');
+}
+
+const wordsOfHome = new WeakMap<HomeAddress, string[]>();
+
+function addressWords(home: HomeAddress): string[] {
+  const known = wordsOfHome.get(home);
+  if (known) return known;
+  // Each part of the address on its own, so "St" at the end of a part is that part's street.
+  const words = [home.addressLine1, home.addressLine2 ?? '', home.area]
+    .join(',')
+    .split(',')
+    .flatMap((part) => streetName(part).split(' '))
+    .filter(Boolean);
+  wordsOfHome.set(home, words);
+  return words;
+}
+
+/** The metres from a home's point to a street's line or a landmark's centre. */
+function metresFrom(place: Place, point: Point): number {
+  return place.line?.length
+    ? distanceToLineMetres(point, place.line)
+    : distanceMetres(place.centre, point);
+}
+
 /**
- * UX-SR-3, UX-MT-12: the place a sentence names, if it names one of Gaff's places. Where it
- * names several ("Ranelagh, Dublin 6"), the most specific wins, then the first said. A name
- * inside a longer one ("Dublin" in "Dublin 6W") is the longer one. A name that is also an
- * everyday word counts only after "in", "near" and the like: "no rush" isn't Rush.
+ * Whether a home is in a search's place (UX-SR-4, "Matched against the home's address"):
+ * - a county is the home's county;
+ * - a Dublin district is its Eircode's routing key, or the district written in its address;
+ * - a routing key is its Eircode's routing key;
+ * - a city, town, village or area is its name in the address, in the same county;
+ * - near a street, landmark or townland (M113): within the distance of it when the home has a
+ *   point (the map package's seam); until then, as far as the address allows: the street's name
+ *   in the address, or the landmark's neighbourhood, in the same county and routing key.
  */
-export function placeInSentence(sentence: string): Place | null {
+export function placeHasHome(where: SearchPlace, home: HomeAddress): boolean {
+  const homeKey = routingKeyOf(home.eircode);
+  if (where.kind === 'routing_key') return homeKey === where.routingKey;
+  const { place } = where;
+  if (home.county !== place.county) return false;
+  if (where.kind === 'near') {
+    if (home.point) return metresFrom(place, home.point) <= where.withinMetres;
+    if (place.routingKey && homeKey && homeKey !== place.routingKey) return false;
+    const words = addressWords(home);
+    if (place.kind === 'landmark') {
+      const at = place.context ? contextWords(place.context).split(',')[0]!.trim() : '';
+      if (at && wordIndex(words, streetName(at)) >= 0) return true;
+      return Boolean(place.routingKey && homeKey === place.routingKey);
+    }
+    return wordIndex(words, streetName(place.name)) >= 0;
+  }
+  if (place.kind === 'county') return true;
+  if (place.routingKey && place.kind === 'district' && homeKey === place.routingKey) return true;
+  const words = addressWords(home);
+  return addressNamesOf(place).some((name) => wordIndex(words, name) >= 0);
+}
+
+/** The more specific a place, the better it says what the renter meant. */
+const specificity: Record<PlaceKind, number> = {
+  county: 0,
+  city: 1,
+  town: 1,
+  village: 1,
+  district: 2,
+  area: 3,
+  townland: 3,
+  street: 4,
+  landmark: 4,
+};
+
+/** Words before a place that make it a place: "in Rush", "near Trim", "county Clare". */
+const CUES = new Set(['in', 'near', 'around', 'at', 'co', 'county', 'to', 'of']);
+
+/**
+ * Names of towns and counties that are also everyday words or first names. In a sentence, they
+ * (and every village, and every area beyond the curated base) count only after a cue: "no rush"
+ * isn't Rush, "Clare here" isn't County Clare.
+ */
+const EVERYDAY_NAMES = new Set([
+  'clare',
+  'kerry',
+  'shannon',
+  'douglas',
+  'mahon',
+  'rush',
+  'marino',
+  'sutton',
+  'callan',
+  'trim',
+  'clones',
+  'boyle',
+  'virginia',
+  'clara',
+  'knock',
+  'prosperous',
+  'tallow',
+  'milford',
+  'newport',
+  'enfield',
+  'kells',
+  'cashel',
+]);
+
+const curatedSlugs = new Set(curatedPlaces.map((p) => p.slug));
+
+function needsCue(place: Place, name: string): boolean {
+  if (place.kind === 'village') return true;
+  if (place.kind === 'area' && !curatedSlugs.has(place.slug)) return true;
+  return EVERYDAY_NAMES.has(name);
+}
+
+/**
+ * UX-SR-3, UX-MT-12: the place a sentence names, if it names one of the index's areas. Where it
+ * names several ("Ranelagh, Dublin 6"), the most specific wins, then one in a county the sentence
+ * also names, then a curated place, then the bigger place and county, then the first said. A name
+ * inside a longer one ("Dublin" in "Dublin 6W") is the longer one.
+ */
+export function placeInSentence(sentence: string, g: Gazetteer): Place | null {
   const words = normalise(sentence).split(' ').filter(Boolean);
+  if (words.length === 0) return null;
   const found: Array<{ place: Place; at: number; end: number }> = [];
-  for (const place of places) {
-    for (const alias of place.aliases) {
-      const at = wordIndex(words, alias);
-      if (at < 0 || (place.cue && !CUES.has(words[at - 1] ?? ''))) continue;
-      found.push({ place, at, end: at + alias.split(' ').length });
+  for (const place of g.places) {
+    for (const name of namesOf(place)) {
+      const at = wordIndex(words, name);
+      if (at < 0 || (needsCue(place, name) && !CUES.has(words[at - 1] ?? ''))) continue;
+      found.push({ place, at, end: at + name.split(' ').length });
     }
   }
   const whole = found.filter(
@@ -149,61 +314,32 @@ export function placeInSentence(sentence: string): Place | null {
           other.at <= one.at && other.end >= one.end && other.end - other.at > one.end - one.at,
       ),
   );
-  whole.sort((a, b) => specificity[b.place.kind] - specificity[a.place.kind] || a.at - b.at);
+  const counties = new Set(
+    whole.filter((f) => f.place.kind === 'county').map((f) => f.place.county),
+  );
+  whole.sort(
+    (a, b) =>
+      specificity[b.place.kind] - specificity[a.place.kind] ||
+      Number(counties.has(b.place.county)) - Number(counties.has(a.place.county)) ||
+      Number(curatedSlugs.has(b.place.slug)) - Number(curatedSlugs.has(a.place.slug)) ||
+      (b.place.population ?? 0) - (a.place.population ?? 0) ||
+      (COUNTY_POPULATION[b.place.county] ?? 0) - (COUNTY_POPULATION[a.place.county] ?? 0) ||
+      a.at - b.at,
+  );
   return whole[0]?.place ?? null;
 }
 
 /**
- * The place search under "Where" (UX-SR-4): places whose name, or a word of it, starts with what
- * was typed. Runs in the visitor's own browser against this list; nothing typed is sent anywhere.
+ * States table, "Gaff didn't understand the words": the words tried as a place search. The best
+ * area whose name matches what was typed; or, when only a near spelling does, nothing, with the
+ * near spelling offered as "Did you mean …?".
  */
-export function searchPlaces(typed: string, limit = 8): Place[] {
-  const query = normalise(typed);
-  if (!query) return [];
-  const scored: Array<{ place: Place; score: number }> = [];
-  for (const place of places) {
-    let score = -1;
-    for (const alias of place.aliases) {
-      if (alias === query) score = Math.max(score, 3);
-      else if (alias.startsWith(query)) score = Math.max(score, 2);
-      else if (alias.split(' ').some((word) => word.startsWith(query))) score = Math.max(score, 1);
-    }
-    if (score >= 0) scored.push({ place, score });
-  }
-  return scored
-    .sort(
-      (a, b) =>
-        b.score - a.score ||
-        specificity[a.place.kind] - specificity[b.place.kind] ||
-        a.place.name.localeCompare(b.place.name, 'en-IE', { numeric: true }),
-    )
-    .slice(0, limit)
-    .map(({ place }) => place);
-}
-
-/** What of a home's address a place is matched against: the home's own facts. */
-export interface HomeAddress {
-  addressLine1: string;
-  addressLine2: string | null;
-  area: string;
-  county: string;
-  eircode: string | null;
-}
-
-const routingKeyOf = (eircode: string | null): string | null =>
-  eircode ? eircode.replace(/\s+/g, '').slice(0, 3).toUpperCase() : null;
-
-/**
- * Whether a home is in a place (UX-SR-4, "Matched against the home's address"). A county is the
- * home's county. A Dublin district is its Eircode's routing key, or the district written in its
- * address. A town or a neighbourhood is its name in the address, in the same county.
- */
-export function placeHasHome(place: Place, home: HomeAddress): boolean {
-  if (home.county !== place.county) return false;
-  if (place.kind === 'county') return true;
-  if (place.routingKey && routingKeyOf(home.eircode) === place.routingKey) return true;
-  const words = normalise([home.addressLine1, home.addressLine2 ?? '', home.area].join(' ')).split(
-    ' ',
-  );
-  return place.aliases.some((alias) => wordIndex(words, alias) >= 0);
+export function guessPlace(
+  typed: string,
+  g: Gazetteer,
+): { place: Place | null; didYouMean: Place | null } {
+  const ranked = rankSuggestions(typed, g.places);
+  const best = ranked.groups[0]?.items[0]?.place ?? null;
+  if (!best) return { place: null, didYouMean: null };
+  return ranked.didYouMean ? { place: null, didYouMean: best } : { place: best, didYouMean: null };
 }

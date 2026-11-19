@@ -4,6 +4,7 @@ import { searchHref } from '@/domain/search/filters';
 import { parseSearch } from '@/domain/search/parse';
 import { irishToday } from '@/lib/format';
 import { noteFunnelStep } from '@/server/funnels/steps';
+import { loadGazetteer } from '@/server/places/places';
 
 /**
  * UX-SR-3, UX-SR-11, UX-MT-12, UX-MT-13: a renter's words in the search box become the search's
@@ -21,12 +22,22 @@ const wordsSchema = z.object({
 
 export type WordsOutcome = { href: string; understood: boolean };
 
-export function searchFromWords(input: unknown, now: Date = new Date()): WordsOutcome {
+export async function searchFromWords(
+  input: unknown,
+  now: Date = new Date(),
+): Promise<WordsOutcome> {
   const { words, rent } = wordsSchema.parse(input);
-  const { filters, understood } = parseSearch(words, irishToday(now));
+  // The index's areas, which a sentence's place is looked for among (ADR-0017).
+  const g = await loadGazetteer();
+  const { filters, understood, didYouMean } = parseSearch(words, irishToday(now), g);
   if (!understood) {
-    // States table: nothing understood. The address says so, and holds nothing of the words.
-    const params = new URLSearchParams({ unclear: '1', ...(rent ? { rent } : {}) });
+    // States table: nothing understood. The address says so, and holds nothing of the words:
+    // at most the slug of a place whose name they nearly were, for "Did you mean …?".
+    const params = new URLSearchParams({
+      unclear: '1',
+      ...(didYouMean ? { maybe: didYouMean } : {}),
+      ...(rent ? { rent } : {}),
+    });
     return { href: `/?${params.toString()}`, understood };
   }
   return { href: searchHref(filters, { rent: rent === '1' }), understood };

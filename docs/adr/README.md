@@ -20,6 +20,7 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0014](0014-vercel-supabase-approved-vendors.md) | Vercel and Supabase, with approved vendors instead of EU-only | Accepted |
 | [0015](0015-sign-in-google-apple-codes-passkeys.md) | People with accounts sign in with Google, Apple, an email code or a passkey; private links unchanged | Accepted |
 | [0016](0016-one-person-several-roles.md) | One person, several roles; a silent organisation for a private landlord; profiles outside every organisation | Accepted; extends 0004 |
+| [0017](0017-one-ai-provider-with-usage-budget-and-switches.md) | One AI provider (the Claude API on the test copy, Bedrock in Dublin in production) for three tasks, with a usage log, a monthly budget and switches | Proposed; amends 0009 |
 
 ## Template
 

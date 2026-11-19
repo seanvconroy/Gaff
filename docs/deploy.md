@@ -4,7 +4,7 @@ Gaff is one Next.js app on Vercel, with its functions in Dublin, and one Postgre
 
 This sets up the **test copy**, for the end-to-end test in [testing-guide.md](testing-guide.md):
 - Emails and texts aren't sent. They appear on the Outbox page.
-- The AI and the ID and income checks are stand-ins.
+- The ID and income checks are stand-ins. The AI is a stand-in too, unless you give it the Claude API's key (see [The AI](#the-ai)).
 - **Use made-up details only.**
 
 It takes about 20 minutes. Production uses the same steps with real providers; see [Production, later](#production-later).
@@ -50,6 +50,8 @@ It takes about 20 minutes. Production uses the same steps with real providers; s
    | `GAFF_ENV` | `staging` |
 
    For the random values, use a password manager's generator, or run `openssl rand -hex 32` in a terminal.
+
+   To try the real model, add the settings in [The AI](#the-ai) too. Without them, a stand-in answers.
 3. **Deploy.** The build applies the database migrations first, then builds the app. It takes 3 to 5 minutes.
 
 Vercel deploys the repository's default branch, `claude/gaff-mvp`, as production. You can check this in **Settings**, **Environments**, **Production**, under **Branch Tracking**. Every push to that branch deploys again.
@@ -107,6 +109,36 @@ An agency finds itself by name on Gaff's copy of the PSRA's register of licensed
 - **If the file isn't what's expected, the refresh fails loudly** and Gaff's copy stays as it was. The log names the row and the column, never what the row said. A file that has lost more than half of its businesses is refused too, so a download cut short can't tell every agency its licence has lapsed.
 - **What a lapse does.** An agency missing from a week's register is marked lapsed and its admins are emailed. Its live lettings carry on. No new one goes live until the register lists it again.
 
+## The AI
+
+Gaff's AI does three tasks: it answers renters' questions from a letting's facts (`answers`), reads a pasted advert into a letting (`advert`), and reads an operator's question about who has enquired (`people`). All three go through one adapter and one log ([ADR-0017](adr/0017-one-ai-provider-with-usage-budget-and-switches.md)). Where it can't help, people take over: questions go to the letting team, the advert is filled in by hand, and the people question gets its fixed reply.
+
+- **The test copy and development use the Claude API**, with the founders' credits and made-up details only. Production refuses it: real renters' data never goes there.
+
+  | Name | Value |
+  | --- | --- |
+  | `AI_PROVIDER` | `anthropic` |
+  | `ANTHROPIC_API_KEY` | a key from the Claude Console, for this test copy alone |
+
+- **Production uses Claude on Amazon Bedrock in Dublin**, with invocation logging off.
+
+  | Name | Value |
+  | --- | --- |
+  | `AI_PROVIDER` | `bedrock` |
+  | `AWS_REGION` | `eu-west-1` |
+  | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | an IAM user allowed to call Bedrock in `eu-west-1` and nothing else |
+
+- **Either way:**
+
+  | Name | Value |
+  | --- | --- |
+  | `AI_MODEL` | `claude-opus-5-5` unless set. Bedrock adds its `anthropic.` prefix itself. Change it only once that task's evals pass on the new model |
+  | `AI_MONTHLY_BUDGET_USD` | the month's AI spend, in US dollars, `100` unless set. At 80%, everyone on `STAFF_EMAILS` gets one email. At 100%, the AI pauses until the 1st of next month, or until you raise this and redeploy |
+  | `AI_TASKS_OFF` | tasks to switch off without a code change, separated by commas: `answers`, `advert`, `people`, or `all`. Empty unless set. Change it in Vercel and redeploy |
+
+- **Every call is logged** in the `ai_calls` table: its task, model, prompt version, tokens, estimated cost, time and outcome, never its words. Only Gaff's own jobs read it. The nightly job deletes rows over 12 months old. In Supabase's **SQL Editor**, `select task, outcome, count(*), sum(cost_micros) / 1e6 as dollars from ai_calls where occurred_at >= date_trunc('month', now()) group by 1, 2` shows the month so far.
+- **Before changing a prompt or the model,** run its golden set against the real model: `pnpm evals` prints what it would cost, and `pnpm evals advert --confirm` (or `answers`, `people`) runs it and saves the results under `tests/evals/results/`. Commit them with the change. Evals never run in CI.
+
 ## Good to know
 
 - **Vercel's sign-in protects the test copy.** New Vercel projects ask for a Vercel sign-in on every `vercel.app` address, so only you can open the test copy and its Outbox, which shows every email, sign-in codes included. Keep it on. Sign in to Vercel once on your phone too. The minute tick passes it with the project's automation bypass secret. Production, on Gaff's own domain, is open to renters and has no Outbox.
@@ -134,11 +166,11 @@ Before the first real renter (see [launch-checklist.md](launch-checklist.md)):
   | `INBOUND_DOMAIN` | e.g. `in.gaff.ie` |
   | `MAIL_FROM_DOMAIN` | e.g. `mail.gaff.ie` |
   | SMS | the Sinch settings |
-  | AI | the Bedrock settings and AWS keys |
+  | AI | `AI_PROVIDER=bedrock`, `AWS_REGION`, the AWS keys and `AI_MONTHLY_BUDGET_USD` (see [The AI](#the-ai)). Never `ANTHROPIC_API_KEY`: production refuses it |
   | `IDENTITY_PROVIDER`, `INCOME_PROVIDER` | `none` |
   | `PSRA_REGISTER_SOURCE`, `PSRA_REGISTER_URL` | `url`, and the address of the PSRA register's download, once its format has been checked (see "The PSRA register") |
   | `ADDRESS_SEARCH` | `off`: the address is typed into the manual fields. Autoaddress is added once its DPA is signed (Q40) |
-  | `ADVERT_READER` | `on` (the default): a pasted advert is read with the AI provider above, Claude on Bedrock in the EU. `off`: adding a letting offers only "Fill it in myself". Nothing is ever fetched from a link (Q31) |
+  | `ADVERT_READER` | `on` (the default): a pasted advert is read with the AI provider above, Claude on Bedrock in the EU, unless `AI_TASKS_OFF` names `advert`. `off`: adding a letting offers only "Fill it in myself". Nothing is ever fetched from a link (Q31) |
   | `PHOTO_STORE`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `PHOTO_BUCKET` | `supabase`, the project's address (`https://<ref>.supabase.co`), its service-role key, and the bucket for homes' photos (`homes` unless set). Create the bucket as **private** in the Ireland project: browsers load photos from Gaff's own address, which reads them from the bucket. Photos of homes only, never anything personal |
   | `SEARCH_INDEXING` | `on`, in production only: search engines may index live homes' public pages (UX-LS-11). Leave it unset (`off`) on staging and preview deployments, so a test copy is never found. It is read at build time too, so redeploy after changing it |
   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | from a Google OAuth client (web application), with the redirect URI `https://<domain>/api/auth/callback/google`. Without both, "Continue with Google" isn't shown |

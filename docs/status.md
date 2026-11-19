@@ -26,7 +26,7 @@ Sean agreed the plan on 19 November 2026. The decisions are Q50 to Q54 in [open-
 
 | Stage | Package | Status |
 | --- | --- | --- |
-| 1. Before the switch | BA-1 a test copy that is safe on a public address (staff-only dev tools, no sign-in stand-in, real email, banner, robots, test enquiries) | In progress |
+| 1. Before the switch | BA-1 a test copy that is safe on a public address (staff-only dev tools, no sign-in stand-in, real email, banner, robots, test enquiries) | **Done**, 19 November 2026. Wherever email is really sent, everything under `/dev` except the component page is for Gaff's team only, and the Google and Apple stand-in exists only in development and tests. On the test copy the stand-in ID and income checks are therefore staff-only until BA-6. `tests/compliance/dev-tools.test.ts`, `tests/integration/ba1-test-copy.test.ts`, `tests/e2e/ba1-test-copy.spec.ts` |
 | 1 | BA-2 the place index (M56, M113, M114, M121, M124) | In progress |
 | 1 | BA-3 one Claude adapter with a usage log, a budget and switches (P1 to P9) | In progress |
 | 1 | BA-4 made-up agencies, homes and photos seeded by the build | Next |

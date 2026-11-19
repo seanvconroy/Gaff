@@ -1,4 +1,4 @@
-import { gte, lt, sql } from 'drizzle-orm';
+import { and, gte, lt, sql } from 'drizzle-orm';
 import { aiProvider } from '@/adapters/ai';
 import { emailSender, gaffSender } from '@/adapters/email';
 import { aiBudgetWarningEmail } from '@/copy/ai-budget';
@@ -39,15 +39,17 @@ export function forgetAiSpend(): void {
 }
 
 export async function monthSpendMicros(now: Date = new Date()): Promise<number> {
-  const month = monthStart(now).getTime();
+  const start = monthStart(now);
+  const month = start.getTime();
   if (spendCache && spendCache.month === month && Date.now() - spendCache.readAt < SPEND_CACHE_MS) {
     return spendCache.micros;
   }
+  const next = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
   const [row] = await withSystem((tx) =>
     tx
       .select({ micros: sql<string>`coalesce(sum(${aiCalls.costMicros}), 0)` })
       .from(aiCalls)
-      .where(gte(aiCalls.occurredAt, new Date(month))),
+      .where(and(gte(aiCalls.occurredAt, start), lt(aiCalls.occurredAt, next))),
   );
   const micros = Number(row?.micros ?? 0);
   spendCache = { month, micros, readAt: Date.now() };

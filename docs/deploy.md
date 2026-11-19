@@ -3,8 +3,9 @@
 Gaff is one Next.js app on Vercel, with its functions in Dublin, and one Postgres database on Supabase, in Ireland ([ADR-0014](adr/0014-vercel-supabase-approved-vendors.md)).
 
 This sets up the **test copy**, for the end-to-end test in [testing-guide.md](testing-guide.md):
-- Emails and texts aren't sent. They appear on the Outbox page.
-- The AI and the ID and income checks are stand-ins.
+- **Email is real** for real addresses, through Resend with a send-only key. Mail to made-up addresses (`example.com`, `example.ie`, `.test`, `.example` and the like) goes to the Outbox instead. Replies by email can't be received, so each email that would invite a reply says to use its link instead.
+- Texts aren't sent; they appear on the Outbox page. The AI and the ID and income checks are stand-ins.
+- It's open to anyone with the address, never indexed, and every page has a banner saying it's the test copy. The Outbox, the test inbox and the stand-in checks are for Gaff's own team only (`STAFF_EMAILS`); anyone else gets "not found". There is no stand-in for Google or Apple: without their real keys, their buttons aren't shown.
 - **Use made-up details only.**
 
 It takes about 20 minutes. Production uses the same steps with real providers; see [Production, later](#production-later).
@@ -39,17 +40,23 @@ It takes about 20 minutes. Production uses the same steps with real providers; s
 ## 2. The app (Vercel)
 
 1. **Import the project.** Choose **Add New**, then **Project**, and import `seanvconroy/Gaff`. Vercel finds Next.js and pnpm on its own.
-2. **Add the settings.** Before deploying, open **Environment Variables** and add these four:
+2. **Add the settings.** Before deploying, open **Environment Variables** and add these:
 
    | Name | Value |
    | --- | --- |
    | `DATABASE_URL` | the address from step 1.4 |
    | `AUTH_SECRET` | 32 or more random letters and digits |
    | `CRON_SECRET` | another 32 or more random letters and digits |
-   | `STAFF_EMAILS` | the founders' sign-in emails, separated by commas. They can open `/internal/agencies` and `/internal/funnels`; nobody else can |
+   | `STAFF_EMAILS` | the founders' sign-in emails, separated by commas. They can open `/internal/agencies`, `/internal/funnels`, the Outbox and the test inbox; nobody else can. On the test copy alone, `TEST_STAFF_EMAILS` (the older name) is read as part of the same list |
    | `GAFF_ENV` | `staging` |
+   | `EMAIL_PROVIDER` | `resend` |
+   | `RESEND_API_KEY` | a Resend key with **sending access** only, limited to the sending domain |
+   | `MAIL_FROM_DOMAIN` | a domain verified in Resend, in `eu-west-1` |
+   | `TEST_EMAIL_RECIPIENTS` | optional: real email goes only to these addresses, or `@domain` for a whole domain, separated by commas; everyone else's goes to the Outbox. Unset, every real address gets real email |
 
-   For the random values, use a password manager's generator, or run `openssl rand -hex 32` in a terminal.
+   For the random values, use a password manager's generator, or run `openssl rand -hex 32` in a terminal. Without `RESEND_WEBHOOK_SECRET` (and a real `INBOUND_DOMAIN` with receiving set up), the test copy sends email but doesn't receive it: replies go through the links in each email, and each email says so. Production refuses `TEST_EMAIL_RECIPIENTS` and `TEST_STAFF_EMAILS`.
+
+   **Keep real email on.** The Outbox is closed to strangers only where email is really sent. With `EMAIL_PROVIDER` left at `dev`, every email, sign-in codes included, sits in an Outbox anyone can open, which is only safe behind Vercel's own sign-in (see "Good to know").
 3. **Deploy.** The build applies the database migrations first, then builds the app. It takes 3 to 5 minutes.
 
 Vercel deploys the repository's default branch, `claude/gaff-mvp`, as production. You can check this in **Settings**, **Environments**, **Production**, under **Branch Tracking**. Every push to that branch deploys again.
@@ -67,7 +74,7 @@ Vercel deploys the repository's default branch, `claude/gaff-mvp`, as production
    | `"database": "XX000"` | The user name should be `gaff.` followed by your project's reference. |
    | `"database": "42P01"` | The tables aren't there. Check the build log for the migration step. |
 
-2. **Sign in.** Open the app and sign in with a made-up email, then enter the six-digit code from the email in `/dev/outbox`.
+2. **Sign in.** Open the app and sign in with your own email (one in `STAFF_EMAILS`), then enter the six-digit code from the email in your inbox. Then open `/dev/outbox`: it should open for you, and say "not found" in a private window.
 3. **The daily job.** In Vercel, **Settings**, then **Cron Jobs**, shows `/api/cron/daily` once a day.
 
 ## 4. The minute tick (Supabase)
@@ -109,9 +116,15 @@ An agency finds itself by name on Gaff's copy of the PSRA's register of licensed
 
 ## Good to know
 
-- **Vercel's sign-in protects the test copy.** New Vercel projects ask for a Vercel sign-in on every `vercel.app` address, so only you can open the test copy and its Outbox, which shows every email, sign-in codes included. Keep it on. Sign in to Vercel once on your phone too. The minute tick passes it with the project's automation bypass secret. Production, on Gaff's own domain, is open to renters and has no Outbox.
+- **Who can open what.** The test copy has a public address, and Vercel's sign-in (Vercel Authentication) doesn't cover it: in **Settings**, **Deployment Protection**, it covers **preview deployments only**, so testers can use the test copy on any device and previews (which share its database) stay private. What keeps the test copy safe is Gaff itself:
+  - Everything under `/dev` that shows or changes anything (the Outbox, the test inbox, the stand-in checks) is for Gaff's own team only (`STAFF_EMAILS`) wherever email is really sent. Anyone else, signed in or not, gets "not found". `/dev/ui` stays open: it shows components with made-up words, and nothing from the database.
+  - The Google and Apple stand-in exists only in local development and tests, never on staging or in production, so nobody can sign in as somebody else. Without real keys, those buttons aren't shown.
+  - "Add test enquiries", in a live letting's menu, brings five made-up renters from Daft and MyHome, most with answers. Their mail goes to the Outbox.
+  - Production, on Gaff's own domain, has the development tools off and no Outbox.
+- **Google and Apple sign-in** send the browser on to `accounts.google.com` and `appleid.apple.com`. The page's security policy allows each one once its keys are set, and it's fixed when the app is built: redeploy after adding them.
 - **Preview deployments** of other branches share the test database but never migrate it.
-- **Search engines don't index the test copy.** Every page says `noindex` unless `SEARCH_INDEXING=on`, which is set in production alone (UX-LS-11). Leave it unset here.
+- **Search engines don't index the test copy.** Every page says `noindex`, and `robots.txt` disallows everything, unless `SEARCH_INDEXING=on`, which is set in production alone (UX-LS-11). Leave it unset here.
+- **Settings left over from the earlier test copy** (`MARKETPLACE_PUBLIC`, `STORAGE_PROVIDER`, `STRIPE_SECRET_KEY`, `STRIPE_IDENTITY_WEBHOOK_SECRET`) are ignored and can be deleted. `IDENTITY_PROVIDER=stripe` isn't accepted yet: remove it, or set `stand_in`, until Stripe Identity is brought across. Sign in with Apple here takes `APPLE_CLIENT_ID` with `APPLE_CLIENT_SECRET` (a signed token), not the team, key ID and private key the earlier copy used: with `APPLE_CLIENT_ID` alone, the app won't start, so set the secret or remove the ID.
 - **Logs:** Vercel shows function logs per request. They hold IDs and counts, never personal data.
 - **Seeing the data:** Supabase's **Table Editor** shows Gaff's tables. Remember it's the test copy: made-up details only.
 
@@ -130,7 +143,7 @@ Before the first real renter (see [launch-checklist.md](launch-checklist.md)):
   | `DATABASE_CA_CERT` | the whole certificate from Supabase, **Database Settings**, **SSL Configuration**, **Download certificate**. With it, the database's certificate is checked. |
   | `EMAIL_PROVIDER` | `resend` |
   | `RESEND_API_KEY` | from Resend |
-  | `RESEND_WEBHOOK_SECRET` | from Resend |
+  | `RESEND_WEBHOOK_SECRET` | from Resend. Required in production, which receives replies and forwarded enquiries |
   | `INBOUND_DOMAIN` | e.g. `in.gaff.ie` |
   | `MAIL_FROM_DOMAIN` | e.g. `mail.gaff.ie` |
   | SMS | the Sinch settings |

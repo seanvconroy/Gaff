@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import '@/styles/tokens.css';
 import '@/styles/fonts.css';
 import '@/styles/base.css';
+import { isTestCopy, TestCopyBanner } from '@/ui/TestCopyBanner';
 
 export const metadata: Metadata = {
   title: { default: 'Gaff', template: '%s · Gaff' },
@@ -29,7 +30,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           crossOrigin="anonymous"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {/* BA-1: the test copy says so on every page. Read from the process, as the build sees it. */}
+        {isTestCopy(process.env.GAFF_ENV) ? <TestCopyBanner /> : null}
+        {children}
+      </body>
     </html>
   );
 }

@@ -211,6 +211,7 @@ Every component adapts between phone and desktop. "Status" says whether it exist
 | **Show more** | Long text, such as a home's description | Three lines, then "Show more" | Same | Built (`src/ui/ShowMore`) |
 | **Map** | Where a home is; search results | Behind a "Map" button | Beside the list | Not built: serving a map from Gaff's own copy of OpenStreetMap isn't practical yet, so search shows the list alone (OQ-7; `docs/open-questions.md` Q49) |
 | **Sign-in buttons** | Google, Apple | The providers' own required styles | Same | New |
+| **Test copy banner** | On every page of the test copy (`GAFF_ENV=staging`) alone: it is the test copy, so use made-up details | A line across the top of the page, above everything else: an icon and the words, on the info tint | Same | Built (`src/ui/TestCopyBanner`, BA-1), in the root layout. Never in development, tests or production |
 
 **UX-DS-16.** Every screen in this PRD is built only from these components. A screen that needs something else adds it here first. `[P12]`
 

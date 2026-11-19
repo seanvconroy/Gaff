@@ -17,6 +17,20 @@ export const listingReportSchema = z
       .string()
       .optional()
       .transform((value) => value?.replace(/\r\n/g, '\n').trim() || undefined),
+    /**
+     * BA-9 (M96): an address to hear the outcome at, if the visitor wants it. Used for that one
+     * email, and deleted once it's sent, or with the case.
+     */
+    email: z
+      .string()
+      .optional()
+      .transform((value) => value?.trim() || undefined)
+      .pipe(
+        z
+          .email({ error: 'Enter an email address, like aoife@example.ie, or leave it blank' })
+          .max(254, { error: 'Enter an email address, like aoife@example.ie, or leave it blank' })
+          .optional(),
+      ),
   })
   .superRefine((value, ctx) => {
     if (value.reason !== 'something_else') return;
@@ -28,38 +42,32 @@ export const listingReportSchema = z
   })
   // A note goes with "Something else" only: any other answer says all it needs to.
   .transform((value) =>
-    value.reason === 'something_else' ? value : { reason: value.reason, note: undefined },
+    value.reason === 'something_else'
+      ? value
+      : { reason: value.reason, note: undefined, email: value.email },
   );
 
 export type ListingReport = z.output<typeof listingReportSchema>;
 
 /**
- * UX-TS-3 (rule 9): what is kept of a report, and for how long. A report holds the home it is
- * about, the answer tapped, the short note that goes with "Something else", and when it was
- * sent. Nothing about whoever sent it: no account, name, address, IP address or device.
+ * UX-TS-3, BA-9 (rule 9): what is kept of a report, and for how long. A report holds the home it
+ * is about, its case, the answer tapped, the short note that goes with "Something else", when
+ * it was sent, and an email address only if the visitor asked to hear the outcome (deleted once
+ * the outcome is sent). Nothing else about whoever sent it: no account, name, IP address or
+ * device.
  *
- * It is kept for six months after Gaff's team answered it, so a lister can ask for the decision
- * to be looked at again in that time (EU Digital Services Act, article 20). While it waits for
- * an answer, the six months run from when it was sent. The retention job deletes it then.
+ * A case and its reports are kept for six months after a person decided it, so a lister can
+ * ask for the decision to be looked at again in that time (EU Digital Services Act, article
+ * 20). While it waits, the six months run from when it opened. The retention job deletes it.
  */
 export const REPORT_KEPT_DAYS = 183;
 
 const DAY_MS = 86_400_000;
 
-/** When a report is deleted: six months after it was answered (or sent, while it waits). */
+/** When a case and its reports are deleted: six months after it was decided (or opened). */
 export function reportDeleteAfter(from: Date): Date {
   return new Date(from.getTime() + REPORT_KEPT_DAYS * DAY_MS);
 }
-
-/** UX-TS-4: what Gaff's team did about a report: hid the listing, or kept it up. */
-export const reportOutcomes = ['hidden', 'kept_up'] as const;
-export type ReportOutcome = (typeof reportOutcomes)[number];
-
-/** UX-TS-4: why a listing is hidden: one of the reasons a visitor can give, chosen by staff. */
-export const hideListingSchema = z.object({
-  lettingId: z.uuid(),
-  reason: z.enum(reportReasons, { error: 'Choose why it’s being hidden' }),
-});
 
 /**
  * UX-TS-4: the reason offered first when hiding a listing: the one most of its reports gave,

@@ -312,6 +312,12 @@ export function describeEvent(
       return { what: 'Checks requested', detail: `${data.checks} to do` };
     case 'check.started':
       return { what: data.kind === 'identity' ? 'ID check started' : 'Income check started' };
+    case 'check.redacted':
+      return { what: 'ID check’s photos deleted by the ID service' };
+    case 'booking.mobile_code_sent':
+      return { what: 'Texted a code to confirm their mobile' };
+    case 'booking.mobile_confirmed':
+      return { what: 'Mobile confirmed' };
     case 'reference.requested':
       return {
         what:

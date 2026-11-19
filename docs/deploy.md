@@ -59,7 +59,7 @@ It takes about 20 minutes. Production uses the same steps with real providers; s
    **Keep real email on.** The Outbox is closed to strangers only where email is really sent. With `EMAIL_PROVIDER` left at `dev`, every email, sign-in codes included, sits in an Outbox anyone can open, which is only safe behind Vercel's own sign-in (see "Good to know").
 
    To try the real model, add the settings in [The AI](#the-ai) too. Without them, a stand-in answers.
-3. **Deploy.** The build applies the database migrations first, then loads the place index (below), then builds the app. It takes 3 to 5 minutes; the first deploy with the place index takes about half a minute more.
+3. **Deploy.** The build applies the database migrations first, then loads the place index (below), then adds the test copy's made-up homes ([The made-up homes](#the-made-up-homes-the-test-copy-only)), then builds the app. It takes 3 to 5 minutes; the first deploy on an empty database takes about half a minute more.
 
 Vercel deploys the repository's default branch, `claude/gaff-mvp`, as production. You can check this in **Settings**, **Environments**, **Production**, under **Branch Tracking**. Every push to that branch deploys again.
 
@@ -254,6 +254,22 @@ pnpm build:map && pnpm test:map
   The GitHub workflow **Build the place index** (`.github/workflows/places.yml`) does the same every quarter, or on demand, and opens a pull request with the new file.
 - **Attribution.** The data is © OpenStreetMap contributors (ODbL 1.0). The place search says so under its suggestions, and `/map-and-place-data` (linked under the search) credits it in full.
 - **Misses.** What renters typed that matched nothing is counted by day in `place_misses`, with no digits, person or device, and the nightly job deletes it after 30 days. The most common misses are the places to add as aliases.
+
+## The made-up homes (the test copy only)
+
+The test copy opens with homes to search, find on the map and ask to view, and lettings to run, so nobody has to set any up first (`src/server/dev/seed.ts`):
+- **Liffey Quay**, an agency in Dublin, with four homes: Ranelagh, Rathmines, Drumcondra and Portobello;
+- **Corrib Homes Limited**, an agency in Galway, with three: Salthill, the city centre and Knocknacarra;
+- **Siobhán**, a private landlord in Cork, with two: Ballintemple and the city centre.
+
+The agencies are on the made-up sample register (licences `001239` and `001236`), so the made-up homes need `PSRA_REGISTER_SOURCE` left at `sample`, as it is on the test copy. Their people have made-up addresses (`ann@liffey-quay.test`, `cian@corrib-homes.test`, `siobhan.daly@example.ie`), so their email goes to the Outbox.
+
+- **When it runs.** Each deploy runs `pnpm db:seed --deploy` after the place index. It seeds only the test copy's production deployment (`GAFF_ENV=staging`): never production, never a preview, which shares the test copy's database. If it fails, the build log says why and the deploy carries on.
+- **Everything through the product.** Each agency is found on the register, claimed by its admin and confirmed as Gaff's team would; the landlord confirms it's them; each home is added, given its letting details, photos (through the photo pipeline, [ADR-0023](adr/0023-photo-pipeline.md)), a pin, a rent check and viewing times, and put live by its lister's decision. So every row and event is one the product writes itself. On an empty database, the seed loads the sample register first, as the daily job would.
+- **Safe every time.** It adds what's missing and changes nothing a tester made. A seeded home that's there gets only more viewing times, when it has fewer than two sessions ahead; a photo or pin a tester added stays; a closed letting stays closed.
+- **How long.** About 10 seconds on an empty database (28 photos through the pipeline; a little more with each one sent to Supabase Storage), and under a second after that.
+- **The photos** are in `data/seed-photos/`, real photos supplied for the test copy only (see its README).
+- **Locally**, `pnpm db:seed` adds the same homes to your own database after `pnpm db:migrate` and `pnpm places:load`.
 
 ## The ID check (Stripe Identity)
 

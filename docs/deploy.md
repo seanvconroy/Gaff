@@ -47,7 +47,7 @@ It takes about 20 minutes. Production uses the same steps with real providers; s
    | `DATABASE_URL` | the address from step 1.4 |
    | `AUTH_SECRET` | 32 or more random letters and digits |
    | `CRON_SECRET` | another 32 or more random letters and digits |
-   | `STAFF_EMAILS` | the founders' sign-in emails, separated by commas. They can open `/internal/agencies`, `/internal/funnels`, the Outbox and the test inbox; nobody else can. On the test copy alone, `TEST_STAFF_EMAILS` (the older name) is read as part of the same list |
+   | `STAFF_EMAILS` | the founders' sign-in emails, separated by commas. They can open `/internal/agencies`, `/internal/funnels`, the Outbox and the test inbox; nobody else can. Name at least two people: an appeal about a hidden listing must be decided by someone other than the person who decided it (ADR-0021). On the test copy alone, `TEST_STAFF_EMAILS` (the older name) is read as part of the same list |
    | `GAFF_ENV` | `staging` |
    | `EMAIL_PROVIDER` | `resend` |
    | `RESEND_API_KEY` | a Resend key with **sending access** only, limited to the sending domain |

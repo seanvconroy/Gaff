@@ -24,6 +24,7 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0018](0018-own-place-index-from-openstreetmap.md) | Search uses Gaff's own place index, built from OpenStreetMap and kept in Postgres | Accepted (Q51) |
 | [0019](0019-sign-in-hardened.md) | Sign-in, hardened: limits in Postgres, closed library routes, joining by the address's host, How you sign in, devices | Accepted; extends 0015 |
 | [0020](0020-id-check-on-stripe-identity-and-booking-mobile.md) | The ID check on Stripe Identity (a verified webhook re-read from Stripe, one session across three tries, redaction after 30 days), and a mobile confirmed by text code to book a viewing | Accepted |
+| [0021](0021-reports-handled-as-cases.md) | Reports handled as cases: due times in working hours, an automatic hide on strong scam signals, a person's decision with a fixed statement of reasons, one appeal decided by someone else | Accepted |
 
 ## Template
 

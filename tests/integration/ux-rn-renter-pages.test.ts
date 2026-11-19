@@ -18,7 +18,7 @@ import {
 } from '@/server/tenancy/movein';
 import { givePpsn, markRtbRegistered, skipPpsn } from '@/server/tenancy/rtb';
 import { markAttendance } from '@/server/viewings/attendance';
-import { bookViewing, cancelViewing } from '@/server/viewings/booking';
+import { cancelViewing } from '@/server/viewings/booking';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
 import { freeTextFields } from '../compliance/free-text';
 import {
@@ -28,6 +28,7 @@ import {
   createTestMember,
   peopleWhoApplied,
   tokenInMessage,
+  bookAs,
 } from './helpers';
 
 /**
@@ -97,20 +98,22 @@ describe('UX-RN-5 to UX-RN-10: the viewing a renter’s page shows', () => {
     const before = await modelFor(token);
     expect(before.view).toBe('invited');
     expect(before.viewings.days.flatMap((day) => day.times)).toHaveLength(slots.length);
-    expect(await bookViewing(token, slots[0]!.id)).toMatchObject({ ok: true });
+    // UX-RN-7 (Q12): a number that came with the enquiry is never shown as a reminder number.
+    expect(before.viewings.reminderNumber).toBeNull();
+    // P16: the mobile they confirm to book is, masked.
+    expect(await bookAs(token, slots[0]!.id, '086 765 4321')).toMatchObject({ ok: true });
     const after = await modelFor(token);
     expect(after.view).toBe('booked');
     expect(after.viewings.booking?.slotId).toBe(slots[0]!.id);
-    // UX-RN-7 (Q12): a number that came with the enquiry is never shown as a reminder number.
-    expect(after.viewings.reminderNumber).toBeNull();
+    expect(after.viewings.reminderNumber).toBe('086 ••• 4321');
   });
 
   it('UX-RN-9: after cancelling, the page is “cancelled”, until they book again', async () => {
     const { token, slots } = await oneInvitedOneWaiting();
-    await bookViewing(token, slots[0]!.id);
+    await bookAs(token, slots[0]!.id);
     expect(await cancelViewing(token)).toEqual({ ok: true });
     expect((await modelFor(token)).view).toBe('cancelled');
-    await bookViewing(token, slots[1]!.id);
+    await bookAs(token, slots[1]!.id);
     expect((await modelFor(token)).view).toBe('booked');
   });
 
@@ -119,7 +122,7 @@ describe('UX-RN-5 to UX-RN-10: the viewing a renter’s page shows', () => {
     const waitingToken = await tokenInMessage(member, waiting, 'first_reply');
     expect((await modelFor(waitingToken)).view).toBe('waiting_list');
 
-    await bookViewing(token, slots[0]!.id);
+    await bookAs(token, slots[0]!.id);
     await cancelViewing(token);
     await offerFreedPlace(member.organisationId, slots[0]!.id);
     const offered = await modelFor(waitingToken);
@@ -140,7 +143,7 @@ describe('UX-RN-5 to UX-RN-10: the viewing a renter’s page shows', () => {
 describe('UX-RN-11: the check screen’s name and email, each with “Change”', () => {
   async function someoneWhoCame() {
     const { member, lettingId, invited, token, slots } = await oneInvitedOneWaiting();
-    await bookViewing(token, slots[0]!.id);
+    await bookAs(token, slots[0]!.id);
     await withOrg(member.organisationId, (tx) =>
       tx
         .update(viewingSlots)

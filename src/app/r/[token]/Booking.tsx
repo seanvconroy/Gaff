@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { common, viewingCopy } from '@/copy/renter';
+import { testCopyMobileCode } from '@/copy/test-copy';
 import { chosenDay, type ViewingDay, type ViewingTime } from '@/domain/viewings/choosing';
 import type { RenterModel } from '@/server/renter/model';
 import { Button, ButtonLink } from '@/ui/Button';
@@ -12,7 +13,13 @@ import { SubmitButton } from '@/ui/SubmitButton';
 import { SummaryList } from '@/ui/SummaryList';
 import { TimePicker } from '@/ui/TimePicker';
 import styles from '../renter.module.css';
-import { bookAction, cancelAction } from './booking-actions';
+import {
+  bookAction,
+  cancelAction,
+  confirmCodeAction,
+  resendCodeAction,
+  sendCodeAction,
+} from './booking-actions';
 import { Task } from './Task';
 
 const copy = viewingCopy;
@@ -97,9 +104,12 @@ export function ChooseTime({
 }
 
 /**
- * UX-RN-7: the confirm step. The day, the time and the address, and one optional field: a mobile
- * number for a text reminder. It's asked once; a number they've given is shown with "Change";
- * a number that came with their enquiry is never filled in (Q12).
+ * UX-RN-7: the confirm step. The day, the time and the address.
+ *
+ * P16 (Q51): a new booking needs a mobile the renter confirms with a text code, so for someone
+ * without one the step asks for it, and its button texts the code; the next screen takes the code
+ * and books. A number they've confirmed is shown, masked, with "Change"; a number that came with
+ * their enquiry is never filled in (Q12). Moving a booking asks nothing more.
  */
 export function ConfirmTime({
   token,
@@ -118,9 +128,10 @@ export function ConfirmTime({
 }) {
   const here = `/r/${token}`;
   const { booking, reminderNumber } = model.viewings;
-  const problems: Record<string, string> = copy.confirm.problems;
-  const askMobile = changeMobile || (!booking && !reminderNumber);
+  const problems = copy.confirm.problems;
+  const askMobile = !booking && (changeMobile || !reminderNumber);
   const said = problem ? problems[problem] : undefined;
+  const atField = problem === 'phone' || problem === 'too_soon' || problem === 'not_sent';
   return (
     <PrivateFrame
       audience="renter"
@@ -136,26 +147,31 @@ export function ConfirmTime({
           <p>{model.place}</p>
           {chosen.time.note ? <p className={styles.muted}>{chosen.time.note}</p> : null}
         </div>
-        {said && problem !== 'phone' ? (
+        {said && !(askMobile && atField) ? (
           <Notice tone="warning" role="alert">
             <p>{said}</p>
           </Notice>
         ) : null}
-        <form action={bookAction.bind(null, token, chosen.time.slotId)} className={styles.task}>
+        <form
+          action={
+            askMobile
+              ? sendCodeAction.bind(null, token, chosen.time.slotId)
+              : bookAction.bind(null, token, chosen.time.slotId)
+          }
+          className={styles.task}
+        >
           {askMobile ? (
             <TextField
               name="mobile"
               label={copy.confirm.mobileLabel}
               hint={copy.confirm.mobileHint}
-              optional
               width="medium"
               type="tel"
               autoComplete="tel"
               inputMode="tel"
-              defaultValue={changeMobile ? (reminderNumber ?? '') : ''}
-              error={problem === 'phone' ? said : undefined}
+              error={atField ? said : undefined}
             />
-          ) : reminderNumber ? (
+          ) : reminderNumber && !booking ? (
             <SummaryList
               rows={[
                 {
@@ -175,18 +191,114 @@ export function ConfirmTime({
             />
           ) : null}
           <div className={styles.actions}>
-            <SubmitButton fullWidth="phone" pendingLabel={copy.confirm.booking}>
-              {booking ? copy.confirm.moveButton : copy.confirm.button}
-            </SubmitButton>
-            <ButtonLink
-              href={`${here}/book?day=${chosen.day.date}`}
-              variant="quiet"
-              fullWidth="phone"
-            >
-              {copy.confirm.another}
-            </ButtonLink>
+            {askMobile ? (
+              <SubmitButton fullWidth="phone" pendingLabel={copy.confirm.sending}>
+                {copy.confirm.sendCode}
+              </SubmitButton>
+            ) : (
+              <SubmitButton fullWidth="phone" pendingLabel={copy.confirm.booking}>
+                {booking ? copy.confirm.moveButton : copy.confirm.button}
+              </SubmitButton>
+            )}
+            {chosen.day.date ? (
+              <ButtonLink
+                href={`${here}/book?day=${chosen.day.date}`}
+                variant="quiet"
+                fullWidth="phone"
+              >
+                {copy.confirm.another}
+              </ButtonLink>
+            ) : null}
           </div>
         </form>
+      </Task>
+    </PrivateFrame>
+  );
+}
+
+/**
+ * P16: the code from the text. One field and one button, which confirms the mobile and books
+ * the time (or takes the place from the waiting list). Under it, a new code, or another number.
+ * Errors are said at the field. Where texts aren't sent (the test copy), the code is shown here.
+ */
+export function ConfirmCode({
+  token,
+  model,
+  slotId,
+  when,
+  place,
+  problem,
+  sentAgain,
+  codeOnScreen,
+}: {
+  token: string;
+  model: RenterModel;
+  slotId: string;
+  /** "Friday 20 November, 6:15pm" */
+  when: string;
+  /** It's a place offered from the waiting list. */
+  place: boolean;
+  problem?: string;
+  sentAgain?: boolean;
+  /** The test copy only: the code that would have been texted. */
+  codeOnScreen?: string | null;
+}) {
+  const here = `/r/${token}`;
+  const masked = model.viewings.pendingMobile ?? '';
+  const atField = problem ? copy.code.problems[problem] : undefined;
+  const sending = problem ? copy.confirm.problems[problem] : undefined;
+  return (
+    <PrivateFrame
+      audience="renter"
+      lister={model.lister}
+      home={model.home}
+      next={<p>{copy.confirm.next}</p>}
+    >
+      <Task title={copy.code.title} lead={copy.code.lead(masked)}>
+        <div className={styles.fact}>
+          <p className={styles.factLine}>{when}</p>
+          <p>{model.place}</p>
+        </div>
+        {sentAgain ? (
+          <Notice tone="info" role="status">
+            <p>{copy.code.newCodeSent}</p>
+          </Notice>
+        ) : null}
+        {sending ? (
+          <Notice tone="warning" role="alert">
+            <p>{sending}</p>
+          </Notice>
+        ) : null}
+        {codeOnScreen ? <p>{testCopyMobileCode(codeOnScreen)}</p> : null}
+        <form action={confirmCodeAction.bind(null, token, slotId)} className={styles.task}>
+          <TextField
+            name="code"
+            label={copy.code.label}
+            width="short"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            error={atField}
+          />
+          <div className={styles.actions}>
+            <SubmitButton fullWidth="phone" pendingLabel={copy.confirm.booking}>
+              {place ? copy.code.placeButton : copy.code.button}
+            </SubmitButton>
+          </div>
+        </form>
+        <div className={styles.quietRow}>
+          <form action={resendCodeAction.bind(null, token, slotId)}>
+            <SubmitButton variant="quiet" fullWidth="phone" pendingLabel={copy.confirm.sending}>
+              {copy.code.newCode}
+            </SubmitButton>
+          </form>
+          <ButtonLink
+            href={`${here}/book?slot=${slotId}&mobile=change`}
+            variant="quiet"
+            fullWidth="phone"
+          >
+            {copy.code.changeNumber}
+          </ButtonLink>
+        </div>
       </Task>
     </PrivateFrame>
   );

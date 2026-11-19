@@ -17,10 +17,9 @@ import {
   removeViewingSession,
 } from '@/server/lettings/viewing-sessions';
 import { inviteToView } from '@/server/shortlist/invite';
-import { bookViewing } from '@/server/viewings/booking';
 import { calendarFor, viewingDetail } from '@/server/viewings/calendar';
 import { aViewingSession, daysFromToday } from '../fixtures/lettings';
-import { aLiveLetting, aRenterEnquires, createTestMember, tokenInMessage } from './helpers';
+import { aLiveLetting, aRenterEnquires, createTestMember, tokenInMessage, bookAs } from './helpers';
 
 type TestMember = Awaited<ReturnType<typeof createTestMember>>;
 
@@ -68,7 +67,7 @@ async function aBookedEvening() {
   const [session] = await sessionsOf(member, lettingId);
   const [slot] = await slotsOf(member, session!.id);
   const token = await tokenInMessage(member, applicationId, 'invitation');
-  expect((await bookViewing(token, slot!.id, '086 765 4321')).ok).toBe(true);
+  expect((await bookAs(token, slot!.id, '086 765 4321')).ok).toBe(true);
   return { member, lettingId, applicationId, session: session!, slot: slot! };
 }
 
@@ -210,7 +209,7 @@ describe('UX-VW-6: cancelling a viewing time', () => {
     const [other] = await sessionsOf(member, lettingId);
     const [slot] = await slotsOf(member, other!.id);
     const token = await tokenInMessage(member, applicationId, 'invitation');
-    expect((await bookViewing(token, slot!.id)).ok).toBe(true);
+    expect((await bookAs(token, slot!.id)).ok).toBe(true);
     // Rule 1: no decision about anyone was made; ADR-0006: the event holds a count.
     const made = await withOrg(member.organisationId, (tx) => tx.select().from(decisions));
     expect(made.map((d) => d.kind).sort()).toEqual(['confirm_setup', 'invite_to_view']);

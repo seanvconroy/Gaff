@@ -39,7 +39,6 @@ import { confirmPayment, requestPayment, setPaymentAccount } from '@/server/tena
 import { setListerPhone } from '@/server/organisations/phone';
 import { markSignedOnPaper } from '@/server/tenancy/tenancy';
 import { markAttendance } from '@/server/viewings/attendance';
-import { bookViewing } from '@/server/viewings/booking';
 import {
   aLiveLetting,
   aRegisterEntry,
@@ -52,6 +51,7 @@ import {
   threeComparables,
   tokenInMessage,
   type Member,
+  bookAs,
 } from './helpers';
 
 const stepsOf = (subjectId: string) =>
@@ -282,7 +282,7 @@ describe('UX-ME-2: the funnels, from the record’s events and the new steps', (
     for (const [i, id] of [first, second].entries()) {
       const token = await tokenInMessage(member, id, 'invitation');
       await openRenterPage(token);
-      expect(await bookViewing(token, slots[i]!.id)).toMatchObject({ ok: true });
+      expect(await bookAs(token, slots[i]!.id)).toMatchObject({ ok: true });
       await openRenterPage(token);
     }
 

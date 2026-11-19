@@ -19,6 +19,7 @@ import { recordProfileEvent } from '@/server/accounts/profile-events';
 import { ensureRenterIn } from '@/server/accounts/renter-profile';
 import { recordFunnelStep } from '@/server/funnels/steps';
 import { enqueue } from '@/server/jobs/enqueue';
+import { resolveSearch } from '@/server/search/where';
 
 /**
  * Saved searches (UX-SR-10, UX-MT-13 to UX-MT-16). "Tell me when one comes up" keeps a search's
@@ -51,7 +52,8 @@ export async function saveSearchFor(
   input: unknown,
   now = new Date(),
 ): Promise<SaveSearchResult> {
-  const filters = filtersToKeep(input);
+  // A place Gaff's place index doesn't know is left out, as search leaves it out.
+  const { filters } = await resolveSearch(filtersToKeep(input));
   if (!worthKeeping(filters)) return { ok: false, reason: 'nothing_to_keep' };
   const key = searchKey(filters);
   return withPerson(userId, async (tx) => {
@@ -104,7 +106,8 @@ export async function saveSearchByEmail(
 ): Promise<SaveSearchResult> {
   const email = alertEmailSchema.safeParse(emailInput);
   if (!email.success) return { ok: false, reason: 'email' };
-  const filters = filtersToKeep(input);
+  // A place Gaff's place index doesn't know is left out, as search leaves it out.
+  const { filters } = await resolveSearch(filtersToKeep(input));
   if (!worthKeeping(filters)) return { ok: false, reason: 'nothing_to_keep' };
   const key = searchKey(filters);
   return withSystem(async (tx) => {

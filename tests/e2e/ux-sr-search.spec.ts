@@ -298,13 +298,14 @@ for (const [width, viewport] of widths) {
     ]) {
       await expect(sheet.getByRole('group', { name: group })).toBeVisible();
     }
-    // The place search is Gaff's own list, in the browser: nothing typed leaves the page.
+    // The place search is Gaff's own place index: nothing typed goes anywhere but Gaff.
     const outside: string[] = [];
     page.on('request', (request) => {
       if (!request.url().startsWith(new URL(page.url()).origin)) outside.push(request.url());
     });
     await sheet.getByRole('combobox', { name: 'Where' }).fill('Kinsa');
-    await sheet.getByRole('option', { name: 'Kinsale, Co. Cork' }).click();
+    await sheet.getByRole('option', { name: /^Kinsale Town in County Cork/ }).click();
+    await expect(sheet.getByRole('combobox', { name: 'Where' })).toHaveValue('Kinsale, Co. Cork');
     await sheet.getByLabel('Most rent a month').fill('1,600');
     await settled(page);
     await screenshot(page, `ux-sr-filters-${width}`);
@@ -388,3 +389,146 @@ test('UX-AI-12, UX-SR-3: search works with the reader switched off, and says whe
   await expect(page.getByText('Try a place, like Ranelagh, or use Filters.')).toBeVisible();
   await expectAccessible(page);
 });
+
+const whereBox = (page: Page) =>
+  page.getByRole('dialog', { name: 'Filters' }).getByRole('combobox', { name: 'Where' });
+
+async function openWhere(page: Page) {
+  await understood(page).getByRole('button', { name: 'Filters' }).click();
+  await expect(whereBox(page)).toBeVisible();
+}
+
+for (const [width, viewport] of widths) {
+  test(`M56: "Kinsale" and "Highfield Road" both suggest something, grouped (${width})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    await openWhere(page);
+    const sheet = page.getByRole('dialog', { name: 'Filters' });
+    await whereBox(page).fill('Kinsale');
+    const places = sheet.getByRole('group', { name: 'Places' });
+    // M121: the homes on Gaff are counted beside the place.
+    await expect(
+      places.getByRole('option', { name: 'Kinsale Town in County Cork · 1 home' }),
+    ).toBeVisible();
+    await expect(sheet.getByRole('group', { name: 'Streets' })).toBeVisible();
+    await expect(sheet.getByRole('link', { name: 'Places from OpenStreetMap' })).toHaveAttribute(
+      'href',
+      '/map-and-place-data',
+    );
+    await settled(page);
+    await screenshot(page, `m56-where-kinsale-${width}`);
+    await expectAccessible(page);
+
+    await whereBox(page).fill('Highfield Road');
+    const streets = sheet.getByRole('group', { name: 'Streets' });
+    await expect(
+      streets.getByRole('option', { name: 'Highfield Road Rathgar, Dublin 6' }),
+    ).toBeVisible();
+    await settled(page);
+    await screenshot(page, `m56-where-highfield-${width}`);
+    await expectAccessible(page);
+  });
+}
+
+test('M56, M113: a street opens a search near it, chosen with the keys', async ({ page }) => {
+  await page.setViewportSize(phone);
+  await page.goto('/');
+  await openWhere(page);
+  await whereBox(page).fill('Highfield Road, Rathgar');
+  await expect(
+    page.getByRole('option', { name: 'Highfield Road Rathgar, Dublin 6' }),
+  ).toBeVisible();
+  await whereBox(page).press('ArrowDown');
+  await expect(
+    page.getByRole('option', { name: 'Highfield Road Rathgar, Dublin 6' }),
+  ).toHaveAttribute('aria-selected', 'true');
+  await whereBox(page).press('Enter');
+  await expect(whereBox(page)).toHaveValue('Near Highfield Road, Rathgar');
+  await page
+    .getByRole('dialog', { name: 'Filters' })
+    .getByRole('button', { name: 'Show homes' })
+    .click();
+  await expect(page).toHaveURL('/?where=highfield-road-rathgar-dublin-6');
+  await expect(
+    understood(page).getByRole('button', { name: 'Near Highfield Road, Rathgar' }),
+  ).toBeVisible();
+  await expectAccessible(page);
+});
+
+for (const [width, viewport] of widths) {
+  test(`M56: a typo gets "Did you mean", in the place search and the search box (${width})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    await openWhere(page);
+    await whereBox(page).fill('Kinsael');
+    const sheet = page.getByRole('dialog', { name: 'Filters' });
+    await expect(sheet.getByText('We couldn’t find ‘Kinsael’.')).toBeVisible();
+    await expect(
+      sheet
+        .getByRole('group', { name: 'Did you mean' })
+        .getByRole('option', { name: /^Kinsale Town in County Cork/ }),
+    ).toBeVisible();
+    await settled(page);
+    await screenshot(page, `m56-where-did-you-mean-${width}`);
+    await expectAccessible(page);
+    await whereBox(page).press('Escape');
+    await whereBox(page).press('Escape');
+    await expect(whereBox(page)).toHaveValue('');
+    await sheet.getByRole('button', { name: 'Close' }).click();
+
+    // The same words in the search box: the search offers the place, by its name.
+    await searchFor(page, 'Kinsael');
+    await expect(page).toHaveURL('/?unclear=1&maybe=kinsale');
+    await page.getByRole('link', { name: 'Did you mean Kinsale, Co. Cork?' }).click();
+    await expect(page).toHaveURL('/?where=kinsale');
+    await expect(fits(page).getByRole('heading')).toHaveText(['€1,500 a month']);
+  });
+}
+
+test('M121, M114: before typing, the places with homes, then this visit’s places first', async ({
+  page,
+}) => {
+  await page.setViewportSize(phone);
+  await page.goto('/');
+  await openWhere(page);
+  await whereBox(page).focus();
+  // The places with the most homes on Gaff, each with its count. Other journeys add homes too,
+  // so which places lead isn't fixed here.
+  const popular = page.getByRole('group', { name: 'Places with homes' });
+  await expect(popular.getByRole('option').first()).toHaveAccessibleName(/ · \d+ homes?$/);
+  await whereBox(page).fill('Kinsa');
+  await page.getByRole('option', { name: /^Kinsale Town in County Cork/ }).click();
+  await whereBox(page).fill('');
+  await expect(
+    page
+      .getByRole('group', { name: 'Searched this visit' })
+      .getByRole('option', { name: /^Kinsale Town in County Cork/ }),
+  ).toBeVisible();
+  // Kept in this tab only: nothing about it goes to Gaff or anyone else.
+  const kept = await page.evaluate(() => Object.keys(window.localStorage));
+  expect(kept).toEqual([]);
+});
+
+for (const [width, viewport] of widths) {
+  test(`M56: the place data is credited, from under the search (${width})`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Map and place data' }).click();
+    await expect(page).toHaveURL('/map-and-place-data');
+    await expect(page.getByRole('heading', { level: 1, name: 'Map and place data' })).toBeVisible();
+    await expect(
+      page.getByRole('link', {
+        name: '© OpenStreetMap contributors, under the Open Database Licence',
+      }),
+    ).toHaveAttribute('href', 'https://www.openstreetmap.org/copyright');
+    await expect(page.getByRole('link', { name: 'Search homes' })).toHaveAttribute('href', '/');
+    await expectNoSidewaysScroll(page);
+    await settled(page);
+    await screenshot(page, `m56-place-data-${width}`);
+    await expectAccessible(page);
+  });
+}

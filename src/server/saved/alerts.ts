@@ -11,6 +11,7 @@ import {
   newHomesFor,
 } from '@/domain/saved/saved';
 import { enqueue } from '@/server/jobs/enqueue';
+import { loadGazetteer } from '@/server/places/places';
 import { liveHomesOnGaff } from '@/server/search/homes';
 
 /**
@@ -52,6 +53,11 @@ export async function sendSearchAlerts(
       )
       .orderBy(savedSearches.createdAt);
 
+    // Every place these searches name, from Gaff's own place index (ADR-0018).
+    const g = await loadGazetteer(
+      searches.flatMap((search) => filtersToKeep(search.filters).where ?? []),
+    );
+
     const byRecipient = new Map<string, typeof searches>();
     for (const search of searches) {
       const key = search.userId ? `person:${search.userId}` : `email:${search.email}`;
@@ -74,6 +80,7 @@ export async function sendSearchAlerts(
         homes: newHomesFor(
           { filters: filtersToKeep(search.filters), since: search.confirmedAt!, told: search.told },
           homes,
+          g,
         ),
       }));
       const { homes: toSend, told: perSearch } = homesForOneEmail(found);

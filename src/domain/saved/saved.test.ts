@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { fixtureGazetteer } from '@/domain/places/fixture';
 import { filterKeys, searchFiltersSchema } from '@/domain/search/filters';
 import { parseSearch } from '@/domain/search/parse';
 import type { SearchableHome } from '@/domain/search/match';
@@ -41,6 +42,8 @@ function aHome(over: Partial<SearchableHome> = {}): SearchableHome {
 
 const SAVED = new Date('2026-11-17T12:00:00Z');
 
+const g = fixtureGazetteer();
+
 describe('UX-MT-12, UX-MT-13: a saved search keeps the chips, never the sentence', () => {
   it('UX-MT-13: what a saved search keeps is exactly the chips search has', () => {
     expect([...KEPT_FILTER_KEYS].sort()).toEqual([...filterKeys].sort());
@@ -57,6 +60,7 @@ describe('UX-MT-12, UX-MT-13: a saved search keeps the chips, never the sentence
     const { filters } = parseSearch(
       'Hi, 2-bed in Greystones under €2,000 for me and my partner, no pets. I’m a nurse on HAP',
       '2026-11-17',
+      g,
     );
     const kept = filtersToKeep(filters);
     expect(kept).toEqual({ where: 'greystones', beds: 2, maxRent: 2000, people: 2, pets: false });
@@ -67,7 +71,8 @@ describe('UX-MT-12, UX-MT-13: a saved search keeps the chips, never the sentence
   it('UX-MT-13: anything that isn’t one of the chips, or doesn’t parse, is dropped', () => {
     expect(
       filtersToKeep({
-        where: 'nowhere-at-all',
+        // A place the index doesn't know is dropped on the server (tests/integration/m56-places).
+        where: 'Nowhere at all!',
         beds: 2,
         maxRent: 'lots',
         words: 'a sentence',
@@ -119,29 +124,29 @@ describe('UX-SR-10, UX-MT-16: which homes a saved search tells its renter about'
 
   it('UX-SR-10: a new home that fits everything asked is told', () => {
     const home = aHome();
-    expect(newHomesFor({ ...search, told: [] }, [home])).toEqual([home]);
+    expect(newHomesFor({ ...search, told: [] }, [home], g)).toEqual([home]);
   });
 
   it('UX-SR-10: each home once: a home already told about is not told again', () => {
     const home = aHome();
-    expect(newHomesFor({ ...search, told: [home.id] }, [home])).toEqual([]);
+    expect(newHomesFor({ ...search, told: [home.id] }, [home], g)).toEqual([]);
   });
 
   it('UX-SR-10: only new homes: one live before the search was saved isn’t news', () => {
     const before = aHome({ liveAt: new Date('2026-11-16T12:00:00Z') });
-    expect(newHomesFor({ ...search, told: [] }, [before])).toEqual([]);
+    expect(newHomesFor({ ...search, told: [] }, [before], g)).toEqual([]);
   });
 
   it('UX-SR-10: a home that is only close is not sent, and one elsewhere is not either', () => {
     const dear = aHome({ rentCents: 2_400_00 });
     const elsewhere = aHome({ area: 'Kinsale', county: 'Cork' });
-    expect(newHomesFor({ ...search, told: [] }, [dear, elsewhere])).toEqual([]);
+    expect(newHomesFor({ ...search, told: [] }, [dear, elsewhere], g)).toEqual([]);
   });
 
   it('UX-MT-16, rule 3: who is told turns on the search and the home alone', () => {
     // The matcher is search's own: the same homes fit here as in results.
     const homes = [aHome(), aHome({ bedrooms: 1 }), aHome({ rentCents: 1_800_00 })];
-    const told = newHomesFor({ ...search, told: [] }, homes).map((h) => h.id);
+    const told = newHomesFor({ ...search, told: [] }, homes, g).map((h) => h.id);
     expect(told.sort()).toEqual([homes[0]!.id, homes[2]!.id].sort());
   });
 });

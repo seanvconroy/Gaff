@@ -5,6 +5,7 @@ import { funnelEvents, lettings } from '@/db/schema';
 import { addPhoto } from '@/server/lettings/photos';
 import { liveHomesOnGaff, findHomes } from '@/server/search/homes';
 import { countSearch, searchFromWords } from '@/server/search/search';
+import { resolveSearch } from '@/server/search/where';
 import { aPng } from '../fixtures/photos';
 import { aLiveLetting, createTestMember, type Member } from './helpers';
 
@@ -95,7 +96,8 @@ describe('UX-SR-2, UX-SR-6: the homes search reads', () => {
     );
     expect(JSON.stringify(home)).not.toContain('mary.byrne@example.ie');
 
-    const { fits, close } = await findHomes({ where: 'dalkey', people: 4 });
+    const { filters, g } = await resolveSearch({ where: 'dalkey', people: 4 });
+    const { fits, close } = await findHomes(filters, g);
     expect(fits.map((h) => h.id)).not.toContain(ref);
     expect(close.find((c) => c.home.id === ref)?.miss).toEqual({
       point: 'people',
@@ -111,7 +113,7 @@ describe('UX-SR-11, UX-MT-12: a search is not kept', () => {
     const warned = vi.spyOn(console, 'warn');
     const failed = vi.spyOn(console, 'error');
     const words = '2-bed in Dalkey for me and my partner, I’m a Zorblax nurse on HAP, no pets';
-    const outcome = searchFromWords({ words }, new Date('2026-11-17T12:00:00Z'));
+    const outcome = await searchFromWords({ words }, new Date('2026-11-17T12:00:00Z'));
     expect(outcome).toEqual({
       href: '/?where=dalkey&beds=2&people=2&pets=no',
       understood: true,
@@ -137,13 +139,20 @@ describe('UX-SR-11, UX-MT-12: a search is not kept', () => {
     expect(added[0]).toMatchObject({ step: 'search.search_made', variant: 'fit', data: {} });
   });
 
-  it('UX-SR-3 states: words with nothing understood leave only a flag in the address', () => {
-    expect(searchFromWords({ words: 'somewhere lovely please' })).toEqual({
+  it('UX-SR-3 states: words with nothing understood leave only a flag in the address', async () => {
+    expect(await searchFromWords({ words: 'somewhere lovely please' })).toEqual({
       href: '/?unclear=1',
       understood: false,
     });
-    expect(searchFromWords({ words: 'somewhere lovely please', rent: '1' }).href).toBe(
+    expect((await searchFromWords({ words: 'somewhere lovely please', rent: '1' })).href).toBe(
       '/?unclear=1&rent=1',
     );
+  });
+
+  it('M56: words that were nearly a place offer it, by its slug alone', async () => {
+    expect(await searchFromWords({ words: 'Kinsael' })).toEqual({
+      href: '/?unclear=1&maybe=kinsale',
+      understood: false,
+    });
   });
 });

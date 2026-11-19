@@ -14,6 +14,7 @@ import { ChoiceGroup, TextField } from '@/ui/Field';
 import { Menu, MenuItem } from '@/ui/Menu';
 import { OptionRow } from '@/ui/OptionRow';
 import { PhotoUploader, type UploadedPhoto } from '@/ui/PhotoUploader';
+import { type PlaceOption, PlaceSearch, type PlaceSuggestions } from '@/ui/PlaceSearch';
 import { DateField, TimeField } from '@/ui/Pickers';
 import { QuestionSteps } from '@/ui/QuestionSteps';
 import { SearchBox } from '@/ui/SearchBox';
@@ -227,6 +228,80 @@ export function AddressSearchDemo() {
         notFound="We can’t find that. Check the Eircode, or enter the address yourself."
         error="Choose an address from the list, or enter it yourself"
         onPick={(option) => setPicked(option.label)}
+      />
+      <p role="status">{picked ? `Picked: ${picked}` : ''}</p>
+    </div>
+  );
+}
+
+const demoPlaces: Array<PlaceOption & { group: string }> = [
+  {
+    group: 'Places',
+    id: 'kinsale',
+    name: 'Kinsale',
+    label: 'Kinsale, Co. Cork',
+    description: 'Town in County Cork · 4 homes',
+    icon: 'place',
+  },
+  {
+    group: 'Places',
+    id: 'kinsealy',
+    name: 'Kinsealy',
+    label: 'Kinsealy, Co. Dublin',
+    description: 'Village in County Dublin',
+    icon: 'place',
+  },
+  {
+    group: 'Streets',
+    id: 'kinsale-road-ballyphehane-cork',
+    name: 'Kinsale Road',
+    label: 'Near Kinsale Road, Ballyphehane',
+    description: 'Ballyphehane, Cork',
+    icon: 'street',
+  },
+  {
+    group: 'Landmarks',
+    id: 'heuston-station-dublin-8',
+    name: 'Heuston Station',
+    label: 'Near Heuston Station, Dublin 8',
+    description: 'Dublin 8',
+    icon: 'station',
+  },
+];
+
+/** A stand-in for Gaff's place index: "kins" finds places and a street; "kinsael" a near one. */
+async function findDemoPlaces(query: string): Promise<PlaceSuggestions> {
+  const typed = query.trim().toLowerCase();
+  const group = (label: string, options: PlaceOption[]) => ({ label, options });
+  if (!typed) return { groups: [group('Places with homes', [demoPlaces[0]!])], didYouMean: false };
+  if (typed === 'kinsael') return { groups: [group('Places', [demoPlaces[0]!])], didYouMean: true };
+  const found = demoPlaces.filter((p) => p.name.toLowerCase().startsWith(typed));
+  const labels = [...new Set(found.map((p) => p.group))];
+  return {
+    groups: labels.map((label) =>
+      group(
+        label,
+        found.filter((p) => p.group === label),
+      ),
+    ),
+    didYouMean: false,
+  };
+}
+
+/** Place search: focus it, type "kins", or a near spelling ("kinsael"). */
+export function PlaceSearchDemo() {
+  const [picked, setPicked] = useState('');
+  return (
+    <div className={styles.fields}>
+      <PlaceSearch
+        name="ui-place-search"
+        label="Where"
+        suggest={findDemoPlaces}
+        onPick={(option) => setPicked(option.label)}
+        notFound={(typed) => `We couldn’t find ‘${typed}’.`}
+        didYouMeanLabel="Did you mean"
+        foundWords={(count) => (count === 1 ? '1 place found' : `${count} places found`)}
+        credit={{ text: 'Places from OpenStreetMap', href: '/map-and-place-data' }}
       />
       <p role="status">{picked ? `Picked: ${picked}` : ''}</p>
     </div>

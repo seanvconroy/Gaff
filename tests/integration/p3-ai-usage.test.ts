@@ -16,7 +16,7 @@ import { daysFromToday } from '../fixtures/lettings';
 import { aLiveLetting, createTestMember, deliverEmail, type Member } from './helpers';
 
 /**
- * The live line's P3, P4, P5 and P8 (ADR-0017): every AI call is logged with its usage and never
+ * The live line's P3, P4, P5 and P8 (ADR-0018): every AI call is logged with its usage and never
  * its words, the month's budget pauses the AI, and a task can be switched off. A paused or
  * switched-off task falls back the way each feature already does with no model.
  */

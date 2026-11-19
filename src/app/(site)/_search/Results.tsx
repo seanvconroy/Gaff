@@ -8,6 +8,7 @@ import {
   type SearchFilters,
 } from '@/domain/search/filters';
 import { homePageHref } from '@/domain/search/links';
+import type { Gazetteer } from '@/domain/search/places';
 import { formatRent, irishToday } from '@/lib/format';
 import { findHomes, type HomeOnGaff } from '@/server/search/homes';
 import { countSearch } from '@/server/search/search';
@@ -29,8 +30,17 @@ export type Saver =
  * UX-SR-10: a search can be saved from the empty state ("Tell me when one comes up", its one
  * primary action) and from under the homes that fit ("Tell me about new ones").
  */
-export async function Results({ filters, saver }: { filters: SearchFilters; saver: Saver }) {
-  const { fits, close } = await findHomes(filters);
+export async function Results({
+  filters,
+  g,
+  saver,
+}: {
+  filters: SearchFilters;
+  /** The search's place, looked up (`resolveSearch`). */
+  g: Gazetteer;
+  saver: Saver;
+}) {
+  const { fits, close } = await findHomes(filters, g);
   const searching = hasFilters(filters);
   if (searching) await countSearch({ fits: fits.length, close: close.length });
   const today = irishToday();

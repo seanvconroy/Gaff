@@ -176,6 +176,7 @@ Every component adapts between phone and desktop. "Status" says whether it exist
 | **Option row** | Something that is off until tapped, then asks for one value | Full width; the value's field opens under the row | Same | New |
 | **Chips** | Filters, quick answers | A row that scrolls sideways with a visible fade | A wrapping row | New |
 | **Address search** | Finding an address | A full-screen search with results | A field with a list under it | New |
+| **Place search** | "Where" in search: any place in Gaff's own place index (M56) | A field with its suggestions under it, in groups (Places, Streets, Landmarks), each a name in bold where typed and where it is, with its homes; before typing, this visit's places and places with homes; near spellings as "Did you mean"; the data's credit under the list | Same | Built (`src/ui/PlaceSearch`, BA-2). A combobox: ↓ ↑, Enter, Escape closes then clears, Tab leaves |
 | **Date and time pickers** | Dates and times in Irish format | A sheet | A popover | New (replaces the browser's own controls) |
 | **Code input** | The six-digit sign-in code | Six boxes; numeric keyboard; accepts a paste | Same | New |
 | **Photo uploader and gallery** | Adding, ordering and showing photos | Library or camera; a two-column grid | Drag and drop; a four-column grid | New (`PhotoField` exists for single photos) |

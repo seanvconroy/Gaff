@@ -32,6 +32,12 @@
   color: var(--color-brand-text);
 }
 
+/* The place data's credit, on its own line under the foot's sentence. */
+.credit {
+  display: block;
+  margin-block-start: var(--space-2);
+}
+
 .skeletons {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { fixtureGazetteer } from '@/domain/places/fixture';
 import { missesOf, type SearchableHome, searchHomes } from './match';
 
 let n = 0;
@@ -23,35 +24,37 @@ function aHome(over: Partial<SearchableHome> = {}): SearchableHome {
   };
 }
 
+const g = fixtureGazetteer();
+
 describe('UX-SR-7: homes that fit first, then "Close to what you asked"', () => {
   it('UX-SR-7: homes that fit everything come first, newest first', () => {
     const older = aHome({ liveAt: new Date('2026-11-01T09:00:00Z') });
     const newer = aHome({ liveAt: new Date('2026-11-10T09:00:00Z') });
-    const { fits, close } = searchHomes([older, newer], { beds: 2, maxRent: 2000 });
+    const { fits, close } = searchHomes([older, newer], { beds: 2, maxRent: 2000 }, g);
     expect(fits.map((h) => h.id)).toEqual([newer.id, older.id]);
     expect(close).toEqual([]);
   });
 
   it('UX-SR-7: a home that misses on one point follows, saying the point', () => {
     const small = aHome({ criteria: { maxOccupants: 2, noPets: false } });
-    const { fits, close } = searchHomes([small], { people: 3 });
+    const { fits, close } = searchHomes([small], { people: 3 }, g);
     expect(fits).toEqual([]);
     expect(close).toEqual([{ home: small, miss: { point: 'people', maxOccupants: 2, asked: 3 } }]);
   });
 
   it('UX-SR-7: a home that misses on two points isn’t shown', () => {
     const home = aHome({ rentCents: 3_000_00, bedrooms: 1 });
-    expect(searchHomes([home], { maxRent: 2400, beds: 2 })).toEqual({ fits: [], close: [] });
+    expect(searchHomes([home], { maxRent: 2400, beds: 2 }, g)).toEqual({ fits: [], close: [] });
   });
 
   it('UX-SR-7: a home somewhere else is never "close"', () => {
     const cork = aHome({ area: 'Douglas', county: 'Cork' });
-    expect(searchHomes([cork], { where: 'ranelagh' })).toEqual({ fits: [], close: [] });
+    expect(searchHomes([cork], { where: 'ranelagh' }, g)).toEqual({ fits: [], close: [] });
   });
 
   it('UX-SR-2: with no filters, every home fits, newest first', () => {
     const homes = [aHome(), aHome({ county: 'Cork', area: 'Douglas' })];
-    expect(searchHomes(homes, {}).fits).toHaveLength(2);
+    expect(searchHomes(homes, {}, g).fits).toHaveLength(2);
   });
 });
 

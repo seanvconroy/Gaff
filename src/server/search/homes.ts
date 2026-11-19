@@ -1,4 +1,5 @@
 import type { SearchFilters } from '@/domain/search/filters';
+import type { Gazetteer } from '@/domain/search/places';
 import { type SearchableHome, type SearchResults, searchHomes } from '@/domain/search/match';
 import { publicHomesForSearch } from '@/server/homes/public-homes';
 import type { CoverPhoto } from '@/server/lettings/cover-photo';
@@ -42,9 +43,13 @@ export async function liveHomesOnGaff(): Promise<HomeOnGaff[]> {
 }
 
 /**
- * UX-SR-7: the homes for a search, fits first and then those close to it. The search itself is
+ * UX-SR-7: the homes for a search, fits first and then those close to it. `g` holds its place
+ * (`resolveSearch` in ./where.ts). The search itself is
  * used and let go: it isn't stored, logged or tied to anyone (UX-SR-11).
  */
-export async function findHomes(filters: SearchFilters): Promise<SearchResults<HomeOnGaff>> {
-  return searchHomes(await liveHomesOnGaff(), filters);
+export async function findHomes(
+  filters: SearchFilters,
+  g: Gazetteer,
+): Promise<SearchResults<HomeOnGaff>> {
+  return searchHomes(await liveHomesOnGaff(), filters, g);
 }

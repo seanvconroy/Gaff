@@ -2,7 +2,7 @@ import { describeStay, NO_PETS_DETAIL } from '@/domain/criteria/criteria';
 import { furnishing } from '@/domain/lettings/new-letting';
 import type { FilterKey, SearchFilters, SearchType, Stay } from '@/domain/search/filters';
 import type { Miss } from '@/domain/search/match';
-import { normalise, placeById, placeLabel } from '@/domain/search/places';
+import { normalise } from '@/domain/places/normalise';
 import { formatDate, formatEuro, formatRent } from '@/lib/format';
 
 /**
@@ -55,6 +55,24 @@ export const searchCopy = {
   /** Furnished and parking, asked together. */
   homeFacts: 'The home',
   whereNotFound: 'Gaff doesn’t know that place yet. Try a town, a Dublin district or a county.',
+  /** M56, M121: the place search under "Where". */
+  where: {
+    groups: {
+      places: 'Places',
+      streets: 'Streets',
+      landmarks: 'Landmarks',
+      recent: 'Searched this visit',
+      popular: 'Places with homes',
+    },
+    /** Nothing matched what was typed: "We couldn’t find ‘Kinsael’". */
+    notFound: (typed: string) => `We couldn’t find ‘${typed}’.`,
+    didYouMean: 'Did you mean',
+    /** M56: the credit the index's licence asks for, under the suggestions. */
+    credit: 'Places from OpenStreetMap',
+    found: (count: number) => (count === 1 ? '1 place found' : `${count} places found`),
+  },
+  /** States table: the words were nearly a place's name. */
+  didYouMean: (place: string) => `Did you mean ${place}?`,
   peopleAny: 'Any',
   stays: {
     under_year: 'Under a year',
@@ -79,6 +97,41 @@ export const searchCopy = {
   ],
 } as const;
 
+/** M121: "4 homes". */
+export function homesCount(n: number): string {
+  if (n === 0) return 'No homes';
+  return n === 1 ? '1 home' : `${n.toLocaleString('en-IE')} homes`;
+}
+
+/**
+ * M56: under a suggestion's name, where it is or what it is: "Rathgar, Dublin 6", "Town in
+ * County Cork", "Eircode area · Kinsale".
+ */
+export function placeDescription(place: {
+  kind: string;
+  county: string;
+  context?: string | null;
+}): string {
+  if (place.context) return place.context;
+  const inCounty = `County ${place.county}`;
+  switch (place.kind) {
+    case 'county':
+      return 'County';
+    case 'city':
+      return `City in ${inCounty}`;
+    case 'town':
+      return `Town in ${inCounty}`;
+    case 'village':
+      return `Village in ${inCounty}`;
+    case 'district':
+      return 'Dublin postal district';
+    case 'townland':
+      return `Townland in ${inCounty}`;
+    default:
+      return inCounty;
+  }
+}
+
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 /** "3 homes fit what you asked". */
@@ -89,13 +142,20 @@ export function fitHeading(count: number): string {
 const bedWords = (beds: number) =>
   beds >= 4 ? '4 or more bedrooms' : plural(beds, 'bedroom', 'bedrooms');
 
-/** UX-SR-3: each chip says what Gaff understood, as the PRD writes it. */
-export function chipLabel(key: FilterKey, filters: SearchFilters, now = new Date()): string {
+/**
+ * UX-SR-3: each chip says what Gaff understood, as the PRD writes it. `placeName` is the
+ * search's place as the index names it ("Ranelagh, Dublin 6"), from the server
+ * (src/server/places): the search itself holds only the place's slug.
+ */
+export function chipLabel(
+  key: FilterKey,
+  filters: SearchFilters,
+  now = new Date(),
+  placeName = '',
+): string {
   switch (key) {
-    case 'where': {
-      const place = filters.where ? placeById(filters.where) : null;
-      return place ? placeLabel(place) : '';
-    }
+    case 'where':
+      return placeName;
     case 'beds':
       return bedWords(filters.beds ?? 1);
     case 'maxRent':

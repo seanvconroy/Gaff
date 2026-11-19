@@ -69,6 +69,7 @@ import { Prompt } from '@/ui/Prompt';
 import { TimePicker } from '@/ui/TimePicker';
 import {
   AddressSearchDemo,
+  PlaceSearchDemo,
   SearchBoxDemo,
   CodeDemo,
   MenuDemo,
@@ -533,6 +534,14 @@ export default function ComponentsPage() {
           lead="One field for an Eircode or an address. Results appear under it as you type; picking one fills the full address."
         >
           <AddressSearchDemo />
+        </Section>
+
+        <Section
+          id="place-search"
+          title="Place search"
+          lead="The field under “Where”. Suggestions in groups as you type, each with where it is and its homes; what to start from before typing; near spellings offered as “Did you mean”."
+        >
+          <PlaceSearchDemo />
         </Section>
 
         <Section

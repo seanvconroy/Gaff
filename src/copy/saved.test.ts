@@ -35,9 +35,14 @@ const alert = (count: 1 | 2) =>
  */
 describe('UX-SR-10: the saved-search emails say exactly this', () => {
   it('UX-SR-10: a saved search in words is its chips, as search shows them', () => {
-    expect(searchWords({ where: 'greystones', beds: 2, maxRent: 2000, pets: false }, NOW)).toBe(
-      'Greystones, Co. Wicklow · 2 bedrooms · Up to €2,000 a month · No pets',
-    );
+    // The place's name comes from Gaff's place index, looked up on the server.
+    expect(
+      searchWords(
+        { where: 'greystones', beds: 2, maxRent: 2000, pets: false },
+        NOW,
+        'Greystones, Co. Wicklow',
+      ),
+    ).toBe('Greystones, Co. Wicklow · 2 bedrooms · Up to €2,000 a month · No pets');
   });
 
   it('UX-SR-10: the one email that confirms the address', () => {

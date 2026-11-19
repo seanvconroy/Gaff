@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
+import { placeDataCopy } from '@/copy/place-data';
 import { searchCopy } from '@/copy/search';
 import { listAHomeHref, listAHomeSignedOutHref } from '@/domain/navigation/context';
 import { firstScreenRedirect } from '@/domain/navigation/context';
@@ -12,6 +13,7 @@ import { currentPerson } from '@/server/context/current-person';
 import { enquiriesNeedingThem } from '@/server/renter/enquiries';
 import { savedHomeRefs } from '@/server/saved/homes';
 import { keepsSearch } from '@/server/saved/searches';
+import { resolveSearch } from '@/server/search/where';
 import { SearchBox } from '@/ui/SearchBox';
 import { searchWords } from './_search/actions';
 import { Results, ResultsLoading, type Saver } from './_search/Results';
@@ -47,9 +49,12 @@ export default async function FirstScreen({ searchParams }: { searchParams: Prom
   const onwards = firstScreenRedirect(person ? { side: person.side } : null, { rent }, opening);
   if (onwards) redirect(onwards);
 
-  const filters = filtersFromParams(query);
+  // A place the index doesn't know is left out of the search (UX-SR-12).
+  const { filters, g, placeName } = await resolveSearch(filtersFromParams(query));
   const searching = hasFilters(filters);
   const unclear = query.unclear === '1' && !searching;
+  // States table: the words were nearly a place's name, so its name is offered.
+  const maybe = unclear ? await resolveSearch(filtersFromParams({ where: query.maybe })) : null;
   // WP-23: the hearts and "Tell me when one comes up" know what this person already keeps.
   const saver: Saver = person
     ? {
@@ -71,18 +76,34 @@ export default async function FirstScreen({ searchParams }: { searchParams: Prom
       >
         {unclear ? (
           <p className={styles.unclear} role="status">
+            {maybe?.where ? (
+              <>
+                <Link href={searchHref(maybe.filters, { rent: rent === '1' })}>
+                  {searchCopy.didYouMean(maybe.placeName)}
+                </Link>{' '}
+              </>
+            ) : null}
             {searchCopy.unclear}
           </p>
         ) : null}
-        <SearchControls filters={filters} keepRent={rent === '1'} today={irishToday()} />
+        <SearchControls
+          filters={filters}
+          placeName={placeName}
+          keepRent={rent === '1'}
+          today={irishToday()}
+        />
         <p className={styles.promise}>{searchCopy.promise}</p>
       </SearchBox>
       <Suspense key={searchHref(filters)} fallback={<ResultsLoading />}>
-        <Results filters={filters} saver={saver} />
+        <Results filters={filters} g={g} saver={saver} />
       </Suspense>
       <p className={styles.foot}>
         {searchCopy.foot.line}{' '}
         <Link href={person ? listAHomeHref : listAHomeSignedOutHref}>{searchCopy.foot.action}</Link>
+        <span className={styles.credit}>
+          {/* M56: the place index's licence asks for its credit where search uses it. */}
+          <Link href="/map-and-place-data">{placeDataCopy.footLink}</Link>
+        </span>
       </p>
     </div>
   );

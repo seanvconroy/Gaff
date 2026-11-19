@@ -5,7 +5,7 @@ import {
   type SearchFilters,
   type Stay,
 } from './filters';
-import { normalise, placeInSentence, searchPlaces } from './places';
+import { type Gazetteer, guessPlace, normalise, placeInSentence } from './places';
 
 /**
  * UX-SR-3, UX-MT-12: a renter's own words, turned into filters. This is plain code, not the
@@ -79,6 +79,11 @@ export interface ParsedSearch {
   filters: SearchFilters;
   /** Whether anything in the words was understood. */
   understood: boolean;
+  /**
+   * Not understood, but the words were nearly a place's name ("Kinsael"): its slug, for "Did
+   * you mean Kinsale?". A place's slug from the index, never the words.
+   */
+  didYouMean?: string;
 }
 
 /**
@@ -286,14 +291,14 @@ function parking(text: string): true | undefined {
 
 /**
  * The filters a renter's sentence asks for. `today` is today in Ireland ("2026-11-17"), so
- * "from January" can be given its year. What comes back has been through the strict schema, so
+ * "from January" can be given its year. `g` holds the index's areas (src/server/places). What comes back has been through the strict schema, so
  * nothing outside the allowed fields can ever be in it.
  */
-export function parseSearch(sentence: string, today: string): ParsedSearch {
+export function parseSearch(sentence: string, today: string, g: Gazetteer): ParsedSearch {
   const text = prepare(sentence.slice(0, 500));
-  const place = placeInSentence(text);
+  const place = placeInSentence(text, g);
   const candidate: Record<string, unknown> = {
-    where: place?.id,
+    where: place?.slug,
     maxRent: rent(text),
     beds: bedrooms(text),
     moveIn: moveIn(text, today),
@@ -315,7 +320,10 @@ export function parseSearch(sentence: string, today: string): ParsedSearch {
   }
   // States table, "Gaff didn't understand the words": the words are tried as a place search.
   const typed = normalise(sentence.slice(0, 60));
-  const guess = typed.length >= 3 ? searchPlaces(typed, 1)[0] : undefined;
-  if (guess) return { filters: { where: guess.id }, understood: true };
+  const guess = typed.length >= 3 ? guessPlace(typed, g) : { place: null, didYouMean: null };
+  if (guess.place) return { filters: { where: guess.place.slug }, understood: true };
+  if (guess.didYouMean) {
+    return { filters: {}, understood: false, didYouMean: guess.didYouMean.slug };
+  }
   return { filters: {}, understood: false };
 }

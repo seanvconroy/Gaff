@@ -18,7 +18,8 @@ describe('UX-SR-3: the chips say what Gaff understood', () => {
       furnished: true,
       parking: true,
     };
-    expect(filterKeys.map((key) => chipLabel(key, filters, NOW))).toEqual([
+    // The place's name comes from Gaff's place index, looked up on the server.
+    expect(filterKeys.map((key) => chipLabel(key, filters, NOW, 'Ranelagh, Dublin 6'))).toEqual([
       'Ranelagh, Dublin 6',
       '2 bedrooms',
       'Up to €2,400 a month',

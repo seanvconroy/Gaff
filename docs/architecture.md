@@ -288,7 +288,7 @@ All checks run with one command, `pnpm check`, and in CI on every push.
 | --- | --- | --- | --- |
 | Local | Your machine or this container: Postgres 16 and Node | Synthetic seed data | Dev outbox, fake SMS, fake AI |
 | CI | GitHub Actions with a Postgres service | Synthetic | Fakes |
-| Test copy | Vercel and Supabase, a separate project of each ([deploy.md](deploy.md)) | Synthetic only | Stand-ins: outbox page, fake SMS and AI, test check page |
+| Test copy | Vercel and Supabase, a separate project of each ([deploy.md](deploy.md)), on a public address with a banner on every page | Synthetic only | Real email for real addresses (made-up ones to the outbox); fake SMS and AI, test check page. Everything under `/dev` but `/dev/ui` is for Gaff's own team only; no Google or Apple stand-in |
 | Production | Vercel (Dublin) and Supabase (Ireland) | Real | Real |
 
 Production needs, before the first pilot letting: the DPIA, the solicitor's sign-off, the retention job (R26), backups with tested restores, and error alerts. A provider for error alerts is a later approval.

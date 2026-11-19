@@ -3,6 +3,7 @@ import {
   configuredProviders,
   googleMapsBuild,
   contentSecurityPolicy as policyFor,
+  photoUploadOrigin,
 } from './src/lib/csp';
 import { mapPageSources } from './src/lib/map-pages';
 
@@ -21,13 +22,15 @@ const securityHeaders = [
 ];
 
 // The policy, with Google's and Apple's sign-in hosts in form-action once each is configured
-// (BA-1, AU1), and Stripe Identity's once it is the ID provider (BA-6). Read when the app is
-// built, so redeploy after setting a provider.
+// (BA-1, AU1), Stripe Identity's once it is the ID provider (BA-6), and the photo store's origin
+// in connect-src where photos go straight to it (M43). Read when the app is built, so redeploy
+// after setting a provider or the photo store.
 const providers = {
   ...configuredProviders(process.env),
   stripeIdentity: process.env.IDENTITY_PROVIDER === 'stripe',
 };
-const contentSecurityPolicy = policyFor(providers);
+const photoUploads = photoUploadOrigin(process.env);
+const contentSecurityPolicy = policyFor(providers, { photoUploads });
 
 // BA-5, M119 (the live line's ADR-0028): the pages that show Google's map (Search, and "Where is
 // it on the map?") allow Google's hosts, and only in a build whose map is Google's. Every page,
@@ -35,14 +38,15 @@ const contentSecurityPolicy = policyFor(providers);
 // alone (auth_referrer_policy=origin, src/ui/GoogleLoader.tsx). A policy comes with its document,
 // so going between these pages and any other is a full page load (src/ui/MapBoundary.tsx).
 const googleMaps = googleMapsBuild(process.env);
-const mapPolicy = policyFor(providers, { maps: true });
+const mapPolicy = policyFor(providers, { maps: true, photoUploads });
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   serverExternalPackages: ['graphile-worker', 'pg'],
   // R25: inventory photos are uploaded through a server action, each under 4 MB, inside
-  // Vercel's 4.5 MB limit for a whole request (ADR-0014).
+  // Vercel's 4.5 MB limit for a whole request (ADR-0014). So are homes' photos with the local
+  // store; with Supabase Storage they go straight to it (M43, ADR-0023).
   experimental: { serverActions: { bodySizeLimit: '4.5mb' } },
   // Built into the pages' scripts, so they know which policy this build's documents carry.
   env: { NEXT_PUBLIC_GOOGLE_MAP_PAGES: googleMaps ? '1' : '' },

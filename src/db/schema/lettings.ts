@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
+  bigint,
   boolean,
   check,
   date,
@@ -19,6 +20,7 @@ import type { Criteria } from '@/domain/criteria/criteria';
 import { reportReasons } from '@/domain/homes/report';
 import { draftOrigins, flowSteps, type DraftAnswers } from '@/domain/lettings/add-letting';
 import { pointSources } from '@/domain/map/pin';
+import { photoKinds } from '@/domain/lettings/photo-files';
 import type { DraftReading } from '@/domain/lettings/advert-reading';
 import type { Portal } from '@/domain/lettings/setup';
 import { stages } from '@/domain/lettings/stages';
@@ -255,9 +257,25 @@ export const lettingPhotos = pgTable(
     lettingId: uuid().references(() => lettings.id, { onDelete: 'cascade' }),
     draftId: uuid().references(() => lettingDrafts.id, { onDelete: 'cascade' }),
     position: integer().notNull(),
+    /**
+     * M43: the folder of the photo's fixed sizes (`photoFolder`), or, for a photo kept before
+     * the pipeline, its one file (`widths` is empty).
+     */
     storageKey: text().notNull(),
     contentType: text().notNull(),
     bytes: integer().notNull(),
+    /** M44: a photo, or a floor plan, shown after the photos and never the cover. */
+    kind: text({ enum: photoKinds }).notNull().default('photo'),
+    /** M43: upright, in pixels. */
+    width: integer(),
+    height: integer(),
+    /** M43: the fixed widths kept (`PHOTO_WIDTHS`). Empty for a photo kept as one file. */
+    widths: integer()
+      .array()
+      .notNull()
+      .default(sql`'{}'::integer[]`),
+    /** M29: a 64-bit difference hash, to spot the same picture on another home (a later check). */
+    phash: bigint({ mode: 'bigint' }),
     createdBy: text().references(() => users.id),
     createdAt: createdAt(),
   },
@@ -265,6 +283,7 @@ export const lettingPhotos = pgTable(
     index('letting_photos_letting_idx').on(t.lettingId, t.position),
     index('letting_photos_draft_idx').on(t.draftId, t.position),
     check('letting_photos_one_home', sql`(${t.lettingId} is null) <> (${t.draftId} is null)`),
+    check('letting_photos_kind', sql`${t.kind} in ('photo', 'floor_plan')`),
     tenantPolicy(),
   ],
 ).enableRLS();

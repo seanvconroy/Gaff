@@ -21,7 +21,12 @@ import { ActionList, ActionRow } from '@/ui/ActionList';
 import { Button } from '@/ui/Button';
 import { FieldError } from '@/ui/Field';
 import { FlowProblems, FlowShell, FlowTitle } from '@/ui/FlowShell';
-import { PhotoUploader, type UploadedPhoto, type UploadResult } from '@/ui/PhotoUploader';
+import {
+  type DirectUpload,
+  PhotoUploader,
+  type UploadedPhoto,
+  type UploadResult,
+} from '@/ui/PhotoUploader';
 import { Sheet } from '@/ui/Sheet';
 import { StatusPill } from '@/ui/StatusPill';
 import { SummaryList } from '@/ui/SummaryList';
@@ -227,8 +232,10 @@ export function ReviewStep({
   searchOn,
   photos,
   upload,
+  direct,
   remove,
   reorder,
+  setKind,
 }: {
   frame: StepFrame;
   origin: DraftOrigin;
@@ -252,8 +259,12 @@ export function ReviewStep({
   searchOn: boolean;
   photos: UploadedPhoto[];
   upload: (data: FormData) => Promise<UploadResult>;
+  /** M43: photos straight to the store, where it can take them. */
+  direct?: DirectUpload;
   remove: (id: string) => Promise<void>;
   reorder: (ids: string[]) => Promise<void>;
+  /** M44: marks a picture as a floor plan, or a photo again. */
+  setKind?: (id: string, kind: 'photo' | 'floor_plan') => Promise<void>;
 }) {
   const router = useRouter();
   const close = () => {
@@ -326,8 +337,10 @@ export function ReviewStep({
           photos={photos}
           max={MAX_HOME_PHOTOS}
           upload={upload}
+          direct={direct}
           remove={remove}
           reorder={reorder}
+          setKind={setKind}
         />
       </Sheet>
       <Sheet open={form !== null} onClose={close} title={form ? rowCopy[form].title : ''}>

@@ -1,7 +1,7 @@
 /**
  * The Content Security Policy (next.config.ts). Fonts are self-hosted and no third-party
- * scripts load, so 'self' covers everything, except where a form's answer goes, and Google's
- * map on the pages that show it (BA-5).
+ * scripts load, so 'self' covers everything, except where a form's answer goes, Google's map
+ * on the pages that show it (BA-5) and, with Supabase Storage, where a photo is sent (M43).
  *
  * BA-1, AU1: "Continue with Google" and "Continue with Apple" are forms whose answer sends the
  * browser on to the provider, and browsers apply form-action to where a form's answer
@@ -28,7 +28,8 @@ export const googleMapHosts = 'https://*.googleapis.com https://*.gstatic.com *.
 
 export function contentSecurityPolicy(
   providers: { google: boolean; apple: boolean; stripeIdentity?: boolean },
-  options: { maps?: boolean } = {},
+  /** `photoUploads` (M43): the photo store's origin, where browsers send photos straight to it. */
+  options: { maps?: boolean; photoUploads?: string | null } = {},
 ): string {
   const formAction = [
     "'self'",
@@ -50,7 +51,11 @@ export function contentSecurityPolicy(
     "style-src 'self' 'unsafe-inline'",
     join("img-src 'self' data:", maps ? `${googleMapHosts} *.googleusercontent.com` : ''),
     "font-src 'self'",
-    join("connect-src 'self'", maps ? `${googleMapHosts} data: blob:` : ''),
+    join(
+      "connect-src 'self'",
+      options.photoUploads ?? '',
+      maps ? `${googleMapHosts} data: blob:` : '',
+    ),
     ...(maps ? ['frame-src *.google.com', 'worker-src blob:'] : []),
     "frame-ancestors 'none'",
     "base-uri 'self'",
@@ -81,4 +86,18 @@ export function configuredProviders(source: Record<string, string | undefined>):
  */
 export function googleMapsBuild(source: Record<string, string | undefined>): boolean {
   return source.MAP_PROVIDER === 'google' && source.VERCEL_ENV !== 'preview';
+}
+
+/**
+ * M43 (ADR-0023): where browsers send photos straight to the photo store, its origin, so the
+ * page may reach it (connect-src) and nothing else. Only Supabase Storage takes them; with the
+ * local store, photos go through Gaff's own server and the policy stays 'self'.
+ */
+export function photoUploadOrigin(source: Record<string, string | undefined>): string | null {
+  if (source.PHOTO_STORE !== 'supabase' || !source.SUPABASE_URL) return null;
+  try {
+    return new URL(source.SUPABASE_URL).origin;
+  } catch {
+    return null;
+  }
 }

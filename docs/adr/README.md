@@ -26,6 +26,7 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0020](0020-id-check-on-stripe-identity-and-booking-mobile.md) | The ID check on Stripe Identity (a verified webhook re-read from Stripe, one session across three tries, redaction after 30 days), and a mobile confirmed by text code to book a viewing | Accepted |
 | [0021](0021-search-map-on-google-maps.md) | The search map and the lister's pin are on Google Maps, with homes' own points | Accepted (Q51) |
 | [0022](0022-google-script-only-on-map-pages.md) | Google's script runs only in documents loaded for the map's pages | Accepted |
+| [0023](0023-photo-pipeline.md) | The photo pipeline: every photo made again upright, clean, at fixed WebP sizes with a hash; floor plans; straight to Supabase Storage | Accepted (M43, M44) |
 
 ## Template
 

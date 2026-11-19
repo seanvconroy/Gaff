@@ -219,6 +219,13 @@
   border-radius: var(--radius-md);
 }
 
+/* M44: a floor plan is shown whole, never cropped, on white inside a hairline. */
+.plan {
+  background-color: var(--color-surface-0);
+  border: 1px solid var(--color-border);
+  object-fit: contain;
+}
+
 @media (width > 900px) {
   .photos {
     grid-template-columns: repeat(4, minmax(0, 1fr));

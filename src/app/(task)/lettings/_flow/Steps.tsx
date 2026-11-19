@@ -19,7 +19,12 @@ import { ButtonLink } from '@/ui/Button';
 import { TextArea } from '@/ui/Field';
 import { FlowExit, FlowShell, FlowTitle } from '@/ui/FlowShell';
 import { Skeleton, SkeletonGroup } from '@/ui/Skeleton';
-import { PhotoUploader, type UploadedPhoto, type UploadResult } from '@/ui/PhotoUploader';
+import {
+  type DirectUpload,
+  PhotoUploader,
+  type UploadedPhoto,
+  type UploadResult,
+} from '@/ui/PhotoUploader';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { AddressFields, DescriptionFields, DetailsFields, HomeFields, RentFields } from './fields';
 import styles from './flow.module.css';
@@ -308,8 +313,10 @@ export function PhotosStep({
   frame,
   photos,
   upload,
+  direct,
   remove,
   reorder,
+  setKind,
   done,
   problem,
   doneLabel,
@@ -317,8 +324,12 @@ export function PhotosStep({
   frame: StepFrame;
   photos: UploadedPhoto[];
   upload: (data: FormData) => Promise<UploadResult>;
+  /** M43: photos straight to the store, where it can take them. */
+  direct?: DirectUpload;
   remove: (id: string) => Promise<void>;
   reorder: (ids: string[]) => Promise<void>;
+  /** M44: marks a picture as a floor plan, or a photo again. */
+  setKind?: (id: string, kind: 'photo' | 'floor_plan') => Promise<void>;
   done: () => Promise<void>;
   problem?: string;
   /** Opened on its own from Home: one button that goes back, whatever the count. */
@@ -349,8 +360,10 @@ export function PhotosStep({
         photos={photos}
         max={MAX_HOME_PHOTOS}
         upload={upload}
+        direct={direct}
         remove={remove}
         reorder={reorder}
+        setKind={setKind}
         problem={problem}
         onCount={setCount}
       />

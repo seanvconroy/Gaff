@@ -4,9 +4,14 @@ import {
   coverOf,
   movedPhoto,
   isPhotoKey,
+  photoFolder,
   photoKey,
   photoRoomLeft,
+  previewPhotoKey,
   reorderedPhotos,
+  sizedPhotoKey,
+  storedPhotoKeys,
+  uploadKey,
 } from './photos';
 
 const order = ['a', 'b', 'c'];
@@ -75,6 +80,37 @@ describe('UX-LT-10: a home’s photos', () => {
       '',
     ]) {
       expect(isPhotoKey(other)).toBe(false);
+    }
+  });
+
+  it('M43: each photo keeps its sizes in a folder of its own, named by IDs alone', () => {
+    const org = '0b0f7c3e-2a31-4d3c-9a43-0f0d2b8a6c11';
+    const folder = photoFolder(org, '7d6a3f0e-51c2-4c59-8d0f-3f3a1b2c4d5e');
+    expect(folder).toBe(`homes/${org}/7d6a3f0e-51c2-4c59-8d0f-3f3a1b2c4d5e`);
+    expect(sizedPhotoKey(folder, 960)).toBe(`${folder}/960.webp`);
+    expect(storedPhotoKeys({ storageKey: folder, widths: [480, 960] })).toEqual([
+      `${folder}/480.webp`,
+      `${folder}/960.webp`,
+      `${folder}/preview.jpg`,
+    ]);
+    // A photo kept before the pipeline is one file.
+    expect(storedPhotoKeys({ storageKey: `${folder}.png`, widths: [] })).toEqual([`${folder}.png`]);
+    for (const key of [
+      sizedPhotoKey(folder, 480),
+      sizedPhotoKey(folder, 2048),
+      previewPhotoKey(folder),
+    ]) {
+      expect(isPhotoKey(key)).toBe(true);
+    }
+    // An upload waiting to be read is never served.
+    for (const key of [
+      folder,
+      sizedPhotoKey(folder, 500),
+      `${folder}/original`,
+      `${folder}/960.png`,
+      uploadKey(org, '7d6a3f0e-51c2-4c59-8d0f-3f3a1b2c4d5e'),
+    ]) {
+      expect(isPhotoKey(key)).toBe(false);
     }
   });
 });

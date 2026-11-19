@@ -222,7 +222,8 @@ test('UX-LT-1, UX-LT-8 to UX-LT-15, UX-LT-22: a letting goes live from scratch, 
     await expect(photos.getByRole('img')).toHaveCount(2);
     await expect(photos.getByRole('listitem').first()).toContainText('Cover');
     const first = await photos.getByRole('img').first().getAttribute('src');
-    expect(first).toMatch(/^\/media\/homes\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.jpg$/);
+    // M43: kept at its fixed sizes, as WebP, in a folder named by IDs alone.
+    expect(first).toMatch(/^\/media\/homes\/[0-9a-f-]{36}\/[0-9a-f-]{36}\/480\.webp$/);
     // The second photo moves earlier, from its menu, and becomes the cover.
     await page.getByRole('button', { name: 'Photo 2 of 2' }).click();
     await page.getByRole('menuitem', { name: 'Move earlier' }).click();
@@ -232,7 +233,7 @@ test('UX-LT-1, UX-LT-8 to UX-LT-15, UX-LT-22: a letting goes live from scratch, 
     await expectAccessible(page);
     await screenshot(page, `ux-lt-06-photos-${width}`);
     // Gaff serves its own copy.
-    expect((await page.request.get(first!)).headers()['content-type']).toBe('image/jpeg');
+    expect((await page.request.get(first!)).headers()['content-type']).toBe('image/webp');
     await next(page).click();
 
     // Step 7, "Letting details" (UX-LT-11): the four fixed criteria, each off until tapped,

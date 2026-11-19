@@ -15,7 +15,9 @@ import {
 } from '@/domain/homes/home-page';
 import { placedPoint, publicPoint } from '@/domain/map/pin';
 import type { Point } from '@/domain/places/geo';
-import { photoHref } from '@/ports/photo-store';
+import { COVER_WIDTH, SHOWN_WIDTH } from '@/domain/lettings/photo-files';
+import { previewPhotoKey } from '@/domain/lettings/photos';
+import { photoHref, photoSources, type KeptPhoto } from '@/ports/photo-store';
 
 /**
  * THE PUBLIC QUERY for homes on Gaff (UX-LT-21, UX-LS-1, UX-LS-11): every live home whose lister
@@ -32,7 +34,24 @@ import { photoHref } from '@/ports/photo-store';
 
 /** A home's photo on its public page. Photos of homes only, served from Gaff's own address. */
 export interface PublicPhoto {
+  /** M43: at the width a page usually shows it. */
   src: string;
+  /** M43: every size kept, for the browser to choose from. */
+  srcSet?: string;
+  /** M43: the small size, for a card in a list. */
+  small: string;
+  /** M43: the JPEG a link preview shows (`og:image`). */
+  preview: string;
+}
+
+/** M43: a kept photo, as a public page loads it. */
+export function publicPhotoOf(photo: KeptPhoto): PublicPhoto {
+  const shown = photoSources(photo, SHOWN_WIDTH);
+  return {
+    ...shown,
+    small: photoSources(photo, COVER_WIDTH).src,
+    preview: photo.widths.length > 0 ? photoHref(previewPhotoKey(photo.storageKey)) : shown.src,
+  };
 }
 
 /** A live home on Gaff, as its card and its page show it. */
@@ -43,6 +62,8 @@ export interface PublicHome {
   home: HomeFacts;
   /** In the lister's order: the first is the cover. Never empty. */
   photos: PublicPhoto[];
+  /** M44: floor plans, shown after the photos. */
+  floorPlans: PublicPhoto[];
   lister: PublicLister;
   /** Q43: the number renters can ring instead, as the lister gave it. Null: no "Call". */
   phone: string | null;
@@ -65,7 +86,7 @@ export function homeCardOf(home: PublicHome): PublicHomeCard {
     title: home.home.addressLine1,
     line: `${homeSummary(home.home)} · ${home.home.area}`,
     // The address is beside it on the card, so the picture adds no words.
-    photo: { src: home.photos[0]!.src, alt: '' },
+    photo: { src: home.photos[0]!.small, alt: '' },
     availableFrom: home.home.availableFrom,
   };
 }
@@ -86,7 +107,8 @@ const listerMayShow = or(
   ),
 )!;
 
-const hasAPhoto = sql`exists (select 1 from ${lettingPhotos} where ${lettingPhotos.lettingId} = ${lettings.id})`;
+/** A floor plan alone isn't a photo of the home (M44). */
+const hasAPhoto = sql`exists (select 1 from ${lettingPhotos} where ${lettingPhotos.lettingId} = ${lettings.id} and ${lettingPhotos.kind} = 'photo')`;
 
 /** UX-LT-21, UX-LT-22: on gaff.ie, with a BER and a photo, not hidden, by a lister who may show it. */
 const onGaff = and(
@@ -147,6 +169,7 @@ type Row = Awaited<ReturnType<typeof selectRows>>[number];
 interface Loaded {
   row: Row;
   photos: PublicPhoto[];
+  floorPlans: PublicPhoto[];
   facts: string[];
 }
 
@@ -155,7 +178,12 @@ async function load(tx: Tx, where: SQL, limit?: number): Promise<Loaded[]> {
   if (rows.length === 0) return [];
   const ids = rows.map((row) => row.id);
   const photos = await tx
-    .select({ lettingId: lettingPhotos.lettingId, storageKey: lettingPhotos.storageKey })
+    .select({
+      lettingId: lettingPhotos.lettingId,
+      storageKey: lettingPhotos.storageKey,
+      widths: lettingPhotos.widths,
+      kind: lettingPhotos.kind,
+    })
     .from(lettingPhotos)
     .where(inArray(lettingPhotos.lettingId, ids))
     .orderBy(asc(lettingPhotos.position), asc(lettingPhotos.createdAt));
@@ -175,8 +203,11 @@ async function load(tx: Tx, where: SQL, limit?: number): Promise<Loaded[]> {
   return rows.map((row) => ({
     row,
     photos: photos
-      .filter((photo) => photo.lettingId === row.id)
-      .map((photo) => ({ src: photoHref(photo.storageKey) })),
+      .filter((photo) => photo.lettingId === row.id && photo.kind === 'photo')
+      .map(publicPhotoOf),
+    floorPlans: photos
+      .filter((photo) => photo.lettingId === row.id && photo.kind === 'floor_plan')
+      .map(publicPhotoOf),
     facts: facts.filter((fact) => fact.lettingId === row.id).map((fact) => fact.answer),
   }));
 }
@@ -231,6 +262,7 @@ function toPublicHome(loaded: Loaded): PublicHome {
     href: homeHref(row.publicRef),
     home: factsOf(loaded),
     photos,
+    floorPlans: loaded.floorPlans,
     lister: publicLister(listerOf(row)),
     phone: row.phone?.trim() || null,
     liveAt: row.liveAt ?? new Date(0),

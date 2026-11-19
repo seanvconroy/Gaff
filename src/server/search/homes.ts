@@ -39,7 +39,7 @@ export async function liveHomesOnGaff(): Promise<HomeOnGaff[]> {
     criteria: home.home.criteria,
     liveAt: home.liveAt,
     // The address is beside it on the card, so the picture adds no words.
-    cover: home.photos[0] ? { src: home.photos[0].src, alt: '' } : null,
+    cover: home.photos[0] ? { src: home.photos[0].small, alt: '' } : null,
   }));
 }
 

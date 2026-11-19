@@ -136,12 +136,16 @@ export const eventCatalogue = {
   }),
   /** A letting in set-up had its address, its date or its facts changed. Which step only. */
   'letting.details_changed': z.object({ step: z.enum(['address', 'rent', 'home']) }),
-  /** UX-LT-10: photos were added, removed or put in a new order. Counts only. */
+  /**
+   * UX-LT-10: photos were added, removed or put in a new order. Counts only. M44: or one was
+   * marked as a floor plan, or as a photo again.
+   */
   'letting.photos_changed': z.object({
     added: z.number().int().min(0),
     removed: z.number().int().min(0),
     reordered: z.boolean(),
     count: z.number().int().min(0),
+    floorPlan: z.enum(['marked', 'unmarked']).optional(),
   }),
   /** UX-MT-5: the one house rule. It is shown to renters and never used to rank anyone. */
   'letting.house_rules_set': z.object({ noSmokingIndoors: z.boolean() }),

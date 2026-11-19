@@ -49,12 +49,20 @@ import {
 import { setAdvertisedOn, startTakingEnquiries } from '@/server/lettings/go-live';
 import { letAgain } from '@/server/lettings/let-again';
 import { describePin, setHomePoint } from '@/server/lettings/location';
-import { addPhoto, photoProblems, removePhoto, reorderPhotos } from '@/server/lettings/photos';
+import {
+  addPhoto,
+  finishPhotoUpload,
+  photoProblems,
+  removePhoto,
+  reorderPhotos,
+  setPhotoKind,
+  startPhotoUpload,
+} from '@/server/lettings/photos';
 import { getLetting } from '@/server/lettings/queries';
 import { changeAskingRent, recordRentCheck, rentCheckProblem } from '@/server/lettings/rent-check';
 import { setLettingDetails } from '@/server/lettings/set-criteria';
 import { sendTestEnquiry } from '@/server/lettings/test-enquiry';
-import type { UploadResult } from '@/ui/PhotoUploader';
+import type { StartedUpload, UploadResult } from '@/ui/PhotoUploader';
 import { screenHref, startHref } from '@/domain/lettings/links';
 
 const copy = addLettingCopy;
@@ -246,6 +254,44 @@ export async function uploadPhotoAction(id: string, formData: FormData): Promise
   }
   const result = await addPhoto(member, id, Buffer.from(await file.arrayBuffer()));
   return result.ok ? result : { ok: false, message: photoProblems[result.problem] };
+}
+
+/**
+ * M43: where the photo store can take a photo straight from the browser (Supabase), the first
+ * step: a signed address for one photo. The bytes are checked when they have arrived.
+ */
+export async function startPhotoUploadAction(
+  id: string,
+  file: { contentType: string; bytes: number },
+): Promise<StartedUpload> {
+  const member = await requireMember();
+  const started = await startPhotoUpload(member, id, {
+    contentType: String(file?.contentType ?? ''),
+    bytes: Number(file?.bytes ?? 0),
+  });
+  if (started.via === 'store')
+    return { ok: true, uploadId: started.uploadId, target: started.target };
+  return {
+    ok: false,
+    message: photoProblems[started.via === 'none' ? started.problem : 'unreadable'],
+  };
+}
+
+/** M43: the photo has gone to the store: Gaff reads it back and keeps it at its fixed sizes. */
+export async function finishPhotoUploadAction(id: string, uploadId: string): Promise<UploadResult> {
+  const member = await requireMember();
+  const result = await finishPhotoUpload(member, id, String(uploadId));
+  return result.ok ? result : { ok: false, message: photoProblems[result.problem] };
+}
+
+/** M44: one of the home's pictures is a floor plan, or a photo again. */
+export async function setPhotoKindAction(
+  id: string,
+  photoId: string,
+  kind: 'photo' | 'floor_plan',
+): Promise<void> {
+  const member = await requireMember();
+  await setPhotoKind(member, id, String(photoId), kind === 'floor_plan' ? 'floor_plan' : 'photo');
 }
 
 export async function removePhotoAction(id: string, photoId: string): Promise<void> {

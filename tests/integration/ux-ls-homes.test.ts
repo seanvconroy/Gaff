@@ -78,7 +78,8 @@ describe('UX-LT-21, UX-LS-1: the one public query for homes on Gaff', () => {
       href: `/homes/${ref}`,
       title: '12 Ranelagh Road',
       line: '€1,850 a month · 2-bed apartment · Furnished · Ranelagh, Dublin 6',
-      photo: { src: page.home.photos[0]!.src, alt: '' },
+      // M43: a card asks for the small size.
+      photo: { src: page.home.photos[0]!.small, alt: '' },
     });
     expect((await publicHomes({ ref })).map((home) => home.ref)).toEqual([ref]);
     expect((await publicHomes()).some((home) => home.ref === ref)).toBe(true);
@@ -97,10 +98,12 @@ describe('UX-LT-21, UX-LS-1: the one public query for homes on Gaff', () => {
     // No internal IDs, and no counts of interest (UX-LS-9).
     // A photo's key is two random IDs (UX-LT-10), which name no home and no person.
     expect(text).not.toContain(lettingId);
-    expect(JSON.stringify({ ...home, photos: [] })).not.toContain(member.organisationId);
+    expect(JSON.stringify({ ...home, photos: [], floorPlans: [] })).not.toContain(
+      member.organisationId,
+    );
     expect(text).not.toMatch(/enquir|applic|viewing|eircode|D06 F2X3/i);
     expect(Object.keys(home!).sort()).toEqual(
-      ['home', 'href', 'lister', 'liveAt', 'phone', 'photos', 'ref'].sort(),
+      ['floorPlans', 'home', 'href', 'lister', 'liveAt', 'phone', 'photos', 'ref'].sort(),
     );
   });
 

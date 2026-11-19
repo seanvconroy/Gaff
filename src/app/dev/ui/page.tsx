@@ -976,10 +976,13 @@ export default function ComponentsPage() {
           title="A home’s page: gallery, action card, show more"
           lead="The gallery swipes on a phone, with Previous and Next, and is a grid of five on a desktop; any photo opens full screen. The action card is fixed to the foot of a phone’s screen and held to the right on a desktop (shown here in place). Long text shows three lines, then Show more."
         >
-          <Example label="Gallery: six photos">
+          <Example label="Gallery: six photos and a floor plan">
             <Gallery
               label="12 Ranelagh Road"
-              photos={[1, 2, 3, 4, 5, 6].map((n) => ({ src: `${samplePhoto}#${n}` }))}
+              photos={[
+                ...[1, 2, 3, 4, 5, 6].map((n) => ({ src: `${samplePhoto}#${n}` })),
+                { src: `${samplePhoto}#plan`, kind: 'floor_plan' as const },
+              ]}
             />
           </Example>
           <div className={styles.columns}>

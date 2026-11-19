@@ -73,7 +73,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       url: href,
       title: preview.title,
       description: preview.description,
-      images: [{ url: photos[0]!.src, alt: '' }],
+      // M43: the 1,200 px JPEG kept for link previews.
+      images: [{ url: photos[0]!.preview, alt: '' }],
     },
     twitter: {
       card: 'summary_large_image',
@@ -198,7 +199,7 @@ function LiveHome({
   /** Save (the heart), at the top right of the title. */
   save: ReactNode;
 }) {
-  const { home, photos, lister, phone, ref } = found;
+  const { home, photos, floorPlans, lister, phone, ref } = found;
   const title = homeTitle(home);
   const highlights = homeHighlights(home);
   const details = homeLettingDetails(home);
@@ -206,7 +207,13 @@ function LiveHome({
   const ber = homeBer(home.berRating);
   return (
     <article className={styles.page} aria-labelledby="home-title">
-      <Gallery photos={photos} label={home.addressLine1} />
+      <Gallery
+        photos={[
+          ...photos,
+          ...floorPlans.map((plan) => ({ ...plan, kind: 'floor_plan' as const })),
+        ]}
+        label={home.addressLine1}
+      />
       <div className={styles.columns}>
         <div className={styles.content}>
           <header className={styles.head}>

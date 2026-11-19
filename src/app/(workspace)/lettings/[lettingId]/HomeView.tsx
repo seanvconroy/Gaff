@@ -43,8 +43,17 @@ export function HomeView({
   /** M135: whether this deployment has a map, so a pin to place. */
   mapOn: boolean;
 }) {
-  const { letting, facts, photos, sessions, rentCheck, rentProblem, comparables, landlord } =
-    detail;
+  const {
+    letting,
+    facts,
+    photos,
+    floorPlans,
+    sessions,
+    rentCheck,
+    rentProblem,
+    comparables,
+    landlord,
+  } = detail;
   const id = letting.id;
   const here = `/lettings/${id}?view=home`;
   const open = letting.status === 'live' || letting.status === 'draft';
@@ -83,7 +92,7 @@ export function HomeView({
         title={copy.photos}
         action={change(alone('photos'), copy.photos.toLowerCase())}
       >
-        {photos.length === 0 ? (
+        {photos.length + floorPlans.length === 0 ? (
           <p className={styles.muted}>{copy.noPhotos}</p>
         ) : (
           <ul className={styles.photos}>
@@ -92,8 +101,23 @@ export function HomeView({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={photo.href}
+                  srcSet={photo.srcSet}
+                  sizes={photo.srcSet ? '(min-width: 900px) 25vw, 50vw' : undefined}
                   alt={index === 0 ? 'The cover photo' : `Photo ${index + 1}`}
                   className={styles.photo}
+                />
+              </li>
+            ))}
+            {/* M44: floor plans, after the photos, shown whole. */}
+            {floorPlans.map((plan, index) => (
+              <li key={plan.id}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={plan.href}
+                  srcSet={plan.srcSet}
+                  sizes={plan.srcSet ? '(min-width: 900px) 25vw, 50vw' : undefined}
+                  alt={floorPlans.length === 1 ? 'Floor plan' : `Floor plan ${index + 1}`}
+                  className={`${styles.photo} ${styles.plan}`}
                 />
               </li>
             ))}

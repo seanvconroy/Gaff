@@ -18,6 +18,7 @@ import { refreshRegister } from '@/server/register/refresh';
 import { sweepPersonalData } from '@/server/retention/sweep';
 import { sweepPlaceMisses } from '@/server/places/places';
 import { sweepMapCounts } from '@/server/search/map-counts';
+import { sweepPhotoUploads } from '@/server/lettings/photos';
 import { endLetHomePages } from '@/server/homes/let-pages';
 import { purgeListingReports } from '@/server/homes/report';
 import { sendSearchAlerts, sweepEmailSearches } from '@/server/saved/alerts';
@@ -78,6 +79,9 @@ export const taskList: TaskList = {
     // M133 (rule 9): the search map's daily counts, after 13 months. Numbers only.
     const mapCounts = await sweepMapCounts();
     console.log(`Map: ${mapCounts.deleted} daily counts over 13 months old deleted.`);
+    // M43: photos sent straight to the store and never finished, after a day. Counts only.
+    const uploads = await sweepPhotoUploads();
+    console.log(`Photos: ${uploads} unfinished uploads deleted.`);
     // UX-TS-3 (rule 9): reports of listings, six months after Gaff's team answered them.
     const reports = await purgeListingReports();
     console.log(`Reports: ${reports} reports of listings deleted.`);

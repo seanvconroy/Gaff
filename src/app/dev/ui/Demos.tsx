@@ -355,11 +355,13 @@ const demoPhotos: UploadedPhoto[] = [
   { id: 'front', href: swatch('#2f5d9b') },
   { id: 'kitchen', href: swatch('#c98c3c') },
   { id: 'garden', href: swatch('#5a8c5a') },
+  { id: 'plan', href: swatch('#ffffff'), kind: 'floor_plan' },
 ];
 
 /**
- * Photo uploader: three photos to reorder and remove, and room for more. A photo added here is
- * shown from the browser's own memory; one named "fail" doesn't upload, to show that tile.
+ * Photo uploader: three photos and a floor plan (M44) to reorder, mark and remove, and room for
+ * more. A photo added here is shown from the browser's own memory; one named "fail" doesn't
+ * upload, to show that tile.
  */
 export function PhotoUploaderDemo() {
   return (
@@ -378,6 +380,7 @@ export function PhotoUploaderDemo() {
       }}
       remove={async () => undefined}
       reorder={async () => undefined}
+      setKind={async () => undefined}
     />
   );
 }

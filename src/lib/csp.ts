@@ -1,0 +1,44 @@
+/**
+ * The Content Security Policy (next.config.ts). Fonts are self-hosted and no third-party
+ * scripts load, so 'self' covers everything, except where a form's answer goes.
+ *
+ * BA-1, AU1: "Continue with Google" and "Continue with Apple" are forms whose answer sends the
+ * browser on to the provider, and browsers apply form-action to where a form's answer
+ * redirects, not just to where it posts. So each provider's sign-in host is allowed once that
+ * provider is configured, and the buttons work without JavaScript.
+ */
+export const providerHosts = {
+  google: 'https://accounts.google.com',
+  apple: 'https://appleid.apple.com',
+} as const;
+
+export function contentSecurityPolicy(providers: { google: boolean; apple: boolean }): string {
+  const formAction = [
+    "'self'",
+    ...(providers.google ? [providerHosts.google] : []),
+    ...(providers.apple ? [providerHosts.apple] : []),
+  ].join(' ');
+  return [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "font-src 'self'",
+    "connect-src 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    `form-action ${formAction}`,
+    "object-src 'none'",
+  ].join('; ');
+}
+
+/** Which providers are configured, from the settings (both of a provider's values, as in env). */
+export function configuredProviders(source: Record<string, string | undefined>): {
+  google: boolean;
+  apple: boolean;
+} {
+  return {
+    google: Boolean(source.GOOGLE_CLIENT_ID && source.GOOGLE_CLIENT_SECRET),
+    apple: Boolean(source.APPLE_CLIENT_ID && source.APPLE_CLIENT_SECRET),
+  };
+}

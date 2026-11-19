@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { configuredProviders, contentSecurityPolicy as policyFor } from './src/lib/csp';
 
 const isProduction = process.env.NODE_ENV === 'production';
 // UX-LS-11: read when the app is built and started; "off" unless set (see src/lib/env.ts).
@@ -14,19 +15,9 @@ const securityHeaders = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
 ];
 
-// Fonts are self-hosted and no third-party scripts load, so 'self' covers everything.
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data:",
-  "font-src 'self'",
-  "connect-src 'self'",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "object-src 'none'",
-].join('; ');
+// The policy, with Google's and Apple's sign-in hosts in form-action once each is configured
+// (BA-1, AU1). Read when the app is built, so redeploy after setting a provider.
+const contentSecurityPolicy = policyFor(configuredProviders(process.env));
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,

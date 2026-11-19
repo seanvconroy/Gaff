@@ -1,5 +1,19 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { resetEnvForTests } from '@/lib/env';
 import { standInKeyMatches, standInUrl } from './stand-in';
+
+// The key is made with Gaff's secret, so the test brings its own settings and needs no .env.
+beforeAll(() => {
+  vi.stubEnv('GAFF_ENV', 'test');
+  vi.stubEnv('DATABASE_URL', 'postgres://gaff:gaff@localhost:5432/gaff_test');
+  vi.stubEnv('AUTH_SECRET', 'a-made-up-secret-of-at-least-32-characters');
+  vi.stubEnv('APP_URL', 'https://gaff.test');
+  resetEnvForTests();
+});
+afterAll(() => {
+  vi.unstubAllEnvs();
+  resetEnvForTests();
+});
 
 const checkId = '3f0c7a52-8a43-4c4b-9a64-0b7b1c2b5d10';
 const other = '6a1d0e7c-2b9f-4d8a-8e5c-1f2a3b4c5d6e';

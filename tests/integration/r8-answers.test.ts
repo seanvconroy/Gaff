@@ -1,6 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
-import { fakeDrafter } from '@/adapters/ai/fake';
+import { fakeAi } from '@/adapters/ai/fake';
 import { withOrg } from '@/db/client';
 import { aiDrafts, decisions, lettingFacts, messages, operatorQuestions } from '@/db/schema';
 import { draftAnswersFor } from '@/server/answers/draft';
@@ -202,7 +202,7 @@ describe('R8 and R29: answers from the facts, approved by a person', () => {
   it('if the AI is down, nothing is lost: the questions go to a person', async () => {
     const member = await createTestMember();
     await aLiveLetting(member);
-    const spy = vi.spyOn(fakeDrafter, 'draftAnswers').mockRejectedValueOnce(new Error('timeout'));
+    const spy = vi.spyOn(fakeAi, 'draftAnswers').mockRejectedValueOnce(new Error('timeout'));
     vi.spyOn(console, 'error').mockImplementationOnce(() => {});
     const { applicationId } = await ask(member, 'Is there parking?');
     spy.mockRestore();
@@ -214,7 +214,7 @@ describe('R8 and R29: answers from the facts, approved by a person', () => {
   it('only sends the AI redacted questions, never the renter’s name or contact details', async () => {
     const member = await createTestMember();
     await aLiveLetting(member);
-    const spy = vi.spyOn(fakeDrafter, 'draftAnswers');
+    const spy = vi.spyOn(fakeAi, 'draftAnswers');
     await ask(member, 'Hi, Aoife Byrne here (087 123 4567). Is there parking, Aoife?');
     const sent = JSON.stringify(spy.mock.calls[0]?.[0]?.questions);
     spy.mockRestore();

@@ -72,6 +72,34 @@ describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)'
     ]);
   });
 
+  it('P1, P7: production refuses the Claude API and its key, and the stand-in AI: only Bedrock in the EU', () => {
+    expect(environmentProblems({ ...production, AI_PROVIDER: 'fake' })).toEqual(['AI_PROVIDER']);
+    expect(
+      environmentProblems({ ...production, AI_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'k' }),
+    ).toEqual(['AI_PROVIDER', 'ANTHROPIC_API_KEY']);
+    expect(environmentProblems({ ...production, ANTHROPIC_API_KEY: 'k' })).toEqual([
+      'ANTHROPIC_API_KEY',
+    ]);
+  });
+
+  it('P1: the test copy and development may use the Claude API, with its key', () => {
+    const staging = { ...base, GAFF_ENV: 'staging', CRON_SECRET: 'c'.repeat(32) };
+    expect(
+      environmentProblems({ ...staging, AI_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'k' }),
+    ).toEqual([]);
+    expect(environmentProblems({ ...base, AI_PROVIDER: 'anthropic' })).toEqual([
+      'ANTHROPIC_API_KEY',
+    ]);
+  });
+
+  it('P4, P8: a budget in dollars, never below nothing, and tasks switched off by name', () => {
+    expect(environmentProblems({ ...production, AI_MONTHLY_BUDGET_USD: '250' })).toEqual([]);
+    expect(environmentProblems({ ...production, AI_MONTHLY_BUDGET_USD: '-1' })).toEqual([
+      'AI_MONTHLY_BUDGET_USD',
+    ]);
+    expect(environmentProblems({ ...production, AI_TASKS_OFF: 'advert, people' })).toEqual([]);
+  });
+
   it('UX-LT-9, UX-LT-10: refuses the made-up address search and the local photo store', () => {
     expect(environmentProblems({ ...production, ADDRESS_SEARCH: 'sample' })).toEqual([
       'ADDRESS_SEARCH',

@@ -12,7 +12,13 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'node',
-          include: ['src/**/*.test.ts', 'scripts/**/*.test.ts', 'tests/compliance/**/*.test.ts'],
+          include: [
+            'src/**/*.test.ts',
+            'scripts/**/*.test.ts',
+            'tests/compliance/**/*.test.ts',
+            // P6: the evals' graders, with no model. The evals themselves never run here.
+            'tests/evals/**/*.test.ts',
+          ],
         },
       },
       {

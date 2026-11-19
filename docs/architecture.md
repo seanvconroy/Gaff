@@ -65,7 +65,7 @@ The web framework, the email provider and the AI provider can each be swapped wi
 | Record | Append-only event log with no personal data | [0006](adr/0006-event-log-without-personal-data.md) |
 | Decisions | Renter-affecting changes need a person's decision record | [0007](adr/0007-people-decide.md) |
 | Ranking | Deterministic code with reasons in words; no AI | [0008](adr/0008-deterministic-ranking.md) |
-| AI | Claude on Amazon Bedrock (EU routing), drafting answers from letting facts only | [0009](adr/0009-ai-drafting-with-claude-in-the-eu.md) |
+| AI | Claude on Amazon Bedrock in Dublin in production, the Claude API on the test copy; one adapter for three tasks (answers, reading an advert, reading a question about who's enquired), every call logged by usage alone, a monthly budget and switches | [0009](adr/0009-ai-drafting-with-claude-in-the-eu.md), [0017](adr/0017-one-ai-provider-with-usage-budget-and-switches.md) |
 | Email and SMS | Resend (or Mailgun EU) and Sinch EU, behind adapters; dev outbox and fakes locally | [0010](adr/0010-messaging-adapters-and-outbox.md), [0014](adr/0014-vercel-supabase-approved-vendors.md) |
 | Styling | Design tokens to CSS variables; CSS Modules; lint blocks raw values | [0011](adr/0011-design-tokens-drive-styling.md) |
 | Validation and dates | Zod for every input; date-fns with Europe/Dublin | [0001](adr/0001-modular-monolith-typescript-nextjs.md) |
@@ -210,7 +210,7 @@ Every outside service sits behind an interface in `src/ports/` with a local stan
 | --- | --- | --- | --- |
 | `email.ts`, `inbound-email.ts` | Sending, and receiving with signed webhooks | Development outbox (`/dev/outbox`), `/dev/inbound` | Resend; Mailgun EU |
 | `sms.ts` | Text reminders | Fake SMS | Sinch (EU) |
-| `ai.ts` | Drafting answers, reading a pasted advert (`ADVERT_READER`), and reading a question about who's enquired into chips | Fake AI | Claude on Amazon Bedrock (EU) |
+| `ai.ts` | One `AiProvider` for three tasks: drafting answers, reading a pasted advert (`ADVERT_READER`), and reading a question about who's enquired into chips. Called only through `runAi` (`src/server/ai/usage.ts`), which logs each call in `ai_calls`, keeps to `AI_MONTHLY_BUDGET_USD` and honours `AI_TASKS_OFF` | Fake AI | Claude on Amazon Bedrock (Dublin) in production; the Claude API on the test copy and in development, made-up data only |
 | `checks.ts` | ID and income checks: a chosen applicant's, and a private landlord's "Confirm it's you" (Q47) | A stand-in page (`/dev/checks`) | None chosen yet (Q48); `none` in production until then |
 | `address-search.ts` | Finding an address when adding a letting (`ADDRESS_SEARCH`) | A made-up list | Autoaddress, once its DPA is signed (Q40); `off` types it in |
 | `photo-store.ts` | Homes' photos (`PHOTO_STORE`) | A table in this database | Supabase Storage (Ireland), a private bucket |
@@ -234,7 +234,7 @@ Background tasks wait in graphile-worker's queue in Postgres (`src/jobs/tasks.ts
 | `saved_search_alerts`, `send_saved_search_email` | Daily at 08:00 UTC, and per alert | Tells people who saved a search about new homes |
 | `psra_register_refresh` | Weekly | Refreshes Gaff's copy of the PSRA register; a lapsed licence holds go-live |
 | `send_account_email` | Sign-in codes, invitations | Sends account emails |
-| `retention_sweep` | Daily (02:30 UTC) | Deletes personal data on its date (rule 9); renters' profiles unused for two years; a let home's page 30 days after it was let; reports six months after they're answered; unconfirmed asks to view; saved searches held by an email alone; and the anonymous record after `RETENTION_RECORD_MONTHS` |
+| `retention_sweep` | Daily (02:30 UTC) | Deletes personal data on its date (rule 9); renters' profiles unused for two years; a let home's page 30 days after it was let; reports six months after they're answered; unconfirmed asks to view; saved searches held by an email alone; the AI's usage log (`ai_calls`) after 12 months; and the anonymous record after `RETENTION_RECORD_MONTHS` |
 
 ## Two flows in detail
 
@@ -329,7 +329,7 @@ Chosen by the CTO on 31 October 2026; hosting and email changed on 1 November 20
 | --- | --- | --- | --- |
 | Hosting | Vercel, functions in Dublin (Pro before real data) | The founders already use it; deploys on push | DPA; Data Privacy Framework for anything stored in the US; region set to `dub1` |
 | Database | Supabase, West EU (Ireland) | The founders already use it; plain Postgres with row-level security | DPA; Data API off; daily backups, and point-in-time recovery before real data |
-| AI | Claude on Amazon Bedrock, EU geographic routing | Keeps prompts and outputs in EU regions; Anthropic's own API currently offers global or US-only processing | The model is offered in the EU profile; Bedrock DPA; invocation logging off |
+| AI | Claude on Amazon Bedrock in Dublin (`eu-west-1`); the Claude API on the test copy and in development only, with made-up data (ADR-0017) | Keeps prompts and outputs in the EU; Anthropic's own API offers global or US-only processing, so production refuses it | The model is offered in-region; Bedrock DPA; invocation logging off |
 | Email in and out | Resend (Mailgun EU as an alternative) | The founders already use it; sends and receives with signed webhooks | DPA; Data Privacy Framework (data stored in the US); DKIM and SPF on our domains; open and click tracking off |
 | SMS | Sinch, EU region | EU company (it owns Mailgun), EU API region | DPA; Irish sender ID rules; price |
 | Operator sign-in | Better Auth (a library, not a service) | Accounts stay in our database; no third-party identity provider | None: open source, runs inside Gaff |

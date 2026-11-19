@@ -12,3 +12,4 @@ export * from './funnels';
 export * from './register';
 export * from './accounts';
 export * from './trust';
+export * from './ai';

@@ -1,54 +1,41 @@
 import { env } from '@/lib/env';
-import type { AdvertReader, AiDrafter, PeopleQuestionReader } from '@/ports/ai';
-import { bedrockDrafter } from './bedrock';
-import { bedrockPeopleQuestionReader } from './bedrock-people';
-import { bedrockAdvertReader } from './bedrock-reader';
-import { fakeDrafter } from './fake';
-import { fakePeopleQuestionReader } from './fake-people';
-import { fakeAdvertReader } from './fake-reader';
+import type { AiProvider } from '@/ports/ai';
+import { claudeProvider } from './claude';
+import { bedrockClient, claudeApiClient } from './clients';
+import { fakeAi } from './fake';
 
-let cached: AiDrafter | undefined;
+let cached: AiProvider | undefined;
 
-export function aiDrafter(): AiDrafter {
+/**
+ * The one AI provider, for every task (ADR-0017; the live line's Q37): the Claude API on the
+ * test copy and in development, Claude on Bedrock in the EU in production (production refuses
+ * anything else), and the stand-in for tests. Use it through `runAi` (src/server/ai/usage.ts).
+ */
+export function aiProvider(): AiProvider {
   if (cached) return cached;
   const config = env();
-  cached =
-    config.AI_PROVIDER === 'bedrock'
-      ? bedrockDrafter({ region: config.AWS_REGION, model: config.BEDROCK_MODEL_ID })
-      : fakeDrafter;
+  switch (config.AI_PROVIDER) {
+    case 'anthropic':
+      cached = claudeProvider({
+        name: 'anthropic',
+        client: claudeApiClient(config.ANTHROPIC_API_KEY!),
+        model: config.AI_MODEL,
+      });
+      break;
+    case 'bedrock':
+      cached = claudeProvider({
+        name: 'bedrock',
+        client: bedrockClient(config.AWS_REGION),
+        model: config.AI_MODEL,
+      });
+      break;
+    default:
+      cached = fakeAi;
+  }
   return cached;
 }
 
-let cachedPeople: PeopleQuestionReader | undefined;
-
-/**
- * The reader of questions about who's enquired (UX-LP-15): the same provider as the drafter, so
- * there is one AI setting and no new vendor. Plain code reads first; this is asked only for what
- * it couldn't, and only for a question already cleared of anything about who a person is.
- */
-export function peopleQuestionReader(): PeopleQuestionReader {
-  if (cachedPeople) return cachedPeople;
-  const config = env();
-  cachedPeople =
-    config.AI_PROVIDER === 'bedrock'
-      ? bedrockPeopleQuestionReader({ region: config.AWS_REGION, model: config.BEDROCK_MODEL_ID })
-      : fakePeopleQuestionReader;
-  return cachedPeople;
-}
-
-let cachedReader: AdvertReader | undefined;
-
-/**
- * The reader of adverts (work package WP-10): the same provider as the drafter, so there is one
- * AI setting and no new vendor. Whether reading is offered at all is `ADVERT_READER`
- * (src/server/lettings/advert-reader.ts).
- */
-export function advertReader(): AdvertReader {
-  if (cachedReader) return cachedReader;
-  const config = env();
-  cachedReader =
-    config.AI_PROVIDER === 'bedrock'
-      ? bedrockAdvertReader({ region: config.AWS_REGION, model: config.BEDROCK_MODEL_ID })
-      : fakeAdvertReader;
-  return cachedReader;
+/** Tests swap the provider for a scripted one, then put the configured one back. */
+export function setAiProviderForTests(provider: AiProvider | undefined): void {
+  cached = provider;
 }

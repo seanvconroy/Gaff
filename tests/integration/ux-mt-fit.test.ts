@@ -6,7 +6,8 @@ import { applications, events, lettings } from '@/db/schema';
 import { factsFor } from '@/server/answers/facts';
 import { setLettingDetails } from '@/server/lettings/set-criteria';
 import { filterPeople } from '@/domain/fit/ask';
-import type { PeopleQuestionReader, PeopleQuestionRequest } from '@/ports/ai';
+import { fakeAiWith, noUsage } from '@/adapters/ai/fake';
+import type { PeopleQuestionRequest } from '@/ports/ai';
 import { askAboutPeople } from '@/server/lettings/ask';
 import { peopleFor } from '@/server/lettings/page';
 import { poolFor } from '@/server/lettings/pool';
@@ -42,13 +43,12 @@ const eventCount = (member: Member) =>
 /** A stand-in model that records what it was given. */
 function spyReader(reading: unknown = { filter: null }) {
   const asked: PeopleQuestionRequest[] = [];
-  const reader: PeopleQuestionReader = {
-    promptVersion: 'spy',
-    async readQuestion(request) {
+  const reader = fakeAiWith({
+    async readPeopleQuestion(request) {
       asked.push(request);
-      return { reading, model: 'spy' };
+      return { output: reading, refused: false, model: 'spy', usage: noUsage };
     },
-  };
+  });
   return { reader, asked };
 }
 
@@ -152,10 +152,9 @@ describe('UX-LP-15, UX-MT-18, UX-AI-6, UX-AI-7: asking about who’s enquired', 
         await askAboutPeople(member, lettingId, 'which are small households?', reader),
       ).toBeNull();
     }
-    const failing: PeopleQuestionReader = {
-      promptVersion: 'down',
-      readQuestion: () => Promise.reject(new Error('timeout')),
-    };
+    const failing = fakeAiWith({
+      readPeopleQuestion: () => Promise.reject(new Error('timeout')),
+    });
     expect(
       await askAboutPeople(member, lettingId, 'which are small households?', failing),
     ).toBeNull();

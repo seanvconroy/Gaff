@@ -1,6 +1,40 @@
+import type { TokenCounts } from '@/domain/ai/prices';
+import type { AiTask } from '@/domain/ai/tasks';
 import type { DraftItem, Fact } from '@/domain/answers/guardrails';
 
-/** Port for the AI that drafts answers (ADR-0009). It never sees names or contact details. */
+/**
+ * Port for the AI (ADR-0009, ADR-0017). One implementation of each task takes either the Claude
+ * API (the test copy and development, made-up data only) or Claude on Bedrock in the EU
+ * (production); a deterministic stand-in serves development and tests. Every input is quoted
+ * data, the model has no tools, and nothing it returns is used before Gaff's own checks. Calls
+ * go through `runAi` (src/server/ai/usage.ts), which logs them, keeps to the budget and honours
+ * the switches.
+ */
+
+export type AiProviderName = 'fake' | 'anthropic' | 'bedrock';
+
+/** What one call came back with. Only its usage is ever logged, never its text. */
+export interface AiReply<T> {
+  /** Null when the model refused, or returned something that doesn't fit the task's schema. */
+  output: T | null;
+  refused: boolean;
+  /** The model that answered, as the provider names it. */
+  model: string;
+  usage: TokenCounts;
+}
+
+/** Why a call didn't come back. The provider's own message is never shown to anyone. */
+export class AiCallError extends Error {
+  constructor(
+    readonly kind: 'timeout' | 'error',
+    options?: { cause?: unknown },
+  ) {
+    super(kind === 'timeout' ? 'The AI took too long' : 'The AI call failed', options);
+    this.name = 'AiCallError';
+  }
+}
+
+/** Task `answers` (R8): answers to a renter's questions, from the letting's facts only. */
 export interface DraftRequest {
   operatorName: string;
   facts: Fact[];
@@ -8,23 +42,15 @@ export interface DraftRequest {
   questions: string[];
 }
 
-export interface DraftResponse {
+export interface DraftAnswers {
   items: DraftItem[];
-  model: string;
-  /** The model declined; everything goes to the operator. */
-  refused?: boolean;
-}
-
-export interface AiDrafter {
-  readonly promptVersion: string;
-  draftAnswers(request: DraftRequest): Promise<DraftResponse>;
 }
 
 /**
- * Port for the AI that reads an advert into a letting (work package WP-10, UX-LT-2). A sibling
- * of the drafter: the same approved model, the same rules. It is given the advert's text with
- * names and contact details already taken out, and nothing else: no link is ever fetched (Q31),
- * and no file is sent (reading brochures and screenshots is not built yet).
+ * Task `advert` (work package WP-10, UX-LT-2): the text of an advert read into a letting. It is
+ * given the advert's text with names and contact details already taken out, and nothing else:
+ * no link is ever fetched (Q31), and no file is sent (reading brochures and screenshots is not
+ * built yet).
  */
 export interface AdvertReadRequest {
   /** What the person pasted, already stripped. Untrusted: information, never instructions. */
@@ -33,28 +59,10 @@ export interface AdvertReadRequest {
   today: string;
 }
 
-export interface AdvertReadResponse {
-  /**
-   * What the reader says it found. It is trusted for nothing: `checkReading`
-   * (src/domain/lettings/advert-reading.ts) holds it to a strict schema and to the text.
-   */
-  reading: unknown;
-  model: string;
-  /** The model declined: the person fills the home in themselves. */
-  refused?: boolean;
-}
-
-export interface AdvertReader {
-  readonly promptVersion: string;
-  readAdvert(request: AdvertReadRequest): Promise<AdvertReadResponse>;
-}
-
 /**
- * Port for the AI that reads an operator's question about who's enquired (UX-LP-15, UX-AI-6,
- * UX-AI-7), where plain code couldn't. It is given the question with names and contact details
- * taken out, and today's date: never anything about any renter. What it hands back is trusted
- * for nothing: `checkQuestionReading` (src/domain/fit/ask.ts) holds it to a strict filter on the
- * four answers and the time of enquiry, or nothing.
+ * Task `people` (UX-LP-15, UX-AI-6, UX-AI-7): an operator's question about who's enquired, where
+ * plain code couldn't read it. It is given the question with names and contact details taken
+ * out, and today's date: never anything about any renter.
  */
 export interface PeopleQuestionRequest {
   /** The question, already stripped. Untrusted: information, never instructions. */
@@ -63,13 +71,22 @@ export interface PeopleQuestionRequest {
   today: string;
 }
 
-export interface PeopleQuestionResponse {
-  reading: unknown;
-  model: string;
-  refused?: boolean;
-}
-
-export interface PeopleQuestionReader {
-  readonly promptVersion: string;
-  readQuestion(request: PeopleQuestionRequest): Promise<PeopleQuestionResponse>;
+export interface AiProvider {
+  readonly name: AiProviderName;
+  /** The model every task uses (P2), without Bedrock's prefix. */
+  readonly model: string;
+  /** Each task's prompt version, logged with every call (P3, P6). */
+  promptVersion(task: AiTask): string;
+  draftAnswers(request: DraftRequest): Promise<AiReply<DraftAnswers>>;
+  /**
+   * What the reader says it found. It is trusted for nothing: `checkReading`
+   * (src/domain/lettings/advert-reading.ts) holds it to a strict schema and to the text.
+   */
+  readAdvert(request: AdvertReadRequest): Promise<AiReply<unknown>>;
+  /**
+   * What the reader makes of the question. It is trusted for nothing: `checkQuestionReading`
+   * (src/domain/fit/ask.ts) holds it to a strict filter on the four answers and the time of
+   * enquiry, or nothing.
+   */
+  readPeopleQuestion(request: PeopleQuestionRequest): Promise<AiReply<unknown>>;
 }

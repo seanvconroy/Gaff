@@ -103,7 +103,7 @@ export const eventCatalogue = {
    * who should apply were left out, how many values ask to be checked. Never a word of it.
    */
   'letting.advert_read': z.object({
-    reader: z.enum(['fake', 'bedrock']),
+    reader: z.enum(['fake', 'anthropic', 'bedrock']),
     found: z.number().int().min(0),
     dropped: z.number().int().min(0),
     leftOut: z.number().int().min(0),

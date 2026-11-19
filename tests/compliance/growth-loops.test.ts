@@ -111,6 +111,8 @@ describe('UX-GR-9: no loop uses a renter’s, owner’s or referee’s contact d
     'src/server/enquiries/forwarding.ts': 'the member’s own mailbox',
     // R24: the RTB reminder, to the organisation's admins.
     'src/server/tenancy/rtb.ts': 'the organisation’s admins',
+    // P4: the AI budget warning, to Gaff's own team (STAFF_EMAILS) and nobody else.
+    'src/server/ai/usage.ts': 'Gaff’s own team',
   };
 
   it('sends only from the places listed, each for its own reason', () => {

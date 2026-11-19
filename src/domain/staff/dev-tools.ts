@@ -15,3 +15,19 @@ export function devToolsAccess(input: { devTools: boolean; realEmail: boolean })
   if (!input.devTools) return 'nobody';
   return input.realEmail ? 'staff' : 'anyone';
 }
+
+/**
+ * BA-6: the one exception, the stand-in ID and income check page (/dev/checks/<id>). Where the
+ * stand-in is the provider on the test copy, any tester must be able to pass their own check, as
+ * they would with a real provider. So the person the check belongs to may open that one check's
+ * page through the link the stand-in sent them to (`ownLink`: its key matches the check), and
+ * nothing else under /dev. Anyone else gets the development tools' usual rule.
+ */
+export function standInCheckAccess(input: {
+  devTools: boolean;
+  realEmail: boolean;
+  ownLink: boolean;
+}): DevToolsAccess {
+  const access = devToolsAccess(input);
+  return access === 'staff' && input.ownLink ? 'anyone' : access;
+}

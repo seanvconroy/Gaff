@@ -16,8 +16,12 @@ const securityHeaders = [
 ];
 
 // The policy, with Google's and Apple's sign-in hosts in form-action once each is configured
-// (BA-1, AU1). Read when the app is built, so redeploy after setting a provider.
-const contentSecurityPolicy = policyFor(configuredProviders(process.env));
+// (BA-1, AU1), and Stripe Identity's once it is the ID provider (BA-6). Read when the app is
+// built, so redeploy after setting a provider.
+const contentSecurityPolicy = policyFor({
+  ...configuredProviders(process.env),
+  stripeIdentity: process.env.IDENTITY_PROVIDER === 'stripe',
+});
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,

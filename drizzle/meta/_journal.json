@@ -288,6 +288,13 @@
       "when": 1795115259446,
       "tag": "0040_identity_provider_and_booking_mobile",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1795127788894,
+      "tag": "0041_m125_home_points",
+      "breakpoints": true
     }
   ]
 }

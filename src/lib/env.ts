@@ -158,6 +158,21 @@ const schema = z
      * production only.
      */
     SEARCH_INDEXING: z.enum(['on', 'off']).default('off'),
+    /**
+     * BA-5 (the live line's ADR-0027, Q51 here): the map on search, and the lister's pin.
+     * "google" is Google Maps (the Maps JavaScript API only, with a key restricted to Gaff's
+     * addresses); "static" is the stand-in drawn from Gaff's own data, for tests, development and
+     * a copy without a key; "none" is the list alone, and no pin to place (M135). Unset: the
+     * stand-in everywhere but production, and in production the list alone until a key is set.
+     */
+    MAP_PROVIDER: z.enum(['google', 'static', 'none']).optional(),
+    /** Public by design: Google restricts it to Gaff's addresses and the Maps JavaScript API. */
+    GOOGLE_MAPS_API_KEY: z.string().optional(),
+    GOOGLE_MAPS_MAP_ID: z.string().optional(),
+    /** M130: a Map ID styled dark. Without one, the map and its pins stay light in both themes. */
+    GOOGLE_MAPS_MAP_ID_DARK: z.string().optional(),
+    /** Google's release channel for the Maps JavaScript API: quarterly changes least often. */
+    GOOGLE_MAPS_VERSION: z.enum(['weekly', 'quarterly']).default('quarterly'),
     /** The Supabase project's address, and its service-role key, which stays on the server. */
     SUPABASE_URL: z.url().optional(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
@@ -324,6 +339,23 @@ const schema = z
           ctx.addIssue({ code: 'custom', path: [key], message: `${key} is required for Mailgun` });
       }
     }
+    if (env.MAP_PROVIDER === 'google') {
+      for (const key of ['GOOGLE_MAPS_API_KEY', 'GOOGLE_MAPS_MAP_ID'] as const) {
+        if (!env[key])
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is required for Google Maps`,
+          });
+      }
+    }
+    if (env.GAFF_ENV === 'production' && env.MAP_PROVIDER === 'static') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['MAP_PROVIDER'],
+        message: "MAP_PROVIDER can't be the stand-in in production",
+      });
+    }
     if (env.SMS_PROVIDER === 'sinch') {
       for (const key of ['SINCH_SERVICE_PLAN_ID', 'SINCH_API_TOKEN', 'SINCH_FROM'] as const) {
         if (!env[key])
@@ -334,6 +366,8 @@ const schema = z
   .transform((env) => ({
     ...env,
     DEV_TOOLS: env.DEV_TOOLS === undefined ? env.GAFF_ENV === 'staging' : env.DEV_TOOLS === '1',
+    MAP_PROVIDER:
+      env.MAP_PROVIDER ?? (env.GAFF_ENV === 'production' ? ('none' as const) : ('static' as const)),
     // The test copy: TEST_STAFF_EMAILS is the same list as STAFF_EMAILS, under the deployed
     // project's older name, so nobody has to enter it again. Nowhere else.
     STAFF_EMAILS:
@@ -362,6 +396,11 @@ export function withPlatformDefaults(source: Source): Source {
     APP_URL: source.APP_URL || (host ? `https://${host}` : undefined),
     GAFF_ENV: source.GAFF_ENV || 'production',
     RUN_JOBS_AFTER_REQUESTS: source.RUN_JOBS_AFTER_REQUESTS || '1',
+    // M132: a preview copy shows the stand-in map. Its address isn't one Google's key allows,
+    // and nobody's look at a preview should be billed as a map load.
+    ...(source.VERCEL_ENV === 'preview' && source.MAP_PROVIDER === 'google'
+      ? { MAP_PROVIDER: 'static' }
+      : {}),
   };
 }
 

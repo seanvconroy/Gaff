@@ -37,6 +37,16 @@ export const draftAnswersSchema = z.strictObject({
   area: z.string().min(1).max(80).optional(),
   county: z.enum(counties).optional(),
   eircode: z.string().max(8).optional(),
+  /**
+   * M38: where the home is, as the lister placed or confirmed its pin ("Where is it on the
+   * map?"). Never looked up: no address or geocoding service sees the address (rule 10).
+   */
+  point: z
+    .strictObject({
+      lat: z.number().min(51.3).max(55.5),
+      lng: z.number().min(-10.7).max(-5.3),
+    })
+    .optional(),
   rentCents: z.number().int().positive().optional(),
   availableFrom: z.iso.date().optional(),
   propertyType: z.enum(keys(propertyTypes)).optional(),
@@ -394,6 +404,8 @@ export interface HomeLetBefore {
   area: string;
   county: string;
   eircode: string | null;
+  /** M38: the home's pin, placed last time. It's the same home, so it's still where it was. */
+  point: { lat: number; lng: number } | null;
   monthlyRentCents: number;
   propertyType: string;
   bedrooms: number;
@@ -426,6 +438,7 @@ export function letAgainAnswers(previous: HomeLetBefore): DraftAnswers {
       area: previous.area,
       county: known(previous.county, counties),
       eircode: previous.eircode ?? undefined,
+      point: previous.point ?? undefined,
       rentCents: previous.monthlyRentCents,
       propertyType: known(previous.propertyType, keys(propertyTypes)),
       bedrooms: previous.bedrooms,

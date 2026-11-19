@@ -14,3 +14,4 @@ export * from './accounts';
 export * from './trust';
 export * from './ai';
 export * from './places';
+export * from './map';

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { type propertyTypes } from '@/domain/lettings/new-letting';
+import { bboxAreaKm2, inIreland, type BBox } from '@/domain/places/geo';
 import { canonicalPlaceSlug, MAX_PLACE_SLUG, PLACE_SLUG } from './place-slug';
 
 /**
@@ -29,6 +30,50 @@ export type SearchType = (typeof searchTypes)[number];
 /** "4" means four or more. */
 export const MAX_BEDS = 4;
 export const MAX_PEOPLE = 10;
+/**
+ * M113: how far a "near" search reaches, in kilometres, when the renter changes it ("Within").
+ * The default is 1 km in Dublin or a city and 3 km elsewhere (places.ts).
+ */
+export const WITHIN_KM = [0.5, 1, 2, 3, 5] as const;
+export type WithinKm = (typeof WITHIN_KM)[number];
+
+/** M57: the largest map area a search may ask for: all of Ireland and a margin around it. */
+export const MAX_BBOX_KM2 = 600_000;
+
+const round5 = (n: number) => Number(n.toFixed(5));
+
+/** M57: a map area as its address carries it, "west,south,east,north"; null if it isn't one. */
+export function readBBox(value: string | null | undefined): BBox | null {
+  if (!value || value.length > 80) return null;
+  const parts = value.split(',').map(Number);
+  if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n))) return null;
+  const [minLng, minLat, maxLng, maxLat] = parts.map(round5) as [number, number, number, number];
+  const box = { minLat, minLng, maxLat, maxLng };
+  return sensibleBox(box) ? box : null;
+}
+
+export function writeBBox(box: BBox): string {
+  return [box.minLng, box.minLat, box.maxLng, box.maxLat].map(round5).join(',');
+}
+
+/** A box with its corners the right way round, centred over Ireland, and not too big. */
+function sensibleBox(box: BBox): boolean {
+  if (box.minLng >= box.maxLng || box.minLat >= box.maxLat) return false;
+  const centre = { lat: (box.minLat + box.maxLat) / 2, lng: (box.minLng + box.maxLng) / 2 };
+  return inIreland(centre) && bboxAreaKm2(box) <= MAX_BBOX_KM2;
+}
+
+const bboxSchema = z
+  .object({ minLat: z.number(), minLng: z.number(), maxLat: z.number(), maxLng: z.number() })
+  .strict()
+  .refine(sensibleBox)
+  .transform((box) => ({
+    minLat: round5(box.minLat),
+    minLng: round5(box.minLng),
+    maxLat: round5(box.maxLat),
+    maxLng: round5(box.maxLng),
+  }));
+
 /** Euros a month: the same bounds as a letting's rent (MIN_RENT_CENTS, MAX_RENT_CENTS). */
 export const MIN_SEARCH_RENT = 100;
 export const MAX_SEARCH_RENT = 20_000;
@@ -46,6 +91,19 @@ export const searchFiltersSchema = z
       .transform(canonicalPlaceSlug)
       .pipe(z.string().regex(PLACE_SLUG))
       .optional(),
+    /**
+     * M113: "Within", for a street, landmark or townland to search near. It means nothing for an
+     * area, and is left out where the place isn't one to search near (src/server/search).
+     */
+    within: z
+      .number()
+      .refine((km) => (WITHIN_KM as readonly number[]).includes(km))
+      .optional(),
+    /**
+     * M57: "Search this area" on the map: the homes whose point is in this box. It takes the
+     * place's role: a search has a place or a map area, never both.
+     */
+    box: bboxSchema.optional(),
     /** The most rent a month, in whole euros. */
     maxRent: z.number().int().min(MIN_SEARCH_RENT).max(MAX_SEARCH_RENT).optional(),
     beds: z.number().int().min(1).max(MAX_BEDS).optional(),
@@ -67,6 +125,8 @@ export type FilterKey = keyof SearchFilters;
 /** The order filters are shown in, as chips and in the Filters sheet. */
 export const filterKeys = [
   'where',
+  'within',
+  'box',
   'beds',
   'maxRent',
   'moveIn',
@@ -84,6 +144,8 @@ export const filterKeys = [
  */
 export const paramNames: Record<FilterKey, string> = {
   where: 'where',
+  within: 'km',
+  box: 'area',
   maxRent: 'max',
   beds: 'beds',
   moveIn: 'from',
@@ -103,6 +165,20 @@ const first = (value: string | string[] | undefined): string | undefined =>
 const wholeNumber = (value: string | undefined): number | undefined =>
   value && /^\d{1,6}$/.test(value) ? Number(value) : undefined;
 
+const decimal = (value: string | undefined): number | undefined =>
+  value && /^\d{1,2}(?:\.\d)?$/.test(value) ? Number(value) : undefined;
+
+/**
+ * A search has a place or a map area, never both; and "Within" only with a place. Whatever an
+ * address or a saved search holds, the search is made whole by these two rules.
+ */
+export function wholeSearch(filters: SearchFilters): SearchFilters {
+  const whole = { ...filters };
+  if (whole.box) delete whole.where;
+  if (!whole.where) delete whole.within;
+  return whole;
+}
+
 /**
  * A search from its address. Each value is checked on its own: one that isn't allowed is left
  * out, and the rest of the search still works. Unknown names are ignored.
@@ -110,6 +186,8 @@ const wholeNumber = (value: string | undefined): number | undefined =>
 export function filtersFromParams(params: Params): SearchFilters {
   const raw: Record<string, unknown> = {
     where: first(params[paramNames.where]),
+    within: decimal(first(params[paramNames.within])),
+    box: readBBox(first(params[paramNames.box])) ?? undefined,
     maxRent: wholeNumber(first(params[paramNames.maxRent])),
     beds: wholeNumber(first(params[paramNames.beds])),
     moveIn: first(params[paramNames.moveIn]),
@@ -127,24 +205,26 @@ export function filtersFromParams(params: Params): SearchFilters {
     const checked = searchFiltersSchema.shape[key].safeParse(value);
     if (checked.success && checked.data !== undefined) filters[key] = checked.data;
   }
-  return filters as SearchFilters;
+  return wholeSearch(filters as SearchFilters);
 }
 
 /** A search's values as its address carries them, in the order of `filterKeys`. */
 export function filtersToParams(filters: SearchFilters): Array<[string, string]> {
-  const safe = searchFiltersSchema.parse(filters);
+  const safe = wholeSearch(searchFiltersSchema.parse(filters));
   const pairs: Array<[string, string]> = [];
   for (const key of filterKeys) {
     const value = safe[key];
     if (value === undefined) continue;
     const text =
-      typeof value === 'boolean'
-        ? key === 'pets'
-          ? value
-            ? 'yes'
-            : 'no'
-          : 'yes'
-        : String(value);
+      typeof value === 'object'
+        ? writeBBox(value)
+        : typeof value === 'boolean'
+          ? key === 'pets'
+            ? value
+              ? 'yes'
+              : 'no'
+            : 'yes'
+          : String(value);
     pairs.push([paramNames[key], text]);
   }
   return pairs;

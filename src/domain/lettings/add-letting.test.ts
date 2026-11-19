@@ -339,6 +339,7 @@ describe('UX-LT-23: let it again', () => {
     area: 'Ranelagh, Dublin 6',
     county: 'Dublin',
     eircode: 'D06 F2X3',
+    point: { lat: 53.3225, lng: -6.2655 },
     monthlyRentCents: 185_000,
     propertyType: 'apartment',
     bedrooms: 2,
@@ -358,6 +359,8 @@ describe('UX-LT-23: let it again', () => {
       area: 'Ranelagh, Dublin 6',
       county: 'Dublin',
       eircode: 'D06 F2X3',
+      // M38: it's the same home, so its pin is still where it was.
+      point: { lat: 53.3225, lng: -6.2655 },
       rentCents: 185_000,
       propertyType: 'apartment',
       bedrooms: 2,

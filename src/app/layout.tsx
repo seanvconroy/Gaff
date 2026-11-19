@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import '@/styles/tokens.css';
 import '@/styles/fonts.css';
 import '@/styles/base.css';
+import { MapBoundary } from '@/ui/MapBoundary';
 import { isTestCopy, TestCopyBanner } from '@/ui/TestCopyBanner';
 
 export const metadata: Metadata = {
@@ -33,6 +34,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         {/* BA-1: the test copy says so on every page. Read from the process, as the build sees it. */}
         {isTestCopy(process.env.GAFF_ENV) ? <TestCopyBanner /> : null}
+        {/* BA-5, M119: Google's script stays on the map's pages (src/lib/map-pages.ts). */}
+        <MapBoundary />
         {children}
       </body>
     </html>

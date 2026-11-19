@@ -42,6 +42,8 @@ export const searchCopy = {
   },
   labels: {
     where: 'Where',
+    within: 'Within',
+    box: 'Area on the map',
     beds: 'Bedrooms',
     maxRent: 'Most rent a month',
     moveIn: 'Move-in date',
@@ -95,6 +97,17 @@ export const searchCopy = {
     { value: 'yes', label: 'Yes' },
     { value: 'no', label: 'No' },
   ],
+} as const;
+
+/** M113: "Within 500 m", "Within 2 km". */
+export function withinWords(km: number): string {
+  return km < 1 ? `Within ${Math.round(km * 1000)} m` : `Within ${km} km`;
+}
+
+/** M113, M57: the words of "Within" and of a map area, in the Filters sheet. */
+export const distanceCopy = {
+  /** A map area's sheet: there is nothing to set, only to remove. */
+  box: 'Homes whose pin is in the area you searched on the map. Remove it to search everywhere again.',
 } as const;
 
 /** M121: "4 homes". */
@@ -156,6 +169,10 @@ export function chipLabel(
   switch (key) {
     case 'where':
       return placeName;
+    case 'within':
+      return withinWords(filters.within ?? 1);
+    case 'box':
+      return searchCopy.labels.box;
     case 'beds':
       return bedWords(filters.beds ?? 1);
     case 'maxRent':

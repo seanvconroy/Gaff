@@ -11,16 +11,24 @@ import styles from './HomeCard.module.css';
 export function HomeGrid({
   label,
   labelledBy,
+  beside = false,
   children,
 }: {
   /** What the list is, for screen readers, when no heading names it. */
   label?: string;
+  /** M57: in a column beside the search map, as many across as fit (at most two), not three. */
+  beside?: boolean;
   /** The id of the heading that names the list ("Live"). */
   labelledBy?: string;
   children: ReactNode;
 }) {
   return (
-    <ul className={styles.grid} aria-label={label} aria-labelledby={labelledBy}>
+    <ul
+      className={styles.grid}
+      data-beside={beside || undefined}
+      aria-label={label}
+      aria-labelledby={labelledBy}
+    >
       {children}
     </ul>
   );
@@ -45,6 +53,7 @@ export function HomeCard({
   needsYou,
   action,
   headingLevel = 3,
+  mapKey,
 }: {
   href: string;
   /** The home's address, or in search its rent. */
@@ -60,6 +69,11 @@ export function HomeCard({
   /** One small control over the photo's corner (the heart). It sits above the card's link. */
   action?: ReactNode;
   headingLevel?: 2 | 3;
+  /**
+   * M117: in search beside the map, the home's public reference, so its card and its pin light
+   * each other up (`data-lit`, set by the map).
+   */
+  mapKey?: string;
 }) {
   const Heading = headingLevel === 2 ? 'h2' : 'h3';
   const id = useId();
@@ -67,7 +81,7 @@ export function HomeCard({
     .filter(Boolean)
     .join(' ');
   return (
-    <li className={styles.card}>
+    <li className={styles.card} data-home={mapKey}>
       {action ? <div className={styles.action}>{action}</div> : null}
       <div className={styles.photo}>
         {photo ? (

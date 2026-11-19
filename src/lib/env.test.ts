@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { environmentProblems, withPlatformDefaults } from './env';
+import { environmentProblems, readEnvironment, withPlatformDefaults } from './env';
 
 const base = {
   DATABASE_URL: 'postgres://gaff:gaff@localhost:5432/gaff',
@@ -248,5 +248,38 @@ describe('UX-SI-1: Google and Apple are switched on by their credentials (Q30)',
     expect(environmentProblems({ ...base, ...made, APPLE_CLIENT_ID: undefined })).toEqual([
       'APPLE_CLIENT_ID',
     ]);
+  });
+});
+
+describe('BA-5: the map’s provider (the live line’s ADR-0027)', () => {
+  const testCopy = { ...base, GAFF_ENV: 'staging', CRON_SECRET: 'c'.repeat(32) };
+  const google = { MAP_PROVIDER: 'google', GOOGLE_MAPS_API_KEY: 'key', GOOGLE_MAPS_MAP_ID: 'id' };
+
+  it('M135: the stand-in until Google Maps is set up, and in production the list alone', () => {
+    expect(readEnvironment(testCopy).MAP_PROVIDER).toBe('static');
+    expect(readEnvironment(production).MAP_PROVIDER).toBe('none');
+    expect(readEnvironment({ ...testCopy, ...google }).MAP_PROVIDER).toBe('google');
+    expect(readEnvironment({ ...testCopy, ...google }).GOOGLE_MAPS_VERSION).toBe('quarterly');
+    expect(
+      readEnvironment({ ...testCopy, ...google, GOOGLE_MAPS_VERSION: 'weekly' })
+        .GOOGLE_MAPS_VERSION,
+    ).toBe('weekly');
+  });
+
+  it('needs a key and a Map ID for Google, and never the stand-in in production', () => {
+    expect(environmentProblems({ ...testCopy, MAP_PROVIDER: 'google' }).sort()).toEqual([
+      'GOOGLE_MAPS_API_KEY',
+      'GOOGLE_MAPS_MAP_ID',
+    ]);
+    expect(environmentProblems({ ...production, MAP_PROVIDER: 'static' })).toEqual([
+      'MAP_PROVIDER',
+    ]);
+    expect(environmentProblems({ ...production, ...google })).toEqual([]);
+  });
+
+  it('M132: a preview copy on Vercel shows the stand-in, so no look at one is billed', () => {
+    const preview = { ...testCopy, ...google, VERCEL: '1', VERCEL_ENV: 'preview' };
+    expect(readEnvironment(preview).MAP_PROVIDER).toBe('static');
+    expect(readEnvironment({ ...preview, VERCEL_ENV: 'production' }).MAP_PROVIDER).toBe('google');
   });
 });

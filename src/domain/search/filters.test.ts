@@ -75,3 +75,36 @@ describe('UX-SR-6: a card opens the home’s page', () => {
     );
   });
 });
+
+describe('M57, M113: a map area and "Within" in a search’s address', () => {
+  it('M113: carries "Within" for a place, and only with one', () => {
+    const filters = filtersFromParams({ where: 'highfield-road-rathgar-dublin-6', km: '0.5' });
+    expect(filters).toEqual({ where: 'highfield-road-rathgar-dublin-6', within: 0.5 });
+    expect(searchHref(filters)).toBe('/?where=highfield-road-rathgar-dublin-6&km=0.5');
+    expect(filtersFromParams({ km: '2' })).toEqual({});
+    // Only the fixed distances.
+    expect(filtersFromParams({ where: 'highfield-road-rathgar-dublin-6', km: '7' })).toEqual({
+      where: 'highfield-road-rathgar-dublin-6',
+    });
+  });
+
+  it('M57: carries a map area, which takes the place’s role', () => {
+    const filters = filtersFromParams({ area: '-6.27,53.31,-6.24,53.33', beds: '2' });
+    expect(filters).toEqual({
+      box: { minLat: 53.31, minLng: -6.27, maxLat: 53.33, maxLng: -6.24 },
+      beds: 2,
+    });
+    expect(searchHref(filters)).toBe('/?area=-6.27%2C53.31%2C-6.24%2C53.33&beds=2');
+    // A search has a place or a map area, never both.
+    expect(filtersFromParams({ where: 'ranelagh', area: '-6.27,53.31,-6.24,53.33' })).toEqual({
+      box: { minLat: 53.31, minLng: -6.27, maxLat: 53.33, maxLng: -6.24 },
+    });
+  });
+
+  it('M57: refuses a map area that isn’t one over Ireland', () => {
+    expect(filtersFromParams({ area: '2.3,48.8,2.4,48.9' })).toEqual({});
+    expect(filtersFromParams({ area: '-6.24,53.31,-6.27,53.33' })).toEqual({});
+    expect(filtersFromParams({ area: '-40,20,40,70' })).toEqual({});
+    expect(filtersFromParams({ area: 'rathmines' })).toEqual({});
+  });
+});

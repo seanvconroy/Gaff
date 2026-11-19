@@ -4,6 +4,7 @@ import { withOrg } from '@/db/client';
 import { lettingDrafts } from '@/db/schema';
 import { letAgainAnswers } from '@/domain/lettings/add-letting';
 import { canLetAgain } from '@/domain/lettings/setup';
+import { placedPoint } from '@/domain/map/pin';
 import type { PhotoStore } from '@/ports/photo-store';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
@@ -50,6 +51,7 @@ export async function letAgain(
         area: letting.area,
         county: letting.county,
         eircode: letting.eircode,
+        point: placedPoint(letting),
         monthlyRentCents: letting.monthlyRentCents,
         propertyType: letting.propertyType,
         bedrooms: letting.bedrooms,

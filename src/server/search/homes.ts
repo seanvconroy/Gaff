@@ -22,13 +22,14 @@ export interface HomeOnGaff extends SearchableHome {
 
 export async function liveHomesOnGaff(): Promise<HomeOnGaff[]> {
   const homes = await publicHomesForSearch();
-  return homes.map(({ home, addressLine2, eircode }) => ({
+  return homes.map(({ home, addressLine2, eircode, point }) => ({
     id: home.ref,
     addressLine1: home.home.addressLine1,
     addressLine2,
     area: home.home.area,
     county: home.home.county,
     eircode,
+    point,
     rentCents: home.home.monthlyRentCents,
     availableFrom: home.home.availableFrom,
     propertyType: home.home.propertyType,

@@ -72,6 +72,7 @@ The web framework, the email provider and the AI provider can each be swapped wi
 | Testing | Vitest, real Postgres, Playwright with axe, compliance suite, AI evals | [0012](adr/0012-testing-and-ci.md) |
 | CI | GitHub Actions; synthetic data only | [0012](adr/0012-testing-and-ci.md) |
 | Sign-in | People with accounts: Google, Apple, a six-digit email code, or a passkey (Better Auth, data in our DB). Renters, owners and referees: private links, no accounts | [0015](adr/0015-sign-in-google-apple-codes-passkeys.md), [0013](adr/0013-sign-in-operators-links-for-renters.md) |
+| Places and the map | Gaff's own place index for "Where" (Postgres); the search map and the lister's pin on Google Maps (the Maps JavaScript API only), or a stand-in drawn from Gaff's own data, behind `MAP_PROVIDER`; Google's script only on the map's pages | [0018](adr/0018-own-place-index-from-openstreetmap.md), [0021](adr/0021-search-map-on-google-maps.md), [0022](adr/0022-google-script-only-on-map-pages.md) |
 
 ## Where the PRD's rules live
 
@@ -107,7 +108,7 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 | `join_requests` | A person's request to join an agency that is already on Gaff (UX-AG-3) | IDs only |
 | `psra_register`, `psra_register_refreshes` | Gaff's weekly copy of the PSRA register: businesses licensed to let, and a count for each refresh (Q39). No organisation, no person | Sole traders' names |
 | `landlords` | Owner's name and contact details, when an agent lets for them | Yes |
-| `lettings` | Address, rent, available from, key facts, photos link, advert links, criteria (typed), stage, status | No |
+| `lettings` | Address, rent, available from, key facts, photos link, advert links, criteria (typed), stage, status; where the home is, as its lister placed the pin (ADR-0021; a private landlord's is shown within about 150 m, and never logged) | No |
 | `letting_facts` | Facts the AI may answer from, each with an ID: set-up facts and operator answers | No (screened) |
 | `rent_checks` | How the last tenancy ended, previous rent and date, outcome, rule version, who confirmed | No |
 | `rent_comparables` | Three comparables from the RTB Rent Register | No |
@@ -140,6 +141,7 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 | `one_time_codes`, `confirmations`, `passkeys`, `accounts`, `verifications` | Sign-in by email code, passkey, Google or Apple (ADR-0015), and "Confirm it's you" before a sensitive change | The person's own |
 | `places` | Gaff's own place index (ADR-0018): every county, town, village, area, Dublin district, townland, street and landmark in the Republic, built from OpenStreetMap around a curated base and loaded on deploy. Reference data, with no organisation and no person | No |
 | `place_misses` | What renters typed under "Where" that found no place, counted by day, with no digits, person or device; deleted after 30 days (M124) | No |
+| `map_daily_counts` | How the search map was used, by day, as fixed codes (opened, drawn, failed and why, area searched, pin opened); nothing about any renter, device, area or search; deleted after 13 months (M133, ADR-0021) | No |
 
 ### Data that belongs to a person (ADR-0016)
 

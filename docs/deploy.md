@@ -146,6 +146,100 @@ Gaff's AI does three tasks: it answers renters' questions from a letting's facts
 - **Every call is logged** in the `ai_calls` table: its task, model, prompt version, tokens, estimated cost, time and outcome, never its words. Only Gaff's own jobs read it. The nightly job deletes rows over 12 months old. In Supabase's **SQL Editor**, `select task, outcome, count(*), sum(cost_micros) / 1e6 as dollars from ai_calls where occurred_at >= date_trunc('month', now()) group by 1, 2` shows the month so far.
 - **Before changing a prompt or the model,** run its golden set against the real model: `pnpm evals` prints what it would cost, and `pnpm evals advert --confirm` (or `answers`, `people`) runs it and saves the results under `tests/evals/results/`. Commit them with the change. Evals never run in CI.
 
+## The search map (Google Maps)
+
+Renters see homes on Google's map beside the list (behind "Map" below 900px), and listers place each home's pin on it as they add it ("Where is it on the map?") and from Home ([ADR-0021](adr/0021-search-map-on-google-maps.md), [ADR-0022](adr/0022-google-script-only-on-map-pages.md), Q51). Until it's set up, a copy shows the stand-in map drawn from Gaff's own data, marked "Test map: not Google Maps", and production shows the list alone and asks for no pin. The map uses the **Maps JavaScript API only**, showing Gaff's own homes. Place suggestions never come from Google (the place index, below).
+
+### Setting it up
+
+1. **Three projects.** In the Google Cloud console, under Gaff's billing account, create `gaff-maps-production`, `gaff-maps-test` and `gaff-maps-ci`, with both founders as owners. In each, enable the **Maps JavaScript API** and nothing else. Separate projects keep each copy's cap, bill and key apart.
+2. **A key for each project.** Under **Keys & Credentials**, create one API key in each project. Restrict it to the **Maps JavaScript API**, and to **Websites**. Gaff tells Google its site's origin and nothing more (`auth_referrer_policy=origin`), so each key lists its site twice: on its own, with no path, and with `/*`:
+
+   | Key | Websites |
+   | --- | --- |
+   | Production | `https://<Gaff's domain>` and `https://<Gaff's domain>/*` |
+   | The test copy | `https://<the test copy's domain>` and `https://<the test copy's domain>/*` |
+   | The test run | `http://localhost:3100` and `http://localhost:3100/*` |
+
+   The key is in every page that shows the map, so these restrictions and the cap are what protect it. Preview copies have no key: they show the stand-in map, whatever their settings say.
+
+3. **Map IDs and styles.** Under **Map management**, create a **JavaScript**, **Vector** Map ID in each project, and attach a style made from Gaff's tokens (`docs/design-tokens.json`; when they change, change the style by hand). A second Map ID with the dark column is optional: without it, the map and its pins stay light in both themes.
+
+   | Map feature | Token | Light | Dark |
+   | --- | --- | --- | --- |
+   | Land | `surface-2` | `#f4f5f7` | `#202632` |
+   | Water | `info-bg` | `#e3f2f4` | `#14313a` |
+   | Roads | `border` | `#e2e5ea` | `#2b3241` |
+   | Labels | `ink-muted` | `#566074` | `#aab3c2` |
+   | Label outlines | `surface-0` | `#ffffff` | `#0e1219` |
+   | Businesses and other points of interest | hidden | | |
+   | Transport lines and stations | shown, in Google's colours | | |
+
+4. **Caps and budget.** In each project, under **Quotas**, cap the Maps JavaScript API's map loads per day: 100 for the test run, 300 for the test copy, and the production figure the founders set. On the billing account, set budget alerts at 50%, 80% and 100% of the monthly budget, to both founders.
+5. **In Vercel**, add these settings for the copy, then redeploy. The redeploy matters: the map pages' content security policy, and the rule that they're entered and left with a full page load, are set when the app is built.
+
+   | Setting | Value |
+   | --- | --- |
+   | `MAP_PROVIDER` | `google` |
+   | `GOOGLE_MAPS_API_KEY` | the key for this copy |
+   | `GOOGLE_MAPS_MAP_ID` | the Map ID |
+   | `GOOGLE_MAPS_MAP_ID_DARK` | the dark Map ID, if there is one |
+   | `GOOGLE_MAPS_VERSION` | `quarterly` (the default: Google's script changes least often) |
+
+6. **In GitHub**, under **Settings**, **Secrets and variables**, **Actions**, add the test run's key as the secret `GOOGLE_MAPS_TEST_KEY`, and its Map IDs as the variables `GOOGLE_MAPS_TEST_MAP_ID` and `GOOGLE_MAPS_TEST_MAP_ID_DARK`. Then run **The real map** from the **Actions** tab. Without the secret, the nightly run does nothing.
+7. **Check it.**
+   - Search for a place with homes. The map shows a pin with each home's rent, and Google's logo and terms are in sight along its bottom edge.
+   - The browser console shows no `RefererNotAllowedMapError`, and no content security policy errors other than Google's fonts, which Gaff blocks on purpose.
+   - Open a home from the list, then go back: each is a full page load, and the map draws again.
+   - Add a letting: after the address, "Where is it on the map?" shows Google's map with the pin on the address's street.
+   - Turn the network off and reload Search: the map's place says "The map isn't available right now. Every home is still in the list."
+   - `/internal` counts the map being opened and drawn.
+
+**The first time, with real keys.** Two things have only been read in Google's documentation, not seen: that a key restricted as in step 2 is accepted with only the origin sent, and that a project over its daily cap shows Google's development-mode map (which Gaff replaces with its own sentence, counted as `google`). Check both on `gaff-maps-ci`, by running the real-map tests with its key and then with its cap set to 1, and correct this page if either is different.
+
+### How it behaves
+
+- **Google's script runs only on Search and "Where is it on the map?"** (`src/lib/map-pages.ts`). Going between one of those pages and any other is a full page load, in both directions, so Google's script is never loaded where renters or listers enter personal details.
+- **Nothing is asked of Google until the map is wanted:** at 900px and up, once the page has loaded and the map is on screen; below it, when the renter taps "Map". Robots get no map.
+- **Google is told the site's origin,** never the page's address, which names the place a renter searched. Every page sends `Referrer-Policy: no-referrer`.
+- **A map that can't load never takes the page with it.** The list carries on, and "Where is it on the map?" says the pin can't be placed just now and lets the lister carry on without it.
+- **Only a placed pin goes on the map.** A home without one is in the list (and found near a street by its address). A private landlord's home is shown within about 150 metres of its pin.
+
+### Looking after it
+
+- **When the map can't load.** `/internal` counts the last 31 days' opens and failures, with nothing about the renter. The count says why:
+
+  | Count | What happened | What to do |
+  | --- | --- | --- |
+  | `script` | Google's script didn't arrive | A few are renters' own blockers. Many at once: check the copy was redeployed after `MAP_PROVIDER` changed |
+  | `auth` | Google refused the key | Check the key, its two website entries, its API restriction and the project's billing |
+  | `google` | Google drew its own error | The daily cap was reached, or billing is off |
+  | `timeout` | No map appeared in 10 seconds | Slow connections. Many at once: look at Google's status page |
+  | `error` | The map's code threw an error | A change in Google's script, or a bug in Gaff's: run the real-map tests |
+
+- **Turning the map off (M135).** Set `MAP_PROVIDER=none` in Vercel and redeploy: a few minutes. The list fills the page, and no pin is asked for. Set it back to `google` and redeploy to restore it.
+- **Rotating a key.** Create a new key with the same restrictions, set it in Vercel and redeploy, check the map, and delete the old key the next day.
+- **If a key turns up elsewhere.** The website restriction turns other sites away in a browser, but a referrer can be faked outside one, so the daily cap is the backstop. If billed map loads rise while `/internal`'s opens don't, rotate the key.
+- **Every month.** Compare Google's billed map loads with `/internal`'s opens (they should agree to within a tenth), look at the caps, and read any notice from Google about its terms or its script.
+- **Live homes without a pin.** In Supabase's SQL editor, this counts them; their listers see "Place the pin" on the letting's Home:
+
+  ```sql
+  select count(*) from lettings where status = 'live' and point_source is null;
+  ```
+
+### Testing the real map
+
+The journeys in `tests/e2e` use the stand-in map. Google's real map has its own run (M136), in a production build:
+
+```bash
+pnpm build:map && pnpm test:map
+```
+
+- **Without a key** it shows that only the map's pages let Google in, that nothing leaves for another site before the map is wanted, that the map's pages are entered and left with new documents, and that every way the map can fail (a blocked script, a script that never answers, a refused key, a key refused while pins wait, Google's development-mode map, a map that never finishes starting, a hidden tab) ends in Gaff's sentence with the list whole. These ask Google for its real script, so they need the internet.
+- **With the test run's key** (`GOOGLE_MAPS_TEST_KEY=<the key> pnpm test:map`) it also draws the real map on a computer, on a phone and on "Where is it on the map?". Screenshots go to `screenshots/google` for a person to look over.
+- **The real map** workflow (`.github/workflows/map.yml`) runs every night on the `quarterly` and `weekly` channels with the key, on demand, and when the map's code changes.
+- Run `pnpm build` afterwards: `pnpm build:map` leaves a build with Google's policy in `.next`.
+
 ## The place index (towns, streets and landmarks)
 
 "Where" in search suggests places from Gaff's own place index, the `places` table ([ADR-0018](adr/0018-own-place-index-from-openstreetmap.md)): every county, city, town, village, area, Dublin district, townland, street and landmark in the Republic, about 100,000 places. It needs Postgres's `pg_trgm` extension, which the deploy's migrations add. If a migration stops with "pg_trgm is missing", enable **pg_trgm** in Supabase (**Database**, **Extensions**, in the `public` schema), then deploy again.

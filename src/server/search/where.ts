@@ -29,10 +29,12 @@ export interface ResolvedSearch {
 
 export async function resolveSearch(filters: SearchFilters): Promise<ResolvedSearch> {
   const g = await loadGazetteer(filters.where ? [filters.where] : []);
-  const where = filters.where ? searchPlace(filters.where, g) : null;
-  const { where: _unknown, ...rest } = filters;
+  const where = filters.where ? searchPlace(filters.where, g, filters.within) : null;
+  const { where: _unknown, within, ...rest } = filters;
+  // M113: "Within" belongs to a place searched near, and to nothing else.
+  const near = where?.kind === 'near' && within !== undefined ? { within } : {};
   return {
-    filters: where ? { ...rest, where: where.slug } : rest,
+    filters: where ? { ...rest, where: where.slug, ...near } : rest,
     where,
     placeName: where ? placeLabel(where) : '',
     g,

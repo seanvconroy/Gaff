@@ -18,6 +18,9 @@ import { type PlaceOption, PlaceSearch, type PlaceSuggestions } from '@/ui/Place
 import { DateField, TimeField } from '@/ui/Pickers';
 import { QuestionSteps } from '@/ui/QuestionSteps';
 import { SearchBox } from '@/ui/SearchBox';
+import { ListAndMap } from '@/ui/ListAndMap';
+import { PinPicker } from '@/ui/PinPicker';
+import { type MapPins, SearchMap } from '@/ui/SearchMap';
 import { Sheet } from '@/ui/Sheet';
 import { ToastProvider, useToast } from '@/ui/Toast';
 import styles from './ui.module.css';
@@ -485,5 +488,113 @@ function SearchBoxParts() {
         />
       </div>
     </div>
+  );
+}
+
+const demoPin = { lat: 53.3263, lng: -6.2563 };
+const demoPinWords = {
+  label: 'Map for placing the home’s pin',
+  pin: 'The home’s pin',
+  keyboard:
+    'With the pin selected, the arrow keys move it about 10 metres. Hold Shift to move it 50.',
+  movesLabel: 'Move the pin a step',
+  moves: {
+    north: 'Move the pin up',
+    south: 'Move the pin down',
+    west: 'Move the pin left',
+    east: 'Move the pin right',
+  },
+  zoomIn: 'Zoom in',
+  zoomOut: 'Zoom out',
+  standIn: 'Test map: not Google Maps',
+};
+
+/** M38: the pin picker, on the stand-in map, with a made-up street. */
+export function PinPickerDemo() {
+  const [point, setPoint] = useState(demoPin);
+  return (
+    <div className={styles.fields}>
+      <PinPicker
+        settings={{ provider: 'static' }}
+        point={point}
+        close
+        streets={[
+          {
+            name: 'Example Road',
+            line: [
+              [
+                { lat: 53.3258, lng: -6.2583 },
+                { lat: 53.3268, lng: -6.2543 },
+              ],
+            ],
+          },
+        ]}
+        words={demoPinWords}
+        onMove={setPoint}
+        onFailed={() => undefined}
+      />
+      <p role="status">
+        {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
+      </p>
+    </div>
+  );
+}
+
+const demoPins: MapPins = {
+  points: [
+    {
+      id: 'aaaaaaaaaaaa',
+      lat: 53.3263,
+      lng: -6.2563,
+      rentCents: 225_000,
+      title: '2-bed apartment',
+    },
+    {
+      id: 'bbbbbbbbbbbb',
+      lat: 53.3238,
+      lng: -6.2585,
+      rentCents: 195_000,
+      title: '1-bed apartment',
+    },
+    { id: 'cccccccccccc', lat: 53.3238, lng: -6.2585, rentCents: 210_000, title: '2-bed duplex' },
+  ],
+  pinned: 3,
+  listed: 4,
+};
+
+/** M57, M117: the search map and its list, on the stand-in, with made-up pins. */
+export function SearchMapDemo() {
+  const [hovered, setHovered] = useState<string | null>(null);
+  return (
+    <ListAndMap
+      words={{ showMap: 'Map', showList: 'List' }}
+      list={<p>The list of homes sits here, complete without the map.</p>}
+      map={
+        <div className={styles.mapDemo}>
+          <SearchMap
+            settings={{ provider: 'static' }}
+            area={{
+              kind: 'place',
+              slug: 'example',
+              box: { minLat: 53.32, minLng: -6.265, maxLat: 53.33, maxLng: -6.25 },
+            }}
+            loadPins={async () => demoPins}
+            loadCard={async (id) => ({
+              id,
+              href: '#',
+              title: '€2,250 a month',
+              line: '2-bed apartment · Example, Dublin',
+              free: 'Free now',
+              photo: null,
+            })}
+            onSearchArea={() => undefined}
+            hovered={hovered}
+            onHover={setHovered}
+            count={() => undefined}
+            openKind={() => 'larger'}
+          />
+        </div>
+      }
+    />
   );
 }

@@ -6,7 +6,10 @@ import { reportReasons } from '@/domain/homes/report';
 import { formatDateTime } from '@/lib/format';
 import { agenciesWaitingFor } from '@/server/accounts/staff';
 import { requireStaff } from '@/server/auth/staff';
+import { failureWords } from '@/copy/map';
+import { failureKinds } from '@/domain/map/counts';
 import { funnelReportsFor } from '@/server/funnels/report';
+import { mapUseFor } from '@/server/search/map-counts';
 import {
   type HiddenListing,
   type ReportedListing,
@@ -135,8 +138,8 @@ function HiddenCard({ listing }: { listing: HiddenListing }) {
 }
 
 /**
- * UX-TS-5 (Q13): Gaff's own team's one internal page, with its three lists: agencies waiting
- * to be confirmed, reported listings, and the funnels. That is all they can do here: confirm an
+ * UX-TS-5 (Q13): Gaff's own team's one internal page, with its lists: agencies waiting to be
+ * confirmed, reported listings, the funnels, and the search map's counts (M133). That is all they can do here: confirm an
  * agency, hide a listing or keep it up, and read the totals. Nothing on it opens a letting,
  * names a renter, sends a message or makes a decision for an operator.
  */
@@ -152,6 +155,9 @@ export default async function InternalPage({
     funnelReportsFor(staff),
     searchParams,
   ]);
+  const map = await mapUseFor(staff);
+  const opens = map.opened.phone + map.opened.larger;
+  const failures = Object.values(map.failed).reduce((sum, n) => sum + n, 0);
   return (
     <Stack gap={8}>
       <PageHeader
@@ -216,6 +222,42 @@ export default async function InternalPage({
             </tr>
           ))}
         </Table>
+      </Stack>
+
+      {/* M133: how the search map was used in the last 31 days. Numbers only: nothing about
+          any renter, device, area or search. Opens are Google's billed map loads. */}
+      <Stack gap={4} as="section">
+        <h2 className="type-title" id="map">
+          The search map
+        </h2>
+        <p>The last 31 days, as totals. Set the opens beside the map loads in Google’s console.</p>
+        <Table caption="The search map" head={['What happened', 'Times']}>
+          {[
+            ['Opened beside the list', map.opened.larger],
+            ['Opened on its own (below 900px)', map.opened.phone],
+            ['Drawn', map.shown],
+            ...failureKinds.map((kind) => [
+              `Couldn’t load: ${failureWords[kind]}`,
+              map.failed[kind],
+            ]),
+            ['Searched the area in view', map.areaSearches],
+            ['A pin opened', map.pins],
+            ['A shared pin opened', map.sharedPins],
+          ].map(([what, times]) => (
+            <tr key={String(what)}>
+              <Cell label="What happened" className={tableStyles.strong}>
+                {what}
+              </Cell>
+              <Cell label="Times">{times}</Cell>
+            </tr>
+          ))}
+        </Table>
+        <p>
+          {opens === 0
+            ? 'Nobody opened the map in these days.'
+            : `${failures} of ${opens} opens couldn’t load the map.`}{' '}
+          What each failure means, and what to do, is in docs/deploy.md under “The search map”.
+        </p>
       </Stack>
     </Stack>
   );

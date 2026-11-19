@@ -9,6 +9,7 @@ import {
   type FlowStep,
   flowSteps,
   formValuesFrom,
+  missingCore,
   reviewGroups,
 } from '@/domain/lettings/add-letting';
 import {
@@ -35,7 +36,10 @@ import {
   type RentCheckOutcome,
   rentAnswersFromCheck,
 } from '@/domain/rent/rent-check';
+import { pinWords } from '@/copy/map';
 import { formatDate, formatRent } from '@/lib/format';
+import { mapSettings } from '@/lib/map';
+import { pinFor } from '@/server/lettings/location';
 import type { FlowHome } from '@/server/lettings/drafts';
 import { personCheckOf } from '@/server/identity/person-checks';
 import { settlePersonIdentity } from '@/server/identity/provider-results';
@@ -45,6 +49,7 @@ import {
   advertisedAction,
   confirmItsYouAction,
   confirmReviewAction,
+  describePinAction,
   goLiveAction,
   photosChangedAction,
   photosDoneAction,
@@ -53,6 +58,7 @@ import {
   rentResultAction,
   saveDetailsAction,
   saveHomePartAction,
+  savePinAction,
   saveRentCheckAction,
   saveReviewAction,
   saveStepAction,
@@ -63,6 +69,7 @@ import { GoLiveHeld, GoLiveStep } from '../../../_flow/GoLive';
 import { GoLiveIdentity } from '../../../_flow/GoLiveIdentity';
 import { flowHome } from '../../../_flow/home';
 import { HomePreview } from '../../../_flow/HomePreview';
+import { PinStep } from '../../../_flow/PinStep';
 import { RentCheckStep, RentResultStep } from '../../../_flow/RentCheck';
 import {
   type ReadingView,
@@ -90,6 +97,8 @@ function allowed(home: FlowHome, screen: FlowScreen, alone: boolean): boolean {
   if (home.kind === 'draft') {
     // Until "Looks right", a draft that arrived filled in is changed on its review (UX-LT-4).
     if (home.reached === 'review') return screen === 'review';
+    // M38: the pin follows the address, so it needs one.
+    if (screen === 'pin') return missingCore(home.answers)[0] !== 'address';
     return screen === 'address' || screen === 'rent' || screen === 'home';
   }
   const { letting, rentCheck, setup } = home.detail;
@@ -101,6 +110,7 @@ function allowed(home: FlowHome, screen: FlowScreen, alone: boolean): boolean {
     if (screen === 'advertised') return letting.status === 'live';
     if (!alone || closed) return false;
     return (
+      screen === 'pin' ||
       screen === 'details' ||
       screen === 'rent_check' ||
       screen === 'rent_result' ||
@@ -356,6 +366,32 @@ export default async function SetupStepPage({
           searchOn={searchOn}
         />
       );
+    case 'pin': {
+      // M135: with the map switched off there is no pin to place; the flow carries on.
+      const settings = mapSettings();
+      const pin = settings
+        ? await pinFor(member, id, { streets: settings.provider === 'static' })
+        : null;
+      if (!settings || !pin) {
+        redirect(
+          alone ? lettingHref : screenHref(id, home.kind === 'draft' ? 'rent' : 'photos', from),
+        );
+      }
+      return (
+        <PinStep
+          frame={
+            alone
+              ? { leaveHref }
+              : { ...frameFor('address'), backHref: screenHref(id, 'address', from) }
+          }
+          action={savePinAction.bind(null, id, from, alone)}
+          settings={settings}
+          pin={pin}
+          describe={describePinAction.bind(null, id)}
+          primary={alone ? pinWords.save : copy.next}
+        />
+      );
+    }
     case 'rent':
       return (
         <RentStep

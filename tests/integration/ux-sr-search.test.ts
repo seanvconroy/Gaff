@@ -90,6 +90,8 @@ describe('UX-SR-2, UX-SR-6: the homes search reads', () => {
         'id',
         'liveAt',
         'parking',
+        // M125: where renters see it on the map, or null without a pin.
+        'point',
         'propertyType',
         'rentCents',
       ].sort(),

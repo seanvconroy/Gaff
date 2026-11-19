@@ -75,6 +75,8 @@ describe('UX-MT-3: the letting details line is Gaff’s, in fixed words, and can
         'myhomeUrl',
         'parking',
         'photosUrl',
+        // M125: where the home's point came from: a code ("letter"), never words.
+        'pointSource',
         'propertyType',
         'publicRef',
       ].sort(),

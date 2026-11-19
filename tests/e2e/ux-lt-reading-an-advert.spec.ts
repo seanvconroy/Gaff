@@ -4,6 +4,7 @@ import pg from 'pg';
 import { E2E_DATABASE_URL } from '../../playwright.config';
 import { daftEnquiry } from '../fixtures/emails';
 import {
+  confirmThePin,
   expectAccessible,
   expectNoSidewaysScroll,
   gaffAddress,
@@ -267,6 +268,7 @@ test('UX-AI-12: with the reader switched off, the first screen offers only "Fill
     await page.getByLabel('Town or area').fill('Dublin 2');
     await page.getByLabel('County').selectOption('Dublin');
     await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await confirmThePin(page);
     await expect(page.getByRole('heading', { level: 1, name: 'Rent and date' })).toBeVisible();
     await context.close();
   }

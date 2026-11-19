@@ -1,0 +1,410 @@
+/* M57, M117: the search map. What floats over it has the raised shadow; the rest is hairlines. */
+.map {
+  position: relative;
+  height: 100%;
+  min-height: 320px;
+  overflow: hidden;
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-lg);
+}
+
+/* M131: the map's space is held from the start, and the map fades in once it has drawn, so
+   nothing jumps and its unstyled first frame is never seen. With reduced motion the durations
+   are 0ms, and it simply appears. */
+.canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.map[data-stage='loading'] .canvas {
+  opacity: 0;
+}
+
+.map[data-stage='ready'] .canvas {
+  opacity: 1;
+  transition: opacity var(--motion-base) var(--ease-standard);
+}
+
+.google {
+  width: 100%;
+  height: 100%;
+}
+
+/* M120: the map couldn't load. Gaff's sentence in its place, and the list carries on. */
+.failed {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.failed p {
+  max-width: 32ch;
+}
+
+/* Gaff's controls sit in the top left; Google's logo and terms keep the bottom. */
+.controls {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  z-index: 5;
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+  max-width: calc(100% - var(--space-16) - var(--space-4));
+}
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--size-control);
+  padding: 0 var(--space-4);
+  background-color: var(--color-surface-0);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-ink);
+  font-family: var(--type-label-family);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  cursor: pointer;
+}
+
+.control:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.note {
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-surface-0);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-raised);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+/* M137: the credit for a street drawn from Gaff's place index, clear of Google's along the
+   bottom. */
+.placesCredit {
+  padding: var(--space-1) var(--space-2);
+  background-color: var(--color-surface-0);
+  border-radius: var(--radius-sm);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.placesCredit a {
+  color: var(--color-brand-text);
+}
+
+/* A price pin: a white pill, edged so it stands out from the map; the home being looked at is
+   ink. */
+.pin {
+  position: relative;
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  background-color: var(--color-surface-0);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-ink);
+  font-family: var(--type-label-family);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--type-label-line);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* M117: 44px to tap, though the pill looks smaller. */
+.pin::before {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: var(--size-target);
+  content: '';
+  transform: translateY(-50%);
+}
+
+.pin[data-on] {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-ink-inverse);
+}
+
+/* The home being looked at, shown above the cluster it's in: a picture, not a second button. */
+.pin[data-raised] {
+  pointer-events: none;
+}
+
+:global(gmp-advanced-marker):focus-visible .pin {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.cluster {
+  display: grid;
+  place-items: center;
+  min-width: var(--size-control);
+  height: var(--size-control);
+  padding: 0 var(--space-2);
+  background-color: var(--color-surface-0);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-ink);
+  font-family: var(--type-label-family);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  cursor: pointer;
+}
+
+/* The stand-in: plain SVG on a grid, at the size of its box. */
+.staticMap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.staticSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+
+.land {
+  fill: var(--color-surface-2);
+}
+
+.gridLine {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.outline {
+  fill: none;
+  stroke: var(--color-brand);
+  stroke-width: 2;
+}
+
+.street {
+  fill: none;
+  stroke: var(--color-brand);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.staticPin {
+  cursor: pointer;
+}
+
+.staticCluster {
+  cursor: pointer;
+}
+
+.staticCluster circle {
+  fill: var(--color-surface-0);
+  stroke: var(--color-primary);
+  stroke-width: 2;
+}
+
+.staticCluster text {
+  fill: var(--color-ink);
+  font-family: var(--type-label-family);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+}
+
+.staticCluster:focus {
+  outline: none;
+}
+
+.staticPin rect:not(.hitArea) {
+  fill: var(--color-surface-0);
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
+}
+
+.staticPin text {
+  fill: var(--color-ink);
+  font-family: var(--type-label-family);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+}
+
+.staticPin[data-on] rect:not(.hitArea) {
+  fill: var(--color-primary);
+  stroke: var(--color-primary);
+}
+
+.staticPin[data-on] text {
+  fill: var(--color-ink-inverse);
+}
+
+.staticPin:focus {
+  outline: none;
+}
+
+.hitArea {
+  fill: transparent;
+  stroke: none;
+}
+
+.zoom {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 5;
+  display: grid;
+  overflow: hidden;
+  background-color: var(--color-surface-0);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-raised);
+}
+
+.zoom button {
+  display: grid;
+  place-items: center;
+  width: var(--size-control);
+  height: var(--size-control);
+  background: none;
+  border: 0;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.zoom button + button {
+  border-top: 1px solid var(--color-border);
+}
+
+.zoom button:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -3px;
+}
+
+.standIn {
+  position: absolute;
+  bottom: var(--space-2);
+  left: var(--space-3);
+  color: var(--color-ink-muted);
+  font-size: var(--type-caption-size);
+}
+
+/* M117: the chosen home's mini card, at the foot of the map, clear of Google's credits. */
+.miniCard {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-10);
+  left: var(--space-3);
+  z-index: 6;
+  display: flex;
+  gap: var(--space-3);
+  max-width: 420px;
+  margin: 0 auto;
+  overflow: hidden;
+  background-color: var(--color-surface-0);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+}
+
+.miniPhoto {
+  flex: none;
+  width: 120px;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.miniBody {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-3) var(--space-12) var(--space-3) var(--space-3);
+}
+
+.miniPhoto + .miniBody {
+  padding-left: 0;
+}
+
+.miniTitle {
+  font-size: var(--type-title-size);
+  font-weight: var(--type-title-weight);
+  line-height: var(--type-title-line);
+}
+
+/* A block, so the link is a whole line tall (WCAG 2.5.8), and the whole card opens it. */
+.miniLink {
+  display: block;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.miniLink::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+
+.miniLine {
+  color: var(--color-ink-muted);
+}
+
+/* M117: the homes that share a pin, each a row that opens its page. */
+.miniList {
+  display: grid;
+  max-height: 240px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.miniList li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.miniRow {
+  display: grid;
+  align-content: center;
+  min-height: var(--size-control);
+  padding: var(--space-2) 0;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.miniClose {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  width: var(--size-control);
+  height: var(--size-control);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.miniRow:focus-visible,
+.miniClose:focus-visible,
+.miniLink:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -3px;
+}
+
+/* Gaff's focus ring on the stand-in's pins and clusters. */
+.staticPin:focus-visible rect:not(.hitArea),
+.staticCluster:focus-visible circle {
+  stroke: var(--color-focus);
+  stroke-width: 3;
+}

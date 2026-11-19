@@ -24,6 +24,8 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0018](0018-own-place-index-from-openstreetmap.md) | Search uses Gaff's own place index, built from OpenStreetMap and kept in Postgres | Accepted (Q51) |
 | [0019](0019-sign-in-hardened.md) | Sign-in, hardened: limits in Postgres, closed library routes, joining by the address's host, How you sign in, devices | Accepted; extends 0015 |
 | [0020](0020-id-check-on-stripe-identity-and-booking-mobile.md) | The ID check on Stripe Identity (a verified webhook re-read from Stripe, one session across three tries, redaction after 30 days), and a mobile confirmed by text code to book a viewing | Accepted |
+| [0021](0021-search-map-on-google-maps.md) | The search map and the lister's pin are on Google Maps, with homes' own points | Accepted (Q51) |
+| [0022](0022-google-script-only-on-map-pages.md) | Google's script runs only in documents loaded for the map's pages | Accepted |
 
 ## Template
 

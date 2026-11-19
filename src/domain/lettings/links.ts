@@ -8,13 +8,18 @@ import { returnPath } from '@/domain/navigation/return-to';
  * already a letting. `from` is the page the task was opened on (UX-NV-6): it rides along, so
  * Close and "Save and exit" go back there from any step.
  */
-export type FlowScreen = FlowStep | 'review' | 'rent_result' | 'advertised';
+/**
+ * Screens beyond the steps: the review, the rent check's result, the question after go-live,
+ * and M38's "Where is it on the map?", which follows the address (it is part of that step).
+ */
+export type FlowScreen = FlowStep | 'review' | 'rent_result' | 'advertised' | 'pin';
 
 const slugs: Record<FlowScreen, string> = {
   ...stepSlugs,
   review: 'review',
   rent_result: 'rent-result',
   advertised: 'advertised',
+  pin: 'pin',
 };
 
 export function screenFromSlug(slug: string): FlowScreen | null {

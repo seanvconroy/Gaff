@@ -5,6 +5,7 @@ import { isArea, type Gazetteer, type Place, type PlaceKind } from '@/domain/pla
 import { distanceMetres, distanceToLineMetres, type Point } from '@/domain/places/geo';
 import { normalise, queryWords } from '@/domain/places/normalise';
 import { rankSuggestions } from '@/domain/places/suggest';
+import { WITHIN_KM } from './filters';
 import { canonicalPlaceSlug, PLACE_SLUG } from './place-slug';
 
 /**
@@ -45,13 +46,25 @@ export function defaultNearMetres(place: Place, g: Gazetteer): number {
   return inCity ? NEAR_IN_A_CITY_METRES : NEAR_ELSEWHERE_METRES;
 }
 
-/** The place a slug names, or null if the index doesn't know it. */
-export function searchPlace(slug: string, g: Gazetteer): SearchPlace | null {
+/**
+ * The place a slug names, or null if the index doesn't know it. `withinKm` is the renter's own
+ * "Within" (M113), for a place to search near; without it, the default for where the place is.
+ */
+export function searchPlace(slug: string, g: Gazetteer, withinKm?: number): SearchPlace | null {
   const canonical = canonicalPlaceSlug(slug);
   const place = g.bySlug(canonical);
   if (place && isArea(place)) return { kind: 'area', slug: canonical, place };
   if (place) {
-    return { kind: 'near', slug: canonical, place, withinMetres: defaultNearMetres(place, g) };
+    const chosen =
+      withinKm !== undefined && (WITHIN_KM as readonly number[]).includes(withinKm)
+        ? withinKm * 1000
+        : null;
+    return {
+      kind: 'near',
+      slug: canonical,
+      place,
+      withinMetres: chosen ?? defaultNearMetres(place, g),
+    };
   }
   const key = PLACE_SLUG.test(canonical) ? parseRoutingKey(canonical) : null;
   if (key) {
@@ -161,9 +174,9 @@ export interface HomeAddress {
   county: string;
   eircode: string | null;
   /**
-   * SEAM (the map package): where the home is. Homes carry no point yet; once they do, a "near"
-   * search measures the distance from the street or landmark, as M113 asks, instead of reading
-   * the address.
+   * M125: where the home is on the map, as renters see it (`publicPoint`), or null when its
+   * lister hasn't placed its pin. With one, a "near" search measures the distance from the
+   * street or landmark (M113); without one, it reads the address.
    */
   point?: Point | null;
 }
@@ -211,17 +224,20 @@ function metresFrom(place: Place, point: Point): number {
  * - a Dublin district is its Eircode's routing key, or the district written in its address;
  * - a routing key is its Eircode's routing key;
  * - a city, town, village or area is its name in the address, in the same county;
- * - near a street, landmark or townland (M113): within the distance of it when the home has a
- *   point (the map package's seam); until then, as far as the address allows: the street's name
- *   in the address, or the landmark's neighbourhood, in the same county and routing key.
+ * - near a street, landmark or townland (M113): within the distance of it, measured from the
+ *   home's point; for a home whose pin isn't placed, as far as the address allows: the street's
+ *   name in the address, or the landmark's neighbourhood, in the same county and routing key.
  */
 export function placeHasHome(where: SearchPlace, home: HomeAddress): boolean {
   const homeKey = routingKeyOf(home.eircode);
   if (where.kind === 'routing_key') return homeKey === where.routingKey;
   const { place } = where;
+  // A distance doesn't stop at a county's edge: a home with a point is measured.
+  if (where.kind === 'near' && home.point) {
+    return metresFrom(place, home.point) <= where.withinMetres;
+  }
   if (home.county !== place.county) return false;
   if (where.kind === 'near') {
-    if (home.point) return metresFrom(place, home.point) <= where.withinMetres;
     if (place.routingKey && homeKey && homeKey !== place.routingKey) return false;
     const words = addressWords(home);
     if (place.kind === 'landmark') {

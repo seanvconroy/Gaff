@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { pinWords } from '@/copy/map';
 import { lettingPageCopy } from '@/copy/letting-page';
 import { lettingDetailsParts } from '@/domain/criteria/criteria';
 import { screenHref } from '@/domain/lettings/links';
 import { describeKeyFacts } from '@/domain/lettings/new-letting';
 import { previewBer } from '@/domain/lettings/preview';
+import { placedPoint } from '@/domain/map/pin';
 import { portals } from '@/domain/lettings/setup';
 import { comparableWarnings, medianRentCents } from '@/domain/rent/comparables';
 import { formatDate, formatDateTime, formatRent } from '@/lib/format';
@@ -29,6 +31,7 @@ export function HomeView({
   lockedWords,
   hasOwner,
   shownOnGaff,
+  mapOn,
 }: {
   detail: LettingDetail;
   /** UX-LP-13: people have been invited on the letting details. */
@@ -37,6 +40,8 @@ export function HomeView({
   /** A home let for someone else has an owner (UX-OW-1). */
   hasOwner: boolean;
   shownOnGaff: boolean;
+  /** M135: whether this deployment has a map, so a pin to place. */
+  mapOn: boolean;
 }) {
   const { letting, facts, photos, sessions, rentCheck, rentProblem, comparables, landlord } =
     detail;
@@ -126,6 +131,22 @@ export function HomeView({
         ) : null}
         <p className={styles.small}>{copy.factsUsed}</p>
       </Part>
+
+      {mapOn ? (
+        <Part
+          id="home-where"
+          title={pinWords.heading}
+          action={change(
+            alone('pin'),
+            'where it is on the map',
+            placedPoint(letting) ? pinWords.move : pinWords.place,
+          )}
+        >
+          <p className={placedPoint(letting) ? undefined : styles.muted}>
+            {placedPoint(letting) ? pinWords.placed : pinWords.notPlaced}
+          </p>
+        </Part>
+      ) : null}
 
       <Part
         id="home-details"

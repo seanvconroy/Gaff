@@ -548,6 +548,7 @@ export async function addHomeThroughUi(
   await page.getByLabel('Town or area').fill('Ranelagh, Dublin 6');
   await page.getByLabel('County').selectOption('Dublin');
   await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await confirmThePin(page);
   await expect(page.getByRole('heading', { name: 'Rent and date' })).toBeVisible();
   await page.getByLabel('Rent a month').fill('1850');
   await pickDate(page, 'Available from', isoDateInDays(AVAILABLE_IN_DAYS));
@@ -566,6 +567,16 @@ export async function addHomeThroughUi(
   await page.getByLabel('BER rating').selectOption('C1');
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Photos', exact: true })).toBeVisible();
+}
+
+/**
+ * M38: "Where is it on the map?", after the address: the pin starts on the address's street (or
+ * the area's middle), and Next keeps it there.
+ */
+export async function confirmThePin(page: Page): Promise<void> {
+  await expect(page.getByRole('heading', { name: 'Where is it on the map?' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'The home’s pin' })).toBeVisible();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
 }
 
 /**

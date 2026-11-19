@@ -4,6 +4,7 @@ import { E2E_DATABASE_URL } from '../../playwright.config';
 import { aPng } from '../fixtures/photos';
 import {
   addHomeThroughUi,
+  confirmThePin,
   createLettingThroughUi,
   expectAccessible,
   expectNoSidewaysScroll,
@@ -140,6 +141,26 @@ test('UX-LT-1, UX-LT-8 to UX-LT-15, UX-LT-22: a letting goes live from scratch, 
     await expectNoSidewaysScroll(page);
     await expectAccessible(page);
     await screenshot(page, `ux-lt-03-address-${width}`);
+    await next(page).click();
+
+    // M38: "Where is it on the map?", part of the address step. The pin starts on the address's
+    // street, from Gaff's own place index, and moves without dragging: a button, or the keys.
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Where is it on the map?' }),
+    ).toBeVisible();
+    await expect(progress.locator('[aria-current="step"]')).toContainText('Address');
+    await expect(
+      page.getByText('The pin starts on Ranelagh Road, from the address.'),
+    ).toBeVisible();
+    const pinWhere = page.getByRole('status').filter({ hasText: /^The pin is/ });
+    await expect(pinWhere).toHaveText(/^The pin is on /);
+    await page.getByRole('button', { name: 'Move the pin up' }).click();
+    await page.getByRole('button', { name: 'The home’s pin' }).focus();
+    await page.keyboard.press('ArrowLeft');
+    await expect(page.getByText('Test map: not Google Maps')).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await expectAccessible(page);
+    await screenshot(page, `m38-pin-${width}`);
     await next(page).click();
 
     // Step 4, "Rent and date". Both are needed, and each says so at its own field.
@@ -376,6 +397,7 @@ test('UX-FL-2: Save and exit keeps what was typed, and Continue comes back to th
     await page.getByLabel('Town or area').fill('Sandymount, Dublin 4');
     await page.getByLabel('County').selectOption('Dublin');
     await next(page).click();
+    await confirmThePin(page);
 
     // Half way through "Rent and date": the rent is typed, the date isn't chosen.
     await expect(page.getByRole('heading', { level: 1, name: 'Rent and date' })).toBeVisible();

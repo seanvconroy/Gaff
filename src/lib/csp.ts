@@ -54,7 +54,7 @@ export function configuredProviders(source: Record<string, string | undefined>):
 }
 
 /**
- * M43 (ADR-0020): where browsers send photos straight to the photo store, its origin, so the
+ * M43 (ADR-0021): where browsers send photos straight to the photo store, its origin, so the
  * page may reach it (connect-src) and nothing else. Only Supabase Storage takes them; with the
  * local store, photos go through Gaff's own server and the policy stays 'self'.
  */

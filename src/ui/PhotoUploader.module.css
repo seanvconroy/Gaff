@@ -75,6 +75,9 @@
 }
 
 .photo {
+  /* Held to the tile, whatever the photo's own shape: a tall photo never stretches the grid. */
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   border-radius: var(--radius-md);

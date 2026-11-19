@@ -460,3 +460,13 @@ Recorded, not open, unless Sean wants one changed.
 - **Two events** (a provider joined, a passkey added) are written just after the sign-in library's own write, not in the same transaction (the other line's Q67). A failure between the two loses the event, never the change.
 - **The security emails** are new fixed wording, for the solicitor with the other templates.
 
+### Q58. Loose ends from the map (**Open**)
+
+Found while bringing the map across (BA-5, 19 November 2026). None holds up the build.
+
+- **A private landlord's home is shown within about 150 m of its pin**, never at its door, because their own home is personal data. Agencies' homes are shown at the pin. This is the build's reading of the other line's street-only rule. Sean to confirm the distance.
+- **Does the map need consent before it loads?** Google's map sets nothing on a phone until the renter asks for the map, but it loads with the page on a larger screen (the other line's M134). **Solicitor.**
+- **Moving into and out of Search is a full page load**, the price of Google's script running only on the map's pages. To measure once real people use it.
+- **Nothing has been run with a real Google key yet.** `docs/deploy.md` ("The search map") lists the two checks to do with one, and the keys the test copy and GitHub need.
+- **A daily cap and a budget for the map in production**, set in Google's console before launch.
+

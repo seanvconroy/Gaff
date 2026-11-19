@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { crossesMapBoundary, isMapPage } from '@/lib/map-pages';
 
 /**
- * ADR-0027, M119: Google's script runs only in a document loaded for a page that shows its map,
+ * ADR-0019, M119: Google's script runs only in a document loaded for a page that shows its map,
  * and goes when the page does (src/lib/map-pages.ts says why). In a build with Google's map,
  * going between a map page and any other page is a full page load:
  *

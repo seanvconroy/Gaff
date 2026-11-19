@@ -69,7 +69,9 @@ import { Prompt } from '@/ui/Prompt';
 import { TimePicker } from '@/ui/TimePicker';
 import {
   AddressSearchDemo,
+  PinPickerDemo,
   PlaceSearchDemo,
+  SearchMapDemo,
   SearchBoxDemo,
   CodeDemo,
   MenuDemo,
@@ -542,6 +544,22 @@ export default function ComponentsPage() {
           lead="The field under “Where”. Suggestions in groups as you type, each with where it is and its homes; what to start from before typing; near spellings offered as “Did you mean”."
         >
           <PlaceSearchDemo />
+        </Section>
+
+        <Section
+          id="pin-picker"
+          title="Pin picker"
+          lead="Where a home is on the map. Drag the pin, tap the map, use the arrow keys, or the four buttons: dragging is never the only way. Google’s map where it’s set up; the stand-in here."
+        >
+          <PinPickerDemo />
+        </Section>
+
+        <Section
+          id="search-map"
+          title="List and map"
+          lead="At 900px and up the list sits beside the map; below it, one control swaps them. Price pins, homes at one point on one pin, clusters, a card for a chosen pin, and “Search this area” after the map is moved."
+        >
+          <SearchMapDemo />
         </Section>
 
         <Section

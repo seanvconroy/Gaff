@@ -110,7 +110,9 @@ const fits = (page: Page) =>
 async function zoomInTo(page: Page, name: RegExp): Promise<void> {
   for (let tries = 0; tries < 5; tries++) {
     if (await pin(page, name).isVisible()) return;
-    const cluster = map(page).getByRole('button', { name: /homes here: zoom in$/ }).first();
+    const cluster = map(page)
+      .getByRole('button', { name: /homes here: zoom in$/ })
+      .first();
     if (await cluster.isVisible()) await cluster.click();
     else await page.getByRole('button', { name: 'Zoom in' }).click();
     await page.waitForTimeout(150);

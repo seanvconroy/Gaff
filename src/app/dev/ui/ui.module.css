@@ -299,3 +299,8 @@
   align-items: center;
   min-height: var(--size-target);
 }
+
+/* The search map demo needs a height of its own. */
+.mapDemo {
+  height: 420px;
+}

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 /**
  * M56 (ADR-0018): the credit for Gaff's place index. OpenStreetMap's licence (the ODbL) asks for
  * its credit wherever the data is used, and an offer of the data Gaff built from it. Linked from
- * under the search and from the place search's suggestions.
+ * under the search and from the place search's suggestions. BA-5 (M137): it credits the map too.
  */
 export default function MapAndPlaceDataPage() {
   return (
@@ -29,6 +29,16 @@ export default function MapAndPlaceDataPage() {
           </p>
           <p>{copy.places.added}</p>
           <p>{copy.places.open}</p>
+        </section>
+        <section className={styles.section} aria-labelledby="map-heading">
+          <h2 id="map-heading" className="type-heading">
+            {copy.map.heading}
+          </h2>
+          <p>
+            {copy.map.google} <a href={copy.map.termsHref}>{copy.map.terms}</a>.
+          </p>
+          <p>{copy.map.ours}</p>
+          <p>{copy.map.sent}</p>
         </section>
         <section className={styles.section} aria-labelledby="typing-heading">
           <h2 id="typing-heading" className="type-heading">

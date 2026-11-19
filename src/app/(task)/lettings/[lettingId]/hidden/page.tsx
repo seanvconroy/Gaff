@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { hiddenCopy } from '@/copy/trust';
+import { factsInWords } from '@/copy/trust-emails';
 import { formatDate } from '@/lib/format';
 import { stoppedByConflict } from '@/server/accounts/conflict';
 import { requireMember } from '@/server/auth/member';
@@ -16,10 +17,11 @@ export const dynamic = 'force-dynamic';
 const copy = hiddenCopy.page;
 
 /**
- * UX-TS-4: a home Gaff's team took off gaff.ie after a report. Why, and since when; what it
- * means for its enquiries; and one button: "Ask Gaff to look again", once anything that needed
- * it is put right. A home that isn't hidden, or has been asked about already, goes back to its
- * letting.
+ * UX-TS-4, BA-9 (M98): a home Gaff's team took off gaff.ie after a report. Why, and since when,
+ * and what the decision relied on (the statement of reasons the lister was emailed); what it
+ * means for its enquiries; and one button: "Ask Gaff to look again", the appeal a different
+ * person decides. A home that isn't hidden by a person's decision, or has been asked about
+ * already, goes back to its letting.
  */
 export default async function HiddenPage({ params }: { params: Promise<{ lettingId: string }> }) {
   const { lettingId } = await params;
@@ -28,7 +30,8 @@ export default async function HiddenPage({ params }: { params: Promise<{ letting
   if (await stoppedByConflict(member, lettingId)) redirect('/lettings/yours');
   const lettingHref = `/lettings/${lettingId}`;
   const hidden = await hiddenHomeFor(member, lettingId);
-  if (!hidden || hidden.lookAgainAskedAt) redirect(lettingHref);
+  // Only a person's decision can be asked about, and only once (M98).
+  if (!hidden || hidden.stage !== 'decided') redirect(lettingHref);
   return (
     <StepForm
       action={askToLookAgainAction.bind(null, lettingId)}
@@ -40,6 +43,7 @@ export default async function HiddenPage({ params }: { params: Promise<{ letting
     >
       <Stack gap={4}>
         <p>{copy.why(hidden.reason, formatDate(hidden.hiddenAt))}</p>
+        {hidden.facts.length > 0 ? <p>{copy.reliedOn(factsInWords(hidden.facts))}</p> : null}
         <p>{copy.meanwhile}</p>
         <p>{copy.fix}</p>
         <p>

@@ -249,60 +249,6 @@ export function profileUnusedEmail(input: {
   };
 }
 
-/**
- * UX-TS-4 (DSA, for the solicitor): Gaff's team took a home off gaff.ie after a report. To the
- * letting's lead and the organisation's admins. It says what was done, why (one of four fixed
- * reasons), what it means for enquiries, and how to have it looked at again. New wording, pinned
- * by its own test (`trust-emails.test.ts`).
- */
-export function listingHiddenEmail(input: {
-  address: string;
-  /** From `hiddenReasons`: "some of its details look wrong". */
-  reason: string;
-  lettingUrl: string;
-}): AccountEmail {
-  return {
-    subject: `${input.address} is off gaff.ie for now`,
-    button: 'Open the letting',
-    text: [
-      'Hello,',
-      '',
-      `Gaff’s team has taken ${input.address} off gaff.ie after a report: ${input.reason}.`,
-      '',
-      'While it’s off, it has no page and isn’t in search. Gaff isn’t answering its enquiries: they wait, and are answered when it’s back.',
-      '',
-      'Put right anything that needs it in the home’s details, then press “Ask Gaff to look again” on the letting.',
-      '',
-      input.lettingUrl,
-      '',
-      'We’ll look within one working day and email you when it’s back.',
-      '',
-      'Gaff',
-    ].join('\n'),
-  };
-}
-
-/** UX-TS-4: Gaff's team put a hidden home back on gaff.ie. New wording, pinned with the above. */
-export function listingBackEmail(input: { address: string; lettingUrl: string }): AccountEmail {
-  return {
-    subject: `${input.address} is back on gaff.ie`,
-    button: 'Open the letting',
-    text: [
-      'Hello,',
-      '',
-      `Gaff’s team has looked again at ${input.address}, and it’s back on gaff.ie, with its page and its place in search.`,
-      '',
-      'Gaff is answering its enquiries again, starting with anyone who enquired while it was off.',
-      '',
-      input.lettingUrl,
-      '',
-      'There’s nothing you need to do.',
-      '',
-      'Gaff',
-    ].join('\n'),
-  };
-}
-
 /** BA-8 (AU11): the ways in a security email can be about, as a person says them. */
 const wayInWords = { google: 'Google', apple: 'Apple' } as const;
 export type ChangedWayIn = 'google' | 'apple' | 'passkey';

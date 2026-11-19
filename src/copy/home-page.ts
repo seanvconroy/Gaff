@@ -38,7 +38,10 @@ export const homePageCopy = {
   },
 } as const;
 
-/** UX-TS-3: "Report this listing", one question with tap answers. No account needed. */
+/**
+ * UX-TS-3, BA-9: "Report this listing": one question with tap answers, then an email for the
+ * outcome if they want it. No account needed.
+ */
 export const reportCopy = {
   pageTitle: 'Report this listing',
   title: 'What’s wrong with this listing?',
@@ -50,13 +53,29 @@ export const reportCopy = {
   },
   note: 'What’s wrong?',
   noteHint: 'A few words is enough.',
+  continue: 'Continue',
+  /** BA-9 (M96): the second screen: an email for the outcome, if they want it. */
+  email: {
+    title: 'Would you like to hear what we decide?',
+    label: 'Your email',
+    hint: 'We’ll email you once, with what Gaff’s team decided, then delete it.',
+  },
   send: 'Send report',
   sending: 'Sending…',
   back: 'Back to the home',
+  previous: 'Back',
   sent: {
     title: 'Thanks for telling us',
-    text: 'Gaff’s team reads every report and acts on it within one working day. You don’t need to do anything else.',
+    /** M96, M97: acknowledged at once, with when a person will look. */
+    text: (by: string, emailed: boolean) =>
+      `A person on Gaff’s team will look at it by ${by}.${emailed ? ' We’ll email you what we decide.' : ' You don’t need to do anything else.'}`,
+    soon: 'A person on Gaff’s team will look at it within one working day. You don’t need to do anything else.',
     action: 'Back to the home',
+  },
+  /** M96: more than 10 reports in a day from one network address. */
+  limited: {
+    title: 'You’ve sent a lot of reports today',
+    text: 'You can send more tomorrow. If something is urgent, contact the Gardaí.',
   },
   gone: 'This home isn’t on Gaff any more, so there’s nothing to report.',
 } as const;

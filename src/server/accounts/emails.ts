@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNotNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { emailSender, gaffSender } from '@/adapters/email';
 import {
@@ -10,8 +10,6 @@ import {
   licenceLapsedEmail,
   memberLeftEmail,
   licenceRenewedEmail,
-  listingBackEmail,
-  listingHiddenEmail,
   memberConflictEmail,
   profileUnusedEmail,
   signInChangedEmail,
@@ -19,9 +17,18 @@ import {
 } from '@/copy/account-emails';
 import { layOutGaffEmail } from '@/copy/email-layout';
 import { hiddenReasons } from '@/copy/trust';
+import {
+  appealKeptEmail,
+  listingBackEmail,
+  listingHeldEmail,
+  listingHiddenEmail,
+  reportOutcomeEmail,
+} from '@/copy/trust-emails';
 import { db, withOrg, withSystem } from '@/db/client';
 import {
   lettings,
+  listingCases,
+  listingReports,
   memberships,
   organisationInvites,
   organisations,
@@ -75,9 +82,31 @@ export const accountEmailJob = z.discriminatedUnion('kind', [
     lettingId: z.uuid(),
     memberUserId: z.uuid(),
   }),
-  /** UX-TS-4: Gaff's team hid one of the organisation's homes after a report, or put it back. */
-  z.object({ kind: z.literal('listing_hidden'), organisationId: z.uuid(), lettingId: z.uuid() }),
+  /**
+   * UX-TS-4, BA-9: a person on Gaff's team decided a case about one of the organisation's
+   * homes: hidden, with the statement of reasons on the case; put back; or, on appeal, kept
+   * off. Or the rules took it off for a person to check (`listing_held`).
+   */
+  z.object({
+    kind: z.literal('listing_hidden'),
+    organisationId: z.uuid(),
+    lettingId: z.uuid(),
+    caseId: z.uuid(),
+  }),
+  z.object({ kind: z.literal('listing_held'), organisationId: z.uuid(), lettingId: z.uuid() }),
   z.object({ kind: z.literal('listing_back'), organisationId: z.uuid(), lettingId: z.uuid() }),
+  z.object({
+    kind: z.literal('listing_kept'),
+    organisationId: z.uuid(),
+    lettingId: z.uuid(),
+    caseId: z.uuid(),
+  }),
+  /**
+   * BA-9 (M96): the outcome of a case, to each visitor who reported the listing and asked to
+   * hear. Belongs to no organisation: the addresses are read from the case's reports, and
+   * cleared once sent.
+   */
+  z.object({ kind: z.literal('report_outcome'), caseId: z.uuid() }),
   /**
    * UX-PF-7: a renter's profile will be deleted for want of use. This one is to a person, about
    * their own profile, and belongs to no organisation.
@@ -140,6 +169,10 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
         : signInRefusedEmail({ provider: job.provider, when, profileUrl }),
       `account-${job.kind}-${job.userId}-${job.kind === 'sign_in_changed' ? `${job.change}-${job.method}` : job.provider}-${job.at}`,
     );
+    return;
+  }
+  if (job.kind === 'report_outcome') {
+    await sendReportOutcome(job.caseId, app);
     return;
   }
   if (job.kind === 'profile_unused') {
@@ -219,12 +252,16 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
         : [];
     // UX-TS-4: the home, why it's hidden, and its lead, who is told with the admins.
     const [listing] =
-      job.kind === 'listing_hidden' || job.kind === 'listing_back'
+      job.kind === 'listing_hidden' ||
+      job.kind === 'listing_back' ||
+      job.kind === 'listing_held' ||
+      job.kind === 'listing_kept'
         ? await tx
             .select({
               address: lettings.addressLine1,
               reason: lettings.hiddenReason,
               hiddenAt: lettings.hiddenAt,
+              stage: lettings.hiddenStage,
               leadId: users.id,
               leadEmail: users.email,
             })
@@ -319,22 +356,61 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
     }
     return;
   }
-  if (job.kind === 'listing_hidden' || job.kind === 'listing_back') {
+  if (
+    job.kind === 'listing_hidden' ||
+    job.kind === 'listing_back' ||
+    job.kind === 'listing_held' ||
+    job.kind === 'listing_kept'
+  ) {
     if (!listing) return;
-    // Put back, or hidden again, since it was queued: this email would no longer be true.
-    if ((job.kind === 'listing_hidden') !== (listing.hiddenAt !== null)) return;
+    // Put back, or moved on, since it was queued: this email would no longer be true.
+    const stillTrue =
+      job.kind === 'listing_back'
+        ? listing.hiddenAt === null
+        : job.kind === 'listing_held'
+          ? listing.stage === 'held'
+          : job.kind === 'listing_kept'
+            ? listing.stage === 'final'
+            : listing.hiddenAt !== null && listing.stage !== 'held';
+    if (!stillTrue) return;
     const lettingUrl = `${app}/lettings/${job.lettingId}`;
-    const email =
-      job.kind === 'listing_hidden'
-        ? listingHiddenEmail({
-            address: listing.address,
-            reason: hiddenReasons[listing.reason ?? 'something_else'],
-            lettingUrl,
+    let email: AccountEmail;
+    if (job.kind === 'listing_hidden' || job.kind === 'listing_kept') {
+      // The statement of reasons is the case's, as the person decided it.
+      const [decided] = await withSystem((tx) =>
+        tx
+          .select({
+            reason: listingCases.decisionReason,
+            facts: listingCases.decisionFacts,
+            decidedAt: listingCases.decidedAt,
           })
-        : listingBackEmail({ address: listing.address, lettingUrl });
+          .from(listingCases)
+          .where(eq(listingCases.id, job.caseId)),
+      );
+      if (!decided?.reason || !decided.facts || !decided.decidedAt) return;
+      const statement = {
+        address: listing.address,
+        reason: decided.reason,
+        reasonWords: hiddenReasons[decided.reason],
+        facts: decided.facts,
+        decidedOn: formatDate(decided.decidedAt),
+        lettingUrl,
+      };
+      email =
+        job.kind === 'listing_hidden' ? listingHiddenEmail(statement) : appealKeptEmail(statement);
+    } else if (job.kind === 'listing_held') {
+      email = listingHeldEmail({ address: listing.address, lettingUrl });
+    } else {
+      email = listingBackEmail({ address: listing.address, lettingUrl });
+    }
     const told = new Map([[listing.leadId, listing.leadEmail]]);
     for (const admin of admins) told.set(admin.id, admin.email);
-    const when = job.kind === 'listing_hidden' ? listing.hiddenAt!.getTime() : attemptKey;
+    const when =
+      job.kind === 'listing_back'
+        ? attemptKey
+        : job.kind === 'listing_held'
+          ? listing.hiddenAt!.getTime()
+          : job.caseId;
     for (const [id, address] of told) {
       await send(address, email, `account-${job.kind}-${job.lettingId}-${id}-${when}`);
     }
@@ -355,4 +431,45 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
           })
         : licenceRenewedEmail({ agencyName: agency.name, lettingsUrl: `${app}/lettings` });
   for (const admin of admins) await send(admin.email, email, key(admin.id));
+}
+
+/**
+ * BA-9 (M96): the outcome of a case, to each visitor who asked to hear it, in fixed words. Each
+ * address is cleared once its email is sent, so it is kept no longer than it's needed.
+ */
+async function sendReportOutcome(caseId: string, app: string): Promise<void> {
+  const found = await withSystem(async (tx) => {
+    const [decided] = await tx
+      .select({ decision: listingCases.decision, address: lettings.addressLine1 })
+      .from(listingCases)
+      .innerJoin(lettings, eq(lettings.id, listingCases.lettingId))
+      .where(eq(listingCases.id, caseId));
+    if (!decided?.decision) return null;
+    const asked = await tx
+      .select({ id: listingReports.id, email: listingReports.outcomeEmail })
+      .from(listingReports)
+      .where(and(eq(listingReports.caseId, caseId), isNotNull(listingReports.outcomeEmail)));
+    return { ...decided, asked };
+  });
+  if (!found) return;
+  const email = reportOutcomeEmail({
+    address: found.address,
+    hidden: found.decision === 'hide_listing',
+    searchUrl: `${app}/`,
+  });
+  const sent = new Set<string>();
+  for (const report of found.asked) {
+    const to = report.email!.toLowerCase();
+    // One email to an address that reported the same listing twice.
+    if (!sent.has(to)) {
+      await send(report.email!, email, `report-outcome-${caseId}-${report.id}`);
+      sent.add(to);
+    }
+    await withSystem((tx) =>
+      tx
+        .update(listingReports)
+        .set({ outcomeEmail: null })
+        .where(eq(listingReports.id, report.id)),
+    );
+  }
 }

@@ -1,5 +1,10 @@
 import type { NextConfig } from 'next';
-import { configuredProviders, contentSecurityPolicy as policyFor } from './src/lib/csp';
+import {
+  configuredProviders,
+  googleMapsBuild,
+  contentSecurityPolicy as policyFor,
+} from './src/lib/csp';
+import { mapPageSources } from './src/lib/map-pages';
 
 const isProduction = process.env.NODE_ENV === 'production';
 // UX-LS-11: read when the app is built and started; "off" unless set (see src/lib/env.ts).
@@ -19,6 +24,14 @@ const securityHeaders = [
 // (BA-1, AU1). Read when the app is built, so redeploy after setting a provider.
 const contentSecurityPolicy = policyFor(configuredProviders(process.env));
 
+// BA-5, M119 (the live line's ADR-0028): the pages that show Google's map (Search, and "Where is
+// it on the map?") allow Google's hosts, and only in a build whose map is Google's. Every page,
+// these included, keeps `Referrer-Policy: no-referrer`: Google's script is told the site's origin
+// alone (auth_referrer_policy=origin, src/ui/GoogleLoader.tsx). A policy comes with its document,
+// so going between these pages and any other is a full page load (src/ui/MapBoundary.tsx).
+const googleMaps = googleMapsBuild(process.env);
+const mapPolicy = policyFor(configuredProviders(process.env), { maps: true });
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
@@ -26,6 +39,8 @@ const nextConfig: NextConfig = {
   // R25: inventory photos are uploaded through a server action, each under 4 MB, inside
   // Vercel's 4.5 MB limit for a whole request (ADR-0014).
   experimental: { serverActions: { bodySizeLimit: '4.5mb' } },
+  // Built into the pages' scripts, so they know which policy this build's documents carry.
+  env: { NEXT_PUBLIC_GOOGLE_MAP_PAGES: googleMaps ? '1' : '' },
   async headers() {
     const headers = isProduction
       ? [
@@ -34,8 +49,17 @@ const nextConfig: NextConfig = {
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
         ]
       : securityHeaders;
+    // The later rule wins for the same header, so the map's pages get the map's policy.
+    const withMap =
+      isProduction && googleMaps
+        ? mapPageSources.map((source) => ({
+            source,
+            headers: [{ key: 'Content-Security-Policy', value: mapPolicy }],
+          }))
+        : [];
     return [
       { source: '/:path*', headers },
+      ...withMap,
       // UX-LS-11: a home's public page can be found by search engines, but only where the
       // deployment says so (SEARCH_INDEXING=on, set in production alone), so a test or preview
       // copy of Gaff is never indexed. It holds nothing about any person. The page itself says

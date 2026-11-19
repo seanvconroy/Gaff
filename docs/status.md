@@ -2,7 +2,17 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 18 November 2026 (the UX redesign is built: all 28 work packages, waves 0 to 4. What's left open is under "Wave 4" below).
+Last updated: 19 November 2026 (the UX redesign is built: all 28 work packages, waves 0 to 4. It is **not live**: see "Going live" below. What's left open is under "Wave 4" below).
+
+## Going live (found on 19 November 2026)
+
+The redesign can't simply be deployed. The test copy, https://gaff-test.vercel.app, runs a different line of work that was never merged into `claude/gaff-mvp`, the branch the redesign was built from.
+
+- **What is live:** `claude/epic-ride-0ha68s` (8 November 2026): the marketplace (its requirements start `M`), the providers work (`P`: the Claude adapter with usage and a budget, Stripe Identity), the place index of 100,310 places from OpenStreetMap, real email through Resend, and nine made-up homes seeded by the build. Two more branches sit on top of it and aren't live either: `claude/gallant-darwin-dpy9oz` (the search map on Google Maps) and `claude/serene-davinci-b00vrg` (sign-in, `AU`).
+- **Why the two don't combine:** both lines start from the same commit and share migrations 0000 to 0020 only. Each then has its own 0021 to 0036, for different tables. The test copy's database holds the live line's. The redesign built its own marketplace, search, saved homes, accounts, sign-in, verified identity and reports on a different schema.
+- **Decisions that disagree:** both lines number their decisions from Q27, with different questions. The live line chose Stripe Identity (its Q48, Q60) and Google Maps (its Q58); the redesign says no identity vendor is chosen (its Q48) and there is no map (its Q49).
+- **Nothing has been deployed or changed on the test copy.** Which line carries on, and what is brought across from the other, is the founder's decision.
+- **CI:** the journeys had outgrown the job's 25 minutes, so every run on the redesign's branch was cut off. They now run as four parts side by side.
 
 ## Done
 
@@ -79,7 +89,7 @@ Last updated: 18 November 2026 (the UX redesign is built: all 28 work packages, 
 
 ## Next
 
-- **The UX redesign is built** (18 November 2026). The founder agreed it on 14 November 2026 (Q27 to Q49 in [open-questions.md](open-questions.md)). The MVP is two-sided: running a letting, and finding and applying for a home. The plan is [ux-redesign/](ux-redesign/README.md); what remains open is at the top of [ux-redesign/BUILD.md](ux-redesign/BUILD.md) and under "Wave 4" below. It is on the branch `claude/gaff-ux-redesign-prd-bua8q5`, waiting for a pull request into `claude/gaff-mvp`.
+- **The UX redesign is built** (18 November 2026). The founder agreed it on 14 November 2026 (Q27 to Q49 in [open-questions.md](open-questions.md)). The MVP is two-sided: running a letting, and finding and applying for a home. The plan is [ux-redesign/](ux-redesign/README.md); what remains open is at the top of [ux-redesign/BUILD.md](ux-redesign/BUILD.md) and under "Wave 4" below. It is on the branch `claude/gaff-ux-redesign-prd-bua8q5` and is not live: see "Going live" above.
 
   | Wave | Packages | Status |
   | --- | --- | --- |

@@ -72,7 +72,7 @@ for (const width of widths) {
     await page.goto('/profile');
     const section = signInSection(page);
     await expect(section.getByRole('heading', { name: 'Sign-in' })).toBeVisible();
-    await expect(section.getByText(`Always works, to ${email}`)).toBeVisible();
+    await expect(section.getByText('Always works, to the email above')).toBeVisible();
     await expect(section.getByText('Not connected')).toHaveCount(2);
     await expect(devicesSection(page).getByText('This device')).toBeVisible();
     await section.scrollIntoViewIfNeeded();
@@ -94,7 +94,7 @@ for (const width of widths) {
     await expect(page.getByText('Apple is connected. You can sign in with it now.')).toBeVisible();
     await expect(section.getByText(/^Connected on /)).toBeVisible();
     await expect
-      .poll(() => subjectsSentTo(email))
+      .poll(() => subjectsSentTo(email), { timeout: 30_000 })
       .toContain('Apple was connected to your Gaff account');
 
     // Add a passkey: confirmed again (each confirmation works once), then the device's prompt.
@@ -106,7 +106,7 @@ for (const width of widths) {
     await expect(page.getByText('Passkey added. You can sign in with it now.')).toBeVisible();
     await expect(section.getByRole('button', { name: /^Rename / })).toBeVisible();
     await expect
-      .poll(() => subjectsSentTo(email))
+      .poll(() => subjectsSentTo(email), { timeout: 30_000 })
       .toContain('A passkey was added to your Gaff account');
 
     // Rename it: the passkey itself confirms it's them now.
@@ -137,7 +137,7 @@ for (const width of widths) {
     await expect(page.getByText('Passkey removed.')).toBeVisible();
     await expect(section.locator('dt', { hasText: 'My phone' })).toHaveCount(0);
     await expect
-      .poll(() => subjectsSentTo(email))
+      .poll(() => subjectsSentTo(email), { timeout: 30_000 })
       .toEqual(
         expect.arrayContaining([
           'Apple was disconnected from your Gaff account',

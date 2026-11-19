@@ -205,7 +205,7 @@ export const profileCopy = {
     codeByEmail: methodWords.email_code,
     /** BA-8 (AU7): what each way in is, and whether it's on. */
     lead: 'A code to your email always works. Add another way in, or take one off, here.',
-    codeTo: (email: string) => `Always works, to ${email}`,
+    codeTo: 'Always works, to the email above',
     connectedOn: (date: string) => `Connected on ${date}`,
     notConnected: 'Not connected',
     connect: 'Connect',

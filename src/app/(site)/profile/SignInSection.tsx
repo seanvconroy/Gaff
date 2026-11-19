@@ -177,7 +177,7 @@ export function SignInSection({ view }: { view: SignInView }) {
         ) : null}
         <SummaryList
           rows={[
-            { label: c.codeByEmail, value: c.codeTo(view.email) },
+            { label: c.codeByEmail, value: c.codeTo },
             ...providerRows,
             ...view.passkeys.map((key) => ({
               label: key.name,

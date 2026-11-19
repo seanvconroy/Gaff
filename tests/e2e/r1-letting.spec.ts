@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { daysFromToday } from '../fixtures/lettings';
 import {
   addATime,
+  confirmThePin,
   createLettingThroughUi,
   expectAccessible,
   homeIdIn,
@@ -42,6 +43,7 @@ test('R1: an operator creates a letting with viewing times', async ({ page }) =>
   await page.getByRole('textbox', { name: 'Eircode (optional)' }).fill('d06 f2x3');
   await screenshot(page, '05-new-letting');
   await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await confirmThePin(page);
 
   await page.getByLabel('Rent a month').fill('1,850');
   await pickDate(page, 'Available from', daysFromToday(30));

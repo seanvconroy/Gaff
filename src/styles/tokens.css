@@ -177,6 +177,70 @@
   --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
+[data-map-scheme="light"] {
+  color-scheme: light;
+  --color-surface-0: #ffffff;
+  --color-surface-1: #ffffff;
+  --color-surface-2: #f4f5f7;
+  --color-ink: #131a2a;
+  --color-ink-muted: #566074;
+  --color-ink-inverse: #ffffff;
+  --color-border: #e2e5ea;
+  --color-border-strong: #848c9b;
+  --color-primary: #131a2a;
+  --color-primary-hover: #2a3347;
+  --color-brand: #3a5fa8;
+  --color-brand-text: #3a5fa8;
+  --color-brand-bg: #ebf0f8;
+  --color-success: #2e6b3f;
+  --color-success-bg: #e7f3ea;
+  --color-warning: #8a5a00;
+  --color-warning-bg: #fbf1dc;
+  --color-danger: #a3261c;
+  --color-danger-hover: #871d15;
+  --color-danger-bg: #fcebe8;
+  --color-info: #1f6672;
+  --color-info-bg: #e3f2f4;
+  --color-ai: #3a5fa8;
+  --color-ai-bg: #ebf0f8;
+  --color-focus: #3a5fa8;
+  --color-overlay: rgba(19, 26, 42, 0.48);
+  --shadow-raised: 0 1px 2px rgba(19, 26, 42, 0.06), 0 4px 16px rgba(19, 26, 42, 0.08);
+  --shadow-overlay: 0 8px 24px rgba(19, 26, 42, 0.14);
+}
+
+[data-map-scheme="dark"] {
+  color-scheme: dark;
+  --color-surface-0: #0e1219;
+  --color-surface-1: #161b25;
+  --color-surface-2: #202632;
+  --color-ink: #f1f3f7;
+  --color-ink-muted: #aab3c2;
+  --color-ink-inverse: #0e1219;
+  --color-border: #2b3241;
+  --color-border-strong: #76808f;
+  --color-primary: #f1f3f7;
+  --color-primary-hover: #ffffff;
+  --color-brand: #8fb0ea;
+  --color-brand-text: #8fb0ea;
+  --color-brand-bg: #1b2a47;
+  --color-success: #86c79b;
+  --color-success-bg: #17301f;
+  --color-warning: #e2b45c;
+  --color-warning-bg: #33290f;
+  --color-danger: #f08a80;
+  --color-danger-hover: #f5a39b;
+  --color-danger-bg: #3b1d1a;
+  --color-info: #7cc3cb;
+  --color-info-bg: #14313a;
+  --color-ai: #8fb0ea;
+  --color-ai-bg: #1b2a47;
+  --color-focus: #8fb0ea;
+  --color-overlay: rgba(0, 0, 0, 0.6);
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --motion-fast: 0ms;

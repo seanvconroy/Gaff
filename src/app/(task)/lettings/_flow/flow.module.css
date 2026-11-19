@@ -185,3 +185,8 @@
     aspect-ratio: 16 / 9;
   }
 }
+
+/* M38: where the pin is, in words, under the map. */
+.pinWhere {
+  font-weight: var(--type-label-weight);
+}

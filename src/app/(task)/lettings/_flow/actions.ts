@@ -16,6 +16,7 @@ import {
   homeStepSchema,
   partialAnswers,
   rentStepSchema,
+  stepAfter,
 } from '@/domain/lettings/add-letting';
 import { isOnlyLinks, MAX_ADVERT_CHARS } from '@/domain/lettings/advert-reading';
 import { berRatings, parseEuroToCents } from '@/domain/lettings/new-letting';
@@ -26,6 +27,7 @@ import { phoneFieldSchema } from '@/domain/organisations/phone';
 import { rentCheckFormSchema } from '@/domain/rent/rent-check';
 import { fieldErrors, formValues, invalid, type FormState } from '@/lib/forms';
 import { irishToday } from '@/lib/format';
+import { mapSettings } from '@/lib/map';
 import type { AddressSuggestion, PostalAddress } from '@/ports/address-search';
 import { ensureOwnHomes } from '@/server/accounts/contexts';
 import { testEnquiryDue } from '@/server/activation/activation';
@@ -38,12 +40,14 @@ import { readingIsOffered } from '@/server/lettings/reader-setting';
 import {
   confirmReview,
   keepAdvertLinks,
+  loadHome,
   reachStep,
   saveAnswers,
   startDraft,
 } from '@/server/lettings/drafts';
 import { setAdvertisedOn, startTakingEnquiries } from '@/server/lettings/go-live';
 import { letAgain } from '@/server/lettings/let-again';
+import { describePin, setHomePoint } from '@/server/lettings/location';
 import { addPhoto, photoProblems, removePhoto, reorderPhotos } from '@/server/lettings/photos';
 import { getLetting } from '@/server/lettings/queries';
 import { changeAskingRent, recordRentCheck, rentCheckProblem } from '@/server/lettings/rent-check';
@@ -172,6 +176,8 @@ export async function saveStepAction(
   } catch (error) {
     return problem(error, values);
   }
+  // M38: after the address, the lister places or confirms the pin, unless the map is off.
+  if (step === 'address' && mapSettings()) redirect(screenHref(home, 'pin', from));
   redirect(screenHref(home, next, from));
 }
 
@@ -289,6 +295,59 @@ export async function saveHomePartAction(
   }
   revalidatePath(`/lettings/${id}`, 'layout');
   redirect(`/lettings/${id}?view=home&saved=${part === 'home' ? 'facts' : 'description'}`);
+}
+
+/**
+ * M38, M126: "Where is it on the map?". Next saves the pin where it is, whether the lister
+ * moved it or left it where it started (placing and confirming are one), then goes on to the
+ * step after the address. `skip` comes from a page whose map couldn't load: nothing is saved,
+ * and the home goes in the list without a pin. Opened on its own from Home (`alone`), it saves
+ * and goes back there.
+ */
+export async function savePinAction(
+  id: string,
+  from: string | null,
+  alone: boolean,
+  _state: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const member = await requireMember();
+  const values = formValues(formData);
+  const back = `/lettings/${id}?view=home`;
+  if (values.intent === 'exit') redirect(alone ? back : await leaveTo(from));
+  if (values.skip !== '1') {
+    const saved = await setHomePoint(member, id, {
+      lat: Number(values.lat),
+      lng: Number(values.lng),
+    }).catch((error: unknown) => {
+      if (error instanceof UserFacingError) return { ok: false as const, error: error.message };
+      throw error;
+    });
+    if (!saved.ok) return invalid({ form: saved.error }, values);
+  }
+  revalidatePath(`/lettings/${id}`, 'layout');
+  if (alone) redirect(`${back}&saved=pin`);
+  const home = await loadHome(member, id);
+  if (!home) redirect('/lettings');
+  const next = stepAfter(
+    'address',
+    { answers: home.answers, photos: home.photos.length },
+    home.kind === 'draft' ? home.origin : 'manual',
+  );
+  redirect(screenHref(id, next, from));
+}
+
+/** M38: where the pin is, in words, as it moves. Nothing is saved. */
+export async function describePinAction(
+  id: string,
+  point: { lat: number; lng: number },
+): Promise<{
+  where: string;
+  check: 'inside' | 'outside' | 'unknown';
+  pinPlace: string | null;
+} | null> {
+  const member = await requireMember();
+  return describePin(member, id, point);
 }
 
 /** UX-LP-11: photos changed from Home. Each was kept as it uploaded: this only goes back. */

@@ -33,6 +33,9 @@ import { OnGaffCard } from './OnGaffCard';
 import { OverviewView } from './OverviewView';
 import { PeopleView } from './PeopleView';
 
+import { pinWords } from '@/copy/map';
+import { mapSettings } from '@/lib/map';
+
 export const metadata: Metadata = { title: 'Letting' };
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +46,7 @@ const savedCopy: Record<string, string> = {
   facts: 'Facts saved. Gaff answers renters from them from now on.',
   description: 'Description saved. Renters see it from now on.',
   photos: 'Photos saved.',
+  pin: pinWords.saved,
   live: 'Gaff is now answering enquiries for this home.',
   reminded: 'Reminder sent. The owner has a new link.',
   closed:
@@ -234,6 +238,7 @@ export default async function LettingPage({
             lockedWords={DETAILS_LOCKED}
             hasOwner={hasOwner}
             shownOnGaff={shownOnGaff}
+            mapOn={mapSettings() !== null}
           />
           {/* UX-LT-21: the switch for "On gaff.ie", once the home is live. */}
           {letting.status === 'live' ? (

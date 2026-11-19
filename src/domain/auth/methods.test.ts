@@ -17,10 +17,21 @@ describe('UX-SI-1: three methods to choose between, and a passkey afterwards', (
   });
 
   it('shows Google and Apple only when they can work', () => {
-    expect(providerMode({ credentialsSet: true, devTools: false })).toBe('real');
-    expect(providerMode({ credentialsSet: true, devTools: true })).toBe('real');
-    expect(providerMode({ credentialsSet: false, devTools: true })).toBe('stand_in');
-    expect(providerMode({ credentialsSet: false, devTools: false })).toBe('off');
+    const local = { gaffEnv: 'development' } as const;
+    expect(providerMode({ ...local, credentialsSet: true, devTools: false })).toBe('real');
+    expect(providerMode({ ...local, credentialsSet: true, devTools: true })).toBe('real');
+    expect(providerMode({ ...local, credentialsSet: false, devTools: true })).toBe('stand_in');
+    expect(providerMode({ ...local, credentialsSet: false, devTools: false })).toBe('off');
+    expect(providerMode({ gaffEnv: 'test', credentialsSet: false, devTools: true })).toBe(
+      'stand_in',
+    );
+  });
+
+  it('BA-1, AU1: never uses the stand-in on the test copy or in production', () => {
+    for (const gaffEnv of ['staging', 'production'] as const) {
+      expect(providerMode({ gaffEnv, credentialsSet: false, devTools: true })).toBe('off');
+      expect(providerMode({ gaffEnv, credentialsSet: true, devTools: true })).toBe('real');
+    }
   });
 });
 

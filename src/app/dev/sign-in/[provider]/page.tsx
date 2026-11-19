@@ -15,8 +15,8 @@ export const dynamic = 'force-dynamic';
 const names = { google: 'Google', apple: 'Apple' } as const;
 
 /**
- * Development and staging only (DEV_TOOLS=1): stands in for Google's and Apple's own sign-in
- * pages until real credentials are set (rule 10: nothing needs a real account to build). The
+ * Development and tests only (DEV_TOOLS=1, never the test copy: BA-1): stands in for Google's
+ * and Apple's own sign-in pages until real credentials are set (rule 10: nothing needs a real account to build). The
  * real page asks the person to pick their account; here, a tester says who is signing in.
  */
 export default async function StandInSignInPage({

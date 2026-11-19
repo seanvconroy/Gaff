@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { env } from '@/lib/env';
 import { standInCheck } from '@/server/checks/checks';
+import { requireDevTools } from '@/server/dev/gate';
 import { standInPersonCheck } from '@/server/identity/person-checks';
 import { TextField } from '@/ui/Field';
 import { PageHeader, Row, Stack } from '@/ui/Layout';
@@ -15,7 +15,8 @@ export const dynamic = 'force-dynamic';
 /**
  * Development and staging only (DEV_TOOLS=1): stands in for the ID and open-banking providers
  * until the founders approve real ones (rule 10). A real provider would take the renter
- * through a document-and-selfie check, or connect their bank read-only.
+ * through a document-and-selfie check, or connect their bank read-only. On the test copy, Gaff's
+ * own team only (BA-1): it shows the applicant's name and sets a check's result.
  */
 export default async function StandInCheckPage({
   params,
@@ -24,7 +25,7 @@ export default async function StandInCheckPage({
   params: Promise<{ checkId: string }>;
   searchParams: Promise<{ return?: string }>;
 }) {
-  if (!env().DEV_TOOLS) notFound();
+  await requireDevTools();
   const { checkId } = await params;
   const { return: returnUrl = '/checks/done' } = await searchParams;
   if (!/^[0-9a-f-]{36}$/i.test(checkId)) notFound();

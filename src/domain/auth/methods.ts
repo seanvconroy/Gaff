@@ -27,13 +27,20 @@ export const LAST_METHOD_DAYS = 400;
 
 /**
  * How a provider is switched on. `real` when its credentials are set; `stand_in` when they
- * aren't and the development tools are on; otherwise `off`, and its button isn't shown.
+ * aren't, the development tools are on, and Gaff runs locally or in tests; otherwise `off`, and
+ * its button isn't shown. Never the stand-in on the test copy (staging) or in production: anyone
+ * who could reach its page could sign in as anybody, Gaff's own team included (BA-1, AU1).
  */
 export type ProviderMode = 'real' | 'stand_in' | 'off';
 
-export function providerMode(input: { credentialsSet: boolean; devTools: boolean }): ProviderMode {
+export function providerMode(input: {
+  credentialsSet: boolean;
+  devTools: boolean;
+  gaffEnv: 'development' | 'test' | 'staging' | 'production';
+}): ProviderMode {
   if (input.credentialsSet) return 'real';
-  return input.devTools ? 'stand_in' : 'off';
+  const local = input.gaffEnv === 'development' || input.gaffEnv === 'test';
+  return input.devTools && local ? 'stand_in' : 'off';
 }
 
 /**

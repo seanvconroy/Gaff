@@ -1,12 +1,12 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { env } from '@/lib/env';
+import { requireDevTools } from '@/server/dev/gate';
 import { receiveInboundEmail } from '@/server/enquiries/receive';
 
-/** Development only: sends an email to a Gaff address as if it came through Mailgun. */
+/** Development and the test copy: sends an email to a Gaff address as if Mailgun had (BA-1). */
 export async function simulateInboundEmail(formData: FormData): Promise<void> {
-  if (!env().DEV_TOOLS) throw new Error('Dev tools are off');
+  await requireDevTools();
   const field = (name: string) => String(formData.get(name) ?? '');
   const result = await receiveInboundEmail({
     provider: 'dev',

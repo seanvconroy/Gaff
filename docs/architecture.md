@@ -132,7 +132,7 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 | `checks` | The ID, income and reference checks of the two people chosen: kind, status, the sealed result (a verified name or a confirmed income), deletion date. No document image, no date of birth | Yes, sealed |
 | `landlord_approvals`, `offers` | The owner's answer for the people chosen, and the offer with its terms and deadline | IDs and terms |
 | `tenancies`, `inventory_items` | The tenancy from the accepted offer: agreement and signatures, payment request, RTB registration (the PPSN sealed, deleted once registered), move-in checklist; the inventory, item by item, with photos | Yes |
-| `letting_drafts`, `letting_photos` | A letting part-way through "Add a letting" (Save and exit), and a home's photos and floor plans, with a cover photo, each photo's size, the fixed widths kept and a perceptual hash (ADR-0021). The photo files are in the photo store | No |
+| `letting_drafts`, `letting_photos` | A letting part-way through "Add a letting" (Save and exit), and a home's photos and floor plans, with a cover photo, each photo's size, the fixed widths kept and a perceptual hash (ADR-0023). The photo files are in the photo store | No |
 | `letting_helpers` | Who chose "Help with this letting" on a colleague's letting (UX-AG-8) | IDs only |
 | `viewing_sessions` | A run of viewing times added in one go on the calendar | No |
 | `waiting_enquiries`, `waitlist_offers` | An ask to view not yet confirmed from its email (dropped after 24 hours), and places offered from a waiting list | Yes, until confirmed or dropped |
@@ -215,7 +215,7 @@ Every outside service sits behind an interface in `src/ports/` with a local stan
 | `ai.ts` | One `AiProvider` for three tasks: drafting answers, reading a pasted advert (`ADVERT_READER`), and reading a question about who's enquired into chips. Called only through `runAi` (`src/server/ai/usage.ts`), which logs each call in `ai_calls`, keeps to `AI_MONTHLY_BUDGET_USD` and honours `AI_TASKS_OFF` | Fake AI | Claude on Amazon Bedrock (Dublin) in production; the Claude API on the test copy and in development, made-up data only |
 | `checks.ts` | ID and income checks: a chosen applicant's, and a private landlord's "Confirm it's you" (Q47) | A stand-in page (`/dev/checks`) | None chosen yet (Q48); `none` in production until then |
 | `address-search.ts` | Finding an address when adding a letting (`ADDRESS_SEARCH`) | A made-up list | Autoaddress, once its DPA is signed (Q40); `off` types it in |
-| `photo-store.ts` | Homes' photos (`PHOTO_STORE`), cleaned and sized by sharp first (ADR-0021) | A table in this database; photos go through Gaff's server | Supabase Storage (Ireland), a private bucket; browsers send photos straight to it with a signed upload |
+| `photo-store.ts` | Homes' photos (`PHOTO_STORE`), cleaned and sized by sharp first (ADR-0023) | A table in this database; photos go through Gaff's server | Supabase Storage (Ireland), a private bucket; browsers send photos straight to it with a signed upload |
 | `register.ts` | Gaff's weekly copy of the PSRA register (`PSRA_REGISTER_SOURCE`) | A made-up register | The PSRA's download, once its format is checked |
 | `sign-in-providers.ts` | Google and Apple sign-in, for sign-in only (Q30) | `/dev/sign-in` | Google, Apple |
 

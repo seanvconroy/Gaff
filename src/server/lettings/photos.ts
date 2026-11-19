@@ -27,7 +27,7 @@ import { preparePhoto } from './photo-pipeline';
 import { homePhotoOf, showingOrder, type HomePhoto } from './queries';
 
 /**
- * UX-LT-10, M43 (ADR-0021): a home's photos. Gaff keeps its own copy of each, made again from
+ * UX-LT-10, M43 (ADR-0023): a home's photos. Gaff keeps its own copy of each, made again from
  * its pixels: checked by its real type, upright, with no location or camera data, at fixed
  * sizes, with a perceptual hash. Photos of homes only: nothing here is ever used for a person's
  * document.

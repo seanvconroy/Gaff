@@ -9,7 +9,7 @@ import {
 } from '@/domain/lettings/photo-files';
 
 /**
- * M43 (ADR-0021): every photo a lister adds is made again from its pixels. Its real type is read
+ * M43 (ADR-0023): every photo a lister adds is made again from its pixels. Its real type is read
  * from its bytes; it is turned the right way up; it is written at the fixed WebP widths and as a
  * 1,200 px JPEG for link previews. sharp keeps no metadata unless asked to, so nothing that says
  * where, when or with what it was taken (location above all) survives, and colours are sRGB.

@@ -9,7 +9,7 @@ import { sizedPhotoKey } from '@/domain/lettings/photos';
  * PHOTOS OF HOMES ONLY. Never use this path for an identity document or anything personal:
  * the store may serve what it holds through a content network.
  *
- * M43 (ADR-0021): what Gaff keeps has been through the pipeline (src/server/lettings/
+ * M43 (ADR-0023): what Gaff keeps has been through the pipeline (src/server/lettings/
  * photo-pipeline.ts): upright, with no metadata, at fixed WebP sizes. The keys name no home and
  * no person (`photoFolder`). An original a browser sent straight to the store waits under
  * `uploads/` until Gaff has read it, and is deleted then; it is never served.

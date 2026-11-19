@@ -61,7 +61,7 @@ const extensions = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'web
 export type PhotoType = keyof typeof extensions;
 
 /**
- * Where a photo was kept as one file, before the pipeline (ADR-0021): under its organisation, by
+ * Where a photo was kept as one file, before the pipeline (ADR-0023): under its organisation, by
  * the photo's own ID. Such a photo has no sizes, and is served as it is.
  */
 export function photoKey(organisationId: string, photoId: string, type: PhotoType): string {

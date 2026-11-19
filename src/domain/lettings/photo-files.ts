@@ -1,5 +1,5 @@
 /**
- * M43 (ADR-0021): a home's photo files. The browser redraws what it can; the server trusts only
+ * M43 (ADR-0023): a home's photo files. The browser redraws what it can; the server trusts only
  * the bytes. It checks the real type, turns every photo upright and writes it again at fixed
  * sizes with no location or camera details, and keeps a perceptual hash of it, so a photo taken
  * from another home's page can be spotted (M29, a later package).

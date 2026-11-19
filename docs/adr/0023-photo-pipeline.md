@@ -1,8 +1,8 @@
-# ADR-0021: The photo pipeline
+# ADR-0023: The photo pipeline
 
 - Status: Accepted
 - Date: 2026-11-19
-- Brought across from the live line's ADR-0021 (M43, M44), fitted to the redesign's photo store (UX-LT-10).
+- Brought across from the live line's ADR-0023 (M43, M44), fitted to the redesign's photo store (UX-LT-10).
 
 ## Context
 

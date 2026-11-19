@@ -33,7 +33,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['graphile-worker', 'pg'],
   // R25: inventory photos are uploaded through a server action, each under 4 MB, inside
   // Vercel's 4.5 MB limit for a whole request (ADR-0014). So are homes' photos with the local
-  // store; with Supabase Storage they go straight to it (M43, ADR-0021).
+  // store; with Supabase Storage they go straight to it (M43, ADR-0023).
   experimental: { serverActions: { bodySizeLimit: '4.5mb' } },
   async headers() {
     const headers = isProduction

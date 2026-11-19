@@ -155,11 +155,44 @@ describe('UX-SR-4: a place is matched against the home’s address', () => {
 describe('M113: near a street or landmark', () => {
   const highfield = where('highfield-road-rathgar-dublin-6');
 
-  it('M113: with a home’s point (the map package’s seam), measures the distance', () => {
+  it('M113: with a home’s point, measures the distance', () => {
     const near = home({ point: { lat: 53.3164, lng: -6.264 } });
     const far = home({ point: { lat: 53.36, lng: -6.26 } });
     expect(placeHasHome(highfield, near)).toBe(true);
     expect(placeHasHome(highfield, far)).toBe(false);
+  });
+
+  it('M113: a home with a point is measured, whatever its address says', () => {
+    // Its address names another street, and even another county: the pin is what counts.
+    const pinned = home({
+      addressLine1: '3 Somewhere Else',
+      county: 'Wicklow',
+      point: { lat: 53.3164, lng: -6.264 },
+    });
+    expect(placeHasHome(highfield, pinned)).toBe(true);
+    // And a home on Highfield Road by name, pinned 5 km away, is 5 km away.
+    const named = home({
+      addressLine1: '7 Highfield Rd',
+      area: 'Rathgar, Dublin 6',
+      point: { lat: 53.36, lng: -6.26 },
+    });
+    expect(placeHasHome(highfield, named)).toBe(false);
+  });
+
+  it('M113: "Within" changes how far, to one of the fixed distances', () => {
+    const g = fixtureGazetteer();
+    const twoKmAway = home({ point: { lat: 53.3336, lng: -6.264 } });
+    const byDefault = searchPlace('highfield-road-rathgar-dublin-6', g)!;
+    expect(byDefault).toMatchObject({ kind: 'near', withinMetres: 1000 });
+    expect(placeHasHome(byDefault, twoKmAway)).toBe(false);
+    const within3 = searchPlace('highfield-road-rathgar-dublin-6', g, 3)!;
+    expect(within3).toMatchObject({ withinMetres: 3000 });
+    expect(placeHasHome(within3, twoKmAway)).toBe(true);
+    // A distance that isn't on the list is the default; an area has no distance at all.
+    expect(searchPlace('highfield-road-rathgar-dublin-6', g, 7)).toMatchObject({
+      withinMetres: 1000,
+    });
+    expect(searchPlace('ranelagh', g, 3)).toMatchObject({ kind: 'area' });
   });
 
   it('M113: without one, reads the street’s name in the address, in its county and Eircode area', () => {

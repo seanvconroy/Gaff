@@ -1,12 +1,14 @@
 import type { Criteria } from '@/domain/criteria/criteria';
 import type { furnishing, parkingOptions, propertyTypes } from '@/domain/lettings/new-letting';
+import { inBBox } from '@/domain/places/geo';
 import type { SearchFilters, SearchType, Stay } from './filters';
 import { type Gazetteer, type HomeAddress, placeHasHome, searchPlace } from './places';
 
 /**
  * UX-SR-7, UX-MT-14, UX-MT-15: which homes fit a search. It reads a home's own facts and the
  * terms its lister set (the four fixed criteria) against what the renter asked, and nothing
- * else. It ranks homes for a renter, never renters for anyone: nothing about who is searching
+ * else (a home's point, for a map area or a "near" search, is a fact about the home). It ranks
+ * homes for a renter, never renters for anyone: nothing about who is searching
  * reaches an operator, and no operator can pay for position (rule 1, rule 3).
  *
  * Homes that fit everything come first, newest first. Homes that miss on one point follow, each
@@ -105,12 +107,14 @@ export function searchHomes<H extends SearchableHome>(
   filters: SearchFilters,
   g: Gazetteer,
 ): SearchResults<H> {
-  const place = filters.where ? searchPlace(filters.where, g) : null;
+  const place = filters.where ? searchPlace(filters.where, g, filters.within) : null;
   if (filters.where && !place) return { fits: [], close: [] };
   const fits: H[] = [];
   const close: Array<{ home: H; miss: Miss }> = [];
   for (const home of [...homes].sort(newestFirst)) {
     if (place && !placeHasHome(place, home)) continue;
+    // M57: a map area holds the homes whose pin is in it. A home without one can't be in it.
+    if (filters.box && !(home.point && inBBox(home.point, filters.box))) continue;
     const misses = missesOf(home, filters);
     if (misses.length === 0) fits.push(home);
     else if (misses.length === 1) close.push({ home, miss: misses[0]! });

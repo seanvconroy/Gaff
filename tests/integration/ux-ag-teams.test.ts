@@ -1,3 +1,4 @@
+import { setHomePoint } from '@/server/lettings/location';
 import { and, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { db, withOrg } from '@/db/client';
@@ -370,6 +371,7 @@ const changesToALetting: Array<
     'change the home',
     (m, h) => saveAnswers(m, h.lettingId, { step: 'description', patch: {}, advance: false }),
   ],
+  ['place the pin', (m, h) => setHomePoint(m, h.lettingId, { lat: 53.3157, lng: -6.2672 })],
   ['add a photo', (m, h) => addPhoto(m, h.lettingId, aPng([36, 99, 168]))],
   ['remove a photo', (m, h) => removePhoto(m, h.lettingId, crypto.randomUUID())],
   ['reorder the photos', (m, h) => reorderPhotos(m, h.lettingId, { order: [] })],

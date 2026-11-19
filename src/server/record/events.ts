@@ -117,6 +117,15 @@ export const eventCatalogue = {
   'letting.enquiry_attached': z.object({ inboundEmailId: z.uuid(), matched: z.boolean() }),
   /** A step of adding it was answered, or the review confirmed. Which step: never what was typed. */
   'letting.draft_saved': z.object({ step: z.enum(['review', 'address', 'rent', 'home']) }),
+  /**
+   * M38, M126: the lister placed or moved the home's pin. Whether it was in the area the address
+   * names, and whether the home was still a draft: never the point itself, which is a private
+   * landlord's personal data (rule 8, ADR-0006).
+   */
+  'letting.point_set': z.object({
+    check: z.enum(['inside', 'outside', 'unknown']),
+    draft: z.boolean(),
+  }),
   /** UX-LT-8: an advert link was kept, to match enquiries to the home. Never fetched (Q31). */
   'letting.advert_link_kept': z.object({ daft: z.boolean(), myhome: z.boolean() }),
   'letting.created': z.object({

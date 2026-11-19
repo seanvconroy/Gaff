@@ -15,6 +15,8 @@ export interface LettingToMake {
   area: string;
   county: string;
   eircode?: string;
+  /** M38: the pin the lister placed or confirmed. */
+  point?: { lat: number; lng: number };
   rentCents: number;
   availableFrom: string;
   propertyType: string;
@@ -54,6 +56,15 @@ export async function makeLettingIn(
       area: input.area,
       county: input.county,
       eircode: input.eircode ?? null,
+      // M38: the pin placed while it was a draft (or last time, when it's let again).
+      ...(input.point
+        ? {
+            latitude: input.point.lat,
+            longitude: input.point.lng,
+            pointSource: 'letter' as const,
+            pointSetAt: new Date(),
+          }
+        : {}),
       monthlyRentCents: input.rentCents,
       availableFrom: input.availableFrom,
       propertyType: input.propertyType,

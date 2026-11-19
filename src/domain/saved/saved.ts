@@ -7,6 +7,7 @@ import {
   hasFilters,
   type SearchFilters,
   searchFiltersSchema,
+  wholeSearch,
 } from '@/domain/search/filters';
 import { type SearchableHome, searchHomes } from '@/domain/search/match';
 import type { Gazetteer } from '@/domain/search/places';
@@ -35,6 +36,8 @@ export const savedHomeRefSchema = z.string().refine(isPublicRef);
  */
 export const KEPT_FILTER_KEYS = [
   'where',
+  'within',
+  'box',
   'beds',
   'maxRent',
   'moveIn',
@@ -61,7 +64,7 @@ export function filtersToKeep(input: unknown): SearchFilters {
     const checked = searchFiltersSchema.shape[key].safeParse(raw[key]);
     if (checked.success && checked.data !== undefined) kept[key] = checked.data;
   }
-  return kept as SearchFilters;
+  return wholeSearch(kept as SearchFilters);
 }
 
 /** Whether there's anything to keep: a search with no filters asks for every home. */

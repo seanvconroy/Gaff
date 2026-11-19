@@ -19,7 +19,8 @@ describe('UX-SR-3: the chips say what Gaff understood', () => {
       parking: true,
     };
     // The place's name comes from Gaff's place index, looked up on the server.
-    expect(filterKeys.map((key) => chipLabel(key, filters, NOW, 'Ranelagh, Dublin 6'))).toEqual([
+    const shown = filterKeys.filter((key) => filters[key] !== undefined);
+    expect(shown.map((key) => chipLabel(key, filters, NOW, 'Ranelagh, Dublin 6'))).toEqual([
       'Ranelagh, Dublin 6',
       '2 bedrooms',
       'Up to €2,400 a month',
@@ -33,6 +34,13 @@ describe('UX-SR-3: the chips say what Gaff understood', () => {
     ]);
     expect(chipLabel('beds', { beds: 4 })).toBe('4 or more bedrooms');
     expect(chipLabel('pets', { pets: true })).toBe('With a pet');
+  });
+
+  it('M113, M57: says how far a "near" search reaches, and a map area', () => {
+    expect(chipLabel('within', { where: 'highfield-road', within: 0.5 })).toBe('Within 500 m');
+    expect(chipLabel('within', { where: 'highfield-road', within: 2 })).toBe('Within 2 km');
+    const box = { minLat: 53.3, minLng: -6.3, maxLat: 53.34, maxLng: -6.22 };
+    expect(chipLabel('box', { box })).toBe('Area on the map');
   });
 });
 

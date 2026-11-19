@@ -18,6 +18,7 @@ import {
   fieldsChanged,
   readingAfterSave,
 } from '@/domain/lettings/advert-reading';
+import { placedPoint } from '@/domain/map/pin';
 import { irishToday } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 import { processInboundEmailIn } from '@/server/enquiries/process';
@@ -73,6 +74,7 @@ function answersOfLetting(detail: LettingDetail): DraftAnswers {
         area: letting.area,
         county: letting.county,
         eircode: known(letting.eircode),
+        point: placedPoint(letting) ?? undefined,
         rentCents: letting.monthlyRentCents,
         availableFrom: letting.availableFrom,
         propertyType: letting.propertyType,

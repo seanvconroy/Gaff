@@ -100,3 +100,27 @@ describe('UX-MT-14, UX-MT-15: matching reads only the home’s facts and fixed t
     expect(missesOf(open, { people: 6, pets: true, stay: 'under_year' })).toEqual([]);
   });
 });
+
+describe('M57, M113: where a home is, by its pin', () => {
+  const view = { minLat: 53.31, minLng: -6.27, maxLat: 53.33, maxLng: -6.24 };
+
+  it('M57: a map area holds the homes whose pin is in it, and none without a pin', () => {
+    const inside = aHome({ point: { lat: 53.32, lng: -6.255 } });
+    const outside = aHome({ point: { lat: 53.4, lng: -6.255 } });
+    const unpinned = aHome();
+    const { fits } = searchHomes([inside, outside, unpinned], { box: view }, g);
+    expect(fits.map((h) => h.id)).toEqual([inside.id]);
+  });
+
+  it('M113: "near" a street finds the pinned homes within the distance asked', () => {
+    const onIt = aHome({ point: { lat: 53.3158, lng: -6.267 } });
+    const twoKm = aHome({ point: { lat: 53.3336, lng: -6.264 } });
+    const where = 'highfield-road-rathgar-dublin-6';
+    expect(searchHomes([onIt, twoKm], { where }, g).fits.map((h) => h.id)).toEqual([onIt.id]);
+    expect(
+      searchHomes([onIt, twoKm], { where, within: 3 }, g)
+        .fits.map((h) => h.id)
+        .sort(),
+    ).toEqual([onIt.id, twoKm.id].sort());
+  });
+});

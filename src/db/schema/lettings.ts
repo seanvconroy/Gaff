@@ -4,6 +4,7 @@ import {
   boolean,
   check,
   date,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -17,6 +18,7 @@ import {
 import type { Criteria } from '@/domain/criteria/criteria';
 import { reportReasons } from '@/domain/homes/report';
 import { draftOrigins, flowSteps, type DraftAnswers } from '@/domain/lettings/add-letting';
+import { pointSources } from '@/domain/map/pin';
 import type { DraftReading } from '@/domain/lettings/advert-reading';
 import type { Portal } from '@/domain/lettings/setup';
 import { stages } from '@/domain/lettings/stages';
@@ -60,6 +62,18 @@ export const lettings = pgTable(
     area: text().notNull(),
     county: text().notNull(),
     eircode: text(),
+    /**
+     * M38, M125: where the home is, as the lister placed its pin. A private landlord's home is
+     * personal data: renters see it within about 150 metres (`publicPoint`), it never goes into
+     * an event or a log, and no address or geocoding service is asked for it. Null until the
+     * pin is placed: the home is in the list, but not on the map.
+     */
+    latitude: doublePrecision(),
+    longitude: doublePrecision(),
+    /** M125: where the point came from. Null: there is none. */
+    pointSource: text({ enum: pointSources }),
+    /** When the lister last placed or moved the pin. */
+    pointSetAt: timestamp({ withTimezone: true }),
     monthlyRentCents: integer().notNull(),
     availableFrom: date({ mode: 'string' }).notNull(),
     propertyType: text().notNull(),
@@ -149,7 +163,19 @@ export const lettings = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index('lettings_organisation_idx').on(t.organisationId, t.status), tenantPolicy()],
+  (t) => [
+    index('lettings_organisation_idx').on(t.organisationId, t.status),
+    // M125: a point is whole or absent, and in Ireland.
+    check(
+      'lettings_point_whole',
+      sql`(${t.latitude} is null) = (${t.longitude} is null) and (${t.latitude} is null) = (${t.pointSource} is null)`,
+    ),
+    check(
+      'lettings_point_in_ireland',
+      sql`${t.latitude} is null or (${t.latitude} between 51.3 and 55.5 and ${t.longitude} between -10.7 and -5.3)`,
+    ),
+    tenantPolicy(),
+  ],
 ).enableRLS();
 
 /**

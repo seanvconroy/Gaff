@@ -131,6 +131,12 @@ export function describeEvent(
       };
     case 'letting.draft_saved':
       return { what: savedSteps[String(data.step)] ?? 'The home’s details saved' };
+    // M38, M126: never the point itself, which isn't in the record.
+    case 'letting.point_set':
+      return {
+        what: 'Pin placed on the map',
+        detail: data.check === 'outside' ? 'Outside the area in the address' : undefined,
+      };
     case 'letting.advert_link_kept':
       return {
         what: 'Advert link kept, to match enquiries to this home',

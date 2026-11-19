@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
-import { fakeAdvertReader } from '@/adapters/ai/fake-reader';
+import { fakeAi, fakeAiWith, noUsage } from '@/adapters/ai/fake';
 import { withOrg, withSystem } from '@/db/client';
 import {
   applications,
@@ -11,7 +11,7 @@ import {
   messages,
 } from '@/db/schema';
 import { isSafeEventValue } from '@/domain/record/personal-data';
-import type { AdvertReader, AdvertReadRequest } from '@/ports/ai';
+import type { AdvertReadRequest, AiProvider } from '@/ports/ai';
 import { threadFor } from '@/server/inbox/queries';
 import { readAdvertIntoDraft } from '@/server/lettings/advert-reader';
 import { confirmReview, keepAdvertLinks, loadHome, saveAnswers } from '@/server/lettings/drafts';
@@ -47,24 +47,25 @@ const stepsOf = (subjectId: string) =>
 const draftsOf = (member: Member) =>
   withOrg(member.organisationId, (tx) => tx.select().from(lettingDrafts));
 
-async function read(member: Member, text = advert(), reader?: AdvertReader) {
+async function read(member: Member, text = advert(), reader?: AiProvider) {
   const outcome = await readAdvertIntoDraft(member, { text }, reader);
   if (outcome.kind !== 'read') throw new Error(`expected a reading, got ${outcome.kind}`);
   return outcome.id;
 }
 
 /** A reader that answers whatever it is told to, and remembers what it was given. */
-function readerThat(answer: (request: AdvertReadRequest) => unknown): AdvertReader & {
+function readerThat(answer: (request: AdvertReadRequest) => unknown): AiProvider & {
   given: AdvertReadRequest[];
 } {
   const given: AdvertReadRequest[] = [];
   return {
-    promptVersion: 'test',
+    ...fakeAiWith({
+      async readAdvert(request) {
+        given.push(request);
+        return { output: await answer(request), refused: false, model: 'fake', usage: noUsage };
+      },
+    }),
     given,
-    async readAdvert(request) {
-      given.push(request);
-      return { model: 'fake', reading: await answer(request) };
-    },
   };
 }
 
@@ -145,7 +146,7 @@ describe('UX-LT-2, UX-LT-3: an advert is read into a home, for the person to rev
   it('UX-LT-7, UX-AI-8: the reader is given no name, phone number, email address or link', async () => {
     const member = await createTestMember();
     const reader = readerThat((request) =>
-      fakeAdvertReader.readAdvert(request).then((response) => response.reading),
+      fakeAi.readAdvert(request).then((response) => response.output),
     );
     await read(
       member,
@@ -296,14 +297,12 @@ describe('UX-AI-9, UX-AI-12: the reader is trusted for nothing, and the manual r
 
   it('UX-AI-12: a reader that is down, or declines, leaves the manual route and writes nothing', async () => {
     const member = await createTestMember();
-    const down: AdvertReader = {
-      promptVersion: 'test',
+    const down = fakeAiWith({
       readAdvert: () => Promise.reject(new Error('The service is unavailable')),
-    };
-    const declines: AdvertReader = {
-      promptVersion: 'test',
-      readAdvert: async () => ({ model: 'fake', reading: null, refused: true }),
-    };
+    });
+    const declines = fakeAiWith({
+      readAdvert: async () => ({ output: null, refused: true, model: 'fake', usage: noUsage }),
+    });
     for (const reader of [down, declines]) {
       expect(await readAdvertIntoDraft(member, { text: advert() }, reader)).toEqual({
         kind: 'unavailable',

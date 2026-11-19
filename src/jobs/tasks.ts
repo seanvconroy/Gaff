@@ -2,6 +2,7 @@ import type { TaskList } from 'graphile-worker';
 import { z } from 'zod';
 import { sweepProfiles } from '@/server/accounts/delete-profile';
 import { sendAccountEmail } from '@/server/accounts/emails';
+import { sweepAiCalls } from '@/server/ai/usage';
 import { draftAnswersFor } from '@/server/answers/draft';
 import {
   dropExpiredWaitingEnquiries,
@@ -74,6 +75,8 @@ export const taskList: TaskList = {
     // UX-SR-10 (rule 9): saved searches held by an email alone, unconfirmed or two years old.
     const searches = await sweepEmailSearches();
     console.log(`Saved searches: ${searches.deleted} held by an email alone deleted.`);
+    // P3 (rule 9): the log of AI calls, after 12 months. It holds usage only, never text.
+    console.log(`AI: ${await sweepAiCalls()} usage rows over 12 months old deleted.`);
   },
   saved_search_alerts: async () => {
     const sent = await sendSearchAlerts();

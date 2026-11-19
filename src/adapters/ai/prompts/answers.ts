@@ -1,16 +1,18 @@
-import { AnthropicBedrockMantle } from '@anthropic-ai/bedrock-sdk';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod';
-import type { AiDrafter, DraftRequest } from '@/ports/ai';
+import type { DraftRequest } from '@/ports/ai';
 
 /**
- * Claude on Amazon Bedrock, through the Mantle endpoint in an EU region, so renters' messages
- * are processed in the EU (ADR-0009). Structured output: each answer cites fact IDs, and the
- * guardrails in src/domain/answers check every one before anything is sent.
+ * Task `answers` (R8, P9): answers to a renter's questions, only from the letting's facts, each
+ * citing the facts it used. The guardrails in src/domain/answers check every answer before
+ * anything is sent.
  */
-export const PROMPT_VERSION = 'answers@2';
+export const version = 'answers@2';
+export const effort = 'low';
+/** Drafting runs in the background, so it can wait a little longer than a person at a box. */
+export const timeoutMs = 20_000;
+export const maxRetries = 2;
 
-const draftSchema = z.object({
+export const schema = z.object({
   items: z.array(
     z.object({
       question: z.string(),
@@ -20,7 +22,7 @@ const draftSchema = z.object({
   ),
 });
 
-function systemPrompt(operatorName: string): string {
+export function system(operatorName: string): string {
   return [
     `You draft short answers to a renter's questions about one home, for ${operatorName}'s letting team.`,
     'Use only the facts provided. Each fact has an id.',
@@ -34,30 +36,10 @@ function systemPrompt(operatorName: string): string {
   ].join('\n');
 }
 
-function userContent(request: DraftRequest): string {
+export function userContent(request: DraftRequest): string {
   const facts = request.facts
     .map((fact) => JSON.stringify({ id: fact.id, fact: fact.text }))
     .join('\n');
   const questions = request.questions.map((q) => JSON.stringify(q)).join('\n');
   return `<facts>\n${facts}\n</facts>\n<renter_questions>\n${questions}\n</renter_questions>`;
-}
-
-export function bedrockDrafter(config: { region: string; model: string }): AiDrafter {
-  const client = new AnthropicBedrockMantle({ awsRegion: config.region });
-  return {
-    promptVersion: PROMPT_VERSION,
-    async draftAnswers(request) {
-      const response = await client.messages.parse({
-        model: config.model,
-        max_tokens: 2000,
-        output_config: { effort: 'low', format: zodOutputFormat(draftSchema) },
-        system: systemPrompt(request.operatorName),
-        messages: [{ role: 'user', content: userContent(request) }],
-      });
-      if (response.stop_reason === 'refusal' || !response.parsed_output) {
-        return { items: [], model: config.model, refused: true };
-      }
-      return { items: response.parsed_output.items, model: config.model };
-    },
-  };
 }

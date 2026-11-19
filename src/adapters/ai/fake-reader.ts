@@ -1,6 +1,5 @@
 import { counties } from '@/domain/lettings/new-letting';
 import { linesOf, type AdvertReading, type ReadField } from '@/domain/lettings/advert-reading';
-import type { AdvertReader } from '@/ports/ai';
 
 /**
  * A deterministic stand-in for the model that reads adverts, for development and tests. It
@@ -50,7 +49,8 @@ function isoDate(day: number, month: number, year: number | null, today: string)
   return date;
 }
 
-function read(text: string, today: string): AdvertReading {
+/** What a plain Irish advert says in so many words, as the model would hand it back. */
+export function readAdvertByPattern(text: string, today: string): AdvertReading {
   const lines = linesOf(text);
   const fields: Found[] = [];
   const used = new Set<string>();
@@ -168,10 +168,3 @@ function read(text: string, today: string): AdvertReading {
   }
   return { fields, facts, description, aboutWho: [] };
 }
-
-export const fakeAdvertReader: AdvertReader = {
-  promptVersion: 'advert-fake-1',
-  async readAdvert({ text, today }) {
-    return { model: 'fake', reading: read(text, today) };
-  },
-};

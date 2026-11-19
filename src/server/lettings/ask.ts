@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { peopleQuestionReader } from '@/adapters/ai';
+import { aiProvider } from '@/adapters/ai';
 import { withOrg } from '@/db/client';
 import { applications } from '@/db/schema';
 import {
@@ -11,7 +11,8 @@ import {
 } from '@/domain/fit/ask';
 import { stripPersonalDetails } from '@/domain/lettings/advert-reading';
 import { irishToday } from '@/lib/format';
-import type { PeopleQuestionReader } from '@/ports/ai';
+import type { AiProvider } from '@/ports/ai';
+import { runAi } from '@/server/ai/usage';
 import type { Member } from '@/server/auth/member';
 
 const questionSchema = z
@@ -27,13 +28,14 @@ const questionSchema = z
  * names and contact details taken out.
  *
  * It stores nothing of the question: no row, no event, no log, and the question never goes into
- * an address. It changes nothing: a filter is only how the list is looked at (rule 1).
+ * an address. A call to the model is logged in `ai_calls` with its usage only, never its words.
+ * It changes nothing: a filter is only how the list is looked at (rule 1).
  */
 export async function askAboutPeople(
   member: Member,
   lettingId: string,
   question: unknown,
-  reader: PeopleQuestionReader = peopleQuestionReader(),
+  ai: AiProvider = aiProvider(),
   now: Date = new Date(),
 ): Promise<PeopleFilter | null> {
   const parsed = questionSchema.safeParse(question);
@@ -53,12 +55,12 @@ export async function askAboutPeople(
     ).map((row) => row.name),
   );
   const text = stripPersonalDetails(parsed.data, [...names, member.name, member.organisationName]);
-  try {
-    const response = await reader.readQuestion({ text, today });
-    if (response.refused) return null;
-    return checkQuestionReading(response.reading, today);
-  } catch {
-    // Nothing waits on the model: a failed reading is the same as a decline.
-    return null;
-  }
+  // A refusal, a failure, a paused budget or the task switched off: the fixed decline (P5).
+  const run = await runAi({
+    task: 'people',
+    organisationId: member.organisationId,
+    ai,
+    call: (provider) => provider.readPeopleQuestion({ text, today }),
+  });
+  return run.outcome === 'ok' ? checkQuestionReading(run.output, today) : null;
 }

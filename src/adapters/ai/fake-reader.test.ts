@@ -6,7 +6,7 @@ import {
   stripPersonalDetails,
 } from '@/domain/lettings/advert-reading';
 import { INJECTED_ADVERT, RANELAGH_ADVERT, SPARSE_ADVERT } from '../../../tests/fixtures/adverts';
-import { fakeAdvertReader } from './fake-reader';
+import { fakeAi } from './fake';
 
 /**
  * The local stand-in for the model that reads adverts, and the whole path a pasted advert
@@ -17,7 +17,7 @@ const TODAY = '2026-11-17';
 
 async function read(advert: string, names: string[] = []) {
   const text = stripPersonalDetails(advert, names);
-  const { reading } = await fakeAdvertReader.readAdvert({ text, today: TODAY });
+  const { output: reading } = await fakeAi.readAdvert({ text, today: TODAY });
   const checked = checkReading(text, reading, TODAY);
   if (!checked) throw new Error('the stand-in handed back something that is not a reading');
   return { text, raw: reading as AdvertReading, ...checked };
@@ -54,7 +54,7 @@ describe('UX-LT-2: what an advert says is read into the home', () => {
 
   it('hands back a reading of the strict shape, every time', async () => {
     for (const advert of [RANELAGH_ADVERT, SPARSE_ADVERT, INJECTED_ADVERT, '', 'hello']) {
-      const { reading } = await fakeAdvertReader.readAdvert({ text: advert, today: TODAY });
+      const { output: reading } = await fakeAi.readAdvert({ text: advert, today: TODAY });
       expect(advertReadingSchema.safeParse(reading).success).toBe(true);
     }
   });

@@ -1,12 +1,14 @@
 import { eq } from 'drizzle-orm';
-import { advertReader } from '@/adapters/ai';
+import { aiProvider } from '@/adapters/ai';
 import { withOrg } from '@/db/client';
 import { lettingDrafts } from '@/db/schema';
 import { draftAnswersSchema, withAnswers } from '@/domain/lettings/add-letting';
 import { checkReading, stripPersonalDetails } from '@/domain/lettings/advert-reading';
+import { isSwitchedOff } from '@/domain/ai/tasks';
 import { env } from '@/lib/env';
 import { irishToday } from '@/lib/format';
-import type { AdvertReader } from '@/ports/ai';
+import type { AiProvider } from '@/ports/ai';
+import { runAi } from '@/server/ai/usage';
 import type { Member } from '@/server/auth/member';
 import { recordFunnelStep } from '@/server/funnels/steps';
 import { recordEvent } from '@/server/record/events';
@@ -32,11 +34,13 @@ import { startDraftIn } from './drafts';
  */
 
 /**
- * Whether reading is offered at all: the `ADVERT_READER` setting. Off, the first screen offers
- * only "Fill it in myself", which never needs the reader (UX-AI-12).
+ * Whether reading is offered at all: the `ADVERT_READER` setting, and the AI's `advert` task not
+ * switched off (AI_TASKS_OFF, P8). Off, the first screen offers only "Fill it in myself", which
+ * never needs the reader (UX-AI-12).
  */
 export function advertReaderIsOn(): boolean {
-  return env().ADVERT_READER === 'on';
+  const config = env();
+  return config.ADVERT_READER === 'on' && !isSwitchedOff('advert', config.AI_TASKS_OFF);
 }
 
 /** UX-LT-1: files aren't read yet (see above), so the attach button isn't shown. */
@@ -70,7 +74,7 @@ function inTime<T>(work: Promise<T>): Promise<T> {
 export async function readAdvertIntoDraft(
   member: Member,
   input: { text: string; draftId?: string | null },
-  reader: AdvertReader = advertReader(),
+  ai: AiProvider = aiProvider(),
 ): Promise<ReadOutcome> {
   if (!advertReaderIsOn()) return { kind: 'unavailable' };
   // UX-LT-7, UX-AI-8: the reader never sees who is letting the home, or how to reach them.
@@ -78,12 +82,18 @@ export async function readAdvertIntoDraft(
   const today = irishToday();
 
   let raw: unknown;
-  let model: string;
   try {
-    const response = await inTime(reader.readAdvert({ text, today }));
-    if (response.refused) return { kind: 'unavailable' };
-    raw = response.reading;
-    model = response.model;
+    // A refusal, a failure, a paused budget or no reading at all: the manual route (P5).
+    const run = await inTime(
+      runAi({
+        task: 'advert',
+        organisationId: member.organisationId,
+        ai,
+        call: (provider) => provider.readAdvert({ text, today }),
+      }),
+    );
+    if (run.outcome !== 'ok') return { kind: 'unavailable' };
+    raw = run.output;
   } catch (error) {
     // The kind of failure only: never the text, which is the lister's (rule 8).
     console.error('Reading an advert failed:', error instanceof Error ? error.name : 'unknown');
@@ -135,7 +145,7 @@ export async function readAdvertIntoDraft(
       type: 'letting.advert_read',
       subject: { type: 'letting', id },
       data: {
-        reader: model === 'fake' ? 'fake' : 'bedrock',
+        reader: ai.name,
         found: reading.found,
         dropped,
         leftOut: reading.leftOut.length,

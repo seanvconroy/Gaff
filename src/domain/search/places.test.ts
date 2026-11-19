@@ -84,6 +84,7 @@ describe('UX-SR-5, M56: "Where" is a place in Gaff’s own place index', () => {
     );
     expect(placeLabel(where('p17'))).toBe('P17, Kinsale');
     expect(placeLabel(where('h53'))).toBe('Eircode area H53');
+    expect(placeLabel(where('dingle-daingean-ui-chuis'))).toBe('Dingle, Co. Kerry');
   });
 });
 

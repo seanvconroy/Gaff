@@ -64,6 +64,7 @@ test('UX-DS-16: the component page shows every component and its states at 390px
         'Sheet and dialog, menu, toast',
         'Date and time pickers',
         'Address search',
+        'Place search',
         'Photo uploader',
         'Code input',
         'Skeleton',

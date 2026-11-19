@@ -36,7 +36,7 @@ export async function loadedVersion(): Promise<number> {
 const curatedRows = (): Loadable[] => curatedPlaces.map((place) => ({ place, src: 'gaff' }));
 
 /** The file's places with the curated base over its copies of them. */
-function withCurated(rows: readonly Loadable[]): Loadable[] {
+export function withCurated(rows: readonly Loadable[]): Loadable[] {
   const curated = new Set(curatedPlaces.map((p) => p.slug));
   return [...curatedRows(), ...rows.filter((r) => !curated.has(r.place.slug))];
 }

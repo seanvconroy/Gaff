@@ -164,7 +164,7 @@ describe('UX-SR-12, M56: a search’s place, looked up', () => {
   it('M56: an old ID from the first list opens its place, named as the index names it', async () => {
     const found = await resolveSearch({ where: 'dingle' });
     expect(found.filters).toEqual({ where: 'dingle-daingean-ui-chuis' });
-    expect(found.placeName).toBe('Dingle / Daingean Uí Chúis, Co. Kerry');
+    expect(found.placeName).toBe('Dingle, Co. Kerry');
     expect((await resolveSearch({ where: 'ranelagh' })).placeName).toBe('Ranelagh, Dublin 6');
     expect((await resolveSearch({ where: 'highfield-road-rathgar-dublin-6' })).where?.kind).toBe(
       'near',

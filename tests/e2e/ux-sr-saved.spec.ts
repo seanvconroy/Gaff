@@ -329,7 +329,8 @@ test('UX-SR-10: a renter saves a search, sees it on Profile and Saved, switches 
   });
   await page.setViewportSize(phone);
   await signUpRenter(page);
-  // Homes fit: "Tell me about new ones" saves the search for the homes still to come.
+  // Homes fit: "Tell me about new ones" saves the search for the homes still to come. The
+  // address uses the first place list's ID for Dingle: it still opens Dingle (M56).
   await page.goto('/?where=dingle&beds=1');
   await page.getByRole('button', { name: 'Tell me about new ones' }).click();
   await expect(
@@ -343,7 +344,7 @@ test('UX-SR-10: a renter saves a search, sees it on Profile and Saved, switches 
   await page.goto('/profile');
   const looking = page.getByRole('region', { name: 'What you’re looking for' });
   const search = looking.getByRole('link', { name: 'Dingle, Co. Kerry · 1 bedroom' });
-  await expect(search).toHaveAttribute('href', '/?where=dingle&beds=1');
+  await expect(search).toHaveAttribute('href', '/?where=dingle-daingean-ui-chuis&beds=1');
   await atBothWidths(page, 'profile-looking');
 
   await looking.getByRole('checkbox', { name: 'Email me when a new home fits' }).click();

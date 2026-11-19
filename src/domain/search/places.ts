@@ -81,7 +81,8 @@ export function placeLabel(where: SearchPlace): string {
     const town = where.town ?? routingKeyAreaName(where.routingKey);
     return town ? `${where.routingKey}, ${town}` : `Eircode area ${where.routingKey}`;
   }
-  const { place } = where;
+  // A name given in English and Irish ("Dingle / Daingean Uí Chúis") is named by the first.
+  const place = { ...where.place, name: where.place.name.split(' / ')[0]! };
   if (where.kind === 'near') {
     const at = place.context ? contextWords(place.context).split(',')[0]!.trim() : '';
     return at && normalise(at) !== normalise(place.name)

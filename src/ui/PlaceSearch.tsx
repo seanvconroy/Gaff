@@ -137,8 +137,8 @@ export function PlaceSearch({
   /** Told of every change to what is typed, so a picked place can be let go when it's cleared. */
   onQueryChange?: (query: string) => void;
   defaultValue?: string;
-  /** Under the field when nothing matches, or only near spellings do. */
-  notFound: (typed: string) => ReactNode;
+  /** Under the field when nothing matches (`near` false), or only near spellings do. */
+  notFound: (typed: string, near: boolean) => ReactNode;
   /** The label of the group of near spellings: "Did you mean". */
   didYouMeanLabel: string;
   /** What a screen reader hears when suggestions arrive: "3 places found". */
@@ -158,6 +158,8 @@ export function PlaceSearch({
 
   const ask = useCallback(
     async (typed: string): Promise<PlaceSuggestions> => {
+      // What to start from changes as places are picked, so it is asked for afresh each time.
+      if (!typed) return suggest(typed);
       const kept = answers.current.get(typed);
       if (kept) return kept;
       const found = await suggest(typed);
@@ -265,7 +267,7 @@ export function PlaceSearch({
       </div>
       <p className={styles.status} role="status">
         {nothing || near ? (
-          notFound(typed)
+          notFound(typed, near)
         ) : shown.length > 0 ? (
           <span className="visually-hidden">{foundWords(shown.length)}</span>
         ) : null}
@@ -304,6 +306,7 @@ export function PlaceSearch({
                         />
                         <span className={styles.words}>
                           <span className={styles.name}>{withTyped(option.name, typed)}</span>
+                          {/* A screen reader hears the name, then where it is. */}{' '}
                           <span className={styles.description}>{option.description}</span>
                         </span>
                       </li>

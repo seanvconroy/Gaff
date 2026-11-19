@@ -85,8 +85,9 @@ async function findPlaces(query: string): Promise<PlaceSuggestions> {
   };
 }
 
-function notFound(typed: string) {
-  return `${searchCopy.where.notFound(typed)} ${searchCopy.whereNotFound}`;
+function notFound(typed: string, near: boolean) {
+  const missed = searchCopy.where.notFound(typed);
+  return near ? missed : `${missed} ${searchCopy.whereNotFound}`;
 }
 
 export function SearchControls({

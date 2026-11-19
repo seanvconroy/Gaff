@@ -6,7 +6,7 @@ import { signInMethodFrom } from '@/domain/auth/methods';
 import { staffAccess, staffPasskeyRequired, type StaffAccess } from '@/domain/auth/staff-access';
 import { isStaff } from '@/domain/staff/staff';
 import { env } from '@/lib/env';
-import { currentSession } from './member';
+import { currentSession, currentUser } from './member';
 
 declare const staffBrand: unique symbol;
 
@@ -63,10 +63,13 @@ export async function staffAccessOf(
  * with the one they have.
  */
 export async function requireStaff(): Promise<Staff> {
+  const staff = staffFrom(await currentUser());
+  if (!staff) notFound();
+  if (!staffPasskeyRequired(env().GAFF_ENV)) return staff;
+  // Production: how this device's session began.
   const session = await currentSession();
-  const staff = staffFrom(session?.user);
-  if (!session || !staff) notFound();
-  const access = await staffAccessOf(session);
+  if (!session || session.user.id !== staff.userId) notFound();
+  const access = await staffAccessOf(session, true);
   if (access === 'needs_a_passkey') redirect(STAFF_ADD_PASSKEY);
   if (access === 'needs_passkey_sign_in') redirect(STAFF_USE_PASSKEY);
   return staff;

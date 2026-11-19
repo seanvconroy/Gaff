@@ -227,9 +227,15 @@ export const verifiedIdentities = pgTable(
 
 /**
  * A person's own ID check while it runs, where no letting's checks asked for it: a private
- * landlord's go-live (Q47) or "My name has changed" (UX-PF-9). It holds codes and dates only;
- * the result goes to `verified_identities` when it passes, and the row goes. Person-owned like
- * the rest: an operator never sees that one was started.
+ * landlord's go-live (Q47) or "My name has changed" (UX-PF-9). It holds codes, counts and dates
+ * only; the result goes to `verified_identities` when it passes. Person-owned like the rest: an
+ * operator never sees that one was started.
+ *
+ * It is also the provider's bookkeeping (P18, P25, P26; ADR-0020): one provider session reused
+ * for every try, the tries, the version of the words shown before it started, and the deletion
+ * date by which the provider must have deleted the document and selfie (`redact_after`). A
+ * check that passed with a real provider stays, as `passed`, until the retention job has had
+ * the provider redact it, and then goes. Never a name, an image or anything from the ID.
  */
 export const identityChecks = pgTable(
   'identity_checks',
@@ -239,13 +245,20 @@ export const identityChecks = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     purpose: text({ enum: ['go_live', 'name_changed'] }).notNull(),
-    status: text({ enum: ['in_progress', 'not_passed'] })
+    status: text({ enum: ['in_progress', 'not_passed', 'passed'] })
       .notNull()
       .default('in_progress'),
     /** A provider's reason code when it didn't pass. */
     reason: text({ enum: ['document', 'face_mismatch', 'gave_up'] }),
     provider: text(),
     providerRef: text(),
+    /** P25: tries started with the provider. */
+    attempts: integer().notNull().default(0),
+    /** P18: the version of the words shown before the latest try (`ID_CHECK_NOTICE_VERSION`). */
+    consentVersion: text(),
+    /** P26, rule 9: by when the provider must have deleted what it holds for this check. */
+    redactAfter: timestamp({ withTimezone: true }),
+    providerRedactedAt: timestamp({ withTimezone: true }),
     startedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('identity_checks_user_idx').on(t.userId), personPolicy()],

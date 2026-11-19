@@ -281,6 +281,13 @@
       "when": 1795115031136,
       "tag": "0039_ba8_sign_in_hardened",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1795115259446,
+      "tag": "0040_identity_provider_and_booking_mobile",
+      "breakpoints": true
     }
   ]
 }

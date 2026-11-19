@@ -49,6 +49,22 @@ describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)'
     ]);
   });
 
+  it('P17 (Q51): Stripe Identity needs its secret key and its webhook’s secret, anywhere', () => {
+    const stripe = {
+      ...production,
+      IDENTITY_PROVIDER: 'stripe',
+      STRIPE_SECRET_KEY: 'sk_live_made_up',
+      STRIPE_IDENTITY_WEBHOOK_SECRET: 'whsec_made_up',
+    };
+    expect(environmentProblems(stripe)).toEqual([]);
+    expect(environmentProblems({ ...stripe, STRIPE_SECRET_KEY: undefined })).toEqual([
+      'STRIPE_SECRET_KEY',
+    ]);
+    expect(
+      environmentProblems({ ...stripe, GAFF_ENV: 'staging', STRIPE_IDENTITY_WEBHOOK_SECRET: '' }),
+    ).toEqual(['STRIPE_IDENTITY_WEBHOOK_SECRET']);
+  });
+
   it('UX-AG-1: refuses the made-up PSRA register, and needs the address of the real one', () => {
     expect(environmentProblems({ ...production, PSRA_REGISTER_SOURCE: 'sample' })).toEqual([
       'PSRA_REGISTER_SOURCE',

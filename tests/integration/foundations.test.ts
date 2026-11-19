@@ -9,7 +9,7 @@ import { createTestMember, databaseError } from './helpers';
 // Identity tables are read before an organisation is known; every other table with an
 // organisation_id column holds tenant data and must be protected by row-level security.
 const IDENTITY_TABLES = new Set(['organisations', 'memberships']);
-// P3 (ADR-0018): Gaff's own record of AI calls names an organisation only to see the cost per
+// P3 (ADR-0017): Gaff's own record of AI calls names an organisation only to see the cost per
 // operator. It holds no tenant data, and no operator can read it: only withSystem() reads or
 // deletes its rows (tests/integration/p3-ai-usage.test.ts holds that).
 const PLATFORM_TABLES = new Set(['ai_calls']);

@@ -30,6 +30,7 @@ import type { AddressSuggestion, PostalAddress } from '@/ports/address-search';
 import { ensureOwnHomes } from '@/server/accounts/contexts';
 import { testEnquiryDue } from '@/server/activation/activation';
 import { startPersonCheck } from '@/server/identity/person-checks';
+import { settlePersonIdentity } from '@/server/identity/provider-results';
 import { currentUser, findMember, type Member, requireMember } from '@/server/auth/member';
 import { forwardingStillToDoFor } from '@/server/enquiries/forwarding';
 import { UserFacingError } from '@/server/errors';
@@ -438,6 +439,7 @@ export async function goLiveAction(
 export async function confirmItsYouAction(id: string, from: string | null): Promise<void> {
   const member = await requireMember();
   const back = screenHref(id, 'go_live', from);
+  await settlePersonIdentity(member.userId);
   const started = await startPersonCheck(member.userId, 'go_live', back);
   if ('problem' in started) {
     redirect(

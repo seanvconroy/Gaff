@@ -12,11 +12,22 @@ export const providerHosts = {
   apple: 'https://appleid.apple.com',
 } as const;
 
-export function contentSecurityPolicy(providers: { google: boolean; apple: boolean }): string {
+/**
+ * BA-6 (P17): "Start your ID check" is a form whose answer sends the browser on to Stripe
+ * Identity's own pages, so its host is allowed too, once Stripe is the ID provider.
+ */
+export const stripeIdentityHost = 'https://verify.stripe.com';
+
+export function contentSecurityPolicy(providers: {
+  google: boolean;
+  apple: boolean;
+  stripeIdentity?: boolean;
+}): string {
   const formAction = [
     "'self'",
     ...(providers.google ? [providerHosts.google] : []),
     ...(providers.apple ? [providerHosts.apple] : []),
+    ...(providers.stripeIdentity ? [stripeIdentityHost] : []),
   ].join(' ');
   return [
     "default-src 'self'",

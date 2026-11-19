@@ -22,6 +22,7 @@ import { purgeListingReports } from '@/server/homes/report';
 import { sendSearchAlerts, sweepEmailSearches } from '@/server/saved/alerts';
 import { sendSavedSearchEmail } from '@/server/saved/emails';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
+import { redactIdentitySessions, redactSession } from '@/server/identity/redact';
 
 const inboundEmailJob = z.object({ organisationId: z.uuid(), inboundEmailId: z.uuid() });
 const messageJob = z.object({ organisationId: z.uuid(), messageId: z.uuid() });
@@ -45,6 +46,9 @@ export const CRONTAB = [
 export const taskList: TaskList = {
   process_inbound_email: async (payload) => {
     await processInboundEmail(inboundEmailJob.parse(payload));
+  },
+  redact_identity_session: async (payload) => {
+    await redactSession(z.object({ providerRef: z.string().min(1) }).parse(payload).providerRef);
   },
   offer_place: async (payload) => {
     const job = z.object({ organisationId: z.uuid(), slotId: z.uuid() }).parse(payload);
@@ -79,6 +83,11 @@ export const taskList: TaskList = {
     // UX-SR-10 (rule 9): saved searches held by an email alone, unconfirmed or two years old.
     const searches = await sweepEmailSearches();
     console.log(`Saved searches: ${searches.deleted} held by an email alone deleted.`);
+    // P26 (rule 9): Stripe deletes the ID and selfie of each check 30 days after its result.
+    const redaction = await redactIdentitySessions();
+    console.log(
+      `ID checks: ${redaction.redacted} redacted at the provider; ${redaction.failed} to try again.`,
+    );
     // P3 (rule 9): the log of AI calls, after 12 months. It holds usage only, never text.
     console.log(`AI: ${await sweepAiCalls()} usage rows over 12 months old deleted.`);
   },

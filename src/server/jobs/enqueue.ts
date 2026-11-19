@@ -18,7 +18,9 @@ export type TaskName =
   | 'send_waiting_reply'
   | 'drop_waiting_enquiry'
   | 'send_saved_search_email'
-  | 'saved_search_alerts';
+  | 'saved_search_alerts'
+  /** P26: Stripe deletes the ID and selfie of a session whose check has gone with a profile. */
+  | 'redact_identity_session';
 
 /**
  * Queues a job in the caller's transaction (ADR-0003): the job exists only if the change that

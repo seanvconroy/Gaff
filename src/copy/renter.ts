@@ -115,6 +115,11 @@ export const answersSentCopy = {
 } as const;
 
 /** UX-RN-5 to UX-RN-10: viewings. */
+/** P16: the text with the code that confirms a renter's mobile before they book a viewing. */
+export function mobileCodeSms(code: string): string {
+  return `Your Gaff code is ${code}. It works for 10 minutes. If you didn't ask for it, ignore this text.`;
+}
+
 export const viewingCopy = {
   invited: {
     title: 'You’re invited to view',
@@ -140,9 +145,13 @@ export const viewingCopy = {
   confirm: {
     title: 'Book this viewing?',
     changeTitle: 'Move to this time?',
-    mobileLabel: 'Mobile number for a text reminder',
-    mobileHint: 'We’ll text you two hours before.',
+    /** P16 (Q51): a mobile, confirmed by a text code, before a new booking. */
+    mobileLabel: 'Your mobile number',
+    mobileHint:
+      'We’ll text you a code to confirm it, and a reminder two hours before your viewing.',
     mobileGiven: 'Text reminder to',
+    sendCode: 'Text me a code',
+    sending: 'Sending…',
     button: 'Book this viewing',
     moveButton: 'Move my viewing',
     booking: 'Booking…',
@@ -150,10 +159,31 @@ export const viewingCopy = {
     next: 'We’ll email you to confirm it straight away, and remind you the day before.',
     moveNext: 'Your old time goes to someone else, and we’ll email you the new one.',
     problems: {
-      phone: 'That mobile number doesn’t look right. Check it, or leave it blank.',
+      phone: 'That doesn’t look like a mobile number. Enter one like 087 123 4567.',
+      too_soon: 'We’ve just texted you a code. Wait half a minute before asking for another.',
+      too_many:
+        'We’ve texted a few codes today. Try again tomorrow, or reply to any email from us to talk to a person.',
+      not_sent: 'We couldn’t send the text. Check the number, or try again in a moment.',
       too_late: 'That time is about to start, so it can’t be booked now. Choose another.',
       not_invited: 'This viewing can’t be booked from this link.',
-    },
+    } as Record<string, string>,
+  },
+  /** P16: the code from the text, then the booking. */
+  code: {
+    title: 'Enter the code we texted you',
+    lead: (masked: string) => `We’ve texted a 6-digit code to ${masked}. It works for 10 minutes.`,
+    label: 'The code from the text',
+    button: 'Confirm and book',
+    placeButton: 'Confirm and take this place',
+    newCode: 'Text me a new code',
+    newCodeSent: 'We’ve texted you a new code. The old one no longer works.',
+    changeNumber: 'Change the number',
+    problems: {
+      wrong: 'That code isn’t right. Check the text and try again.',
+      expired: 'That code has run out. Ask for a new one below.',
+      locked: 'That code was tried too many times. Ask for a new one below.',
+      none: 'Ask for a code first.',
+    } as Record<string, string>,
   },
   booked: {
     title: 'You’re booked',
@@ -388,6 +418,9 @@ export const checksCopy = {
     after: (operator: string) =>
       `You can try again. If you’d rather explain, or add a guarantor, talk to a person at ${operator}.`,
   },
+  /** P25: three tries at the ID check, and it didn't pass. Never "danger" (CLAUDE.md, Voice). */
+  noTriesLeft: (operator: string) =>
+    `You’ve used your three tries, so it can’t be started again from here. Reply to any email from us and say you’d like to talk to a person. Someone at ${operator} will answer you and help you finish your checks.`,
   referee: {
     landlord: 'Your last landlord',
     employer: 'Your employer',
@@ -404,6 +437,8 @@ export const checksCopy = {
   startNext: 'You can stop after any check and come back to the next one.',
   problems: {
     no_provider: 'That check can’t be started here yet. We’ll be in touch about it.',
+    no_attempts_left:
+      'You’ve used your three tries at the ID check. Reply to any email from us to talk to a person.',
     done: 'That check is already done.',
     not_chosen: 'Checks aren’t needed from this link.',
     link: common.linkEnded,

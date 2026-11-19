@@ -301,7 +301,6 @@ export async function peopleWhoApplied(
   const { withOrg } = await import('@/db/client');
   const { bookings, viewingSlots } = await import('@/db/schema');
   const { inviteToView } = await import('@/server/shortlist/invite');
-  const { bookViewing } = await import('@/server/viewings/booking');
   const { markAttendance } = await import('@/server/viewings/attendance');
   const { submitApplication } = await import('@/server/applications/apply');
   const { lettingId } = await aLiveLetting(member);
@@ -319,7 +318,7 @@ export async function peopleWhoApplied(
   );
   for (const [i, id] of ids.entries()) {
     const token = await tokenInMessage(member, id, 'invitation');
-    const booked = await bookViewing(token, slots[i]!.id);
+    const booked = await bookAs(token, slots[i]!.id);
     if (!booked.ok) throw new Error(`booking failed: ${JSON.stringify(booked)}`);
   }
   await withOrg(member.organisationId, (tx) =>
@@ -409,4 +408,46 @@ export async function aLetHome(member: Member): Promise<{
   const accepted = await respondToOffer(tenantToken, 'accept');
   if (!accepted.ok) throw new Error(`accept failed: ${JSON.stringify(accepted)}`);
   return { lettingId, tenantId: ids[0]!, otherId: ids[1]!, tenantToken };
+}
+
+/** P16: the code in the latest text to a number, from the development outbox. */
+export async function lastSmsCode(e164: string): Promise<string> {
+  const { and, desc, eq: equals, like } = await import('drizzle-orm');
+  const { devOutbox } = await import('@/db/schema');
+  const [sms] = await db()
+    .select({ text: devOutbox.text })
+    .from(devOutbox)
+    .where(and(equals(devOutbox.toAddress, e164), like(devOutbox.text, '%Gaff code%')))
+    .orderBy(desc(devOutbox.createdAt))
+    .limit(1);
+  const code = /(\d{6})/.exec(sms?.text ?? '')?.[1];
+  if (!code) throw new Error('no code was texted to that number');
+  return code;
+}
+
+/** A made-up Irish mobile, different each time. */
+export const aMobile = () => `087${String(Math.random()).slice(2, 9)}`;
+
+/** P16: confirms a mobile for a renter's link with the texted code. Returns it as +353… */
+export async function confirmBookingMobile(token: string, mobile = aMobile()): Promise<string> {
+  const { confirmBookingCode, sendBookingCode } = await import('@/server/viewings/mobile');
+  const sent = await sendBookingCode(token, mobile);
+  if (!sent.ok) throw new Error(`no code sent: ${sent.problem}`);
+  const e164 = `+353${mobile.replace(/\s/g, '').slice(1)}`;
+  const confirmed = await confirmBookingCode(token, await lastSmsCode(e164));
+  if (!confirmed.ok) throw new Error(`mobile not confirmed: ${confirmed.problem}`);
+  return e164;
+}
+
+/**
+ * R12, P16: books a viewing as a renter would. A new booking asks for a confirmed mobile, so one
+ * is confirmed first when it's needed (`mobile`, or a made-up one).
+ */
+export async function bookAs(token: string, slotId: string, mobile?: string) {
+  const { bookViewing } = await import('@/server/viewings/booking');
+  if (mobile) await confirmBookingMobile(token, mobile);
+  const first = await bookViewing(token, slotId);
+  if (first.ok || first.reason !== 'mobile_needed') return first;
+  await confirmBookingMobile(token);
+  return bookViewing(token, slotId);
 }

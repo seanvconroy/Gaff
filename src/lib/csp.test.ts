@@ -47,3 +47,14 @@ describe('BA-1, AU1: forms may send the browser on to a configured sign-in provi
     expect(policy).toContain("object-src 'none'");
   });
 });
+
+describe('BA-6, P17: the ID check’s form may send the browser on to Stripe Identity', () => {
+  it('allows Stripe’s verification pages once Stripe is the ID provider, and not before', () => {
+    expect(
+      formAction(contentSecurityPolicy({ google: false, apple: false, stripeIdentity: true })),
+    ).toBe("form-action 'self' https://verify.stripe.com");
+    expect(
+      formAction(contentSecurityPolicy({ google: false, apple: false, stripeIdentity: false })),
+    ).toBe("form-action 'self'");
+  });
+});

@@ -258,8 +258,9 @@ describe('UX-PF-2: keeping what a renter enters', () => {
       answers: { occupants: 1, hasPets: false },
       earning: 'employed',
       monthlyIncomeCents: 520_000,
-      // Q12: the number that came with the Daft enquiry was never theirs to reuse.
-      mobile: null,
+      // Q12: the number that came with the Daft enquiry was never theirs to reuse. P16: the
+      // mobile they confirmed by text to book their viewing is (src/domain/profile/kept.ts).
+      mobile: expect.stringMatching(/^087 \d{3} \d{4}$/),
     });
     expect(kept.incomeAt).toBeInstanceOf(Date);
     expect((await readProfile(renter.id)).rentingSince).toBeInstanceOf(Date);
@@ -273,7 +274,7 @@ describe('UX-PF-2: keeping what a renter enters', () => {
       { type: 'profile.enquiry_added', data: { applicationId } },
       {
         type: 'profile.details_kept',
-        data: { from: 'tick', applicationId, mobile: false, answers: true, income: true },
+        data: { from: 'tick', applicationId, mobile: true, answers: true, income: true },
       },
     ]);
   });

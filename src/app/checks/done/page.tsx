@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { settleRenterIdentity } from '@/server/identity/provider-results';
 import { CHECK_RETURN_COOKIE, checkReturnPath } from '@/server/renter/check-return';
 import { Outcome } from '@/ui/Outcome';
 import { PrivateFrame } from '@/ui/PrivateFrame';
@@ -20,7 +21,11 @@ export default async function CheckDonePage({
   searchParams: Promise<{ kind?: string }>;
 }) {
   const { kind } = await searchParams;
-  const back = checkReturnPath((await cookies()).get(CHECK_RETURN_COOKIE)?.value);
+  const token = (await cookies()).get(CHECK_RETURN_COOKIE)?.value;
+  const back = checkReturnPath(token);
+  // P21, P54: back from Stripe's pages, the result is read from Stripe now, in case its webhook
+  // is still on the way. Nothing is read from this address.
+  if (back && token && kind === 'identity') await settleRenterIdentity(token);
   // UX-PF-8: back from the ID check, the page asks whether to keep it, if it passed.
   if (back) redirect(kind === 'identity' ? `${back}?q=keep_id` : back);
   const what = kind === 'income' ? 'income check' : kind === 'identity' ? 'ID check' : 'check';

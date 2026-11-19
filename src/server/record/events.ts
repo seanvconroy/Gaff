@@ -358,10 +358,19 @@ export const eventCatalogue = {
     applied: z.number().int(),
     withBackup: z.boolean(),
   }),
+  /** P16: a renter was texted a code to confirm their mobile before booking; it matched. */
+  'booking.mobile_code_sent': z.object({ applicationId: z.uuid() }),
+  'booking.mobile_confirmed': z.object({ applicationId: z.uuid() }),
   /** R18: checks set up for someone a person chose, and the renter told about them. */
   'checks.requested': z.object({ applicationId: z.uuid(), checks: z.number().int() }),
-  /** R18: the renter started an ID or income check with the provider. */
-  'check.started': z.object({ checkId: z.uuid(), kind: z.enum(['identity', 'income']) }),
+  /** R18: the renter started an ID or income check with the provider; P25: which try. */
+  'check.started': z.object({
+    checkId: z.uuid(),
+    kind: z.enum(['identity', 'income']),
+    attempt: z.number().int().optional(),
+  }),
+  /** P26: the ID provider deleted the document and selfie it held for this check. */
+  'check.redacted': z.object({ checkId: z.uuid() }),
   /** R18: a referee was asked (then reminded twice, if needed). */
   'reference.requested': z.object({
     checkId: z.uuid(),

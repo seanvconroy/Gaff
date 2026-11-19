@@ -14,7 +14,12 @@ import { simulateInboundEmail } from '@/app/dev/inbound/actions';
 import DevOutboxPage from '@/app/dev/outbox/page';
 import StandInSignInPage from '@/app/dev/sign-in/[provider]/page';
 import { POST as standInAnswer } from '@/app/dev/sign-in/[provider]/answer/route';
+import { standInUrl } from '@/adapters/checks/stand-in';
 import { aLiveLetting, createTestMember } from './helpers';
+
+/** The key the stand-in gives a check's own link. */
+const keyOf = (checkId: string) =>
+  new URL(standInUrl(checkId, 'http://localhost:3000/checks/done')).searchParams.get('key')!;
 
 type User = { id: string; email: string; emailVerified: boolean };
 
@@ -93,7 +98,19 @@ const devTools = {
       searchParams: Promise.resolve({}),
     }),
   'choosing a stand-in check’s result': () =>
-    standInResultAction(crypto.randomUUID(), 'identity', '/checks/done', form({ outcome: 'pass' })),
+    standInResultAction(
+      crypto.randomUUID(),
+      null,
+      'identity',
+      '/checks/done',
+      form({ outcome: 'pass' }),
+    ),
+  // BA-6: another check's key opens nothing.
+  'the stand-in check, with another check’s key': () =>
+    StandInCheckPage({
+      params: Promise.resolve({ checkId: madeUpCheck.id }),
+      searchParams: Promise.resolve({ key: keyOf(crypto.randomUUID()) }),
+    }),
 };
 
 describe('BA-1: the test copy on a public address', () => {
@@ -134,6 +151,29 @@ describe('BA-1: the test copy on a public address', () => {
       }
     });
   }
+
+  it('BA-6: the person whose stand-in check it is opens it, and passes it, through its own link', async () => {
+    // Not signed in, and not on Gaff's team: the link the stand-in sent them to is enough.
+    const key = keyOf(madeUpCheck.id);
+    expect(
+      await StandInCheckPage({
+        params: Promise.resolve({ checkId: madeUpCheck.id }),
+        searchParams: Promise.resolve({ key }),
+      }),
+    ).toBeTruthy();
+    const other = crypto.randomUUID();
+    await expect(
+      standInResultAction(
+        other,
+        keyOf(other),
+        'identity',
+        '/checks/done',
+        form({ outcome: 'pass' }),
+      ),
+    ).rejects.toMatchObject(REDIRECT);
+    // The key opens nothing else under /dev.
+    await expect(DevOutboxPage()).rejects.toMatchObject(NOT_FOUND);
+  });
 
   it('BA-1, AU1: the Google and Apple stand-in doesn’t exist, for anyone, staff included', async () => {
     expect(signInProviderModes()).toEqual({ google: 'off', apple: 'off' });

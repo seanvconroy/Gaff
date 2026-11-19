@@ -161,17 +161,40 @@ Gaff's AI does three tasks: it answers renters' questions from a letting's facts
 - **Attribution.** The data is © OpenStreetMap contributors (ODbL 1.0). The place search says so under its suggestions, and `/map-and-place-data` (linked under the search) credits it in full.
 - **Misses.** What renters typed that matched nothing is counted by day in `place_misses`, with no digits, person or device, and the nightly job deletes it after 30 days. The most common misses are the places to add as aliases.
 
+## The ID check (Stripe Identity)
+
+A chosen renter, and a private landlord at their first go-live, check their ID: a photo of a passport, driving licence or ID card, and a live selfie ([ADR-0020](adr/0020-id-check-on-stripe-identity-and-booking-mobile.md)). Gaff keeps only the result, the name and the date.
+
+- **The test copy can use Stripe's test mode**, so every tester passes the check the way a real person would, with Stripe's test documents and no real ID:
+  1. In the Stripe dashboard, in **test mode**, copy the secret key (`sk_test_…`) from **Developers**, **API keys**.
+  2. In **Developers**, **Webhooks**, add an endpoint at `https://<test copy address>/api/webhooks/stripe-identity` for the events `identity.verification_session.verified`, `identity.verification_session.requires_input`, `identity.verification_session.processing` and `identity.verification_session.canceled`, and copy its signing secret (`whsec_…`).
+  3. In Vercel, set these, then redeploy (the page's security policy lets the browser go on to Stripe only once it's set, and that is fixed when the app is built):
+
+     | Name | Value |
+     | --- | --- |
+     | `IDENTITY_PROVIDER` | `stripe` |
+     | `STRIPE_SECRET_KEY` | the `sk_test_…` key |
+     | `STRIPE_IDENTITY_WEBHOOK_SECRET` | the endpoint's `whsec_…` secret |
+
+  Without them, the stand-in is used: a Gaff page where the tester picks the result. On the test copy, the person whose check it is opens it through the link the stand-in sent them to; nothing else under `/dev` opens for them.
+- **Production uses Stripe's live keys**, once the founders have Stripe's DPA, the privacy notice names Stripe, and the solicitor has answered on consent to the selfie (Q51). Production refuses the stand-in.
+- **What happens at Stripe.** Gaff gives Stripe only the check's ID. Gaff never believes a webhook's contents: it reads the session from Stripe itself. A person has three tries; after that, they're told to reply to an email to talk to a person. Thirty days after each result, the nightly job asks Stripe to delete ("redact") the document and the selfie.
+
+## Texts, and the code to book a viewing
+
+A renter confirms their mobile with a six-digit text code before booking a viewing (P16), and the 2-hour reminder goes to that number. With `SMS_PROVIDER=fake` (the test copy, until Sinch is set up) no text is sent: the code is shown on the screen instead, on staging only. With Sinch's settings, it is texted.
+
 ## Good to know
 
 - **Who can open what.** The test copy has a public address, and Vercel's sign-in (Vercel Authentication) doesn't cover it: in **Settings**, **Deployment Protection**, it covers **preview deployments only**, so testers can use the test copy on any device and previews (which share its database) stay private. What keeps the test copy safe is Gaff itself:
-  - Everything under `/dev` that shows or changes anything (the Outbox, the test inbox, the stand-in checks) is for Gaff's own team only (`STAFF_EMAILS`) wherever email is really sent. Anyone else, signed in or not, gets "not found". `/dev/ui` stays open: it shows components with made-up words, and nothing from the database.
+  - Everything under `/dev` that shows or changes anything (the Outbox, the test inbox, the stand-in checks) is for Gaff's own team only (`STAFF_EMAILS`) wherever email is really sent. Anyone else, signed in or not, gets "not found". `/dev/ui` stays open: it shows components with made-up words, and nothing from the database. The one exception is a tester's own stand-in check, opened through its own link (see [The ID check](#the-id-check-stripe-identity)).
   - The Google and Apple stand-in exists only in local development and tests, never on staging or in production, so nobody can sign in as somebody else. Without real keys, those buttons aren't shown.
   - "Add test enquiries", in a live letting's menu, brings five made-up renters from Daft and MyHome, most with answers. Their mail goes to the Outbox.
   - Production, on Gaff's own domain, has the development tools off and no Outbox.
 - **Google and Apple sign-in** send the browser on to `accounts.google.com` and `appleid.apple.com`. The page's security policy allows each one once its keys are set, and it's fixed when the app is built: redeploy after adding them.
 - **Preview deployments** of other branches share the test database but never migrate it.
 - **Search engines don't index the test copy.** Every page says `noindex`, and `robots.txt` disallows everything, unless `SEARCH_INDEXING=on`, which is set in production alone (UX-LS-11). Leave it unset here.
-- **Settings left over from the earlier test copy** (`MARKETPLACE_PUBLIC`, `STORAGE_PROVIDER`, `STRIPE_SECRET_KEY`, `STRIPE_IDENTITY_WEBHOOK_SECRET`) are ignored and can be deleted. `IDENTITY_PROVIDER=stripe` isn't accepted yet: remove it, or set `stand_in`, until Stripe Identity is brought across. Sign in with Apple takes `APPLE_CLIENT_ID` with the team ID, key ID and private key the earlier copy used (`APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`: Gaff makes the client secret from them, BA-8), or with a static `APPLE_CLIENT_SECRET`. With `APPLE_CLIENT_ID` alone, the app won't start.
+- **Settings left over from the earlier test copy** (`MARKETPLACE_PUBLIC`, `STORAGE_PROVIDER`) are ignored and can be deleted. `IDENTITY_PROVIDER=stripe` with `STRIPE_SECRET_KEY` and `STRIPE_IDENTITY_WEBHOOK_SECRET` is Stripe Identity again (see [The ID check](#the-id-check-stripe-identity)); the earlier copy's webhook endpoint must point at `/api/webhooks/stripe-identity`. Sign in with Apple takes `APPLE_CLIENT_ID` with the team ID, key ID and private key the earlier copy used (`APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`: Gaff makes the client secret from them, BA-8), or with a static `APPLE_CLIENT_SECRET`. With `APPLE_CLIENT_ID` alone, the app won't start.
 - **Logs:** Vercel shows function logs per request. They hold IDs and counts, never personal data.
 - **Seeing the data:** Supabase's **Table Editor** shows Gaff's tables. Remember it's the test copy: made-up details only.
 
@@ -195,7 +218,8 @@ Before the first real renter (see [launch-checklist.md](launch-checklist.md)):
   | `MAIL_FROM_DOMAIN` | e.g. `mail.gaff.ie` |
   | SMS | the Sinch settings |
   | AI | `AI_PROVIDER=bedrock`, `AWS_REGION`, the AWS keys and `AI_MONTHLY_BUDGET_USD` (see [The AI](#the-ai)). Never `ANTHROPIC_API_KEY`: production refuses it |
-  | `IDENTITY_PROVIDER`, `INCOME_PROVIDER` | `none` |
+  | `IDENTITY_PROVIDER`, `STRIPE_SECRET_KEY`, `STRIPE_IDENTITY_WEBHOOK_SECRET` | `stripe`, the live secret key and the live webhook's secret (see [The ID check](#the-id-check-stripe-identity)), or `none` until Stripe's DPA is signed |
+  | `INCOME_PROVIDER` | `none` |
   | `PSRA_REGISTER_SOURCE`, `PSRA_REGISTER_URL` | `url`, and the address of the PSRA register's download, once its format has been checked (see "The PSRA register") |
   | `ADDRESS_SEARCH` | `off`: the address is typed into the manual fields. Autoaddress is added once its DPA is signed (Q40) |
   | `ADVERT_READER` | `on` (the default): a pasted advert is read with the AI provider above, Claude on Bedrock in the EU, unless `AI_TASKS_OFF` names `advert`. `off`: adding a letting offers only "Fill it in myself". Nothing is ever fetched from a link (Q31) |

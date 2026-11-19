@@ -15,6 +15,7 @@ import { signInOverview } from '@/server/auth/security';
 import { staffFrom } from '@/server/auth/staff';
 import { keptIdentityOf } from '@/server/identity/kept';
 import { personCheckOf } from '@/server/identity/person-checks';
+import { settlePersonIdentity } from '@/server/identity/provider-results';
 import { membersOf } from '@/server/auth/member';
 import { requirePerson } from '@/server/context/current-person';
 import { savedSearchesOf } from '@/server/saved/searches';
@@ -57,6 +58,8 @@ export default async function ProfilePage({
   const query = await searchParams;
   const { identity_problem } = query;
   const session = await currentSession();
+  // P54: back from Stripe's pages, a check of their own is read from Stripe if it's due.
+  await settlePersonIdentity(person.userId);
   const [kept, signIn, teams, saved, identity, redo] = await Promise.all([
     readRenterProfile(person.userId),
     // BA-8: how they sign in, and where they're signed in now.

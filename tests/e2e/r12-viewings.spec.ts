@@ -1,7 +1,7 @@
 import { devices, expect, test, type Browser } from '@playwright/test';
 import { daftEnquiry, myhomeEnquiry } from '../fixtures/emails';
 import { flowAtBothWidths } from './journeys';
-import { expectRenterPageAtBothWidths } from './renter';
+import { confirmMobileAndBook, expectRenterPageAtBothWidths, latestTextCodeFor } from './renter';
 import {
   createLettingThroughUi,
   expectAccessible,
@@ -138,24 +138,37 @@ test('R10, R11, R12, R13, R14: a person decides who views; renters book, move an
   await renter.emulateMedia({ colorScheme: 'light' });
   await expectRenterPageAtBothWidths(renter, { shots: 'wp12-live-choose-time' });
 
-  // UX-RN-7: the confirm step: the day, time and address, and one optional field, empty (Q12).
+  // UX-RN-7: the confirm step: the day, time and address. P16 (Q51): a new booking asks for her
+  // mobile, empty (Q12: the number from her enquiry is never filled in), to confirm by text code.
   const firstTime = (await times.first().innerText()).split('\n')[0]!.trim();
   await times.first().click();
   await expect(renter.getByRole('heading', { name: 'Book this viewing?' })).toBeVisible();
   await expect(renter.getByText(new RegExp(`^\\w+day \\d+ \\w+, ${firstTime}$`))).toBeVisible();
   await expect(renter.getByText('12 Ranelagh Road, Ranelagh, Dublin 6')).toBeVisible();
-  const mobile = renter.getByLabel('Mobile number for a text reminder');
+  const mobile = renter.getByLabel('Your mobile number');
   await expect(mobile).toHaveValue('');
-  await expectRenterPageAtBothWidths(renter, { shots: 'wp12-live-confirm-time' });
-  // A number that isn't one is said at the field, and nothing is booked.
+  await expectRenterPageAtBothWidths(renter, { shots: 'p16-confirm-mobile' });
+  // A number that isn't a mobile is said at the field, and nothing is sent.
   await mobile.fill('12');
-  await renter.getByRole('button', { name: 'Book this viewing' }).click();
+  await renter.getByRole('button', { name: 'Text me a code' }).click();
   await expect(
-    renter.getByText('That mobile number doesn’t look right. Check it, or leave it blank.'),
+    renter.getByText('That doesn’t look like a mobile number. Enter one like 087 123 4567.'),
   ).toBeVisible();
   await expectAccessible(renter);
-  await renter.getByLabel('Mobile number for a text reminder').fill('087 123 4567');
-  await renter.getByRole('button', { name: 'Book this viewing' }).click();
+  await renter.getByLabel('Your mobile number').fill('087 123 4567');
+  await renter.getByRole('button', { name: 'Text me a code' }).click();
+  // P16: the code screen: where it went, masked, and the six boxes.
+  await expect(renter.getByRole('heading', { name: 'Enter the code we texted you' })).toBeVisible();
+  await expect(renter.getByText(/to 087 ••• 4567\. It works for 10 minutes\./)).toBeVisible();
+  await expectRenterPageAtBothWidths(renter, { shots: 'p16-mobile-code' });
+  // A wrong code is said at the field, and nothing is booked.
+  const right = await latestTextCodeFor('087 123 4567');
+  await renter.getByLabel('The code from the text').fill(right === '000000' ? '111111' : '000000');
+  await expect(
+    renter.getByText('That code isn’t right. Check the text and try again.'),
+  ).toBeVisible();
+  await expectAccessible(renter);
+  await renter.getByLabel('The code from the text').fill(right);
 
   // UX-RN-8: booked is a confirmation: the time and address, the calendar, directions, and two
   // quiet actions. No form to move it unless she asks.
@@ -191,8 +204,7 @@ test('R10, R11, R12, R13, R14: a person decides who views; renters book, move an
   expect(newTime).not.toBe(firstTime);
   await times.first().click();
   await expect(renter.getByRole('heading', { name: 'Move to this time?' })).toBeVisible();
-  await expect(renter.getByLabel('Mobile number for a text reminder')).toHaveCount(0);
-  await expect(renter.getByText('087 123 4567')).toBeVisible();
+  await expect(renter.getByLabel('Your mobile number')).toHaveCount(0);
   await expectRenterPageAtBothWidths(renter, { shots: 'wp12-live-move-time' });
   await renter.getByRole('button', { name: 'Move my viewing' }).click();
   await expect(renter.getByRole('heading', { name: 'You’re booked' })).toBeVisible();
@@ -230,7 +242,10 @@ test('R10, R11, R12, R13, R14: a person decides who views; renters book, move an
   await screenshot(ciaran.page, '30-renter-place-offered');
   await expectRenterPageAtBothWidths(ciaran.page, { shots: 'wp12-live-place-offered' });
   await ciaran.page.getByRole('button', { name: 'Take this place' }).click();
-  await expect(ciaran.page.getByRole('heading', { name: 'You’re booked' })).toBeVisible();
+  // P16: he confirms a mobile first, then the code takes the place.
+  await expect(ciaran.page.getByRole('heading', { name: 'Book this viewing?' })).toBeVisible();
+  await expect(ciaran.page.getByRole('link', { name: 'Choose another time' })).toHaveCount(0);
+  await confirmMobileAndBook(ciaran.page);
   await ciaran.context.close();
 
   // Ciarán has Aoife's place now; she cancelled.

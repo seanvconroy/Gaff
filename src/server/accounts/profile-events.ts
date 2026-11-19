@@ -69,7 +69,11 @@ export const profileEventCatalogue = {
   'profile.identity_check_started': z.object({
     identityCheckId: z.uuid(),
     purpose: z.enum(['go_live', 'name_changed']),
+    /** P25: which try, of three. */
+    attempt: z.number().int().optional(),
   }),
+  /** P26: the ID provider deleted the document and selfie it held for this check. */
+  'profile.identity_check_redacted': z.object({ identityCheckId: z.uuid() }),
   'profile.identity_check_ended': z.object({
     identityCheckId: z.uuid(),
     outcome: z.enum(['passed', 'not_passed']),

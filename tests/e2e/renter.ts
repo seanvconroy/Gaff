@@ -206,8 +206,50 @@ export async function bookFirstTime(page: Page, mobile?: string): Promise<void> 
     .first()
     .click();
   await expect(page.getByRole('heading', { name: 'Book this viewing?' })).toBeVisible();
-  if (mobile) await page.getByLabel('Mobile number for a text reminder').fill(mobile);
-  await page.getByRole('button', { name: 'Book this viewing' }).click();
+  // P16: a new booking confirms a mobile by text code first.
+  if ((await page.getByLabel('Your mobile number').count()) > 0) {
+    await confirmMobileAndBook(page, mobile);
+  } else {
+    await page.getByRole('button', { name: 'Book this viewing' }).click();
+  }
+  await expect(page.getByRole('heading', { name: 'You’re booked' })).toBeVisible();
+}
+
+/** A made-up Irish mobile, different each time. */
+export const aMobile = () => `087${String(Math.random()).slice(2, 9)}`;
+
+/** "087 123 4567" as Gaff stores it: "+353871234567". */
+export const e164 = (mobile: string) => `+353${mobile.replace(/\s/g, '').slice(1)}`;
+
+/** P16: the newest code texted to a mobile, from the development outbox. */
+export async function latestTextCodeFor(mobile: string): Promise<string> {
+  const client = new pg.Client({ connectionString: E2E_DATABASE_URL });
+  await client.connect();
+  try {
+    const { rows } = await client.query<{ text: string }>(
+      `select text from dev_outbox
+       where to_address = $1 and text like 'Your Gaff code is %'
+       order by created_at desc limit 1`,
+      [e164(mobile)],
+    );
+    const code = /\d{6}/.exec(rows[0]?.text ?? '')?.[0];
+    if (!code) throw new Error(`No code has been texted to ${mobile}`);
+    return code;
+  } finally {
+    await client.end();
+  }
+}
+
+/**
+ * P16: on the confirm step of a new booking (or a place from the waiting list): gives a mobile,
+ * asks for the code, and enters it from the text. The six boxes send themselves, and book.
+ */
+export async function confirmMobileAndBook(page: Page, mobile = aMobile()): Promise<void> {
+  await page.getByLabel('Your mobile number').fill(mobile);
+  await page.getByRole('button', { name: 'Text me a code' }).click();
+  await expect(page.getByRole('heading', { name: 'Enter the code we texted you' })).toBeVisible();
+  const code = page.getByLabel('The code from the text');
+  await code.fill(await latestTextCodeFor(mobile));
   await expect(page.getByRole('heading', { name: 'You’re booked' })).toBeVisible();
 }
 

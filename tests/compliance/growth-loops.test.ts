@@ -113,6 +113,8 @@ describe('UX-GR-9: no loop uses a renter’s, owner’s or referee’s contact d
     'src/server/tenancy/rtb.ts': 'the organisation’s admins',
     // P4: the AI budget warning, to Gaff's own team (STAFF_EMAILS) and nobody else.
     'src/server/ai/usage.ts': 'Gaff’s own team',
+    // P16: the code that confirms a mobile, to the number the renter typed to book a viewing.
+    'src/server/viewings/mobile.ts': 'the mobile the renter just gave to book',
   };
 
   it('sends only from the places listed, each for its own reason', () => {

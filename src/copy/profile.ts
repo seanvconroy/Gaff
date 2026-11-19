@@ -184,6 +184,8 @@ export const profileCopy = {
     notPassed: 'That didn’t work this time. The ID check you kept is as it was. You can try again.',
     problems: {
       no_provider: 'The ID check can’t be started here yet.',
+      no_attempts_left:
+        'You’ve used your three tries at the ID check. The one you kept is as it was. Reply to any email from Gaff to talk to a person.',
     } as Record<string, string>,
   },
   /** UX-PF-1: someone signed in who has never kept anything. */

@@ -204,9 +204,14 @@ export const addLettingCopy = {
         gave_up: 'The check wasn’t finished.',
       } as Record<string, string>,
       tryAgain: 'You can try again now.',
+      /** P25: three tries, and it didn't pass. Gaff's team giving more is still to be built. */
+      noTriesLeft:
+        'You’ve used your three tries, so it can’t be started again from here. Reply to any email from Gaff and say you’d like to talk to a person. Someone at Gaff will answer you and help you put your home live.',
       next: 'Then you’ll come back here to put your home live.',
       problems: {
         no_provider: 'The ID check can’t be started here yet. Talk to us and we’ll sort it out.',
+        no_attempts_left:
+          'You’ve used your three tries at the ID check. Reply to any email from Gaff to talk to a person.',
         not_allowed: 'This check is only for someone letting their own home.',
         done: 'You’ve already confirmed it’s you.',
       } as Record<string, string>,

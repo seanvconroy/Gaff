@@ -1,5 +1,6 @@
-import { and, eq, inArray } from 'drizzle-orm';
-import { identityProvider, incomeProvider } from '@/adapters/checks';
+import { and, eq, inArray, sql } from 'drizzle-orm';
+import { incomeProvider } from '@/adapters/checks';
+import { identityProvider } from '@/adapters/identity';
 import { withOrg, withSystem, type Tx } from '@/db/client';
 import { applications, checks, lettings, messages, organisations } from '@/db/schema';
 import {
@@ -19,6 +20,7 @@ import {
   type CheckStatus,
 } from '@/domain/checks/checks';
 import { listerFrom } from '@/domain/frame/frame';
+import { ID_CHECK_NOTICE_VERSION, mayAttempt, redactAfter } from '@/domain/identity/attempts';
 import { waitingTooLong } from '@/domain/checks/review';
 import { checksBack, renterChecksDone } from '@/domain/funnels/steps';
 import { openJson, sealJson } from '@/lib/crypto';
@@ -142,6 +144,7 @@ export async function checksOf(tx: Tx, applicationId: string) {
       reason: checks.reason,
       refereeName: checks.refereeName,
       requestedAt: checks.requestedAt,
+      attempts: checks.attempts,
     })
     .from(checks)
     .where(eq(checks.applicationId, applicationId));
@@ -201,14 +204,21 @@ async function chosenRenter(token: string) {
   return { link };
 }
 
+export type StartProblem = 'link' | 'not_chosen' | 'done' | 'no_provider' | 'no_attempts_left';
+
 /**
  * R18: the renter starts their ID or income check. They go to the provider, and come back to a
  * page that says it's done. Their private link is never given to the provider.
+ *
+ * P17, P18, P25 (the ID check): one provider session for this check, reused for each try, as
+ * Stripe advises; three tries at most (`mayAttempt`, with its seam for more); and the version of
+ * the words they were shown before it started, recorded with the try.
  */
 export async function startProviderCheck(
   token: string,
   kind: 'identity' | 'income',
-): Promise<{ redirectUrl: string } | { problem: 'link' | 'not_chosen' | 'done' | 'no_provider' }> {
+  now: Date = new Date(),
+): Promise<{ redirectUrl: string } | { problem: StartProblem }> {
   const found = await chosenRenter(token);
   if (!found) return { problem: 'link' };
   const { link } = found;
@@ -223,33 +233,79 @@ export async function startProviderCheck(
   if (!check || !(CHOSEN as readonly string[]).includes(check.status))
     return { problem: 'not_chosen' };
   if (check.check.status === 'passed') return { problem: 'done' };
-  const provider = kind === 'identity' ? identityProvider() : incomeProvider();
+  const returnUrl = `${env().APP_URL}/checks/done?kind=${kind}`;
+  if (kind === 'income') {
+    const provider = incomeProvider();
+    if (!provider) return { problem: 'no_provider' };
+    const started = await provider.start({ checkId: check.check.id, returnUrl });
+    await markStarted(link, check.check, {
+      provider: env().INCOME_PROVIDER,
+      providerRef: started.providerRef,
+      now,
+    });
+    return { redirectUrl: started.redirectUrl };
+  }
+  const provider = identityProvider();
   if (!provider) return { problem: 'no_provider' };
+  if (!mayAttempt({ attempts: check.check.attempts, passed: false })) {
+    return { problem: 'no_attempts_left' };
+  }
+  const attempt = check.check.attempts + 1;
   const started = await provider.start({
     checkId: check.check.id,
-    returnUrl: `${env().APP_URL}/checks/done?kind=${kind}`,
+    kind: 'letting',
+    returnUrl,
+    // A session from another provider (the stand-in, before Stripe) can't be reused.
+    providerRef: check.check.provider === provider.name ? check.check.providerRef : null,
+    attempt,
   });
+  await markStarted(link, check.check, {
+    provider: provider.name,
+    providerRef: started.providerRef,
+    attempt,
+    now,
+  });
+  return { redirectUrl: started.redirectUrl };
+}
+
+/** The check is under way with its provider, and the record says so, in one transaction. */
+async function markStarted(
+  link: { organisationId: string; subjectId: string },
+  check: typeof checks.$inferSelect,
+  input: { provider: string; providerRef: string; attempt?: number; now: Date },
+): Promise<void> {
   await withOrg(link.organisationId, async (tx) => {
     await tx
       .update(checks)
       .set({
         status: 'in_progress',
-        provider: kind === 'identity' ? env().IDENTITY_PROVIDER : env().INCOME_PROVIDER,
-        providerRef: started.providerRef,
-        requestedAt: new Date(),
+        provider: input.provider,
+        providerRef: input.providerRef,
+        requestedAt: input.now,
         reason: null,
+        ...(input.attempt
+          ? {
+              attempts: input.attempt,
+              consentVersion: ID_CHECK_NOTICE_VERSION,
+              // P26, rule 9: a session nobody finishes is deleted at the provider too.
+              redactAfter: redactAfter(input.now),
+            }
+          : {}),
       })
-      .where(eq(checks.id, check.check.id));
+      .where(eq(checks.id, check.id));
     await recordEvent(tx, {
       organisationId: link.organisationId,
-      lettingId: check.check.lettingId,
+      lettingId: check.lettingId,
       actor: { type: 'renter', applicationId: link.subjectId },
       type: 'check.started',
-      subject: { type: 'check', id: check.check.id },
-      data: { checkId: check.check.id, kind },
+      subject: { type: 'check', id: check.id },
+      data: {
+        checkId: check.id,
+        kind: check.kind === 'identity' ? 'identity' : 'income',
+        ...(input.attempt ? { attempt: input.attempt } : {}),
+      },
     });
   });
-  return { redirectUrl: started.redirectUrl };
 }
 
 /**
@@ -277,6 +333,9 @@ export async function recordProviderResult(
   );
   if (!found || found.kind !== outcome.kind) return;
   const passed = outcome.kind === 'identity' ? outcome.result.verified : outcome.result.confirmed;
+  // P18: saying no on the provider's own consent screen doesn't count as one of the tries.
+  const declined =
+    outcome.kind === 'identity' && !outcome.result.verified && outcome.result.consentDeclined;
   const sealed = !passed
     ? null
     : outcome.kind === 'identity' && outcome.result.verified
@@ -293,6 +352,9 @@ export async function recordProviderResult(
         resultSealed: sealed,
         reason,
         completedAt: now,
+        // P26: the provider deletes the document and selfie 30 days after the result.
+        ...(outcome.kind === 'identity' ? { redactAfter: redactAfter(now) } : {}),
+        ...(declined ? { attempts: sql`greatest(${checks.attempts} - 1, 0)` } : {}),
       })
       .where(eq(checks.id, checkId));
     await recordEvent(tx, {

@@ -7,6 +7,8 @@ import {
   type RenterCheck,
 } from '@/domain/checks/renter-checks';
 import type { CheckKind, CheckStatus } from '@/domain/checks/checks';
+import { mayAttempt } from '@/domain/identity/attempts';
+import { maskMobile } from '@/domain/viewings/mobile';
 import { answersAsValues, answersInWords } from '@/domain/criteria/answers';
 import type { Criteria, CriterionQuestion } from '@/domain/criteria/criteria';
 import { homeFrom, listerFrom, type FrameHome, type Lister } from '@/domain/frame/frame';
@@ -18,12 +20,7 @@ import {
   type TenantStep,
   type TenantTask,
 } from '@/domain/tenancy/tenant-steps';
-import {
-  holdEndsInWords,
-  reminderNumber,
-  viewingDays,
-  type ViewingDay,
-} from '@/domain/viewings/choosing';
+import { holdEndsInWords, viewingDays, type ViewingDay } from '@/domain/viewings/choosing';
 import { env } from '@/lib/env';
 import { formatDate, formatDateTime, formatEuro } from '@/lib/format';
 import type { loadRenterPage } from './answers';
@@ -67,7 +64,10 @@ export interface RenterModel {
     booking: { id: string; slotId: string; when: string } | null;
     /** A place offered from the waiting list: when it is, and how long it's held. */
     place: { slotId: string; when: string; held: string | null } | null;
+    /** P16: the mobile they confirmed to book, as "087 ••• 4567"; reminders go to it. */
     reminderNumber: string | null;
+    /** P16: the number a code was just texted to, waiting for that code. */
+    pendingMobile?: string | null;
   };
   application: {
     earning: string;
@@ -84,6 +84,8 @@ export interface RenterModel {
       reason: string | null;
       refereeName: string | null;
       requestedOn: string | null;
+      /** P25: an ID check that didn't pass in three tries. */
+      noTriesLeft?: boolean;
     }>;
     referees: Array<'landlord' | 'employer'>;
     retentionDays: number;
@@ -193,7 +195,11 @@ export function renterModel(
                   : null,
             }
           : null,
-      reminderNumber: reminderNumber(application),
+      reminderNumber:
+        application.mobileConfirmedAt && application.phoneE164
+          ? maskMobile(application.phoneE164)
+          : null,
+      pendingMobile: application.mobilePending ? maskMobile(application.mobilePending) : null,
     },
     application: {
       earning: application.earning ?? '',
@@ -212,6 +218,10 @@ export function renterModel(
         reason: check.reason,
         refereeName: check.refereeName,
         requestedOn: check.requestedAt ? formatDate(check.requestedAt, now) : null,
+        noTriesLeft:
+          check.kind === 'identity' &&
+          check.status === 'not_passed' &&
+          !mayAttempt({ attempts: check.attempts ?? 0, passed: false }),
       })),
       referees: refereesToAsk(page.checks),
       retentionDays: options.retentionDays,

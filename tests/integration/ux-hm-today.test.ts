@@ -13,7 +13,6 @@ import { dashboardFor } from '@/server/dashboard/dashboard';
 import { createLetting } from '@/server/lettings/create-letting';
 import { sendMessage } from '@/server/messages/outbox';
 import { inviteToView } from '@/server/shortlist/invite';
-import { bookViewing } from '@/server/viewings/booking';
 import { daftEnquiry, gmailForwardingConfirmation } from '../fixtures/emails';
 import { aLetting } from '../fixtures/lettings';
 import {
@@ -24,6 +23,7 @@ import {
   deliverEmail,
   tokenInMessage,
   type Member,
+  bookAs,
 } from './helpers';
 
 const HOUR = 60 * 60_000;
@@ -283,7 +283,7 @@ describe('Today’s other blocks', () => {
     const [slot] = await withOrg(member.organisationId, (tx) =>
       tx.select().from(viewingSlots).where(eq(viewingSlots.lettingId, lettingId)).limit(1),
     );
-    await bookViewing(await tokenInMessage(member, renter, 'invitation'), slot!.id);
+    await bookAs(await tokenInMessage(member, renter, 'invitation'), slot!.id);
 
     // A week before the viewing: nothing today.
     expect((await dashboardFor(member)).viewingsToday).toEqual([]);

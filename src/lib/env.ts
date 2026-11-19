@@ -40,10 +40,15 @@ const schema = z
           .filter(Boolean),
       ),
     /**
-     * R18: ID and income checks. "stand_in" is a development page where a tester picks the
-     * result; "none" means no provider is connected yet, so the operator arranges the check.
+     * Q51 (ADR-0020): the ID check, a photo ID and a live selfie. "stripe" is Stripe Identity;
+     * "stand_in" is a development page where a tester picks the result; "none" means no
+     * provider, so the operator arranges the check. Production refuses the stand-in.
      */
-    IDENTITY_PROVIDER: z.enum(['none', 'stand_in']).default('stand_in'),
+    IDENTITY_PROVIDER: z.enum(['none', 'stand_in', 'stripe']).default('stand_in'),
+    /** Stripe's secret key (sk_test_… on the test copy), and the identity webhook's secret. */
+    STRIPE_SECRET_KEY: z.string().optional(),
+    STRIPE_IDENTITY_WEBHOOK_SECRET: z.string().optional(),
+    /** R18: the income check's stand-in, or "none", until documents replace it (Q51). */
     INCOME_PROVIDER: z.enum(['none', 'stand_in']).default('stand_in'),
     /** ADR-0005: key for check results, encrypted in the application. 32 bytes, base64. */
     DATA_ENCRYPTION_KEY: z
@@ -257,6 +262,17 @@ const schema = z
             code: 'custom',
             path: [key],
             message: `${key} can't be a stand-in in production`,
+          });
+        }
+      }
+    }
+    if (env.IDENTITY_PROVIDER === 'stripe') {
+      for (const key of ['STRIPE_SECRET_KEY', 'STRIPE_IDENTITY_WEBHOOK_SECRET'] as const) {
+        if (!env[key]) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is required for Stripe Identity`,
           });
         }
       }

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
 /**
- * BA-5 (the live line's M103, M119, M132; its ADR-0027 and ADR-0028, ADR-0019 and ADR-0020
+ * BA-5 (the live line's M103, M119, M132; its ADR-0027 and ADR-0028, ADR-0021 and ADR-0022
  * here): Google Maps is the one third-party script, approved for the search map and the lister's
  * pin (Q51). Its hosts are allowed only on the pages that show its map, only in a build whose map
  * is Google's, never on a preview copy; one place loads its script; and no other Google service

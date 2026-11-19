@@ -148,7 +148,7 @@ Gaff's AI does three tasks: it answers renters' questions from a letting's facts
 
 ## The search map (Google Maps)
 
-Renters see homes on Google's map beside the list (behind "Map" below 900px), and listers place each home's pin on it as they add it ("Where is it on the map?") and from Home ([ADR-0019](adr/0019-search-map-on-google-maps.md), [ADR-0020](adr/0020-google-script-only-on-map-pages.md), Q51). Until it's set up, a copy shows the stand-in map drawn from Gaff's own data, marked "Test map: not Google Maps", and production shows the list alone and asks for no pin. The map uses the **Maps JavaScript API only**, showing Gaff's own homes. Place suggestions never come from Google (the place index, below).
+Renters see homes on Google's map beside the list (behind "Map" below 900px), and listers place each home's pin on it as they add it ("Where is it on the map?") and from Home ([ADR-0021](adr/0021-search-map-on-google-maps.md), [ADR-0022](adr/0022-google-script-only-on-map-pages.md), Q51). Until it's set up, a copy shows the stand-in map drawn from Gaff's own data, marked "Test map: not Google Maps", and production shows the list alone and asks for no pin. The map uses the **Maps JavaScript API only**, showing Gaff's own homes. Place suggestions never come from Google (the place index, below).
 
 ### Setting it up
 

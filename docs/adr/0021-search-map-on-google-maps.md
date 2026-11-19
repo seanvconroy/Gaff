@@ -1,4 +1,4 @@
-# ADR-0019: The search map and the lister's pin are on Google Maps, with homes' own points
+# ADR-0021: The search map and the lister's pin are on Google Maps, with homes' own points
 
 - Status: Accepted (Q51 in open-questions.md). Brought across from the live line's ADR-0027 (its map part, decided by Sean on 8 November 2026, the other line's Q58), with the live map's build of 13 and 14 November. Replaces Q49's "the list alone" (UX-SR-8, OQ-7). Builds on ADR-0018 (Gaff's own place index).
 - Date: 2026-11-19

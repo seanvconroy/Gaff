@@ -13,7 +13,7 @@ import type { PinMapProps } from './PinPicker';
 import styles from './PinPicker.module.css';
 
 /**
- * M38: the lister's pin on Google's map (the Maps JavaScript API only; ADR-0019). The lister
+ * M38: the lister's pin on Google's map (the Maps JavaScript API only; ADR-0021). The lister
  * drags the pin, taps the map where the home is, or moves it with the arrow keys or buttons. No
  * geocoding, places or address service is called: the point is the lister's own.
  */

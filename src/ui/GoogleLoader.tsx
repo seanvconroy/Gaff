@@ -8,7 +8,7 @@ import type { MapSettings } from '@/lib/map';
 import { documentShowsMaps, reloading } from './MapBoundary';
 
 /**
- * ADR-0019: loads Google's Maps JavaScript API, and notices every way it can fail (M120), so
+ * ADR-0021: loads Google's Maps JavaScript API, and notices every way it can fail (M120), so
  * Gaff's own sentence replaces Google's error box:
  *
  * - `script`: the script didn't arrive (a blocker, the network, the content security policy);

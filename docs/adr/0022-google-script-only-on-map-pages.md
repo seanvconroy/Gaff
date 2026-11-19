@@ -1,6 +1,6 @@
-# ADR-0020: Google's script runs only in documents loaded for the map's pages
+# ADR-0022: Google's script runs only in documents loaded for the map's pages
 
-- Status: Accepted. Brought across from the live line's ADR-0028 (the live map's decision 12, 14 November 2026). Builds on ADR-0019. The cost in navigation is the founders' to confirm (the live map's S11).
+- Status: Accepted. Brought across from the live line's ADR-0028 (the live map's decision 12, 14 November 2026). Builds on ADR-0021. The cost in navigation is the founders' to confirm (the live map's S11).
 - Date: 2026-11-19
 
 ## Context

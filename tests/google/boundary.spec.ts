@@ -3,7 +3,7 @@ import { signUpOperator } from '../e2e/support';
 import { SEARCH, expectPolicyHolds, fits, hasKey, watch } from './support';
 
 /**
- * BA-5, M119 (the live line's ADR-0028, ADR-0020 here): Google's script runs only in a document
+ * BA-5, M119 (the live line's ADR-0028, ADR-0022 here): Google's script runs only in a document
  * loaded for a page that shows its map, and goes when the page does. A page's content security
  * policy comes with its document, and in-app links swap pages without one: so going between a
  * map page and any other page is a full page load, in both directions. These tests need no key:

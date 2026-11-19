@@ -14,7 +14,7 @@ import type { MapProviderProps } from './map-types';
 import styles from './SearchMap.module.css';
 
 /**
- * ADR-0019: Google Maps (the Maps JavaScript API only) for search. Only Gaff's own content goes
+ * ADR-0021: Google Maps (the Maps JavaScript API only) for search. Only Gaff's own content goes
  * on it: price pins, clusters and the searched street. Business markers are off in the Map ID's
  * style; Google's logo and terms are never covered. Loaded only when the map is on screen
  * (SearchMap), so renters' devices don't call Google otherwise (M119).

@@ -22,8 +22,8 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0016](0016-one-person-several-roles.md) | One person, several roles; a silent organisation for a private landlord; profiles outside every organisation | Accepted; extends 0004 |
 | [0017](0017-one-ai-provider-with-usage-budget-and-switches.md) | One AI provider (the Claude API on the test copy, Bedrock in Dublin in production) for three tasks, with a usage log, a monthly budget and switches | Proposed; amends 0009 |
 | [0018](0018-own-place-index-from-openstreetmap.md) | Search uses Gaff's own place index, built from OpenStreetMap and kept in Postgres | Accepted (Q51) |
-| [0019](0019-search-map-on-google-maps.md) | The search map and the lister's pin are on Google Maps, with homes' own points | Accepted (Q51) |
-| [0020](0020-google-script-only-on-map-pages.md) | Google's script runs only in documents loaded for the map's pages | Accepted |
+| [0021](0021-search-map-on-google-maps.md) | The search map and the lister's pin are on Google Maps, with homes' own points | Accepted (Q51) |
+| [0022](0022-google-script-only-on-map-pages.md) | Google's script runs only in documents loaded for the map's pages | Accepted |
 
 ## Template
 

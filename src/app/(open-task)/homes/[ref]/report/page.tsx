@@ -22,7 +22,13 @@ export default async function ReportPage({
   searchParams,
 }: {
   params: Promise<{ ref: string }>;
-  searchParams: Promise<{ sent?: string; gone?: string; limited?: string; by?: string; email?: string }>;
+  searchParams: Promise<{
+    sent?: string;
+    gone?: string;
+    limited?: string;
+    by?: string;
+    email?: string;
+  }>;
 }) {
   const [{ ref }, query] = await Promise.all([params, searchParams]);
   const back = isPublicRef(ref) ? homeHref(ref) : '/';

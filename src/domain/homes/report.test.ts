@@ -39,9 +39,9 @@ describe('UX-TS-3: reporting a listing', () => {
 
   it('M96: an email for the outcome is optional, and must be an address if given', () => {
     expect(listingReportSchema.parse({ reason: 'scam', email: '  ' }).email).toBeUndefined();
-    expect(
-      listingReportSchema.parse({ reason: 'scam', email: ' visitor@example.ie ' }).email,
-    ).toBe('visitor@example.ie');
+    expect(listingReportSchema.parse({ reason: 'scam', email: ' visitor@example.ie ' }).email).toBe(
+      'visitor@example.ie',
+    );
     const wrong = listingReportSchema.safeParse({ reason: 'scam', email: 'not an email' });
     expect(wrong.success).toBe(false);
     expect(wrong.error?.issues[0]?.path).toEqual(['email']);

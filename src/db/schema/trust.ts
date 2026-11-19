@@ -68,7 +68,10 @@ export const listingCases = pgTable(
       sql`(${t.decision} = 'hide_listing' and ${t.decisionReason} is not null and cardinality(${t.decisionFacts}) > 0)
         or (${t.decision} is distinct from 'hide_listing' and ${t.decisionReason} is null and ${t.decisionFacts} is null)`,
     ),
-    check('listing_cases_appeal_has_case', sql`(${t.kind} = 'appeal') = (${t.appealOf} is not null)`),
+    check(
+      'listing_cases_appeal_has_case',
+      sql`(${t.kind} = 'appeal') = (${t.appealOf} is not null)`,
+    ),
     systemPolicy('listing_cases_system'),
   ],
 ).enableRLS();

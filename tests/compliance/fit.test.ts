@@ -72,6 +72,8 @@ describe('UX-MT-3: the letting details line is Gaff’s, in fixed words, and can
         'furnished',
         // Why Gaff's team hid it: one of four fixed reasons, a code (UX-TS-4).
         'hiddenReason',
+        // BA-9: where a hidden listing stands with Gaff's team: one of four codes.
+        'hiddenStage',
         'myhomeUrl',
         'parking',
         'photosUrl',

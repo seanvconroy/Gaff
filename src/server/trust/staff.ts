@@ -466,7 +466,8 @@ export async function decideCase(
         .from(listingReports)
         .where(and(eq(listingReports.caseId, item.id), isNotNull(listingReports.outcomeEmail)))
         .limit(1);
-      if (asked) await enqueue(tx, 'send_account_email', { kind: 'report_outcome', caseId: item.id });
+      if (asked)
+        await enqueue(tx, 'send_account_email', { kind: 'report_outcome', caseId: item.id });
     } else {
       await recordEvent(tx, {
         ...base,
@@ -486,7 +487,11 @@ export async function decideCase(
       } else {
         await tx
           .update(lettings)
-          .set({ hiddenAt: letting.hiddenAt ?? now, hiddenReason: decision.reason, hiddenStage: 'final' })
+          .set({
+            hiddenAt: letting.hiddenAt ?? now,
+            hiddenReason: decision.reason,
+            hiddenStage: 'final',
+          })
           .where(eq(lettings.id, letting.id));
         await enqueue(tx, 'send_account_email', {
           kind: 'listing_kept',

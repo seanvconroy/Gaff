@@ -114,7 +114,9 @@ function CaseCard({ item }: { item: OpenCase }) {
           rows={[
             {
               label: 'Decided',
-              value: item.appealOf.decidedAt ? formatDateTime(item.appealOf.decidedAt) : 'Not recorded',
+              value: item.appealOf.decidedAt
+                ? formatDateTime(item.appealOf.decidedAt)
+                : 'Not recorded',
             },
             {
               label: 'Why',
@@ -272,11 +274,11 @@ export default async function InternalPage({
           Reported listings
         </h2>
         <p>
-          Every report is part of a case about a listing, and a person decides each one: a
-          suspected scam within four working hours, anything else within one working day. Hide a
-          listing that is a scam, has details that are wrong, or is unfair about who can apply,
-          and choose what you relied on. Its lister is emailed those reasons, and can ask Gaff to
-          look again once: someone other than you decides that.
+          Every report is part of a case about a listing, and a person decides each one: a suspected
+          scam within four working hours, anything else within one working day. Hide a listing that
+          is a scam, has details that are wrong, or is unfair about who can apply, and choose what
+          you relied on. Its lister is emailed those reasons, and can ask Gaff to look again once:
+          someone other than you decides that.
         </p>
         {cases.open.length === 0 ? <p>No case is waiting.</p> : null}
         {cases.open.map((item) => (

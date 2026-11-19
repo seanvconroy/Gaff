@@ -110,9 +110,7 @@ describe('M98, M106: a person decides, with reasons, and someone else decides an
       caseId,
       decision: 'no_action',
     });
-    expect(caseDecisionSchema.safeParse({ caseId, decision: 'pause_account' }).success).toBe(
-      false,
-    );
+    expect(caseDecisionSchema.safeParse({ caseId, decision: 'pause_account' }).success).toBe(false);
     expect(accountActionsBuilt).toBe(false);
   });
 

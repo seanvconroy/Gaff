@@ -466,10 +466,7 @@ async function sendReportOutcome(caseId: string, app: string): Promise<void> {
       sent.add(to);
     }
     await withSystem((tx) =>
-      tx
-        .update(listingReports)
-        .set({ outcomeEmail: null })
-        .where(eq(listingReports.id, report.id)),
+      tx.update(listingReports).set({ outcomeEmail: null }).where(eq(listingReports.id, report.id)),
     );
   }
 }

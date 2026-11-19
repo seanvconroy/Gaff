@@ -50,7 +50,7 @@ It takes about 20 minutes. Production uses the same steps with real providers; s
    | `GAFF_ENV` | `staging` |
 
    For the random values, use a password manager's generator, or run `openssl rand -hex 32` in a terminal.
-3. **Deploy.** The build applies the database migrations first, then builds the app. It takes 3 to 5 minutes.
+3. **Deploy.** The build applies the database migrations first, then loads the place index (below), then builds the app. It takes 3 to 5 minutes; the first deploy with the place index takes about half a minute more.
 
 Vercel deploys the repository's default branch, `claude/gaff-mvp`, as production. You can check this in **Settings**, **Environments**, **Production**, under **Branch Tracking**. Every push to that branch deploys again.
 
@@ -106,6 +106,21 @@ An agency finds itself by name on Gaff's copy of the PSRA's register of licensed
   4. Read the PSRA's re-use terms and check that the credit shown where an agency is picked meets them.
 - **If the file isn't what's expected, the refresh fails loudly** and Gaff's copy stays as it was. The log names the row and the column, never what the row said. A file that has lost more than half of its businesses is refused too, so a download cut short can't tell every agency its licence has lapsed.
 - **What a lapse does.** An agency missing from a week's register is marked lapsed and its admins are emailed. Its live lettings carry on. No new one goes live until the register lists it again.
+
+## The place index (towns, streets and landmarks)
+
+"Where" in search suggests places from Gaff's own place index, the `places` table ([ADR-0017](adr/0017-own-place-index-from-openstreetmap.md)): every county, city, town, village, area, Dublin district, townland, street and landmark in the Republic, about 100,000 places. It needs Postgres's `pg_trgm` extension, which the deploy's migrations add. If a migration stops with "pg_trgm is missing", enable **pg_trgm** in Supabase (**Database**, **Extensions**, in the `public` schema), then deploy again.
+
+- **Loading.** Each production deploy runs `pnpm places:load --deploy`. It loads `data/places/places.ndjson.gz` when that file's version is newer than the one in the database, all in one transaction (about 20 seconds); otherwise it only refreshes the curated base (`src/domain/places/curated.ts`), which takes a second or two. Without the file, an empty index gets the fixture: the curated base and a few streets and landmarks. Preview deployments leave the index alone. Locally, run `pnpm places:load` once after `pnpm db:migrate`.
+- **Building.** The file comes from OpenStreetMap, through Geofabrik's Ireland extract. Rebuild it every quarter, or when the misses below show gaps:
+  1. Install `osmium-tool` (for example `apt-get install osmium-tool` or `brew install osmium-tool`).
+  2. Run `pnpm places:build`. It downloads the extract (about 300 MB) and writes the file. Its version is the hour it was built (2026110819), and always above the file it replaces, so the next deploy loads it.
+  3. Run `pnpm places:check`. It tests the file against the places renters must find, in `scripts/places/test-set.csv`.
+  4. Commit the file. The next deploy loads it.
+
+  The GitHub workflow **Build the place index** (`.github/workflows/places.yml`) does the same every quarter, or on demand, and opens a pull request with the new file.
+- **Attribution.** The data is © OpenStreetMap contributors (ODbL 1.0). The place search says so under its suggestions, and `/map-and-place-data` (linked under the search) credits it in full.
+- **Misses.** What renters typed that matched nothing is counted by day in `place_misses`, with no digits, person or device, and the nightly job deletes it after 30 days. The most common misses are the places to add as aliases.
 
 ## Good to know
 

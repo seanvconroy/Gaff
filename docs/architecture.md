@@ -138,6 +138,8 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 | `waiting_enquiries`, `waitlist_offers` | An ask to view not yet confirmed from its email (dropped after 24 hours), and places offered from a waiting list | Yes, until confirmed or dropped |
 | `listing_reports` | A report of a listing: the home, the reason tapped, an optional note. Nothing about who reported | No |
 | `one_time_codes`, `confirmations`, `passkeys`, `accounts`, `verifications` | Sign-in by email code, passkey, Google or Apple (ADR-0015), and "Confirm it's you" before a sensitive change | The person's own |
+| `places` | Gaff's own place index (ADR-0017): every county, town, village, area, Dublin district, townland, street and landmark in the Republic, built from OpenStreetMap around a curated base and loaded on deploy. Reference data, with no organisation and no person | No |
+| `place_misses` | What renters typed under "Where" that found no place, counted by day, with no digits, person or device; deleted after 30 days (M124) | No |
 
 ### Data that belongs to a person (ADR-0016)
 

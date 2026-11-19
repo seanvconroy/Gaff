@@ -106,8 +106,6 @@ export function withinWords(km: number): string {
 
 /** M113, M57: the words of "Within" and of a map area, in the Filters sheet. */
 export const distanceCopy = {
-  /** Under "Within", for a street or landmark. */
-  hint: (place: string) => `How far from ${place.replace(/^Near /, '')}.`,
   /** A map area's sheet: there is nothing to set, only to remove. */
   box: 'Homes whose pin is in the area you searched on the map. Remove it to search everywhere again.',
 } as const;

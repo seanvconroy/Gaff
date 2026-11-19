@@ -34,11 +34,14 @@ export async function Results({
   filters,
   g,
   saver,
+  beside = false,
 }: {
   filters: SearchFilters;
   /** The search's place, looked up (`resolveSearch`). */
   g: Gazetteer;
   saver: Saver;
+  /** M57: the list is beside the map, and each card names its pin. */
+  beside?: boolean;
 }) {
   const { fits, close } = await findHomes(filters, g);
   const searching = hasFilters(filters);
@@ -56,6 +59,7 @@ export async function Results({
       saved={saver.signedIn && saver.savedRefs.includes(home.id)}
       signedIn={saver.signedIn}
       back={back}
+      onMap={beside}
     />
   );
   const keep = (primary: boolean, label?: string) =>
@@ -76,7 +80,9 @@ export async function Results({
           <h2 id="homes-fit" className="type-title">
             {searching ? fitHeading(fits.length) : searchCopy.homesNow}
           </h2>
-          <HomeGrid labelledBy="homes-fit">{fits.map((home) => card(home))}</HomeGrid>
+          <HomeGrid labelledBy="homes-fit" beside={beside}>
+            {fits.map((home) => card(home))}
+          </HomeGrid>
           {searching ? (
             <div className={styles.keepSearch}>{keep(false, savedCopy.alert.fromResults)}</div>
           ) : null}
@@ -95,7 +101,7 @@ export async function Results({
           <h2 id="homes-close" className="type-title">
             {searchCopy.close}
           </h2>
-          <HomeGrid labelledBy="homes-close">
+          <HomeGrid labelledBy="homes-close" beside={beside}>
             {close.map(({ home, miss }) => card(home, missWords(miss)))}
           </HomeGrid>
         </section>
@@ -113,6 +119,7 @@ function Card({
   saved,
   signedIn,
   back,
+  onMap,
 }: {
   home: HomeOnGaff;
   today: string;
@@ -121,6 +128,8 @@ function Card({
   saved: boolean;
   signedIn: boolean;
   back: string;
+  /** M117: the home has a pin on the map beside the list, for the two to light each other. */
+  onMap: boolean;
 }) {
   const line = cardLine(home);
   return (
@@ -130,6 +139,7 @@ function Card({
       line={line}
       details={[freeFrom(home.availableFrom, today), ...(note ? [note] : [])]}
       photo={home.cover}
+      mapKey={onMap && home.point ? home.id : undefined}
       action={
         <SaveHome
           homeRef={home.id}

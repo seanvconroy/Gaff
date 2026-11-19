@@ -13,6 +13,8 @@ import {
   placeOf,
   publicLister,
 } from '@/domain/homes/home-page';
+import { placedPoint, publicPoint } from '@/domain/map/pin';
+import type { Point } from '@/domain/places/geo';
 import { photoHref } from '@/ports/photo-store';
 
 /**
@@ -106,6 +108,9 @@ const columns = {
   addressLine1: lettings.addressLine1,
   addressLine2: lettings.addressLine2,
   eircode: lettings.eircode,
+  latitude: lettings.latitude,
+  longitude: lettings.longitude,
+  pointSource: lettings.pointSource,
   area: lettings.area,
   county: lettings.county,
   monthlyRentCents: lettings.monthlyRentCents,
@@ -241,6 +246,16 @@ export interface PlacedHome {
   home: PublicHome;
   addressLine2: string | null;
   eircode: string | null;
+  /**
+   * M125: where renters see it on the map: the lister's pin, or within about 150 metres of it
+   * for a private landlord's home (`publicPoint`). Null: no pin yet, so it's in the list alone.
+   */
+  point: Point | null;
+}
+
+function publicPointOf(row: Row): Point | null {
+  const placed = placedPoint(row);
+  return placed ? publicPoint(placed, row.listerKind) : null;
 }
 
 /** Every live home on Gaff, newest first, for search to match. The same homes as `publicHomes`. */
@@ -252,6 +267,7 @@ export async function publicHomesForSearch(): Promise<PlacedHome[]> {
       home: toPublicHome(home),
       addressLine2: home.row.addressLine2,
       eircode: home.row.eircode,
+      point: publicPointOf(home.row),
     }));
 }
 

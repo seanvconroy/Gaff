@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useId, useState } from 'react';
-import { chipLabel, searchCopy } from '@/copy/search';
+import { chipLabel, distanceCopy, searchCopy, withinWords } from '@/copy/search';
 import {
   type FilterKey,
   filterKeys,
@@ -11,6 +11,8 @@ import {
   type SearchFilters,
   searchHref,
   without,
+  WITHIN_KM,
+  writeBBox,
 } from '@/domain/search/filters';
 import type { WhereGroupKind, WhereOption, WhereSuggestions } from '@/server/search/where';
 import { Button } from '@/ui/Button';
@@ -93,12 +95,18 @@ function notFound(typed: string, near: boolean) {
 export function SearchControls({
   filters,
   placeName,
+  near,
   keepRent,
   today,
 }: {
   filters: SearchFilters;
   /** The search's place as the index names it: "Ranelagh, Dublin 6". */
   placeName: string;
+  /**
+   * M113: the place is a street, landmark or townland searched near, and how far by default:
+   * "Within" is offered only then.
+   */
+  near: { defaultKm: number } | null;
   keepRent: boolean;
   /** Today in Ireland: the earliest move-in date. */
   today: string;
@@ -115,8 +123,15 @@ export function SearchControls({
   const remove = () => {
     if (!panel || panel === 'all') return go({});
     const rest = without(filters, panel);
-    go(panel === 'furnished' ? without(rest, 'parking') : rest);
+    if (panel === 'furnished') return go(without(rest, 'parking'));
+    // A place goes with its "Within".
+    go(panel === 'where' ? without(rest, 'within') : rest);
   };
+  /** What a panel's "Show homes" keeps: a new place replaces a map area and its distance. */
+  const kept = (open: Exclude<Panel, 'all'>): SearchFilters =>
+    open === 'where'
+      ? without(without(without(filters, 'box'), 'within'), 'where')
+      : without(filters, open);
   return (
     <>
       <FilterChips
@@ -132,11 +147,10 @@ export function SearchControls({
           panel={panel}
           filters={filters}
           placeName={placeName}
+          near={near}
           today={today}
           onClose={() => setPanel(null)}
-          onShow={(next) =>
-            go(panel === 'all' ? next : { ...without(filters, panel), ...pick(next, panel) })
-          }
+          onShow={(next) => go(panel === 'all' ? next : { ...kept(panel), ...pick(next, panel) })}
           onRemove={remove}
         />
       ) : null}
@@ -158,6 +172,7 @@ function FilterSheet({
   panel,
   filters,
   placeName,
+  near,
   today,
   onClose,
   onShow,
@@ -166,6 +181,7 @@ function FilterSheet({
   panel: Panel;
   filters: SearchFilters;
   placeName: string;
+  near: { defaultKm: number } | null;
   today: string;
   onClose: () => void;
   onShow: (filters: SearchFilters) => void;
@@ -190,9 +206,13 @@ function FilterSheet({
       return;
     }
     const home = form.getAll('home');
+    // A map area stays until a place is chosen in its stead (it has no field of its own here).
+    const area = !where && filters.box ? writeBBox(filters.box) : undefined;
     onShow(
       filtersFromParams({
         where: where || undefined,
+        km: where && where === filters.where ? text('km') : undefined,
+        area,
         max,
         beds: text('beds'),
         from: text('from'),
@@ -249,6 +269,15 @@ function FilterSheet({
             credit={{ text: searchCopy.where.credit, href: '/map-and-place-data' }}
           />
         ) : null}
+        {shows('within') && near && where === filters.where ? (
+          <Chips
+            name="km"
+            legend={words.within}
+            options={WITHIN_KM.map((km) => ({ value: String(km), label: withinWords(km) }))}
+            defaultValue={String(filters.within ?? near.defaultKm)}
+          />
+        ) : null}
+        {panel === 'box' ? <p>{distanceCopy.box}</p> : null}
         {shows('beds') ? (
           <Chips
             name="beds"

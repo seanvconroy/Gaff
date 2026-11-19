@@ -68,6 +68,16 @@
   text-decoration: underline;
 }
 
+/* M117: the home whose pin is pointed at or chosen on the map. */
+.card[data-lit] .title {
+  text-decoration: underline;
+}
+
+.card[data-lit] .photo {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .line {
   color: var(--color-ink-muted);
 }
@@ -107,5 +117,9 @@
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--space-8) var(--space-6);
+  }
+
+  .grid[data-beside] {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   }
 }

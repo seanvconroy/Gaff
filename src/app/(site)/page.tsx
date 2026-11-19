@@ -3,20 +3,32 @@ import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
+import { mapWords } from '@/copy/map';
 import { placeDataCopy } from '@/copy/place-data';
 import { searchCopy } from '@/copy/search';
 import { listAHomeHref, listAHomeSignedOutHref } from '@/domain/navigation/context';
 import { firstScreenRedirect } from '@/domain/navigation/context';
-import { filtersFromParams, hasFilters, searchHref } from '@/domain/search/filters';
+import { mapAreaOf } from '@/domain/map/camera';
+import { isLikelyBot } from '@/domain/map/robots';
+import {
+  filtersFromParams,
+  filtersToParams,
+  hasFilters,
+  searchHref,
+} from '@/domain/search/filters';
 import { irishToday } from '@/lib/format';
+import { mapSettings } from '@/lib/map';
 import { currentPerson } from '@/server/context/current-person';
 import { enquiriesNeedingThem } from '@/server/renter/enquiries';
 import { savedHomeRefs } from '@/server/saved/homes';
 import { keepsSearch } from '@/server/saved/searches';
+import { defaultNearMetres } from '@/domain/search/places';
 import { resolveSearch } from '@/server/search/where';
+import { ListAndMap } from '@/ui/ListAndMap';
 import { SearchBox } from '@/ui/SearchBox';
 import { searchWords } from './_search/actions';
 import { Results, ResultsLoading, type Saver } from './_search/Results';
+import { ResultsMap } from './_search/ResultsMap';
 import { SearchControls } from './_search/SearchControls';
 import styles from './_search/search.module.css';
 
@@ -33,9 +45,9 @@ type Query = Record<string, string | string[] | undefined>;
  * A search is its address (UX-SR-12): the filters' values and nothing else. Nobody needs an
  * account, and nothing is recorded against anyone (UX-SR-11).
  *
- * NOT HERE: the map beside the results (UX-SR-8). It isn't practical to serve one from Gaff's
- * own copy of OpenStreetMap yet, so the list stands alone; why, and what it would take, is the
- * answer to OQ-7 in docs/open-questions.md (Q49).
+ * UX-SR-8, M57 (BA-5, Q51): the map beside the results at 900px and up, and behind "Map" below
+ * it, on Google Maps where it's set up (the stand-in otherwise). The list is complete without it.
+ * There is no map for robots (M132), or where the map is switched off (M135).
  */
 export default async function FirstScreen({ searchParams }: { searchParams: Promise<Query> }) {
   const [person, query] = await Promise.all([currentPerson(), searchParams]);
@@ -50,7 +62,7 @@ export default async function FirstScreen({ searchParams }: { searchParams: Prom
   if (onwards) redirect(onwards);
 
   // A place the index doesn't know is left out of the search (UX-SR-12).
-  const { filters, g, placeName } = await resolveSearch(filtersFromParams(query));
+  const { filters, g, placeName, where } = await resolveSearch(filtersFromParams(query));
   const searching = hasFilters(filters);
   const unclear = query.unclear === '1' && !searching;
   // States table: the words were nearly a place's name, so its name is offered.
@@ -63,6 +75,13 @@ export default async function FirstScreen({ searchParams }: { searchParams: Prom
         keepsSearch: searching ? await keepsSearch(person.userId, filters) : false,
       }
     : { signedIn: false };
+  // M132: no map for robots, so Google's script never loads and no map load is billed for them.
+  const map = isLikelyBot((await headers()).get('user-agent')) ? null : mapSettings();
+  const results = (beside: boolean) => (
+    <Suspense key={searchHref(filters)} fallback={<ResultsLoading />}>
+      <Results filters={filters} g={g} saver={saver} beside={beside} />
+    </Suspense>
+  );
   return (
     <div className={styles.page}>
       <SearchBox
@@ -89,14 +108,31 @@ export default async function FirstScreen({ searchParams }: { searchParams: Prom
         <SearchControls
           filters={filters}
           placeName={placeName}
+          near={
+            where?.kind === 'near' ? { defaultKm: defaultNearMetres(where.place, g) / 1000 } : null
+          }
           keepRent={rent === '1'}
           today={irishToday()}
         />
         <p className={styles.promise}>{searchCopy.promise}</p>
       </SearchBox>
-      <Suspense key={searchHref(filters)} fallback={<ResultsLoading />}>
-        <Results filters={filters} g={g} saver={saver} />
-      </Suspense>
+      {map ? (
+        <ListAndMap
+          words={{ showMap: mapWords.showMap, showList: mapWords.showList }}
+          list={results(true)}
+          map={
+            <ResultsMap
+              settings={map}
+              area={mapAreaOf(where, filters.box)}
+              query={new URLSearchParams(filtersToParams(filters)).toString()}
+              filters={filters}
+              keepRent={rent === '1'}
+            />
+          }
+        />
+      ) : (
+        results(false)
+      )}
       <p className={styles.foot}>
         {searchCopy.foot.line}{' '}
         <Link href={person ? listAHomeHref : listAHomeSignedOutHref}>{searchCopy.foot.action}</Link>

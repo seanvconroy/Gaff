@@ -1,5 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { resetEnvForTests } from '@/lib/env';
 import { standInKeyMatches, standInUrl } from './stand-in';
+
+// The key is signed with AUTH_SECRET: unit tests run with no .env loaded, as CI runs them.
+beforeAll(() => {
+  vi.stubEnv('DATABASE_URL', 'postgres://gaff:gaff@localhost:5432/unused');
+  vi.stubEnv('APP_URL', 'https://gaff.test');
+  vi.stubEnv('AUTH_SECRET', 'unit-test-secret-that-is-at-least-32-characters');
+  resetEnvForTests();
+});
+afterAll(() => {
+  vi.unstubAllEnvs();
+  resetEnvForTests();
+});
 
 const checkId = '3f0c7a52-8a43-4c4b-9a64-0b7b1c2b5d10';
 const other = '6a1d0e7c-2b9f-4d8a-8e5c-1f2a3b4c5d6e';

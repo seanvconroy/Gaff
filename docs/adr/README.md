@@ -28,7 +28,7 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0022](0022-google-script-only-on-map-pages.md) | Google's script runs only in documents loaded for the map's pages | Accepted |
 | [0023](0023-photo-pipeline.md) | The photo pipeline: every photo made again upright, clean, at fixed WebP sizes with a hash; floor plans; straight to Supabase Storage | Accepted (M43, M44) |
 | [0024](0024-reports-handled-as-cases.md) | Reports handled as cases: due times in working hours, an automatic hide on strong scam signals, a person's decision with a fixed statement of reasons, one appeal decided by someone else | Accepted |
-| [0025](0025-checks-at-going-public.md) | Checks as a home goes public: contact details refused at the field, risk signals and the AI's wording check hold it for a person as a case; pausing a lister | Accepted (M29, M45, M48, M107, P12 to P14) |
+| [0027](0027-checks-at-going-public.md) | Checks as a home goes public: contact details refused at the field, risk signals and the AI's wording check hold it for a person as a case; pausing a lister | Accepted (M29, M45, M48, M107, P12 to P14) |
 
 ## Template
 

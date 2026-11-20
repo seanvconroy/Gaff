@@ -1,6 +1,6 @@
-# ADR-0025: Checks as a home goes public, holds as cases, and pausing a lister
+# ADR-0027: Checks as a home goes public, holds as cases, and pausing a lister
 
-- Status: Accepted (brought across from the live line's M29, M45, M46, M48, M107 and P12 to P14, and its ADR-0023 and ADR-0025, on 20 November 2026; Q53)
+- Status: Accepted (brought across from the live line's M29, M45, M46, M48, M107 and P12 to P14, and its ADR-0023 and ADR-0027, on 20 November 2026; Q53)
 - Date: 2026-11-20
 
 ## Context

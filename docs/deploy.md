@@ -118,7 +118,7 @@ An agency finds itself by name on Gaff's copy of the PSRA's register of licensed
 
 ## The AI
 
-Gaff's AI does four tasks: it answers renters' questions from a letting's facts (`answers`), reads a pasted advert into a letting (`advert`), reads an operator's question about who has enquired (`people`), and checks a public home's description for unfair wording the word list misses (`wording`, [ADR-0025](adr/0025-checks-at-going-public.md)). All four go through one adapter and one log ([ADR-0017](adr/0017-one-ai-provider-with-usage-budget-and-switches.md)). Where it can't help, people take over: questions go to the letting team, the advert is filled in by hand, the people question gets its fixed reply, and a home goes on gaff.ie on the word list alone.
+Gaff's AI does four tasks: it answers renters' questions from a letting's facts (`answers`), reads a pasted advert into a letting (`advert`), reads an operator's question about who has enquired (`people`), and checks a public home's description for unfair wording the word list misses (`wording`, [ADR-0027](adr/0027-checks-at-going-public.md)). All four go through one adapter and one log ([ADR-0017](adr/0017-one-ai-provider-with-usage-budget-and-switches.md)). Where it can't help, people take over: questions go to the letting team, the advert is filled in by hand, the people question gets its fixed reply, and a home goes on gaff.ie on the word list alone.
 
 - **The test copy and development use the Claude API**, with the founders' credits and made-up details only. Production refuses it: real renters' data never goes there.
 
@@ -145,7 +145,7 @@ Gaff's AI does four tasks: it answers renters' questions from a letting's facts 
 
 - **Every call is logged** in the `ai_calls` table: its task, model, prompt version, tokens, estimated cost, time and outcome, never its words. Only Gaff's own jobs read it. The nightly job deletes rows over 12 months old. In Supabase's **SQL Editor**, `select task, outcome, count(*), sum(cost_micros) / 1e6 as dollars from ai_calls where occurred_at >= date_trunc('month', now()) group by 1, 2` shows the month so far.
 - **Before changing a prompt or the model,** run its golden set against the real model: `pnpm evals` prints what it would cost, and `pnpm evals advert --confirm` (or `answers`, `people`) runs it and saves the results under `tests/evals/results/`. Commit them with the change. Evals never run in CI. The `wording` set has not been run against the real model yet: run `pnpm evals wording --confirm` on the test copy before relying on it.
-- **Held listings (ADR-0025).** A home the checks hold waits on `/internal` under "Reported listings", due in four working hours (one working day for wording alone). Someone on `STAFF_EMAILS` releases it or keeps it off; a second person decides any appeal. The same page can pause a lister's listings after a decided case.
+- **Held listings (ADR-0027).** A home the checks hold waits on `/internal` under "Reported listings", due in four working hours (one working day for wording alone). Someone on `STAFF_EMAILS` releases it or keeps it off; a second person decides any appeal. The same page can pause a lister's listings after a decided case.
 
 ## The search map (Google Maps)
 

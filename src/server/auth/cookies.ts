@@ -12,6 +12,7 @@ import { env } from '@/lib/env';
  * | --- | --- | --- |
  * | `gaff_code_sign_in` | The random key a sign-in code is tied to, by email or by text (UX-SI-2, UX-SI-3, UX-SI-13). Also set on the way to Google or Apple, for the code that may follow (UX-SI-15) | 15 minutes |
  * | `gaff_code_confirm` | The same, for a code that confirms it's you (UX-SI-10) | 15 minutes |
+ * | `gaff_code_mobile` | The same, for the code texted to a number being added on Profile (UX-SI-13) | 15 minutes |
  * | `gaff_confirmed` | A random grant: this browser confirmed, for one action (UX-SI-10) | 5 minutes |
  * | `gaff_last_method` | `google`, `apple`, `email_code`, `sms_code` or `passkey` (UX-SI-6) | 400 days |
  * | `gaff_passkey` | `later` after "Not now", `added` after adding a passkey (UX-SI-4) | 30 or 400 days |
@@ -20,6 +21,7 @@ import { env } from '@/lib/env';
 export const cookieNames = {
   signInCode: 'gaff_code_sign_in',
   confirmCode: 'gaff_code_confirm',
+  mobileCode: 'gaff_code_mobile',
   confirmed: 'gaff_confirmed',
   lastMethod: 'gaff_last_method',
   passkey: 'gaff_passkey',

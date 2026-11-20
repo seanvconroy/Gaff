@@ -1,10 +1,11 @@
 import { and, eq, ne } from 'drizzle-orm';
-import { db } from '@/db/client';
+import { signInCodeText } from '@/copy/sign-in';
+import { db, type Tx } from '@/db/client';
 import { signInMobiles } from '@/db/schema';
 import { SIGN_IN_TEXTS_WINDOW_SECONDS } from '@/domain/auth/limits';
 import { mobileSignInMode, mobileStillVouches, type MobileSignInMode } from '@/domain/auth/mobile';
 import { env, type Env } from '@/lib/env';
-import { provenMobile } from './codes';
+import { provenMobile, sendCode, tryCode, type SendCodeResult } from './codes';
 import { countTry, triesSoFar } from './limits';
 import { noteSignInChangeAfter } from './security';
 
@@ -84,10 +85,15 @@ export async function signInMobileOf(userId: string): Promise<string | null> {
 export async function joinMobile(
   userId: string,
   mobile: string,
-  options: { quiet?: boolean } = {},
+  options: {
+    quiet?: boolean;
+    /** Runs first, in the same transaction: spending a "Confirm it's you" (UX-SI-10). */
+    within?: (tx: Tx) => Promise<void>;
+  } = {},
   now = new Date(),
 ): Promise<'joined' | 'already'> {
   const outcome = await db().transaction(async (tx) => {
+    await options.within?.(tx);
     const [mine] = await tx
       .select()
       .from(signInMobiles)
@@ -115,4 +121,46 @@ export async function joinMobile(
     await noteSignInChangeAfter(userId, 'added', 'mobile');
   }
   return outcome.was;
+}
+
+/**
+ * UX-SI-13: adding a mobile number from Profile, signed in. The code is for this person and this
+ * number together, so a code asked for by one person is no use to another, or for another number.
+ */
+const addingSubject = (userId: string, mobile: string) => `${userId}:${mobile}`;
+
+/** Texts the signed-in person a code to the number they want to add, tied to this browser. */
+export function sendAddMobileCode(
+  userId: string,
+  mobile: string,
+  browserKey: string | null,
+): Promise<SendCodeResult> {
+  const host = new URL(env().APP_URL).hostname;
+  return sendCode({
+    purpose: 'add_mobile',
+    subject: addingSubject(userId, mobile),
+    to: mobile,
+    channel: 'sms',
+    text: (code) => signInCodeText(code, host),
+    browserKey,
+  });
+}
+
+/**
+ * One try at that code. The right one joins the number to the person, in the transaction that
+ * spends their "Confirm it's you" (`within`). The number leaves anyone else who had it: the
+ * person adding it holds the phone.
+ */
+export async function addMobileWithCode(
+  userId: string,
+  browserKey: string | null,
+  code: string,
+  within: (tx: Tx) => Promise<void>,
+): Promise<'added' | 'wrong' | 'finished'> {
+  const tried = await tryCode({ purpose: 'add_mobile', browserKey, code });
+  if (tried.result !== 'correct') return tried.result;
+  const [owner, mobile] = tried.subject.split(':');
+  if (owner !== userId || !mobile) return 'finished';
+  await joinMobile(userId, mobile, { within });
+  return 'added';
 }

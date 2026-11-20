@@ -70,7 +70,7 @@ An address the provider says it never checked is still refused, and nothing is s
 - The sign-in screen's order changes (the field first), and its field's label where texts are sent.
 - The email about a refused Google or Apple sign-in (`sign_in_refused`) is now sent only where no code could be.
 - New fixed wording for the solicitor: the text, the two lines the sign-in email gains, the "mobile number added/removed" security email, and the privacy notice's paragraph on mobile numbers and Sinch.
-- A mobile number is added by signing in with it. Adding one from Profile, signed in, isn't built.
+- A mobile number is added by signing in with it, or on Profile while signed in: "Confirm it's you", then a code texted to the number (`add_mobile`, a code for that person and that number together). Either way the number leaves anyone else who had it, who is told.
 - Production needs Sinch's settings (it already refuses the fake sender), a sender registered for Ireland, and a spend cap at Sinch (launch checklist).
 - A text sign-in is only as safe as the phone number. That is accepted for getting in, and bounded by the 180 days and by what "Confirm it's you" protects. If operators' accounts should need more than a text, that is one condition in `signInWith` (Q60).
 

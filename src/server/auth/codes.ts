@@ -21,7 +21,8 @@ import { env } from '@/lib/env';
 
 /**
  * UX-SI-2: one-time codes, stored and sent. One store serves every use of a code: signing in,
- * confirming it's you again (UX-SI-10), and opening a private link's sensitive page (UX-SI-12).
+ * confirming it's you again (UX-SI-10), opening a private link's sensitive page (UX-SI-12), and
+ * adding a mobile number on Profile (UX-SI-13).
  * The rules (10 minutes, five tries, a new one after 30 seconds) are in src/domain/auth/codes.ts.
  *
  * What keeps a code safe:
@@ -34,7 +35,7 @@ import { env } from '@/lib/env';
  *   text, three and ten (UX-SI-13).
  * - Rows are deleted a day after they're sent, by the retention job (rule 9).
  */
-export type CodePurpose = 'sign_in' | 'confirm' | 'private_link';
+export type CodePurpose = 'sign_in' | 'confirm' | 'private_link' | 'add_mobile';
 
 /** UX-SI-3: where the sign-in email's button points. The route there finishes the sign-in. */
 export const SIGN_IN_LINK_PATH = '/sign-in/open';

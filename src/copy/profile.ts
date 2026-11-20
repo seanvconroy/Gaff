@@ -213,6 +213,18 @@ export const profileCopy = {
     mobile: 'Mobile number',
     mobileNone: 'Not added',
     mobileRemoved: 'Mobile number removed.',
+    mobileAdded: 'Mobile number added. You can sign in with it now.',
+    /** The sheet that adds one: the number, then the code texted to it. */
+    addMobile: {
+      title: 'Add a mobile number',
+      lead: 'Sign in with a code by text. We text the number once now, to check it’s yours.',
+      label: 'Mobile number',
+      send: 'Text me a code',
+      sending: 'Sending your code…',
+      codeLabel: 'Six-digit code',
+      checking: 'Checking…',
+      different: 'Use a different number',
+    },
     connectedOn: (date: string) => `Connected on ${date}`,
     notConnected: 'Not connected',
     connect: 'Connect',

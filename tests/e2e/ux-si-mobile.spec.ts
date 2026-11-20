@@ -265,3 +265,64 @@ test('UX-SI-13: a number that can’t be texted is said at the field, and other 
   await page.getByRole('link', { name: 'Use a different number' }).click();
   await expect(page.getByRole('heading', { name: 'Sign in or create an account' })).toBeVisible();
 });
+
+test('UX-SI-13: a signed-in person adds a mobile number on Profile, and signs in with it', async ({
+  browser,
+}) => {
+  for (const width of widths) {
+    const context = await browser.newContext({ viewport: viewport(width), locale: 'en-IE' });
+    const page = await context.newPage();
+    const email = await signUpRenter(page);
+    const [person] = await peopleWith(email);
+    const mobile = uniqueMobile();
+
+    await page.goto('/profile');
+    const signIn = page.getByRole('region', { name: 'Sign-in', exact: true });
+    await expect(signIn.getByText('Not added')).toBeVisible();
+    await signIn.getByRole('button', { name: 'Add Mobile number' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Add a mobile number' });
+    await expect(sheet.getByLabel('Country code')).toHaveValue('IE');
+    await expectAccessible(page);
+    await page.screenshot({ path: `screenshots/ux-si-profile-add-mobile-${width}.png` });
+
+    // Not a mobile number: said at the field, and nothing is texted.
+    await sheet.getByLabel('Mobile number').fill('087 12');
+    await sheet.getByRole('button', { name: 'Text me a code' }).click();
+    await expect(sheet.getByLabel('Mobile number')).toHaveAccessibleDescription(
+      /Enter a mobile number, like 087 123 4567/,
+    );
+
+    // A change to how they sign in: "Confirm it's you" first, then the text goes.
+    await sheet.getByLabel('Mobile number').fill(mobile.typed);
+    await sheet.getByRole('button', { name: 'Text me a code' }).click();
+    await confirmItsYou(page);
+    await expect(
+      sheet.getByText(`We texted a six-digit code to ${mobile.shown}.`, { exact: false }),
+    ).toBeVisible();
+    await expectAccessible(page);
+    await page.screenshot({ path: `screenshots/ux-si-profile-add-mobile-code-${width}.png` });
+
+    // A wrong code is said at the field; the right one adds the number.
+    const code = await latestTextCodeFor(mobile.e164);
+    await sheet.getByLabel('Six-digit code').fill(wrongCodeFor(code));
+    await expect(sheet.getByLabel('Six-digit code')).toHaveAccessibleDescription(
+      /That code isn’t right\. Check the text and try again\./,
+    );
+    await sheet.getByLabel('Six-digit code').fill(code);
+    await expect(page.getByText('Mobile number added. You can sign in with it now.')).toBeVisible();
+    await expect(sheet).toHaveCount(0);
+    await expect(signIn.getByText(`087 ••• ${mobile.e164.slice(-4)}`)).toBeVisible();
+    expect(await ownerOf(mobile.e164)).toBe(person!.id);
+
+    // And the number signs them in, with no email asked for.
+    await signOutHere(context);
+    await page.goto('/sign-in');
+    await field(page).fill(mobile.typed);
+    await pressContinue(page);
+    await onCodeScreen(page);
+    await page.getByLabel('Six-digit code').fill(await latestTextCodeFor(mobile.e164));
+    await signedIn(page);
+    expect(await peopleWith(email)).toEqual([person]);
+    await context.close();
+  }
+});

@@ -138,11 +138,12 @@ export const oneTimeCodes = pgTable(
   'one_time_codes',
   {
     id: uuid().primaryKey().defaultRandom(),
-    /** `sign_in`, `confirm` or `private_link`. */
+    /** `sign_in`, `confirm`, `private_link` or `add_mobile`. */
     purpose: text().notNull(),
     /**
      * Who the code is for: the email address or, by text, the mobile number (sign-in), the
-     * person and the action (confirm), or the hash of the link's token (private link).
+     * person and the action (confirm), the hash of the link's token (private link), or the
+     * person and the number (adding a mobile).
      */
     subject: text().notNull(),
     /** UX-SI-13: how it was sent: `email`, or `sms` for a text to a mobile. */

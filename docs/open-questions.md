@@ -496,7 +496,7 @@ Sean, on 20 November 2026, with Airbnb's sign-in as the standard: sign up or sig
 - **A text alone opens any account, an agent's included.** "Confirm it's you" stays a passkey or an email code, so a taken-over number can't change where tenants pay or how the person signs in, but it could read what the account can read. If people who let homes should need more than a text, say so: it is one condition.
 - **The order of the sign-in screen** is now the field, then "or", then Google and Apple, as on Airbnb. It was Google and Apple first.
 
-**Not built.** Adding a mobile number from Profile while signed in: a number is added by signing in with it. Profile lists it and removes it.
+**On Profile.** "How you sign in" lists the number, masked, removes it, and adds one for someone signed in: "Confirm it's you", then a code texted to the number.
 
 **Before it works for real people.** Sinch's settings on the test copy and in production, a sender registered for Ireland, and a spend cap at Sinch (launch checklist). Until then the field asks for an email only, everywhere but a developer's machine.
 

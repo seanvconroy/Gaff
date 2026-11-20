@@ -18,9 +18,11 @@ import { sendCode, waitingCode } from '@/server/auth/codes';
 import { ConfirmationNeeded, findConfirmation, grantConfirmation } from '@/server/auth/confirm';
 import { cookieNames } from '@/server/auth/cookies';
 import {
+  addMobileWithCode,
   joinMobile,
   mobileNeedingEmail as provenMobile,
   mobileSignIn,
+  sendAddMobileCode,
   signInMobileOf,
   textBudgetSpent,
   textSent,
@@ -408,6 +410,96 @@ describe('UX-SI-13: the mobile number on “How you sign in”', () => {
     const [person] = await usersWith(email);
     await db().delete(users).where(eq(users.id, person!.id));
     expect(await mobileRow(mobile)).toBeNull();
+  });
+});
+
+describe('UX-SI-13: adding a mobile number on Profile, signed in', () => {
+  /** The code in the newest text the outbox holds for this number. */
+  async function codeTextedTo(mobile: string): Promise<string> {
+    const [text] = await db()
+      .select()
+      .from(devOutbox)
+      .where(eq(devOutbox.toAddress, mobile))
+      .orderBy(desc(devOutbox.createdAt))
+      .limit(1);
+    return /is (\d{6})\./.exec(text?.text ?? '')![1]!;
+  }
+  const confirmed = async () => {};
+
+  it('adds the number with the code texted to it, and it signs them in from then on', async () => {
+    const owner = await signInByCode(anEmail());
+    const mobile = aMobile();
+    const sent = await sendAddMobileCode(owner.userId, mobile, null);
+    if (!sent.sent) throw new Error('the text was not sent');
+    const code = await codeTextedTo(mobile);
+
+    const wrong = code === '111111' ? '222222' : '111111';
+    expect(await addMobileWithCode(owner.userId, sent.browserKey, wrong, confirmed)).toBe('wrong');
+    expect(await signInMobileOf(owner.userId)).toBeNull();
+    expect(await addMobileWithCode(owner.userId, sent.browserKey, code, confirmed)).toBe('added');
+    expect(await signInMobileOf(owner.userId)).toBe(mobile);
+    expect(await signInChanges(owner.userId)).toEqual([
+      expect.objectContaining({ change: 'added', method: 'mobile' }),
+    ]);
+    // The code works once.
+    expect(await addMobileWithCode(owner.userId, sent.browserKey, code, confirmed)).toBe(
+      'finished',
+    );
+    const text = await askForText(mobile);
+    expect((await enterCode(text.code, text.cookie)).response).toMatchObject({
+      result: 'correct',
+      userId: owner.userId,
+      method: 'sms_code',
+    });
+  });
+
+  it('adds nothing unless the “Confirm it’s you” is spent with it', async () => {
+    const owner = await signInByCode(anEmail());
+    const mobile = aMobile();
+    const sent = await sendAddMobileCode(owner.userId, mobile, null);
+    if (!sent.sent) throw new Error('the text was not sent');
+    const code = await codeTextedTo(mobile);
+    await expect(
+      addMobileWithCode(owner.userId, sent.browserKey, code, async () => {
+        throw new ConfirmationNeeded('change_sign_in');
+      }),
+    ).rejects.toBeInstanceOf(ConfirmationNeeded);
+    expect(await signInMobileOf(owner.userId)).toBeNull();
+  });
+
+  it('is no use to anyone else: the code is for this person and this number', async () => {
+    const owner = await signInByCode(anEmail());
+    const other = await signInByCode(anEmail());
+    const mobile = aMobile();
+    const sent = await sendAddMobileCode(owner.userId, mobile, null);
+    if (!sent.sent) throw new Error('the text was not sent');
+    const code = await codeTextedTo(mobile);
+    // Someone else, even in the same browser, gets nothing from it.
+    expect(await addMobileWithCode(other.userId, sent.browserKey, code, confirmed)).toBe(
+      'finished',
+    );
+    // Nor does the right person from another browser.
+    const again = await sendAddMobileCode(owner.userId, aMobile(), null);
+    if (!again.sent) throw new Error('the text was not sent');
+    expect(await addMobileWithCode(owner.userId, 'd'.repeat(43), code, confirmed)).toBe('finished');
+    expect(await signInMobileOf(other.userId)).toBeNull();
+    expect(await signInMobileOf(owner.userId)).toBeNull();
+  });
+
+  it('moves a number to the person who holds the phone now, and tells who it left', async () => {
+    const mobile = aMobile();
+    const before = anEmail();
+    await signInWithNewMobile(mobile, before);
+    const [previous] = await usersWith(before);
+    const next = await signInByCode(anEmail());
+    const sent = await sendAddMobileCode(next.userId, mobile, null);
+    if (!sent.sent) throw new Error('the text was not sent');
+    const code = await codeTextedTo(mobile);
+    expect(await addMobileWithCode(next.userId, sent.browserKey, code, confirmed)).toBe('added');
+    expect(await mobileRow(mobile)).toMatchObject({ userId: next.userId });
+    expect(await signInChanges(previous!.id)).toEqual([
+      expect.objectContaining({ change: 'removed', method: 'mobile' }),
+    ]);
   });
 });
 

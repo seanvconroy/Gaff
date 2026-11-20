@@ -10,6 +10,7 @@ import { profileCopy as pc } from '@/copy/profile';
 import { providerProblemWords } from '@/copy/sign-in';
 import { isAppleRelayAddress, signInProviderSchema, signInProviders } from '@/domain/auth/methods';
 import { maskedMobile } from '@/domain/auth/mobile';
+import { mobileSignIn } from '@/server/auth/mobile';
 import { signInProviderModes } from '@/server/auth/auth';
 import { currentSession } from '@/server/auth/member';
 import { signInOverview } from '@/server/auth/security';
@@ -147,6 +148,7 @@ function signInView(
   return {
     email: overview.email,
     mobile: overview.mobile ? maskedMobile(overview.mobile) : null,
+    canAddMobile: mobileSignIn() !== 'off',
     hasPasskey: overview.passkeys.length > 0,
     providers: signInProviders
       // A provider that's off isn't offered, unless it's already one of their ways in.

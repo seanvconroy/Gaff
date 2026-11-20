@@ -8,6 +8,7 @@ import {
   parkingOptions,
   propertyTypes,
 } from './new-letting';
+import { type MoreFacts, moreFactKeys, moreFactsSchema } from './more-facts';
 
 /**
  * Adding a letting, a step at a time (section 4 of the UX redesign, UX-LT-1 to UX-LT-16). The
@@ -55,6 +56,8 @@ export const draftAnswersSchema = z.strictObject({
   furnished: z.enum(keys(furnishing)).optional(),
   berRating: z.enum(berRatings).optional(),
   parking: z.enum(keys(parkingOptions)).optional(),
+  /** M39, M40, M44 (BA-14): the further facts, each offered (more-facts.ts). */
+  ...moreFactsSchema.shape,
   description: z.string().max(4000).optional(),
   otherFacts: z.array(z.string().max(300)).max(20).optional(),
   /** UX-LT-8: kept to match enquiries to this home. Gaff never fetches them (Q31). */
@@ -282,6 +285,16 @@ export function homeStepSchema() {
     furnished: fields.furnished,
     berRating: fields.berRating,
     parking: fields.parking,
+    ensuites: fields.ensuites,
+    floorAreaSqm: fields.floorAreaSqm,
+    floor: fields.floor,
+    lift: fields.lift,
+    heating: fields.heating,
+    outdoorSpace: fields.outdoorSpace,
+    appliances: fields.appliances,
+    broadband: fields.broadband,
+    berNumber: fields.berNumber,
+    tourUrl: fields.tourUrl,
     description: fields.description,
     otherFacts: fields.otherFacts,
   });
@@ -314,6 +327,7 @@ const stepFields = {
     'furnished',
     'berRating',
     'parking',
+    ...moreFactKeys,
     'description',
     'otherFacts',
   ],
@@ -362,6 +376,16 @@ export function formValuesFrom(answers: DraftAnswers): Record<string, string> {
     furnished: text(answers.furnished),
     berRating: text(answers.berRating),
     parking: text(answers.parking),
+    ensuites: text(answers.ensuites),
+    floorAreaSqm: text(answers.floorAreaSqm),
+    floor: text(answers.floor),
+    lift: answers.lift === undefined ? '' : answers.lift ? 'yes' : 'no',
+    heating: text(answers.heating),
+    outdoorSpace: text(answers.outdoorSpace),
+    appliances: (answers.appliances ?? []).join(','),
+    broadband: text(answers.broadband),
+    berNumber: text(answers.berNumber),
+    tourUrl: text(answers.tourUrl),
     description: text(answers.description),
     otherFacts: (answers.otherFacts ?? []).join('\n'),
   };
@@ -413,6 +437,8 @@ export interface HomeLetBefore {
   furnished: string | null;
   berRating: string | null;
   parking: string | null;
+  /** M39 (BA-14): the further facts, as last time. */
+  more: MoreFacts;
   description: string | null;
   /** The facts renters were answered from, in order. */
   facts: string[];
@@ -446,6 +472,7 @@ export function letAgainAnswers(previous: HomeLetBefore): DraftAnswers {
       furnished: known(previous.furnished, keys(furnishing)),
       berRating: known(previous.berRating, berRatings),
       parking: known(previous.parking, keys(parkingOptions)),
+      ...previous.more,
       description: previous.description ?? undefined,
       otherFacts: previous.facts.slice(0, 20),
       criteria: previous.criteria ? criteria : undefined,

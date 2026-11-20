@@ -153,6 +153,20 @@ export const eventCatalogue = {
   /** UX-LT-21: "On gaff.ie" was switched on or off. */
   'letting.on_gaff_set': z.object({ on: z.boolean() }),
   /**
+   * UX-LP-5, M52 (BA-14): a person stopped the home taking enquiries, now or from a time they
+   * set; or opened them again (`wasClosed`: they had already closed, not just been set to).
+   */
+  'letting.enquiries_closed': z.object({
+    when: z.enum(['now', 'later']),
+    closesAt: z.iso.datetime(),
+  }),
+  'letting.enquiries_reopened': z.object({ wasClosed: z.boolean() }),
+  /**
+   * UX-LP-5 (BA-14): an enquiry from a portal arrived after the home stopped taking them. It
+   * wasn't added to the letting; the fixed reply went to the address it came from.
+   */
+  'enquiry.after_close': z.object({ inboundEmailId: z.uuid(), messageId: z.uuid() }),
+  /**
    * M49 (BA-13): the home had no change and no "Still available" for this many days, so its
    * lister was asked, on Today and by email. The actor is the system.
    */
@@ -333,6 +347,7 @@ export const eventCatalogue = {
       'reminder',
       'place_offered',
       'letting_closed',
+      'enquiries_closed',
       'apply_invitation',
       'checks_invitation',
       'reference_request',
@@ -553,6 +568,8 @@ export const eventCatalogue = {
     backstop: z.boolean(),
   }),
   'inbound_email.content_deleted': z.object({ inboundEmailId: z.uuid() }),
+  /** BA-14: the reply to an enquiry that came after close, cleared on the same schedule. */
+  'message.content_deleted': z.object({ messageId: z.uuid() }),
   /** Stage 1: a person confirmed the facts, rent and criteria (a 'confirm_setup' decision). */
   'letting.went_live': z.object({ decisionId: z.uuid() }),
   'comparables.recorded': z.object({

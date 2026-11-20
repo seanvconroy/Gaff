@@ -1,4 +1,19 @@
-import { Bath, BedDouble, Car, Check, Flag, Sofa, type LucideIcon } from 'lucide-react';
+import {
+  Bath,
+  BedDouble,
+  Building2,
+  Car,
+  Check,
+  ExternalLink,
+  Flag,
+  Flame,
+  Ruler,
+  Sofa,
+  Trees,
+  WashingMachine,
+  Wifi,
+  type LucideIcon,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -23,6 +38,7 @@ import {
   reportHref,
   sharePreview,
 } from '@/domain/homes/home-page';
+import { tourLink } from '@/domain/lettings/more-facts';
 import { filtersFromParams } from '@/domain/search/filters';
 import { placePageName, placePath } from '@/domain/search/place-pages';
 import { homeStructuredData, jsonForScript } from '@/domain/search/structured-data';
@@ -38,6 +54,7 @@ import { ActionCard } from '@/ui/ActionCard';
 import { ButtonLink } from '@/ui/Button';
 import { Disclosure } from '@/ui/Disclosure';
 import { Gallery } from '@/ui/Gallery';
+import { Notice } from '@/ui/Notice';
 import { Outcome } from '@/ui/Outcome';
 import { ShowMore } from '@/ui/ShowMore';
 import { StatusPill } from '@/ui/StatusPill';
@@ -196,6 +213,14 @@ const icons: Record<HighlightKind, LucideIcon> = {
   bathrooms: Bath,
   furnished: Sofa,
   parking: Car,
+  // M39 (BA-14): the further facts.
+  ensuites: Bath,
+  floorAreaSqm: Ruler,
+  floor: Building2,
+  heating: Flame,
+  outdoorSpace: Trees,
+  appliances: WashingMachine,
+  broadband: Wifi,
   fact: Check,
 };
 
@@ -264,6 +289,8 @@ function LiveHome({
   const details = homeLettingDetails(home);
   const description = homeDescription(home.description);
   const ber = homeBer(home.berRating);
+  const tour = tourLink(home.more ?? {});
+  const closed = found.enquiriesClosed;
   return (
     <article className={styles.page} aria-labelledby="home-title">
       {/* M92: one count for the day that the page was opened. No cookies, nothing about who. */}
@@ -287,12 +314,36 @@ function LiveHome({
             <p className={styles.summary}>{homeSummary(home)}</p>
           </header>
 
+          {closed ? (
+            // UX-LP-5, M52 (BA-14): its lister has stopped taking enquiries. The page stays.
+            <div className={styles.block} data-enquiries-closed="">
+              <Notice tone="info" title={copy.closed.title}>
+                <p>{copy.closed.text}</p>
+                <p>
+                  <Link href="/" className={styles.closedLink}>
+                    {copy.closed.otherHomes}
+                  </Link>
+                </p>
+              </Notice>
+            </div>
+          ) : null}
+
           {highlights.length > 0 ? (
             <section className={styles.block} aria-labelledby="highlights">
               <h2 id="highlights" className="type-heading">
                 {copy.highlights}
               </h2>
               <Highlights items={highlights} />
+              {tour ? (
+                // M44: a link out to the tour. Gaff never loads or plays it.
+                <p className={styles.tour}>
+                  <a href={tour.href} target="_blank" rel="noopener noreferrer nofollow">
+                    {copy.tour(tour.host)}
+                    <ExternalLink size={16} strokeWidth={1.75} aria-hidden="true" />
+                    <span className="visually-hidden">{copy.opensElsewhere}</span>
+                  </a>
+                </p>
+              ) : null}
             </section>
           ) : null}
 
@@ -330,6 +381,9 @@ function LiveHome({
                 {copy.ber}
               </h2>
               <p>{ber}</p>
+              {home.more?.berNumber ? (
+                <p className={styles.muted}>{copy.berNumber(home.more.berNumber)}</p>
+              ) : null}
             </section>
           ) : null}
 
@@ -367,21 +421,23 @@ function LiveHome({
           </p>
         </div>
 
-        <ActionCard
-          price={formatRent(home.monthlyRentCents)}
-          action={{ href: ask, label: copy.askToView }}
-          call={
-            phone
-              ? {
-                  label: copy.call,
-                  name: copy.callName(phone),
-                  href: `tel:${phone.replace(/[^\d+]/g, '')}`,
-                }
-              : null
-          }
-          line={copy.reassurance}
-          aboveTabBar={aboveTabBar}
-        />
+        {closed ? null : (
+          <ActionCard
+            price={formatRent(home.monthlyRentCents)}
+            action={{ href: ask, label: copy.askToView }}
+            call={
+              phone
+                ? {
+                    label: copy.call,
+                    name: copy.callName(phone),
+                    href: `tel:${phone.replace(/[^\d+]/g, '')}`,
+                  }
+                : null
+            }
+            line={copy.reassurance}
+            aboveTabBar={aboveTabBar}
+          />
+        )}
       </div>
       <script
         type="application/ld+json"

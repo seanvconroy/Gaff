@@ -78,6 +78,23 @@ export const addLettingCopy = {
     descriptionHint: 'In your own words. Describe the home, not who should live in it.',
     facts: 'Anything else renters often ask?',
     factsHint: 'One fact on each line, like “Gas central heating”.',
+    /** M39, M40, M44 (BA-14): more of what renters ask, behind one line, each optional. */
+    more: 'More about the home',
+    ensuites: 'En-suites',
+    floorArea: 'Floor area in square metres',
+    floor: 'Which floor is it on?',
+    floorChoose: 'Choose…',
+    lift: 'Is there a lift?',
+    yes: 'Yes',
+    no: 'No',
+    heating: 'Heating',
+    outdoor: 'Outdoor space',
+    appliances: 'Appliances',
+    broadband: 'Broadband',
+    berNumber: 'BER number',
+    berNumberHint: 'The 9 digits on the BER certificate.',
+    tour: 'Video or virtual tour',
+    tourHint: 'A link from YouTube, Vimeo or Matterport.',
   },
 
   photos: {

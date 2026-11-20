@@ -1,6 +1,20 @@
 import { z } from 'zod';
 import { homeWordingProblem } from '@/domain/compliance/who-should-apply';
 import { irishToday } from '@/lib/format';
+import {
+  appliances,
+  broadbandTypes,
+  heatingTypes,
+  HIGHEST_FLOOR,
+  isTourUrl,
+  LOWEST_FLOOR,
+  MAX_FLOOR_AREA,
+  MIN_FLOOR_AREA,
+  type MoreFacts,
+  moreFactLines,
+  normaliseBerNumber,
+  outdoorSpaces,
+} from './more-facts';
 
 /**
  * R1: everything that can be said about a home when a letting is made. The screens ask for it a
@@ -266,6 +280,80 @@ export function lettingFields(now: Date = new Date()) {
         }
         return lines;
       }),
+    /** M39 (BA-14): more facts renters ask about, each offered, never required. */
+    ensuites: offered(
+      z.coerce
+        .number({ error: 'Enter the number of en-suites' })
+        .int('Enter a whole number of en-suites')
+        .min(1, 'Enter at least 1 en-suite, or leave it blank')
+        .max(10, 'Enter 10 en-suites or fewer'),
+    ),
+    floorAreaSqm: offered(
+      z.coerce
+        .number({ error: 'Enter the floor area in square metres, like 75' })
+        .int('Enter the floor area in whole square metres, like 75')
+        .min(MIN_FLOOR_AREA, 'Enter the floor area in square metres, like 75')
+        .max(MAX_FLOOR_AREA, 'Enter the floor area in square metres, like 75'),
+    ),
+    floor: offered(
+      z.coerce
+        .number({ error: 'Choose the floor' })
+        .int('Choose the floor')
+        .min(LOWEST_FLOOR, 'Choose the floor')
+        .max(HIGHEST_FLOOR, 'Choose the floor'),
+    ),
+    lift: offered(z.enum(['yes', 'no'])).transform((value) =>
+      value === undefined ? undefined : value === 'yes',
+    ),
+    heating: offered(
+      z.enum(Object.keys(heatingTypes) as [keyof typeof heatingTypes], {
+        error: 'Choose the heating',
+      }),
+    ),
+    outdoorSpace: offered(
+      z.enum(Object.keys(outdoorSpaces) as [keyof typeof outdoorSpaces], {
+        error: 'Choose the outdoor space',
+      }),
+    ),
+    /** Checkboxes arrive as one value, "washing_machine,dryer". Unknown ones are left out. */
+    appliances: blankable(z.string()).transform((value) => {
+      const chosen = value
+        .split(',')
+        .map((each) => each.trim())
+        .filter((each): each is keyof typeof appliances => each in appliances);
+      const kept = [...new Set(chosen)];
+      return kept.length > 0 ? kept : undefined;
+    }),
+    broadband: offered(
+      z.enum(Object.keys(broadbandTypes) as [keyof typeof broadbandTypes], {
+        error: 'Choose the broadband',
+      }),
+    ),
+    /** M40: the number on the BER certificate, where the lister has it. */
+    berNumber: blankable(trimmed).transform((value, ctx) => {
+      if (!value) return undefined;
+      const number = normaliseBerNumber(value);
+      if (!number) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'The BER number has 9 digits, like 104123456. Or leave it blank.',
+        });
+        return z.NEVER;
+      }
+      return number;
+    }),
+    /** M44: a link out to a video or virtual tour, from YouTube, Vimeo or Matterport only. */
+    tourUrl: blankable(trimmed).transform((value, ctx) => {
+      if (!value) return undefined;
+      if (value.length > 300 || !isTourUrl(value)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Add a link from YouTube, Vimeo or Matterport, starting https://',
+        });
+        return z.NEVER;
+      }
+      return value;
+    }),
     daftUrl: httpsUrl('Enter the link to the advert on daft.ie', ['daft.ie']),
     myhomeUrl: httpsUrl('Enter the link to the advert on myhome.ie', ['myhome.ie']),
   };
@@ -316,6 +404,8 @@ export function describeKeyFacts(letting: {
   furnished?: keyof typeof furnishing | null;
   berRating?: (typeof berRatings)[number] | null;
   parking?: keyof typeof parkingOptions | null;
+  /** M39 (BA-14): the further facts, where the lister gave them. */
+  more?: MoreFacts | null;
 }): Array<{ label: string; value: string }> {
   const facts = [
     { label: 'Type of home', value: propertyTypes[letting.propertyType] },
@@ -334,5 +424,8 @@ export function describeKeyFacts(letting: {
     });
   }
   if (letting.parking) facts.push({ label: 'Parking', value: parkingOptions[letting.parking] });
+  for (const line of moreFactLines(letting.more ?? {})) {
+    facts.push({ label: line.label, value: line.value });
+  }
   return facts;
 }

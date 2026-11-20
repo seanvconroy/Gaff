@@ -2,6 +2,7 @@ import { type Tx, withOrg } from '@/db/client';
 import { landlords, lettingFacts, lettings } from '@/db/schema';
 import type { Criteria } from '@/domain/criteria/criteria';
 import type { DraftOrigin, FlowStep } from '@/domain/lettings/add-letting';
+import { keptMoreFacts, type MoreFacts } from '@/domain/lettings/more-facts';
 import type { NewLetting } from '@/domain/lettings/new-letting';
 import type { Member } from '@/server/auth/member';
 import { recordEvent } from '@/server/record/events';
@@ -25,6 +26,8 @@ export interface LettingToMake {
   furnished?: string;
   berRating?: string;
   parking?: string;
+  /** M39 (BA-14): the further facts. */
+  more?: MoreFacts | null;
   description?: string;
   otherFacts?: string[];
   photosUrl?: string;
@@ -73,6 +76,7 @@ export async function makeLettingIn(
       furnished: input.furnished ?? null,
       berRating: input.berRating ?? null,
       parking: input.parking ?? null,
+      moreFacts: input.more ? keptMoreFacts(input.more) : null,
       description: input.description ?? null,
       photosUrl: input.photosUrl ?? null,
       daftUrl: input.daftUrl ?? null,
@@ -155,6 +159,7 @@ export async function createLetting(
       furnished: input.furnished,
       berRating: input.berRating,
       parking: input.parking,
+      more: keptMoreFacts(input),
       description: input.description,
       otherFacts: input.otherFacts,
       photosUrl: input.photosUrl,

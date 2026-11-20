@@ -19,6 +19,7 @@ import {
   readingAfterSave,
 } from '@/domain/lettings/advert-reading';
 import { placedPoint } from '@/domain/map/pin';
+import { keptMoreFacts, readMoreFacts } from '@/domain/lettings/more-facts';
 import { irishToday } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 import { processInboundEmailIn } from '@/server/enquiries/process';
@@ -86,6 +87,7 @@ function answersOfLetting(detail: LettingDetail): DraftAnswers {
         furnished: known(letting.furnished),
         berRating: known(letting.berRating),
         parking: known(letting.parking),
+        ...readMoreFacts(letting.moreFacts),
         description: known(letting.description),
         otherFacts: facts.filter((fact) => fact.source === 'setup').map((fact) => fact.answer),
         daftUrl: known(letting.daftUrl),
@@ -263,6 +265,7 @@ async function becomeLettingIn(
     : [];
   await makeLettingIn(tx, member, {
     ...answers,
+    more: keptMoreFacts(answers),
     id: draft.id,
     landlordId: previous?.landlordId ?? null,
     setupStep: reached,
@@ -339,6 +342,7 @@ async function changeLettingIn(
       furnished: answers.furnished ?? null,
       berRating: answers.berRating ?? null,
       parking: answers.parking ?? null,
+      moreFacts: keptMoreFacts(answers),
       description: answers.description ?? null,
     })
     .where(eq(lettings.id, letting.id));

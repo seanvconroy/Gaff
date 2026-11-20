@@ -39,6 +39,13 @@ export interface LettingToMake {
   setupStep?: FlowStep;
   origin?: DraftOrigin;
   previousLettingId?: string | null;
+  /** BA-15 (M35): a home of a development, made from one of its types. */
+  unit?: {
+    developmentId: string;
+    unitTypeId: string;
+    unitLabel: string;
+    unitFloor: number | null;
+  };
 }
 
 /** Makes the letting row, its facts and its first event, in the caller's transaction. */
@@ -84,6 +91,7 @@ export async function makeLettingIn(
       noSmokingIndoors: input.noSmokingIndoors ?? false,
       setupStep: input.setupStep ?? null,
       previousLettingId: input.previousLettingId ?? null,
+      ...(input.unit ?? {}),
       createdBy: member.userId,
       // UX-AG-9: whoever adds the letting leads it, until someone changes that.
       leadUserId: member.userId,
@@ -117,6 +125,7 @@ export async function makeLettingIn(
       withLandlord: Boolean(input.landlordId),
       ...(input.origin ? { origin: input.origin } : {}),
       ...(input.previousLettingId ? { fromLettingId: input.previousLettingId } : {}),
+      ...(input.unit ? { fromUnitTypeId: input.unit.unitTypeId } : {}),
     },
   });
   return { lettingId };

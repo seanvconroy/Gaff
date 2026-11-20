@@ -8,6 +8,8 @@ import {
   irishInstant,
   irishToday,
 } from '@/lib/format';
+import { developmentCopy } from '@/copy/developments';
+import { typesWithHomes } from '@/server/developments/developments';
 import type { Member } from '@/server/auth/member';
 import { calendarFor, viewingDetail } from '@/server/viewings/calendar';
 import { addDays, weekLabel, weekOf } from '@/ui/dates';
@@ -85,6 +87,35 @@ export async function CalendarView({
       }
     : null;
 
+  const timeHomes = homes.map((home) => ({
+    id: home.id,
+    address: home.address,
+    leadUserId: home.leadUserId,
+    defaults: addTimeDefaults({
+      today,
+      last: home.last,
+      viewingDays: new Set(home.viewingDays),
+    }),
+  }));
+  // BA-15: one time for every home of a development's type, so renters book one time to see it.
+  const typeHomes = lettingId
+    ? []
+    : (await typesWithHomes(member)).flatMap((type) => {
+        const first = timeHomes.find((home) => home.id === type.firstLettingId);
+        if (!first) return [];
+        return [
+          {
+            ...first,
+            id: `type:${type.id}`,
+            address: developmentCopy.calendar.allOfType(
+              type.homes,
+              type.name,
+              type.developmentName,
+            ),
+          },
+        ];
+      });
+
   const nothingAhead = !ahead.some((t) => !lettingId || t.lettingId === lettingId);
   const suggesting = homes.filter((home) => home.suggestions.length > 0);
 
@@ -136,16 +167,7 @@ export async function CalendarView({
             href: `${path}?day=${irishToday(v.startsAt)}&viewing=${v.sessionId}`,
           })),
         }}
-        homes={homes.map((home) => ({
-          id: home.id,
-          address: home.address,
-          leadUserId: home.leadUserId,
-          defaults: addTimeDefaults({
-            today,
-            last: home.last,
-            viewingDays: new Set(home.viewingDays),
-          }),
-        }))}
+        homes={[...timeHomes, ...typeHomes]}
         chosenHome={lettingId}
         ahead={ahead.map((t) => ({
           ...t,

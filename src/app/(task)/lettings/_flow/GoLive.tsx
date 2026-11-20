@@ -12,7 +12,7 @@ import { FlowShell, FlowTitle } from '@/ui/FlowShell';
 import { Notice } from '@/ui/Notice';
 import { OptionRow } from '@/ui/OptionRow';
 import styles from './flow.module.css';
-import { progressFor, StepForm, type StepFrame } from './StepForm';
+import { progressOf, StepForm, type StepFrame } from './StepForm';
 
 const copy = addLettingCopy;
 const g = copy.goLive;
@@ -144,7 +144,7 @@ export function GoLiveHeld({
   return (
     <FlowShell
       leave={{ kind: 'close', href: frame.leaveHref }}
-      progress={frame.step ? progressFor(frame.step) : undefined}
+      progress={progressOf(frame)}
       back={
         frame.backHref ? (
           <ButtonLink href={frame.backHref} variant="quiet">

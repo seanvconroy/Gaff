@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { addLettingCopy } from '@/copy/add-letting';
+import { mayHaveDevelopments } from '@/domain/developments/development';
+import { newDevelopmentHref } from '@/domain/developments/links';
 import { fromOf, resumeHref } from '@/domain/lettings/links';
 import { listAHomeHref } from '@/domain/navigation/context';
 import { returnPath } from '@/domain/navigation/return-to';
@@ -44,6 +46,11 @@ export default async function NewLettingPage({
       draftId={draftId}
       kept={kept === '1' && draftId !== null}
       readerOn={await readingIsOffered()}
+      several={
+        person.member && mayHaveDevelopments(person.member.organisationKind)
+          ? newDevelopmentHref
+          : undefined
+      }
       drafts={drafts
         .filter((each) => each.id !== draftId)
         .map((each) => ({

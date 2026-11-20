@@ -27,6 +27,7 @@ import type { Portal } from '@/domain/lettings/setup';
 import { stages } from '@/domain/lettings/stages';
 import { users } from './auth';
 import { createdAt, tenantPolicy, updatedAt } from './columns';
+import { developments, unitTypes } from './developments';
 import { inboundEmails } from './enquiries';
 import { organisations } from './organisations';
 
@@ -175,6 +176,24 @@ export const lettings = pgTable(
     advertisedOn: jsonb().$type<Portal[]>(),
     /** UX-FL-2: the furthest step of adding it that was reached, to come back to. */
     setupStep: text({ enum: flowSteps }),
+    /**
+     * BA-15 (M33, M35): a home of a development, made from one of its types. Null for a home
+     * added on its own. The home takes the development's and the type's shared values, except
+     * those the lister changed by hand on it (`ownValues`).
+     */
+    developmentId: uuid().references(() => developments.id),
+    unitTypeId: uuid().references(() => unitTypes.id),
+    /** Its number or door ("Apartment 12"), and its floor (0 is the ground floor). */
+    unitLabel: text(),
+    unitFloor: integer(),
+    /**
+     * The shared values (`sharedFields`) a lister changed by hand on this home. A change on the
+     * development or the type never reaches them.
+     */
+    ownValues: text()
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     /** UX-LT-23: the letting this one was started from by "Let it again". */
     previousLettingId: uuid().references((): AnyPgColumn => lettings.id),
     stage: lettingStage().notNull().default('setup'),
@@ -204,6 +223,7 @@ export const lettings = pgTable(
   },
   (t) => [
     index('lettings_organisation_idx').on(t.organisationId, t.status),
+    index('lettings_unit_type_idx').on(t.unitTypeId),
     // M125: a point is whole or absent, and in Ireland.
     check(
       'lettings_point_whole',
@@ -293,6 +313,14 @@ export const lettingPhotos = pgTable(
     organisationId: organisationId(),
     lettingId: uuid().references(() => lettings.id, { onDelete: 'cascade' }),
     draftId: uuid().references(() => lettingDrafts.id, { onDelete: 'cascade' }),
+    /**
+     * BA-15: a development's shared photos, and a type's own photos and floor plan. A home of
+     * the type shows a copy of each (`sharedFromId`) until its lister changes its photos by
+     * hand. The copies share the picture in the store, which stays while any row uses it.
+     */
+    developmentId: uuid().references(() => developments.id, { onDelete: 'cascade' }),
+    unitTypeId: uuid().references(() => unitTypes.id, { onDelete: 'cascade' }),
+    sharedFromId: uuid().references((): AnyPgColumn => lettingPhotos.id, { onDelete: 'cascade' }),
     position: integer().notNull(),
     /**
      * M43: the folder of the photo's fixed sizes (`photoFolder`), or, for a photo kept before
@@ -319,7 +347,12 @@ export const lettingPhotos = pgTable(
   (t) => [
     index('letting_photos_letting_idx').on(t.lettingId, t.position),
     index('letting_photos_draft_idx').on(t.draftId, t.position),
-    check('letting_photos_one_home', sql`(${t.lettingId} is null) <> (${t.draftId} is null)`),
+    index('letting_photos_development_idx').on(t.developmentId, t.position),
+    index('letting_photos_unit_type_idx').on(t.unitTypeId, t.position),
+    check(
+      'letting_photos_one_home',
+      sql`num_nonnulls(${t.lettingId}, ${t.draftId}, ${t.developmentId}, ${t.unitTypeId}) = 1`,
+    ),
     check('letting_photos_kind', sql`${t.kind} in ('photo', 'floor_plan')`),
     tenantPolicy(),
   ],

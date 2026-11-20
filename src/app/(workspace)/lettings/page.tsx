@@ -12,6 +12,7 @@ import { lettingsOpensOn } from '@/domain/navigation/one-home';
 import { withReturn } from '@/domain/navigation/return-to';
 import { requireMember } from '@/server/auth/member';
 import { dashboardForRequest } from '@/server/dashboard/dashboard';
+import { developmentsOf } from '@/server/developments/developments';
 import { ButtonLink } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
 import { PageHeader, Stack } from '@/ui/Layout';
@@ -45,6 +46,7 @@ export default async function LettingsPage({
   const views = lettingsViews(viewer);
   const view = chosenView((await searchParams).view, views);
   const homes = lettingsIn(view, board.lettings, viewer);
+  const developments = await developmentsOf(member);
   // UX-NV-9: the dot marks a home that something on this person's Today belongs to.
   const onToday = todayIn(chosenView(view, todayViews(viewer)), board.everyone, viewer, now);
   const needsYou = new Set(
@@ -62,11 +64,11 @@ export default async function LettingsPage({
       <PageHeader
         title="Lettings"
         // UX-HM-6: a quiet button here; the primary button only in the empty state.
-        actions={homes.length > 0 ? add('secondary') : undefined}
+        actions={homes.length > 0 || developments.length > 0 ? add('secondary') : undefined}
       />
       {views.length > 1 ? <ViewSwitch path="/lettings" view={view} label="Whose homes" /> : null}
-      {homes.length > 0 ? (
-        <LettingsList lettings={homes} needsYou={needsYou} now={now} />
+      {homes.length > 0 || developments.length > 0 ? (
+        <LettingsList lettings={homes} needsYou={needsYou} now={now} developments={developments} />
       ) : board.lettings.length > 0 ? (
         // On a team, with homes, none of them this person's.
         <EmptyState icon={House} title="No homes of your own yet" action={add('primary')}>

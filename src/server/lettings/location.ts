@@ -2,7 +2,7 @@ import { and, between, eq, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { pinWhere } from '@/copy/map';
 import { type Tx, withOrg } from '@/db/client';
-import { lettingDrafts, lettings, places } from '@/db/schema';
+import { developments, lettingDrafts, lettings, places } from '@/db/schema';
 import { draftAnswersSchema, withAnswers } from '@/domain/lettings/add-letting';
 import {
   addressArea,
@@ -22,6 +22,8 @@ import { UserFacingError } from '@/server/errors';
 import { loadGazetteer, placeFromRow } from '@/server/places/places';
 import { recordEvent } from '@/server/record/events';
 import { assertMayActOn } from '@/server/team/permissions';
+import { changeDevelopmentIn } from '@/server/developments/developments';
+import { keepOwnValues } from '@/server/developments/shared';
 
 /**
  * M38, M125, M126: the lister places the home's pin, as a step of adding a letting ("Where is it
@@ -38,13 +40,33 @@ const pointSchema = z.object({ lat: z.number(), lng: z.number() }).strict();
 
 /** The home, as far as its pin goes: its address, and its point if it has one. */
 interface PinHome {
-  kind: 'draft' | 'letting';
+  /** BA-15: a development's pin is its homes' too, until one is moved by hand. */
+  kind: 'draft' | 'letting' | 'development';
   address: HomeAddress;
   point: Point | null;
   closed: boolean;
 }
 
 async function pinHomeIn(tx: Tx, member: Member, id: string): Promise<PinHome | null> {
+  const [development] = await tx
+    .select()
+    .from(developments)
+    .where(and(eq(developments.id, id), eq(developments.organisationId, member.organisationId)));
+  if (development) {
+    if (!development.addressLine1 || !development.area || !development.county) return null;
+    return {
+      kind: 'development',
+      address: {
+        addressLine1: development.addressLine1,
+        addressLine2: null,
+        area: development.area,
+        county: development.county,
+        eircode: development.eircode,
+      },
+      point: placedPoint(development),
+      closed: false,
+    };
+  }
   const [draft] = await tx
     .select({ answers: lettingDrafts.answers })
     .from(lettingDrafts)
@@ -262,6 +284,15 @@ export async function setHomePoint(
         .for('update');
       const answers = withAnswers(draftAnswersSchema.parse(draft!.answers), { point });
       await tx.update(lettingDrafts).set({ answers }).where(eq(lettingDrafts.id, id));
+    } else if (home.kind === 'development') {
+      await changeDevelopmentIn(tx, member, id, 'pin', {
+        latitude: point.lat,
+        longitude: point.lng,
+        pointSource: 'letter',
+        pointSetAt: now,
+      });
+      const placed: PinHome = { ...home, point };
+      return { ok: true as const, pin: await pinState(tx, member, placed, g, {}) };
     } else {
       await assertMayActOn(tx, member, id);
       if (home.closed) {
@@ -271,6 +302,8 @@ export async function setHomePoint(
         .update(lettings)
         .set({ latitude: point.lat, longitude: point.lng, pointSource: 'letter', pointSetAt: now })
         .where(eq(lettings.id, id));
+      // BA-15: a development's home moved by hand keeps its own pin.
+      await keepOwnValues(tx, member, id, ['point']);
     }
     const placed: PinHome = { ...home, point };
     const pin = await pinState(tx, member, placed, g, {});

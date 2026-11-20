@@ -2,7 +2,7 @@ import { asc, eq, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { photoStore } from '@/adapters/photos';
 import { type Tx, withOrg } from '@/db/client';
-import { lettingDrafts, lettingPhotos, lettings } from '@/db/schema';
+import { developments, lettingDrafts, lettingPhotos, lettings, unitTypes } from '@/db/schema';
 import { MAX_DIRECT_UPLOAD_BYTES, toSigned64, type PhotoKind } from '@/domain/lettings/photo-files';
 import {
   MAX_HOME_PHOTOS,
@@ -24,6 +24,13 @@ import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
 import { assertMayActOn } from '@/server/team/permissions';
 import { queueListingCheck } from '@/server/trust/checks';
+import {
+  assertMayActOnHomes,
+  keepOwnValues,
+  openHomesOf,
+  pictureInUse,
+  syncSharedPhotos,
+} from '@/server/developments/shared';
 import { preparePhoto } from './photo-pipeline';
 import { homePhotoOf, showingOrder, type HomePhoto } from './queries';
 
@@ -46,10 +53,31 @@ export const photoProblems = {
 } as const;
 export type PhotoProblem = keyof typeof photoProblems;
 
-type Home = { kind: 'letting' | 'draft'; id: string };
+/**
+ * Whose photos these are: a letting's, a draft's, or (BA-15) a development's shared photos or a
+ * type's own photos and floor plan, which its homes show as copies.
+ */
+type Home =
+  | { kind: 'letting' | 'draft'; id: string }
+  | { kind: 'development'; id: string; developmentId: string }
+  | { kind: 'unit_type'; id: string; developmentId: string };
 
 /** Which the home is, locked so two uploads can't both take the last place. */
 async function homeFor(tx: Tx, id: string): Promise<(Home & { closed: boolean }) | null> {
+  const [development] = await tx
+    .select({ id: developments.id })
+    .from(developments)
+    .where(eq(developments.id, id))
+    .for('update');
+  if (development) return { kind: 'development', id, developmentId: id, closed: false };
+  const [type] = await tx
+    .select({ developmentId: unitTypes.developmentId })
+    .from(unitTypes)
+    .where(eq(unitTypes.id, id))
+    .for('update');
+  if (type) {
+    return { kind: 'unit_type', id, developmentId: type.developmentId, closed: false };
+  }
   const [draft] = await tx
     .select({ id: lettingDrafts.id })
     .from(lettingDrafts)
@@ -74,13 +102,39 @@ async function openHome(tx: Tx, member: Member, homeId: string): Promise<Home | 
   const home = await homeFor(tx, homeId);
   if (!home) throw new UserFacingError('We couldn’t find that home.');
   if (home.kind === 'letting') await assertMayActOn(tx, member, home.id);
+  // BA-15: shared photos reach the development's homes, so the person must be able to act on them.
+  if (home.kind === 'development' || home.kind === 'unit_type') {
+    const homes = await openHomesOf(
+      tx,
+      home.kind === 'development' ? { developmentId: home.id } : { unitTypeId: home.id },
+    );
+    await assertMayActOnHomes(tx, member, homes);
+  }
   return home.closed ? 'closed' : home;
 }
 
-const of = (home: Home): SQL =>
-  home.kind === 'letting'
-    ? eq(lettingPhotos.lettingId, home.id)
-    : eq(lettingPhotos.draftId, home.id);
+const ownerColumn = {
+  letting: lettingPhotos.lettingId,
+  draft: lettingPhotos.draftId,
+  development: lettingPhotos.developmentId,
+  unit_type: lettingPhotos.unitTypeId,
+} as const;
+
+const of = (home: Home): SQL => eq(ownerColumn[home.kind], home.id);
+
+/** The column a new photo of this home is kept under. */
+function ownerOf(home: Home) {
+  switch (home.kind) {
+    case 'letting':
+      return { lettingId: home.id };
+    case 'draft':
+      return { draftId: home.id };
+    case 'development':
+      return { developmentId: home.id };
+    case 'unit_type':
+      return { unitTypeId: home.id };
+  }
+}
 
 async function rowsOf(tx: Tx, home: Home) {
   return tx
@@ -107,6 +161,29 @@ async function changed(
     floorPlan?: 'marked' | 'unmarked';
   },
 ): Promise<void> {
+  if (home.kind === 'development' || home.kind === 'unit_type') {
+    // BA-15 (M33): the homes still sharing the photos show them as they are now.
+    const homes = await syncSharedPhotos(tx, member.organisationId, home.developmentId);
+    await recordEvent(tx, {
+      organisationId: member.organisationId,
+      actor: { type: 'person', userId: member.userId },
+      type: 'development.photos_changed',
+      subject: { type: home.kind, id: home.id },
+      data: {
+        developmentId: home.developmentId,
+        ...(home.kind === 'unit_type' ? { unitTypeId: home.id } : {}),
+        added: change.added ?? 0,
+        removed: change.removed ?? 0,
+        reordered: change.reordered ?? false,
+        count: change.count,
+        ...(change.floorPlan ? { floorPlan: change.floorPlan } : {}),
+        homes,
+      },
+    });
+    return;
+  }
+  // BA-15: a development's home whose photos are changed by hand keeps them as its own.
+  if (home.kind === 'letting') await keepOwnValues(tx, member, home.id, ['photos']);
   await recordEvent(tx, {
     organisationId: member.organisationId,
     lettingId: home.id,
@@ -165,7 +242,7 @@ async function keepPhoto(
     await tx.insert(lettingPhotos).values({
       ...row,
       organisationId: member.organisationId,
-      ...(home.kind === 'letting' ? { lettingId: home.id } : { draftId: home.id }),
+      ...ownerOf(home),
       position: (last?.position ?? -1) + 1,
       contentType: 'image/webp',
       bytes: photo.sizes[photo.sizes.length - 1]!.bytes.length,
@@ -303,7 +380,8 @@ export async function removePhoto(
     const rest = rows.filter((photo) => photo.id !== photoId).map((photo) => photo.id);
     await setOrder(tx, rest);
     await changed(tx, member, home, { removed: 1, count: rest.length });
-    return storedPhotoKeys(row);
+    // BA-15: a picture another row still shows (a shared photo's copy) stays in the store.
+    return (await pictureInUse(tx, row.storageKey)) ? [] : storedPhotoKeys(row);
   });
   if (keys.length > 0) await store.remove(keys);
 }

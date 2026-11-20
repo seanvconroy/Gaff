@@ -1,0 +1,40 @@
+/*
+ * BA-15: adding a development. "Which homes are they?" is one row per home: its number, its
+ * floor and its date, held apart by a hairline. The review lists the homes the same way.
+ */
+.rows {
+  display: grid;
+  gap: var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  gap: var(--space-4);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.homes {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.homeName {
+  font-weight: var(--type-heading-weight);
+}
+
+.muted {
+  color: var(--color-ink-muted);
+}

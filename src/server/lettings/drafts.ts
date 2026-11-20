@@ -25,6 +25,8 @@ import type { Member } from '@/server/auth/member';
 import { processInboundEmailIn } from '@/server/enquiries/process';
 import { UserFacingError } from '@/server/errors';
 import { recordFunnelStep } from '@/server/funnels/steps';
+import { handChanged } from '@/domain/developments/development';
+import { keepOwnValues } from '@/server/developments/shared';
 import { recordEvent } from '@/server/record/events';
 import { rentChanged } from '@/server/saved/alerts';
 import { queueListingCheck } from '@/server/trust/checks';
@@ -326,6 +328,23 @@ async function changeLettingIn(
     throw new UserFacingError('A letting needs its address, rent, date, type and bedrooms.');
   }
   const actor = { type: 'person', userId: member.userId } as const;
+  const columns = {
+    addressLine1: answers.addressLine1,
+    addressLine2: answers.addressLine2 ?? null,
+    area: answers.area,
+    county: answers.county,
+    eircode: answers.eircode ?? null,
+    monthlyRentCents: answers.rentCents,
+    propertyType: answers.propertyType,
+    bedrooms: answers.bedrooms,
+    bathrooms: answers.bathrooms ?? null,
+    furnished: answers.furnished ?? null,
+    berRating: answers.berRating ?? null,
+    parking: answers.parking ?? null,
+    description: answers.description ?? null,
+  };
+  // BA-15: a shared value changed by hand on a development's home is that home's own from now.
+  await keepOwnValues(tx, member, letting.id, handChanged(letting, columns));
   await tx
     .update(lettings)
     .set({

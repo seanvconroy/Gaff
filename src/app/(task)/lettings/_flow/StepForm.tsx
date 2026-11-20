@@ -23,6 +23,11 @@ export interface StepFrame {
   step?: FlowStep;
   /** Whether "Save and exit" is offered: wherever there is something to save. */
   exit?: boolean;
+  /**
+   * BA-15: a flow of its own's progress bar (adding a development), in place of the letting
+   * flow's steps.
+   */
+  progress?: { label: string; segments: string[]; current: number };
 }
 
 export const progressFor = (step: FlowStep) => ({
@@ -30,6 +35,10 @@ export const progressFor = (step: FlowStep) => ({
   segments: flowSteps.map((each) => stepNames[each]),
   current: flowSteps.indexOf(step),
 });
+
+/** The progress bar a screen shows: its own flow's, or the letting flow's step. */
+export const progressOf = (frame: StepFrame) =>
+  frame.progress ?? (frame.step ? progressFor(frame.step) : undefined);
 
 /**
  * One screen of adding a letting that is answered by sending a form (UX-FL-1 to UX-FL-3): the
@@ -68,7 +77,7 @@ export function StepForm({
   return (
     <FlowShell
       leave={{ kind: 'close', href: frame.leaveHref }}
-      progress={frame.step ? progressFor(frame.step) : undefined}
+      progress={progressOf(frame)}
       saveAndExit={
         frame.exit ? <FlowExitButton form={id}>{copy.saveAndExit}</FlowExitButton> : null
       }

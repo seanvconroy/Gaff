@@ -29,7 +29,7 @@ export const lettingDestinations = [
 
 export const rentingDestinations = [
   // UX-LS-1: a home's page is found from Search.
-  { key: 'search', label: 'Search', href: '/', pages: ['/', '/homes'] },
+  { key: 'search', label: 'Search', href: '/', pages: ['/', '/homes', '/developments'] },
   { key: 'saved', label: 'Saved', href: '/saved', pages: ['/saved'] },
   { key: 'enquiries', label: 'Enquiries', href: '/enquiries', pages: ['/enquiries'] },
 ] as const satisfies readonly Destination[];

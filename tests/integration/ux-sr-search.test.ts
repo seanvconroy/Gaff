@@ -79,6 +79,9 @@ describe('UX-SR-2, UX-SR-6: the homes search reads', () => {
       [
         'addressLine1',
         'addressLine2',
+        // BA-15: a development's alike homes, by their type's public reference: one card.
+        'alike',
+        'alikeKey',
         'area',
         'availableFrom',
         'bedrooms',

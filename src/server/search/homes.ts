@@ -18,6 +18,12 @@ import type { CoverPhoto } from '@/server/lettings/cover-photo';
  */
 export interface HomeOnGaff extends SearchableHome {
   cover: CoverPhoto | null;
+  /**
+   * BA-15 (M75): homes alike in one development share this key (their type's public
+   * reference), so search can show them as one card (`groupAlike`). Null: a home on its own.
+   */
+  alikeKey: string | null;
+  alike: { developmentRef: string; developmentName: string; typeName: string } | null;
 }
 
 export async function liveHomesOnGaff(): Promise<HomeOnGaff[]> {
@@ -40,6 +46,14 @@ export async function liveHomesOnGaff(): Promise<HomeOnGaff[]> {
     liveAt: home.liveAt,
     // The address is beside it on the card, so the picture adds no words.
     cover: home.photos[0] ? { src: home.photos[0].small, alt: '' } : null,
+    alikeKey: home.unit?.typeRef ?? null,
+    alike: home.unit
+      ? {
+          developmentRef: home.unit.developmentRef,
+          developmentName: home.unit.developmentName,
+          typeName: home.unit.typeName,
+        }
+      : null,
   }));
 }
 

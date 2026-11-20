@@ -196,18 +196,18 @@ async function aHomeGoesLive(rent: number): Promise<string> {
   await asSystem('insert into users (id, name, email) values ($1, $2, $3)', [
     userId,
     'Nuala Test',
-    `nuala.${userId.slice(0, 8)}@kenmare.test`,
+    `nuala.${userId.slice(0, 8)}@kilrush.test`,
   ]);
   const [org] = await asSystem<{ id: string }>(
     `insert into organisations (name, kind, confirmed_at, psra_licence_number, inbound_slug)
-     values ('Kenmare Lettings', 'agency', now(), '7770013', $1) returning id`,
-    [`kenmare-${userId.slice(0, 8)}`],
+     values ('Kilrush Lettings', 'agency', now(), '7770013', $1) returning id`,
+    [`kilrush-${userId.slice(0, 8)}`],
   );
   const [letting] = await asSystem<{ id: string; public_ref: string }>(
     `insert into lettings (organisation_id, address_line1, area, county, monthly_rent_cents,
        available_from, property_type, bedrooms, furnished, parking, criteria, stage, status,
        created_by, lead_user_id, live_at, ber_rating)
-     values ($1, '2 Henry Street', 'Kenmare', 'Kerry', $2, $3, 'apartment', 2, 'furnished',
+     values ($1, '2 Henry Street', 'Kilrush', 'Clare', $2, $3, 'apartment', 2, 'furnished',
        'street', $4, 'enquiries', 'live', $5, $5, now(), 'B2') returning id, public_ref`,
     [
       org!.id,
@@ -238,8 +238,8 @@ test('M85, M86: Saved shows a saved home’s lower rent, and each search’s cho
   const lettingId = await aHomeGoesLive(1650);
   await page.setViewportSize(phone);
   await signUpRenter(page);
-  await page.goto('/?where=kenmare');
-  await page.getByRole('button', { name: 'Save 2-bed apartment · Kenmare, Co. Kerry' }).click();
+  await page.goto('/?where=kilrush');
+  await page.getByRole('button', { name: 'Save 2-bed apartment · Kilrush, Co. Clare' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
   await page.getByRole('button', { name: 'Tell me about new ones' }).click();
   await expect(
@@ -259,6 +259,6 @@ test('M85, M86: Saved shows a saved home’s lower rent, and each search’s cho
   await expect(
     page.getByRole('status').filter({ hasText: 'You’ll hear once a day, at 8am' }),
   ).toBeVisible();
-  await expect(page.getByText('Once a day, at 8am')).toBeVisible();
+  await expect(page.getByText('Once a day, at 8am', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /^As soon as listed instead/ })).toBeVisible();
 });

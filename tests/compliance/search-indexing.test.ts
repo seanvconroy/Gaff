@@ -28,7 +28,12 @@ async function robotsHeaders(settings: Record<string, string>) {
 
 describe('M111, UX-LS-11: what search engines are told', () => {
   it('M111: with SEARCH_INDEXING off, every page says noindex and robots.txt disallows all', async () => {
-    for (const env of [{}, { SEARCH_INDEXING: 'off' }, { SEARCH_INDEXING: 'on ' }]) {
+    const settings: Array<Record<string, string>> = [
+      { SEARCH_INDEXING: '' },
+      { SEARCH_INDEXING: 'off' },
+      { SEARCH_INDEXING: 'on ' },
+    ];
+    for (const env of settings) {
       expect(await robotsHeaders(env)).toEqual([{ source: '/:path*', tag: 'noindex, nofollow' }]);
     }
     expect(robotsFor('off', 'https://gaff.ie')).toEqual({

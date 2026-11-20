@@ -10,7 +10,6 @@ import { closeLetting } from '@/server/lettings/close';
 import { addPhoto } from '@/server/lettings/photos';
 import { placePageFor, sitemapEntries } from '@/server/search/place-pages';
 import { similarTo, similarToLiveHome } from '@/server/search/similar';
-import { forgetHomeAddresses } from '@/server/search/where';
 import { aPng } from '../fixtures/photos';
 import { aLiveLetting, createTestMember, type Member } from './helpers';
 
@@ -34,7 +33,6 @@ async function aHomeIn(
   const [row] = await withOrg(member.organisationId, (tx) =>
     tx.select({ ref: lettings.publicRef }).from(lettings).where(eq(lettings.id, lettingId)),
   );
-  forgetHomeAddresses();
   return { lettingId, ref: row!.ref };
 }
 
@@ -104,7 +102,6 @@ describe('M111: what search engines are told', () => {
     const live = await aHomeIn(member, { addressLine1: '9 Market Street' });
     const gone = await aHomeIn(member, { addressLine1: '11 Market Street' });
     await closeLetting(member, gone.lettingId, 'let');
-    forgetHomeAddresses();
     indexingOn();
     const urls = (await sitemap()).map((entry) => entry.url);
     const base = process.env.APP_URL!.replace(/\/+$/, '');
@@ -157,7 +154,6 @@ describe('M73, M74: similar homes', () => {
     const home = await aHomeIn(member, { addressLine1: '19 Market Street' });
     const like = await aHomeIn(member, { addressLine1: '21 Market Street' });
     await closeLetting(member, home.lettingId, 'let');
-    forgetHomeAddresses();
     const page = await publicHomePage(home.ref);
     expect(page?.state).toBe('let');
     if (page?.state !== 'let') return;

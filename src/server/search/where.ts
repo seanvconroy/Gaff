@@ -115,20 +115,6 @@ async function withHomes(found: readonly Place[], g: Gazetteer): Promise<Place[]
   });
 }
 
-/**
- * M62, M111 (BA-12): these areas, each with the homes on Gaff in it counted, for places' pages
- * and the sitemap. The same count as the place search's (M121), from the same public query.
- */
-export async function countLiveHomes(
-  found: readonly Place[],
-  g: Gazetteer,
-): Promise<Array<Place & { liveHomes: number }>> {
-  return (await withHomes(found, g)).map((place) => ({
-    ...place,
-    liveHomes: place.liveHomes ?? 0,
-  }));
-}
-
 function option(s: Suggestion, g: Gazetteer): WhereOption | null {
   const where = searchPlace(s.slug, g);
   if (!where) return null;

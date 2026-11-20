@@ -1,5 +1,5 @@
 import { homeHref } from '@/domain/homes/home-page';
-import type { Gazetteer } from '@/domain/places/gazetteer';
+import type { Gazetteer, Place } from '@/domain/places/gazetteer';
 import {
   filtersFromParams,
   hasFilters,
@@ -16,6 +16,8 @@ import {
 } from '@/domain/search/place-pages';
 import {
   canonicalPlaceSlug,
+  type HomeAddress,
+  placeHasHome,
   placeLabel,
   searchPlace,
   type SearchPlace,
@@ -23,7 +25,6 @@ import {
 import { slugify } from '@/domain/places/slug';
 import { loadGazetteer } from '@/server/places/places';
 import { liveHomesOnGaff } from './homes';
-import { countLiveHomes } from './where';
 
 /**
  * M62, M111 (BA-12): a place's page, read from its address, and the sitemap. Homes are read only
@@ -56,6 +57,23 @@ export type PlacePage =
   | { kind: 'redirect'; path: string }
   | { kind: 'not_found' };
 
+/**
+ * Every area, with the live homes in it counted as search would find them (UX-SR-4): read fresh
+ * on each page, so a place's line always agrees with the homes listed under it.
+ */
+function counted(
+  places: readonly Place[],
+  g: Gazetteer,
+  homes: readonly HomeAddress[],
+): CountedPlace[] {
+  return places.map((place) => {
+    const where = searchPlace(place.slug, g);
+    const liveHomes =
+      where?.kind === 'area' ? homes.filter((home) => placeHasHome(where, home)).length : 0;
+    return { ...place, liveHomes };
+  });
+}
+
 /** The slugs an address under /to-rent may name, for the index to look up beyond its areas. */
 function slugsIn(segments: readonly string[]): string[] {
   return segments.map((segment) => {
@@ -84,12 +102,12 @@ export async function placePageFor(segments: readonly string[], query: Query): P
   const filters: SearchFilters = { where: resolved.place.slug };
   if (hasFilters(asked)) return { kind: 'redirect', path: searchHref({ ...filters, ...asked }) };
   const where = searchPlace(resolved.place.slug, g)!;
-  const counted = await countLiveHomes(g.places, g);
-  const place = counted.find((p) => p.slug === resolved.place.slug)!;
+  const places = counted(g.places, g, await liveHomesOnGaff());
+  const place = places.find((p) => p.slug === resolved.place.slug)!;
   const county =
     place.kind === 'county'
       ? null
-      : (counted.find((p) => p.kind === 'county' && p.county === place.county) ?? null);
+      : (places.find((p) => p.kind === 'county' && p.county === place.county) ?? null);
   return {
     kind: 'page',
     path: resolved.path,
@@ -98,9 +116,9 @@ export async function placePageFor(segments: readonly string[], query: Query): P
     where,
     placeName: placeLabel(where),
     g,
-    nearby: nearbyPlaces(place, counted),
+    nearby: nearbyPlaces(place, places),
     county,
-    wider: place.liveHomes > 0 ? [] : widerPlacesWithHomes(place, counted),
+    wider: place.liveHomes > 0 ? [] : widerPlacesWithHomes(place, places),
   };
 }
 
@@ -116,7 +134,7 @@ export interface SitemapEntry {
  */
 export async function sitemapEntries(): Promise<SitemapEntry[]> {
   const [homes, g] = await Promise.all([liveHomesOnGaff(), loadGazetteer()]);
-  const places = placesWithHomes(await countLiveHomes(g.places, g));
+  const places = placesWithHomes(counted(g.places, g, homes));
   return [
     ...places.map((place) => ({ path: placePath(place) })),
     ...homes.map((home) => ({ path: homeHref(home.id), lastModified: home.liveAt })),

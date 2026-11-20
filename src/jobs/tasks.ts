@@ -27,6 +27,9 @@ import { sendSearchAlerts, sweepEmailSearches } from '@/server/saved/alerts';
 import { sendSavedSearchEmail } from '@/server/saved/emails';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
 import { redactIdentitySessions, redactSession } from '@/server/identity/redact';
+import { checkParts } from '@/domain/listings/checks';
+import { checkListing } from '@/server/trust/checks';
+import { purgeListerPauses } from '@/server/trust/pauses';
 
 const inboundEmailJob = z.object({ organisationId: z.uuid(), inboundEmailId: z.uuid() });
 const messageJob = z.object({ organisationId: z.uuid(), messageId: z.uuid() });
@@ -53,6 +56,17 @@ export const CRONTAB = [
 export const taskList: TaskList = {
   process_inbound_email: async (payload) => {
     await processInboundEmail(inboundEmailJob.parse(payload));
+  },
+  check_listing: async (payload) => {
+    const job = z
+      .object({
+        organisationId: z.uuid(),
+        lettingId: z.uuid(),
+        part: z.enum(checkParts),
+        photoIds: z.array(z.uuid()).optional(),
+      })
+      .parse(payload);
+    await checkListing(job);
   },
   redact_identity_session: async (payload) => {
     await redactSession(z.object({ providerRef: z.string().min(1) }).parse(payload).providerRef);
@@ -94,6 +108,9 @@ export const taskList: TaskList = {
     // person decided them.
     const cases = await purgeListingCases();
     console.log(`Reports: ${cases} cases about listings deleted, with their reports.`);
+    // BA-10 (M107, rule 9): a lister's ended pause, six months after it ended. Counts only.
+    const pauses = await purgeListerPauses();
+    console.log(`Pauses: ${pauses} ended pauses of listers' listings deleted.`);
     // UX-AV-6: any enquiry still waiting past its 24 hours, should its own job have missed it.
     const waiting = await dropExpiredWaitingEnquiries();
     console.log(`Asking to view: ${waiting} unconfirmed enquiries dropped.`);

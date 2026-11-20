@@ -104,14 +104,15 @@ describe('M98, M106: a person decides, with reasons, and someone else decides an
     ).toBe(false);
   });
 
-  it('M98: no action takes no reason; nothing decides about an account', () => {
+  it('M98, M107: no action takes no reason; pausing an account is its own action, not a case decision', () => {
     const caseId = crypto.randomUUID();
     expect(caseDecisionSchema.parse({ caseId, decision: 'no_action' })).toEqual({
       caseId,
       decision: 'no_action',
     });
     expect(caseDecisionSchema.safeParse({ caseId, decision: 'pause_account' }).success).toBe(false);
-    expect(accountActionsBuilt).toBe(false);
+    // BA-10: pausing a lister's listings is built, as its own step after a decided case.
+    expect(accountActionsBuilt).toBe(true);
   });
 
   it('M96: at most 10 reports a day from one network address', () => {

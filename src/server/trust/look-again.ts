@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { withOrg, withSystem } from '@/db/client';
 import { lettings, listingCases } from '@/db/schema';
 import { reportDeleteAfter, type ReportReason } from '@/domain/homes/report';
@@ -19,6 +19,8 @@ export interface HiddenHome {
   stage: HiddenStage;
   lookAgainAskedAt: Date | null;
   facts: CaseFact[];
+  /** BA-10: taken off after a report, or kept off after the checks held it. */
+  after: 'report' | 'check';
 }
 
 const isId = (value: string) => /^[0-9a-f-]{36}$/i.test(value);
@@ -36,7 +38,8 @@ async function appealableCase(lettingId: string) {
       .where(
         and(
           eq(listingCases.lettingId, lettingId),
-          eq(listingCases.kind, 'report'),
+          // BA-10: a decision on a hold is appealed the same way.
+          inArray(listingCases.kind, ['report', 'hold']),
           eq(listingCases.decision, 'hide_listing'),
         ),
       )
@@ -58,6 +61,7 @@ export async function hiddenHomeFor(member: Member, lettingId: string): Promise<
         hiddenAt: lettings.hiddenAt,
         stage: lettings.hiddenStage,
         lookAgainAskedAt: lettings.lookAgainAskedAt,
+        after: lettings.hiddenAfter,
       })
       .from(lettings)
       .where(eq(lettings.id, lettingId)),
@@ -71,6 +75,7 @@ export async function hiddenHomeFor(member: Member, lettingId: string): Promise<
     reason: row.reason ?? 'something_else',
     stage: row.stage ?? 'decided',
     facts: decided?.facts ?? [],
+    after: row.after ?? 'report',
   };
 }
 
@@ -103,7 +108,8 @@ export async function askToLookAgain(
       .where(
         and(
           eq(listingCases.lettingId, lettingId),
-          eq(listingCases.kind, 'report'),
+          // BA-10: a decision on a hold is appealed the same way.
+          inArray(listingCases.kind, ['report', 'hold']),
           eq(listingCases.decision, 'hide_listing'),
         ),
       )

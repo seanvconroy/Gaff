@@ -60,6 +60,12 @@ export const organisations = pgTable(
      * path that asks `goLiveGate` can read it. Null for anyone else.
      */
     identityVerifiedAt: timestamp({ withTimezone: true }),
+    /**
+     * BA-10 (M107): when a person on Gaff's team paused this lister's listings, after a decided
+     * case, with reasons (`lister_pauses`). While it's set, `goLiveGate` is closed: none of its
+     * homes is public and no new one goes live; its live lettings carry on. Null: not paused.
+     */
+    listingsPausedAt: timestamp({ withTimezone: true }),
     /** Local part of the organisation's Gaff address, e.g. "halcyon" → halcyon@in.gaff.ie (R5). */
     inboundSlug: text().notNull().unique(),
     /** R29: AI-written messages wait for a person's approval. On for every new organisation. */

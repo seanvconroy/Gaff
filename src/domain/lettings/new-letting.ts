@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { homeWordingProblem } from '@/domain/compliance/who-should-apply';
+import { contactDetailsProblem } from '@/domain/listings/checks';
 import { irishToday } from '@/lib/format';
 
 /**
@@ -231,7 +232,9 @@ export function lettingFields(now: Date = new Date()) {
         });
         return z.NEVER;
       }
-      const problem = homeWordingProblem(text);
+      // M45, M46 (BA-10): told here, at the field, never held: wording on a protected ground,
+      // or contact details (renters enquire through Gaff).
+      const problem = homeWordingProblem(text) ?? contactDetailsProblem(text);
       if (problem) {
         ctx.addIssue({ code: 'custom', message: problem });
         return z.NEVER;
@@ -258,7 +261,7 @@ export function lettingFields(now: Date = new Date()) {
             ctx.addIssue({ code: 'custom', message: 'Keep each fact under 300 characters' });
             return z.NEVER;
           }
-          const problem = homeWordingProblem(line);
+          const problem = homeWordingProblem(line) ?? contactDetailsProblem(line);
           if (problem) {
             ctx.addIssue({ code: 'custom', message: problem });
             return z.NEVER;

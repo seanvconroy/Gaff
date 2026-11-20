@@ -3,6 +3,7 @@ import {
   type AnyPgColumn,
   check,
   index,
+  jsonb,
   pgPolicy,
   pgTable,
   text,
@@ -10,9 +11,11 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { reportReasons } from '@/domain/homes/report';
+import { riskSignals, type WordingFinding } from '@/domain/listings/checks';
 import { caseDecisions, caseFacts, caseKinds } from '@/domain/trust/cases';
 import { users } from './auth';
 import { lettings } from './lettings';
+import { organisations } from './organisations';
 
 const systemOnly = sql`current_setting('app.rls_bypass', true) = 'on'`;
 
@@ -46,6 +49,13 @@ export const listingCases = pgTable(
     dueBy: timestamp({ withTimezone: true }).notNull(),
     /** M97: when the rules hid the listing on strong signs of a scam, before a person looked. */
     heldAt: timestamp({ withTimezone: true }),
+    /** BA-10 (M29): a hold's risk signals, as codes. Null for any other kind. */
+    signals: text({ enum: riskSignals }).array(),
+    /**
+     * BA-10 (P13): with an `unfair_wording` signal, what the AI's wording check found: each
+     * phrase, copied from the home's public description, and the ground as a code. Nothing else.
+     */
+    findings: jsonb().$type<WordingFinding[]>(),
     /** M98: the case an appeal is about. */
     appealOf: uuid().references((): AnyPgColumn => listingCases.id, { onDelete: 'cascade' }),
     /** Null while it's open. */
@@ -71,6 +81,10 @@ export const listingCases = pgTable(
     check(
       'listing_cases_appeal_has_case',
       sql`(${t.kind} = 'appeal') = (${t.appealOf} is not null)`,
+    ),
+    check(
+      'listing_cases_hold_has_signals',
+      sql`(${t.kind} = 'hold') = (${t.signals} is not null and cardinality(${t.signals}) > 0)`,
     ),
     systemPolicy('listing_cases_system'),
   ],
@@ -118,5 +132,44 @@ export const listingReports = pgTable(
       sql`${t.outcomeEmail} is null or char_length(${t.outcomeEmail}) <= 254`,
     ),
     systemPolicy('listing_reports_system'),
+  ],
+).enableRLS();
+
+/**
+ * BA-10 (M107): a person on Gaff's team paused a lister's listings, after a case about one of
+ * their homes was decided. Gaff's own record, reached only by withSystem(); the lister's side is
+ * `organisations.listings_paused_at`. It holds the case it followed, the reason and the fixed
+ * facts it relies on (the statement of reasons the lister is emailed), who and when, and one
+ * appeal, which someone other than the person who paused decides. Codes and IDs only: nothing
+ * about any renter. The retention job deletes it six months after the pause ended.
+ */
+export const listerPauses = pgTable(
+  'lister_pauses',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organisationId: uuid()
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    /** The decided case it followed. Kept as long as the pause (`deleteAfter`). */
+    caseId: uuid().references(() => listingCases.id, { onDelete: 'set null' }),
+    reason: text({ enum: reportReasons }).notNull(),
+    facts: text({ enum: caseFacts }).array().notNull(),
+    pausedAt: timestamp({ withTimezone: true }).notNull(),
+    pausedBy: text().references(() => users.id, { onDelete: 'set null' }),
+    /** M98: the lister asked Gaff to look again, once. Due in one working day. */
+    appealAskedAt: timestamp({ withTimezone: true }),
+    appealDueBy: timestamp({ withTimezone: true }),
+    appealDecision: text({ enum: caseDecisions }),
+    appealDecidedAt: timestamp({ withTimezone: true }),
+    appealDecidedBy: text().references(() => users.id, { onDelete: 'set null' }),
+    /** When it ended: lifted by a person, or on appeal. Null while the listings are paused. */
+    endedAt: timestamp({ withTimezone: true }),
+    endedBy: text().references(() => users.id, { onDelete: 'set null' }),
+    deleteAfter: timestamp({ withTimezone: true }).notNull(),
+  },
+  (t) => [
+    index('lister_pauses_organisation_idx').on(t.organisationId, t.endedAt),
+    check('lister_pauses_facts', sql`cardinality(${t.facts}) > 0`),
+    systemPolicy('lister_pauses_system'),
   ],
 ).enableRLS();

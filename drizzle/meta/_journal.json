@@ -316,6 +316,13 @@
       "when": 1795142620305,
       "tag": "0044_fresh_alerts_numbers",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1795147135611,
+      "tag": "0045_listing_holds",
+      "breakpoints": true
     }
   ]
 }

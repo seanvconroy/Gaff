@@ -22,6 +22,8 @@ function filesUnder(dir: string): string[] {
 const staffCode = [
   ...filesUnder(join(ROOT, 'src/app/internal')),
   join(ROOT, 'src/server/trust/staff.ts'),
+  // BA-10 (M107): pausing a lister's listings, and the appeal against it.
+  join(ROOT, 'src/server/trust/pauses.ts'),
   join(ROOT, 'src/server/accounts/staff.ts'),
 ];
 

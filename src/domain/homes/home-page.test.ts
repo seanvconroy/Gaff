@@ -236,6 +236,12 @@ describe('UX-LS-2: the page is made from the letting', () => {
     expect(homeDescription(null)).toEqual([]);
   });
 
+  it('M45: a paragraph with contact details in it is left off the page', () => {
+    expect(homeDescription('Two double bedrooms.\n\nText 087 123 4567 to view.')).toEqual([
+      'Two double bedrooms.',
+    ]);
+  });
+
   it('UX-LS-8: the BER, or "BER exempt"', () => {
     expect(homeBer('C1')).toBe('BER C1');
     expect(homeBer('exempt')).toBe('BER exempt');

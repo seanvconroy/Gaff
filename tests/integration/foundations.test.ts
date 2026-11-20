@@ -12,7 +12,10 @@ const IDENTITY_TABLES = new Set(['organisations', 'memberships']);
 // P3 (ADR-0017): Gaff's own record of AI calls names an organisation only to see the cost per
 // operator. It holds no tenant data, and no operator can read it: only withSystem() reads or
 // deletes its rows (tests/integration/p3-ai-usage.test.ts holds that).
-const PLATFORM_TABLES = new Set(['ai_calls']);
+// BA-10 (M107): Gaff's own record of a lister's listings paused by its team. It names the
+// organisation it's about, and only withSystem() reads or writes it; the lister's side is
+// `organisations.listings_paused_at` (tests/integration/ba10-listing-checks.test.ts).
+const PLATFORM_TABLES = new Set(['ai_calls', 'lister_pauses']);
 
 describe('ADR-0004: tenant isolation', () => {
   it('every tenant table has row-level security enabled, forced and a tenant policy', async () => {

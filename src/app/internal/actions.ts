@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireStaff } from '@/server/auth/staff';
 import { UserFacingError } from '@/server/errors';
+import { decidePauseAppeal, liftPause, pauseListings } from '@/server/trust/pauses';
 import { decideCase } from '@/server/trust/staff';
 
 /**
@@ -37,4 +38,52 @@ export async function decideCaseAction(
   }
   revalidatePath('/', 'layout');
   redirect(`/internal?done=${encodeURIComponent(done)}#reported`);
+}
+
+/**
+ * BA-10 (M107): a person on Gaff's team pauses a lister's listings after a decided case, with a
+ * reason and the facts it relies on, or lifts a pause, or decides an appeal against one. It
+ * asks `requireStaff()` itself.
+ */
+export async function pauseListingsAction(caseId: string, formData: FormData): Promise<void> {
+  const staff = await requireStaff();
+  try {
+    await pauseListings(staff, {
+      caseId,
+      reason: String(formData.get('reason') ?? ''),
+      facts: formData.getAll('facts').map(String),
+    });
+  } catch (error) {
+    if (!(error instanceof UserFacingError)) throw error;
+    redirect('/internal?problem=pause#paused');
+  }
+  revalidatePath('/', 'layout');
+  redirect('/internal?done=paused#paused');
+}
+
+export async function liftPauseAction(pauseId: string): Promise<void> {
+  const staff = await requireStaff();
+  try {
+    await liftPause(staff, pauseId);
+  } catch (error) {
+    if (!(error instanceof UserFacingError)) throw error;
+    redirect('/internal?problem=pause#paused');
+  }
+  revalidatePath('/', 'layout');
+  redirect('/internal?done=lifted#paused');
+}
+
+export async function decidePauseAppealAction(
+  pauseId: string,
+  decision: 'no_action' | 'hide_listing',
+): Promise<void> {
+  const staff = await requireStaff();
+  try {
+    await decidePauseAppeal(staff, pauseId, decision);
+  } catch (error) {
+    if (!(error instanceof UserFacingError)) throw error;
+    redirect('/internal?problem=pause#paused');
+  }
+  revalidatePath('/', 'layout');
+  redirect(`/internal?done=${decision === 'no_action' ? 'lifted' : 'kept_paused'}#paused`);
 }

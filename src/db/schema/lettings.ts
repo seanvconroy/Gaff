@@ -136,6 +136,16 @@ export const lettings = pgTable(
      * themselves are Gaff's own record (`listing_cases`), which no operator can read.
      */
     hiddenStage: text({ enum: hiddenStages }),
+    /**
+     * BA-10 (M29): what took it off: a report (or null, as before), or the checks a home passes
+     * as it goes public (`check`), which held it for a person on Gaff's team.
+     */
+    hiddenAfter: text({ enum: ['report', 'check'] }),
+    /**
+     * BA-10 (M48): when the checks last looked at the whole home while it was public, or as it
+     * went public. Null: never; the next change to a public home looks at all of it.
+     */
+    screenedAt: timestamp({ withTimezone: true }),
     /** UX-TS-4, BA-9: when the lister asked Gaff's team to look again (appealed). */
     lookAgainAskedAt: timestamp({ withTimezone: true }),
     /**

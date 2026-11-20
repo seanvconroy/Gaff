@@ -26,6 +26,7 @@ import { UserFacingError } from '@/server/errors';
 import { recordFunnelStep } from '@/server/funnels/steps';
 import { recordEvent } from '@/server/record/events';
 import { rentChanged } from '@/server/saved/alerts';
+import { queueListingCheck } from '@/server/trust/checks';
 import { makeLettingIn } from './create-letting';
 import { type HomePhoto, type LettingDetail, lettingDetailIn, photosIn } from './queries';
 import { assertMayActOn } from '@/server/team/permissions';
@@ -388,6 +389,15 @@ async function changeLettingIn(
     type: 'letting.details_changed',
     data: { step: step === 'description' ? 'home' : step },
   });
+  // BA-10 (M48): what renters read, or the rent, changed: a public home is checked again.
+  const check = (part: 'words' | 'rent' | 'all') =>
+    queueListingCheck(tx, { organisationId: member.organisationId, lettingId: letting.id, part });
+  const wordsChanged =
+    (answers.description ?? null) !== letting.description ||
+    before.map((fact) => fact.answer).join('\n') !== after.join('\n');
+  if (wordsChanged) await check('words');
+  if (answers.rentCents !== letting.monthlyRentCents) await check('rent');
+  if (!letting.berRating && answers.berRating) await check('all');
 }
 
 const SETUP_ONLY = 'This home is live now. Change its details from its own page.';

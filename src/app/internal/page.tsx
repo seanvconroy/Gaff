@@ -5,6 +5,9 @@ import { hiddenReasons } from '@/copy/trust';
 import { caseFactWords } from '@/copy/trust-emails';
 import { reportReasons } from '@/domain/homes/report';
 import { caseFacts } from '@/domain/trust/cases';
+import { groundLabels } from '@/domain/compliance/protected-grounds';
+import type { RiskSignal } from '@/domain/listings/checks';
+import { type PauseForStaff, pausesFor } from '@/server/trust/pauses';
 import { formatDateTime } from '@/lib/format';
 import { agenciesWaitingFor } from '@/server/accounts/staff';
 import { requireStaff } from '@/server/auth/staff';
@@ -21,7 +24,13 @@ import { StatusPill } from '@/ui/StatusPill';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { SummaryList } from '@/ui/SummaryList';
 import { Cell, Table, tableStyles } from '@/ui/Table';
-import { decideCaseAction } from './actions';
+import {
+  decideCaseAction,
+  decidePauseAppealAction,
+  liftPauseAction,
+  pauseListingsAction,
+} from './actions';
+import styles from './internal.module.css';
 import { AgenciesWaiting } from './AgenciesWaiting';
 
 export const metadata: Metadata = { title: 'Gaff internal' };
@@ -34,12 +43,30 @@ const done: Record<string, string> = {
   no_action: 'Decided: no action. It stays on gaff.ie.',
   back: 'It’s back on gaff.ie. The enquiries that waited are being answered, and its lister has been emailed.',
   kept_off: 'Decided: it stays off gaff.ie. Its lister has been emailed the reasons.',
+  released:
+    'Released. It’s on gaff.ie, the enquiries that waited are being answered, and its lister has been emailed.',
+  paused:
+    'Paused. None of that lister’s homes is on gaff.ie and none goes live; their live lettings carry on. Their admins have been emailed the reasons.',
+  lifted: 'Lifted. That lister’s homes are back on gaff.ie, and their admins have been emailed.',
+  kept_paused: 'Decided: the pause stays. The lister’s admins have been emailed the reasons.',
 };
 
 const problems: Record<string, string> = {
   confirm:
     'That agency couldn’t be confirmed. Its licence may be off the register, or another confirmed agency may hold it.',
   case: 'That couldn’t be decided. Choose a reason and what it relies on. Someone may have decided it already.',
+  pause:
+    'That couldn’t be done. Choose a reason and what it relies on. The lister may be paused already, or someone may have decided it.',
+};
+
+/** BA-10 (M29): what held a listing as it went public, as Gaff's team read it. */
+const signalWords: Record<RiskSignal, string> = {
+  photo_reused: 'A photo matches one on a different lister’s home',
+  rent_far_below: 'The rent is far below similar homes in the same place',
+  description_copied: 'The description is word for word a different lister’s',
+  new_account_burst: 'A new account put many homes on gaff.ie at once',
+  scam_wording: 'The words ask for money or keys before a viewing, or similar',
+  unfair_wording: 'The wording check found words that may not be fair to everyone',
 };
 
 /** Why it's hidden: the four reasons, as the lister will read them in the email. */
@@ -72,6 +99,10 @@ function stepWords(step: CaseStep): string {
       return step.reason ? `Looked again: kept off${why}` : 'Looked again: put back';
     case 'listing.unhidden':
       return 'Back on gaff.ie';
+    case 'listing.held_by_checks':
+      return 'Held by Gaff’s checks as it went public';
+    case 'listing.released':
+      return 'Checked by Gaff’s team: released';
   }
 }
 
@@ -91,6 +122,7 @@ function History({ steps }: { steps: CaseStep[] }) {
 function CaseCard({ item }: { item: OpenCase }) {
   const id = `case-${item.id}`;
   const appeal = item.kind === 'appeal';
+  const hold = item.kind === 'hold';
   // Off gaff.ie now: the rules took it off, or a person did and its lister asked again.
   const off = appeal || item.heldAt !== null;
   return (
@@ -104,14 +136,39 @@ function CaseCard({ item }: { item: OpenCase }) {
       <p>
         {appeal ? (
           <StatusPill tone="info">Asked to look again</StatusPill>
+        ) : hold ? (
+          <StatusPill tone="warning">Held by Gaff’s checks</StatusPill>
         ) : (
           <StatusPill tone="warning">
             {item.reports.length === 1 ? '1 report' : `${item.reports.length} reports`}
           </StatusPill>
         )}{' '}
-        {item.heldAt ? <StatusPill tone="warning">Off gaff.ie automatically</StatusPill> : null}{' '}
+        {item.heldAt && !hold ? (
+          <StatusPill tone="warning">Off gaff.ie automatically</StatusPill>
+        ) : null}{' '}
         Decide by {formatDateTime(item.dueBy)}.
       </p>
+      {hold ? (
+        <SummaryList
+          rows={[
+            ...item.signals.map((signal) => ({ label: 'Signal', value: signalWords[signal] })),
+            ...item.findings.map((finding) => ({
+              label: `Wording: ${groundLabels[finding.ground]}`,
+              value: `“${finding.phrase}”`,
+            })),
+          ]}
+        />
+      ) : null}
+      {item.photos.length > 0 ? (
+        <ul className={styles.photos} aria-label={`Photos of ${item.title}`}>
+          {item.photos.map((src, index) => (
+            <li key={src}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- Gaff's own small sizes */}
+              <img src={src} alt={`Photo ${index + 1}`} className={styles.photo} />
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {item.appealOf ? (
         <SummaryList
           rows={[
@@ -177,7 +234,7 @@ function CaseCard({ item }: { item: OpenCase }) {
                 legend="What it relies on"
                 hint="The lister is told these too. Choose at least one."
                 options={factOptions}
-                defaultValue={item.appealOf?.facts ?? ['reports']}
+                defaultValue={item.appealOf?.facts ?? (hold ? ['checks'] : ['reports'])}
               />
               <SubmitButton variant="secondary" pendingLabel="Saving…">
                 {off ? 'Keep it off gaff.ie' : 'Hide this listing'}
@@ -186,9 +243,17 @@ function CaseCard({ item }: { item: OpenCase }) {
             </Stack>
           </form>
           <form action={decideCaseAction.bind(null, item.id, 'no_action')}>
-            <input type="hidden" name="done" value={off ? 'back' : 'no_action'} />
+            <input
+              type="hidden"
+              name="done"
+              value={hold ? 'released' : off ? 'back' : 'no_action'}
+            />
             <SubmitButton variant="quiet" pendingLabel="Saving…">
-              {off ? 'Put it back on gaff.ie' : 'No action: keep it up'}
+              {hold
+                ? 'Release it to gaff.ie'
+                : off
+                  ? 'Put it back on gaff.ie'
+                  : 'No action: keep it up'}
               <span className="visually-hidden"> {item.title}</span>
             </SubmitButton>
           </form>
@@ -226,6 +291,96 @@ function HiddenCard({ listing }: { listing: HiddenListing }) {
         ]}
       />
       <History steps={listing.history} />
+      {listing.decidedCaseId && !listing.listerPaused && listing.stage !== 'held' ? (
+        <Disclosure summary="Pause this lister’s listings">
+          <form action={pauseListingsAction.bind(null, listing.decidedCaseId)}>
+            <Stack gap={4}>
+              <p>
+                None of their homes will be on gaff.ie and none will go live until the pause is
+                lifted. Their live lettings carry on with the renters already in them. Their admins
+                are emailed these reasons, and can ask Gaff to look again once.
+              </p>
+              <SelectField
+                name="reason"
+                idScope={`pause-${listing.lettingId}`}
+                label="Why their listings are paused"
+                hint="The lister is told this, in these words."
+                options={reasonOptions}
+                defaultValue={listing.reason ?? 'scam'}
+              />
+              <ChoiceGroup
+                name="facts"
+                idScope={`pause-${listing.lettingId}`}
+                type="checkbox"
+                legend="What it relies on"
+                hint="The lister is told these too. Choose at least one."
+                options={factOptions}
+                defaultValue={['lister']}
+              />
+              <SubmitButton variant="destructive" pendingLabel="Saving…">
+                Pause their listings
+                <span className="visually-hidden"> {listing.lister.name}</span>
+              </SubmitButton>
+            </Stack>
+          </form>
+        </Disclosure>
+      ) : null}
+    </Card>
+  );
+}
+
+/** BA-10 (M107, M98): a lister whose listings are paused: the statement, lifting, and the appeal. */
+function PauseCard({ pause }: { pause: PauseForStaff }) {
+  const id = `pause-${pause.id}`;
+  const waiting = pause.appealAskedAt !== null && !pause.appealDecided;
+  return (
+    <Card labelledBy={id}>
+      <CardHeader
+        id={id}
+        level={3}
+        title={pause.listerName}
+        description={`Paused ${formatDateTime(pause.pausedAt)}`}
+      />
+      <SummaryList
+        rows={[
+          { label: 'Why', value: reportCopy.reasons[pause.reason] },
+          {
+            label: 'Relied on',
+            value: pause.facts.map((fact) => caseFactWords[fact]).join(', '),
+          },
+          ...(pause.appealAskedAt
+            ? [
+                {
+                  label: 'Asked to look again',
+                  value: pause.appealDecided
+                    ? 'Decided: the pause stays'
+                    : `Decide by ${formatDateTime(pause.appealDueBy ?? pause.appealAskedAt)}`,
+                },
+              ]
+            : []),
+        ]}
+      />
+      {waiting && !pause.mayDecideAppeal ? (
+        <p>You paused these listings, so someone else on Gaff’s team must decide the appeal.</p>
+      ) : null}
+      {waiting && pause.mayDecideAppeal ? (
+        <form action={decidePauseAppealAction.bind(null, pause.id, 'hide_listing')}>
+          <SubmitButton variant="secondary" pendingLabel="Saving…">
+            Keep the pause<span className="visually-hidden"> on {pause.listerName}</span>
+          </SubmitButton>
+        </form>
+      ) : null}
+      <form
+        action={
+          waiting && pause.mayDecideAppeal
+            ? decidePauseAppealAction.bind(null, pause.id, 'no_action')
+            : liftPauseAction.bind(null, pause.id)
+        }
+      >
+        <SubmitButton variant="quiet" pendingLabel="Saving…">
+          Lift the pause<span className="visually-hidden"> on {pause.listerName}</span>
+        </SubmitButton>
+      </form>
     </Card>
   );
 }
@@ -243,9 +398,10 @@ export default async function InternalPage({
   searchParams: Promise<{ done?: string; problem?: string }>;
 }) {
   const staff = await requireStaff();
-  const [agencies, cases, funnels, query] = await Promise.all([
+  const [agencies, cases, pauses, funnels, query] = await Promise.all([
     agenciesWaitingFor(staff),
     casesFor(staff),
+    pausesFor(staff),
     funnelReportsFor(staff),
     searchParams,
   ]);
@@ -281,10 +437,11 @@ export default async function InternalPage({
         </h2>
         <p>
           Every report is part of a case about a listing, and a person decides each one: a suspected
-          scam within four working hours, anything else within one working day. Hide a listing that
-          is a scam, has details that are wrong, or is unfair about who can apply, and choose what
-          you relied on. Its lister is emailed those reasons, and can ask Gaff to look again once:
-          someone other than you decides that.
+          scam within four working hours, anything else within one working day. So is every listing
+          Gaff’s checks held as it went public: release it, or keep it off with reasons. Hide a
+          listing that is a scam, has details that are wrong, or is unfair about who can apply, and
+          choose what you relied on. Its lister is emailed those reasons, and can ask Gaff to look
+          again once: someone other than you decides that.
         </p>
         {cases.open.length === 0 ? <p>No case is waiting.</p> : null}
         {cases.open.map((item) => (
@@ -296,6 +453,13 @@ export default async function InternalPage({
         {cases.hidden.length === 0 ? <p>No listing is hidden.</p> : null}
         {cases.hidden.map((listing) => (
           <HiddenCard key={listing.lettingId} listing={listing} />
+        ))}
+        <h3 className="type-title" id="paused">
+          Paused listers
+        </h3>
+        {pauses.length === 0 ? <p>No lister’s listings are paused.</p> : null}
+        {pauses.map((pause) => (
+          <PauseCard key={pause.id} pause={pause} />
         ))}
       </Stack>
 

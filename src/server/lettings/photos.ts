@@ -23,6 +23,7 @@ import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
 import { assertMayActOn } from '@/server/team/permissions';
+import { queueListingCheck } from '@/server/trust/checks';
 import { preparePhoto } from './photo-pipeline';
 import { homePhotoOf, showingOrder, type HomePhoto } from './queries';
 
@@ -174,6 +175,15 @@ async function keepPhoto(
       createdBy: member.userId,
     });
     await changed(tx, member, home, { added: 1, count: existing.length + 1 });
+    // BA-10 (M29): a public home's new photo is checked against other listers' photos.
+    if (home.kind === 'letting') {
+      await queueListingCheck(tx, {
+        organisationId: member.organisationId,
+        lettingId: home.id,
+        part: 'photos',
+        photoIds: [id],
+      });
+    }
     return { ok: true as const, photo: homePhotoOf(row) };
   });
 }

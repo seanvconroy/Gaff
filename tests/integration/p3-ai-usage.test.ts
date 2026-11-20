@@ -48,6 +48,12 @@ function paidAi(reply: Partial<Awaited<ReturnType<AiProvider['draftAnswers']>>> 
       model: 'claude-opus-5-5',
       usage: tokens,
     })),
+    checkWording: vi.fn(async () => ({
+      output: { findings: [] } as unknown,
+      refused: false,
+      model: 'claude-opus-5-5',
+      usage: tokens,
+    })),
   } satisfies AiProvider;
 }
 

@@ -5,6 +5,8 @@ import { draftOrigins } from '@/domain/lettings/add-letting';
 import { enquirySources } from '@/domain/enquiries/sources';
 import { reportReasons } from '@/domain/homes/report';
 import { caseDecisions, caseFacts } from '@/domain/trust/cases';
+import { riskSignals } from '@/domain/listings/checks';
+import { wordingGrounds } from '@/domain/listings/wording';
 import { promptCodes } from '@/domain/activation/prompts';
 import { organisationKinds } from '@/domain/organisations/kinds';
 import { assertNoPersonalData } from '@/domain/record/personal-data';
@@ -215,6 +217,42 @@ export const eventCatalogue = {
    * that waited got their first replies: this many.
    */
   'listing.unhidden': z.object({ caseId: z.uuid(), firstReplies: z.number().int().min(0) }),
+  /**
+   * BA-10 (M29, P12): the checks a home passes as it goes public held it for a person on Gaff's
+   * team (actor `system`): this case, these signals as codes, and, for the AI's wording check,
+   * how many phrases it found and their grounds as codes. Never the phrases themselves.
+   */
+  'listing.held_by_checks': z.object({
+    caseId: z.uuid(),
+    signals: z.array(z.enum(riskSignals)).min(1),
+    findings: z.number().int().min(0),
+    grounds: z.array(z.enum(wordingGrounds)),
+  }),
+  /** BA-10 (M98): a person on Gaff's team looked at a held home and released it (`staff`). */
+  'listing.released': z.object({ caseId: z.uuid() }),
+  /**
+   * BA-10 (M107): a person on Gaff's team paused the organisation's listings after this decided
+   * case, for this reason, relying on these facts (actor `staff`). None of its homes is public,
+   * and none goes live, until it's lifted.
+   */
+  'organisation.listings_paused': z.object({
+    pauseId: z.uuid(),
+    caseId: z.uuid(),
+    reason: z.enum(reportReasons),
+    facts: z.array(z.enum(caseFacts)).min(1),
+  }),
+  /** BA-10 (M98): the lister asked Gaff to look again at the pause (actor `person`). */
+  'organisation.pause_appeal_asked': z.object({ pauseId: z.uuid() }),
+  /** BA-10 (M98): a different person decided the appeal: lifted, or kept (`staff`). */
+  'organisation.pause_appeal_decided': z.object({
+    pauseId: z.uuid(),
+    decision: z.enum(caseDecisions),
+  }),
+  /** BA-10 (M107): the pause ended: lifted by a person on Gaff's team, or on appeal (`staff`). */
+  'organisation.listings_unpaused': z.object({
+    pauseId: z.uuid(),
+    how: z.enum(['lifted', 'appeal']),
+  }),
   /** UX-LS-10: the scheduled job took a let home's page off gaff.ie, this many days after it was let. */
   'letting.gaff_page_removed': z.object({ daysAfterLet: z.number().int() }),
   /** "Is it advertised anywhere else?" was answered. */

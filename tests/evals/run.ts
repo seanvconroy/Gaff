@@ -20,10 +20,11 @@ import type { AiReply } from '@/ports/ai';
 import * as advert from './advert';
 import * as answers from './answers';
 import * as people from './people';
+import * as wording from './wording';
 
 if (existsSync('.env')) process.loadEnvFile('.env');
 
-const tasks = ['answers', 'advert', 'people'] as const satisfies readonly AiTask[];
+const tasks = ['answers', 'advert', 'people', 'wording'] as const satisfies readonly AiTask[];
 type Task = (typeof tasks)[number];
 
 /** A rough guess: four characters a token, and about 1,500 tokens out per call with thinking. */
@@ -135,10 +136,27 @@ async function runPeople(confirm: boolean): Promise<Outcome | null> {
   return outcome('people', usage, people.summarise(results), results);
 }
 
+async function runWording(confirm: boolean): Promise<Outcome | null> {
+  const ai = aiProvider();
+  const chars = wording.cases.reduce((n, c) => n + c.text.length, 0);
+  console.log(
+    `wording: ${wording.cases.length} calls, about ${formatUsd(estimateMicros(chars, wording.cases.length))}, on ${ai.name} (${ai.model}).`,
+  );
+  if (!confirm) return null;
+  const usage = new Usage();
+  const results = [];
+  for (const item of wording.cases) {
+    const reply = usage.add(await ai.checkWording({ text: item.text }));
+    results.push({ ...item, flagged: wording.flagged(item, reply.output) });
+  }
+  return outcome('wording', usage, wording.summarise(results), results);
+}
+
 const runners: Record<Task, (confirm: boolean) => Promise<Outcome | null>> = {
   answers: runAnswers,
   advert: runAdvert,
   people: runPeople,
+  wording: runWording,
 };
 
 async function main() {

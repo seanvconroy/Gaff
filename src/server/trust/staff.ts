@@ -1,6 +1,15 @@
 import { and, asc, count, desc, eq, inArray, isNotNull, isNull, like } from 'drizzle-orm';
 import { type Tx, withSystem } from '@/db/client';
-import { events, lettings, listingCases, listingReports, organisations } from '@/db/schema';
+import {
+  events,
+  lettingPhotos,
+  lettings,
+  listingCases,
+  listingReports,
+  organisations,
+} from '@/db/schema';
+import { COVER_WIDTH } from '@/domain/lettings/photo-files';
+import { photoSources } from '@/ports/photo-store';
 import {
   homeHref,
   homeSummary,
@@ -17,6 +26,7 @@ import {
   type CaseKind,
   type HiddenStage,
 } from '@/domain/trust/cases';
+import type { RiskSignal, WordingFinding } from '@/domain/listings/checks';
 import type { Staff } from '@/server/auth/staff';
 import { queueWaitingFirstReplies } from '@/server/enquiries/first-reply';
 import { UserFacingError } from '@/server/errors';
@@ -39,8 +49,9 @@ import { recordEvent } from '@/server/record/events';
  * is all. Nothing here reads a letting's people, applications, messages, viewings or
  * decisions, writes to any of them, or sends anyone a message of anyone's writing; the
  * enquiries that waited while a home was hidden get the same fixed first reply they would have
- * had, on the lister's own decision to put it live. Pausing or suspending a lister's account
- * (M107) is not here (`accountActionsBuilt`). A test holds this
+ * had, on the lister's own decision to put it live. BA-10: a listing the checks held as it went
+ * public (`hold`) is decided here the same way: released, or kept off with reasons. Pausing a
+ * lister's listings is its own step (src/server/trust/pauses.ts). A test holds this
  * (tests/integration/ux-ts-trust.test.ts, tests/compliance/staff-reach.test.ts).
  */
 
@@ -75,7 +86,9 @@ export interface CaseStep {
     | 'listing.kept_up'
     | 'listing.look_again_asked'
     | 'listing.appeal_decided'
-    | 'listing.unhidden';
+    | 'listing.unhidden'
+    | 'listing.held_by_checks'
+    | 'listing.released';
   reason: ReportReason | null;
   /** Who: the system (the rules), a person on Gaff's team, or the lister. Never a name. */
   by: 'system' | 'staff' | 'lister';
@@ -99,6 +112,12 @@ export interface OpenCase extends ListingFacts {
   openedAt: Date;
   /** M97: when the rules took it off on strong signs of a scam, before a person looked. */
   heldAt: Date | null;
+  /** BA-10 (M29): a hold's risk signals, as codes. Empty for any other kind. */
+  signals: RiskSignal[];
+  /** BA-10 (P13): what the AI's wording check found: the phrases, from its public page, and grounds. */
+  findings: WordingFinding[];
+  /** BA-10 (M29): the home's photos, as its page shows them (small), to look at. */
+  photos: string[];
   /** The reports it holds (an appeal: those of the case it appeals), oldest first. */
   reports: ReportRead[];
   /** The reason offered first if it's hidden. */
@@ -115,6 +134,10 @@ export interface HiddenListing extends ListingFacts {
   stage: HiddenStage | null;
   hiddenAt: Date;
   history: CaseStep[];
+  /** BA-10 (M107): the latest decision to keep it off, which a pause of its lister may follow. */
+  decidedCaseId: string | null;
+  /** BA-10 (M107): whether its lister's listings are paused now. */
+  listerPaused: boolean;
 }
 
 const listingColumns = {
@@ -172,6 +195,11 @@ function factsOf(row: ListingRow): ListingFacts {
   };
 }
 
+/** BA-10: the reason offered first for a held listing: wording alone is "unfair", else "scam". */
+function holdReason(signals: readonly RiskSignal[]): ReportReason {
+  return signals.every((signal) => signal === 'unfair_wording') ? 'unfair' : 'scam';
+}
+
 const historyTypes: readonly CaseStep['type'][] = [
   'listing.reported',
   'listing.held',
@@ -180,6 +208,8 @@ const historyTypes: readonly CaseStep['type'][] = [
   'listing.look_again_asked',
   'listing.appeal_decided',
   'listing.unhidden',
+  'listing.held_by_checks',
+  'listing.released',
 ];
 
 /** The listings' histories with Gaff's team, from their records: `listing.*` events only. */
@@ -228,6 +258,8 @@ export async function casesFor(
         openedAt: listingCases.openedAt,
         heldAt: listingCases.heldAt,
         appealOf: listingCases.appealOf,
+        signals: listingCases.signals,
+        findings: listingCases.findings,
         listing: listingColumns,
       })
       .from(listingCases)
@@ -273,11 +305,26 @@ export async function casesFor(
         reason: lettings.hiddenReason,
         stage: lettings.hiddenStage,
         hiddenAt: lettings.hiddenAt,
+        listerPausedAt: organisations.listingsPausedAt,
       })
       .from(lettings)
       .innerJoin(organisations, eq(organisations.id, lettings.organisationId))
       .where(isNotNull(lettings.hiddenAt))
       .orderBy(desc(lettings.hiddenAt));
+
+    const openIds = openRows.map((row) => row.listing.lettingId);
+    const photoRows =
+      openIds.length === 0
+        ? []
+        : await tx
+            .select({
+              lettingId: lettingPhotos.lettingId,
+              storageKey: lettingPhotos.storageKey,
+              widths: lettingPhotos.widths,
+            })
+            .from(lettingPhotos)
+            .where(and(inArray(lettingPhotos.lettingId, openIds), eq(lettingPhotos.kind, 'photo')))
+            .orderBy(asc(lettingPhotos.position));
 
     const histories = await historiesOf(tx, [
       ...new Set([
@@ -298,8 +345,16 @@ export async function casesFor(
         dueBy: row.dueBy,
         openedAt: row.openedAt,
         heldAt: row.heldAt,
+        signals: row.signals ?? [],
+        findings: row.findings ?? [],
+        photos: photoRows
+          .filter((photo) => photo.lettingId === row.listing.lettingId)
+          .map((photo) => photoSources(photo, COVER_WIDTH).src),
         reports: own,
-        likeliest: original?.reason ?? likeliestReason(own) ?? 'something_else',
+        likeliest:
+          original?.reason ??
+          likeliestReason(own) ??
+          (row.signals ? holdReason(row.signals) : 'something_else'),
         appealOf: original
           ? {
               decision: original.decision ?? 'hide_listing',
@@ -313,12 +368,28 @@ export async function casesFor(
         history: histories.get(row.listing.lettingId) ?? [],
       };
     });
+    const hiddenIds = hiddenRows.map((row) => row.listing.lettingId);
+    const decided =
+      hiddenIds.length === 0
+        ? []
+        : await tx
+            .select({ id: listingCases.id, lettingId: listingCases.lettingId })
+            .from(listingCases)
+            .where(
+              and(
+                inArray(listingCases.lettingId, hiddenIds),
+                eq(listingCases.decision, 'hide_listing'),
+              ),
+            )
+            .orderBy(desc(listingCases.decidedAt));
     const hidden: HiddenListing[] = hiddenRows.map((row) => ({
       ...factsOf(row.listing as ListingRow),
       reason: row.reason,
       stage: row.stage,
       hiddenAt: row.hiddenAt!,
       history: histories.get(row.listing.lettingId) ?? [],
+      decidedCaseId: decided.find((each) => each.lettingId === row.listing.lettingId)?.id ?? null,
+      listerPaused: row.listerPausedAt !== null,
     }));
     return { open, hidden };
   });
@@ -374,6 +445,7 @@ export async function decideCase(
         status: lettings.status,
         hiddenAt: lettings.hiddenAt,
         hiddenStage: lettings.hiddenStage,
+        hiddenAfter: lettings.hiddenAfter,
       })
       .from(lettings)
       .where(eq(lettings.id, item.lettingId))
@@ -407,7 +479,13 @@ export async function decideCase(
     const putBack = async () => {
       await tx
         .update(lettings)
-        .set({ hiddenAt: null, hiddenReason: null, hiddenStage: null, lookAgainAskedAt: null })
+        .set({
+          hiddenAt: null,
+          hiddenReason: null,
+          hiddenStage: null,
+          hiddenAfter: null,
+          lookAgainAskedAt: null,
+        })
         .where(eq(lettings.id, letting.id));
       // The lister's own decision to put it live stands: what waited goes now, as at go-live.
       const firstReplies =
@@ -419,14 +497,43 @@ export async function decideCase(
         type: 'listing.unhidden',
         data: { caseId: item.id, firstReplies },
       });
+      // BA-10: a home the checks held was never on gaff.ie: it's on now, not "back".
       await enqueue(tx, 'send_account_email', {
-        kind: 'listing_back',
+        kind: letting.hiddenAfter === 'check' ? 'listing_cleared' : 'listing_back',
         organisationId: letting.organisationId,
         lettingId: letting.id,
       });
     };
 
-    if (item.kind === 'report') {
+    if (item.kind === 'hold') {
+      // BA-10 (M29, M98): a person looked at what the checks held, and released it or kept it off.
+      if (decision.decision === 'no_action') {
+        await recordEvent(tx, { ...base, type: 'listing.released', data: { caseId: item.id } });
+        if (letting.hiddenAt) await putBack();
+      } else {
+        await tx
+          .update(lettings)
+          .set({
+            hiddenAt: letting.hiddenAt ?? now,
+            hiddenReason: decision.reason,
+            hiddenStage: 'decided',
+            hiddenAfter: 'check',
+            lookAgainAskedAt: null,
+          })
+          .where(eq(lettings.id, letting.id));
+        await recordEvent(tx, {
+          ...base,
+          type: 'listing.hidden',
+          data: { caseId: item.id, reason: decision.reason, facts: decision.facts, reports: 0 },
+        });
+        await enqueue(tx, 'send_account_email', {
+          kind: 'listing_not_shown',
+          organisationId: letting.organisationId,
+          lettingId: letting.id,
+          caseId: item.id,
+        });
+      }
+    } else if (item.kind === 'report') {
       const [counted] = await tx
         .select({ n: count() })
         .from(listingReports)

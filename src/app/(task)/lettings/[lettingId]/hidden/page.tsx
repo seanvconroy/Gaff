@@ -42,7 +42,11 @@ export default async function HiddenPage({ params }: { params: Promise<{ letting
       pendingLabel={copy.asking}
     >
       <Stack gap={4}>
-        <p>{copy.why(hidden.reason, formatDate(hidden.hiddenAt))}</p>
+        <p>
+          {hidden.after === 'check'
+            ? copy.whyChecked(hidden.reason, formatDate(hidden.hiddenAt))
+            : copy.why(hidden.reason, formatDate(hidden.hiddenAt))}
+        </p>
         {hidden.facts.length > 0 ? <p>{copy.reliedOn(factsInWords(hidden.facts))}</p> : null}
         <p>{copy.meanwhile}</p>
         <p>{copy.fix}</p>

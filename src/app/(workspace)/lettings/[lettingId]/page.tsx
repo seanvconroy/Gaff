@@ -50,6 +50,9 @@ const savedCopy: Record<string, string> = {
   photos: 'Photos saved.',
   pin: pinWords.saved,
   live: 'Gaff is now answering enquiries for this home.',
+  /** BA-10 (M48): live, and held by the checks for a person before it goes on gaff.ie. */
+  live_checking:
+    'It’s live. Before it goes on gaff.ie, a person on Gaff’s team is checking it. Gaff answers its enquiries once they have.',
   reminded: 'Reminder sent. The owner has a new link.',
   closed:
     'Closed. Everyone who enquired has been told, and Gaff deletes their details on schedule.',
@@ -127,7 +130,12 @@ export default async function LettingPage({
       listerMayShow: gate.open,
       staleAt: letting.staleAt,
     }) === 'live';
-  const saved = query.saved && savedCopy[query.saved] ? query.saved : null;
+  const asked = query.saved && savedCopy[query.saved] ? query.saved : null;
+  // BA-10: a home the checks held as it went live isn't answering enquiries yet.
+  const saved =
+    asked === 'live' && letting.hiddenAfter === 'check' && letting.hiddenStage === 'held'
+      ? 'live_checking'
+      : asked;
   // UX-GR-5: one prompt at most on the letting: viewing times, then the owner's link (UX-OW-1).
   const prompt = promptFor(
     'letting',

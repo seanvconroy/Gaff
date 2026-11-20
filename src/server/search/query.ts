@@ -5,6 +5,7 @@ import type { Criteria } from '@/domain/criteria/criteria';
 import type { BBox, Point } from '@/domain/places/geo';
 import type { SearchFilters } from '@/domain/search/filters';
 import type { Miss, SearchResults } from '@/domain/search/match';
+import { SIMILAR_RENT_RANGE } from '@/domain/search/similar';
 import {
   type Gazetteer,
   type Place,
@@ -415,4 +416,49 @@ export async function publicHomeRefs(): Promise<Array<{ ref: string; liveAt: Dat
       order by coalesce(h.live_at, to_timestamp(0)) desc, h.ref collate "C" asc`),
   );
   return result.rows.map((row) => ({ ref: row.ref, liveAt: liveAtOf(row.live_at) }));
+}
+
+/** One public home, as search reads it, by its reference. Null: not in search. */
+export async function homeOnGaff(ref: string): Promise<HomeOnGaff | null> {
+  return withSystem(async (tx) => {
+    const result = await tx.execute<Row>(sql`
+      select h.*, array[]::text[] as misses from (${publicRows()}) h where h.ref = ${ref}`);
+    const [row] = result.rows;
+    if (!row) return null;
+    const covers = await coversIn(tx, [row.letting_id]);
+    return homeOf(row, covers.get(row.letting_id));
+  });
+}
+
+/**
+ * M73, M74: the public homes that could be like this one (`isLike` in src/domain/search/
+ * similar.ts, as SQL): the same county, a home of the same kind, a bedroom either way and within
+ * a quarter of the rent. The domain then orders them by distance and keeps three.
+ */
+export async function similarCandidates(target: {
+  ref: string;
+  county: string;
+  propertyType: string;
+  bedrooms: number;
+  rentCents: number;
+}): Promise<HomeOnGaff[]> {
+  const flats = ['apartment', 'studio', 'duplex'];
+  const kinds = flats.includes(target.propertyType)
+    ? sql`h.property_type in ('apartment', 'studio', 'duplex')`
+    : target.propertyType === 'house'
+      ? sql`h.property_type = 'house'`
+      : sql`h.property_type not in ('apartment', 'studio', 'duplex', 'house')`;
+  return withSystem(async (tx) => {
+    const result = await tx.execute<Row>(sql`
+      select h.*, array[]::text[] as misses from (${publicRows()}) h
+      where h.county = ${target.county} and h.ref <> ${target.ref} and ${kinds}
+        and abs(h.bedrooms - ${target.bedrooms}) <= 1
+        and abs(h.rent_cents - ${target.rentCents}) <= ${target.rentCents * SIMILAR_RENT_RANGE}::float8
+      order by coalesce(h.live_at, to_timestamp(0)) desc, h.ref collate "C" asc`);
+    const covers = await coversIn(
+      tx,
+      result.rows.map((row) => row.letting_id),
+    );
+    return result.rows.map((row) => homeOf(row, covers.get(row.letting_id)));
+  });
 }

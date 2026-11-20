@@ -186,7 +186,7 @@ async function countsFor(
 
   // This home and the others the account put on gaff.ie lately. BA-15: the alike homes of one
   // development count once, as one scheme: a burst is many separate homes, or many schemes. So
-  // a scheme from a new account is looked at like one home, not waved through (ADR-0028).
+  // a scheme from a new account is looked at like one home, not waved through (ADR-0029).
   const { rows: lately } = await tx.execute<{ n: number }>(sql`
     select count(distinct coalesce(l.development_id, l.id))::int as n from lettings l
     where l.organisation_id = ${letting.organisationId} and l.id <> ${letting.id}

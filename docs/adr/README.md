@@ -29,6 +29,7 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0023](0023-photo-pipeline.md) | The photo pipeline: every photo made again upright, clean, at fixed WebP sizes with a hash; floor plans; straight to Supabase Storage | Accepted (M43, M44) |
 | [0024](0024-reports-handled-as-cases.md) | Reports handled as cases: due times in working hours, an automatic hide on strong scam signals, a person's decision with a fixed statement of reasons, one appeal decided by someone else | Accepted |
 | [0025](0025-place-pages-and-search-engines.md) | A page for each place at one address (`/to-rent/<county>/<place>`), the search for a place alone as its canonical address, and a sitemap and structured data only where `SEARCH_INDEXING=on` | Accepted |
+| [0026](0026-drafted-descriptions.md) | A home's description drafted from its facts and the lister's statements only (the `description` AI task), shown only if it keeps to them and passes the wording check, and marked "Drafted by AI" for the lister until its words change | Accepted |
 
 ## Template
 

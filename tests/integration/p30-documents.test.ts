@@ -414,6 +414,18 @@ describe('P40, P41, P49, rule 9: every copy is deleted on its date, and nothing 
     // Another person can't see them.
     const someone = await createTestPerson();
     expect(await withPerson(someone.id, (tx) => tx.select().from(renterDocuments))).toEqual([]);
+    // Chosen for another home, they're offered back, and shared again only when they share.
+    const next = await chosen();
+    const offered = (await documentsForRenter(next.token, renter.id))!;
+    expect(offered.documents.map((d) => [d.kind, d.fromProfile])).toEqual([['payslip', true]]);
+    expect((await chosenRenterPack(next.member, next.lettingId, next.ids[0]!))!.documents).toEqual(
+      [],
+    );
+    await shareChecks(next.token, renter.id, { keep: false });
+    expect(
+      (await chosenRenterPack(next.member, next.lettingId, next.ids[0]!))!.documents,
+    ).toHaveLength(1);
+    expect(await withPerson(renter.id, (tx) => tx.select().from(renterDocuments))).toHaveLength(1);
     // When it goes out of date, the nightly job deletes it, file and all.
     await sweepDocuments(new Date(Date.now() + 200 * DAY), {
       onlyOrganisationId: member.organisationId,

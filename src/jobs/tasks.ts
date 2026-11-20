@@ -16,6 +16,7 @@ import { expireHomeOffer } from '@/server/offers/offer';
 import { sendRtbReminder } from '@/server/tenancy/rtb';
 import { refreshRegister } from '@/server/register/refresh';
 import { sweepPersonalData } from '@/server/retention/sweep';
+import { sweepDocuments } from '@/server/documents/retention';
 import { sweepPlaceMisses } from '@/server/places/places';
 import { sweepMapCounts } from '@/server/search/map-counts';
 import { sweepPhotoUploads } from '@/server/lettings/photos';
@@ -83,6 +84,11 @@ export const taskList: TaskList = {
     // Counts only: never personal data in logs.
     console.log(
       `Retention: ${swept.applications} applications, ${swept.inboundEmails} emails and ${swept.references} references cleared; ${swept.recordEvents} record events and ${swept.recordDecisions} decisions past their period deleted.`,
+    );
+    // BA-16 (P41, rule 9): chosen renters' documents, each copy on its own date. Counts only.
+    const documents = await sweepDocuments();
+    console.log(
+      `Documents: ${documents.renterCopies} renters' copies and ${documents.letterCopies} letting agents' copies deleted.`,
     );
     // UX-PF-7 (rule 9): renters' own profiles, unused for two years. Counts only.
     const profiles = await sweepProfiles();

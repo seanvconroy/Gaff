@@ -352,7 +352,37 @@ export function describeEvent(
     case 'checks.requested':
       return { what: 'Checks requested', detail: `${data.checks} to do` };
     case 'check.started':
-      return { what: data.kind === 'identity' ? 'ID check started' : 'Income check started' };
+      return { what: 'ID check started' };
+    case 'reference.named':
+      return {
+        what:
+          data.kind === 'landlord_reference'
+            ? 'The renter named their previous landlord'
+            : 'The renter named their employer',
+      };
+    // BA-16: documents, by count and copy alone: never what kind they are (rule 3).
+    case 'document.added':
+      return { what: 'The renter added a document' };
+    case 'document.read':
+      return { what: data.by === 'gaff' ? 'A document was read by AI' : 'A document wasn’t read' };
+    case 'document.corrected':
+      return { what: 'The renter changed what was read from a document' };
+    case 'document.removed':
+      return { what: 'The renter removed a document' };
+    case 'documents.shared':
+      return {
+        what: 'The renter shared their checks',
+        detail: `${data.documents} ${data.documents === 1 ? 'document' : 'documents'}, ${data.toLookAt} to look at`,
+      };
+    case 'document.viewed':
+      return { what: 'A shared document was opened' };
+    case 'document.deleted':
+      return {
+        what:
+          data.copy === 'letter'
+            ? 'Your copy of a document was deleted on schedule'
+            : 'The renter’s copy of a document was deleted',
+      };
     case 'check.redacted':
       return { what: 'ID check’s photos deleted by the ID service' };
     case 'booking.mobile_code_sent':
@@ -546,14 +576,14 @@ export async function timelineFor(member: Member, lettingId: string): Promise<Ti
 function checkOutcomeWords(kind: string, outcome: string): string {
   const name: Record<string, string> = {
     identity: 'ID check',
-    income: 'Income check',
+    income: 'Work and income',
     landlord_reference: 'Landlord reference',
     employer_reference: 'Employer reference',
   };
   const words: Record<string, string> = {
-    passed: kind === 'identity' ? 'verified' : 'income confirmed',
-    not_passed: kind === 'identity' ? 'not verified' : 'income not confirmed',
-    answered: 'answered',
+    passed: 'verified',
+    not_passed: 'not verified',
+    answered: kind === 'income' ? 'documents shared' : 'answered',
     no_answer: 'no answer after two reminders',
     cant_give: 'the referee can’t give one',
     not_needed: 'not needed',

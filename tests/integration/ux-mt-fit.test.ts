@@ -166,7 +166,7 @@ describe('UX-MT-11: the renter’s “Thanks” shows their answers beside the l
     const { member, misses } = await aPool();
     const page = await loadRenterPage(await renterTokenFor(member, misses));
     const model = renterModel(page!, {
-      providers: { identity: true, income: true },
+      providers: { identity: true },
       retentionDays: 30,
     });
     expect(model.view).toBe('answers_sent');

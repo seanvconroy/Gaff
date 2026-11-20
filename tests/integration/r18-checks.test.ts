@@ -17,7 +17,7 @@ import {
 } from '@/server/checks/checks';
 import { closeLetting } from '@/server/lettings/close';
 import { sweepPersonalData } from '@/server/retention/sweep';
-import { createTestMember, peopleWhoApplied, tokenInMessage } from './helpers';
+import { createTestMember, peopleWhoApplied, shareChecksFor, tokenInMessage } from './helpers';
 
 type Member = Awaited<ReturnType<typeof createTestMember>>;
 
@@ -66,7 +66,7 @@ describe('R18: checks only for the preferred applicant and the backup', () => {
   });
 });
 
-describe('R18: ID and income checks, through a provider', () => {
+describe('R18: the ID check, through a provider', () => {
   it('sends the renter to the provider without their private link, and keeps only a sealed result', async () => {
     const { member, ids, token } = await chosen();
     const started = await startProviderCheck(token, 'identity');
@@ -89,38 +89,6 @@ describe('R18: ID and income checks, through a provider', () => {
     const results = await withOrg(member.organisationId, (tx) => checkResultsFor(tx, [ids[0]!]));
     expect(results.get(ids[0]!)!.find((c) => c.kind === 'identity')!.verifiedName).toBe('Renter 1');
   });
-
-  it('records a check that didn’t pass with a reason code, and lets the renter try again', async () => {
-    const { member, ids, token } = await chosen();
-    await startProviderCheck(token, 'income');
-    const [income] = (await checksOfPerson(member, ids[0]!)).filter((c) => c.kind === 'income');
-    await recordProviderResult(income!.id, {
-      kind: 'income',
-      result: { confirmed: false, reason: 'no_regular_income' },
-    });
-    expect((await checksOfPerson(member, ids[0]!)).find((c) => c.kind === 'income')).toMatchObject({
-      status: 'not_passed',
-      reason: 'no_regular_income',
-      resultSealed: null,
-    });
-    await startProviderCheck(token, 'income');
-    await recordProviderResult(income!.id, {
-      kind: 'income',
-      result: { confirmed: true, monthlyIncomeCents: 510_000 },
-    });
-    const results = await withOrg(member.organisationId, (tx) => checkResultsFor(tx, [ids[0]!]));
-    expect(results.get(ids[0]!)!.find((c) => c.kind === 'income')).toMatchObject({
-      status: 'passed',
-      monthlyIncomeCents: 510_000,
-    });
-    const logged = await withOrg(member.organisationId, (tx) =>
-      tx.select().from(events).where(eq(events.type, 'check.completed')).orderBy(asc(events.id)),
-    );
-    expect(logged.map((e) => (e.data as { outcome: string }).outcome)).toEqual([
-      'not_passed',
-      'passed',
-    ]);
-  });
 });
 
 describe('R18: references', () => {
@@ -142,6 +110,12 @@ describe('R18: references', () => {
         employerEmail: 'sean.daly@example.ie',
       }),
     ).toEqual({ ok: true });
+    // P39: named, the referees wait for the renter to share their checks; then they're asked.
+    const waiting = await withOrg(member.organisationId, (tx) =>
+      tx.select().from(messages).where(eq(messages.toAddress, 'mary.kelly@example.ie')),
+    );
+    expect(waiting).toEqual([]);
+    await shareChecksFor(token);
     const sent = await withOrg(member.organisationId, (tx) =>
       tx.select().from(messages).where(eq(messages.toAddress, 'mary.kelly@example.ie')),
     );
@@ -220,6 +194,7 @@ describe('R18: references', () => {
       landlordEmail: 'mary.kelly@example.ie',
       employerNone: 'yes',
     });
+    await shareChecksFor(token);
     const [request] = await withOrg(member.organisationId, (tx) =>
       tx
         .select()
@@ -242,6 +217,7 @@ describe('R18: references', () => {
       employerName: 'Seán Daly',
       employerEmail: 'sean.daly@example.ie',
     });
+    await shareChecksFor(token);
     const requests = await withOrg(member.organisationId, (tx) =>
       tx
         .select()
@@ -280,9 +256,10 @@ describe('R18: references', () => {
     const logged = await withOrg(member.organisationId, (tx) =>
       tx.select().from(events).where(eq(events.type, 'check.completed')),
     );
-    expect(logged.map((e) => e.data)).toEqual([
-      { checkId: landlord.id, kind: 'landlord_reference', outcome: 'cant_give' },
-    ]);
+    // The share's own line for work and income aside (BA-16).
+    expect(
+      logged.map((e) => e.data).filter((d) => (d as { kind: string }).kind !== 'income'),
+    ).toEqual([{ checkId: landlord.id, kind: 'landlord_reference', outcome: 'cant_give' }]);
 
     // Once said, it stays said: the form can't be sent after, and the overdue job leaves it.
     expect(await submitReference(landlordToken, { rentedFromYou: 'yes' })).toEqual({ ok: true });
@@ -310,6 +287,7 @@ describe('R18: references', () => {
       landlordEmail: 'mary.kelly@example.ie',
       employerNone: 'yes',
     });
+    await shareChecksFor(token);
     const [request] = await withOrg(member.organisationId, (tx) =>
       tx
         .select()

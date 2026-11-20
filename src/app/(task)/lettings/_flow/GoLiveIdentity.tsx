@@ -8,7 +8,7 @@ import { FlowShell, FlowTitle } from '@/ui/FlowShell';
 import { Notice } from '@/ui/Notice';
 import { SubmitButton } from '@/ui/SubmitButton';
 import styles from './flow.module.css';
-import { progressFor, type StepFrame } from './StepForm';
+import { progressOf, type StepFrame } from './StepForm';
 
 const copy = addLettingCopy;
 const c = copy.goLive.identity;
@@ -38,7 +38,7 @@ export function GoLiveIdentity({
   return (
     <FlowShell
       leave={{ kind: 'close', href: frame.leaveHref }}
-      progress={frame.step ? progressFor(frame.step) : undefined}
+      progress={progressOf(frame)}
       back={
         frame.backHref ? (
           <ButtonLink href={frame.backHref} variant="quiet">

@@ -20,7 +20,7 @@ import { DateField } from '@/ui/Pickers';
 import { SubmitButton } from '@/ui/SubmitButton';
 import { useFlowForm } from '@/ui/useFlowForm';
 import styles from './flow.module.css';
-import { progressFor, StepForm, type StepFrame } from './StepForm';
+import { progressOf, StepForm, type StepFrame } from './StepForm';
 
 const copy = addLettingCopy;
 const q = copy.rentCheck;
@@ -174,7 +174,7 @@ export function RentCheckStep({
   return (
     <FlowShell
       leave={{ kind: 'close', href: frame.leaveHref }}
-      progress={frame.step ? progressFor(frame.step) : undefined}
+      progress={progressOf(frame)}
       // No "Save and exit": the answers are kept together at the end, and it's three taps at most.
       direction={direction}
       back={

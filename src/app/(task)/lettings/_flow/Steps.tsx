@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import type { z } from 'zod';
 import { addLettingCopy } from '@/copy/add-letting';
+import { developmentCopy } from '@/copy/developments';
 import { lettingDetailsFormSchema } from '@/domain/criteria/criteria';
 import {
   addressStepSchema,
@@ -29,7 +30,7 @@ import { SubmitButton } from '@/ui/SubmitButton';
 import { AddressFields, DescriptionFields, DetailsFields, HomeFields, RentFields } from './fields';
 import styles from './flow.module.css';
 import { firstAddressHref, screenHref } from '@/domain/lettings/links';
-import { progressFor, StepForm, type StepFrame } from './StepForm';
+import { progressOf, StepForm, type StepFrame } from './StepForm';
 
 const copy = addLettingCopy;
 
@@ -61,6 +62,18 @@ function Drafts({
         ))}
       </ul>
     </section>
+  );
+}
+
+/** BA-15: the way to add many alike homes at once, beside "Fill it in myself". */
+function Several({ href }: { href: string }) {
+  return (
+    <div className={styles.aside}>
+      <ButtonLink href={href} variant="quiet">
+        {developmentCopy.start.several}
+      </ButtonLink>
+      <p className={styles.muted}>{developmentCopy.start.severalLead}</p>
+    </div>
   );
 }
 
@@ -99,9 +112,15 @@ export function StartStep({
   kept,
   readerOn,
   drafts,
+  several,
 }: {
   frame: StepFrame;
   action: Action;
+  /**
+   * BA-15: "Several alike in one development", for an agency or a landlord's team: where it
+   * starts. Left out for a private landlord's own homes.
+   */
+  several?: string;
   from: string | null;
   /** A draft that holds only an advert link so far. */
   draftId: string | null;
@@ -123,6 +142,7 @@ export function StartStep({
         }
       >
         <FlowTitle title={copy.start.title} lead={copy.start.readerOff} />
+        {several ? <Several href={several} /> : null}
         <Drafts drafts={drafts} />
       </FlowShell>
     );
@@ -163,6 +183,7 @@ export function StartStep({
                   {copy.start.manual}
                 </ButtonLink>
               </div>
+              {several ? <Several href={several} /> : null}
               <Drafts drafts={drafts} />
             </div>
           </>
@@ -320,8 +341,13 @@ export function PhotosStep({
   done,
   problem,
   doneLabel,
+  title = copy.photos.title,
+  lead,
 }: {
   frame: StepFrame;
+  /** BA-15: a development's or a type's photos have a title of their own. */
+  title?: string;
+  lead?: string;
   photos: UploadedPhoto[];
   upload: (data: FormData) => Promise<UploadResult>;
   /** M43: photos straight to the store, where it can take them. */
@@ -339,7 +365,7 @@ export function PhotosStep({
   return (
     <FlowShell
       leave={{ kind: 'close', href: frame.leaveHref }}
-      progress={frame.step ? progressFor(frame.step) : undefined}
+      progress={progressOf(frame)}
       saveAndExit={<FlowExit href={frame.leaveHref}>{copy.saveAndExit}</FlowExit>}
       back={
         frame.backHref ? (
@@ -355,7 +381,7 @@ export function PhotosStep({
       }
       form={{ action: done }}
     >
-      <FlowTitle title={copy.photos.title} />
+      <FlowTitle title={title} lead={lead} />
       <PhotoUploader
         photos={photos}
         max={MAX_HOME_PHOTOS}

@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import { type Tx, withOrg } from '@/db/client';
 import { developments, lettingPhotos, lettings, rentChecks, unitTypes } from '@/db/schema';
 import type { Criteria } from '@/domain/criteria/criteria';
@@ -14,11 +14,13 @@ import type { RentCheckInput } from '@/domain/rent/rent-check';
 import type { ViewingSession } from '@/domain/viewings/viewing-session';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
+import { type CoverPhoto, coverPhotosFor } from '@/server/lettings/cover-photo';
 import { makeLettingIn } from '@/server/lettings/create-letting';
 import { type GoLiveChoices, startTakingEnquiries } from '@/server/lettings/go-live';
 import { recordRentCheck } from '@/server/lettings/rent-check';
 import { setLettingDetails } from '@/server/lettings/set-criteria';
 import { addViewingSession } from '@/server/lettings/viewing-sessions';
+import { type HomePhoto, homePhotoOf, showingOrder } from '@/server/lettings/queries';
 import { recordEvent } from '@/server/record/events';
 import {
   assertMayActOnHomes,
@@ -567,6 +569,7 @@ export interface TypeView {
     criteriaSet: boolean;
     rentCheck: string | null;
     ownValues: string[];
+    cover: CoverPhoto | null;
   }>;
 }
 
@@ -607,6 +610,10 @@ export async function developmentView(member: Member, id: string) {
       .leftJoin(rentChecks, eq(rentChecks.lettingId, lettings.id))
       .where(eq(lettings.developmentId, id))
       .orderBy(asc(lettings.createdAt));
+    const covers = await coverPhotosFor(
+      tx,
+      homes.map((home) => home.id),
+    );
     return {
       development,
       shared: developmentShared(development) as DevelopmentShared | null,
@@ -638,6 +645,7 @@ export async function developmentView(member: Member, id: string) {
             criteriaSet: home.criteriaSetAt !== null,
             rentCheck: home.rentCheck,
             ownValues: home.ownValues,
+            cover: covers.get(home.id) ?? null,
           })),
       })),
     };
@@ -656,13 +664,26 @@ export async function developmentOfLettings(member: Member) {
   );
 }
 
-/** Whether a type has photos of its own or from its development. Unused rows say nothing. */
-export async function typePhotoCount(member: Member, typeId: string): Promise<number> {
+/** A development's shared photos, or a type's own photos and floor plans, in showing order. */
+export async function sharedPhotos(
+  member: Member,
+  owner: { developmentId: string } | { unitTypeId: string },
+): Promise<HomePhoto[]> {
   return withOrg(member.organisationId, async (tx) => {
-    const [row] = await tx
-      .select({ n: count() })
+    const rows = await tx
+      .select({
+        id: lettingPhotos.id,
+        storageKey: lettingPhotos.storageKey,
+        widths: lettingPhotos.widths,
+        kind: lettingPhotos.kind,
+      })
       .from(lettingPhotos)
-      .where(and(eq(lettingPhotos.unitTypeId, typeId), isNull(lettingPhotos.lettingId)));
-    return row?.n ?? 0;
+      .where(
+        'developmentId' in owner
+          ? eq(lettingPhotos.developmentId, owner.developmentId)
+          : eq(lettingPhotos.unitTypeId, owner.unitTypeId),
+      )
+      .orderBy(...showingOrder);
+    return rows.map(homePhotoOf);
   });
 }

@@ -5,7 +5,9 @@ import { z } from 'zod';
 import { FIRST_TIME_SETTINGS } from '@/domain/viewings/calendar';
 import { viewingSessionSchema } from '@/domain/viewings/viewing-session';
 import { fieldErrors, formValues, invalid, type FormState } from '@/lib/forms';
+import { developmentCopy } from '@/copy/developments';
 import { requireMember } from '@/server/auth/member';
+import { offerViewingForType } from '@/server/developments/developments';
 import { UserFacingError } from '@/server/errors';
 import {
   addViewingSession,
@@ -40,6 +42,22 @@ export async function addTimeAction(
 ): Promise<TimeFormState> {
   const member = await requireMember();
   const values = formValues(formData);
+  // BA-15: "All 4 homes of Type B": one time on every home of a development's type.
+  const type = id.safeParse((values.home ?? '').replace(/^type:/, ''));
+  if ((values.home ?? '').startsWith('type:') && type.success) {
+    const parsed = viewingSessionSchema().safeParse(values);
+    if (!parsed.success) return invalid(fieldErrors(parsed.error), values);
+    let homes: number;
+    try {
+      ({ homes } = await offerViewingForType(member, type.data, parsed.data));
+    } catch (error) {
+      return problem(error, values);
+    }
+    revalidatePath('/calendar');
+    revalidatePath('/lettings', 'layout');
+    revalidatePath('/today');
+    return { done: { message: developmentCopy.calendar.added(homes), date: values.date! } };
+  }
   const home = id.safeParse(values.home);
   if (!home.success) return invalid({ home: 'Choose the home this time is for.' }, values);
   const parsed = viewingSessionSchema().safeParse(values);

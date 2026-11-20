@@ -1,0 +1,40 @@
+/* BA-15: a development on the letting side. Blocks are held apart by space and a hairline. */
+.block {
+  display: grid;
+  gap: var(--space-4);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border);
+}
+
+.muted {
+  color: var(--color-ink-muted);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+}
+
+.facts {
+  display: grid;
+  margin: 0;
+}
+
+/* One shared value: what it is, as it stands, and "Change". */
+.fact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.fact dt {
+  grid-column: 1 / -1;
+  font-weight: var(--type-heading-weight);
+}
+
+.fact dd {
+  margin: 0;
+}

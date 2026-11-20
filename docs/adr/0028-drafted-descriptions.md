@@ -1,4 +1,4 @@
-# ADR-0026: A home's description drafted from its facts
+# ADR-0028: A home's description drafted from its facts
 
 - Status: Accepted
 - Date: 2026-11-20

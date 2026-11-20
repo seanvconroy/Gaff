@@ -72,10 +72,10 @@ export interface PublicHome {
   /** When it went live: homes are newest first. */
   liveAt: Date;
   /**
-   * UX-LP-5, M52 (BA-14): its lister has stopped taking enquiries. The page stays, says so and
-   * has no "Ask to view"; the home is in no search (`openToEnquiries`).
+   * UX-LP-5, M52 (BA-14): false once its lister has stopped taking enquiries. The page stays,
+   * says so and has no "Ask to view"; the home is in no search (`openToEnquiries`).
    */
-  enquiriesClosed: boolean;
+  askable: boolean;
 }
 
 /** What a list of homes shows of one (UX-SR-6): the cover, the rent, one line, the date. */
@@ -118,7 +118,7 @@ const listerMayShow = or(
 const hasAPhoto = sql`exists (select 1 from ${lettingPhotos} where ${lettingPhotos.lettingId} = ${lettings.id} and ${lettingPhotos.kind} = 'photo')`;
 
 /** UX-LT-21, UX-LT-22: on gaff.ie, with a BER and a photo, not hidden, by a lister who may show it. */
-const onGaff = and(
+export const onGaff = and(
   eq(lettings.onGaff, true),
   isNull(lettings.hiddenAt),
   // M49 (BA-13): a live home nobody confirmed has stepped back; a let one still says so.
@@ -280,7 +280,7 @@ function toPublicHome(loaded: Loaded): PublicHome {
     lister: publicLister(listerOf(row)),
     phone: row.phone?.trim() || null,
     liveAt: row.liveAt ?? new Date(0),
-    enquiriesClosed: enquiriesClosed(row.enquiriesCloseAt),
+    askable: !enquiriesClosed(row.enquiriesCloseAt),
   };
 }
 
@@ -317,9 +317,16 @@ export const openToEnquiries = or(
 
 /** Every live home on Gaff, newest first, for search to match. The same homes as `publicHomes`. */
 export async function publicHomesForSearch(): Promise<PlacedHome[]> {
-  const loaded = await withSystem((tx) =>
-    load(tx, and(eq(lettings.status, 'live'), onGaff, openToEnquiries)!),
-  );
+  return withSystem((tx) => publicHomesForSearchIn(tx));
+}
+
+/**
+ * The same, in a transaction the caller holds. BA-14: search itself asks the database
+ * (src/server/search/query.ts); this whole list is what the tests hold that search to, read
+ * through the domain's rules (`searchHomes`), and what the saved-search job reads.
+ */
+export async function publicHomesForSearchIn(tx: Tx): Promise<PlacedHome[]> {
+  const loaded = await load(tx, and(eq(lettings.status, 'live'), onGaff, openToEnquiries)!);
   return loaded
     .filter((home) => stateOf(home) === 'live')
     .map((home) => ({

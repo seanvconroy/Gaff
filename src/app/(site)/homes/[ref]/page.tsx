@@ -290,7 +290,7 @@ function LiveHome({
   const description = homeDescription(home.description);
   const ber = homeBer(home.berRating);
   const tour = tourLink(home.more ?? {});
-  const closed = found.enquiriesClosed;
+  const closed = !found.askable;
   return (
     <article className={styles.page} aria-labelledby="home-title">
       {/* M92: one count for the day that the page was opened. No cookies, nothing about who. */}

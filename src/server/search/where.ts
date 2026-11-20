@@ -2,15 +2,9 @@ import { placeDescription, homesCount } from '@/copy/search';
 import type { Gazetteer, LandmarkKind, Place } from '@/domain/places/gazetteer';
 import { rankSuggestions, type Suggestion } from '@/domain/places/suggest';
 import type { SearchFilters } from '@/domain/search/filters';
-import {
-  type HomeAddress,
-  placeHasHome,
-  placeLabel,
-  searchPlace,
-  type SearchPlace,
-} from '@/domain/search/places';
+import { placeLabel, searchPlace, type SearchPlace } from '@/domain/search/places';
 import { candidatePlaces, loadGazetteer, recordMiss } from '@/server/places/places';
-import { liveHomesOnGaff } from './homes';
+import { countHomesIn } from './query';
 
 /**
  * UX-SR-4, UX-SR-5, M56, M121, M124: "Where", on the server. A search's address holds only its
@@ -78,40 +72,32 @@ export interface WhereSuggestions {
   didYouMean: boolean;
 }
 
-const HOMES_FOR_MS = 60_000;
-const homesCache = globalThis as unknown as {
-  gaffHomeAddresses?: { at: number; homes: HomeAddress[] };
+const COUNTS_FOR_MS = 60_000;
+const countsCache = globalThis as unknown as {
+  gaffPopularCounts?: { at: number; counts: Map<string, number> };
 };
 
-/** The addresses of the homes on Gaff now, kept a minute: counts beside places may lag that. */
-async function homeAddresses(): Promise<HomeAddress[]> {
-  const cached = homesCache.gaffHomeAddresses;
-  if (cached && Date.now() - cached.at < HOMES_FOR_MS) return cached.homes;
-  const homes = (await liveHomesOnGaff()).map(
-    ({ addressLine1, addressLine2, area, county, eircode }) => ({
-      addressLine1,
-      addressLine2,
-      area,
-      county,
-      eircode,
-    }),
-  );
-  homesCache.gaffHomeAddresses = { at: Date.now(), homes };
-  return homes;
-}
-
-/** Forgets the cached addresses (in tests). */
+/** Forgets the cached counts of homes in every place (in tests). */
 export function forgetHomeAddresses(): void {
-  delete homesCache.gaffHomeAddresses;
+  delete countsCache.gaffPopularCounts;
 }
 
-/** M121: the homes on Gaff in each of these areas (streets and landmarks aren't counted). */
-async function withHomes(found: readonly Place[], g: Gazetteer): Promise<Place[]> {
-  const homes = await homeAddresses();
+/**
+ * M121: the homes on Gaff in each of these areas (streets and landmarks aren't counted), counted
+ * by the database with search's own query (BA-14). `cached`: every area at once, for the places
+ * with the most homes, kept a minute; counts beside places may lag that.
+ */
+async function withHomes(found: readonly Place[], g: Gazetteer, cached = false): Promise<Place[]> {
+  let counts: Map<string, number>;
+  const kept = countsCache.gaffPopularCounts;
+  if (cached && kept && Date.now() - kept.at < COUNTS_FOR_MS) counts = kept.counts;
+  else {
+    counts = await countHomesIn(found, g);
+    if (cached) countsCache.gaffPopularCounts = { at: Date.now(), counts };
+  }
   return found.map((place) => {
-    const where = searchPlace(place.slug, g);
-    if (!where || where.kind !== 'area') return place;
-    return { ...place, liveHomes: homes.filter((home) => placeHasHome(where, home)).length };
+    const homes = counts.get(place.slug);
+    return homes === undefined ? place : { ...place, liveHomes: homes };
   });
 }
 
@@ -158,6 +144,7 @@ export async function popularWhere(limit = 6): Promise<WhereSuggestions> {
   const counted = await withHomes(
     g.places.filter((p) => p.kind !== 'county'),
     g,
+    true,
   );
   const items = counted
     .filter((p) => (p.liveHomes ?? 0) > 0)

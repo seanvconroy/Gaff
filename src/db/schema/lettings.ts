@@ -67,6 +67,14 @@ export const lettings = pgTable(
     county: text().notNull(),
     eircode: text(),
     /**
+     * BA-14: the address as search reads it (`addressWordsOf` in src/domain/search/places.ts),
+     * kept by Postgres from the three lines above (`gaff_address_words`, migration 0045), so a
+     * search matches places in SQL. Never shown; never in an event or a log.
+     */
+    addressWords: text().generatedAlwaysAs(
+      sql`gaff_address_words("address_line1", "address_line2", "area")`,
+    ),
+    /**
      * M38, M125: where the home is, as the lister placed its pin. A private landlord's home is
      * personal data: renters see it within about 150 metres (`publicPoint`), it never goes into
      * an event or a log, and no address or geocoding service is asked for it. Null until the

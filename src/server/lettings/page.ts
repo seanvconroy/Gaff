@@ -176,7 +176,7 @@ export async function overviewFactsFor(
     hidden: letting.hiddenAt
       ? {
           reason: letting.hiddenReason ?? 'something_else',
-          lookAgainAsked: letting.lookAgainAskedAt !== null,
+          stage: letting.hiddenStage ?? 'decided',
           href: hiddenHref(letting.id),
         }
       : null,

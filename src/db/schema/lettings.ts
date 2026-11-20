@@ -18,6 +18,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import type { Criteria } from '@/domain/criteria/criteria';
 import { reportReasons } from '@/domain/homes/report';
+import { hiddenStages } from '@/domain/trust/cases';
 import { draftOrigins, flowSteps, type DraftAnswers } from '@/domain/lettings/add-letting';
 import { pointSources } from '@/domain/map/pin';
 import { photoKinds } from '@/domain/lettings/photo-files';
@@ -121,14 +122,21 @@ export const lettings = pgTable(
      */
     pageRemovedAt: timestamp({ withTimezone: true }),
     /**
-     * UX-TS-4: when Gaff's team hid the listing after a report (src/server/trust). A hidden home
-     * has no page and isn't in search, and its enquiries wait: no first reply and no answer
-     * goes until it's back.
+     * UX-TS-4, BA-9: when the listing was hidden after reports (src/server/trust): by a person
+     * on Gaff's team, or by the rules on strong signs of a scam until a person looks. A hidden
+     * home has no page and isn't in search, and its enquiries wait: no first reply and no
+     * answer goes until it's back.
      */
     hiddenAt: timestamp({ withTimezone: true }),
     /** UX-TS-4: why, as the lister is told it: one of the four reasons a report can give. */
     hiddenReason: text({ enum: reportReasons }),
-    /** UX-TS-4: when the lister asked Gaff's team to look again at a hidden home. */
+    /**
+     * BA-9 (M97, M98): where a hidden listing stands, as its lister sees it: held by the rules,
+     * decided by a person, appealed, or final. Null while it isn't hidden. Gaff's cases
+     * themselves are Gaff's own record (`listing_cases`), which no operator can read.
+     */
+    hiddenStage: text({ enum: hiddenStages }),
+    /** UX-TS-4, BA-9: when the lister asked Gaff's team to look again (appealed). */
     lookAgainAskedAt: timestamp({ withTimezone: true }),
     /**
      * "Is it advertised anywhere else?", asked once after go-live: the portals named, an empty

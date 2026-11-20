@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   REPORT_KEPT_DAYS,
-  hideListingSchema,
   likeliestReason,
   listingReportSchema,
   reportDeleteAfter,
@@ -12,6 +11,7 @@ describe('UX-TS-3: reporting a listing', () => {
     expect(listingReportSchema.parse({ reason: 'scam' })).toEqual({
       reason: 'scam',
       note: undefined,
+      email: undefined,
     });
     expect(listingReportSchema.safeParse({ reason: 'other' }).success).toBe(false);
     expect(listingReportSchema.safeParse({}).success).toBe(false);
@@ -33,25 +33,26 @@ describe('UX-TS-3: reporting a listing', () => {
     expect(listingReportSchema.parse({ reason: 'unfair', note: 'ignored' })).toEqual({
       reason: 'unfair',
       note: undefined,
+      email: undefined,
     });
+  });
+
+  it('M96: an email for the outcome is optional, and must be an address if given', () => {
+    expect(listingReportSchema.parse({ reason: 'scam', email: '  ' }).email).toBeUndefined();
+    expect(listingReportSchema.parse({ reason: 'scam', email: ' visitor@example.ie ' }).email).toBe(
+      'visitor@example.ie',
+    );
+    const wrong = listingReportSchema.safeParse({ reason: 'scam', email: 'not an email' });
+    expect(wrong.success).toBe(false);
+    expect(wrong.error?.issues[0]?.path).toEqual(['email']);
   });
 });
 
 describe('UX-TS-3, UX-TS-4: keeping a report, and hiding a listing', () => {
-  it('UX-TS-3 (rule 9): a report is deleted six months after it was answered', () => {
+  it('UX-TS-3 (rule 9): a case and its reports are deleted six months after it was decided', () => {
     const answered = new Date('2026-11-17T10:00:00Z');
     expect(REPORT_KEPT_DAYS).toBe(183);
     expect(reportDeleteAfter(answered).toISOString()).toBe('2027-05-19T10:00:00.000Z');
-  });
-
-  it('UX-TS-4: a listing is hidden for one of the four reasons, and no other', () => {
-    const lettingId = crypto.randomUUID();
-    expect(hideListingSchema.parse({ lettingId, reason: 'scam' })).toEqual({
-      lettingId,
-      reason: 'scam',
-    });
-    expect(hideListingSchema.safeParse({ lettingId, reason: 'spite' }).success).toBe(false);
-    expect(hideListingSchema.safeParse({ lettingId: 'nope', reason: 'scam' }).success).toBe(false);
   });
 
   it('UX-TS-4: the reason offered first is the one most reports gave, then the latest', () => {

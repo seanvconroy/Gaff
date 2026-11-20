@@ -311,7 +311,7 @@ describe('UX-LP-7: a blocking problem is the Needs you task, never a banner', ()
   it('UX-TS-4: a home Gaff’s team took off gaff.ie is the task, with why, before the rent', () => {
     const facts = at({
       rentOverCap: true,
-      hidden: { reason: 'wrong_details', lookAgainAsked: false, href: '/lettings/l1/hidden' },
+      hidden: { reason: 'wrong_details', stage: 'decided', href: '/lettings/l1/hidden' },
       today: [{ kind: 'shortlist', ...home, count: 2, placesFree: 4 }],
     });
     const needs = needsYouOn(facts, now);
@@ -326,12 +326,30 @@ describe('UX-LP-7: a blocking problem is the Needs you task, never a banner', ()
 
   it('UX-TS-4: once the lister has asked Gaff to look again, nothing needs them', () => {
     const facts = at({
-      hidden: { reason: 'scam', lookAgainAsked: true, href: '/lettings/l1/hidden' },
+      hidden: { reason: 'scam', stage: 'appealed', href: '/lettings/l1/hidden' },
     });
     expect(needsYouOn(facts, now)).toEqual({
       kind: 'nothing',
       doing:
         'Gaff’s team is looking at this home again, and will email you within one working day.',
+    });
+  });
+
+  it('M97: a home the rules took off for a person to check asks nothing of the lister yet', () => {
+    const facts = at({ hidden: { reason: 'scam', stage: 'held', href: '/lettings/l1/hidden' } });
+    expect(needsYouOn(facts, now)).toEqual({
+      kind: 'nothing',
+      doing:
+        'Gaff’s rules took this home off gaff.ie automatically after reports that it may be a scam. A person on Gaff’s team will check it within four working hours, and email you.',
+    });
+  });
+
+  it('M98: once an appeal is decided and it stays off, it can’t be asked again', () => {
+    const facts = at({ hidden: { reason: 'scam', stage: 'final', href: '/lettings/l1/hidden' } });
+    expect(needsYouOn(facts, now)).toEqual({
+      kind: 'nothing',
+      doing:
+        'Gaff’s team looked again and this home stays off gaff.ie. Their email says why, and what you can do next.',
     });
   });
 

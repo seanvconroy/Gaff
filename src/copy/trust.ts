@@ -23,6 +23,11 @@ export const hiddenCopy = {
     action: 'Ask Gaff to look again',
     looking:
       'Gaff’s team is looking at this home again, and will email you within one working day.',
+    /** BA-9 (M97): the rules took it off on strong signs of a scam; a person hasn't looked. */
+    held: 'Gaff’s rules took this home off gaff.ie automatically after reports that it may be a scam. A person on Gaff’s team will check it within four working hours, and email you.',
+    /** BA-9 (M98): the appeal was decided, and it stays off. */
+    final:
+      'Gaff’s team looked again and this home stays off gaff.ie. Their email says why, and what you can do next.',
   },
   /** The Home view's "On gaff.ie". */
   onGaff: 'Not shown on gaff.ie: Gaff’s team took it off after a report.',
@@ -31,11 +36,13 @@ export const hiddenCopy = {
     title: 'This home is off gaff.ie for now',
     why: (reason: ReportReason, on: string) =>
       `Gaff’s team took it off gaff.ie on ${on} after a report: ${hiddenReasons[reason]}.`,
+    /** BA-9 (M98): the statement of reasons, as the email gave it. */
+    reliedOn: (facts: string) => `What we relied on: ${facts}.`,
     meanwhile:
       'While it’s off, it has no page and isn’t in search. Gaff isn’t answering its enquiries: they wait, and are answered when it’s back.',
-    fix: 'Put right anything that needs it in the home’s details, then ask us to look again.',
+    fix: 'If you think we got it wrong, or once you’ve put right anything that needs it in the home’s details, ask us to look again. You can ask once.',
     change: 'Change the home’s details',
-    next: 'Gaff’s team will look within one working day and email you when it’s back.',
+    next: 'A different person on Gaff’s team will look within one working day, and email you.',
     button: 'Ask Gaff to look again',
     asking: 'Asking…',
     back: 'Back to the letting',

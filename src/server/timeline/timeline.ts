@@ -174,8 +174,19 @@ export function describeEvent(
         what: 'Taken off gaff.ie by Gaff’s team after a report; its enquiries wait',
         detail: hiddenReasons[data.reason as ReportReason] ?? undefined,
       };
+    case 'listing.held':
+      return {
+        what: 'Taken off gaff.ie automatically after reports that it may be a scam, for a person to check',
+      };
     case 'listing.kept_up':
       return { what: 'Gaff’s team read the reports about it and kept it on gaff.ie' };
+    case 'listing.appeal_decided':
+      return data.decision === 'hide_listing'
+        ? {
+            what: 'Gaff’s team looked again and kept it off gaff.ie',
+            detail: hiddenReasons[data.reason as ReportReason] ?? undefined,
+          }
+        : { what: 'Gaff’s team looked again and agreed with you' };
     case 'listing.look_again_asked':
       return { what: 'Asked Gaff’s team to look again' };
     case 'listing.unhidden':

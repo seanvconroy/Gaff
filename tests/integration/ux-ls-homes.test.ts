@@ -228,8 +228,10 @@ describe('UX-TS-3: reporting a listing', () => {
   it('UX-TS-3: a live home’s listing can be reported; one with no page can’t (WP-26 keeps reports)', async () => {
     const member = await createTestMember();
     const { lettingId, ref } = await aHomeOnGaff(member);
-    expect(await reportListing(ref, { reason: 'scam', note: undefined })).toBe(true);
+    expect(await reportListing(ref, { reason: 'scam', note: undefined })).toMatchObject({
+      sent: true,
+    });
     await setOnGaff(member, lettingId, false);
-    expect(await reportListing(ref, { reason: 'scam', note: undefined })).toBe(false);
+    expect(await reportListing(ref, { reason: 'scam', note: undefined })).toBeNull();
   });
 });

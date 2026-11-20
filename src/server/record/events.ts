@@ -4,6 +4,7 @@ import { events } from '@/db/schema';
 import { draftOrigins } from '@/domain/lettings/add-letting';
 import { enquirySources } from '@/domain/enquiries/sources';
 import { reportReasons } from '@/domain/homes/report';
+import { caseDecisions, caseFacts } from '@/domain/trust/cases';
 import { promptCodes } from '@/domain/activation/prompts';
 import { organisationKinds } from '@/domain/organisations/kinds';
 import { assertNoPersonalData } from '@/domain/record/personal-data';
@@ -152,24 +153,49 @@ export const eventCatalogue = {
   /** UX-LT-21: "On gaff.ie" was switched on or off. */
   'letting.on_gaff_set': z.object({ on: z.boolean() }),
   /**
-   * UX-TS-3: a visitor reported the home's listing to Gaff's team, for this reason. Nothing
-   * about who sent it is known, so nothing is here. The actor is the system.
+   * UX-TS-3, BA-9: a visitor reported the home's listing to Gaff's team, for this reason, and it
+   * opened or joined this case. Nothing about who sent it is here. The actor is the system.
    */
-  'listing.reported': z.object({ reportId: z.uuid(), reason: z.enum(reportReasons) }),
+  'listing.reported': z.object({
+    reportId: z.uuid(),
+    caseId: z.uuid(),
+    reason: z.enum(reportReasons),
+  }),
   /**
-   * UX-TS-4: Gaff's team took the home off gaff.ie (actor `staff`), for this reason, answering
-   * this many reports. Its enquiries wait until it's back.
+   * BA-9 (M97): the rules took the home off gaff.ie at once, on strong signs of a scam (this
+   * many scam reports on its case), until a person looks. The actor is the system.
    */
-  'listing.hidden': z.object({ reason: z.enum(reportReasons), reports: z.number().int().min(0) }),
-  /** UX-TS-4: Gaff's team read the reports and kept the home up (actor `staff`). */
-  'listing.kept_up': z.object({ reports: z.number().int().min(1) }),
-  /** UX-TS-4: the lister asked Gaff's team to look again at a hidden home. */
-  'listing.look_again_asked': z.object({}),
+  'listing.held': z.object({ caseId: z.uuid(), scamReports: z.number().int().min(1) }),
   /**
-   * UX-TS-4: Gaff's team put the home back on gaff.ie (actor `staff`). The enquiries that
-   * waited got their first replies: this many.
+   * UX-TS-4, BA-9 (M98): a person on Gaff's team decided the case: the home is off gaff.ie (actor
+   * `staff`), for this reason, relying on these facts, answering this many reports. Its
+   * enquiries wait until it's back.
    */
-  'listing.unhidden': z.object({ firstReplies: z.number().int().min(0) }),
+  'listing.hidden': z.object({
+    caseId: z.uuid(),
+    reason: z.enum(reportReasons),
+    facts: z.array(z.enum(caseFacts)).min(1),
+    reports: z.number().int().min(0),
+  }),
+  /** UX-TS-4, BA-9: a person decided the case needs no action: the home stays up (`staff`). */
+  'listing.kept_up': z.object({ caseId: z.uuid(), reports: z.number().int().min(0) }),
+  /** UX-TS-4, BA-9 (M98): the lister asked Gaff's team to look again: this appeal case. */
+  'listing.look_again_asked': z.object({ caseId: z.uuid() }),
+  /**
+   * BA-9 (M98): a different person decided the appeal (actor `staff`): put back, or kept off
+   * for this reason, relying on these facts.
+   */
+  'listing.appeal_decided': z.object({
+    caseId: z.uuid(),
+    decision: z.enum(caseDecisions),
+    reason: z.enum(reportReasons).optional(),
+    facts: z.array(z.enum(caseFacts)).min(1).optional(),
+  }),
+  /**
+   * UX-TS-4: the home is back on gaff.ie (actor `staff`), by this case's decision. The enquiries
+   * that waited got their first replies: this many.
+   */
+  'listing.unhidden': z.object({ caseId: z.uuid(), firstReplies: z.number().int().min(0) }),
   /** UX-LS-10: the scheduled job took a let home's page off gaff.ie, this many days after it was let. */
   'letting.gaff_page_removed': z.object({ daysAfterLet: z.number().int() }),
   /** "Is it advertised anywhere else?" was answered. */

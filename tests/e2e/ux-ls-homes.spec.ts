@@ -238,13 +238,20 @@ test('UX-LS-1 to UX-LS-11, UX-LT-21: a live letting’s page opens signed out at
     await expect(
       visitor.getByRole('heading', { level: 1, name: 'What’s wrong with this listing?' }),
     ).toBeVisible();
-    await visitor.getByRole('button', { name: 'Send report' }).click();
+    await visitor.getByRole('button', { name: 'Continue' }).click();
     await expect(visitor.getByText('Choose what’s wrong with this listing')).toBeVisible();
     await visitor.getByRole('radio', { name: 'Something else' }).check();
     await expect(visitor.getByLabel('What’s wrong?')).toBeVisible();
     await expectAccessible(visitor);
     await screenshot(visitor, `ux-ls-04-report-${width}`);
     await visitor.getByLabel('What’s wrong?').fill('The photos are of a different home.');
+    await visitor.getByRole('button', { name: 'Continue' }).click();
+    // BA-9 (M96): then, if they want it, an email for the outcome. It may be left blank.
+    await expect(
+      visitor.getByRole('heading', { level: 1, name: 'Would you like to hear what we decide?' }),
+    ).toBeVisible();
+    await expectAccessible(visitor);
+    await screenshot(visitor, `ux-ls-04-report-email-${width}`);
     await visitor.getByRole('button', { name: 'Send report' }).click();
     await expect(
       visitor.getByRole('heading', { level: 1, name: 'Thanks for telling us' }),

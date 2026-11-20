@@ -20,7 +20,7 @@ import { sweepPlaceMisses } from '@/server/places/places';
 import { sweepMapCounts } from '@/server/search/map-counts';
 import { sweepPhotoUploads } from '@/server/lettings/photos';
 import { endLetHomePages } from '@/server/homes/let-pages';
-import { purgeListingReports } from '@/server/homes/report';
+import { purgeListingCases } from '@/server/homes/report';
 import { sendSearchAlerts, sweepEmailSearches } from '@/server/saved/alerts';
 import { sendSavedSearchEmail } from '@/server/saved/emails';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
@@ -82,9 +82,10 @@ export const taskList: TaskList = {
     // M43: photos sent straight to the store and never finished, after a day. Counts only.
     const uploads = await sweepPhotoUploads();
     console.log(`Photos: ${uploads} unfinished uploads deleted.`);
-    // UX-TS-3 (rule 9): reports of listings, six months after Gaff's team answered them.
-    const reports = await purgeListingReports();
-    console.log(`Reports: ${reports} reports of listings deleted.`);
+    // UX-TS-3, BA-9 (rule 9): cases about listings, with their reports, six months after a
+    // person decided them.
+    const cases = await purgeListingCases();
+    console.log(`Reports: ${cases} cases about listings deleted, with their reports.`);
     // UX-AV-6: any enquiry still waiting past its 24 hours, should its own job have missed it.
     const waiting = await dropExpiredWaitingEnquiries();
     console.log(`Asking to view: ${waiting} unconfirmed enquiries dropped.`);

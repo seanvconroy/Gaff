@@ -44,6 +44,7 @@ import { StatusPill } from '@/ui/StatusPill';
 import { SaveHome } from '../../_search/Saving';
 import { SimilarHomes } from '../../_search/SimilarHomes';
 import styles from './home.module.css';
+import { PageOpened } from './PageOpened';
 
 /** One read per request, shared by the page and its sharing preview. */
 const pageFor = cache((ref: string) => publicHomePage(ref));
@@ -265,6 +266,8 @@ function LiveHome({
   const ber = homeBer(home.berRating);
   return (
     <article className={styles.page} aria-labelledby="home-title">
+      {/* M92: one count for the day that the page was opened. No cookies, nothing about who. */}
+      <PageOpened homeRef={ref} />
       <Gallery
         photos={[
           ...photos,

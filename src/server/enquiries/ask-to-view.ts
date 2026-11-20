@@ -29,6 +29,8 @@ import { attachEnquiry, ownEnquiries } from '@/server/accounts/enquiries';
 import { keepEntered, noteConfirmed } from '@/server/accounts/renter-profile';
 import { needsAnswers, queueDraft } from '@/server/answers/draft';
 import { listerColumns } from '@/server/frame/lister';
+import { clientAddress, countTry, room } from '@/server/auth/limits';
+import { ASKS_TO_VIEW_PER_DAY, overLimit } from '@/domain/auth/limits';
 import { resolvePublicHome } from '@/server/homes/public-homes';
 import { enqueue } from '@/server/jobs/enqueue';
 import { recordEvent } from '@/server/record/events';
@@ -132,7 +134,28 @@ export type AskResult =
   | { ok: true; applicationId: string; waiting: false }
   | { ok: true; waiting: true }
   | { ok: false; errors: Record<string, string> }
-  | { ok: false; gone: true };
+  | { ok: false; gone: true }
+  /** M82: 30 a day from this person or this network address. */
+  | { ok: false; limited: true };
+
+/**
+ * M82 (BA-13): asking to view, at most 30 a day from one person (their account, or the email
+ * they typed) or one network address, counted the way sign-in tries are
+ * (src/server/auth/limits.ts): a hash of what's counted, never the address or the email. Each
+ * send that gets this far counts. True: over the limit.
+ */
+export async function asksToViewLimited(
+  headers: Headers | undefined | null,
+  who: string,
+  now: Date = new Date(),
+): Promise<boolean> {
+  const limit = room(ASKS_TO_VIEW_PER_DAY);
+  const [byAddress, byPerson] = await Promise.all([
+    countTry('address:ask_to_view', clientAddress(headers), limit.windowSeconds, now),
+    countTry('person:ask_to_view', who, limit.windowSeconds, now),
+  ]);
+  return overLimit(byAddress.hits, limit) || overLimit(byPerson.hits, limit);
+}
 
 /**
  * "Send": checks what was entered against what this home asks (UX-AV-4), then places the
@@ -144,6 +167,8 @@ export async function askToView(
   values: Readonly<Record<string, string>>,
   person: AskingPerson | null,
   now: Date = new Date(),
+  /** M82: the request it came in, to count against the day's limit. Left out: not counted. */
+  from?: Headers | null,
 ): Promise<AskResult> {
   const home = await askableHome(ref);
   if (!home) return { ok: false, gone: true };
@@ -161,6 +186,13 @@ export async function askToView(
   });
   for (const issue of question.error?.issues ?? []) errors.question ??= issue.message;
   if (!contact.success || !answers.success || !question.success) return { ok: false, errors };
+  // M82: only a send that would go is counted, so a mistyped field never uses one up.
+  if (
+    from !== undefined &&
+    (await asksToViewLimited(from, person?.userId ?? `email:${contact.data.email}`, now))
+  ) {
+    return { ok: false, limited: true };
+  }
 
   const entry = {
     fullName: contact.data.fullName,
@@ -221,6 +253,8 @@ async function askableLetting(tx: Tx, lettingId: string) {
     letting.status === 'live' &&
     letting.onGaff &&
     letting.hiddenAt === null &&
+    // M49: a home that stepped back, unconfirmed, has no page to ask from.
+    letting.staleAt === null &&
     listerMayShowHomes({
       kind: organisation.kind,
       name: organisation.name,

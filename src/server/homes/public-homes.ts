@@ -114,6 +114,8 @@ const hasAPhoto = sql`exists (select 1 from ${lettingPhotos} where ${lettingPhot
 const onGaff = and(
   eq(lettings.onGaff, true),
   isNull(lettings.hiddenAt),
+  // M49 (BA-13): a live home nobody confirmed has stepped back; a let one still says so.
+  or(isNull(lettings.staleAt), eq(lettings.status, 'let')),
   isNotNull(lettings.berRating),
   hasAPhoto,
   listerMayShow,
@@ -126,6 +128,7 @@ const columns = {
   onGaff: lettings.onGaff,
   hiddenAt: lettings.hiddenAt,
   pageRemovedAt: lettings.pageRemovedAt,
+  staleAt: lettings.staleAt,
   liveAt: lettings.liveAt,
   addressLine1: lettings.addressLine1,
   addressLine2: lettings.addressLine2,
@@ -231,6 +234,7 @@ function stateOf({ row, photos }: Loaded) {
     photos: photos.length,
     hiddenAt: row.hiddenAt,
     pageRemovedAt: row.pageRemovedAt,
+    staleAt: row.staleAt,
     listerMayShow: listerMayShowHomes(listerOf(row)),
   });
 }
@@ -426,11 +430,16 @@ export async function publicHomePages(
  */
 export async function resolvePublicHome(
   ref: string,
-): Promise<{ organisationId: string; lettingId: string } | null> {
+): Promise<{ organisationId: string; lettingId: string; rentCents: number } | null> {
   if (!isPublicRef(ref)) return null;
   const [found] = await withSystem((tx) =>
     tx
-      .select({ organisationId: lettings.organisationId, lettingId: lettings.id })
+      .select({
+        organisationId: lettings.organisationId,
+        lettingId: lettings.id,
+        // M85: what Saved compares with, to say a saved home's rent has come down.
+        rentCents: lettings.monthlyRentCents,
+      })
       .from(lettings)
       .innerJoin(organisations, eq(organisations.id, lettings.organisationId))
       .where(and(eq(lettings.publicRef, ref), eq(lettings.status, 'live'), onGaff)),

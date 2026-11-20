@@ -1,9 +1,11 @@
 import { randomBytes } from 'node:crypto';
-import { and, asc, count, eq, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, asc, count, eq, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import { type Tx, withPerson, withSystem } from '@/db/client';
 import { renterProfiles, savedSearches } from '@/db/schema';
 import {
+  type AlertFrequency,
   alertEmailSchema,
+  alertFrequencySchema,
   filtersToKeep,
   MAX_SAVED_SEARCHES,
   MAX_UNCONFIRMED_PER_EMAIL,
@@ -219,6 +221,8 @@ export interface OwnSavedSearch {
   id: string;
   filters: SearchFilters;
   savedAt: Date;
+  /** M86: as soon as one is listed, or once a day. */
+  frequency: AlertFrequency;
 }
 
 /** A person's saved searches, oldest first, and whether they email them. */
@@ -231,6 +235,7 @@ export async function savedSearchesOf(
         id: savedSearches.id,
         filters: savedSearches.filters,
         savedAt: savedSearches.createdAt,
+        frequency: savedSearches.frequency,
       })
       .from(savedSearches)
       .where(and(eq(savedSearches.userId, userId), isNotNull(savedSearches.confirmedAt)))
@@ -244,6 +249,69 @@ export async function savedSearchesOf(
       searches: rows.map((row) => ({ ...row, filters: filtersToKeep(row.filters) })),
       alerts: profile?.searchAlerts ?? true,
     };
+  });
+}
+
+/** M86: Saved's switch on one search: as soon as one is listed, or once a day. */
+export async function setSearchFrequency(
+  userId: string,
+  savedSearchId: unknown,
+  frequency: unknown,
+): Promise<void> {
+  const to = alertFrequencySchema.safeParse(frequency);
+  if (!to.success) return;
+  if (typeof savedSearchId !== 'string' || !/^[0-9a-f-]{36}$/.test(savedSearchId)) return;
+  await withPerson(userId, async (tx) => {
+    const changed = await tx
+      .update(savedSearches)
+      .set({ frequency: to.data })
+      .where(
+        and(
+          eq(savedSearches.userId, userId),
+          eq(savedSearches.id, savedSearchId),
+          ne(savedSearches.frequency, to.data),
+        ),
+      )
+      .returning({ id: savedSearches.id });
+    if (changed.length > 0) {
+      await recordProfileEvent(tx, userId, 'profile.search_frequency_set', {
+        savedSearchId,
+        frequency: to.data,
+      });
+    }
+  });
+}
+
+export type FrequencyResult = { state: 'changed'; to: AlertFrequency } | { state: 'not_found' };
+
+/**
+ * M86: the switch at the foot of an alert, in one tap and with no sign-in: every search of the
+ * person or address the email went to hears this way from now on. Saved changes one at a time.
+ */
+export async function setFrequencyByToken(
+  token: string,
+  frequency: unknown,
+): Promise<FrequencyResult> {
+  const to = alertFrequencySchema.safeParse(frequency);
+  if (!to.success) return { state: 'not_found' };
+  return withSystem(async (tx) => {
+    const found = await byToken(tx, token);
+    if (!found || !found.confirmedAt) return { state: 'not_found' } as const;
+    const holder =
+      found.email !== null
+        ? eq(savedSearches.email, found.email)
+        : eq(savedSearches.userId, found.userId!);
+    await tx
+      .update(savedSearches)
+      .set({ frequency: to.data })
+      .where(and(holder, ne(savedSearches.frequency, to.data)));
+    if (found.userId) {
+      await recordProfileEvent(tx, found.userId, 'profile.search_frequency_set', {
+        savedSearchId: found.id,
+        frequency: to.data,
+      });
+    }
+    return { state: 'changed', to: to.data } as const;
   });
 }
 

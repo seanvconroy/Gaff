@@ -51,6 +51,7 @@ export default async function AskToViewPage({
   if (sent === 'email' || sent === 'in')
     return <Sent homeRef={ref} back={back} typed={sent === 'email'} />;
   if (one(query.gone)) return <Gone back={back} />;
+  if (one(query.limited)) return <Gone back={back} limited />;
 
   const [[shown], home, user] = await Promise.all([
     publicHomes({ ref }),
@@ -142,18 +143,20 @@ async function Sent({ homeRef, back, typed }: { homeRef: string; back: string; t
 }
 
 /** The home stopped taking enquiries before Send: nothing was sent. */
-function Gone({ back }: { back: string }) {
+function Gone({ back, limited = false }: { back: string; limited?: boolean }) {
+  // M82: past the day's limit, it says so plainly, and when they can ask again.
+  const words = limited ? copy.limited : copy.gone;
   return (
     <FlowShell
       leave={{ kind: 'close', href: back, label: copy.close }}
       primary={
         <ButtonLink href="/" variant="primary" fullWidth="phone">
-          {copy.gone.action}
+          {words.action}
         </ButtonLink>
       }
     >
-      <Outcome tone="info" title={copy.gone.title} headingLevel={1}>
-        <p>{copy.gone.text}</p>
+      <Outcome tone="info" title={words.title} headingLevel={1}>
+        <p>{words.text}</p>
       </Outcome>
     </FlowShell>
   );

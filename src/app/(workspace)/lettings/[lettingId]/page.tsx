@@ -34,6 +34,8 @@ import { OverviewView } from './OverviewView';
 import { PeopleView } from './PeopleView';
 
 import { pinWords } from '@/copy/map';
+import { freshnessCopy } from '@/copy/freshness';
+import { homeNumbersFor } from '@/server/lettings/home-numbers';
 import { mapSettings } from '@/lib/map';
 
 export const metadata: Metadata = { title: 'Letting' };
@@ -51,6 +53,9 @@ const savedCopy: Record<string, string> = {
   reminded: 'Reminder sent. The owner has a new link.',
   closed:
     'Closed. Everyone who enquired has been told, and Gaff deletes their details on schedule.',
+  // M49: "Still available".
+  'still-available': freshnessCopy.done.text,
+  'back-on-gaff': freshnessCopy.done.back,
 };
 
 const views: readonly LettingView[] = ['overview', 'people', 'home'];
@@ -120,6 +125,7 @@ export default async function LettingPage({
       hiddenAt: letting.hiddenAt,
       pageRemovedAt: letting.pageRemovedAt,
       listerMayShow: gate.open,
+      staleAt: letting.staleAt,
     }) === 'live';
   const saved = query.saved && savedCopy[query.saved] ? query.saved : null;
   // UX-GR-5: one prompt at most on the letting: viewing times, then the owner's link (UX-OW-1).
@@ -233,6 +239,9 @@ export default async function LettingPage({
       ) : (
         <>
           <HomeView
+            numbers={
+              letting.status === 'draft' ? null : await homeNumbersFor(member, letting.id, now)
+            }
             detail={detail}
             detailsLocked={lettingDetailsLocked(letting.stage)}
             lockedWords={DETAILS_LOCKED}

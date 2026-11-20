@@ -54,6 +54,11 @@ export const profileEventCatalogue = {
   'profile.search_removed': z.object({ savedSearchId: z.uuid() }),
   /** UX-SR-10: the alerts of their saved searches were switched on or off ("Stop these" too). */
   'profile.search_alerts_set': z.object({ on: z.boolean(), from: z.enum(['profile', 'email']) }),
+  /** M86: a saved search now hears as soon as a home is listed, or once a day. */
+  'profile.search_frequency_set': z.object({
+    savedSearchId: z.uuid(),
+    frequency: z.enum(['instant', 'daily']),
+  }),
   /**
    * UX-PF-8, UX-TS-2: an ID check that passed was kept on the profile: one they chose to keep
    * after a letting's check (`check`), a private landlord's at their go-live (`go_live`), or one

@@ -139,6 +139,20 @@ export const lettings = pgTable(
     /** UX-TS-4, BA-9: when the lister asked Gaff's team to look again (appealed). */
     lookAgainAskedAt: timestamp({ withTimezone: true }),
     /**
+     * M49 (BA-13): a live home stays fresh. When the lister last said "Still available" (from
+     * Today, the letting, or the email's signed link). The clock is the latest of this, going
+     * live and their last change (`src/server/lettings/freshness.ts`).
+     */
+    confirmedAvailableAt: timestamp({ withTimezone: true }),
+    /** M49: when the lister was last asked to confirm. An ask before the clock restarted is answered. */
+    freshnessAskedAt: timestamp({ withTimezone: true }),
+    /**
+     * M49: when an unanswered home stepped back from Gaff's public pages and search. Until the
+     * lister confirms it has no page, isn't in search, and its enquiries wait, as a hidden home's
+     * do. Null while it's fresh.
+     */
+    staleAt: timestamp({ withTimezone: true }),
+    /**
      * "Is it advertised anywhere else?", asked once after go-live: the portals named, an empty
      * list for "No", null until it's answered. A home on Daft or MyHome asks for forwarding
      * until mail comes through (UX-LT-20).
@@ -403,4 +417,24 @@ export const rentComparables = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('rent_comparables_letting_idx').on(t.lettingId, t.position), tenantPolicy()],
+).enableRLS();
+
+/**
+ * M92 (BA-13): a lister's numbers for one home, by Irish day: how many times its page on Gaff
+ * was opened (from the page's own beacon) and how many times it was saved. Counts only: nothing
+ * about who, no cookies and no visitor hash. Enquiries are counted from the letting's own
+ * applications. Rule 9: the nightly job deletes a day after 13 months (`HOME_COUNT_KEEP_DAYS`).
+ */
+export const lettingDailyCounts = pgTable(
+  'letting_daily_counts',
+  {
+    organisationId: organisationId(),
+    lettingId: uuid()
+      .notNull()
+      .references(() => lettings.id, { onDelete: 'cascade' }),
+    day: date({ mode: 'string' }).notNull(),
+    opened: integer().notNull().default(0),
+    saved: integer().notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.lettingId, t.day] }), tenantPolicy()],
 ).enableRLS();

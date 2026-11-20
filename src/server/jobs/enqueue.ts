@@ -19,6 +19,10 @@ export type TaskName =
   | 'drop_waiting_enquiry'
   | 'send_saved_search_email'
   | 'saved_search_alerts'
+  /** M86, M87: alerts for searches that hear as soon as a home is listed, a couple of minutes on. */
+  | 'instant_search_alerts'
+  /** M49: the daily sweep that keeps live homes fresh. */
+  | 'listing_freshness'
   /** P26: Stripe deletes the ID and selfie of a session whose check has gone with a profile. */
   | 'redact_identity_session';
 
@@ -30,7 +34,16 @@ export async function enqueue(
   tx: Tx,
   task: TaskName,
   payload: Record<string, unknown>,
-  options: { runAt?: Date; jobKey?: string; maxAttempts?: number } = {},
+  options: {
+    runAt?: Date;
+    jobKey?: string;
+    maxAttempts?: number;
+    /**
+     * With `jobKey`: `preserve_run_at` keeps a waiting job's time, so jobs queued one after
+     * another run once, at the first one's time (graphile-worker's job key modes).
+     */
+    jobKeyMode?: 'replace' | 'preserve_run_at';
+  } = {},
 ): Promise<void> {
   await tx.execute(sql`
     select graphile_worker.add_job(
@@ -38,7 +51,8 @@ export async function enqueue(
       ${JSON.stringify(payload)}::json,
       run_at => ${options.runAt?.toISOString() ?? null}::timestamptz,
       max_attempts => ${options.maxAttempts ?? 10}::int,
-      job_key => ${options.jobKey ?? null}::text
+      job_key => ${options.jobKey ?? null}::text,
+      job_key_mode => ${options.jobKeyMode ?? 'replace'}::text
     )`);
   const dueWithinAMinute = !options.runAt || options.runAt.getTime() - Date.now() < 60_000;
   if (dueWithinAMinute) runJobsAfterThisRequest();

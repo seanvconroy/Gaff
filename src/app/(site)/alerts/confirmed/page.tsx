@@ -12,7 +12,7 @@ type Query = Record<string, string | string[] | undefined>;
 
 /**
  * UX-SR-10: the search is confirmed. What it is (its chips, from this page's address), what
- * happens next (an email when a new home fits, once a day at most), and how it stops.
+ * happens next (an email as soon as a new home fits, or once a day), and how it stops.
  */
 export default async function SearchConfirmed({ searchParams }: { searchParams: Promise<Query> }) {
   const { filters, placeName } = await resolveSearch(filtersFromParams(await searchParams));

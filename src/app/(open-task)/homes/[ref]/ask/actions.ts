@@ -1,5 +1,6 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { continueWithProvider } from '@/app/(auth)/sign-in/actions';
 import { askToViewHref } from '@/domain/homes/home-page';
@@ -40,9 +41,13 @@ export async function askAction(
           emailVerified: user.emailVerified,
         }
       : null,
+    new Date(),
+    // M82: counted against the day's limit, by this address and this person.
+    await headers(),
   );
   if (!result.ok) {
     if ('gone' in result) redirect(withCarried(askToViewHref(ref), '', { gone: '1' }));
+    if ('limited' in result) redirect(withCarried(askToViewHref(ref), '', { limited: '1' }));
     return invalid(result.errors, values);
   }
   redirect(withCarried(askToViewHref(ref), '', { sent: result.waiting ? 'email' : 'in' }));

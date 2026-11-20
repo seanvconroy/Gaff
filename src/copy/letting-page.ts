@@ -71,6 +71,8 @@ export const lettingPageCopy = {
     questions: (n: number) => (n === 1 ? 'Answer the question' : 'Answer the questions'),
     attention: 'Open Inbox',
     forwarding: 'Set up forwarding',
+    /** M49: "Is it still available?" */
+    freshness: 'Still available',
   },
 
   happening: {
@@ -182,6 +184,17 @@ export const lettingPageCopy = {
 
   home: {
     heading: 'The home as renters see it',
+    /** M92 (BA-13): the home's numbers on Gaff, counts only, never who. */
+    numbers: {
+      title: 'Renters on Gaff',
+      lead: (days: number) => `The last ${days} days. Counts only: Gaff never shows who.`,
+      opened: 'Page opened',
+      saved: 'Saved',
+      enquiries: 'Asked to view',
+      byDay: 'By day',
+      caption: 'This home on Gaff, by day',
+      day: 'Day',
+    },
     change: 'Change',
     photos: 'Photos',
     noPhotos: 'No photos yet.',

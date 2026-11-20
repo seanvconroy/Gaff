@@ -61,7 +61,10 @@ export async function draftAnswersFor(input: { organisationId: string; messageId
       .innerJoin(organisations, eq(organisations.id, messages.organisationId))
       .where(and(eq(messages.id, input.messageId), eq(messages.direction, 'inbound')));
     // UX-TS-4: a home Gaff's team has hidden answers nothing until it's back, as in set-up.
-    if (!row || row.letting.status === 'draft' || row.letting.hiddenAt) return null;
+    // M49: and so does one that stepped back, unconfirmed.
+    if (!row || row.letting.status === 'draft' || row.letting.hiddenAt || row.letting.staleAt) {
+      return null;
+    }
     const [done] = await tx
       .select({ id: aiDrafts.id })
       .from(aiDrafts)

@@ -46,6 +46,8 @@ import {
 } from '@/domain/dashboard/today';
 import { todayIn, type Viewer } from '@/domain/dashboard/views';
 import { leadOf } from '@/domain/lettings/lead';
+import { defaultFreshness } from '@/domain/lettings/freshness';
+import { freshnessShownIn } from '@/server/lettings/freshness';
 import { stepsLeft } from '@/domain/lettings/add-letting';
 import { allChecksBack } from '@/domain/checks/review';
 import { whoCanBeOffered } from '@/domain/offers/offer';
@@ -119,6 +121,8 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
       return memberIds.has(lead) ? lead : null;
     };
 
+    // M49: homes whose lister is asked if they're still available, or that stepped back.
+    const freshness = await freshnessShownIn(tx, now);
     const undecided = byLetting(
       await tx
         .select({
@@ -397,6 +401,13 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         tenancy: tenancy?.updatedAt ?? null,
         rtb: tenancy ? irishInstant(tenancy.startDate, '00:00') : null,
         setup: letting.createdAt,
+        freshness: (() => {
+          const shown = freshness.get(letting.id);
+          if (!shown) return null;
+          return shown.kind === 'stepped_back'
+            ? shown.since
+            : new Date(shown.stepsBackAt.getTime() - defaultFreshness.graceDays * 86_400_000);
+        })(),
       };
       return {
         id: letting.id,
@@ -409,6 +420,7 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         goLiveHeld: letting.goLiveHeldAt !== null,
         setupStepsLeft,
         advertisedOn: letting.advertisedOn,
+        freshness: freshness.get(letting.id) ?? null,
         enquiries: enquiries.get(letting.id)?.n ?? 0,
         undecided: undecided.get(letting.id)?.n ?? 0,
         places,

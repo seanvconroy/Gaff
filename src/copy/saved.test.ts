@@ -21,19 +21,21 @@ const homes = [
   },
 ];
 
-const alert = (count: 1 | 2) =>
+const alert = (count: 1 | 2, frequency: 'instant' | 'daily' = 'instant') =>
   searchAlertEmail({
     homes: homes.slice(0, count),
     searches: ['Greystones, Co. Wicklow · 2 bedrooms · Up to €2,000 a month'],
     searchUrl: `${APP}/?where=greystones&beds=2&max=2000`,
     stopUrl: `${APP}/alerts/${TOKEN}/stop`,
+    frequency,
+    switchUrl: `${APP}/alerts/${TOKEN}/${frequency === 'instant' ? 'daily' : 'instant'}`,
   });
 
 /**
  * UX-SR-10: the words of the two new emails, pinned. NEW WORDING: listed for the solicitor in
  * WP-23's report. If a test here fails, the wording has changed: agree it before updating.
  */
-describe('UX-SR-10: the saved-search emails say exactly this', () => {
+describe('UX-SR-10, M86: the saved-search emails say exactly this', () => {
   it('UX-SR-10: a saved search in words is its chips, as search shows them', () => {
     // The place's name comes from Gaff's place index, looked up on the server.
     expect(
@@ -60,7 +62,7 @@ describe('UX-SR-10: the saved-search emails say exactly this', () => {
         '',
         `${APP}/alerts/${TOKEN}`,
         '',
-        'Once you confirm, we’ll email you when a new home fits, once a day at most. If you didn’t ask for this, there’s nothing to do: the search is dropped tomorrow.',
+        'Once you confirm, we’ll email you as soon as a new home fits. If you didn’t ask for this, there’s nothing to do: the search is dropped tomorrow.',
         '',
         'Gaff',
       ].join('\n'),
@@ -80,7 +82,9 @@ describe('UX-SR-10: the saved-search emails say exactly this', () => {
         '',
         `${APP}/?where=greystones&beds=2&max=2000`,
         '',
-        'You can ask to view it on its page, and you’ll hear back either way. We’ll email you again when another home fits, once a day at most.',
+        'You can ask to view it on its page, and you’ll hear back either way. We’ll email you again as soon as another home fits.',
+        '',
+        `Once a day instead: ${APP}/alerts/${TOKEN}/daily`,
         '',
         `Stop these: ${APP}/alerts/${TOKEN}/stop`,
         '',
@@ -89,12 +93,24 @@ describe('UX-SR-10: the saved-search emails say exactly this', () => {
     });
   });
 
+  it('M86: the daily alert says when the next one comes, and offers as soon as one is listed', () => {
+    const email = alert(1, 'daily');
+    expect(email.text).toContain(
+      'You can ask to view it on its page, and you’ll hear back either way. We’ll email you again at 8am on a day another home fits.',
+    );
+    expect(email.text).toContain(
+      `As soon as one is listed instead: ${APP}/alerts/${TOKEN}/instant`,
+    );
+  });
+
   it('UX-SR-10: the alert, for several homes and several searches', () => {
     const email = searchAlertEmail({
       homes,
       searches: ['Greystones, Co. Wicklow', 'Bray, Co. Wicklow'],
       searchUrl: `${APP}/?where=greystones`,
       stopUrl: `${APP}/alerts/${TOKEN}/stop`,
+      frequency: 'instant',
+      switchUrl: `${APP}/alerts/${TOKEN}/daily`,
     });
     expect(email.subject).toBe('2 new homes fit your search');
     expect(email.text).toContain('2 new homes on Gaff fit what you asked for in your searches.');
@@ -113,7 +129,8 @@ describe('UX-SR-10: the saved-search emails say exactly this', () => {
         url: `${APP}/alerts/${TOKEN}/stop`,
       });
       // Each home is a link named by its address and rent.
-      expect(blocks.filter((block) => block.type === 'named-link')).toHaveLength(count + 1);
+      // M86: and the switch to once a day is a named link too.
+      expect(blocks.filter((block) => block.type === 'named-link')).toHaveLength(count + 2);
       const { html } = layOutGaffEmail({
         subject: email.subject,
         body: email.text,

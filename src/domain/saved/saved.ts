@@ -11,7 +11,7 @@ import {
 } from '@/domain/search/filters';
 import { type SearchableHome, searchHomes } from '@/domain/search/match';
 import type { Gazetteer } from '@/domain/search/places';
-import { irishToday } from '@/lib/format';
+import { irishClock, irishInstant, irishToday } from '@/lib/format';
 
 /**
  * Saved homes and saved searches (UX-SR-10, UX-MT-13 to UX-MT-16, UX-RH "Saved", Q25). These are
@@ -118,57 +118,104 @@ export function emailSearchRetention(
   return irishToday(now) >= deleteOn ? 'delete' : 'keep';
 }
 
+/**
+ * M86 (Q51): how a saved search tells its renter. As soon as a home that fits is listed (the
+ * default), a couple of minutes' worth of homes in one email; or once a day, at 8am Irish time.
+ * The choice is on each search, changed on Saved and from the foot of every alert.
+ */
+export const alertFrequencies = ['instant', 'daily'] as const;
+export type AlertFrequency = (typeof alertFrequencies)[number];
+export const alertFrequencySchema = z.enum(alertFrequencies);
+
+/**
+ * M87: an instant alert waits this long for other homes, so several listed together are one
+ * email, and still goes well within five minutes of the first.
+ */
+export const ALERT_GROUP_SECONDS = 120;
+
+/** M86: the daily email goes at 8am, Irish time. */
+export const DAILY_HOUR = 8;
+
+/** M86: the next daily email: 8am in Ireland, today if it isn't 8 yet, otherwise tomorrow. */
+export function nextDailySend(now: Date): Date {
+  const today = irishToday(now);
+  const at = irishInstant(today, `${String(DAILY_HOUR).padStart(2, '0')}:00`);
+  if (at.getTime() > now.getTime()) return at;
+  const tomorrow = new Date(`${today}T12:00:00Z`);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  return irishInstant(
+    tomorrow.toISOString().slice(0, 10),
+    `${String(DAILY_HOUR).padStart(2, '0')}:00`,
+  );
+}
+
+/** M86: whether it is 8am or later in Ireland, so the day's email may go. */
+export function dailyAlertsMayGo(now: Date): boolean {
+  return Number(irishClock(now).slice(0, 2)) >= DAILY_HOUR;
+}
+
+/** A home as an alert sees it: search's facts, and when it was last news. */
+export type AlertableHome = SearchableHome & {
+  /**
+   * M86: when it was last news: when it went live, or when its rent last came down, whichever
+   * is later. Missing: when it went live.
+   */
+  newsAt?: Date;
+};
+
+const newsOf = (home: AlertableHome) => home.newsAt ?? home.liveAt;
+
 /** What the alert job knows of one saved search. */
 export interface SearchToAlert {
   filters: SearchFilters;
-  /** When it was saved (or confirmed): only homes that went live after it are new to it. */
+  /** When it was saved (or confirmed): only homes that are news after it are new to it. */
   since: Date;
   /** Homes already told about, by public reference: each home once. */
   told: readonly string[];
 }
 
 /**
- * UX-SR-10, UX-MT-16: the new homes a saved search tells its renter about. A home that fits
- * everything asked (search's own matcher, `searchHomes`), went live after the search was saved,
- * and hasn't been told about before. Homes that are only close aren't sent: an alert says a home
- * fits. Nothing about any operator or any renter decides who is told: only the search and the
- * home's own facts.
+ * UX-SR-10, UX-MT-16, M86: the homes a saved search tells its renter about. A home that fits
+ * everything asked (search's own matcher, `searchHomes`), that went live or came down in rent
+ * after the search was saved, and hasn't been told about before. Homes that are only close
+ * aren't sent: an alert says a home fits. Nothing about any operator or any renter decides who
+ * is told: only the search and the home's own facts.
  */
-export function newHomesFor<H extends SearchableHome>(
+export function newHomesFor<H extends AlertableHome>(
   search: SearchToAlert,
   homes: readonly H[],
   g: Gazetteer,
 ): H[] {
   const told = new Set(search.told);
   return searchHomes(
-    homes.filter((home) => home.liveAt.getTime() > search.since.getTime() && !told.has(home.id)),
+    homes.filter((home) => newsOf(home).getTime() > search.since.getTime() && !told.has(home.id)),
     search.filters,
     g,
   ).fits;
 }
 
 /**
- * UX-SR-10: at most one email a day to anyone. `lastSentAt` is when this person or address was
- * last sent one, for any of their searches. A day is an Irish calendar day.
+ * M86: the daily email goes at most once a day to anyone. `lastSentAt` is when this person or
+ * address was last sent one, for any of their daily searches. A day is an Irish calendar day.
  */
 export function alertDueToday(lastSentAt: Date | null, now: Date): boolean {
   return lastSentAt === null || irishToday(lastSentAt) !== irishToday(now);
 }
 
-/** The most homes one alert lists. The rest wait for the next day's email. */
+/** The most homes one alert lists. The rest wait for the next email. */
 export const MAX_HOMES_PER_ALERT = 10;
 
 /**
  * One email's homes, across every search of one person or address: each home once, even when
  * two searches find it, newest first, at most `MAX_HOMES_PER_ALERT`.
  */
-export function homesForOneEmail<H extends SearchableHome>(
+export function homesForOneEmail<H extends AlertableHome>(
   perSearch: ReadonlyArray<{ searchId: string; homes: readonly H[] }>,
 ): { homes: H[]; told: Map<string, string[]> } {
   const seen = new Map<string, H>();
   for (const { homes } of perSearch) for (const home of homes) seen.set(home.id, home);
   const homes = [...seen.values()]
-    .sort((a, b) => b.liveAt.getTime() - a.liveAt.getTime() || a.id.localeCompare(b.id))
+    .sort((a, b) => newsOf(b).getTime() - newsOf(a).getTime() || a.id.localeCompare(b.id))
     .slice(0, MAX_HOMES_PER_ALERT);
   const sent = new Set(homes.map((home) => home.id));
   const told = new Map<string, string[]>();
@@ -177,6 +224,43 @@ export function homesForOneEmail<H extends SearchableHome>(
     if (these.length > 0) told.set(searchId, these);
   }
   return { homes, told };
+}
+
+/**
+ * M85: what changed about a saved home since the renter saved it, in the order Saved says it.
+ * A lower rent, new viewing times, and that it's been let. Nothing is emailed about these: Saved
+ * shows them. A rise in rent isn't news a renter asked for, and isn't shown.
+ */
+export type SavedHomeChange =
+  | { kind: 'rent_down'; fromCents: number; toCents: number }
+  | { kind: 'new_viewings' }
+  | { kind: 'let' };
+
+export function savedHomeChanges(
+  saved: { rentCentsWhenSaved: number | null },
+  now: {
+    state: 'live' | 'let' | 'gone';
+    rentCents: number | null;
+    /** Viewing times added since it was saved, still ahead. */
+    newViewings: boolean;
+  },
+): SavedHomeChange[] {
+  if (now.state === 'gone') return [];
+  if (now.state === 'let') return [{ kind: 'let' }];
+  const changes: SavedHomeChange[] = [];
+  if (
+    saved.rentCentsWhenSaved !== null &&
+    now.rentCents !== null &&
+    now.rentCents < saved.rentCentsWhenSaved
+  ) {
+    changes.push({
+      kind: 'rent_down',
+      fromCents: saved.rentCentsWhenSaved,
+      toCents: now.rentCents,
+    });
+  }
+  if (now.newViewings) changes.push({ kind: 'new_viewings' });
+  return changes;
 }
 
 /** The token in a saved search's links (confirm, stop): 32 random bytes, base64url. */

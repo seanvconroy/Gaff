@@ -4,7 +4,8 @@ import { portals } from '@/domain/lettings/setup';
 import { operatorStepHref, tenancyTaskHref } from '@/domain/tenancy/operator-steps';
 import type { TenancyStep } from '@/domain/tenancy/steps';
 import { formatDate, formatTime, irishToday } from '@/lib/format';
-import { decisionHref } from '@/domain/lettings/links';
+import { decisionHref, stillAvailableHref } from '@/domain/lettings/links';
+import { freshnessCopy } from '@/copy/freshness';
 import type { TodayItem, TodayKind } from './today';
 
 /**
@@ -78,6 +79,8 @@ export function todayHref(item: TodayItem): string {
       return `/lettings/${item.lettingId}`;
     case 'forwarding':
       return forwardingHref({ lettingId: item.lettingId });
+    case 'freshness':
+      return stillAvailableHref(item.lettingId);
   }
 }
 
@@ -125,6 +128,8 @@ function task(item: TodayItem, now: Date): string {
       return 'Finish setting up';
     case 'forwarding':
       return 'Set up forwarding';
+    case 'freshness':
+      return freshnessCopy.today.task;
   }
 }
 
@@ -173,6 +178,10 @@ function why(item: TodayItem, now: Date): string | null {
       const where = item.portals.map((portal) => portals[portal]).join(' and ');
       return `Enquiries from ${where || 'Daft and MyHome'} aren’t reaching Gaff yet`;
     }
+    case 'freshness':
+      return item.stale || !item.stepsBackAt
+        ? freshnessCopy.today.stale
+        : freshnessCopy.today.asked(formatDate(item.stepsBackAt, now));
     case 'setup':
       if (item.stepsLeft === null) return null;
       return item.stepsLeft === 0

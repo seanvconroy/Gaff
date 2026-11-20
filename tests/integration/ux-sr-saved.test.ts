@@ -13,6 +13,9 @@ import {
 import { deleteProfile, profileForDownload, sweepProfiles } from '@/server/accounts/delete-profile';
 import { findConfirmation, grantConfirmation } from '@/server/auth/confirm';
 import { addPhoto } from '@/server/lettings/photos';
+import { addViewingSession } from '@/server/lettings/viewing-sessions';
+import { viewingSessionSchema } from '@/domain/viewings/viewing-session';
+import { irishToday } from '@/lib/format';
 import { sendSearchAlerts, sweepEmailSearches } from '@/server/saved/alerts';
 import { sendSavedSearchEmail } from '@/server/saved/emails';
 import { removeSavedHome, saveHome, savedHomeRefs, savedHomesOf } from '@/server/saved/homes';
@@ -23,9 +26,13 @@ import {
   saveSearchByEmail,
   saveSearchFor,
   savedSearchesOf,
+  setFrequencyByToken,
   setSearchAlerts,
+  setSearchFrequency,
   stopAlerts,
 } from '@/server/saved/searches';
+import { ALERT_GROUP_SECONDS, nextDailySend } from '@/domain/saved/saved';
+import { changeAskingRent } from '@/server/lettings/rent-check';
 import { aPng } from '../fixtures/photos';
 import {
   aLiveLetting,
@@ -64,6 +71,21 @@ async function sendQueuedEmails(): Promise<void> {
   await db().execute(sql`
     delete from graphile_worker._private_jobs j using graphile_worker._private_tasks t
     where t.id = j.task_id and t.identifier = 'send_saved_search_email'`);
+}
+
+/** The times the queued jobs of a task will run. */
+async function queuedJobRuns(task: string): Promise<Date[]> {
+  const { rows } = await db().execute<{ run_at: string | Date }>(sql`
+    select j.run_at from graphile_worker._private_jobs j
+    join graphile_worker._private_tasks t on t.id = j.task_id
+    where t.identifier = ${task}`);
+  return rows.map((row) => new Date(row.run_at));
+}
+
+async function clearJobs(task: string): Promise<void> {
+  await db().execute(sql`
+    delete from graphile_worker._private_jobs j using graphile_worker._private_tasks t
+    where t.id = j.task_id and t.identifier = ${task}`);
 }
 
 const mailTo = (address: string) =>
@@ -236,6 +258,7 @@ describe('Saved: the heart', () => {
       ref,
       state: 'let',
       title: expect.stringContaining('3 Quay Street'),
+      changes: [{ kind: 'let' }],
     });
     await removeSavedHome(renter.id, ref);
     expect(await savedHomesOf(renter.id)).toEqual([]);
@@ -245,7 +268,44 @@ describe('Saved: the heart', () => {
     await withSystem((tx) =>
       tx.update(lettings).set({ onGaff: false }).where(eq(lettings.id, other.lettingId)),
     );
-    expect(await savedHomesOf(renter.id)).toEqual([{ ref: other.ref, state: 'gone' }]);
+    expect(await savedHomesOf(renter.id)).toEqual([{ ref: other.ref, state: 'gone', changes: [] }]);
+  });
+
+  it('M85: Saved says what changed since it was saved: a lower rent, new viewing times', async () => {
+    const lister = await createTestMember();
+    const { lettingId, ref } = await aHomeOnGaff(lister, { addressLine1: '5 Quay Street' });
+    const renter = await createTestPerson();
+    await saveHome(renter.id, ref);
+    const [saved] = await withPerson(renter.id, (tx) =>
+      tx.select().from(savedHomes).where(eq(savedHomes.userId, renter.id)),
+    );
+    expect(saved!.rentCentsWhenSaved).toBeGreaterThan(0);
+    expect((await savedHomesOf(renter.id))[0]!.changes).toEqual([]);
+    // A rise isn't news a renter asked for.
+    await changeAskingRent(lister, lettingId, saved!.rentCentsWhenSaved! + 10_000);
+    expect((await savedHomesOf(renter.id))[0]!.changes).toEqual([]);
+    await changeAskingRent(lister, lettingId, saved!.rentCentsWhenSaved! - 10_000);
+    await addViewingSession(
+      lister,
+      lettingId,
+      viewingSessionSchema(new Date()).parse({
+        date: irishToday(new Date(Date.now() + 3 * DAY)),
+        start: '18:00',
+        end: '19:00',
+        kind: 'group',
+        capacity: '6',
+      }),
+    );
+    expect((await savedHomesOf(renter.id))[0]!.changes).toEqual([
+      {
+        kind: 'rent_down',
+        fromCents: saved!.rentCentsWhenSaved!,
+        toCents: saved!.rentCentsWhenSaved! - 10_000,
+      },
+      { kind: 'new_viewings' },
+    ]);
+    // Nothing is emailed about it.
+    expect(await mailTo(renter.email)).toHaveLength(0);
   });
 });
 
@@ -305,7 +365,7 @@ describe('UX-SR-10: saving a search', () => {
     // Unconfirmed, a new home that fits tells nobody.
     const lister = await createTestMember();
     await aHomeOnGaff(lister);
-    await sendSearchAlerts();
+    await sendSearchAlerts('instant');
     await sendQueuedEmails();
     expect(await mailTo(email)).toHaveLength(1);
 
@@ -342,8 +402,8 @@ describe('UX-SR-10, UX-MT-16: the alert', () => {
       tx.update(lettings).set({ monthlyRentCents: 240_000 }).where(eq(lettings.id, dear.lettingId)),
     );
 
-    await sendSearchAlerts();
-    await sendSearchAlerts();
+    await sendSearchAlerts('instant');
+    await sendSearchAlerts('instant');
     await sendQueuedEmails();
     const mail = await mailTo(renter.email);
     expect(mail).toHaveLength(1);
@@ -358,30 +418,116 @@ describe('UX-SR-10, UX-MT-16: the alert', () => {
     expect(mail[0]!.html).toContain('Stop these');
 
     // The next day, each home once: the same home isn't told again.
-    await sendSearchAlerts(new Date(Date.now() + DAY));
+    await sendSearchAlerts('instant', new Date(Date.now() + DAY));
     await sendQueuedEmails();
     expect(await mailTo(renter.email)).toHaveLength(1);
   });
 
-  it('UX-SR-10: at most one email a day, whatever comes up', async () => {
+  it('M86: the daily choice: one email at 8am Irish time, whatever comes up, each home once', async () => {
     const renter = await createTestPerson();
     await saveSearchFor(renter.id, WESTPORT);
     await saveSearchFor(renter.id, { where: 'westport' });
+    for (const search of (await savedSearchesOf(renter.id)).searches) {
+      await setSearchFrequency(renter.id, search.id, 'daily');
+    }
+    expect((await savedSearchesOf(renter.id)).searches.map((s) => s.frequency)).toEqual([
+      'daily',
+      'daily',
+    ]);
     const lister = await createTestMember();
     await aHomeOnGaff(lister, { addressLine1: '31 Bridge Street' });
-    await sendSearchAlerts();
+    // As soon as it's listed, the instant run tells a daily search nothing.
+    await sendSearchAlerts('instant');
+    await sendQueuedEmails();
+    expect(await mailTo(renter.email)).toHaveLength(0);
+    const morning = nextDailySend(new Date());
+    // Before 8 in Ireland, the daily run waits.
+    await sendSearchAlerts('daily', new Date(morning.getTime() - 60_000));
+    await sendSearchAlerts('daily', morning);
     await aHomeOnGaff(lister, { addressLine1: '33 Bridge Street' });
-    await sendSearchAlerts();
+    await sendSearchAlerts('daily', new Date(morning.getTime() + 60 * 60_000));
     await sendQueuedEmails();
     const today = await mailTo(renter.email);
     expect(today).toHaveLength(1);
     // Two searches found the first home: it is in the one email once.
     expect(today[0]!.text.match(/31 Bridge Street/g)).toHaveLength(1);
-    await sendSearchAlerts(new Date(Date.now() + DAY));
+    expect(today[0]!.text).toContain('We’ll email you again at 8am on a day another home fits.');
+    expect(today[0]!.text).toMatch(
+      /As soon as one is listed instead: http:\/\/localhost:3000\/alerts\/[A-Za-z0-9_-]{43}\/instant/,
+    );
+    await sendSearchAlerts('daily', new Date(morning.getTime() + DAY));
     await sendQueuedEmails();
     const both = await mailTo(renter.email);
     expect(both).toHaveLength(2);
-    expect(both.map((m) => m.text).join('\n')).toContain('33 Bridge Street');
+    expect(both[1]!.text).toContain('33 Bridge Street');
+    expect(both[1]!.text).not.toContain('31 Bridge Street');
+  });
+
+  it('M86, M87: as soon as homes are listed: two homes together are one email, and never twice for one home', async () => {
+    const renter = await createTestPerson();
+    await saveSearchFor(renter.id, WESTPORT);
+    const lister = await createTestMember();
+    await clearJobs('instant_search_alerts');
+    const before = Date.now();
+    await aHomeOnGaff(lister, { addressLine1: '71 Bridge Street' });
+    await aHomeOnGaff(lister, { addressLine1: '73 Bridge Street' });
+    // Going live queued one run, a couple of minutes on, so both homes are in it.
+    const runs = await queuedJobRuns('instant_search_alerts');
+    expect(runs).toHaveLength(1);
+    expect(runs[0]!.getTime() - before).toBeGreaterThanOrEqual(ALERT_GROUP_SECONDS * 1000 - 1000);
+    expect(runs[0]!.getTime() - before).toBeLessThan(5 * 60_000);
+    await sendSearchAlerts('instant');
+    await sendQueuedEmails();
+    const [mail, ...more] = await mailTo(renter.email);
+    expect(more).toHaveLength(0);
+    expect(mail!.subject).toBe('2 new homes fit your search');
+    expect(mail!.text).toContain('71 Bridge Street');
+    expect(mail!.text).toContain('73 Bridge Street');
+    expect(mail!.text).toContain('We’ll email you again as soon as another home fits.');
+    expect(mail!.text).toMatch(
+      /Once a day instead: http:\/\/localhost:3000\/alerts\/[A-Za-z0-9_-]{43}\/daily/,
+    );
+    await sendSearchAlerts('instant');
+    await sendQueuedEmails();
+    expect(await mailTo(renter.email)).toHaveLength(1);
+  });
+
+  it('M86: a home whose rent came down into a search is told, once, within minutes', async () => {
+    const lister = await createTestMember();
+    const home = await aHomeOnGaff(lister, { addressLine1: '81 Bridge Street' });
+    await changeAskingRent(lister, home.lettingId, 250_000);
+    const renter = await createTestPerson();
+    await saveSearchFor(renter.id, WESTPORT);
+    await sendSearchAlerts('instant');
+    await sendQueuedEmails();
+    expect(await mailTo(renter.email)).toHaveLength(0);
+    await clearJobs('instant_search_alerts');
+    await changeAskingRent(lister, home.lettingId, 195_000);
+    expect(await queuedJobRuns('instant_search_alerts')).toHaveLength(1);
+    await sendSearchAlerts('instant');
+    await sendQueuedEmails();
+    const [mail] = await mailTo(renter.email);
+    expect(mail!.subject).toBe('A new home fits your search: 81 Bridge Street, Westport, Co. Mayo');
+    // Down again: still each home once.
+    await changeAskingRent(lister, home.lettingId, 190_000);
+    await sendSearchAlerts('instant');
+    await sendQueuedEmails();
+    expect(await mailTo(renter.email)).toHaveLength(1);
+  });
+
+  it('M86: the switch at the foot of an alert changes every search of theirs, with no sign-in', async () => {
+    const email = `niamh.${Date.now()}@example.ie`;
+    await saveSearchByEmail(email, WESTPORT);
+    await sendQueuedEmails();
+    const token = tokenIn((await mailTo(email))[0]!.text, 'confirm');
+    expect(await setFrequencyByToken(token, 'daily')).toEqual({ state: 'not_found' });
+    await confirmSearch(token);
+    expect(await setFrequencyByToken(token, 'weekly')).toEqual({ state: 'not_found' });
+    expect(await setFrequencyByToken(token, 'daily')).toEqual({ state: 'changed', to: 'daily' });
+    const [row] = await withSystem((tx) =>
+      tx.select().from(savedSearches).where(eq(savedSearches.email, email)),
+    );
+    expect(row!.frequency).toBe('daily');
   });
 
   it('UX-SR-10: "Stop these" from an email deletes a search held by an email alone, at once', async () => {
@@ -391,7 +537,7 @@ describe('UX-SR-10, UX-MT-16: the alert', () => {
     await confirmSearch(tokenIn((await mailTo(email))[0]!.text, 'confirm'));
     const lister = await createTestMember();
     await aHomeOnGaff(lister, { addressLine1: '41 Bridge Street' });
-    await sendSearchAlerts();
+    await sendSearchAlerts('instant');
     await sendQueuedEmails();
     const alert = (await mailTo(email)).find((m) => m.subject.startsWith('A new home'))!;
     expect(await stopAlerts(tokenIn(alert.text, 'stop'))).toEqual({
@@ -411,7 +557,7 @@ describe('UX-SR-10, UX-MT-16: the alert', () => {
     await saveSearchFor(renter.id, WESTPORT);
     const lister = await createTestMember();
     await aHomeOnGaff(lister, { addressLine1: '51 Bridge Street' });
-    await sendSearchAlerts();
+    await sendSearchAlerts('instant');
     await sendQueuedEmails();
     const [alert] = await mailTo(renter.email);
     expect(await stopAlerts(tokenIn(alert!.text, 'stop'))).toEqual({
@@ -420,7 +566,7 @@ describe('UX-SR-10, UX-MT-16: the alert', () => {
     });
     expect((await savedSearchesOf(renter.id)).alerts).toBe(false);
     await aHomeOnGaff(lister, { addressLine1: '53 Bridge Street' });
-    await sendSearchAlerts(new Date(Date.now() + DAY));
+    await sendSearchAlerts('instant', new Date(Date.now() + DAY));
     await sendQueuedEmails();
     expect(await mailTo(renter.email)).toHaveLength(1);
     await setSearchAlerts(renter.id, true);
@@ -435,7 +581,7 @@ describe('UX-SR-10, UX-MT-16: the alert', () => {
     const before = await withOrg(lister.organisationId, (tx) =>
       tx.select().from(events).where(eq(events.lettingId, lettingId)),
     );
-    await sendSearchAlerts();
+    await sendSearchAlerts('instant');
     await sendQueuedEmails();
     const after = await withOrg(lister.organisationId, (tx) =>
       tx.select().from(events).where(eq(events.lettingId, lettingId)),

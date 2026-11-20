@@ -20,6 +20,7 @@ import { findMember, type Member } from '@/server/auth/member';
 import type { Staff } from '@/server/auth/staff';
 import { keepIdentityIn, keptIdentityIn } from '@/server/identity/kept';
 import { createLetting } from '@/server/lettings/create-letting';
+import { confirmStillAvailable } from '@/server/lettings/freshness';
 import { startTakingEnquiries } from '@/server/lettings/go-live';
 import { setHomePoint } from '@/server/lettings/location';
 import { addPhoto } from '@/server/lettings/photos';
@@ -308,6 +309,30 @@ async function seedHome(
   if (letting.stage === 'setup' && (await startTakingEnquiries(member, lettingId)) !== 'live') {
     report.homes.notLive += 1;
   }
+  await keepFresh(member, lettingId, now);
+}
+
+/**
+ * M49 (BA-13): each run counts as its lister saying the home is still available, so a seeded
+ * home never steps back from Gaff's pages because nobody confirmed it. A home that stepped back
+ * anyway (the test copy wasn't deployed for a while) comes back through the product's own use
+ * case, so what waited is answered; otherwise only the date moves, and the run adds no event.
+ */
+async function keepFresh(member: Member, lettingId: string, now: Date): Promise<void> {
+  const [row] = await withOrg(member.organisationId, (tx) =>
+    tx
+      .select({ status: lettings.status, staleAt: lettings.staleAt })
+      .from(lettings)
+      .where(eq(lettings.id, lettingId)),
+  );
+  if (row?.status !== 'live') return;
+  if (row.staleAt) {
+    await confirmStillAvailable(member, lettingId, now);
+    return;
+  }
+  await withOrg(member.organisationId, (tx) =>
+    tx.update(lettings).set({ confirmedAvailableAt: now }).where(eq(lettings.id, lettingId)),
+  );
 }
 
 /** Seeds the test copy. Never runs in production. */

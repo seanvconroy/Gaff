@@ -332,6 +332,30 @@ describe('UX-HM-5: the same kind of thing for the same home is one row with a co
     }
   });
 
+  it('M49: a live home asked if it’s still available, or stepped back, is a decision to make', () => {
+    const asked = letting({
+      id: 'asked',
+      freshness: { kind: 'asked', stepsBackAt: at('09:00') },
+    });
+    const stale = letting({ id: 'stale', freshness: { kind: 'stepped_back', since: at('08:00') } });
+    const items = needsYouToday({ ...nothing, lettings: [asked, stale] });
+    expect(items).toMatchObject([
+      { kind: 'freshness', lettingId: 'asked', stale: false, stepsBackAt: at('09:00') },
+      { kind: 'freshness', lettingId: 'stale', stale: true, stepsBackAt: null },
+    ]);
+    expect(todayRank(items[0]!, TODAY)).toBe(todayRanks.decision);
+    // Nothing to ask, or not live: nothing listed.
+    expect(needsYouToday({ ...nothing, lettings: [letting({ freshness: null })] })).toEqual([]);
+    expect(
+      needsYouToday({
+        ...nothing,
+        lettings: [
+          letting({ status: 'let', freshness: { kind: 'stepped_back', since: at('08:00') } }),
+        ],
+      }),
+    ).toEqual([]);
+  });
+
   it('UX-LT-20, UX-HM-4: forwarding is setup to finish, ranked with it', () => {
     const items = needsYouToday({
       ...nothing,

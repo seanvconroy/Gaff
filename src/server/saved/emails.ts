@@ -7,7 +7,7 @@ import { confirmSearchEmail, searchAlertEmail, searchWords } from '@/copy/saved'
 import { cardLine } from '@/copy/search';
 import { withSystem } from '@/db/client';
 import { savedSearches, users } from '@/db/schema';
-import { filtersToKeep } from '@/domain/saved/saved';
+import { type AlertFrequency, alertFrequencySchema, filtersToKeep } from '@/domain/saved/saved';
 import { searchHref } from '@/domain/search/filters';
 import { openJson } from '@/lib/crypto';
 import { env } from '@/lib/env';
@@ -25,6 +25,8 @@ export const savedSearchEmailJob = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('confirm'), savedSearchId: z.uuid() }),
   z.object({
     kind: z.literal('alert'),
+    /** M86: how these searches hear, for the words and the switch at the foot. */
+    frequency: alertFrequencySchema.default('daily'),
     /** The searches of one person or address that found a home, the first leading. */
     savedSearchIds: z.array(z.uuid()).min(1),
     /** The homes, by public reference, newest first. */
@@ -39,6 +41,8 @@ export type SavedSearchEmailJob = z.infer<typeof savedSearchEmailJob>;
 export const alertPaths = {
   confirm: (token: string) => `/alerts/${token}`,
   stop: (token: string) => `/alerts/${token}/stop`,
+  /** M86: hear about these once a day instead, or as soon as a home is listed. */
+  frequency: (token: string, to: AlertFrequency) => `/alerts/${token}/${to}`,
 };
 
 async function send(to: string, email: AccountEmail, key: string): Promise<void> {
@@ -125,6 +129,8 @@ export async function sendSavedSearchEmail(payload: unknown): Promise<void> {
       searches: searches.map((search) => wordsOf(search.filters)),
       searchUrl: `${app}${searchHref(filtersToKeep(lead.filters))}`,
       stopUrl: `${app}${alertPaths.stop(token)}`,
+      frequency: job.frequency,
+      switchUrl: `${app}${alertPaths.frequency(token, job.frequency === 'instant' ? 'daily' : 'instant')}`,
     }),
     `saved-search-alert-${job.alertId}`,
   );

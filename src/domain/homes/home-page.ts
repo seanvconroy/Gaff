@@ -110,6 +110,8 @@ export interface HomeVisibility {
   /** When the scheduled job took a let home's page down. */
   pageRemovedAt: Date | null;
   listerMayShow: boolean;
+  /** M49 (BA-13): it stepped back, unconfirmed, until its lister says it's still available. */
+  staleAt?: Date | null;
 }
 
 /**
@@ -129,7 +131,8 @@ export function homePageState(home: HomeVisibility): HomePageState {
     home.listerMayShow &&
     onGaffNeeds({ berRating: home.berRating, photos: home.photos }).length === 0;
   if (!shown) return 'not_available';
-  if (home.status === 'live') return 'live';
+  // M49: a live home nobody has confirmed steps back until they do. A let one says so as ever.
+  if (home.status === 'live') return home.staleAt ? 'not_available' : 'live';
   if (home.status === 'let' && !home.pageRemovedAt) return 'let';
   return 'not_available';
 }

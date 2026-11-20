@@ -13,11 +13,19 @@
  *     checked the words, and the home goes ahead.
  *   - `description`: a home's description drafted from its facts (P10, P11). Without a draft
  *     that passes the checks, the lister writes their own.
- *
- * Not built here, and added to this list when it is: reading documents (the live line's P30
- * on).
+ *   - `document` (BA-16, the live line's P37): a chosen renter's work or income document, read
+ *     into a few fields the renter checks. Without a reading, a work document is shared unread
+ *     for a person at the letting agency to look at, and for other income the renter enters the
+ *     amount themselves (P5).
  */
-export const aiTasks = ['answers', 'advert', 'people', 'wording', 'description'] as const;
+export const aiTasks = [
+  'answers',
+  'advert',
+  'people',
+  'wording',
+  'description',
+  'document',
+] as const;
 export type AiTask = (typeof aiTasks)[number];
 
 export const aiOutcomes = [

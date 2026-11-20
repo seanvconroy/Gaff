@@ -59,6 +59,11 @@ function paidAi(reply: Partial<Awaited<ReturnType<AiProvider['draftAnswers']>>> 
       model: 'claude-opus-5-5',
       usage: tokens,
     })),
+    readDocument: vi.fn(async (input: Parameters<AiProvider['readDocument']>[0]) => ({
+      ...(await fakeAi.readDocument(input)),
+      model: 'claude-opus-5-5',
+      usage: tokens,
+    })),
   } satisfies AiProvider;
 }
 

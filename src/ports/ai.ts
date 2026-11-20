@@ -1,6 +1,7 @@
 import type { TokenCounts } from '@/domain/ai/prices';
 import type { AiTask } from '@/domain/ai/tasks';
 import type { DraftItem, Fact } from '@/domain/answers/guardrails';
+import type { DocumentKind } from '@/domain/documents/kinds';
 
 /**
  * Port for the AI (ADR-0009, ADR-0017). One implementation of each task takes either the Claude
@@ -96,6 +97,19 @@ export interface DescriptionDraft {
   factIds: string[];
 }
 
+/**
+ * Task `document` (P37; the live line's ADR-0026): one work or income document a chosen renter
+ * uploaded. It is given the file alone (a PDF, or a photo already turned upright with its
+ * metadata gone), the kind the renter said it is and today's date: never the renter's name or
+ * anything else about them. Everything on the document is data, never instructions.
+ */
+export interface DocumentReadRequest {
+  file: { mediaType: 'application/pdf' | 'image/jpeg' | 'image/png'; base64: string };
+  saidKind: DocumentKind;
+  /** Today in Ireland, "2026-11-20". */
+  today: string;
+}
+
 export interface AiProvider {
   readonly name: AiProviderName;
   /** The model every task uses (P2), without Bedrock's prefix. */
@@ -125,4 +139,10 @@ export interface AiProvider {
    * holds it to the facts and to the wording rules before anyone sees it.
    */
   draftDescription(request: DescriptionRequest): Promise<AiReply<DescriptionDraft>>;
+  /**
+   * What the reader found on a document. It is trusted for nothing: `checkDocumentReading`
+   * (src/domain/documents/reading.ts) refuses any reading with a PPS or account number, or a
+   * payer of other income, and the renter sees and confirms what's kept.
+   */
+  readDocument(request: DocumentReadRequest): Promise<AiReply<unknown>>;
 }

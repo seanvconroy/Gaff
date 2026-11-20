@@ -497,6 +497,9 @@ export async function signUpLandlord(
 /** Signs up a renter through first run: their name, then "I'm looking for a home" (UX-AC-6). */
 export async function signUpRenter(page: Page, name = 'Aoife Byrne'): Promise<string> {
   const email = uniqueEmail('aoife');
+  // A renter has no organisation: mail lookups mustn't keep to an earlier test's sender, or
+  // Gaff's own emails to this renter (a security email, say) are never found.
+  currentSender = null;
   await signIn(page, email);
   await answerName(page, name);
   await answerPurpose(page, 'I’m looking for a home');

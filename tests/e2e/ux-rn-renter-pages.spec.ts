@@ -475,7 +475,7 @@ test('UX-RN-15, UX-RN-16, UX-RN-18: the checks are one at a time, each says what
   await expect(page.getByText('Read by AI').first()).toBeVisible();
   const flag = page.locator('[data-flag="name_differs"]');
   await expect(flag).toContainText('The name on it isn’t Aoife Byrne, the name on your ID.');
-  await expect(flag.locator('[data-tone="warning"]')).toBeVisible();
+  await expect(flag.locator('[data-pill="warning"]')).toBeVisible();
   await expect(page.locator('[data-tone="danger"]')).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Check and share' })).toBeVisible();
 

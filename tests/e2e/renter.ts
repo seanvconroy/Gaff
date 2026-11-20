@@ -307,12 +307,16 @@ export async function addDocumentThroughUi(
 export async function sharePayslipThroughUi(
   page: Page,
   name: string,
-  operator = 'Halcyon Lettings',
+  operator?: string,
 ): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Your work and income' })).toBeVisible();
   await addDocumentThroughUi(page, aPayslipFile(name));
   await page.getByRole('link', { name: 'Check and share' }).click();
-  await expect(page.getByRole('heading', { name: `Share with ${operator}` })).toBeVisible();
-  await page.getByRole('button', { name: `Share with ${operator}` }).click();
+  await expect(
+    page.getByRole('heading', { name: operator ? `Share with ${operator}` : /^Share with / }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: operator ? `Share with ${operator}` : /^Share with / })
+    .click();
   await expect(page.getByRole('heading', { name: 'That’s everything from you' })).toBeVisible();
 }

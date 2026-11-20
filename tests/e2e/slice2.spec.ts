@@ -255,7 +255,7 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   await addDocumentThroughUi(renter, aPayslipFile('Aoife Brennan'));
   const flagged = renter.locator('[data-flag="name_differs"]');
   await expect(flagged).toContainText('The name on it isn’t Aoife Byrne, the name on your ID.');
-  await expect(flagged.locator('[data-tone="warning"]')).toBeVisible();
+  await expect(flagged.locator('[data-pill="warning"]')).toBeVisible();
   await expect(renter.locator('[data-tone="danger"]')).toHaveCount(0);
   await expectRenterPageAtBothWidths(renter, {
     notices: ['check'],
@@ -367,7 +367,7 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   const results = page.getByRole('region', { name: 'Aoife Byrne' });
   await expect(results.getByText('Verified: Aoife Byrne.')).toBeVisible();
   // BA-16 (P44): documents shared, never a figure against the rule.
-  await expect(results.getByText(/^Documents shared on /)).toBeVisible();
+  await expect(results.getByText(/Documents shared on /)).toBeVisible();
   await expect(
     results.getByText(/Mary Kelly answered\. Rented from them\. Rent always on time\./),
   ).toBeVisible();

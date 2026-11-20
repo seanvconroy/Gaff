@@ -11,7 +11,14 @@ import {
   pauseLiftedEmail,
 } from '@/copy/trust-emails';
 import { withOrg, withSystem } from '@/db/client';
-import { lettings, listerPauses, listingCases, memberships, organisations, users } from '@/db/schema';
+import {
+  lettings,
+  listerPauses,
+  listingCases,
+  memberships,
+  organisations,
+  users,
+} from '@/db/schema';
 import { formatDate, formatDateTime } from '@/lib/format';
 
 /**

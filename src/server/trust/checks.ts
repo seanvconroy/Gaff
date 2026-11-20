@@ -151,9 +151,7 @@ async function countsFor(
         )})`
       : sql``;
   const detail = (column: string) =>
-    sql.raw(
-      `bit_count(${column}::bit(64)) between ${MIN_DETAIL_BITS} and ${64 - MIN_DETAIL_BITS}`,
-    );
+    sql.raw(`bit_count(${column}::bit(64)) between ${MIN_DETAIL_BITS} and ${64 - MIN_DETAIL_BITS}`);
   const { rows: photos } = await tx.execute<{ n: number }>(sql`
     select count(distinct mine.id)::int as n
     from letting_photos mine

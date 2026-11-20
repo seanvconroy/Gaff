@@ -62,6 +62,9 @@ export function hiddenHref(id: string): string {
   return `/lettings/${id}/hidden`;
 }
 
+/** BA-10 (M107): why a lister's listings are paused, and "Ask Gaff to look again". */
+export const pausedHref = '/paused';
+
 /** The `from` a page was given, if it is a plain path inside Gaff. Anything else is dropped. */
 export function fromOf(value: string | string[] | undefined): string | null {
   return returnPath(value, '') || null;

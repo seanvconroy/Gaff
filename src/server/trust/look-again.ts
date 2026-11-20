@@ -19,6 +19,8 @@ export interface HiddenHome {
   stage: HiddenStage;
   lookAgainAskedAt: Date | null;
   facts: CaseFact[];
+  /** BA-10: taken off after a report, or kept off after the checks held it. */
+  after: 'report' | 'check';
 }
 
 const isId = (value: string) => /^[0-9a-f-]{36}$/i.test(value);
@@ -59,6 +61,7 @@ export async function hiddenHomeFor(member: Member, lettingId: string): Promise<
         hiddenAt: lettings.hiddenAt,
         stage: lettings.hiddenStage,
         lookAgainAskedAt: lettings.lookAgainAskedAt,
+        after: lettings.hiddenAfter,
       })
       .from(lettings)
       .where(eq(lettings.id, lettingId)),
@@ -72,6 +75,7 @@ export async function hiddenHomeFor(member: Member, lettingId: string): Promise<
     reason: row.reason ?? 'something_else',
     stage: row.stage ?? 'decided',
     facts: decided?.facts ?? [],
+    after: row.after ?? 'report',
   };
 }
 

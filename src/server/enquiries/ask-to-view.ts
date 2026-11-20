@@ -228,6 +228,7 @@ async function askableLetting(tx: Tx, lettingId: string) {
       confirmedAt: organisation.confirmedAt,
       licenceLapsedAt: organisation.licenceLapsedAt,
       identityVerifiedAt: organisation.identityVerifiedAt,
+      listingsPausedAt: organisation.listingsPausedAt,
     });
   return open ? row : null;
 }

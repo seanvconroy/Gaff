@@ -96,14 +96,18 @@ export function homeCardOf(home: PublicHome): PublicHomeCard {
  * landlord's team; a private landlord who has confirmed it's them (Q47); or a confirmed agency
  * with its licence on the register. A test holds it to the gate for every kind of lister.
  */
-const listerMayShow = or(
-  eq(organisations.kind, 'landlord'),
-  and(eq(organisations.kind, 'private_landlord'), isNotNull(organisations.identityVerifiedAt)),
-  and(
-    eq(organisations.kind, 'agency'),
-    sql`coalesce(trim(${organisations.psraLicenceNumber}), '') <> ''`,
-    isNotNull(organisations.confirmedAt),
-    isNull(organisations.licenceLapsedAt),
+const listerMayShow = and(
+  // BA-10 (M107): not while Gaff's team has paused the lister's listings.
+  isNull(organisations.listingsPausedAt),
+  or(
+    eq(organisations.kind, 'landlord'),
+    and(eq(organisations.kind, 'private_landlord'), isNotNull(organisations.identityVerifiedAt)),
+    and(
+      eq(organisations.kind, 'agency'),
+      sql`coalesce(trim(${organisations.psraLicenceNumber}), '') <> ''`,
+      isNotNull(organisations.confirmedAt),
+      isNull(organisations.licenceLapsedAt),
+    ),
   ),
 )!;
 
@@ -152,6 +156,7 @@ const columns = {
   confirmedAt: organisations.confirmedAt,
   licenceLapsedAt: organisations.licenceLapsedAt,
   identityVerifiedAt: organisations.identityVerifiedAt,
+  listingsPausedAt: organisations.listingsPausedAt,
   phone: organisations.phone,
 };
 
@@ -220,6 +225,7 @@ function listerOf(row: Row) {
     confirmedAt: row.confirmedAt,
     licenceLapsedAt: row.licenceLapsedAt,
     identityVerifiedAt: row.identityVerifiedAt,
+    listingsPausedAt: row.listingsPausedAt,
   };
 }
 

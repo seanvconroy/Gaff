@@ -23,6 +23,7 @@ import { leftOutWhy } from '@/domain/compliance/who-should-apply';
 import {
   type FlowScreen,
   fromOf,
+  pausedHref,
   resumeHref,
   screenFromSlug,
   screenHref,
@@ -559,7 +560,9 @@ export default async function SetupStepPage({
             fix={
               step.gate.reason === 'no_licence'
                 ? { href: addAgencyHref, label: goLiveCopy.findLicence }
-                : null
+                : step.gate.reason === 'paused'
+                  ? { href: pausedHref, label: goLiveCopy.seeWhyPaused }
+                  : null
             }
             lettingHref={lettingHref}
           />

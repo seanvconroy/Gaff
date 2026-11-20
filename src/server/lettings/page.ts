@@ -18,13 +18,14 @@ import { allChecksBack, checkLine } from '@/domain/checks/review';
 import { fitDetail } from '@/copy/fit';
 import type { RenterAnswers } from '@/domain/criteria/answers';
 import { conversationHref, conversationKey, inboxHref } from '@/domain/inbox/conversations';
-import { hiddenHref, resumeHref, screenHref } from '@/domain/lettings/links';
+import { hiddenHref, pausedHref, resumeHref, screenHref } from '@/domain/lettings/links';
 import type { OverviewFacts } from '@/domain/lettings/overview';
 import type { ApplicationStatus, PersonFacts } from '@/domain/lettings/people';
 import { addAgencyHref } from '@/domain/navigation/account-menu';
 import { finishHref, operatorStepHref, operatorSteps } from '@/domain/tenancy/operator-steps';
 import { canFinish } from '@/domain/tenancy/steps';
-import { formatEuro } from '@/lib/format';
+import { formatDateTime, formatEuro } from '@/lib/format';
+import { openHoldFor } from '@/server/trust/checks';
 import type { Member } from '@/server/auth/member';
 import { applicantsFor } from '@/server/applications/choose';
 import { checkResultsFor } from '@/server/checks/checks';
@@ -160,7 +161,9 @@ export async function overviewFactsFor(
               ? { href: addAgencyHref, label: goLiveCopy.findLicence }
               : gate.gate.reason === 'identity_needed'
                 ? { href: screenHref(letting.id, 'go_live'), label: goLiveCopy.confirmItsYou }
-                : null,
+                : gate.gate.reason === 'paused'
+                  ? { href: pausedHref, label: goLiveCopy.seeWhyPaused }
+                  : null,
         }
       : null;
 
@@ -178,6 +181,14 @@ export async function overviewFactsFor(
           reason: letting.hiddenReason ?? 'something_else',
           stage: letting.hiddenStage ?? 'decided',
           href: hiddenHref(letting.id),
+          // BA-10: held by the checks as it went public, and when a person will have looked.
+          after: letting.hiddenAfter ?? 'report',
+          lookBy:
+            letting.hiddenAfter === 'check' && letting.hiddenStage === 'held'
+              ? await openHoldFor(letting.organisationId, letting.id).then((hold) =>
+                  hold ? formatDateTime(hold.dueBy) : null,
+                )
+              : null,
         }
       : null,
     rentOverCap: live && detail.rentProblem !== null,

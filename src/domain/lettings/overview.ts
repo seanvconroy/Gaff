@@ -44,7 +44,15 @@ export interface OverviewFacts {
    * the rules for a person to check, decided, asked to look again, or final); and where the
    * lister asks Gaff to look again. Null: it isn't hidden.
    */
-  hidden: { reason: ReportReason; stage: HiddenStage; href: string } | null;
+  hidden: {
+    reason: ReportReason;
+    stage: HiddenStage;
+    href: string;
+    /** BA-10: what took it off: a report (as before), or the checks as it went public. */
+    after?: 'report' | 'check';
+    /** BA-10: for a home the checks held, when a person will have looked by. */
+    lookBy?: string | null;
+  } | null;
   /** R3: the asking rent is above what the rent rules allow. */
   rentOverCap: boolean;
   rentCheckHref: string;
@@ -222,6 +230,10 @@ export function needsYouOn(facts: OverviewFacts, now: Date = new Date()): NeedsY
   // UX-TS-4: taken off gaff.ie after a report, the first of them: its enquiries wait for it.
   // BA-9: only a person's decision can be appealed, and only once.
   if (facts.hidden) {
+    const checked = facts.hidden.after === 'check';
+    if (facts.hidden.stage === 'held' && checked && facts.hidden.lookBy) {
+      return { kind: 'nothing', doing: hiddenCopy.task.checking(facts.hidden.lookBy) };
+    }
     if (facts.hidden.stage === 'held') return { kind: 'nothing', doing: hiddenCopy.task.held };
     if (facts.hidden.stage === 'appealed') {
       return { kind: 'nothing', doing: hiddenCopy.task.looking };
@@ -229,7 +241,9 @@ export function needsYouOn(facts: OverviewFacts, now: Date = new Date()): NeedsY
     if (facts.hidden.stage === 'final') return { kind: 'nothing', doing: hiddenCopy.task.final };
     return {
       kind: 'task',
-      lead: hiddenCopy.task.lead(facts.hidden.reason),
+      lead: checked
+        ? hiddenCopy.task.leadChecked(facts.hidden.reason)
+        : hiddenCopy.task.lead(facts.hidden.reason),
       action: hiddenCopy.task.action,
       href: facts.hidden.href,
       also: rows,

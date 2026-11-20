@@ -344,6 +344,34 @@ describe('UX-LP-7: a blocking problem is the Needs you task, never a banner', ()
     });
   });
 
+  it('M48: a home the checks held asks nothing of the lister, and says when a person will have looked', () => {
+    const facts = at({
+      hidden: {
+        reason: 'something_else',
+        stage: 'held',
+        href: '/lettings/l1/hidden',
+        after: 'check',
+        lookBy: 'Thursday 19 November, 2pm',
+      },
+    });
+    expect(needsYouOn(facts, now)).toEqual({
+      kind: 'nothing',
+      doing:
+        'Gaff checks every home before it goes on gaff.ie, and a person on Gaff’s team is looking at this one. They’ll email you by Thursday 19 November, 2pm. Its enquiries wait until then.',
+    });
+  });
+
+  it('M98: a home a person kept off after checking it is the task, with why', () => {
+    const facts = at({
+      hidden: { reason: 'scam', stage: 'decided', href: '/lettings/l1/hidden', after: 'check' },
+    });
+    expect(needsYouOn(facts, now)).toMatchObject({
+      kind: 'task',
+      lead: 'Gaff’s team checked this home and kept it off gaff.ie: it may not be a genuine listing. Its enquiries wait until it’s on.',
+      action: 'Ask Gaff to look again',
+    });
+  });
+
   it('M98: once an appeal is decided and it stays off, it can’t be asked again', () => {
     const facts = at({ hidden: { reason: 'scam', stage: 'final', href: '/lettings/l1/hidden' } });
     expect(needsYouOn(facts, now)).toEqual({

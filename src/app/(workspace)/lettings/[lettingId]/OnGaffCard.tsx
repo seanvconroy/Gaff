@@ -21,7 +21,17 @@ export function OnGaffCard({
   photos,
   listerMayShow,
 }: {
-  letting: Pick<LettingRow, 'id' | 'status' | 'onGaff' | 'berRating' | 'publicRef' | 'hiddenAt'>;
+  letting: Pick<
+    LettingRow,
+    | 'id'
+    | 'status'
+    | 'onGaff'
+    | 'berRating'
+    | 'publicRef'
+    | 'hiddenAt'
+    | 'hiddenAfter'
+    | 'hiddenStage'
+  >;
   photos: number;
   /** The lister may have homes live (`goLiveGate`). */
   listerMayShow: boolean;
@@ -50,7 +60,11 @@ export function OnGaffCard({
       ) : (
         <p className={styles.muted}>
           {letting.hiddenAt
-            ? hiddenCopy.onGaff
+            ? letting.hiddenAfter === 'check'
+              ? letting.hiddenStage === 'held'
+                ? hiddenCopy.onGaffChecked
+                : hiddenCopy.onGaffKept
+              : hiddenCopy.onGaff
             : !letting.onGaff
               ? copy.off
               : needs.length > 0

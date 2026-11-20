@@ -122,10 +122,7 @@ async function endPause(
   });
 }
 
-async function openPause(
-  tx: Parameters<Parameters<typeof withSystem>[0]>[0],
-  pauseId: string,
-) {
+async function openPause(tx: Parameters<Parameters<typeof withSystem>[0]>[0], pauseId: string) {
   const [pause] = await tx
     .select()
     .from(listerPauses)
@@ -216,10 +213,7 @@ export async function pauseFor(member: Member): Promise<PauseRead | null> {
       .select()
       .from(listerPauses)
       .where(
-        and(
-          eq(listerPauses.organisationId, member.organisationId),
-          isNull(listerPauses.endedAt),
-        ),
+        and(eq(listerPauses.organisationId, member.organisationId), isNull(listerPauses.endedAt)),
       )
       .orderBy(desc(listerPauses.pausedAt))
       .limit(1),
@@ -243,10 +237,7 @@ export async function askToLookAgainAtPause(
       .select()
       .from(listerPauses)
       .where(
-        and(
-          eq(listerPauses.organisationId, member.organisationId),
-          isNull(listerPauses.endedAt),
-        ),
+        and(eq(listerPauses.organisationId, member.organisationId), isNull(listerPauses.endedAt)),
       )
       .orderBy(desc(listerPauses.pausedAt))
       .limit(1)

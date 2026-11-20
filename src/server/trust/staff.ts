@@ -134,6 +134,10 @@ export interface HiddenListing extends ListingFacts {
   stage: HiddenStage | null;
   hiddenAt: Date;
   history: CaseStep[];
+  /** BA-10 (M107): the latest decision to keep it off, which a pause of its lister may follow. */
+  decidedCaseId: string | null;
+  /** BA-10 (M107): whether its lister's listings are paused now. */
+  listerPaused: boolean;
 }
 
 const listingColumns = {
@@ -301,6 +305,7 @@ export async function casesFor(
         reason: lettings.hiddenReason,
         stage: lettings.hiddenStage,
         hiddenAt: lettings.hiddenAt,
+        listerPausedAt: organisations.listingsPausedAt,
       })
       .from(lettings)
       .innerJoin(organisations, eq(organisations.id, lettings.organisationId))
@@ -363,12 +368,28 @@ export async function casesFor(
         history: histories.get(row.listing.lettingId) ?? [],
       };
     });
+    const hiddenIds = hiddenRows.map((row) => row.listing.lettingId);
+    const decided =
+      hiddenIds.length === 0
+        ? []
+        : await tx
+            .select({ id: listingCases.id, lettingId: listingCases.lettingId })
+            .from(listingCases)
+            .where(
+              and(
+                inArray(listingCases.lettingId, hiddenIds),
+                eq(listingCases.decision, 'hide_listing'),
+              ),
+            )
+            .orderBy(desc(listingCases.decidedAt));
     const hidden: HiddenListing[] = hiddenRows.map((row) => ({
       ...factsOf(row.listing as ListingRow),
       reason: row.reason,
       stage: row.stage,
       hiddenAt: row.hiddenAt!,
       history: histories.get(row.listing.lettingId) ?? [],
+      decidedCaseId: decided.find((each) => each.lettingId === row.listing.lettingId)?.id ?? null,
+      listerPaused: row.listerPausedAt !== null,
     }));
     return { open, hidden };
   });

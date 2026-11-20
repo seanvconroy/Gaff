@@ -21,11 +21,7 @@ import type { OrganisationKind } from './kinds';
  *   one goes live until the pause is lifted.
  */
 export type GoLiveHold =
-  | 'no_licence'
-  | 'being_confirmed'
-  | 'licence_lapsed'
-  | 'identity_needed'
-  | 'paused';
+  'no_licence' | 'being_confirmed' | 'licence_lapsed' | 'identity_needed' | 'paused';
 
 export type GoLiveGate =
   | { open: true }

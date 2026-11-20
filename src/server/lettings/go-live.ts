@@ -366,7 +366,11 @@ export async function setOnGaff(member: Member, lettingId: string, on: boolean):
     await tx.update(lettings).set({ onGaff: on }).where(eq(lettings.id, lettingId));
     // BA-10 (M48): a home back on gaff.ie is checked again.
     if (on) {
-      await queueListingCheck(tx, { organisationId: member.organisationId, lettingId, part: 'all' });
+      await queueListingCheck(tx, {
+        organisationId: member.organisationId,
+        lettingId,
+        part: 'all',
+      });
     }
     await recordEvent(tx, {
       organisationId: member.organisationId,

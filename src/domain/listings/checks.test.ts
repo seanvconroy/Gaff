@@ -75,9 +75,9 @@ describe('M29: the risk signals', () => {
     expect(
       riskSignalsFrom({ ...cheap, similar: { n: 4, medianRentCents: 190_000 } }, 'all', now),
     ).toEqual([]);
-    expect(riskSignalsFrom({ ...cheap, similar: { n: 0, medianRentCents: null } }, 'all', now)).toEqual(
-      [],
-    );
+    expect(
+      riskSignalsFrom({ ...cheap, similar: { n: 0, medianRentCents: null } }, 'all', now),
+    ).toEqual([]);
     // Just above the line is fine.
     expect(riskSignalsFrom({ ...clear, rentCents: 114_000 }, 'all', now)).toEqual([]);
   });

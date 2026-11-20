@@ -54,11 +54,17 @@ describe('M119: Google’s hosts only where its map is', () => {
     }
   });
 
-  it('with Google’s map on, only Search and the pin add the Maps JavaScript API’s hosts', async () => {
+  it('with Google’s map on, only Search, places’ pages and the pin add the Maps JavaScript API’s hosts', async () => {
     const found = await policies({ MAP_PROVIDER: 'google' });
-    expect(found.map((p) => p.source)).toEqual(['/:path*', '/', '/lettings/:lettingId/setup/pin']);
-    const [everywhere = '', search = '', pin = ''] = found.map((p) => p.policy);
+    expect(found.map((p) => p.source)).toEqual([
+      '/:path*',
+      '/',
+      '/to-rent/:path*',
+      '/lettings/:lettingId/setup/pin',
+    ]);
+    const [everywhere = '', search = '', places = '', pin = ''] = found.map((p) => p.policy);
     expect(pin).toBe(search);
+    expect(places).toBe(search);
     expect(directive(everywhere, 'script-src')).toBe("script-src 'self' 'unsafe-inline'");
     const hosts = directive(search, 'script-src')!
       .split(' ')

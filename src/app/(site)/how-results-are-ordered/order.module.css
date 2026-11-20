@@ -1,0 +1,14 @@
+/* "How results are ordered": sections of plain text, held apart by space alone. */
+.section {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.next a {
+  color: var(--color-brand-text);
+}
+
+.next {
+  padding-block-start: var(--space-6);
+  border-block-start: 1px solid var(--color-border);
+}

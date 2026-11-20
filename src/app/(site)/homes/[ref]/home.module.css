@@ -129,6 +129,12 @@
   color: var(--color-ink);
 }
 
+/* "This home has been let", then similar homes nearby (M74). */
+.letPage {
+  display: grid;
+  gap: var(--space-12);
+}
+
 /* "This home has been let": one message in the page's reading column. */
 .state {
   max-width: var(--size-task);

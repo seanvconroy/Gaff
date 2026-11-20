@@ -73,6 +73,9 @@ function slugsIn(segments: readonly string[]): string[] {
  * adds filters goes to that search at the first screen, whose address every filtered search has.
  */
 export async function placePageFor(segments: readonly string[], query: Query): Promise<PlacePage> {
+  // The live line's page for every home is the first screen, with whatever it asked.
+  if (segments.length === 0)
+    return { kind: 'redirect', path: searchHref(filtersFromParams(query)) };
   const g = await loadGazetteer(slugsIn(segments));
   const resolved = resolvePlacePath(segments, g);
   if (!resolved) return { kind: 'not_found' };

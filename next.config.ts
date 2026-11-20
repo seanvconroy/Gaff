@@ -73,8 +73,13 @@ const nextConfig: NextConfig = {
       // deployment says so (SEARCH_INDEXING=on, set in production alone), so a test or preview
       // copy of Gaff is never indexed. It holds nothing about any person. The page itself says
       // noindex when the home has been let or isn't there.
+      // M111 (BA-12): so can the pages of places, `/to-rent/…`. A place's page with no home on
+      // Gaff still says noindex in the page itself, and the more restrictive rule wins.
       ...(searchIndexing
-        ? [{ source: '/homes/:ref', headers: [{ key: 'X-Robots-Tag', value: 'index, follow' }] }]
+        ? ['/homes/:ref', '/to-rent/:path*'].map((source) => ({
+            source,
+            headers: [{ key: 'X-Robots-Tag', value: 'index, follow' }],
+          }))
         : []),
     ];
   },

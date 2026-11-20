@@ -186,7 +186,7 @@ export const lettingPageCopy = {
     heading: 'The home as renters see it',
     /** M92 (BA-13): the home's numbers on Gaff, counts only, never who. */
     numbers: {
-      title: 'On Gaff',
+      title: 'Renters on Gaff',
       lead: (days: number) => `The last ${days} days. Counts only: Gaff never shows who.`,
       opened: 'Page opened',
       saved: 'Saved',

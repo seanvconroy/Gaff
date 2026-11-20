@@ -109,16 +109,19 @@ async function aHomeGoesLive(home: {
   return letting!.public_ref;
 }
 
-/** Runs the alert job, as the morning's schedule does, and waits until it has run. */
+/**
+ * Runs the alert job, as a home going live queues it (M86, M87: as soon as one is listed), and
+ * waits until it has run.
+ */
 async function runTheAlertJob(): Promise<void> {
   await asSystem(
-    "select graphile_worker.add_job('saved_search_alerts', '{}'::json, job_key => 'saved_search_alerts')",
+    "select graphile_worker.add_job('instant_search_alerts', '{}'::json, job_key => 'instant_search_alerts')",
   );
   await expect(async () => {
     const [left] = await asSystem<{ n: number }>(
       `select count(*)::int as n from graphile_worker._private_jobs j
        join graphile_worker._private_tasks t on t.id = j.task_id
-       where t.identifier in ('saved_search_alerts', 'send_saved_search_email')`,
+       where t.identifier in ('instant_search_alerts', 'send_saved_search_email')`,
     );
     expect(left!.n).toBe(0);
   }).toPass({ timeout: 30_000 });

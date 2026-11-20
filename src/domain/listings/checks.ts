@@ -92,7 +92,11 @@ export const MIN_COMPARABLES = 5;
 export const COPIED_MIN_CHARS = 200;
 /** A burst: an account this new... */
 export const NEW_ACCOUNT_DAYS = 7;
-/** ...putting at least this many homes on gaff.ie (this one included)... */
+/**
+ * ...putting at least this many homes on gaff.ie (this one included)... BA-15: the alike homes
+ * of one development count as one, so a scheme is weighed as one home, and six schemes, or six
+ * homes on their own, are a burst as before (`homesShownLately`).
+ */
 export const BURST_HOMES = 6;
 /** ...within this long. */
 export const BURST_HOURS = 24;
@@ -127,7 +131,10 @@ export interface RiskFacts {
   similar: { n: number; medianRentCents: number | null };
   /** Other listers' homes with the same description. */
   copiedDescriptions: number;
-  /** Whether the account is new, and how many homes it put on gaff.ie lately, this one included. */
+  /**
+   * Whether the account is new, and how many homes it put on gaff.ie lately, this one included:
+   * a development's homes count once (BA-15).
+   */
   account: { createdAt: Date; homesShownLately: number };
   description: string | null;
   /** P12: phrases the AI's wording check found. Null: it didn't run. */

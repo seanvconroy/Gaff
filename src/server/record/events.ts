@@ -10,6 +10,7 @@ import { wordingGrounds } from '@/domain/listings/wording';
 import { promptCodes } from '@/domain/activation/prompts';
 import { organisationKinds } from '@/domain/organisations/kinds';
 import { assertNoPersonalData } from '@/domain/record/personal-data';
+import { sharedFields } from '@/domain/developments/development';
 
 /**
  * Every event type and the shape of its payload (ADR-0006). Payload fields must be IDs,
@@ -136,6 +137,8 @@ export const eventCatalogue = {
     withLandlord: z.boolean(),
     origin: z.enum(draftOrigins).optional(),
     fromLettingId: z.uuid().optional(),
+    /** BA-15 (M35): made with the other homes of a development's type. */
+    fromUnitTypeId: z.uuid().optional(),
   }),
   /** A letting in set-up had its address, its date or its facts changed. Which step only. */
   'letting.details_changed': z.object({ step: z.enum(['address', 'rent', 'home']) }),
@@ -611,6 +614,55 @@ export const eventCatalogue = {
     maxOccupants: z.number().int().optional(),
     noPets: z.boolean(),
   }),
+  /** BA-15 (M32): a development was started. */
+  'development.created': z.object({ developmentId: z.uuid() }),
+  /**
+   * BA-15: a development's name, address, pin or shared facts changed, and how many of its
+   * homes took the change (those still using the shared value).
+   */
+  'development.changed': z.object({
+    developmentId: z.uuid(),
+    part: z.enum(['name', 'address', 'pin', 'facts']),
+    homes: z.number().int().min(0),
+  }),
+  /** BA-15 (M33): a development's or a type's shared photos changed, and how many homes took it. */
+  'development.photos_changed': z.object({
+    developmentId: z.uuid(),
+    unitTypeId: z.uuid().optional(),
+    added: z.number().int().min(0),
+    removed: z.number().int().min(0),
+    reordered: z.boolean(),
+    count: z.number().int().min(0),
+    floorPlan: z.enum(['marked', 'unmarked']).optional(),
+    homes: z.number().int().min(0),
+  }),
+  /** BA-15 (M33): a type of home was added to a development. */
+  'unit_type.added': z.object({ developmentId: z.uuid(), unitTypeId: z.uuid() }),
+  /** BA-15: a type's rooms or rent changed, and how many of its homes took the change. */
+  'unit_type.changed': z.object({
+    unitTypeId: z.uuid(),
+    part: z.enum(['home', 'rent']),
+    homes: z.number().int().min(0),
+  }),
+  /** BA-15 (M35): the homes of a type were made, in one step. */
+  'unit_type.homes_made': z.object({ unitTypeId: z.uuid(), homes: z.number().int().min(1) }),
+  /** BA-15: a viewing time offered across a type's homes at once. */
+  'unit_type.viewing_offered': z.object({
+    unitTypeId: z.uuid(),
+    homes: z.number().int().min(1),
+  }),
+  /**
+   * BA-15: a person put a type's homes live together. Each home's going live is that person's
+   * own recorded decision (`letting.went_live`); this counts how it went.
+   */
+  'unit_type.put_live': z.object({
+    unitTypeId: z.uuid(),
+    live: z.number().int().min(0),
+    held: z.number().int().min(0),
+    notReady: z.number().int().min(0),
+  }),
+  /** BA-15: a lister changed shared values by hand on one home: from now on they're its own. */
+  'letting.own_values_set': z.object({ fields: z.array(z.enum(sharedFields)).min(1) }),
 } satisfies Record<string, z.ZodObject>;
 
 export type EventType = keyof typeof eventCatalogue;

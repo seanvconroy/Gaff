@@ -71,6 +71,7 @@ async function lettingFor(tx: Tx, lettingId: string) {
       bedrooms: lettings.bedrooms,
       monthlyRentCents: lettings.monthlyRentCents,
       description: lettings.description,
+      developmentId: lettings.developmentId,
       listerKind: organisations.kind,
       listerName: organisations.name,
       psraLicenceNumber: organisations.psraLicenceNumber,
@@ -183,11 +184,14 @@ async function countsFor(
             = trim(regexp_replace(lower(${letting.description}), '[^[:alnum:]]+', ' ', 'g'))`)
     : { rows: [{ n: 0 }] };
 
-  // This home and the others the account put on gaff.ie lately.
+  // This home and the others the account put on gaff.ie lately. BA-15: the alike homes of one
+  // development count once, as one scheme: a burst is many separate homes, or many schemes. So
+  // a scheme from a new account is looked at like one home, not waved through (ADR-0028).
   const { rows: lately } = await tx.execute<{ n: number }>(sql`
-    select count(*)::int as n from lettings l
+    select count(distinct coalesce(l.development_id, l.id))::int as n from lettings l
     where l.organisation_id = ${letting.organisationId} and l.id <> ${letting.id}
-      and l.on_gaff and l.live_at > ${new Date(now.getTime() - BURST_HOURS * 3_600_000)}`);
+      and l.on_gaff and l.live_at > ${new Date(now.getTime() - BURST_HOURS * 3_600_000)}
+      and (${letting.developmentId}::uuid is null or l.development_id is distinct from ${letting.developmentId}::uuid)`);
 
   // M98: what a person on Gaff's team has already released for this home.
   const released = await tx

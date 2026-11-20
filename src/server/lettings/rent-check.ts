@@ -17,6 +17,7 @@ import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
 import { rentChanged } from '@/server/saved/alerts';
 import { assertMayActOn } from '@/server/team/permissions';
+import { keepOwnValues } from '@/server/developments/shared';
 
 /**
  * R3: records the rent check. Re-checking replaces the previous check; the record keeps every
@@ -68,6 +69,7 @@ export async function recordRentCheck(
         .update(lettings)
         .set({ monthlyRentCents: askingRentCents })
         .where(eq(lettings.id, lettingId));
+      await keepOwnValues(tx, member, lettingId, ['rent']);
       await recordEvent(tx, {
         organisationId: member.organisationId,
         lettingId,
@@ -129,6 +131,8 @@ export async function changeAskingRent(
       .update(lettings)
       .set({ monthlyRentCents: rentCents })
       .where(eq(lettings.id, lettingId));
+    // BA-15: a development's home whose rent is changed by hand keeps its own rent.
+    await keepOwnValues(tx, member, lettingId, ['rent']);
     await recordEvent(tx, {
       organisationId: member.organisationId,
       lettingId,

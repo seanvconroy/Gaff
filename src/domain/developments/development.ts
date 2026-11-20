@@ -295,6 +295,10 @@ export function withOwn(own: readonly string[], more: readonly SharedField[]): S
 // ---------------------------------------------------------------------------------------------
 // The public side (M34, M75).
 
+/** M75: a development's public page, and a type on it. */
+export const developmentHref = (ref: string, typeRef?: string) =>
+  `/developments/${ref}${typeRef ? `#type-${typeRef}` : ''}`;
+
 /** A free home of a development, as its page lists it under its type. */
 export interface FreeHome {
   ref: string;

@@ -103,7 +103,18 @@ describe('UX-LT-21, UX-LS-1: the one public query for homes on Gaff', () => {
     );
     expect(text).not.toMatch(/enquir|applic|viewing|eircode|D06 F2X3/i);
     expect(Object.keys(home!).sort()).toEqual(
-      ['floorPlans', 'home', 'href', 'lister', 'liveAt', 'phone', 'photos', 'ref'].sort(),
+      [
+        'floorPlans',
+        'home',
+        'href',
+        'lister',
+        'liveAt',
+        'phone',
+        'photos',
+        'ref',
+        // BA-15: the development and type it's in, by public references and names: null here.
+        'unit',
+      ].sort(),
     );
   });
 

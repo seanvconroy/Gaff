@@ -9,6 +9,8 @@ import {
 } from '@/domain/search/filters';
 import { homePageHref } from '@/domain/search/links';
 import type { Gazetteer } from '@/domain/search/places';
+import { developmentCopy } from '@/copy/developments';
+import { type Alike, developmentHref, groupAlike } from '@/domain/developments/development';
 import { formatRent, irishToday } from '@/lib/format';
 import { findHomes, type HomeOnGaff } from '@/server/search/homes';
 import { countSearch } from '@/server/search/search';
@@ -62,6 +64,21 @@ export async function Results({
       onMap={beside}
     />
   );
+  // BA-15 (M75): a development's alike homes are one card per type, as their own step after
+  // search has found and ordered the homes (the matcher never sees it).
+  const shown = (group: Alike<HomeOnGaff>, note?: string) =>
+    group.kind === 'one' ? (
+      card(group.home, note)
+    ) : (
+      <AlikeCard key={group.key} homes={group.homes} today={today} note={note} onMap={beside} />
+    );
+  const closeGroups = groupAlike(
+    close.map((each) => ({
+      ...each,
+      // Alike homes close to the search for the same reason are one card.
+      alikeKey: each.home.alikeKey ? `${each.home.alikeKey}:${missWords(each.miss)}` : null,
+    })),
+  );
   const keep = (primary: boolean, label?: string) =>
     searching ? (
       <TellMeWhen
@@ -81,7 +98,7 @@ export async function Results({
             {searching ? fitHeading(fits.length) : searchCopy.homesNow}
           </h2>
           <HomeGrid labelledBy="homes-fit" beside={beside}>
-            {fits.map((home) => card(home))}
+            {groupAlike(fits).map((group) => shown(group))}
           </HomeGrid>
           {searching ? (
             <div className={styles.keepSearch}>{keep(false, savedCopy.alert.fromResults)}</div>
@@ -102,7 +119,14 @@ export async function Results({
             {searchCopy.close}
           </h2>
           <HomeGrid labelledBy="homes-close" beside={beside}>
-            {close.map(({ home, miss }) => card(home, missWords(miss)))}
+            {closeGroups.map((group) =>
+              group.kind === 'one'
+                ? card(group.home.home, missWords(group.home.miss))
+                : shown(
+                    { kind: 'alike', key: group.key, homes: group.homes.map((each) => each.home) },
+                    missWords(group.homes[0]!.miss),
+                  ),
+            )}
           </HomeGrid>
         </section>
       ) : null}
@@ -149,6 +173,43 @@ function Card({
           back={back}
         />
       }
+    />
+  );
+}
+
+/**
+ * BA-15 (M75): one card for a development's alike homes of one type: the lowest rent, the type
+ * and the development, "4 homes like this" and the first date one is free. It opens the type on
+ * the development's page, where each home has its own page. Saving is done per home, there.
+ */
+function AlikeCard({
+  homes,
+  today,
+  note,
+  onMap,
+}: {
+  homes: readonly HomeOnGaff[];
+  today: string;
+  note?: string;
+  onMap: boolean;
+}) {
+  const first = homes[0]!;
+  const alike = first.alike!;
+  const from = Math.min(...homes.map((home) => home.rentCents));
+  const soonest = homes.map((home) => home.availableFrom).sort()[0]!;
+  const pinned = homes.find((home) => home.point);
+  return (
+    <HomeCard
+      href={developmentHref(alike.developmentRef, first.alikeKey ?? undefined)}
+      title={developmentCopy.search.from(from)}
+      line={`${cardLine(first)} · ${alike.developmentName}`}
+      details={[
+        developmentCopy.search.alike(homes.length),
+        freeFrom(soonest, today),
+        ...(note ? [note] : []),
+      ]}
+      photo={first.cover}
+      mapKey={onMap && pinned ? pinned.id : undefined}
     />
   );
 }

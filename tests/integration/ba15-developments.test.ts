@@ -13,7 +13,14 @@ import {
   offerViewingForType,
   putTypeLive,
 } from '@/server/developments/developments';
+import { groupAlike } from '@/domain/developments/development';
+import { publicDevelopmentPage } from '@/server/developments/public';
+import { publicHomes } from '@/server/homes/public-homes';
+import { closeLetting } from '@/server/lettings/close';
 import { saveAnswers } from '@/server/lettings/drafts';
+import { findHomes } from '@/server/search/homes';
+import { mapCard, mapPins } from '@/server/search/map';
+import { resolveSearch } from '@/server/search/where';
 import { setHomePoint } from '@/server/lettings/location';
 import { addPhoto, removePhoto } from '@/server/lettings/photos';
 import { changeAskingRent } from '@/server/lettings/rent-check';
@@ -283,5 +290,59 @@ describe('UX-AG-8: a change to a development reaches its homes, so it asks for "
     }
     const homes = await homesOf(admin, typeId);
     expect(homes.every((h) => h.parking === 'space' && h.monthlyRentCents === 265_000)).toBe(true);
+  });
+});
+
+describe('M75: the public side', () => {
+  it('a development’s page lists its types with homes free, and each free home’s own page', async () => {
+    const agency = await createTestMember();
+    const { typeId, lettingIds } = await aDevelopment(agency, { homes: 4 });
+    await readyToGoLive(agency, typeId);
+    await putTypeLive(agency, typeId);
+    const [home] = await publicHomes({ ref: (await homesOf(agency, typeId))[0]!.publicRef });
+    expect(home!.unit).toMatchObject({
+      developmentName: 'The Waterside',
+      typeName: 'Type B',
+      unitLabel: 'Apartment 11',
+      floor: 1,
+      floorAreaSqm: 68,
+    });
+    const ref = home!.unit!.developmentRef;
+    const page = await publicDevelopmentPage(ref);
+    expect(page).toMatchObject({ name: 'The Waterside', free: 4, ber: 'A2', parking: 'space' });
+    expect(page!.types.map((t) => [t.name, t.free, t.fromRentCents])).toEqual([
+      ['Type B', 4, 265_000],
+    ]);
+    expect(page!.photos).toHaveLength(1);
+
+    // A let home drops out, as any home does.
+    await closeLetting(agency, lettingIds[0]!, 'let');
+    expect((await publicDevelopmentPage(ref))!.free).toBe(3);
+    expect(await publicDevelopmentPage('0123456789ab')).toBeNull();
+  });
+
+  it('search shows a development’s alike homes as one card per type, and one pin', async () => {
+    const agency = await createTestMember();
+    const { typeId } = await aDevelopment(agency, { homes: 4, name: 'Alike Gardens' });
+    await readyToGoLive(agency, typeId);
+    await putTypeLive(agency, typeId);
+    const resolved = await resolveSearch({});
+    const { fits } = await findHomes(resolved.filters, resolved.g);
+    const ours = fits.filter((home) => home.alike?.developmentName === 'Alike Gardens');
+    expect(ours).toHaveLength(4);
+    const cards = groupAlike(ours);
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toMatchObject({ kind: 'alike' });
+
+    const map = await mapPins({}, { minLat: 51.3, minLng: -10.7, maxLat: 55.5, maxLng: -5.3 });
+    const pins = map.points.filter((pin) => ours.some((home) => home.id === pin.id));
+    expect(pins).toHaveLength(1);
+    expect(pins[0]!.title).toMatch(/^4 homes like this/);
+    const card = await mapCard(pins[0]!.id);
+    expect(card).toMatchObject({
+      title: 'From €2,650 a month',
+      line: '4 homes like this · Alike Gardens',
+    });
+    expect(card!.href).toMatch(/^\/developments\/[0-9a-f]{12}#type-[0-9a-f]{12}$/);
   });
 });

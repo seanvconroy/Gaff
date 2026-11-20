@@ -1,6 +1,13 @@
 import { type SQL, and, asc, desc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { type Tx, withSystem } from '@/db/client';
-import { lettingFacts, lettingPhotos, lettings, organisations } from '@/db/schema';
+import {
+  developments,
+  lettingFacts,
+  lettingPhotos,
+  lettings,
+  organisations,
+  unitTypes,
+} from '@/db/schema';
 import {
   type HomeFacts,
   type PublicLister,
@@ -69,6 +76,22 @@ export interface PublicHome {
   phone: string | null;
   /** When it went live: homes are newest first. */
   liveAt: Date;
+  /** BA-15 (M33, M75): the development and type it belongs to. Null: a home on its own. */
+  unit: PublicUnit | null;
+}
+
+/**
+ * BA-15: a development's home, as renters may know it: the development's and the type's public
+ * references (never their IDs), their names, and the home's own number, floor and floor area.
+ */
+export interface PublicUnit {
+  developmentRef: string;
+  developmentName: string;
+  typeRef: string;
+  typeName: string;
+  unitLabel: string;
+  floor: number | null;
+  floorAreaSqm: number | null;
 }
 
 /** What a list of homes shows of one (UX-SR-6): the cover, the rent, one line, the date. */
@@ -161,6 +184,14 @@ const columns = {
   identityVerifiedAt: organisations.identityVerifiedAt,
   listingsPausedAt: organisations.listingsPausedAt,
   phone: organisations.phone,
+  // BA-15: the development and type it belongs to, by their public references.
+  developmentRef: developments.publicRef,
+  developmentName: developments.name,
+  typeRef: unitTypes.publicRef,
+  typeName: unitTypes.name,
+  unitLabel: lettings.unitLabel,
+  unitFloor: lettings.unitFloor,
+  floorAreaSqm: unitTypes.floorAreaSqm,
 };
 
 function selectRows(tx: Tx, where: SQL) {
@@ -168,6 +199,8 @@ function selectRows(tx: Tx, where: SQL) {
     .select(columns)
     .from(lettings)
     .innerJoin(organisations, eq(organisations.id, lettings.organisationId))
+    .leftJoin(developments, eq(developments.id, lettings.developmentId))
+    .leftJoin(unitTypes, eq(unitTypes.id, lettings.unitTypeId))
     .where(where)
     .orderBy(desc(lettings.liveAt), desc(lettings.createdAt));
 }
@@ -276,6 +309,18 @@ function toPublicHome(loaded: Loaded): PublicHome {
     lister: publicLister(listerOf(row)),
     phone: row.phone?.trim() || null,
     liveAt: row.liveAt ?? new Date(0),
+    unit:
+      row.developmentRef && row.developmentName && row.typeRef && row.typeName && row.unitLabel
+        ? {
+            developmentRef: row.developmentRef,
+            developmentName: row.developmentName,
+            typeRef: row.typeRef,
+            typeName: row.typeName,
+            unitLabel: row.unitLabel,
+            floor: row.unitFloor,
+            floorAreaSqm: row.floorAreaSqm,
+          }
+        : null,
   };
 }
 
@@ -317,12 +362,15 @@ export async function publicHomesForSearch(): Promise<PlacedHome[]> {
 export interface PublicHomesQuery {
   /** One home, by its public reference. */
   ref?: string;
+  /** BA-15 (M75): a development's homes, by the development's public reference. */
+  developmentRef?: string;
   limit?: number;
 }
 
 /** Live homes on Gaff, newest first: each one's card and page data, and nothing else. */
 export async function publicHomes(query: PublicHomesQuery = {}): Promise<PublicHome[]> {
   if (query.ref !== undefined && !isPublicRef(query.ref)) return [];
+  if (query.developmentRef !== undefined && !isPublicRef(query.developmentRef)) return [];
   const loaded = await withSystem((tx) =>
     load(
       tx,
@@ -330,6 +378,9 @@ export async function publicHomes(query: PublicHomesQuery = {}): Promise<PublicH
         eq(lettings.status, 'live'),
         onGaff,
         query.ref !== undefined ? eq(lettings.publicRef, query.ref) : undefined,
+        query.developmentRef !== undefined
+          ? eq(developments.publicRef, query.developmentRef)
+          : undefined,
       )!,
       query.limit,
     ),

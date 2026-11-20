@@ -1,0 +1,93 @@
+/*
+ * M75: a development's page. One column on a phone; on a desktop the photos across the top and
+ * the same blocks in a column. Blocks are held apart by space and a hairline, not boxes.
+ */
+.page {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.content {
+  display: grid;
+  gap: var(--space-8);
+  max-width: var(--size-task);
+  min-width: 0;
+}
+
+.head {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.title {
+  font-size: var(--type-display-mobile-size);
+  line-height: var(--type-display-mobile-line);
+  font-weight: var(--type-display-mobile-weight);
+  letter-spacing: var(--type-display-mobile-tracking);
+  overflow-wrap: anywhere;
+}
+
+.summary {
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
+}
+
+.block {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--color-border);
+}
+
+.type {
+  display: grid;
+  gap: var(--space-2);
+  scroll-margin-top: var(--space-12);
+}
+
+.muted {
+  color: var(--color-ink-muted);
+}
+
+.homes {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each free home is one row: a link at least the height of a control. */
+.home {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.homeLink {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  min-height: var(--size-control);
+  padding: var(--space-3) 0;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.homeLink:hover .homeName,
+.homeLink:focus-visible .homeName {
+  text-decoration: underline;
+}
+
+.homeName {
+  font-weight: var(--type-heading-weight);
+  color: var(--color-brand-text);
+}
+
+@media (width > 900px) {
+  .title {
+    font-size: var(--type-display-size);
+    line-height: var(--type-display-line);
+    font-weight: var(--type-display-weight);
+    letter-spacing: var(--type-display-tracking);
+  }
+}

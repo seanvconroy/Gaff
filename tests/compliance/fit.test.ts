@@ -77,6 +77,8 @@ describe('UX-MT-3: the letting details line is Gaff’s, in fixed words, and can
         // BA-10: what took it off: a report or Gaff's checks. A code.
         'hiddenAfter',
         'myhomeUrl',
+        // BA-15: a development's home's number or door ("Apartment 12"): part of its address.
+        'unitLabel',
         'parking',
         'photosUrl',
         // M125: where the home's point came from: a code ("letter"), never words.

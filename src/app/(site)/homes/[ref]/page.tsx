@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { cache, type ReactNode } from 'react';
 import { answersBesideDetails } from '@/copy/fit';
+import { developmentCopy } from '@/copy/developments';
 import { homePageCopy as copy } from '@/copy/home-page';
+import { developmentHref } from '@/domain/developments/development';
 import { questionsFor } from '@/domain/criteria/criteria';
 import { answersToOffer } from '@/domain/profile/offer-back';
 import { savedCopy } from '@/copy/saved';
@@ -285,6 +287,14 @@ function LiveHome({
               <div className={styles.save}>{save}</div>
             </div>
             <p className={styles.summary}>{homeSummary(home)}</p>
+            {found.unit ? (
+              // BA-15 (M33, M75): the development it is part of, and its other homes there.
+              <p>
+                <Link href={developmentHref(found.unit.developmentRef, found.unit.typeRef)}>
+                  {developmentCopy.partOf(found.unit.developmentName)}
+                </Link>
+              </p>
+            ) : null}
           </header>
 
           {highlights.length > 0 ? (

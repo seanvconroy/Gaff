@@ -362,7 +362,8 @@ Every component the redesign named is built except the map (Q49). Each is on `/d
 | **Calendar** | `Calendar` | Viewing times: a week strip and the day's rows on a phone, a week grid on a desktop. Overlapping times lead with the home's name |
 | **Time picker for renters** | `TimePicker` | Booking a viewing: days, then times |
 | **Directions link** | `DirectionsLink` | "Get directions": the phone's own maps app, or a map in a new tab |
-| **Search box and filter chips** | `SearchBox`, `FilterChips` | Renter search and "Ask about who's enquired": the box, then a chip per filter, each opening its control |
+| **Search bar and filter chips** | `SearchBar`, `FilterChips` | Renter search: the box with its suggestions floating under it, then "Filters", "Save search" and a chip per filter, each opening its control |
+| **Drawing on the map** | `MapDraw` (inside `SearchMap`) | An area drawn to search, in the brand colour with a light fill; corners to drag, a small dot on each side to pull a new corner from |
 | **Home card, heart** | `HomeCard`, `HomeGrid`, `HeartButton` | A home in a list; in search the rent is its title, with the heart over the photo |
 | **Action card** | `ActionCard` | The one action on a home's page: at the foot of the screen on a phone, beside the content on a desktop |
 | **Show more** | `ShowMore` | Long text, three lines then "Show more" |

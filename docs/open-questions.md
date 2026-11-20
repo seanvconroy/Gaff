@@ -480,3 +480,28 @@ Recorded on 20 November 2026, when every package was merged. None holds up the s
 - **Needs a key or an account before it does anything on the test copy:** the Google map (`GOOGLE_MAPS_API_KEY`), the real model (`ANTHROPIC_API_KEY`), a private bucket for documents and, in production, for photos.
 - **Two people on Gaff's team list** are needed for an appeal to be decided by someone else.
 
+
+### Q60. Search and the map: what renters expect from a property site
+
+Sean tried search on the test copy on 20 November 2026 and found it short of Airbnb, Zillow, Rightmove and Property Finder: a road typed in the box found nothing; the screen carried lines that weren't the search or its results; the list didn't follow the map; an area couldn't be drawn; and saving a search wasn't where people look for it.
+
+**Decision (Sean, 20 November 2026), built the same day (ADR-0032):**
+
+- **A road, a landmark or a sentence in one box** (UX-SR-14). The box suggests places, streets and landmarks as it's typed, shows what else it reads in the words, and finds a road typed alone or inside a sentence. One box, not a separate "AI search": the plain reader does both, with no model, so it costs nothing a search and sends no renter's words to one.
+- **Nothing on the screen but the search and its results** (UX-SR-1). Gone: "Everyone hears back.", "Letting a home? Gaff runs it for you.", and the "How results are ordered" and "Map and place data" lines. The big heading over the box is heard, not seen. With a map, search uses the screen's full width.
+- **The list follows the map** (UX-SR-8). No "Search this area".
+- **Areas drawn on the map** (UX-SR-13): up to five, reshaped by their corners. This reverses "not brought across, on purpose" in Q59.
+- **"Save search" beside Filters** (UX-SR-10), for any search, a drawn area included. The alert emails and their frequency are as they were.
+- **The nearest homes** when none is where the renter searched (UX-SR-15). Not asked for; added so a road with no homes on it yet isn't a dead end.
+
+**Kept, though Sean listed them as fluff, and why. His to overrule:**
+
+- **"How results are ordered" is still one tap from the results**, as an icon beside their heading. EU consumer law (the Omnibus Directive, in the Consumer Rights Act 2022) asks a marketplace to say how it ranks results in a place "directly and easily accessible from the page where the results are presented". An icon costs no line. **Solicitor**, with the page's words.
+- **"Places from OpenStreetMap" is still at the foot of the suggestions**, and on the map where a street is drawn. The place index's licence asks for the credit where the data is used (ADR-0018, Q56). It is inside the list that opens, not on the page.
+
+**Open:**
+
+- **Nothing here has run on Google's map with a real key** (Q58). The drawing layer is the same code on the stand-in, where it is tested end to end; `tests/google/map.spec.ts` draws an area on the real map once a key is set.
+- **The place index's own gaps show more now that the box searches it**: "UCD" finds UCD Village before University College Dublin, some towns' main streets aren't in it, and "O Connell Street" (with a space) isn't "O'Connell Street". The index is rebuilt from OpenStreetMap by `pnpm places:build`; a list of acronyms and other names for the best-known places would close most of these.
+- **What is typed in the search bar** goes to Gaff's own server a part at a time, for suggestions (Q56 already notes this for "Where"). Only the part that could be a place is sent, and those lookups are never counted or kept; a word outside the reader's list ("nurse") can still be looked up. To check with the request log before launch, with Q56.
+- **Rightmove's separate "AI search"** was looked at and not copied (ADR-0032). If renters' sentences turn out to need more than the plain reader gives, a seventh AI task could read them; it would need the reader's switch, the budget and names stripped first (rule 7, ADR-0017).

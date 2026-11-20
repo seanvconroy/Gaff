@@ -19,7 +19,7 @@
 - **A search holds a slug.** Domain code never loads the index: the server passes a `Gazetteer` (the ~3,000 areas, cached in memory and checked for a new version once a minute, plus any street or landmark a search names) to the rules that read a sentence, match a home and name a place. A slug the index doesn't know is left out of a search. The first list's six IDs that differ from the index are mapped (`src/domain/search/place-slug.ts` for addresses, the migration for saved searches).
 - **Areas and "near".** A county, city, town, village, district or area is matched against the home's address (UX-SR-4). A routing key is the home's Eircode's. A street, landmark or townland is searched "near" (M113): within 1 km in Dublin or a city and 3 km elsewhere, measured from the home's point once homes have one; until then, as far as the address allows (the street's name, or the landmark's neighbourhood, in the same county and Eircode area).
 - **Recent places** are kept in the browser tab for the visit, for everyone, and never sent (M114 as UX-SR-11 allows: searching isn't recorded against a person).
-- **Credit.** "© OpenStreetMap contributors" (ODbL) under the suggestions and on `/map-and-place-data`, linked under the search.
+- **Credit.** "© OpenStreetMap contributors" (ODbL) under the suggestions and on `/map-and-place-data`, linked from the suggestions, the map and Help (since Q60, 20 November 2026; before that, from under the search).
 
 ## Consequences
 

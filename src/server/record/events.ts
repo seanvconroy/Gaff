@@ -468,11 +468,40 @@ export const eventCatalogue = {
   'booking.mobile_confirmed': z.object({ applicationId: z.uuid() }),
   /** R18: checks set up for someone a person chose, and the renter told about them. */
   'checks.requested': z.object({ applicationId: z.uuid(), checks: z.number().int() }),
-  /** R18: the renter started an ID or income check with the provider; P25: which try. */
+  /** R18: the renter started their ID check with the provider; P25: which try. */
   'check.started': z.object({
     checkId: z.uuid(),
     kind: z.enum(['identity', 'income']),
     attempt: z.number().int().optional(),
+  }),
+  /** P39: the renter named a referee. Gaff asks them when the renter shares their checks. */
+  'reference.named': z.object({
+    checkId: z.uuid(),
+    kind: z.enum(['landlord_reference', 'employer_reference']),
+  }),
+  /**
+   * BA-16 (P36 to P41): a chosen renter's work and income documents. Only IDs, codes, counts and
+   * dates: never a kind of document (a statement of other income is never named in a letting's
+   * record), an amount, a name or a word of what a document says.
+   */
+  'document.added': z.object({ documentId: z.uuid() }),
+  'document.read': z.object({ documentId: z.uuid(), by: z.enum(['gaff', 'nobody']) }),
+  'document.corrected': z.object({ documentId: z.uuid() }),
+  'document.removed': z.object({ documentId: z.uuid() }),
+  /** P39: everything shared in one step: how many documents, how many to look at, how many kept. */
+  'documents.shared': z.object({
+    checkId: z.uuid(),
+    documents: z.number().int().min(0),
+    toLookAt: z.number().int().min(0),
+    kept: z.number().int().min(0),
+    referees: z.number().int().min(0),
+  }),
+  /** P45: a member of the letting's team opened a shared work document. */
+  'document.viewed': z.object({ documentId: z.uuid() }),
+  /** P41, rule 9: a copy deleted on its date: the renter's own, or the letter's. */
+  'document.deleted': z.object({
+    documentId: z.uuid(),
+    copy: z.enum(['renter', 'letter']),
   }),
   /** P26: the ID provider deleted the document and selfie it held for this check. */
   'check.redacted': z.object({ checkId: z.uuid() }),

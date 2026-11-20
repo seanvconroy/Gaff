@@ -4,6 +4,11 @@ import type { CheckKind, CheckStatus } from './checks';
  * UX-RN-15: the three checks are done one at a time. The page shows the three as a short list
  * (done, next, to come) and only the next one's task and button. These rules say which is which.
  *
+ * P39 (BA-16): the ID check, then the referees' names, then work and income documents, which end
+ * with the one step that shares everything: the documents, and the referees, whom Gaff then
+ * emails. So the referees come before the documents, and a named referee is the renter's part
+ * done; the documents are done once shared (the income check is then `answered`).
+ *
  * UX-RN-18 (rule 3): a renter with no previous landlord or no employer loses nothing by saying
  * so. "No" finishes the references as surely as two names do: neither is ever shown as missing.
  */
@@ -17,6 +22,8 @@ export type CheckListState = 'done' | 'next' | 'under_way' | 'to_come' | 'arrang
 export interface CheckFacts {
   kind: CheckKind;
   status: CheckStatus;
+  /** P39: a referee the renter named, whom Gaff asks when they share their checks. */
+  refereeName?: string | null;
 }
 
 export interface CheckListItem {
@@ -24,7 +31,7 @@ export interface CheckListItem {
   state: CheckListState;
 }
 
-const order: readonly RenterCheck[] = ['identity', 'income', 'references'];
+const order: readonly RenterCheck[] = ['identity', 'references', 'income'];
 
 function stateOf(check: RenterCheck, checks: readonly CheckFacts[]): 'done' | 'to_do' | 'started' {
   if (check === 'references') {
@@ -32,10 +39,14 @@ function stateOf(check: RenterCheck, checks: readonly CheckFacts[]): 'done' | 't
       (c) => c.kind === 'landlord_reference' || c.kind === 'employer_reference',
     );
     // Named, answered, or "I don't have one": the renter's part is done either way.
-    return references.every((c) => c.status !== 'to_do') ? 'done' : 'to_do';
+    return references.every((c) => c.status !== 'to_do' || Boolean(c.refereeName))
+      ? 'done'
+      : 'to_do';
   }
   const status = checks.find((c) => c.kind === check)?.status;
   if (status === undefined || status === 'passed' || status === 'not_needed') return 'done';
+  // BA-16: work and income documents are done once shared; adding them is the task itself.
+  if (check === 'income') return status === 'answered' ? 'done' : 'to_do';
   return status === 'in_progress' ? 'started' : 'to_do';
 }
 
@@ -87,7 +98,8 @@ export function checkList(
  * An employer is only asked about when the renter said they earn from a job.
  */
 export function refereesToAsk(checks: readonly CheckFacts[]): Array<'landlord' | 'employer'> {
-  const open = (kind: CheckKind) => checks.some((c) => c.kind === kind && c.status === 'to_do');
+  const open = (kind: CheckKind) =>
+    checks.some((c) => c.kind === kind && c.status === 'to_do' && !c.refereeName);
   return [
     ...(open('landlord_reference') ? (['landlord'] as const) : []),
     ...(open('employer_reference') ? (['employer'] as const) : []),

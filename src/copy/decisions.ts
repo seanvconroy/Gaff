@@ -231,8 +231,6 @@ export const decisionsCopy = {
       backup: 'Your backup',
       incomeLabel: 'Income they gave',
       stillUnderWay: 'Still under way',
-      incomeConfirmed: (ratioTenths: number) =>
-        `Confirmed, ${formatRatio(ratioTenths)} times the rent`,
       income: (ratioTenths: number, meets: boolean) =>
         `${formatRatio(ratioTenths)} times the rent: ${meets ? 'meets' : 'below'} your rule`,
       underWay: (n: number, owner: string) =>

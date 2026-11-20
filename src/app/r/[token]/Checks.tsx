@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { renterDocumentsCopy } from '@/copy/documents';
 import { checksCopy, notices } from '@/copy/renter';
 import type { RenterModel } from '@/server/renter/model';
 import { Disclosure } from '@/ui/Disclosure';
@@ -9,8 +10,8 @@ import { SubmitButton } from '@/ui/SubmitButton';
 import styles from '../renter.module.css';
 import { startCheckAction } from './check-actions';
 import { CodeGate } from './CodeGate';
+import { DocumentsTask, ShareStep } from './Documents';
 import { KeepIdentity, KeptNote, ReuseKeptIdentity } from './KeptIdentity';
-import { PayslipsLink } from './PayslipsLink';
 import { ReferencesFlow } from './ReferencesFlow';
 import type { HubOptions } from './RenterHub';
 import { Task } from './Task';
@@ -43,6 +44,10 @@ function Keeps({ line, more }: { line: string; more: string }) {
  * or "Check your name" when its name isn't the application's (UX-PF-14). After a check passes
  * here, one screen asks "Keep this, so you never have to do it again?" (UX-PF-8). Nothing about
  * it appears on any page before an operator has chosen the renter (UX-PF-13).
+ *
+ * WORK AND INCOME (BA-16, P30 to P41): after the referees' names, the documents asked for by
+ * how they earn, each read and checked at once, then one screen that shows exactly what will be
+ * shared and shares it all (`?q=share`, P39). The referees are emailed then.
  */
 export function ChecksTask({
   token,
@@ -87,11 +92,11 @@ export function ChecksTask({
   // UX-PF-8: the one screen after the ID check passes.
   if (options.identity?.keep) return <KeepIdentity token={token} keep={options.identity.keep} />;
 
-  const find = (kind: 'identity' | 'income') => checks.items.find((item) => item.kind === kind);
-  const provider = (kind: 'identity' | 'income'): ReactNode => {
-    const check = find(kind);
+  const kind = 'identity' as const;
+  const provider = (): ReactNode => {
+    const check = checks.items.find((item) => item.kind === kind);
     const copy = checksCopy[kind];
-    const kept = kind === 'identity' ? options.identity?.step : null;
+    const kept = options.identity?.step;
     if (kept) {
       return (
         <ReuseKeptIdentity
@@ -145,12 +150,11 @@ export function ChecksTask({
         {started ? <p>{checksCopy.unfinished}</p> : null}
         <Keeps line={notices.check[kind](operator, checks.retentionDays)} more={copy.more} />
         <div className={styles.actions}>
-          <form action={startCheckAction.bind(null, token, kind)}>
+          <form action={startCheckAction.bind(null, token)}>
             <SubmitButton fullWidth="phone" pendingLabel={checksCopy.opening}>
               {failed ? checksCopy.tryAgain : started ? checksCopy.startAgain : copy.button}
             </SubmitButton>
           </form>
-          {kind === 'income' ? <PayslipsLink operator={operator} /> : null}
         </div>
       </section>
     );
@@ -170,7 +174,27 @@ export function ChecksTask({
       ) : null}
       {options.identity?.kept ? <KeptNote kept={options.identity.kept} /> : null}
       {list}
-      {checks.next === 'identity' || checks.next === 'income' ? provider(checks.next) : null}
+      {checks.next === 'identity' ? provider() : null}
+      {checks.next === 'income' && options.documents && options.q === 'share' ? (
+        <ShareStep
+          token={token}
+          operator={operator}
+          view={options.documents.view}
+          identity={options.documents.identity}
+        />
+      ) : checks.next === 'income' && options.documents ? (
+        <DocumentsTask
+          token={token}
+          operator={operator}
+          view={options.documents.view}
+          verified={options.documents.identity !== null}
+        />
+      ) : null}
+      {options.documentProblem && renterDocumentsCopy.problems[options.documentProblem] ? (
+        <Notice tone="warning" role="alert">
+          <p>{renterDocumentsCopy.problems[options.documentProblem]}</p>
+        </Notice>
+      ) : null}
       {checks.next === 'references' ? (
         <div className={styles.task}>
           <ReferencesFlow token={token} ask={checks.referees} startAt={options.q} />

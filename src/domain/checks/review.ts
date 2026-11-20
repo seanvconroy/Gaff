@@ -1,5 +1,4 @@
-import { formatRatio, incomeAgainstRule } from '@/domain/applications/apply';
-import { formatDate, formatEuro } from '@/lib/format';
+import { formatDate } from '@/lib/format';
 import type { CheckKind, CheckStatus } from './checks';
 
 /**
@@ -18,7 +17,10 @@ export interface CheckView {
   /** When it was set up: the person was chosen. */
   createdAt?: Date | null;
   verifiedName?: string;
-  monthlyIncomeCents?: number;
+  /** BA-16 (P39): when the renter shared their work and income documents. */
+  documentsSharedAt?: Date;
+  /** BA-16 (P46): how many shared documents have something for a person to look at. */
+  documentsToLookAt?: number;
   summary?: string;
 }
 
@@ -46,7 +48,7 @@ export function inCheckOrder<T extends { kind: CheckKind }>(checks: readonly T[]
 
 const labels: Record<CheckKind, string> = {
   identity: 'ID',
-  income: 'Income',
+  income: 'Work and income',
   landlord_reference: 'Previous landlord',
   employer_reference: 'Employer',
 };
@@ -54,15 +56,15 @@ const labels: Record<CheckKind, string> = {
 const reasons: Record<string, string> = {
   document: 'the document couldn’t be confirmed',
   face_mismatch: 'the selfie didn’t match the ID',
-  no_regular_income: 'no regular income was found',
   gave_up: 'it wasn’t finished',
 };
 
-/** UX-DC-10: one check in words. */
-export function checkLine(
-  check: CheckView,
-  rule: { rentCents: number; ruleTenths: number },
-): CheckLine {
+/**
+ * UX-DC-10: one check in words. BA-16 (P44): work and income are documents, read and checked,
+ * never a figure against the rule here: no score, no ratio, no "pass". What each document shows
+ * is on the renter's own page of checks (src/app/(task)/lettings/[lettingId]/checks/[applicationId]).
+ */
+export function checkLine(check: CheckView): CheckLine {
   const line = (tone: CheckTone, text: string): CheckLine => ({
     label: labels[check.kind],
     text,
@@ -74,22 +76,12 @@ export function checkLine(
     case 'to_do':
       return line('neutral', 'Not started yet.');
     case 'in_progress':
+      if (check.kind === 'income') return line('info', 'Adding their documents.');
       return check.kind.endsWith('reference')
         ? line('info', `Asked ${check.refereeName ?? 'them'}${asked}. No answer yet.`)
         : line('info', `Started${asked}.`);
     case 'passed':
       if (check.kind === 'identity') return line('success', `Verified: ${check.verifiedName}.`);
-      if (check.monthlyIncomeCents !== undefined) {
-        const { ratioTenths, meetsRule } = incomeAgainstRule(
-          check.monthlyIncomeCents,
-          rule.rentCents,
-          rule.ruleTenths,
-        );
-        return line(
-          meetsRule ? 'success' : 'warning',
-          `Confirmed ${formatEuro(check.monthlyIncomeCents)} a month, ${formatRatio(ratioTenths)} times the rent: ${meetsRule ? 'meets' : 'below'} your rule.`,
-        );
-      }
       return line('success', 'Done.');
     case 'not_passed':
       return line(
@@ -97,6 +89,17 @@ export function checkLine(
         `Not confirmed: ${reasons[check.reason ?? ''] ?? 'it wasn’t finished'}.`,
       );
     case 'answered':
+      if (check.kind === 'income') {
+        const on = check.documentsSharedAt ? ` on ${formatDate(check.documentsSharedAt)}` : '';
+        const look = check.documentsToLookAt ?? 0;
+        // P46: something to look at is in `warning`, with what to do; it's never a refusal.
+        return look > 0
+          ? line(
+              'warning',
+              `Documents shared${on}. ${look === 1 ? 'One thing' : `${look} things`} to look at.`,
+            )
+          : line('success', `Documents shared${on}.`);
+      }
       return line(
         'success',
         `${check.refereeName ?? 'They'} answered. ${check.summary ?? ''}`.trim(),

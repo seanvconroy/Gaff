@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { allChecksBack, checkLine, inCheckOrder, waitingTooLong, type CheckView } from './review';
 
-const rule = { rentCents: 185_000, ruleTenths: 25 };
 const check = (overrides: Partial<CheckView>): CheckView => ({
   id: 'c1',
   kind: 'identity',
@@ -17,16 +16,25 @@ const daysAgo = (days: number) => new Date(now.getTime() - days * 86_400_000);
 
 describe('UX-DC-10: each check in words', () => {
   it('says what was found, never a verdict', () => {
-    expect(checkLine(check({ status: 'passed', verifiedName: 'Aoife Byrne' }), rule)).toEqual({
+    expect(checkLine(check({ status: 'passed', verifiedName: 'Aoife Byrne' }))).toEqual({
       label: 'ID',
       text: 'Verified: Aoife Byrne.',
       tone: 'success',
       needsALook: false,
     });
-    expect(
-      checkLine(check({ kind: 'income', status: 'passed', monthlyIncomeCents: 520_000 }), rule)
-        .text,
-    ).toBe('Confirmed €5,200 a month, 2.8 times the rent: meets your rule.');
+    // BA-16 (P44): work and income are documents shared, never a figure against the rule.
+    const shared = check({
+      kind: 'income',
+      status: 'answered',
+      documentsSharedAt: new Date('2026-11-06T12:00:00Z'),
+      documentsToLookAt: 0,
+    });
+    expect(checkLine(shared)).toMatchObject({
+      label: 'Work and income',
+      text: 'Documents shared on Friday 6 November.',
+      tone: 'success',
+    });
+    expect(checkLine(shared).text).not.toMatch(/times the rent|rule|pass/);
     expect(
       checkLine(
         check({
@@ -35,7 +43,6 @@ describe('UX-DC-10: each check in words', () => {
           refereeName: 'Mary Kelly',
           summary: 'Rented from them. Rent always on time.',
         }),
-        rule,
       ),
     ).toMatchObject({
       label: 'Previous landlord',
@@ -46,15 +53,20 @@ describe('UX-DC-10: each check in words', () => {
   it('UX-DC-12: a check that didn’t pass is a warning with a plain reason, never danger', () => {
     for (const view of [
       check({ status: 'not_passed', reason: 'face_mismatch' }),
-      check({ kind: 'income', status: 'passed', monthlyIncomeCents: 300_000 }),
+      check({
+        kind: 'income',
+        status: 'answered',
+        documentsSharedAt: new Date('2026-11-06T12:00:00Z'),
+        documentsToLookAt: 2,
+      }),
       check({ kind: 'landlord_reference', status: 'no_answer', refereeName: 'Mary Kelly' }),
       check({ kind: 'landlord_reference', status: 'no_answer', reason: 'cant_give' }),
     ]) {
-      const line = checkLine(view, rule);
+      const line = checkLine(view);
       expect(line.tone).toBe('warning');
       expect(line.needsALook).toBe(true);
     }
-    expect(checkLine(check({ status: 'not_passed', reason: 'face_mismatch' }), rule).text).toBe(
+    expect(checkLine(check({ status: 'not_passed', reason: 'face_mismatch' })).text).toBe(
       'Not confirmed: the selfie didn’t match the ID.',
     );
   });

@@ -118,8 +118,8 @@ export function firstNameOf(fullName: string): string {
 export function renterModel(
   page: Loaded,
   options: {
-    /** Which checks have a provider to start them with. */
-    providers: { identity: boolean; income: boolean };
+    /** Whether the ID check has a provider to start it with (work and income need none). */
+    providers: { identity: boolean };
     retentionDays: number;
     now?: Date;
   },
@@ -141,10 +141,7 @@ export function renterModel(
     holdRanOut: page.holdRanOut,
     offer: homeOffer?.status ?? null,
   });
-  const unavailable: RenterCheck[] = [
-    ...(options.providers.identity ? [] : (['identity'] as const)),
-    ...(options.providers.income ? [] : (['income'] as const)),
-  ];
+  const unavailable: RenterCheck[] = options.providers.identity ? [] : ['identity'];
   const amounts = tenancy ? paymentAmounts(tenancy) : null;
   return {
     view,
@@ -256,10 +253,7 @@ export function renterModel(
 /** The model as this deployment shows it: which checks have a provider, and how long is kept. */
 export function renterModelFor(page: Loaded, now?: Date): RenterModel {
   return renterModel(page, {
-    providers: {
-      identity: env().IDENTITY_PROVIDER !== 'none',
-      income: env().INCOME_PROVIDER !== 'none',
-    },
+    providers: { identity: env().IDENTITY_PROVIDER !== 'none' },
     retentionDays: env().RETENTION_PERSONAL_DAYS,
     now,
   });

@@ -22,8 +22,6 @@ export const notices = {
   check: {
     identity: (operator: string, days: number) =>
       `Gaff keeps only the result and the name on your ID, never the photos. Only ${operator} sees it, and it’s deleted ${days} days after the letting closes.`,
-    income: (operator: string, days: number) =>
-      `Gaff keeps only the monthly amount, never your statements. Only ${operator} sees it, and it’s deleted ${days} days after the letting closes.`,
     references: (operator: string) =>
       `Your referees’ answers go only to ${operator}, and are deleted once the tenancy starts or the letting closes.`,
   },
@@ -323,7 +321,7 @@ export const checksCopy = {
     `${operator} would like to check a few things before making an offer.`,
   start: 'Start',
   list: 'Your checks',
-  names: { identity: 'Your ID', income: 'Your income', references: 'Your references' },
+  names: { identity: 'Your ID', income: 'Your work and income', references: 'Your references' },
   states: { done: 'Done', next: 'Next', under_way: 'Under way', to_come: 'To come' },
   identity: {
     what: 'You’ll photograph your passport or driving licence and take a selfie. It takes about two minutes.',
@@ -367,17 +365,8 @@ export const checksCopy = {
       nothing_kept: 'There’s no ID check kept on your profile now. You can do the check here.',
     } as Record<string, string>,
   },
-  income: {
-    what: 'You’ll connect your bank, read-only, through a secure open banking service. It confirms your take-home income.',
-    more: 'The service reads your income from your account once, and can’t move money or see your login. Gaff is told only the monthly amount. You can ask for it to be deleted sooner: talk to a person.',
-    button: 'Check my income',
-    payslips: 'I’d rather send payslips',
-    payslipsTitle: 'Sending payslips instead',
-    payslipsText: (operator: string) =>
-      `Reply to any email from us and say you’d rather send payslips. ${operator} will arrange it with you.`,
-  },
   references: {
-    more: 'We email each referee a short form, and remind them twice if they don’t answer. Nobody else sees what they say.',
+    more: 'When you share your checks, we email each referee a short form, and remind them twice if they don’t answer. Nobody else sees what they say.',
     progress: 'Your references',
     names: { rented: 'Renting', landlord: 'Landlord', employer: 'Work', manager: 'Employer' },
     rented: { title: 'Have you rented before?' },
@@ -411,7 +400,6 @@ export const checksCopy = {
     reasons: {
       document: 'The check couldn’t confirm your ID document.',
       face_mismatch: 'The check couldn’t match your selfie to your ID.',
-      no_regular_income: 'The check couldn’t find a regular income in your account.',
       gave_up: 'The check wasn’t finished.',
     } as Record<string, string>,
     other: 'The check didn’t finish.',

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { decisionsCopy } from '@/copy/decisions';
+import { letterDocumentsCopy } from '@/copy/documents';
 import { firstNameOf } from '@/domain/accounts/first-run';
 import {
   allChecksBack,
@@ -71,7 +72,6 @@ export default async function ChecksPage({
   }
 
   const now = new Date();
-  const rule = { rentCents: listing.rentCents, ruleTenths: listing.incomeRuleTenths };
   const back = allChecksBack(preferred.checks);
   const first = firstNameOf(preferred.name);
   const reminded = one(query.reminded);
@@ -87,7 +87,7 @@ export default async function ChecksPage({
           </h2>
           <SummaryList
             rows={inCheckOrder(row.checks as CheckView[]).map((check) => {
-              const line = checkLine(check, rule);
+              const line = checkLine(check);
               const waiting = waitingTooLong(check, now);
               const since = check.status === 'to_do' ? check.createdAt : check.requestedAt;
               return {
@@ -121,6 +121,17 @@ export default async function ChecksPage({
                         {line.text}
                       </span>
                     )}
+                    {check.kind === 'income' && check.status === 'answered' ? (
+                      // BA-16 (P44): what each document shows, on the renter's own page of checks.
+                      <span>
+                        <ButtonLink
+                          href={`${decisionHref(letting.id, 'checks')}/${row.id}`}
+                          variant="quiet"
+                        >
+                          {letterDocumentsCopy.seeDocuments}
+                        </ButtonLink>
+                      </span>
+                    ) : null}
                     {waiting && since ? (
                       // UX-DC-13: who it waits on, and a reminder.
                       <form action={remind}>

@@ -194,15 +194,8 @@ export default async function ApprovalPage({
               },
               ...inCheckOrder(row.checks as CheckView[]).map((check) => {
                 const back = check.status !== 'to_do' && check.status !== 'in_progress';
-                const line = checkLine(check, rule);
-                const value = !back
-                  ? copy.ask.stillUnderWay
-                  : check.kind === 'income' && check.monthlyIncomeCents !== undefined
-                    ? copy.ask.incomeConfirmed(
-                        incomeAgainstRule(check.monthlyIncomeCents, rule.rentCents, rule.ruleTenths)
-                          .ratioTenths,
-                      )
-                    : line.text;
+                const line = checkLine(check);
+                const value = !back ? copy.ask.stillUnderWay : line.text;
                 return { label: line.label, value };
               }),
             ]}

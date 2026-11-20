@@ -59,6 +59,7 @@ describe('UX-ME-1: when the checks steps are reached', () => {
       true,
     );
     expect(renterChecksDone(checks('passed', 'passed', 'not_needed', 'not_needed'))).toBe(true);
+    expect(renterChecksDone(checks('passed', 'answered', 'in_progress', 'not_needed'))).toBe(true);
     expect(renterChecksDone([])).toBe(false);
   });
 

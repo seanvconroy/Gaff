@@ -22,14 +22,14 @@ async function open(token: string): Promise<boolean> {
 }
 
 /**
- * R18: the renter starts their ID or income check with the provider. The provider is never
- * given their link: this browser remembers the way back for an hour (UX-RN-17).
+ * R18: the renter starts their ID check with the provider. The provider is never given their
+ * link: this browser remembers the way back for an hour (UX-RN-17).
  */
-export async function startCheckAction(token: string, kind: 'identity' | 'income'): Promise<void> {
+export async function startCheckAction(token: string): Promise<void> {
   if (!(await open(token))) toRenterPage(token);
   // P54: a result Stripe already has is read first, so a finished check isn't started again.
-  if (kind === 'identity') await settleRenterIdentity(token);
-  const started = await startProviderCheck(token, kind);
+  await settleRenterIdentity(token);
+  const started = await startProviderCheck(token, 'identity');
   if ('problem' in started) toRenterPage(token, `?check_problem=${started.problem}`);
   (await cookies()).set(CHECK_RETURN_COOKIE, token, cookieOptions(CHECK_RETURN_MINUTES * 60));
   redirect(started.redirectUrl);

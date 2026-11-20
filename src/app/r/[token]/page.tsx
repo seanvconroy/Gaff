@@ -3,6 +3,7 @@ import { answersAsValues } from '@/domain/criteria/answers';
 import { answersToOffer } from '@/domain/profile/offer-back';
 import { identityStep } from '@/domain/identity/identity';
 import { formatDate, formatShortDate, irishToday } from '@/lib/format';
+import { documentsForRenter } from '@/server/documents/renter';
 import { keptIdentityOf } from '@/server/identity/kept';
 import { keepQuestionFor } from '@/server/identity/renter';
 import type { RenterModel } from '@/server/renter/model';
@@ -77,10 +78,12 @@ export default async function RenterPage({
     kept?: string;
     kept_id?: string;
     id_problem?: string;
+    document_problem?: string;
   }>;
 }) {
   const { token } = await params;
-  const { q, change, check_problem, offer_problem, kept, kept_id, id_problem } = await searchParams;
+  const { q, change, check_problem, offer_problem, kept, kept_id, id_problem, document_problem } =
+    await searchParams;
   const loaded = await loadRenter(token, { hub: true });
   if (!loaded) return <LinkEnded />;
   const { model } = loaded;
@@ -94,6 +97,11 @@ export default async function RenterPage({
         kept: kept_id,
       })
     : null;
+  // BA-16: the work and income documents, at that check, for an open page only.
+  const documentsView =
+    open && model.checks.next === 'income'
+      ? await documentsForRenter(token, person?.userId ?? null)
+      : null;
   const offered =
     person && model.view === 'questions'
       ? answersToOffer(person.kept.answers, model.questions.asked, irishToday())
@@ -112,6 +120,18 @@ export default async function RenterPage({
         offerProblem: offer_problem,
         idProblem: id_problem,
         identity,
+        documents: documentsView
+          ? {
+              view: documentsView,
+              identity: documentsView.identity
+                ? {
+                    name: documentsView.identity.name,
+                    on: formatDate(documentsView.identity.verifiedAt),
+                  }
+                : null,
+            }
+          : null,
+        documentProblem: document_problem,
         kept: kept === 'yes' || kept === 'no' ? kept : null,
         offeredAnswers:
           Object.keys(offered).length > 0

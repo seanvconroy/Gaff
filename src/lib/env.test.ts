@@ -19,7 +19,6 @@ const production = {
   SINCH_FROM: 'Gaff',
   AI_PROVIDER: 'bedrock',
   IDENTITY_PROVIDER: 'none',
-  INCOME_PROVIDER: 'none',
   DATA_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
   DEV_TOOLS: '0',
   CRON_SECRET: 'c'.repeat(32),
@@ -27,6 +26,7 @@ const production = {
   PSRA_REGISTER_URL: 'https://register.example/licensees.csv',
   ADDRESS_SEARCH: 'off',
   PHOTO_STORE: 'supabase',
+  DOCUMENT_STORE: 'supabase',
   SUPABASE_URL: 'https://example.supabase.co',
   SUPABASE_SERVICE_ROLE_KEY: 'k',
 };
@@ -36,12 +36,19 @@ describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)'
     expect(environmentProblems(production)).toEqual([]);
   });
 
-  it('refuses stand-in ID or income checks, dev tools, or a missing key', () => {
+  it('refuses stand-in ID checks, the local document store, dev tools, or a missing key', () => {
     expect(environmentProblems({ ...production, IDENTITY_PROVIDER: 'stand_in' })).toEqual([
       'IDENTITY_PROVIDER',
     ]);
-    expect(environmentProblems({ ...production, INCOME_PROVIDER: 'stand_in' })).toEqual([
-      'INCOME_PROVIDER',
+    // P53: renters' documents are only ever in the private bucket in production.
+    expect(environmentProblems({ ...production, DOCUMENT_STORE: 'local' })).toEqual([
+      'DOCUMENT_STORE',
+    ]);
+    expect(environmentProblems({ ...production, DOCUMENT_STORE: undefined })).toEqual([
+      'DOCUMENT_STORE',
+    ]);
+    expect(environmentProblems({ ...production, DOCUMENT_BUCKET: 'homes' })).toEqual([
+      'DOCUMENT_BUCKET',
     ]);
     expect(environmentProblems({ ...production, DEV_TOOLS: '1' })).toEqual(['DEV_TOOLS']);
     expect(environmentProblems({ ...production, DATA_ENCRYPTION_KEY: undefined })).toEqual([
@@ -140,7 +147,7 @@ describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)'
         CRON_SECRET: 'c'.repeat(32),
         DEV_TOOLS: '1',
         IDENTITY_PROVIDER: 'stand_in',
-        INCOME_PROVIDER: 'stand_in',
+        DOCUMENT_STORE: 'local',
       }),
     ).toEqual([]);
   });

@@ -7,6 +7,7 @@ import {
   passkeys,
   profileEvents,
   profiles,
+  renterDocuments,
   renterEnquiries,
   renterProfiles,
   savedHomes,
@@ -21,6 +22,7 @@ import {
   profileRetention,
 } from '@/domain/profile/retention';
 import { type Confirmation, spendConfirmation } from '@/server/auth/confirm';
+import { dropFiles } from '@/server/documents/files';
 import { forgetIdentityIn, keptIdentityIn } from '@/server/identity/kept';
 import { enqueue } from '@/server/jobs/enqueue';
 import { oneAtATime, type SignedInPerson } from './contexts';
@@ -49,8 +51,13 @@ async function deleteProfileIn(
   tx: Tx,
   userId: string,
   by: 'person' | 'retention',
-): Promise<{ account: boolean }> {
+): Promise<{ account: boolean; files: Array<string | null> }> {
   await tx.delete(renterEnquiries).where(eq(renterEnquiries.userId, userId));
+  // BA-16 (P40): documents kept for a next application go too; their files once this commits.
+  const kept = await tx
+    .delete(renterDocuments)
+    .where(eq(renterDocuments.userId, userId))
+    .returning({ storageKey: renterDocuments.storageKey });
   // Saved (WP-23): the homes they saved and the searches they asked to hear about.
   await tx.delete(savedHomes).where(eq(savedHomes.userId, userId));
   await tx.delete(savedSearches).where(eq(savedSearches.userId, userId));
@@ -86,7 +93,7 @@ async function deleteProfileIn(
       .where(eq(profiles.userId, userId));
   }
   await recordProfileEvent(tx, userId, 'profile.deleted', { by, account });
-  return { account };
+  return { account, files: kept.map((row) => row.storageKey) };
 }
 
 /**
@@ -97,11 +104,13 @@ export async function deleteProfile(
   person: SignedInPerson,
   confirmation: Confirmation | null,
 ): Promise<{ account: boolean }> {
-  return withPerson(person.id, async (tx) => {
+  const deleted = await withPerson(person.id, async (tx) => {
     await oneAtATime(tx, person.id);
     await spendConfirmation(tx, confirmation, 'delete_profile', person.id);
     return deleteProfileIn(tx, person.id, 'person');
   });
+  await dropFiles(deleted.files);
+  return { account: deleted.account };
 }
 
 /**
@@ -116,7 +125,8 @@ export async function sweepProfiles(
   const soonest = new Date(
     now.getTime() - (PROFILE_UNUSED_YEARS * 365 - PROFILE_NOTICE_DAYS - 2) * 86_400_000,
   );
-  return withSystem(async (tx) => {
+  const files: Array<string | null> = [];
+  const swept = await withSystem(async (tx) => {
     const candidates = await tx
       .select({
         userId: renterProfiles.userId,
@@ -143,7 +153,7 @@ export async function sweepProfiles(
         await recordProfileEvent(tx, profile.userId, 'profile.deletion_notice_sent', { deleteOn });
         notices += 1;
       } else if (todo === 'delete') {
-        await deleteProfileIn(tx, profile.userId, 'retention');
+        files.push(...(await deleteProfileIn(tx, profile.userId, 'retention')).files);
         deleted += 1;
       }
     }
@@ -158,6 +168,8 @@ export async function sweepProfiles(
     }
     return { notices, deleted };
   });
+  await dropFiles(files);
+  return swept;
 }
 
 /** What "Download my details" holds: everything on the person's own profile, and nothing else. */

@@ -102,3 +102,33 @@ describe('M57: where the map starts and how far it reaches', () => {
     expect(clampToIreland({ minLat: 53, minLng: -5.2, maxLat: 54, maxLng: -4 })).toBeNull();
   });
 });
+
+describe('UX-SR-13: the map and drawn areas', () => {
+  const square = [
+    { lat: 53.32, lng: -6.285 },
+    { lat: 53.32, lng: -6.255 },
+    { lat: 53.305, lng: -6.255 },
+    { lat: 53.305, lng: -6.285 },
+  ];
+  const triangle = square.slice(0, 3);
+
+  it('UX-SR-13: drawn areas are the map’s area, before a map area or a place, and it shows them all', () => {
+    const box = { minLat: 53.3, minLng: -6.3, maxLat: 53.35, maxLng: -6.2 };
+    const area = mapAreaOf(null, box, [square]);
+    expect(area).toEqual({
+      kind: 'shapes',
+      shapes: [square],
+      box: { minLat: 53.305, minLng: -6.285, maxLat: 53.32, maxLng: -6.255 },
+    });
+    expect(startBox(area)).toEqual(area.kind === 'shapes' ? area.box : null);
+    expect(cameraKey(area)).not.toBe(cameraKey(mapAreaOf(null, null, [triangle])));
+  });
+
+  it('UX-SR-13: the map doesn’t move for areas the renter has just drawn or reshaped on it', () => {
+    const area = mapAreaOf(null, null, [square]);
+    expect(shouldFit('everywhere', area, null, [square])).toBe(false);
+    // The same search opened from a link, or after Back: the map goes to it.
+    expect(shouldFit('everywhere', area, null, null)).toBe(true);
+    expect(shouldFit('everywhere', area, null, [triangle])).toBe(true);
+  });
+});

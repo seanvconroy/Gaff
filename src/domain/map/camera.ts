@@ -1,5 +1,6 @@
 import { bboxAround, expandBBox, IRELAND, type BBox, type Point } from '@/domain/places/geo';
 import type { SearchPlace } from '@/domain/search/places';
+import { sameShapes, shapesBox, writeShapes, type Shape } from '@/domain/search/shapes';
 
 /**
  * M127: when the map may move by itself. It fits the search's area when the area changes: a new
@@ -20,10 +21,17 @@ export type MapArea =
       line: Point[][] | null;
       box: BBox;
     }
-  | { kind: 'box'; box: BBox };
+  | { kind: 'box'; box: BBox }
+  /** UX-SR-13: the areas the renter drew, and the box round them all. */
+  | { kind: 'shapes'; shapes: Shape[]; box: BBox };
 
-/** The map's area for a search: its map area, its place, or all of Ireland. */
-export function mapAreaOf(where: SearchPlace | null, box: BBox | null | undefined): MapArea {
+/** The map's area for a search: its drawn areas, its map area, its place, or all of Ireland. */
+export function mapAreaOf(
+  where: SearchPlace | null,
+  box: BBox | null | undefined,
+  shapes?: Shape[] | null,
+): MapArea {
+  if (shapes?.length) return { kind: 'shapes', shapes, box: shapesBox(shapes) };
   if (box) return { kind: 'box', box };
   if (!where) return { kind: 'everywhere' };
   if (where.kind === 'routing_key') return { kind: 'everywhere' };
@@ -61,6 +69,8 @@ export function cameraKey(area: MapArea): string {
       return `near:${area.slug}:${area.withinMetres}`;
     case 'box':
       return `box:${boxKey(area.box)}`;
+    case 'shapes':
+      return `shapes:${writeShapes(area.shapes)}`;
   }
 }
 
@@ -77,16 +87,18 @@ export function sameBox(a: BBox, b: BBox): boolean {
 
 /**
  * Should the map fit this area? Yes when the area has changed, unless it's the map area the
- * renter's own move made (`renterBox`): the map is already there, and fitting it again would
- * creep outwards.
+ * renter's own move made (`renterBox`), or the areas they have just drawn or reshaped on this
+ * map (`renterShapes`): the map is already there, and moving it would pull it from their hand.
  */
 export function shouldFit(
   previousKey: string | null,
   area: MapArea,
   renterBox: BBox | null,
+  renterShapes: readonly Shape[] | null = null,
 ): boolean {
   if (previousKey === cameraKey(area)) return false;
   if (area.kind === 'box' && renterBox && sameBox(area.box, renterBox)) return false;
+  if (area.kind === 'shapes' && renterShapes && sameShapes(area.shapes, renterShapes)) return false;
   return true;
 }
 

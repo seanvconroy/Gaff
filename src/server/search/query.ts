@@ -172,6 +172,24 @@ function boxCondition(box: BBox): SQL {
 }
 
 /**
+ * UX-SR-13: `pointInPolygon` (src/domain/places/geo.ts) as SQL: a ray from the home's point
+ * crosses a shape's sides an odd number of times. The same arithmetic in the same order, so the
+ * two agree on every point; a home is in the search when it is in any of the shapes.
+ */
+function shapesCondition(shapes: readonly (readonly Point[])[]): SQL {
+  const inside = shapes.map((shape) => {
+    const from = shape.map((_, i) => shape[(i + shape.length - 1) % shape.length]!);
+    return sql`(select count(*) filter (where (e.alat > h.lat) <> (e.blat > h.lat)
+        and h.lng < ((e.blng - e.alng) * (h.lat - e.alat)) / (e.blat - e.alat) + e.alng) % 2 = 1
+      from unnest(
+        ${list(shape.map((p) => p.lat))}::float8[], ${list(shape.map((p) => p.lng))}::float8[],
+        ${list(from.map((p) => p.lat))}::float8[], ${list(from.map((p) => p.lng))}::float8[]
+      ) as e(alat, alng, blat, blng))`;
+  });
+  return sql`(h.lat is not null and (${sql.join(inside, sql` or `)}))`;
+}
+
+/**
  * `missesOf`, as SQL: each point a home misses on, as its code, in the domain's order. A home
  * that misses none fits; one that misses one is "close to what you asked".
  */
@@ -363,6 +381,8 @@ export async function searchIn(
   if (place) conditions.push(placeCondition(placePlan(place)));
   // M57: a map area holds the homes whose pin is in it. A home without one can't be in it.
   if (filters.box) conditions.push(boxCondition(filters.box));
+  // UX-SR-13: drawn areas hold the homes whose pin is in any of them.
+  if (filters.shapes) conditions.push(shapesCondition(filters.shapes));
   const where = conditions.length > 0 ? sql.join(conditions, sql` and `) : sql`true`;
   const most = options.fitsOnly ? 0 : 1;
   const result = await tx.execute<Row>(sql`

@@ -85,7 +85,6 @@ export default async function FirstScreen({ searchParams }: { searchParams: Prom
       saver={saver}
       map={map}
       keepRent={rent === '1'}
-      signedIn={person !== null}
       understood={
         unclear ? (
           <p className={styles.unclear} role="status">

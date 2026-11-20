@@ -28,6 +28,7 @@ export default function HowResultsAreOrderedPage() {
           </h2>
           <p>{copy.order.fits}</p>
           <p>{copy.order.close}</p>
+          <p>{copy.order.nearest}</p>
           <p>{copy.order.nothing}</p>
         </section>
         <section className={styles.section} aria-labelledby="never-heading">

@@ -38,6 +38,7 @@ export const KEPT_FILTER_KEYS = [
   'where',
   'within',
   'box',
+  'shapes',
   'beds',
   'maxRent',
   'moveIn',

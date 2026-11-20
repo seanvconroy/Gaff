@@ -332,14 +332,17 @@ test('UX-SR-10: a renter saves a search, sees it on Profile and Saved, switches 
   });
   await page.setViewportSize(phone);
   await signUpRenter(page);
-  // Homes fit: "Tell me about new ones" saves the search for the homes still to come. The
+  // Homes fit: "Save search", beside Filters, saves it for the homes still to come. The
   // address uses the first place list's ID for Dingle: it still opens Dingle (M56).
   await page.goto('/?where=dingle&beds=1');
-  await page.getByRole('button', { name: 'Tell me about new ones' }).click();
+  await page.getByRole('button', { name: 'Save search' }).click();
   await expect(
     page.getByRole('status').filter({ hasText: 'Saved. We’ll email you when a new home fits.' }),
   ).toBeVisible();
-  await expect(page.getByText('You’ll hear when one comes up')).toBeVisible();
+  // The chip says it's saved, and opens Saved.
+  await expect(
+    page.getByRole('link', { name: 'Search saved. Open your saved searches' }),
+  ).toHaveAttribute('href', '/saved');
 
   await page.goto('/saved');
   await expect(page.getByRole('link', { name: 'Dingle, Co. Kerry · 1 bedroom' })).toBeVisible();
@@ -358,4 +361,36 @@ test('UX-SR-10: a renter saves a search, sees it on Profile and Saved, switches 
   await looking.getByRole('button', { name: 'Remove Dingle, Co. Kerry · 1 bedroom' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Search removed' })).toBeVisible();
   await expect(looking.getByText('Nothing yet.', { exact: false })).toBeVisible();
+});
+
+test('UX-SR-10, UX-SR-13: a drawn area is saved with its search, named on Saved, and opens as it was drawn', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await signUpRenter(page);
+  // A square round the middle of Dingle, as a search's address carries it, with two bedrooms.
+  const square = 'spg}Hn}u}@?ovA~p@??nvA';
+  await page.goto(`/?draw=${encodeURIComponent(square)}&beds=2`);
+  const chips = page.getByRole('list', { name: 'What Gaff understood' });
+  await expect(chips).toContainText('Drawn area near Dingle');
+  await chips.getByRole('button', { name: 'Save search' }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Saved. We’ll email you when a new home fits.' }),
+  ).toBeVisible();
+  await expect(
+    chips.getByRole('link', { name: 'Search saved. Open your saved searches' }),
+  ).toBeVisible();
+
+  // Saved names it by the area it is near, and opens the same search, drawn on the map.
+  await page.goto('/saved');
+  const saved = page.getByRole('link', { name: 'Drawn area near Dingle · 2 bedrooms' });
+  await expect(saved).toBeVisible();
+  await expectAccessible(page);
+  await saved.click();
+  await expect(page).toHaveURL(/[?&]draw=/);
+  await expect(page.getByRole('button', { name: 'Edit' })).toBeVisible();
+  // It is already saved: the chip says so.
+  await expect(
+    page.getByRole('link', { name: 'Search saved. Open your saved searches' }),
+  ).toBeVisible();
 });

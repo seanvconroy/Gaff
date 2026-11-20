@@ -1,0 +1,165 @@
+/*
+ * The search bar: the box and its button side by side, both 48px, at every width. Its list of
+ * suggestions floats under the box, over the page, so nothing below moves as it opens. One
+ * layout serves both widths, so there is no breakpoint here.
+ */
+.form {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.icon {
+  position: absolute;
+  inset-inline-start: var(--space-4);
+  top: calc(var(--size-control) / 2);
+  translate: 0 -50%;
+  color: var(--color-ink-muted);
+  pointer-events: none;
+}
+
+.field .input {
+  width: 100%;
+  padding-inline-start: var(--space-12);
+  text-overflow: ellipsis;
+}
+
+/* Room for the clear button, once there is something to clear. */
+.field .input:not(:placeholder-shown) {
+  padding-inline-end: var(--space-12);
+}
+
+.clear {
+  position: absolute;
+  inset-inline-end: var(--space-1);
+  top: calc((var(--size-control) - var(--size-target)) / 2);
+  display: inline-grid;
+  place-items: center;
+  width: var(--size-target);
+  height: var(--size-target);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-ink-muted);
+  cursor: pointer;
+}
+
+.clear:hover {
+  color: var(--color-ink);
+}
+
+.clear:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -3px;
+}
+
+.panel {
+  position: absolute;
+  top: calc(var(--size-control) + var(--space-2));
+  right: 0;
+  left: 0;
+  z-index: 20;
+  max-height: min(70dvh, 560px);
+  overflow-y: auto;
+  background-color: var(--color-surface-0);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+.tip {
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-ink-muted);
+}
+
+.list,
+.options {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.group,
+.tip + .list:not(:empty),
+.list:not(:empty) + .tip {
+  border-top: 1px solid var(--color-border);
+}
+
+.list > .group:first-child {
+  border-top: 0;
+}
+
+.groupLabel {
+  display: block;
+  padding: var(--space-3) var(--space-4) var(--space-1);
+  color: var(--color-ink-muted);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-heading-weight);
+  line-height: var(--type-body-line);
+}
+
+.option {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: var(--size-control);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+}
+
+/* The row in hand, by pointer or by the arrow keys: a quiet fill, and by the keys a focus ring. */
+.option:hover,
+.option[aria-selected='true'] {
+  background-color: var(--color-surface-2);
+}
+
+.option[aria-selected='true'] {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.optionIcon {
+  flex: none;
+  color: var(--color-ink-muted);
+}
+
+.words {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  color: var(--color-ink);
+}
+
+.name strong {
+  font-weight: var(--type-heading-weight);
+}
+
+.description {
+  color: var(--color-ink-muted);
+}
+
+.credit {
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.credit a {
+  color: var(--color-ink-muted);
+}

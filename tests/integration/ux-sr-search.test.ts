@@ -5,7 +5,7 @@ import { funnelEvents, lettings } from '@/db/schema';
 import { addPhoto } from '@/server/lettings/photos';
 import { liveHomesOnGaff, findHomes } from '@/server/search/homes';
 import { countSearch, searchFromWords } from '@/server/search/search';
-import { resolveSearch } from '@/server/search/where';
+import { resolveSearch, suggestWhere } from '@/server/search/where';
 import { aPng } from '../fixtures/photos';
 import { aLiveLetting, createTestMember, type Member } from './helpers';
 
@@ -159,5 +159,76 @@ describe('UX-SR-11, UX-MT-12: a search is not kept', () => {
       href: '/?unclear=1&maybe=kinsale',
       understood: false,
     });
+  });
+});
+
+describe('UX-SR-14: a road, a landmark or a townland typed in the search box', () => {
+  it('UX-SR-14: a road’s name alone is the road, from the whole place index', async () => {
+    expect(await searchFromWords({ words: 'Highfield Road' })).toEqual({
+      href: '/?where=highfield-road-rathgar-dublin-6',
+      understood: true,
+    });
+    // Short forms, and the town it is in.
+    expect((await searchFromWords({ words: 'highfield rd' })).href).toBe(
+      '/?where=highfield-road-rathgar-dublin-6',
+    );
+    expect((await searchFromWords({ words: 'Highfield Road, Cork' })).href).toBe(
+      '/?where=highfield-road-ballintemple-cork',
+    );
+    expect((await searchFromWords({ words: 'Highfield Road, Rathgar' })).href).toBe(
+      '/?where=highfield-road-rathgar-dublin-6',
+    );
+    // An area's own name is still the area.
+    expect((await searchFromWords({ words: 'Dalkey' })).href).toBe('/?where=dalkey');
+  });
+
+  it('UX-SR-14: a road in a sentence is its place, with everything else the sentence asks', async () => {
+    const outcome = await searchFromWords({
+      words: '2 bed near Highfield Road under €2,000, no pets',
+    });
+    expect(outcome).toEqual({
+      href: '/?where=highfield-road-rathgar-dublin-6&beds=2&max=2000&pets=no',
+      understood: true,
+    });
+    // With an area said too, only a road found in that area counts.
+    expect((await searchFromWords({ words: 'house on Highfield Road in Cork' })).href).toBe(
+      '/?where=highfield-road-ballintemple-cork&type=house',
+    );
+    expect((await searchFromWords({ words: 'house on Highfield Road in Dalkey' })).href).toBe(
+      '/?where=dalkey&type=house',
+    );
+  });
+
+  it('UX-SR-14: a place picked from the suggestions is the place, whatever the words say', async () => {
+    const outcome = await searchFromWords({
+      words: '2 bed near highf',
+      place: 'highfield-road-ballintemple-cork',
+    });
+    expect(outcome.href).toBe('/?where=highfield-road-ballintemple-cork&beds=2');
+    // A slug the index doesn't know is no place at all: the words are read as they are.
+    expect((await searchFromWords({ words: '2 bed', place: 'nowhere-at-all' })).href).toBe(
+      '/?beds=2',
+    );
+  });
+
+  it('UX-SR-11, rule 3: what a renter says about themselves never names a place', async () => {
+    const outcome = await searchFromWords({
+      words: 'I’m a nurse on HAP with a baby, looking for a 2 bed',
+    });
+    expect(outcome.href).toBe('/?beds=2');
+  });
+});
+
+describe('UX-SR-11, UX-SR-14: what the search bar looks up is never kept', () => {
+  it('UX-SR-14: a word that finds no place is counted from "Where", and never from the search bar', async () => {
+    const misses = () =>
+      withSystem(async (tx) => {
+        const found = await tx.execute<{ text: string }>(sql`select text from place_misses`);
+        return found.rows.map((row) => row.text);
+      });
+    await suggestWhere('zorblaxtown', { countMisses: false });
+    expect(await misses()).not.toContain('zorblaxtown');
+    await suggestWhere('quillonford');
+    expect(await misses()).toContain('quillonford');
   });
 });

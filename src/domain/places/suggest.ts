@@ -73,9 +73,14 @@ export function matchQuality(query: string, place: Place): { quality: number; ne
     .filter((n): n is string => Boolean(n))
     .map(normalise);
   const key = parseRoutingKey(query);
-  if (names.includes(q) || (key !== null && place.routingKey === key)) {
+  // Its own name, each side of a "/" ("Dingle / Daingean Uí Chúis"), or its routing key.
+  const own = [place.name, ...place.name.split(' / ')].map(normalise);
+  if (own.includes(q) || (key !== null && place.routingKey === key)) {
     return { quality: 1, near: false };
   }
+  // Another name it goes by: just behind a place that is called exactly this, so "Phoenix
+  // Park" is the park before the station that serves it.
+  if (names.includes(q)) return { quality: 0.97, near: false };
   // A name that starts with what was typed. When that's whole words with more after, the fewer
   // more the better, so "University College Dublin" puts "... (Belfield Campus)" before
   // "... - Lyons Research Farm". A word still being typed ("rath") keeps them equal.

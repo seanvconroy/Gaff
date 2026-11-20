@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { type FormEvent, useId, useState } from 'react';
+import { type FormEvent, type ReactNode, useId, useState } from 'react';
 import { chipLabel, distanceCopy, searchCopy, withinWords } from '@/copy/search';
 import {
   type FilterKey,
@@ -14,19 +14,15 @@ import {
   WITHIN_KM,
   writeBBox,
 } from '@/domain/search/filters';
-import type { WhereGroupKind, WhereOption, WhereSuggestions } from '@/server/search/where';
+import { writeShapes } from '@/domain/search/shapes';
 import { Button } from '@/ui/Button';
 import { Chips } from '@/ui/Chips';
 import { SelectField, TextField } from '@/ui/Field';
 import { FilterChips } from '@/ui/FilterChips';
 import { DateField } from '@/ui/Pickers';
-import {
-  type PlaceIcon,
-  type PlaceOption,
-  PlaceSearch,
-  type PlaceSuggestions,
-} from '@/ui/PlaceSearch';
-import { recentPlaces, rememberPlace } from './recent';
+import { PlaceSearch } from '@/ui/PlaceSearch';
+import { findPlaces } from './places-client';
+import { rememberPlace } from './recent';
 import { Sheet } from '@/ui/Sheet';
 import styles from './search.module.css';
 
@@ -35,57 +31,12 @@ import styles from './search.module.css';
  * opens every filter as an ordinary control; a chip opens just its own. Pressing "Show homes"
  * makes the search's address from the controls' values alone (UX-SR-12) and opens it.
  *
- * The place search asks Gaff's own place index (/api/places, ADR-0018) and nothing else: no map
- * or address provider sees what is typed (UX-SR-5, rule 10). What was searched this visit stays
- * in this browser tab (./recent.ts).
+ * The place search asks Gaff's own place index and nothing else (./places-client.ts).
  */
 
 /** Which controls a sheet shows: furnished and parking are asked together, as "The home". */
 type Panel = 'all' | Exclude<FilterKey, 'parking'>;
 const panelOf = (key: FilterKey): Panel => (key === 'parking' ? 'furnished' : key);
-
-const groupLabels: Record<WhereGroupKind, string> = {
-  places: searchCopy.where.groups.places,
-  streets: searchCopy.where.groups.streets,
-  landmarks: searchCopy.where.groups.landmarks,
-  popular: searchCopy.where.groups.popular,
-};
-
-function iconOf(option: WhereOption): PlaceIcon {
-  if (option.kind === 'street') return 'street';
-  if (option.kind === 'routing_key') return 'routing_key';
-  if (option.kind === 'landmark') return option.landmarkKind ?? 'landmark';
-  return 'place';
-}
-
-/** Suggestions from Gaff's own place index; before typing, this visit's places first. */
-async function findPlaces(query: string): Promise<PlaceSuggestions> {
-  const response = await fetch(`/api/places?q=${encodeURIComponent(query)}`);
-  if (!response.ok) throw new Error(`Place search: ${response.status}`);
-  const found = (await response.json()) as WhereSuggestions;
-  const groups = found.groups.map((group) => ({
-    label: groupLabels[group.kind],
-    options: group.items.map((item): PlaceOption => ({
-      id: item.slug,
-      name: item.name,
-      label: item.label,
-      description: item.description,
-      icon: iconOf(item),
-    })),
-  }));
-  if (query) return { groups, didYouMean: found.didYouMean };
-  const recent = recentPlaces();
-  const seen = new Set(recent.map((o) => o.id));
-  return {
-    groups: [
-      ...(recent.length ? [{ label: searchCopy.where.groups.recent, options: recent }] : []),
-      ...groups
-        .map((group) => ({ ...group, options: group.options.filter((o) => !seen.has(o.id)) }))
-        .filter((group) => group.options.length > 0),
-    ],
-    didYouMean: false,
-  };
-}
 
 function notFound(typed: string, near: boolean) {
   const missed = searchCopy.where.notFound(typed);
@@ -98,6 +49,7 @@ export function SearchControls({
   near,
   keepRent,
   today,
+  save,
 }: {
   filters: SearchFilters;
   /** The search's place as the index names it: "Ranelagh, Dublin 6". */
@@ -110,6 +62,8 @@ export function SearchControls({
   keepRent: boolean;
   /** Today in Ireland: the earliest move-in date. */
   today: string;
+  /** "Save search", beside Filters (UX-SR-10). */
+  save?: ReactNode;
 }) {
   const router = useRouter();
   const [panel, setPanel] = useState<Panel | null>(null);
@@ -127,16 +81,17 @@ export function SearchControls({
     // A place goes with its "Within".
     go(panel === 'where' ? without(rest, 'within') : rest);
   };
-  /** What a panel's "Show homes" keeps: a new place replaces a map area and its distance. */
+  /** What a panel's "Show homes" keeps: a new place replaces a map area, drawn areas and its distance. */
   const kept = (open: Exclude<Panel, 'all'>): SearchFilters =>
     open === 'where'
-      ? without(without(without(filters, 'box'), 'within'), 'where')
+      ? without(without(without(without(filters, 'shapes'), 'box'), 'within'), 'where')
       : without(filters, open);
   return (
     <>
       <FilterChips
         label={searchCopy.understood}
         filtersLabel={searchCopy.filters}
+        extra={save}
         chips={chips}
         onFilters={() => setPanel('all')}
         onChip={(key) => setPanel(panelOf(key as FilterKey))}
@@ -206,13 +161,16 @@ function FilterSheet({
       return;
     }
     const home = form.getAll('home');
-    // A map area stays until a place is chosen in its stead (it has no field of its own here).
+    // A map area or drawn areas stay until a place is chosen in their stead (they have no field
+    // of their own here).
     const area = !where && filters.box ? writeBBox(filters.box) : undefined;
+    const draw = !where && filters.shapes ? writeShapes(filters.shapes) : undefined;
     onShow(
       filtersFromParams({
         where: where || undefined,
         km: where && where === filters.where ? text('km') : undefined,
         area,
+        draw,
         max,
         beds: text('beds'),
         from: text('from'),
@@ -278,6 +236,7 @@ function FilterSheet({
           />
         ) : null}
         {panel === 'box' ? <p>{distanceCopy.box}</p> : null}
+        {panel === 'shapes' ? <p>{distanceCopy.shapes}</p> : null}
         {shows('beds') ? (
           <Chips
             name="beds"

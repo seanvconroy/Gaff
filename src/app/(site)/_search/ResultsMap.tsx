@@ -6,6 +6,7 @@ import type { MapArea } from '@/domain/map/camera';
 import type { MapEvent } from '@/domain/map/counts';
 import type { BBox } from '@/domain/places/geo';
 import { searchHref, writeBBox, type SearchFilters } from '@/domain/search/filters';
+import type { Shape } from '@/domain/search/shapes';
 import type { MapSettings } from '@/lib/map';
 import { openPage } from '@/ui/MapBoundary';
 import { type MapCardData, type MapPins, SearchMap } from '@/ui/SearchMap';
@@ -13,8 +14,9 @@ import { type MapCardData, type MapPins, SearchMap } from '@/ui/SearchMap';
 /**
  * M57, M117, M133: the search's map, wired to the page. Its pins come from the search's own
  * address (the filters, never what was typed), a pin's card from the home's public reference,
- * and "Search this area" makes a new search with the map area in place of the place. A card in
- * the list and its pin light each other up. Each use of the map is counted as a fixed code.
+ * and moving the map, or drawing on it, makes a new search with the map area or the drawn areas
+ * in place of the place (Q60, UX-SR-13). A card in the list and its pin light each other up.
+ * Each use of the map is counted as a fixed code.
  */
 
 /** M133: one use of the map, through the page's own beacon. No cookies; never the search. */
@@ -63,13 +65,22 @@ export function ResultsMap({
     const response = await fetch(`/api/search/card?id=${encodeURIComponent(id)}`);
     return response.ok ? ((await response.json()) as MapCardData) : null;
   }, []);
-  const onSearchArea = useCallback(
-    (box: BBox) => {
-      const { where: _place, within: _within, ...rest } = filters;
-      openPage(router, searchHref({ ...rest, box }, { rent: keepRent }));
+  /**
+   * The search's place gives way to what the map says: the area in view, or the areas drawn on
+   * it. The first step away from a place is a new entry in the browser's history, so Back
+   * returns to the place; every move after that replaces it, so Back isn't a replay of the map.
+   */
+  const searchWhere = useCallback(
+    (area: { box: BBox } | { shapes: Shape[] }) => {
+      const { where, within: _within, box: _box, shapes: _shapes, ...rest } = filters;
+      const href = searchHref({ ...rest, ...area }, { rent: keepRent });
+      if (where || window.location.pathname !== '/') openPage(router, href);
+      else router.replace(href, { scroll: false });
     },
     [filters, keepRent, router],
   );
+  const onSearchArea = useCallback((box: BBox) => searchWhere({ box }), [searchWhere]);
+  const onShapes = useCallback((shapes: Shape[]) => searchWhere({ shapes }), [searchWhere]);
 
   // A card pointed at in the list lights its pin; a pin pointed at lights its card (M117).
   useEffect(() => {
@@ -110,6 +121,7 @@ export function ResultsMap({
       loadPins={loadPins}
       loadCard={loadCard}
       onSearchArea={onSearchArea}
+      onShapes={onShapes}
       hovered={hovered}
       onHover={setHovered}
       count={countMap}

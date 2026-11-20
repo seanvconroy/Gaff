@@ -933,8 +933,8 @@ export default function ComponentsPage() {
 
         <Section
           id="search-box"
-          title="Search box with chips"
-          lead="One box for a sentence, its button, and what Gaff understood as chips: Filters first, then one chip per filter, each opening its control. The heart saves a home."
+          title="Search bar with chips"
+          lead="One box for a place, a road or a sentence, with suggestions under it as it’s typed; its button; and what Gaff understood as chips: Filters first, then Save search, then one chip per filter, each opening its control. The heart saves a home."
         >
           <SearchBoxDemo />
           <HomeGrid label="Search results">

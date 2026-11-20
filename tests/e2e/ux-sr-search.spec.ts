@@ -173,7 +173,7 @@ const fits = (page: Page) => page.getByRole('list', { name: /fits? what you aske
 const closeList = (page: Page) => page.getByRole('list', { name: 'Close to what you asked' });
 
 async function searchFor(page: Page, words: string) {
-  await page.getByRole('textbox', { name: 'What are you looking for?' }).fill(words);
+  await page.getByRole('combobox', { name: 'What are you looking for?' }).fill(words);
   await page.getByRole('button', { name: 'Search', exact: true }).click();
 }
 
@@ -187,7 +187,8 @@ for (const [width, viewport] of widths) {
       page.getByRole('heading', { level: 1, name: 'What are you looking for?' }),
     ).toBeVisible();
     await expect(page.getByRole('search')).toBeVisible();
-    await expect(page.getByText('Everyone hears back.')).toBeVisible();
+    // Q60: nothing on this screen but the search and its results.
+    await expect(page.getByText('Everyone hears back.')).toHaveCount(0);
     // No hero, no tour: the homes, newest first, under the box.
     const homes = page.getByRole('list', { name: 'Homes on Gaff now' });
     await expect(homes).toBeVisible();
@@ -200,7 +201,8 @@ for (const [width, viewport] of widths) {
       /^\/homes\/[0-9a-f]{12}$/,
     );
     await expect(card.getByText('Free now')).toBeVisible();
-    await expect(page.getByText('Letting a home? Gaff runs it for you.')).toBeVisible();
+    await expect(page.getByText('Letting a home? Gaff runs it for you.')).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Map and place data' })).toHaveCount(0);
     // One primary button: Search.
     await expect(page.locator('[data-button="primary"]')).toHaveCount(1);
     await expectNoSidewaysScroll(page);
@@ -220,6 +222,7 @@ for (const [width, viewport] of widths) {
     await expect(page).toHaveURL(SENT_HREF);
     await expect(understood(page).getByRole('button')).toHaveText([
       'Filters',
+      'Save search',
       'Greystones, Co. Wicklow',
       '2 bedrooms',
       'Up to €2,000 a month',
@@ -236,7 +239,7 @@ for (const [width, viewport] of widths) {
     // The sentence is gone: not on the page, not in the address, not in the database.
     expect(page.url()).not.toMatch(/quillon|nurse|hap|partner/i);
     await expect(page.getByText(/quillon|nurse/i)).toHaveCount(0);
-    await expect(page.getByRole('textbox', { name: 'What are you looking for?' })).toHaveValue('');
+    await expect(page.getByRole('combobox', { name: 'What are you looking for?' })).toHaveValue('');
     expect(await everythingStored()).not.toMatch(/quillon/i);
     await expectNoSidewaysScroll(page);
     await settled(page);
@@ -361,6 +364,7 @@ test('UX-SR-12: a shared address reopens the same search, with no account', asyn
   await page.goto(SENT_HREF);
   await expect(understood(page).getByRole('button')).toHaveText([
     'Filters',
+    'Save search',
     'Greystones, Co. Wicklow',
     '2 bedrooms',
     'Up to €2,000 a month',
@@ -386,7 +390,11 @@ test('UX-AI-12, UX-SR-3: search works with the reader switched off, and says whe
 
   await searchFor(page, 'somewhere lovely');
   await expect(page).toHaveURL('/?unclear=1');
-  await expect(page.getByText('Try a place, like Ranelagh, or use Filters.')).toBeVisible();
+  await expect(
+    page.getByText(
+      'Gaff didn’t understand that. Try an area or a road, like Ranelagh or Highfield Road.',
+    ),
+  ).toBeVisible();
   await expectAccessible(page);
 });
 
@@ -514,10 +522,14 @@ test('M121, M114: before typing, the places with homes, then this visit’s plac
 });
 
 for (const [width, viewport] of widths) {
-  test(`M56: the place data is credited, from under the search (${width})`, async ({ page }) => {
+  test(`M56: the place data is credited, from the search’s suggestions (${width})`, async ({
+    page,
+  }) => {
     await page.setViewportSize(viewport);
     await page.goto('/');
-    await page.getByRole('link', { name: 'Map and place data' }).click();
+    // Q60: off the search screen itself; under the suggestions, where the data is used.
+    await page.getByRole('combobox', { name: 'What are you looking for?' }).fill('Kinsale');
+    await page.getByRole('link', { name: 'Places from OpenStreetMap' }).click();
     await expect(page).toHaveURL('/map-and-place-data');
     await expect(page.getByRole('heading', { level: 1, name: 'Map and place data' })).toBeVisible();
     await expect(
@@ -532,3 +544,78 @@ for (const [width, viewport] of widths) {
     await expectAccessible(page);
   });
 }
+
+const box = (page: Page) => page.getByRole('combobox', { name: 'What are you looking for?' });
+
+for (const [width, viewport] of widths) {
+  test(`UX-SR-14: a road typed in the search box is found, by Enter or from the suggestions (${width})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    // Before typing, the box says what it takes.
+    await box(page).click();
+    await expect(page.getByText(/^Type an area, a road or an Eircode\./)).toBeVisible();
+    await expectAccessible(page);
+
+    // A road's name and Enter: the road, from the whole place index.
+    await box(page).fill('Highfield Road');
+    await expect(
+      page.getByRole('option', { name: /^Highfield Road Rathgar, Dublin 6/ }),
+    ).toBeVisible();
+    await settled(page);
+    await screenshot(page, `ux-sr-14-suggestions-${width}`);
+    await box(page).press('Enter');
+    await expect(page).toHaveURL('/?where=highfield-road-rathgar-dublin-6');
+    await expect(understood(page).getByRole('button')).toHaveText([
+      'Filters',
+      'Save search',
+      'Near Highfield Road, Rathgar',
+    ]);
+    await expect(box(page)).toHaveValue('');
+
+    // A sentence: what Gaff reads in it is shown as it's typed, and the road is suggested by
+    // the part of it that could be a place. Picking it searches there, with the rest.
+    await box(page).fill('2 bed near highfield r');
+    await expect(page.getByRole('option', { name: 'Search for 2 bedrooms' })).toBeVisible();
+    await page.getByRole('option', { name: /^Highfield Road County Cavan/ }).click();
+    await expect(page).toHaveURL('/?where=highfield-road-county-cavan&beds=2');
+    await expect(understood(page)).toContainText('Near Highfield Road, Co. Cavan');
+
+    // The arrow keys and Enter pick a suggestion; with none in hand, Enter sends the words.
+    await box(page).fill('kinsale');
+    await expect(page.getByRole('option', { name: /^Kinsale Town in County Cork/ })).toBeVisible();
+    await box(page).press('ArrowDown');
+    await box(page).press('Enter');
+    await expect(page).toHaveURL('/?where=kinsale');
+    await box(page).fill('2 bed near Highfield Road under 2000');
+    await box(page).press('Enter');
+    await expect(page).toHaveURL('/?where=highfield-road-rathgar-dublin-6&beds=2&max=2000');
+    await expectNoSidewaysScroll(page);
+    await expectAccessible(page);
+  });
+}
+
+test('UX-SR-11, UX-SR-14: only the part of the words that could be a place is ever looked up', async ({
+  page,
+}) => {
+  await page.setViewportSize(phone);
+  const asked: string[] = [];
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (url.pathname !== '/api/places') return;
+    asked.push(url.searchParams.get('q') ?? '');
+    if (url.searchParams.get('q')) expect(url.searchParams.get('bar')).toBe('1');
+  });
+  await page.goto('/');
+  await box(page).pressSequentially('me and my partner want a 2 bed near highfield r', {
+    delay: 5,
+  });
+  await expect(page.getByRole('option', { name: /^Highfield Road Rathgar/ })).toBeVisible();
+  const words = asked.join(' ').split(' ').filter(Boolean);
+  expect(words).toContain('highfield');
+  for (const word of ['me', 'my', 'partner', 'want', 'bed', '2']) expect(words).not.toContain(word);
+  // And what the bar asks is never counted as a place nobody found.
+  const requests = asked.filter(Boolean);
+  expect(requests.length).toBeGreaterThan(0);
+});

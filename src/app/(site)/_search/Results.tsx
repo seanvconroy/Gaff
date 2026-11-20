@@ -1,6 +1,14 @@
-import { SearchX } from 'lucide-react';
-import { cardLine, fitHeading, freeFrom, missWords, saveLabel, searchCopy } from '@/copy/search';
-import { savedCopy } from '@/copy/saved';
+import { Info, SearchX } from 'lucide-react';
+import Link from 'next/link';
+import {
+  awayWords,
+  cardLine,
+  fitHeading,
+  freeFrom,
+  missWords,
+  saveLabel,
+  searchCopy,
+} from '@/copy/search';
 import {
   filtersToParams,
   hasFilters,
@@ -12,7 +20,7 @@ import type { Gazetteer } from '@/domain/search/places';
 import { developmentCopy } from '@/copy/developments';
 import { type Alike, developmentHref, groupAlike } from '@/domain/developments/development';
 import { formatRent, irishToday } from '@/lib/format';
-import { findHomes, type HomeOnGaff } from '@/server/search/homes';
+import { findHomes, type HomeOnGaff, nearestHomesTo } from '@/server/search/homes';
 import { countSearch } from '@/server/search/search';
 import { EmptyState } from '@/ui/EmptyState';
 import { HomeCard, HomeGrid } from '@/ui/HomeCard';
@@ -29,8 +37,8 @@ export type Saver =
  * home on Gaff, newest first. With filters, the homes that fit, then those close to what was
  * asked, each saying the one point it misses; or, when nothing fits, the empty state.
  *
- * UX-SR-10: a search can be saved from the empty state ("Tell me when one comes up", its one
- * primary action) and from under the homes that fit ("Tell me about new ones").
+ * UX-SR-10: a search is saved from "Save search" beside Filters, and from the empty state
+ * ("Tell me when one comes up", its one primary action).
  */
 export async function Results({
   filters,
@@ -47,6 +55,8 @@ export async function Results({
 }) {
   const { fits, close } = await findHomes(filters, g);
   const searching = hasFilters(filters);
+  // UX-SR-15: nothing where they searched: the nearest homes that fit the rest.
+  const nearest = fits.length === 0 ? await nearestHomesTo(filters, g) : [];
   if (searching) await countSearch({ fits: fits.length, close: close.length });
   const today = irishToday();
   const query = new URLSearchParams(filtersToParams(filters)).toString();
@@ -79,40 +89,57 @@ export async function Results({
       alikeKey: each.home.alikeKey ? `${each.home.alikeKey}:${missWords(each.miss)}` : null,
     })),
   );
-  const keep = (primary: boolean, label?: string) =>
-    searching ? (
-      <TellMeWhen
-        query={query}
-        primary={primary}
-        signedIn={saver.signedIn}
-        kept={saver.signedIn && saver.keepsSearch}
-        label={label}
-      />
-    ) : undefined;
+  const keep = searching ? (
+    <TellMeWhen
+      key={query}
+      query={query}
+      primary
+      signedIn={saver.signedIn}
+      kept={saver.signedIn && saver.keepsSearch}
+    />
+  ) : undefined;
 
   return (
     <div className={styles.results}>
       {fits.length > 0 ? (
         <section className={styles.section} aria-labelledby="homes-fit">
-          <h2 id="homes-fit" className="type-title">
-            {searching ? fitHeading(fits.length) : searchCopy.homesNow}
-          </h2>
+          <div className={styles.heading}>
+            <h2 id="homes-fit" className="type-title">
+              {searching ? fitHeading(fits.length) : searchCopy.homesNow}
+            </h2>
+            {/* M59: what the order is, and that nobody can pay for it: one tap from the results. */}
+            <Link
+              href="/how-results-are-ordered"
+              className={styles.order}
+              aria-label={searchCopy.order}
+              title={searchCopy.order}
+            >
+              <Info size={20} strokeWidth={1.75} aria-hidden="true" />
+            </Link>
+          </div>
           <HomeGrid labelledBy="homes-fit" beside={beside}>
             {groupAlike(fits).map((group) => shown(group))}
           </HomeGrid>
-          {searching ? (
-            <div className={styles.keepSearch}>{keep(false, savedCopy.alert.fromResults)}</div>
-          ) : null}
         </section>
       ) : (
         <EmptyState
           icon={SearchX}
           title={searching ? searchCopy.empty.title : searchCopy.noHomes.title}
-          action={keep(true)}
+          action={keep}
         >
           <p>{searching ? searchCopy.empty.text : searchCopy.noHomes.text}</p>
         </EmptyState>
       )}
+      {nearest.length > 0 ? (
+        <section className={styles.section} aria-labelledby="homes-nearest">
+          <h2 id="homes-nearest" className="type-title">
+            {searchCopy.nearest}
+          </h2>
+          <HomeGrid labelledBy="homes-nearest" beside={beside}>
+            {nearest.map((each) => card(each.home, awayWords(each.metres)))}
+          </HomeGrid>
+        </section>
+      ) : null}
       {close.length > 0 ? (
         <section className={styles.section} aria-labelledby="homes-close">
           <h2 id="homes-close" className="type-title">

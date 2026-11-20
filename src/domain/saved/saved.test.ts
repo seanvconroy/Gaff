@@ -5,6 +5,11 @@ import { parseSearch } from '@/domain/search/parse';
 import type { SearchableHome } from '@/domain/search/match';
 import {
   alertDueToday,
+  alertFrequencySchema,
+  type AlertableHome,
+  dailyAlertsMayGo,
+  nextDailySend,
+  savedHomeChanges,
   alertEmailSchema,
   emailSearchRetention,
   filtersToKeep,
@@ -19,7 +24,7 @@ import {
 } from './saved';
 
 let n = 0;
-function aHome(over: Partial<SearchableHome> = {}): SearchableHome {
+function aHome(over: Partial<AlertableHome> = {}): SearchableHome & AlertableHome {
   n += 1;
   return {
     id: n.toString(16).padStart(12, 'a'),
@@ -148,6 +153,91 @@ describe('UX-SR-10, UX-MT-16: which homes a saved search tells its renter about'
     const homes = [aHome(), aHome({ bedrooms: 1 }), aHome({ rentCents: 1_800_00 })];
     const told = newHomesFor({ ...search, told: [] }, homes, g).map((h) => h.id);
     expect(told.sort()).toEqual([homes[0]!.id, homes[2]!.id].sort());
+  });
+});
+
+describe('M86: a home whose rent came down is news again, once', () => {
+  const search = { filters: { where: 'greystones', beds: 2, maxRent: 2000 }, since: SAVED };
+
+  it('M86: a home live before the search, whose rent came down after it, is told', () => {
+    const cheaper = aHome({
+      liveAt: new Date('2026-11-10T12:00:00Z'),
+      newsAt: new Date('2026-11-18T12:00:00Z'),
+    });
+    expect(newHomesFor({ ...search, told: [] }, [cheaper], g)).toEqual([cheaper]);
+    expect(newHomesFor({ ...search, told: [cheaper.id] }, [cheaper], g)).toEqual([]);
+  });
+
+  it('M86: a rent that came down before the search was saved is not news to it', () => {
+    const old = aHome({
+      liveAt: new Date('2026-11-10T12:00:00Z'),
+      newsAt: new Date('2026-11-12T12:00:00Z'),
+    });
+    expect(newHomesFor({ ...search, told: [] }, [old], g)).toEqual([]);
+  });
+});
+
+describe('M86 (Q51): as soon as a home is listed, or once a day at 8am', () => {
+  it('M86: the two choices, and nothing else', () => {
+    expect(alertFrequencySchema.options).toEqual(['instant', 'daily']);
+    expect(alertFrequencySchema.safeParse('weekly').success).toBe(false);
+  });
+
+  it('M86: the daily email goes at 8am Irish time, in winter and in summer', () => {
+    expect(nextDailySend(new Date('2026-11-20T07:59:00Z'))).toEqual(
+      new Date('2026-11-20T08:00:00Z'),
+    );
+    expect(nextDailySend(new Date('2026-11-20T08:00:00Z'))).toEqual(
+      new Date('2026-11-21T08:00:00Z'),
+    );
+    // Irish summer time: 8am is 07:00 UTC.
+    expect(nextDailySend(new Date('2026-07-20T06:30:00Z'))).toEqual(
+      new Date('2026-07-20T07:00:00Z'),
+    );
+    expect(dailyAlertsMayGo(new Date('2026-07-20T07:00:00Z'))).toBe(true);
+    expect(dailyAlertsMayGo(new Date('2026-11-20T07:30:00Z'))).toBe(false);
+  });
+});
+
+describe('M85: what changed on a saved home', () => {
+  it('M85: a lower rent, and new viewing times, since it was saved', () => {
+    expect(
+      savedHomeChanges(
+        { rentCentsWhenSaved: 1_950_00 },
+        { state: 'live', rentCents: 1_850_00, newViewings: true },
+      ),
+    ).toEqual([
+      { kind: 'rent_down', fromCents: 1_950_00, toCents: 1_850_00 },
+      { kind: 'new_viewings' },
+    ]);
+  });
+
+  it('M85: a rent that went up, or stayed, says nothing; nor does a home saved before rents were kept', () => {
+    const live = { state: 'live' as const, newViewings: false };
+    expect(
+      savedHomeChanges({ rentCentsWhenSaved: 1_950_00 }, { ...live, rentCents: 2_000_00 }),
+    ).toEqual([]);
+    expect(
+      savedHomeChanges({ rentCentsWhenSaved: 1_950_00 }, { ...live, rentCents: 1_950_00 }),
+    ).toEqual([]);
+    expect(
+      savedHomeChanges({ rentCentsWhenSaved: null }, { ...live, rentCents: 1_000_00 }),
+    ).toEqual([]);
+  });
+
+  it('M85: a let home says it has been let, and a home gone from Gaff says nothing more', () => {
+    expect(
+      savedHomeChanges(
+        { rentCentsWhenSaved: 1 },
+        { state: 'let', rentCents: null, newViewings: false },
+      ),
+    ).toEqual([{ kind: 'let' }]);
+    expect(
+      savedHomeChanges(
+        { rentCentsWhenSaved: 1 },
+        { state: 'gone', rentCents: null, newViewings: false },
+      ),
+    ).toEqual([]);
   });
 });
 

@@ -46,6 +46,12 @@ export const perAddress: Record<LimitedStep, Limit> = {
   confirm_check: { max: 10, windowSeconds: 60 },
 };
 
+/**
+ * M82 (BA-13): asking to view, at most 30 a day from one person (their account, or the email
+ * they typed) or one network address: a real renter never comes near it, and a script stops.
+ */
+export const ASKS_TO_VIEW_PER_DAY: Limit = { max: 30, windowSeconds: 24 * 60 * 60 };
+
 /** AU12, UX-AG-11: invitations, new or sent again, from one organisation. */
 export const INVITES_PER_ORGANISATION: Limit = { max: 30, windowSeconds: 60 * 60 };
 

@@ -165,7 +165,9 @@ describe('M49: a live home stays fresh', () => {
 
     // A made-up or altered link opens nothing.
     expect(await stillAvailableByLink(id!, 'x'.repeat(43))).toBeNull();
-    expect(await confirmByLink(id!, `${token!.slice(0, -1)}A`)).toBeNull();
+    // The last character changes to one it isn't, so this is never the link as sent.
+    const altered = `${token!.slice(0, -1)}${token!.endsWith('A') ? 'B' : 'A'}`;
+    expect(await confirmByLink(id!, altered)).toBeNull();
     expect(await stillAvailableByLink(crypto.randomUUID(), token!)).toBeNull();
     // Opening it asks first: nothing changes until the button.
     expect(await stillAvailableByLink(id!, token!)).toMatchObject({

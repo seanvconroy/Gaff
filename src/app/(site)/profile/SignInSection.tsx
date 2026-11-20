@@ -27,6 +27,7 @@ import {
   disconnectAction,
   passkeyAddedAction,
   readyToAddPasskey,
+  removeMobileAction,
   removePasskeyAction,
   renamePasskeyAction,
   signOutDeviceAction,
@@ -37,6 +38,8 @@ import {
 /** What "Sign-in" and "Signed-in devices" show, already in words. Built by the page. */
 export interface SignInView {
   email: string;
+  /** UX-SI-13: the mobile number they sign in with, masked ("087 ••• 4567"), if they have one. */
+  mobile: string | null;
   hasPasskey: boolean;
   providers: {
     provider: SignInProvider;
@@ -178,6 +181,25 @@ export function SignInSection({ view }: { view: SignInView }) {
         <SummaryList
           rows={[
             { label: c.codeByEmail, value: c.codeTo },
+            // UX-SI-13: listed once they have one. It's added by signing in with it.
+            ...(view.mobile
+              ? [
+                  {
+                    label: c.mobile,
+                    value: view.mobile,
+                    action: (
+                      <Button
+                        variant="quiet"
+                        disabled={busy !== null}
+                        onClick={() => change('remove-mobile', () => removeMobileAction())}
+                      >
+                        {c.remove}
+                        <span className="visually-hidden"> {c.mobile}</span>
+                      </Button>
+                    ),
+                  },
+                ]
+              : []),
             ...providerRows,
             ...view.passkeys.map((key) => ({
               label: key.name,

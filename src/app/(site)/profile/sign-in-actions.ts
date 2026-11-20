@@ -17,6 +17,7 @@ import { currentSession } from '@/server/auth/member';
 import {
   disconnectProvider,
   removePasskey,
+  removeSignInMobile,
   renamePasskey,
   signOutDevice,
   signOutOtherDevices,
@@ -115,6 +116,17 @@ export async function connectAction(provider: string): Promise<SignInAnswer> {
   }
   if (!started.url) return { problem: profileCopy.signIn.problems.connect(names[which.data]) };
   redirect(started.url);
+}
+
+/** UX-SI-13: "Remove" the mobile number they sign in with. A code by email still gets them in. */
+export async function removeMobileAction(): Promise<SignInAnswer> {
+  const session = await signedIn();
+  return withConfirmation(session.user.id, async (confirmation) =>
+    answer(
+      await removeSignInMobile(session.user.id, confirmation),
+      profileCopy.signIn.mobileRemoved,
+    ),
+  );
 }
 
 /** AU6: "Rename" a passkey, from its sheet. */

@@ -5,6 +5,7 @@ import {
   applications,
   memberships,
   passkeys,
+  signInMobiles,
   profileEvents,
   profiles,
   renterDocuments,
@@ -178,7 +179,8 @@ export interface ProfileDownload {
   email: string;
   rentingSince: Date | null;
   kept: Awaited<ReturnType<typeof readRenterProfile>>;
-  signIn: { providers: string[]; passkeys: number };
+  /** UX-SI-13: `mobile` is the number they sign in with, in full: it's their own copy. */
+  signIn: { providers: string[]; passkeys: number; mobile: string | null };
   enquiries: Array<{ applicationId: string; addedAt: Date }>;
   /** Saved: each home by its public reference, and each search as its chips' values. */
   saved: {
@@ -207,6 +209,10 @@ export async function profileForDownload(person: SignedInPerson): Promise<Profil
       .select({ id: passkeys.id })
       .from(passkeys)
       .where(and(eq(passkeys.userId, person.id)));
+    const [number] = await tx
+      .select({ mobile: signInMobiles.mobile })
+      .from(signInMobiles)
+      .where(eq(signInMobiles.userId, person.id));
     const homes = await tx
       .select({ ref: savedHomes.homeRef, savedAt: savedHomes.createdAt })
       .from(savedHomes)
@@ -222,7 +228,11 @@ export async function profileForDownload(person: SignedInPerson): Promise<Profil
       email: person.email,
       rentingSince: own?.rentingSince ?? null,
       kept,
-      signIn: { providers: methods.map((method) => method.provider), passkeys: keys.length },
+      signIn: {
+        providers: methods.map((method) => method.provider),
+        passkeys: keys.length,
+        mobile: number?.mobile ?? null,
+      },
       enquiries: enquiries.map((enquiry) => ({
         applicationId: enquiry.applicationId,
         addedAt: enquiry.addedAt,

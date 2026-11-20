@@ -9,6 +9,7 @@ import { db } from '@/db/client';
 import { accounts, passkeys, sessions, users, verifications } from '@/db/schema';
 import { openToBrowsers } from '@/domain/auth/browser-routes';
 import {
+  codeMethod,
   methodForPath,
   providerMode,
   signInProviderSchema,
@@ -22,6 +23,7 @@ import { env, type Env } from '@/lib/env';
 import { appleConfigured, appleSecretFrom } from './apple-client-secret';
 import { checkProviderIdentity } from './identity';
 import { limitTries, type HookContext } from './limits';
+import { rememberMadeByProvider, wasMadeByProvider } from './made-by-provider';
 import { guardPasskeyAdd } from './passkey-guard';
 import { confirmWithPasskey, gaffSignIn } from './plugin';
 import { noteSignInChangeAfter } from './security';
@@ -78,13 +80,13 @@ function methodOf(ctx: HookContext | null | undefined) {
   return methodForPath(ctx.path ?? '', provider);
 }
 
-/** People just made by signing in with Google or Apple, so that isn't also news of a change. */
-const madeByProvider = new Map<string, number>();
-
-function rememberMadeByProvider(userId: string): void {
-  const now = Date.now();
-  for (const [id, at] of madeByProvider) if (now - at > 60_000) madeByProvider.delete(id);
-  madeByProvider.set(userId, now);
+/**
+ * UX-SI-13: a code is by email unless Gaff's own code endpoint, making the session, says it came
+ * by text. For every other route the method is the route's, whatever the session is handed.
+ */
+function sessionMethod(session: object, ctx: HookContext | null | undefined) {
+  const named = (session as { signInMethod?: unknown }).signInMethod;
+  return codeMethod(ctx?.path ?? '', named) ?? methodOf(ctx);
 }
 
 /**
@@ -94,7 +96,7 @@ function rememberMadeByProvider(userId: string): void {
  */
 async function providerJoined(account: { providerId: string; userId: string }): Promise<void> {
   const provider = signInProviderSchema.safeParse(account.providerId);
-  if (!provider.success || madeByProvider.has(account.userId)) return;
+  if (!provider.success || wasMadeByProvider(account.userId)) return;
   await noteSignInChangeAfter(account.userId, 'added', provider.data);
 }
 
@@ -123,8 +125,8 @@ async function passkeyAdded(ctx: HookContext): Promise<void> {
 }
 
 /**
- * Sign-in for people with accounts (ADR-0015, hardened by ADR-0019): Google, Apple, or a
- * six-digit code by email, and a passkey afterwards. No passwords. Built on Better Auth, so
+ * Sign-in for people with accounts (ADR-0015, hardened by ADR-0019, joined up by ADR-0032):
+ * Google, Apple, or a six-digit code by email or by text, and a passkey afterwards. No passwords. Built on Better Auth, so
  * accounts and sessions live in our own Postgres. Built on first use, not at import.
  */
 function createAuth() {
@@ -210,7 +212,7 @@ function createAuth() {
       session: {
         create: {
           before: async (session, ctx) => ({
-            data: { ...session, signInMethod: methodOf(ctx) },
+            data: { ...session, signInMethod: sessionMethod(session, ctx) },
           }),
           after: async (session, ctx) => {
             await endPreviousSession(session.token, ctx);

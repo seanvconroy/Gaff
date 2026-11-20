@@ -252,10 +252,34 @@ export async function latestCodeFor(
   return code;
 }
 
+/** UX-SI-13: the newest six-digit sign-in code the development outbox "texted" to this number. */
+export async function latestTextCodeFor(mobile: string): Promise<string> {
+  const rows = await query<{ text: string }>(
+    `select text from dev_outbox where to_address = $1 and from_address = 'SMS'
+     order by created_at desc limit 1`,
+    [mobile],
+  );
+  const code = /code to sign in to Gaff is (\d{6})\./.exec(rows[0]?.text ?? '')?.[1];
+  if (!code) throw new Error(`No sign-in code has been texted to ${mobile}`);
+  return code;
+}
+
+let mobiles = 0;
+/** A made-up Irish mobile nobody else in this run has: how it's typed, and as it's kept. */
+export function uniqueMobile(): { typed: string; e164: string; shown: string } {
+  mobiles += 1;
+  const digits = String((Date.now() + mobiles * 7919) % 1e7).padStart(7, '0');
+  return {
+    typed: `087 ${digits.slice(0, 3)} ${digits.slice(3)}`,
+    e164: `+35387${digits}`,
+    shown: `087 ${digits.slice(0, 3)} ${digits.slice(3)}`,
+  };
+}
+
 /** Signs in through the real email-code flow (UX-SI-2): the address, then the six-digit code. */
 export async function signIn(page: Page, email: string): Promise<void> {
   await page.goto('/sign-in');
-  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Email or mobile number').fill(email);
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Enter your code' })).toBeVisible();
   await page.getByLabel('Six-digit code').fill(await latestCodeFor(email));

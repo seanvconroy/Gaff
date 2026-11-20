@@ -24,9 +24,10 @@ export async function GET(request: NextRequest): Promise<never> {
   redirect(
     await finishSignIn({
       userId: opened.userId,
-      method: 'email_code',
+      method: opened.method,
       attemptId: opened.attemptId,
       nextPath: opened.nextPath,
+      found: opened.found,
     }),
   );
 }

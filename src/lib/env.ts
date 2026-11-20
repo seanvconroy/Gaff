@@ -90,6 +90,11 @@ const schema = z
     SINCH_SERVICE_PLAN_ID: z.string().optional(),
     SINCH_API_TOKEN: z.string().optional(),
     SINCH_FROM: z.string().optional(),
+    /**
+     * UX-SI-13 (ADR-0032): every sign-in text Gaff may send in an hour, to anyone. Past it,
+     * sign-in by mobile asks for an email until the hour is out. 0 switches sign-in by mobile off.
+     */
+    SIGN_IN_TEXTS_PER_HOUR: z.coerce.number().int().min(0).default(300),
     /** Claude on Bedrock's region: Dublin (ADR-0009). */
     AWS_REGION: z.string().default('eu-west-1'),
     RETENTION_PERSONAL_DAYS: z.coerce.number().int().positive().default(30),

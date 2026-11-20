@@ -45,6 +45,9 @@ describe('AU11: a way in was added or removed', () => {
       ['removed', 'google', 'Google was disconnected from your Gaff account'],
       ['removed', 'apple', 'Apple was disconnected from your Gaff account'],
       ['removed', 'passkey', 'A passkey was removed from your Gaff account'],
+      // UX-SI-13: a mobile number is a way in too.
+      ['added', 'mobile', 'A mobile number was added to your Gaff account'],
+      ['removed', 'mobile', 'A mobile number was removed from your Gaff account'],
     ] as const;
     for (const [change, method, subject] of cases) {
       const email = signInChangedEmail({ change, method, when, profileUrl: PROFILE });

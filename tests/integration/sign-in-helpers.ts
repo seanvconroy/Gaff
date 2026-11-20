@@ -1,7 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { expect } from 'vitest';
 import { sealStandInPerson } from '@/adapters/sign-in/stand-in';
-import { signInCodeEmail } from '@/copy/sign-in';
+import { desc, eq } from 'drizzle-orm';
+import { signInCodeEmail, signInCodeText } from '@/copy/sign-in';
+import { db } from '@/db/client';
+import { devOutbox } from '@/db/schema';
+import type { Joining } from '@/domain/auth/joining';
 import type { SignInProvider } from '@/domain/auth/methods';
 import { auth } from '@/server/auth/auth';
 import { sendCode } from '@/server/auth/codes';
@@ -31,8 +35,15 @@ export function from(cookie: string, address = anAddress()): Headers {
   return new Headers({ cookie, 'x-forwarded-for': address });
 }
 
-/** Asks for a sign-in code, as the sign-in screen does. */
-export async function askForCode(email: string, browserKey: string | null = null) {
+/**
+ * Asks for a sign-in code, as the sign-in screen does. `joining` is what the code also joins to
+ * whoever enters it (UX-SI-14, UX-SI-15), which the server writes as it sends the code.
+ */
+export async function askForCode(
+  email: string,
+  browserKey: string | null = null,
+  joining: Joining | null = null,
+) {
   let code = '';
   const result = await sendCode({
     purpose: 'sign_in',
@@ -40,13 +51,69 @@ export async function askForCode(email: string, browserKey: string | null = null
     to: email,
     browserKey,
     linkPath: '/sign-in/open',
+    joining,
     compose: (sent, link) => {
       code = sent;
       return signInCodeEmail(sent, link);
     },
   });
   if (!result.sent) throw new Error(`the code was not sent: ${result.reason}`);
-  return { code, cookie: `${cookieNames.signInCode}=${result.browserKey}` };
+  return {
+    code,
+    browserKey: result.browserKey,
+    cookie: `${cookieNames.signInCode}=${result.browserKey}`,
+  };
+}
+
+/** A made-up Irish mobile, as +353871234567. */
+export const aMobile = () => `+35387${String(Math.floor(Math.random() * 1e7)).padStart(7, '0')}`;
+
+/** UX-SI-13: asks for a sign-in code by text, as the sign-in screen does. */
+export async function askForText(mobile: string, browserKey: string | null = null, now?: Date) {
+  let code = '';
+  const result = await sendCode(
+    {
+      purpose: 'sign_in',
+      subject: mobile,
+      to: mobile,
+      channel: 'sms',
+      browserKey,
+      text: (sent) => {
+        code = sent;
+        return signInCodeText(sent, 'gaff.test');
+      },
+    },
+    now,
+  );
+  if (!result.sent) throw new Error(`the text was not sent: ${result.reason}`);
+  return {
+    code,
+    browserKey: result.browserKey,
+    cookie: `${cookieNames.signInCode}=${result.browserKey}`,
+  };
+}
+
+/** One try at a code, through Gaff's own endpoint, from this browser's cookies. */
+export async function enterCode(code: string, cookie: string) {
+  const { headers, response } = await auth().api.signInWithCode({
+    body: { code },
+    headers: from(cookie),
+    returnHeaders: true,
+  });
+  return { response, cookie: cookiesFrom(headers) };
+}
+
+/** The code in the newest email in the development outbox to this address. */
+export async function codeEmailedTo(email: string) {
+  const [sent] = await db()
+    .select()
+    .from(devOutbox)
+    .where(eq(devOutbox.toAddress, email))
+    .orderBy(desc(devOutbox.createdAt))
+    .limit(1);
+  const code = sent?.subject.match(/^(\d{6}) /)?.[1];
+  if (!sent || !code) throw new Error('no code was emailed to that address');
+  return { code, text: sent.text };
 }
 
 /** Signs in by email code, through Gaff's own endpoint. Returns the session's cookies. */

@@ -14,7 +14,7 @@ describe('BA-8, M5: Gaff’s team open /internal with a passkey, in production',
   });
 
   it('asks for the passkey when they signed in another way', () => {
-    for (const method of ['email_code', 'google', 'apple', null] as const) {
+    for (const method of ['email_code', 'sms_code', 'google', 'apple', null] as const) {
       expect(
         staffAccess({ required: true, method, startedAt: hoursAgo(1), hasPasskey: true, now }),
       ).toBe('needs_passkey_sign_in');

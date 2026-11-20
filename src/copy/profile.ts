@@ -110,6 +110,7 @@ export const enquiriesCopy = {
 
 const methodWords: Record<SignInMethod, string> = {
   email_code: 'A code by email',
+  sms_code: 'A code by text',
   google: 'Google',
   apple: 'Apple',
   passkey: 'Passkey',
@@ -208,6 +209,10 @@ export const profileCopy = {
     /** BA-8 (AU7): what each way in is, and whether it's on. */
     lead: 'A code to your email always works. Add another way in, or take one off, here.',
     codeTo: 'Always works, to the email above',
+    /** UX-SI-13: the mobile number they sign in with, by a code by text. */
+    mobile: 'Mobile number',
+    mobileNone: 'Not added',
+    mobileRemoved: 'Mobile number removed.',
     connectedOn: (date: string) => `Connected on ${date}`,
     notConnected: 'Not connected',
     connect: 'Connect',

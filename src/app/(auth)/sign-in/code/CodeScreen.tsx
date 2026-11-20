@@ -10,30 +10,45 @@ import { checkSignInCode, sendNewSignInCode, type CodeState } from '../actions';
 import styles from '../sign-in.module.css';
 
 /** What to say under the code input, from the last answer. The words are section 2's. */
-export function codeError(status: CodeState['status'], waitSeconds = 60): string | undefined {
+export function codeError(
+  status: CodeState['status'],
+  waitSeconds = 60,
+  byText = false,
+): string | undefined {
   if (status === 'slow_down') return signInCopy.errors.slowDown(waitSeconds);
-  if (status === 'wrong') return codeCopy.wrong;
+  if (status === 'wrong') return byText ? codeCopy.wrongText : codeCopy.wrong;
   if (status === 'expired') return codeCopy.expired;
-  if (status === 'not_sent') return signInCopy.errors.notSent;
-  if (status === 'too_many') return signInCopy.errors.tooMany;
+  if (status === 'not_sent') {
+    return byText ? signInCopy.errors.textNotSent : signInCopy.errors.notSent;
+  }
+  if (status === 'too_many')
+    return byText ? signInCopy.errors.tooManyTexts : signInCopy.errors.tooMany;
+  if (status === 'texts_paused') return signInCopy.errors.textsPaused;
   return undefined;
 }
 
 /**
- * UX-SI-2: one code input. It takes a paste, shows the number keyboard, and sends itself when
+ * UX-SI-2, UX-SI-13: one code input, for a code that came by email or by text. It takes a paste
+ * (or the code a phone offers from the text), shows the number keyboard, and sends itself when
  * the sixth digit goes in. "Send a new code" unlocks after 30 seconds; once the code has expired
  * or run out of tries it becomes the screen's main button.
  */
 export function CodeScreen({
-  email,
+  lead,
+  byText,
   initial,
-  differentEmailHref,
+  different,
   devOutbox,
 }: {
-  email: string;
+  /** Where the code went, and for how long it works. */
+  lead: string;
+  /** The code went by text, so the words say "text" where they'd say "email". */
+  byText: boolean;
   initial: CodeState;
-  differentEmailHref: string;
-  devOutbox: boolean;
+  /** The way back: "Use a different email", or "Use a different number". */
+  different: { href: string; label: string };
+  /** Locally, where the email or the text can be read: the words before the link. */
+  devOutbox: string | null;
 }) {
   const [state, dispatch, pending] = useActionState(
     (previous: CodeState, formData: FormData) =>
@@ -58,7 +73,7 @@ export function CodeScreen({
     <div className={styles.screen}>
       <div className={styles.title}>
         <h1 className="type-display-mobile">{codeCopy.title}</h1>
-        <p className={styles.lead}>{codeCopy.lead(email)}</p>
+        <p className={styles.lead}>{lead}</p>
       </div>
 
       <div className={styles.methods}>
@@ -74,7 +89,7 @@ export function CodeScreen({
             key={state.stamp}
             name="code"
             label={codeCopy.label}
-            error={codeError(state.status, state.wait)}
+            error={codeError(state.status, state.wait, byText)}
             autoFocus
             onComplete={(code) => send('check', code)}
           />
@@ -98,15 +113,15 @@ export function CodeScreen({
                 ? codeCopy.sendNewIn(resendIn)
                 : codeCopy.sendNew}
           </Button>
-          <Link href={differentEmailHref} className={styles.standaloneLink}>
-            {codeCopy.different}
+          <Link href={different.href} className={styles.standaloneLink}>
+            {different.label}
           </Link>
         </div>
       </div>
 
       {devOutbox ? (
         <p className={styles.smallPrint}>
-          {codeCopy.devOutbox} <a href="/dev/outbox">development outbox</a>.
+          {devOutbox} <a href="/dev/outbox">development outbox</a>.
         </p>
       ) : null}
     </div>

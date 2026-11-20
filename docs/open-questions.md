@@ -470,3 +470,13 @@ Found while bringing the map across (BA-5, 19 November 2026). None holds up the 
 - **Nothing has been run with a real Google key yet.** `docs/deploy.md` ("The search map") lists the two checks to do with one, and the keys the test copy and GitHub need.
 - **A daily cap and a budget for the map in production**, set in Google's console before launch.
 
+### Q59. What bringing the other line across left open
+
+Recorded on 20 November 2026, when every package was merged. None holds up the switch.
+
+- **Product rules 2 and 3 now say what Sean agreed on the other line on 8 November** (work and income documents for the chosen applicant and one backup; a document may show a PPS number, never read out or recorded; the housing assistance ground covers HAP, rent supplement and any social welfare payment; statements of other income are read by Gaff and never shown to letters). Sean to read the two rules as they now stand.
+- **For the solicitor, from the other line and still open:** HAP and affordability (its Q42), asking the backup at the same time (Q43), consent to the selfie (Q45), statements of other income (Q52), and every new fixed message: the security emails, the freshness email, the changed alert emails, the emails about a held, hidden or paused listing, the "enquiries have closed" reply.
+- **Not brought across, on purpose:** passwords (Q51); a character reference in place of a landlord's, a guarantor, and marking a flag "seen and accepted" (P42, P43, P48); drawing an area on the map; pasting a spreadsheet of a development's homes; Gaff's team giving more than three tries at an ID check; a renter's private note on a saved home (a profile has no free text); filters beyond the redesign's short list.
+- **Needs a key or an account before it does anything on the test copy:** the Google map (`GOOGLE_MAPS_API_KEY`), the real model (`ANTHROPIC_API_KEY`), a private bucket for documents and, in production, for photos.
+- **Two people on Gaff's team list** are needed for an appeal to be decided by someone else.
+

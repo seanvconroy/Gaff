@@ -27,7 +27,7 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] **Confirming agencies (Q32):** set `STAFF_EMAILS` to the founders' addresses. Agencies that sign up by themselves wait at `/internal/agencies` for one press of Confirm; pilot agencies are set up there, confirmed, with their first admin's invitation.
 - [ ] **Autoaddress (chosen, Q40):** an account, a signed DPA, and where it's hosted, in writing. Until then people type the address.
 - [ ] **ID checks:** Veriff is recommended (Q48). Confirm it, get EU hosting in writing, sign the DPA, and add its adapter. Private landlords now need this check before their first home goes live (Q47), as well as chosen applicants.
-- [ ] **Income checks:** choose an open banking provider (for example TrueLayer, Tink or Yapily, checking AIB, Bank of Ireland, PTSB and Revolut coverage), sign the DPA, and add its adapter. Until both exist, production runs with `IDENTITY_PROVIDER=none` and `INCOME_PROVIDER=none`, and operators arrange those checks themselves.
+- [ ] **Work and income documents (BA-16):** create a private `documents` bucket in the Ireland project and set `DOCUMENT_STORE=supabase` (production refuses the local store); run `pnpm evals document --confirm` on Bedrock before relying on what the model reads; the solicitor's answers on HAP and affordability, asking the backup at the same time, and Gaff reading statements of other income (the other line's Q42, Q43, Q52). No open banking provider is needed: chosen renters show documents (Q51)
 - [ ] **GitHub:** push access and Actions enabled for CI.
 - [ ] **Search indexing:** set `SEARCH_INDEXING=on` in production only, so search engines may find live homes' pages. Leave it off on the test copy and on preview deployments ([deploy.md](deploy.md)).
 - [ ] **The RTB's Rent Register (OQ-2):** whether software may read it. Until it's settled, people type three comparable rents themselves.
@@ -52,7 +52,7 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] A home's public page: what an advert for a home to rent must show, including the BER, and whether the wording check is enough
 - [ ] What a small platform that hosts other people's listings must offer under the EU Digital Services Act: a way to report a listing, a contact point, reasons when one is taken down
 - [ ] Whether showing homes to the public changes Gaff's position under the PSRA
-- [ ] Consent wording for keeping and reusing an identity check and an income result (Q35); the basis for private landlords' identity checks and what "Identity verified" may claim (Q47)
+- [ ] Consent wording for keeping and reusing an identity check and work and income documents (Q35, Q51); the basis for private landlords' identity checks and what "Identity verified" may claim (Q47)
 - [ ] Agents' own PSRA licences (Q38)
 - [ ] Collecting the PPSN for RTB registration (optional, sealed, deleted once registered; no date of birth, Q24), and the registration deadline
 - [ ] Gaff’s standard tenancy agreement wording (`src/copy/templates/tenancy-agreement.ts`), and whether it can be signed electronically or must be signed on paper (Electronic Commerce Act 2000, s.10(1)(b); Q23)

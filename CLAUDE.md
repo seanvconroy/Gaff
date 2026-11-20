@@ -18,8 +18,8 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
 2. **Staged data.** Collect renter data only at its stage (PRD workflow table):
    - before viewing: contact details and self-declared answers;
    - at applications: employment and income;
-   - for the preferred applicant and one backup only: identity, affordability and references;
-   - for RTB registration only: the PPSN.
+   - for the preferred applicant and one backup only: identity, work and income documents, and references;
+   - for RTB registration only: the PPSN. Documents may show it, but Gaff never reads it out or records it (Q50 on the other line; Q51).
 
    Ask only what the operator's criteria need. Never ask for documents before an applicant is chosen (DPC guidance).
 
@@ -29,9 +29,9 @@ If a task would break one of these rules, stop and say so. Each rule has a mecha
    - gender, civil status, family status, sexual orientation, religion or age;
    - disability, race or nationality;
    - membership of the Traveller community;
-   - receiving housing assistance (HAP).
+   - receiving housing assistance (HAP or rent supplement) or any social welfare payment (the housing assistance ground).
 
-   Criteria come only from the fixed list (move-in date, length of stay, maximum occupants, pets). There are no free-text criteria. Assistance dogs never count as pets. HAP counts as income. Ranking reads only criteria answers and enquiry time (Equal Status Acts).
+   Criteria come only from the fixed list (move-in date, length of stay, maximum occupants, pets). There are no free-text criteria. Assistance dogs never count as pets. HAP counts as income. Statements of other income are read by Gaff and never shown to letters (ADR-0031). Ranking reads only criteria answers and enquiry time (Equal Status Acts).
 
    Gaff never recommends a person. It shows who meets what was asked ("Meets 3 of 4") and a person chooses (Q36). A home's public page is built from facts and the fixed criteria, its description passes the protected-ground check, and nothing is labelled "who it suits". A renter's profile has no photo and no free text, and no operator can browse profiles.
 
@@ -97,7 +97,7 @@ A TypeScript modular monolith: one Next.js app on Vercel (Dublin) and one Postgr
   - Renter pages by private link are in `r/[token]`, and the owner's page in `l/[token]`. The owner approves in `approve/[token]`, and a referee answers in `reference/[token]`. Sign-in is in `(auth)`, and Gaff's own team's pages in `internal`.
 - `src/jobs/`: background tasks (graphile-worker), the local worker, and the time-boxed runner used by the cron tick.
 - `src/ports/` and `src/adapters/`: email, SMS, AI, ID and income checks, address search, the photo store, the PSRA register and sign-in providers, behind interfaces. There are local stand-ins (dev outbox, fake SMS, fake AI, stand-in checks) and real EU providers.
-  - Every call to the model goes through `runAi()` in `src/server/ai`, one adapter for the Claude API (test copy and development) and Bedrock (production). It logs the call's usage, never its words, and keeps to the month's budget (ADR-0017). There are five tasks: answers to renters, reading a pasted advert, an operator's question about who has enquired, the wording check on a public description, and a description drafted from a home's facts. A new one is added to `aiTasks` in `src/domain/ai`.
+  - Every call to the model goes through `runAi()` in `src/server/ai`, one adapter for the Claude API (test copy and development) and Bedrock (production). It logs the call's usage, never its words, and keeps to the month's budget (ADR-0017). There are six tasks: answers to renters, reading a pasted advert, an operator's question about who has enquired, the wording check on a public description, a description drafted from a home's facts, and reading a chosen renter's work and income documents (the file alone goes to the model, never the renter's name; ADR-0031). A new one is added to `aiTasks` in `src/domain/ai`.
   - Wherever email is really sent, everything under `/dev` except `/dev/ui` is for Gaff's own team only (`requireDevTools()` in `src/server/dev/gate.ts`). The Google and Apple stand-in exists only in development and tests.
   - The ID check goes through the identity port (`src/ports/identity.ts`): Stripe Identity, or the stand-in. Gaff never believes a webhook: it reads the result from the provider (ADR-0020).
   - A home's photos go through one pipeline (`src/server/lettings/photo-pipeline.ts`, ADR-0023): read by their bytes, turned upright, stripped of metadata, kept at fixed sizes. A floor plan is a kind of photo.

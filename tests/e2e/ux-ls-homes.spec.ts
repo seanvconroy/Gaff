@@ -334,7 +334,7 @@ test('UX-LS-10: a let home says so and offers other homes nearby, then the sched
     await expect(visitor.getByText('21 Ranelagh Road, Ranelagh, Dublin 6')).toBeVisible();
     await expect(
       visitor.getByRole('link', { name: 'See other homes in Ranelagh' }),
-    ).toHaveAttribute('href', '/?where=Ranelagh');
+    ).toHaveAttribute('href', '/to-rent/dublin/ranelagh');
     await expect(visitor.getByRole('link', { name: 'Ask to view' })).toHaveCount(0);
     await expect(visitor.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
     await settled(visitor);

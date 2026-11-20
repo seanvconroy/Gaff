@@ -85,7 +85,7 @@ async function homesInTramore(): Promise<Map<string, string>> {
          created_by, lead_user_id, live_at, let_at, ber_rating, eircode)
        values ($1, $2, 'Tramore', 'Waterford', $3, $4, $5, $6, 'furnished', 'street', $7,
          'enquiries', $8, $9, $9, now() - make_interval(hours => $10),
-         case when $8 = 'let' then now() else null end, 'C1', 'X91 T2RA') returning id`,
+         $11, 'C1', 'X91 T2RA') returning id`,
       [
         org!.id,
         home.address,
@@ -97,6 +97,7 @@ async function homesInTramore(): Promise<Map<string, string>> {
         home.status,
         userId,
         i + 1,
+        home.status === 'let' ? new Date() : null,
       ],
     );
     const key = `homes/${org!.id}/${randomUUID()}.png`;

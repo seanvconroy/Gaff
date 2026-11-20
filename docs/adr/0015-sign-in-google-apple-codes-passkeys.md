@@ -2,6 +2,7 @@
 
 - Status: Accepted (Sean, 14 November 2026, open question Q30). Supersedes the "Operators" part of [ADR-0013](0013-sign-in-operators-links-for-renters.md): the one-time email link. The "Renters and landlords" part of ADR-0013 is unchanged: private links, no accounts.
 - Date: 2026-11-16
+- Added to by [ADR-0032](0032-mobile-sign-in-and-one-person-across-methods.md) (20 November 2026): a mobile number with a code by text is a fourth method to choose, and the email address joins every way in.
 
 ## Context
 

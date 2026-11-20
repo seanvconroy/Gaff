@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 20 November 2026 (the UX redesign is built, everything the other line could do is brought into it, and **it is live on the test copy**, https://gaff-test.vercel.app, since 20 November 2026: one project. See "Going live" below).
+Last updated: 20 November 2026 (the UX redesign is built, everything the other line could do is brought into it, and **it is live on the test copy**, https://gaff-test.vercel.app, since 20 November 2026: one project. See "Going live" below). Since then: sign-in with a mobile number, and one account however a person signs in ("Sign-in, joined up" below).
 
 ## Going live (found on 19 November 2026)
 
@@ -44,6 +44,24 @@ Sean agreed the plan on 19 November 2026. The decisions are Q50 to Q54 in [open-
 | 2 | BA-15 developments, and letting many alike homes (M32 to M35, M75) | **Done**, 20 November 2026. "Several alike in one development" on Add a letting: an agency or a landlord's team (never a private landlord's own homes) adds a development, its types of home, and every home of a type in one step, each with its own number, floor and date. "Put 4 homes live" runs the ordinary go-live step and checks for each, as the person's own decision; after that each is an ordinary letting. A change to a shared fact or photo reaches every open home not changed by hand. One viewing time can be offered across a type. Search shows one "4 homes like this" card and one pin per type, and a development has a public page at a random reference. A development's homes count once towards the burst signal. Left out: pasting a spreadsheet of homes, renaming a development, indexing developments' pages. ADR-0029. `tests/e2e/ba15-*.spec.ts` |
 | 3 | BA-16 a chosen renter shows their work and income with documents (P30 to P41, P44 to P47, P49) | **Done**, 20 November 2026. One checks page for the preferred applicant and the backup: ID, referees, then the documents for how they said they earn (payslips or a contract; a Notice of Assessment or an accountant's letter; a statement of each other income; never bank statements). PDF, JPG or PNG, encrypted in a private store. The model's `document` task is given the file alone and reads its kind, name, date and amounts; a reading holding a PPS number or an account number is refused whole. The kind, the name against the ID, and how recent it is are checked at once, in `warning`. The renter sees what was read, can correct it, and shares everything in one step. A letter sees it in words beside the income the renter gave, with the fixed reminder about HAP and no score; they can open payslips while kept, each opening recorded, and can never open a statement of other income: the letter's table has no such kind, and the renter's copy belongs to no organisation. Every copy has a deletion date. The open-banking stand-in is gone. Rules 2 and 3 in `CLAUDE.md` say this in the words the founder agreed on 8 November. Left out: a character reference instead of a landlord's (P42, it needs new fixed wording), a guarantor (P43), marking a flag "seen and accepted" (P48). For the solicitor: HAP and affordability, asking the backup at the same time, statements of other income. ADR-0031. `tests/compliance` documents tests, `tests/e2e/ba16-*.spec.ts` |
 - **CI:** the journeys had outgrown the job's 25 minutes, so every run on the redesign's branch was cut off. They now run as four parts side by side.
+
+## Sign-in, joined up (20 November 2026)
+
+Sean asked for Airbnb's standard: a phone number or an email with a one-time code, or Google or Apple, all reaching the same account (Q60, [ADR-0032](adr/0032-mobile-sign-in-and-one-person-across-methods.md)).
+
+| Requirement | What | Proven by |
+| --- | --- | --- |
+| UX-SI-13: sign in with a mobile number | One field, "Email or mobile number", first on the screen, then "or", then Google and Apple. A number gets a six-digit code by text (Sinch), on the same code screen and rules as an email code; a "Country code" picker appears under the field for a number typed without one. Gaff texts a fixed list of countries; a number gets three texts in ten minutes and ten a day, a network address three a minute, and all of Gaff `SIGN_IN_TEXTS_PER_HOUR`. The number is the person's own (`sign_in_mobiles`): in their download, listed and removed on Profile behind "Confirm it's you", deleted with them. Offered only where texts are really sent; locally the text is in the outbox | `src/domain/auth/mobile.test.ts`, `src/copy/sign-in.test.ts`, `tests/integration/ux-si-mobile.test.ts`, `tests/e2e/ux-si-mobile.spec.ts` |
+| UX-SI-14: a number Gaff hasn't seen finds its account | The right code by text signs nobody in for a number nobody has (or one unused for 180 days): "What's your email?" follows, and a code goes to that address carrying the number. Entering it signs in the account that has the address, or makes one, and joins the number. "We've found your account" is shown for an account that was already there, and only after the code. The owner gets a security email | As above |
+| UX-SI-15: Google or Apple that can't vouch for the address | No dead end: a code goes to the address as the provider comes back, and entering it signs the person in and connects the provider in one step. ADR-0019's rule stands: nothing is joined on a provider's say-so | `tests/integration/ux-si-mobile.test.ts`, `tests/e2e/ux-si-sign-in.spec.ts` |
+
+Left open, on purpose (Q60):
+
+- **Nothing is texted until Sinch is set up.** On the test copy the field still reads "Email". Sinch's settings, a sender registered for Ireland and a spend cap are on the launch checklist.
+- **Adding a mobile number from Profile** while signed in isn't built: a number is added by signing in with it.
+- **A text alone opens any account**, an agent's included. "Confirm it's you" is still a passkey or an email code. Sean to say if people who let homes should need more.
+- **Real Google and Apple** haven't been through the new code step: the stand-in has. The provider's own ID for the person is read from `sub` in its token.
+- **For the solicitor:** the text, the lines the sign-in email gains, the "mobile number added/removed" emails, and the privacy notice's new paragraph.
 
 ## Done
 

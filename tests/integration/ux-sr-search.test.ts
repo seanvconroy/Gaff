@@ -1,8 +1,10 @@
-import { eq, sql } from 'drizzle-orm';
+import { eq, like, sql } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
 import { withOrg, withSystem } from '@/db/client';
-import { funnelEvents, lettings } from '@/db/schema';
+import { funnelEvents, lettings, places } from '@/db/schema';
+import type { Place } from '@/domain/places/gazetteer';
 import { addPhoto } from '@/server/lettings/photos';
+import { rowFromPlace } from '@/server/places/places';
 import { liveHomesOnGaff, findHomes } from '@/server/search/homes';
 import { countSearch, searchFromWords } from '@/server/search/search';
 import { resolveSearch, suggestWhere } from '@/server/search/where';
@@ -197,6 +199,45 @@ describe('UX-SR-14: a road, a landmark or a townland typed in the search box', (
     expect((await searchFromWords({ words: 'house on Highfield Road in Dalkey' })).href).toBe(
       '/?where=dalkey&type=house',
     );
+  });
+
+  it('Q60: "O Connell Street Limerick" is the street, not the county, however the surname is typed', async () => {
+    const oconnell: Place = {
+      slug: 'zz-test-oconnell-street-limerick',
+      name: "O'Connell Street",
+      kind: 'street',
+      county: 'Limerick',
+      context: 'Limerick city',
+      centre: { lat: 52.661, lng: -8.63 },
+      radiusMetres: 0,
+    };
+    await withSystem((tx) => tx.insert(places).values(rowFromPlace(oconnell, 1, 'test')));
+    try {
+      for (const words of [
+        'O Connell Street Limerick',
+        "O'Connell Street Limerick",
+        'OConnell Street Limerick',
+        'o connell st',
+      ]) {
+        expect(await searchFromWords({ words }), words).toEqual({
+          href: '/?where=zz-test-oconnell-street-limerick',
+          understood: true,
+        });
+      }
+      // In a sentence, alone and with its town said.
+      expect((await searchFromWords({ words: '2 bed near O Connell Street' })).href).toBe(
+        '/?where=zz-test-oconnell-street-limerick&beds=2',
+      );
+      expect((await searchFromWords({ words: 'house on O Connell Street in Limerick' })).href).toBe(
+        '/?where=zz-test-oconnell-street-limerick&type=house',
+      );
+      // An acronym alone is the landmark that goes by it (the fixture's Trinity College).
+      expect((await searchFromWords({ words: 'tcd' })).href).toBe(
+        '/?where=trinity-college-dublin-dublin-2',
+      );
+    } finally {
+      await withSystem((tx) => tx.delete(places).where(like(places.slug, 'zz-test-%')));
+    }
   });
 
   it('UX-SR-14: a place picked from the suggestions is the place, whatever the words say', async () => {

@@ -1,5 +1,5 @@
 import type { Place } from '@/domain/places/gazetteer';
-import { normalise } from '@/domain/places/normalise';
+import { joinSurnames, matchForm, normalise } from '@/domain/places/normalise';
 import { namesOf, streetName } from './places';
 
 /**
@@ -101,14 +101,14 @@ export function typingPlace(typed: string): string | null {
 
 /** Where a place is, as words an address or a renter might add after its name. */
 function contextWordsOf(place: Place): Set<string> {
-  const words = normalise(`${place.context ?? ''} ${place.county}`).split(' ');
+  const words = matchForm(`${place.context ?? ''} ${place.county}`).split(' ');
   return new Set([...words, 'co', 'county', 'ireland', 'city']);
 }
 
 /** The town or neighbourhood it is in, without its county: "Claddagh, Galway", not "County Galway". */
 function localityWordsOf(place: Place): Set<string> {
   const local = (place.context ?? '').replace(/\b(?:County|Co\.?) [A-Z][a-z]+/g, ' ');
-  return new Set(normalise(local).split(' ').filter(Boolean));
+  return new Set(matchForm(local).split(' ').filter(Boolean));
 }
 
 /**
@@ -116,16 +116,17 @@ function localityWordsOf(place: Place): Set<string> {
  * but words that say where it is ("highfield road rathgar", "main street bray wicklow"). The
  * answer is how many of the fragment's words were the name: the more, the better the match;
  * and a half more when the words left over name its own town or neighbourhood, so "Shop Street
- * Galway" is the one in Galway city before the one in Tuam, County Galway.
+ * Galway" is the one in Galway city before the one in Tuam, County Galway. Surnames are joined
+ * on both sides first (Q60): "O Connell Street Limerick" names O'Connell Street.
  */
 export function namedBy(fragment: string, place: Place): number {
-  const words = streetName(fragment).split(' ').filter(Boolean);
+  const words = joinSurnames(streetName(fragment)).split(' ').filter(Boolean);
   if (words.length === 0) return 0;
   const context = contextWordsOf(place);
   const locality = localityWordsOf(place);
   let best = 0;
   for (const name of namesOf(place)) {
-    const parts = streetName(name).split(' ').filter(Boolean);
+    const parts = joinSurnames(streetName(name)).split(' ').filter(Boolean);
     if (parts.length === 0 || parts.length > words.length || parts.length < Math.floor(best)) {
       continue;
     }

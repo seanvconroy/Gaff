@@ -12,7 +12,7 @@
 import { readFileSync } from 'node:fs';
 import pg from 'pg';
 import { runMigrations } from '@/db/migrate';
-import { checkExpectation, checkPlaces, readTestSet, type Shown } from './quality';
+import { checkExpectation, checkOtherNames, checkPlaces, readTestSet, type Shown } from './quality';
 
 const TEST_SET = 'scripts/places/test-set.csv';
 
@@ -54,10 +54,8 @@ async function main(): Promise<number> {
   const file = arg('--file') ?? PLACE_FILE;
   console.log(`Checking ${file}`);
   const { header, rows } = await readPlaceFile(file);
-  const problems = checkPlaces(
-    header,
-    rows.map((r) => r.place),
-  );
+  const built = rows.map((r) => r.place);
+  const problems = [...checkPlaces(header, built), ...checkOtherNames(built)];
   const expectations = readTestSet(readFileSync(TEST_SET, 'utf8'));
 
   await onAdmin(url, `drop database if exists "${name}" with (force)`);

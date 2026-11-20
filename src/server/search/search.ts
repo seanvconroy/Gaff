@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { isArea, type Gazetteer, type Place } from '@/domain/places/gazetteer';
-import { normaliseQuery } from '@/domain/places/normalise';
+import { joinSurnames, normaliseQuery, placeQuery } from '@/domain/places/normalise';
 import { rankSuggestions } from '@/domain/places/suggest';
 import { type SearchFilters, searchFiltersSchema, searchHref } from '@/domain/search/filters';
 import { placeFragments, placeNamed } from '@/domain/search/named';
@@ -52,12 +52,14 @@ async function namedInIndex(
   alone: boolean,
 ): Promise<Place | null> {
   for (const fragment of placeFragments(words)) {
-    const areaName = area ? normaliseQuery(area.name.split(' / ')[0]!) : '';
-    if (area && fragment.text === areaName) continue;
-    const asked = area && !fragment.text.includes(areaName) ? `${fragment.text} ${areaName}` : '';
-    const { places } = await suggested(asked || fragment.text);
+    // Q60: surnames joined on both sides, so "O Briensbridge" is the area "O'Briensbridge".
+    const text = joinSurnames(fragment.text);
+    const areaName = area ? placeQuery(area.name.split(' / ')[0]!) : '';
+    if (area && text === areaName) continue;
+    const asked = area && !text.includes(areaName) ? `${text} ${areaName}` : '';
+    const { places } = await suggested(asked || text);
     const found = placeNamed(
-      { ...fragment, text: asked || fragment.text },
+      { ...fragment, text: asked || text },
       places.filter((place) => !isArea(place)),
       alone,
     );

@@ -10,7 +10,14 @@ import {
   type Place,
 } from '@/domain/places/gazetteer';
 import { parseRoutingKey } from '@/domain/places/eircode';
-import { normalise, normaliseQuery, queryWords } from '@/domain/places/normalise';
+import { withOtherNames } from '@/domain/places/other-names';
+import {
+  normalise,
+  normaliseQuery,
+  placeQuery,
+  placeQueryWords,
+  writtenApart,
+} from '@/domain/places/normalise';
 import { irishToday } from '@/lib/format';
 
 /**
@@ -64,13 +71,18 @@ export function searchTextOf(place: Place): string {
   );
 }
 
-/** A row to load, from a place in the index's file format (or the fixture). */
+/**
+ * A row to load, from a place in the index's file format (or the fixture). Q60: a landmark
+ * takes the other names Gaff's own list gives it (src/domain/places/other-names.ts) here, so
+ * every way into the index adds them.
+ */
 export function rowFromPlace(
-  place: Place,
+  built: Place,
   version: number,
   source: string,
   sourceId?: string,
 ): typeof places.$inferInsert {
+  const place = withOtherNames(built);
   return {
     slug: place.slug,
     kind: place.kind,
@@ -177,12 +189,18 @@ const countySize = sql`case ${places.county} ${sql.join(
  * a word starting with each word typed (or a form it stands for: "rd" is "road"), and near
  * spellings (pg_trgm). Every word, not the longest: "Shop Street Galway" by "street" alone
  * matches 45,000 streets. Short queries look only at the start of areas' names, which the
- * prefix index answers quickly.
+ * prefix index answers quickly, and at landmarks that go by exactly those letters.
  */
 export async function candidatePlaces(typed: string): Promise<Place[]> {
-  const q = normaliseQuery(typed);
+  // Q60: a surname typed apart is asked for joined, as nearly every name is held ("O Connell"
+  // finds "O'Connell", held as "oconnell"), and each joined surname is asked for apart too,
+  // for the few names written that way ("Mc Curtain Street").
+  const q = placeQuery(typed);
   if (q.length === 0) return [];
-  const words = queryWords(typed);
+  const words = placeQueryWords(typed).map((forms) => {
+    const apart = writtenApart(forms[0]!);
+    return apart ? [...forms, apart] : forms;
+  });
   const first = q.split(' ')[0]!;
   const startsWith = sql`${places.searchText} like ${`${q}%`}`;
   const wordStarts = sql`${places.searchText} like ${`% ${first}%`}`;
@@ -205,9 +223,11 @@ export async function candidatePlaces(typed: string): Promise<Place[]> {
   const district = key
     ? sql` or (${places.routingKey} = ${key} and ${places.kind} = 'district')`
     : sql``;
+  // Q60: two letters can be a landmark's whole other name ("UL"), so those are looked at too.
+  const wholeWord = sql`(${places.searchText} like ${`% ${q} %`} or ${places.searchText} like ${`% ${q}`})`;
   const matches =
     q.length < 3
-      ? sql`(${startsWith} or ${wordStarts}) and ${places.isArea}`
+      ? sql`(((${startsWith} or ${wordStarts}) and ${places.isArea}) or (${places.kind} = 'landmark' and ${wholeWord}))`
       : words.some((forms) => forms[0]!.length >= 3)
         ? sql`(${everyWord} or ${q} <% ${places.searchText})`
         : sql`(${startsWith} or ${wordStarts})`;

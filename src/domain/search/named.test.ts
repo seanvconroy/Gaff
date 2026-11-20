@@ -60,6 +60,22 @@ describe('UX-SR-14: the road or landmark a renter’s words name', () => {
     expect(namedBy('highfield road cork', highfield)).toBe(0);
   });
 
+  it('Q60: "O Connell Street", "O\'Connell Street" and "OConnell Street" name the one road', () => {
+    const oconnell = street("O'Connell Street", 'Caherdavin, Limerick', 'Limerick');
+    for (const typed of ['o connell street', 'oconnell street', 'o connell st']) {
+      expect(namedBy(typed, oconnell), typed).toBe(2);
+    }
+    expect(namedBy('o connell street limerick', oconnell)).toBe(2.5);
+    expect(namedBy('o connor street limerick', oconnell)).toBe(0);
+    // A name the index holds written apart is named by either form too.
+    const apart = street('Mc Curtain Street', 'Clones, County Monaghan', 'Monaghan');
+    expect(namedBy('mccurtain street clones', apart)).toBe(2.5);
+    expect(namedBy('mc curtain street', apart)).toBe(2);
+    // And where it is: "Mc Kee Park" as a neighbourhood, typed joined.
+    const inMcKee = street('Blackhorse Avenue', 'Mc Kee Park, Dublin 7');
+    expect(namedBy('blackhorse avenue mckee park', inMcKee)).toBe(2.5);
+  });
+
   it('UX-SR-14: of roads with one name, the one in the town that was said', () => {
     const fragment = { text: 'shop street galway', cued: false, last: true };
     expect(placeNamed(fragment, [shopTuam, shopGalway], true)).toBe(shopGalway);

@@ -8,16 +8,18 @@ import { places } from '@/db/schema';
 import { curatedPlaces } from '@/domain/places/curated';
 import { placeFromLine, type PlaceFileHeader } from '@/domain/places/file';
 import { fixturePlaces } from '@/domain/places/fixture';
-import type { Place } from '@/domain/places/gazetteer';
+import type { Place, PlaceKind } from '@/domain/places/gazetteer';
 import { forgetCachedPlaces, rowFromPlace } from './places';
 
 /**
  * ADR-0018: loading the place index. The built file (`data/places/places.ndjson.gz`) replaces
  * the whole index in one transaction when its version is newer than the one loaded. The curated
  * base (src/domain/places/curated.ts) is Gaff's own and trusted: it goes over the file's copies
- * of the same places on every load, so a change to it needs no rebuild. When nothing changed, a
- * load only refreshes those few rows. Without a built file (some tests), the fixture keeps
- * search working.
+ * of the same places on every load, so a change to it needs no rebuild. So are the landmarks'
+ * other names (src/domain/places/other-names.ts, Q60), which every row takes as it is written.
+ * When nothing changed, a load only refreshes those few rows: the curated base, and the file's
+ * landmarks with their other names as the list now has them. Without a built file (some
+ * tests), the fixture keeps search working.
  */
 
 export const PLACE_FILE = 'data/places/places.ndjson.gz';
@@ -58,21 +60,42 @@ export async function replacePlaces(
   return { loaded: rows.length };
 }
 
-/** Puts the curated base over what's loaded, at the loaded version. */
-async function refreshCurated(version: number): Promise<void> {
+/**
+ * Puts the curated base over what's loaded, at the loaded version; and the file's landmarks
+ * again, so each has the other names the list gives it now: a name added shows, and one taken
+ * off the list goes.
+ */
+async function refreshCurated(version: number, landmarks: readonly Loadable[]): Promise<void> {
   await withSystem(async (tx) => {
     for (const { place, src } of curatedRows()) {
       const row = rowFromPlace(place, version, src);
       await tx.insert(places).values(row).onConflictDoUpdate({ target: places.slug, set: row });
     }
+    for (let i = 0; i < landmarks.length; i += BATCH) {
+      await tx
+        .insert(places)
+        .values(
+          landmarks.slice(i, i + BATCH).map((r) => rowFromPlace(r.place, version, r.src, r.id)),
+        )
+        .onConflictDoUpdate({
+          target: places.slug,
+          set: { aliases: sql`excluded.aliases`, searchText: sql`excluded.search_text` },
+        });
+    }
   });
   forgetCachedPlaces();
 }
 
-/** Reads the built file: its header and every valid place, each slug once. */
+/**
+ * Reads the built file: its header and every valid place, each slug once. With `kind`, only the
+ * places of that kind, which is quicker: the other lines aren't read as places.
+ */
 export async function readPlaceFile(
   path: string,
+  kind?: PlaceKind,
 ): Promise<{ header: PlaceFileHeader; rows: Loadable[] }> {
+  // A line of the file says its kind as `"k":"landmark"` (placeToLine).
+  const marker = kind ? `"k":${JSON.stringify(kind)}` : null;
   const lines = createInterface({ input: createReadStream(path).pipe(createGunzip()) });
   let header: PlaceFileHeader | null = null;
   const rows: Loadable[] = [];
@@ -83,8 +106,9 @@ export async function readPlaceFile(
       header = JSON.parse(line) as PlaceFileHeader;
       continue;
     }
+    if (marker && !line.includes(marker)) continue;
     const parsed = placeFromLine(line);
-    if (parsed && !slugs.has(parsed.place.slug)) {
+    if (parsed && (!kind || parsed.place.kind === kind) && !slugs.has(parsed.place.slug)) {
       slugs.add(parsed.place.slug);
       rows.push(parsed);
     }
@@ -128,12 +152,20 @@ export async function ensurePlaceIndex(
 ): Promise<{ action: 'loaded' | 'fixture' | 'current'; version: number; loaded?: number }> {
   const current = await loadedVersion();
   if (existsSync(path)) {
-    if ((await readPlaceFileHeader(path)).version > current) {
+    const { version } = await readPlaceFileHeader(path);
+    if (version > current) {
       const { header, rows } = await readPlaceFile(path);
       const { loaded } = await replacePlaces(withCurated(rows), header.version);
       return { action: 'loaded', version: header.version, loaded };
     }
-    await refreshCurated(current);
+    // The landmarks are written again only when the file is the index that's loaded: an older
+    // file's landmarks don't belong in a newer index.
+    const curated = new Set(curatedPlaces.map((p) => p.slug));
+    const landmarks =
+      version === current
+        ? (await readPlaceFile(path, 'landmark')).rows.filter((r) => !curated.has(r.place.slug))
+        : [];
+    await refreshCurated(current, landmarks);
     return { action: 'current', version: current };
   }
   const [{ n }] = (await withSystem((tx) => tx.select({ n: count() }).from(places))) as [

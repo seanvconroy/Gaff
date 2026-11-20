@@ -596,6 +596,41 @@ for (const [width, viewport] of widths) {
   });
 }
 
+test('Q60: an acronym, and a surname typed apart, find their place from the search box', async ({
+  page,
+}) => {
+  await page.setViewportSize(phone);
+  await page.goto('/');
+  // "ucd" is the college, by a name Gaff's own list gives it: before UCD Village, a street.
+  await box(page).fill('ucd');
+  const college = page.getByRole('option', {
+    name: /^University College Dublin \(Belfield Campus\)/,
+  });
+  await expect(college).toBeVisible();
+  await expect(
+    page
+      .getByRole('option')
+      .filter({ hasText: /UCD|University College/ })
+      .first(),
+  ).toHaveText(/^University College Dublin \(Belfield Campus\)/);
+  await settled(page);
+  await screenshot(page, 'q60-ucd-phone');
+  await expectAccessible(page);
+  await box(page).press('Enter');
+  await expect(page).toHaveURL(
+    '/?where=university-college-dublin-belfield-campus-clonskeagh-dublin-4',
+  );
+  await expect(understood(page)).toContainText('Near University College Dublin');
+
+  // "O Connell Street Limerick" is the street, not Limerick: the space is an apostrophe.
+  await box(page).fill('O Connell Street Limerick');
+  await expect(page.getByRole('option', { name: /^O'Connell Street .*Limerick/ })).toBeVisible();
+  await box(page).press('Enter');
+  await expect(page).toHaveURL('/?where=oconnell-street-caherdavin-limerick');
+  await expect(understood(page)).toContainText("Near O'Connell Street");
+  await expectAccessible(page);
+});
+
 test('UX-SR-11, UX-SR-14: only the part of the words that could be a place is ever looked up', async ({
   page,
 }) => {

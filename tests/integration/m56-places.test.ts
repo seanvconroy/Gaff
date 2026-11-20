@@ -146,6 +146,97 @@ describe('M56: suggestions from the place index in Postgres', () => {
     }
   });
 
+  it('Q60: a landmark is found by the other names Gaff’s list gives it, two letters included', async () => {
+    const college = (slug: string, name: string, county: County, context: string): Place => ({
+      slug,
+      name,
+      kind: 'landmark',
+      landmarkKind: 'college',
+      county,
+      context,
+      centre: { lat: 51.893, lng: -8.492 },
+      radiusMetres: 200,
+    });
+    // As the index holds them: no "UCC" or "UL" in either. The row takes them from the list.
+    const colleges = [
+      college('zz-test-ucc', 'University College Cork Main Campus', 'Cork', 'Gillabbey, Cork'),
+      college('zz-test-ul', 'University of Limerick', 'Limerick', 'Castletroy, Limerick'),
+      college('zz-test-ucc-maltings', 'UCC Lee Maltings Complex', 'Cork', 'The Marsh, Cork'),
+    ];
+    await withSystem((tx) =>
+      tx.insert(places).values(colleges.map((p) => rowFromPlace(p, 1, 'test'))),
+    );
+    try {
+      // The college itself, then what is merely named after it.
+      expect(slugsOf(await suggestWhere('ucc')).slice(0, 2)).toEqual([
+        'zz-test-ucc',
+        'zz-test-ucc-maltings',
+      ]);
+      expect(slugsOf(await suggestWhere('UCC'))[0]).toBe('zz-test-ucc');
+      expect((await suggestWhere('ucc')).didYouMean).toBe(false);
+      expect(slugsOf(await suggestWhere('ul'))).toContain('zz-test-ul');
+      expect(slugsOf(await suggestWhere('UL'))).toContain('zz-test-ul');
+      // Two letters that only start a landmark's word still find areas alone.
+      expect(slugsOf(await suggestWhere('un'))).not.toContain('zz-test-ul');
+    } finally {
+      await withSystem((tx) => tx.delete(places).where(like(places.slug, 'zz-test-%')));
+    }
+  });
+
+  it('Q60: a surname typed apart, joined or with its apostrophe finds the street, however the index holds it', async () => {
+    const street = (slug: string, name: string, county: County, context: string): Place => ({
+      slug,
+      name,
+      kind: 'street',
+      county,
+      context,
+      centre: { lat: 52.66, lng: -8.63 },
+      radiusMetres: 0,
+    });
+    const streets = [
+      street('zz-test-oconnell-street', "O'Connell Street", 'Limerick', 'Limerick city'),
+      // A few names in the index are written apart.
+      street(
+        'zz-test-mc-curtain-street',
+        'Mc Curtain Street',
+        'Monaghan',
+        'Clones, County Monaghan',
+      ),
+      street(
+        'zz-test-o-neill-bridge',
+        'Maurice O Neill Bridge',
+        'Kerry',
+        'Cahersiveen, County Kerry',
+      ),
+    ];
+    await withSystem((tx) =>
+      tx.insert(places).values(streets.map((p) => rowFromPlace(p, 1, 'test'))),
+    );
+    try {
+      for (const typed of [
+        'O Connell Street Limerick',
+        "O'Connell Street Limerick",
+        'OConnell Street Limerick',
+        'o connell st',
+        'o conn',
+      ]) {
+        const found = await suggestWhere(typed);
+        expect(slugsOf(found)[0], typed).toBe('zz-test-oconnell-street');
+        expect(found.didYouMean, typed).toBe(false);
+      }
+      for (const typed of ['Mc Curtain Street', 'McCurtain Street', 'mccurtain st clones']) {
+        const found = await suggestWhere(typed);
+        expect(slugsOf(found)[0], typed).toBe('zz-test-mc-curtain-street');
+        expect(found.didYouMean, typed).toBe(false);
+      }
+      for (const typed of ['Maurice O Neill Bridge', "Maurice O'Neill Bridge", 'maurice oneill']) {
+        expect(slugsOf(await suggestWhere(typed))[0], typed).toBe('zz-test-o-neill-bridge');
+      }
+    } finally {
+      await withSystem((tx) => tx.delete(places).where(like(places.slug, 'zz-test-%')));
+    }
+  });
+
   it('M113: loads streets for a search by slug, beside the areas', async () => {
     forgetCachedPlaces();
     const g = await loadGazetteer(['highfield-road-rathgar-dublin-6']);

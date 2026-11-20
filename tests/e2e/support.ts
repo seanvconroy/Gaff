@@ -75,15 +75,18 @@ export async function settled(page: Page): Promise<void> {
 /**
  * Tabs through the page from the top (call it straight after loading). Every stop must show a
  * 2px focus ring in `focus`, in the navigation as everywhere else. A radio or checkbox in a
- * choice row shows the ring on its row (design system).
+ * choice row shows the ring on its row (design system). Returns the names of the stops it
+ * checked, so a test can hold that a particular control was one of them. Anything that arrives
+ * after the page loads (a map's pin, say) is only checked if the test waits for it first.
  */
-export async function expectFocusRings(page: Page): Promise<void> {
+export async function expectFocusRings(page: Page): Promise<string[]> {
   // A page with a loading state arrives in two parts, and the second replaces the first just
   // after it loads: wait for that, or the first Tab lands on something about to be swapped out.
   await page.waitForFunction(
     () => document.querySelectorAll('template[id^="B:"], div[hidden][id^="S:"]').length === 0,
   );
   const seen = new Set<string>();
+  const names: string[] = [];
   const problems: string[] = [];
   for (let i = 0; i < 60; i++) {
     await page.keyboard.press('Tab');
@@ -100,7 +103,14 @@ export async function expectFocusRings(page: Page): Promise<void> {
       return {
         // Where it is as well as what it is: links in one row can start with the same markup.
         id: `${el.outerHTML.slice(0, 120)}@${Math.round(el.getBoundingClientRect().left)},${Math.round(el.getBoundingClientRect().top + scrollY)}`,
-        name: (el.getAttribute('aria-label') || el.textContent || el.tagName).trim().slice(0, 40),
+        name: (
+          el.getAttribute('aria-label') ||
+          (el as HTMLInputElement).labels?.[0]?.textContent ||
+          el.textContent ||
+          el.tagName
+        )
+          .trim()
+          .slice(0, 40),
         ok:
           style.outlineStyle === 'solid' &&
           parseFloat(style.outlineWidth) >= 2 &&
@@ -108,12 +118,28 @@ export async function expectFocusRings(page: Page): Promise<void> {
         ring: `${style.outlineStyle} ${style.outlineWidth} ${style.outlineColor}, want ${expected}`,
       };
     });
-    if (!stop || seen.has(stop.id)) break;
+    if (!stop) {
+      // Past the last stop, focus goes back to the page and the next Tab starts again at the
+      // first. Anywhere else, a stop let go of the focus part way down (it hid itself as it
+      // took it, say), and every stop after it would go unchecked.
+      await page.keyboard.press('Tab');
+      const next = await page.evaluate(() => {
+        const el = document.activeElement;
+        if (!el || el === document.body) return null;
+        const at = el.getBoundingClientRect();
+        return `${el.outerHTML.slice(0, 120)}@${Math.round(at.left)},${Math.round(at.top + scrollY)}`;
+      });
+      if (next && !seen.has(next)) problems.push(`focus was lost after: ${names.at(-1)}`);
+      break;
+    }
+    if (seen.has(stop.id)) break;
     seen.add(stop.id);
+    names.push(stop.name);
     if (!stop.ok) problems.push(`${stop.name}: ${stop.ring}`);
   }
   expect(seen.size, 'focus stops').toBeGreaterThan(1);
   expect(problems, 'focus rings').toEqual([]);
+  return names;
 }
 
 /**

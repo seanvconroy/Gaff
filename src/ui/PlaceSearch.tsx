@@ -321,7 +321,9 @@ export function PlaceSearch({
         </ul>
         {credit ? (
           <p className={styles.credit}>
-            <Link href={credit.href} onMouseDown={(event) => event.preventDefault()}>
+            {/* Out of the Tab order, like the rest of the list: Tab leaves the field, and the list
+                closes as it does, so a stop in here would vanish under the focus. */}
+            <Link href={credit.href} tabIndex={-1} onMouseDown={(event) => event.preventDefault()}>
               {credit.text}
             </Link>
           </p>

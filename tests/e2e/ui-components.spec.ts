@@ -708,6 +708,26 @@ test('the flow shell fills a phone, with a fixed footer whose primary button spa
   }
 });
 
+test('M56: with its suggestions open, Tab leaves the place search for the next control; the credit in the list is a link, and never a stop that closes under the focus', async ({
+  page,
+}) => {
+  await open(page);
+  const where = page.getByRole('combobox', { name: 'Where' });
+  const kinsale = page.getByRole('option', { name: /^Kinsale Town in County Cork/ });
+  await where.focus();
+  await expect(kinsale).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Places from OpenStreetMap' })).toHaveAttribute(
+    'href',
+    '/map-and-place-data',
+  );
+
+  // Tab leaves without picking: the list closes, and focus is on the next control in the page.
+  await page.keyboard.press('Tab');
+  await expect(kinsale).toBeHidden();
+  await expect(where).toHaveValue('');
+  await expect(page.getByRole('button', { name: 'The home’s pin' })).toBeFocused();
+});
+
 test('UX-DS-20: with reduced motion on, sheets, steps and toasts arrive without moving; every stop on the component page shows the focus ring', async ({
   page,
 }) => {
@@ -730,7 +750,12 @@ test('UX-DS-20: with reduced motion on, sheets, steps and toasts arrive without 
 
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await open(page);
-  await expectFocusRings(page);
+  // The pin picker draws its pin once the map knows its size, a moment after the page loads.
+  // Wait for it, and hold that it was one of the stops, so it is checked on every run.
+  const pin = page.getByRole('button', { name: 'The home’s pin' });
+  await expect(pin).toBeVisible();
+  const stops = await expectFocusRings(page);
+  expect(stops, 'the stops that were checked').toContain('The home’s pin');
 });
 
 test('UX-NV-14, UX-NV-15: the thread and reply box: one screen at a time on a phone, the list beside the conversation on a desktop, with the draft and its gap in the reply box', async ({

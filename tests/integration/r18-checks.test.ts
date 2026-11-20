@@ -1,4 +1,4 @@
-import { asc, and, eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { db, withOrg } from '@/db/client';
 import { accessLinks, applications, checks, devOutbox, events, messages } from '@/db/schema';

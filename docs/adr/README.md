@@ -31,6 +31,7 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0025](0025-place-pages-and-search-engines.md) | A page for each place at one address (`/to-rent/<county>/<place>`), the search for a place alone as its canonical address, and a sitemap and structured data only where `SEARCH_INDEXING=on` | Accepted |
 | [0026](0026-fresh-listings-and-instant-alerts.md) | Fresh listings (asked after 14 days, stepping back 3 days after an unanswered ask), alerts as soon as a home is listed or daily at 8am, what changed on a saved home, a home's numbers, and a limit on asking to view | Accepted (M49, M82, M85, M86, M87, M92) |
 | [0027](0027-checks-at-going-public.md) | Checks as a home goes public: contact details refused at the field, risk signals and the AI's wording check hold it for a person as a case; pausing a lister | Accepted (M29, M45, M48, M107, P12 to P14) |
+| [0028](0028-developments-and-alike-homes.md) | Developments and unit types as facts about homes; many alike homes made as ordinary lettings that share values until changed by hand; one card per type in search; a scheme counts once towards a burst | Accepted (M32 to M35, M75) |
 
 ## Template
 

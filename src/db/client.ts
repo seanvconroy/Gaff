@@ -73,6 +73,17 @@ export function withPerson<T>(userId: string, fn: (tx: Tx) => Promise<T>): Promi
 }
 
 /**
+ * BA-16 (P33, P40): opens a chosen renter's own documents for one application to an open
+ * transaction, in the renter's own request from their private link (src/server/documents/
+ * renter.ts, and nowhere else: a compliance test holds it). withOrg() never sets this, so no
+ * operator's path can read a renter's documents before they share them, and a statement of
+ * other income never at all.
+ */
+export async function scopeToApplicant(tx: Tx, applicationId: string): Promise<void> {
+  await tx.execute(sql`select set_config('app.applicant_id', ${applicationId}, true)`);
+}
+
+/**
  * Switches an open transaction to a person. Beside scopeToOrg(), it is only for a use case the
  * person starts themselves that also creates or joins an organisation (src/server/accounts).
  */

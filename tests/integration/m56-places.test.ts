@@ -39,7 +39,8 @@ describe('M56: suggestions from the place index in Postgres', () => {
     expect(kins.groups[0]!.items[0]).toMatchObject({
       name: 'Kinsale',
       label: 'Kinsale, Co. Cork',
-      description: 'Town in County Cork',
+      // Other test files may have a home live in Kinsale: the count beside the place is theirs.
+      description: expect.stringMatching(/^Town in County Cork( · \d+ homes?)?$/),
       kind: 'town',
     });
     const highfield = await suggestWhere('Highfield road');

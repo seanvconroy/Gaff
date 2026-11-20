@@ -98,13 +98,7 @@ const devTools = {
       searchParams: Promise.resolve({}),
     }),
   'choosing a stand-in check’s result': () =>
-    standInResultAction(
-      crypto.randomUUID(),
-      null,
-      'identity',
-      '/checks/done',
-      form({ outcome: 'pass' }),
-    ),
+    standInResultAction(crypto.randomUUID(), null, '/checks/done', form({ outcome: 'pass' })),
   // BA-6: another check's key opens nothing.
   'the stand-in check, with another check’s key': () =>
     StandInCheckPage({
@@ -163,13 +157,7 @@ describe('BA-1: the test copy on a public address', () => {
     ).toBeTruthy();
     const other = crypto.randomUUID();
     await expect(
-      standInResultAction(
-        other,
-        keyOf(other),
-        'identity',
-        '/checks/done',
-        form({ outcome: 'pass' }),
-      ),
+      standInResultAction(other, keyOf(other), '/checks/done', form({ outcome: 'pass' })),
     ).rejects.toMatchObject(REDIRECT);
     // The key opens nothing else under /dev.
     await expect(DevOutboxPage()).rejects.toMatchObject(NOT_FOUND);

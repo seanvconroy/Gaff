@@ -23,8 +23,8 @@ const page_ = (name: string) => `/dev/ui/renter?page=${name}`;
 /** Which of the four notices (UX-PP-6) each page carries. Every other page carries none. */
 const notices: Record<string, RenterNotice[]> = {
   'checks-id': ['check'],
-  'checks-income': ['check'],
-  'checks-income-failed': ['check'],
+  'checks-documents': ['check'],
+  'checks-documents-read': ['check'],
   'checks-references': ['check'],
   'checks-arranged': ['check'],
   offer: ['fees'],
@@ -77,9 +77,10 @@ const groups: Array<[string, string[]]> = [
       'checks-start',
       'checks-id',
       'checks-id-no-tries',
-      'checks-income',
-      'checks-income-failed',
       'checks-references',
+      'checks-documents',
+      'checks-documents-read',
+      'checks-share',
       'checks-arranged',
       'checks-done',
     ],
@@ -440,37 +441,61 @@ test('UX-RN-15, UX-RN-16, UX-RN-18: the checks are one at a time, each says what
   await expect(page.getByRole('button', { name: /Check my/ })).toHaveCount(0);
 
   // The three as a short list: done, next, to come. Only the next one's task and button.
-  await page.goto(page_('checks-income'));
+  await page.goto(page_('checks-documents'));
   const list = page.getByRole('list', { name: 'Your checks' }).getByRole('listitem');
-  await expect(list).toHaveText([/Your ID.*Done/, /Your income.*Next/, /Your references.*To come/]);
-  await expect(page.getByRole('button', { name: 'Check my income' })).toBeVisible();
+  await expect(list).toHaveText([
+    /Your ID.*Done/,
+    /Your references.*Done/,
+    /Your work and income.*Next/,
+  ]);
+  await expect(page.getByRole('heading', { name: 'Your work and income' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Check my ID' })).toHaveCount(0);
   await expect(page.getByLabel('Their name')).toHaveCount(0);
 
   // UX-RN-16: one line on what's kept, who sees it and when it goes, with "More" for the rest.
   const keeps = page.locator('[data-notice="check"]');
   await expect(keeps).toContainText(
-    'Gaff keeps only the monthly amount, never your statements. Only Halcyon Lettings sees it, and it’s deleted 30 days after the letting closes.',
+    'Only Halcyon Lettings sees your documents, and their copy is deleted once the tenancy starts or the letting closes, 30 days after you share at the latest.',
   );
-  await expect(keeps.getByText(/can’t move money/)).toBeHidden();
+  await expect(keeps.getByText(/never your PPS number or bank details/)).toBeHidden();
   await keeps.getByText('More', { exact: true }).click();
-  await expect(keeps.getByText(/can’t move money/)).toBeVisible();
-  // "I'd rather send payslips" is a way to a person, and asks for nothing.
-  await page.getByRole('button', { name: 'I’d rather send payslips' }).click();
-  const sheet = page.getByRole('dialog', { name: 'Sending payslips instead' });
-  await expect(sheet.getByText(/Halcyon Lettings will arrange it with you/)).toBeVisible();
-  await expect(sheet.locator('input, textarea')).toHaveCount(0);
+  await expect(keeps.getByText(/never your PPS number or bank details/)).toBeVisible();
+  // P31, P36: what's asked by how she earns; a PPS number can stay, with how to cover it.
+  await expect(page.getByText(/^Add your three most recent payslips/)).toBeVisible();
+  await expect(page.getByText(/You can leave your PPS number showing/)).toBeVisible();
+  await expect(page.getByLabel('Document', { exact: true })).toHaveAttribute(
+    'accept',
+    'application/pdf,image/jpeg,image/png',
+  );
   await settled(page);
   await expectAccessible(page);
-  await page.keyboard.press('Escape');
 
-  // A check that didn't work is shown in warning, never danger, with a plain reason.
-  await page.goto(page_('checks-income-failed'));
-  const failed = page.locator('[data-box="notice"]').filter({ hasText: 'That didn’t work' });
-  await expect(failed).toContainText('The check couldn’t find a regular income in your account.');
-  await expect(failed).toHaveAttribute('data-tone', 'warning');
+  // P38: what Gaff read, and anything to fix, in warning, never danger, never a refusal.
+  await page.goto(page_('checks-documents-read'));
+  await expect(page.getByText('Read by AI').first()).toBeVisible();
+  const flag = page.locator('[data-flag="name_differs"]');
+  await expect(flag).toContainText('The name on it isn’t Aoife Byrne, the name on your ID.');
+  await expect(flag.locator('[data-pill="warning"]')).toBeVisible();
   await expect(page.locator('[data-tone="danger"]')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Check and share' })).toBeVisible();
+
+  // P39, P40: exactly what will be shared, in one step; keeping them is unticked.
+  await page.goto(page_('checks-share'));
+  await expect(page.getByRole('heading', { name: 'Share with Halcyon Lettings' })).toBeVisible();
+  await expect(
+    page.getByText(
+      'Verified, in the name Aoife Byrne, on Thursday 12 November. They have this already.',
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      'Your last landlord, Mary Kelly (mary.kelly@example.ie). We’ll email them a short form now.',
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('checkbox', { name: 'Keep these documents for my next application' }),
+  ).not.toBeChecked();
+  await expect(page.getByRole('button', { name: 'Share with Halcyon Lettings' })).toBeVisible();
 
   // References: one referee per screen, and the opt-out is the first question.
   await page.goto(page_('checks-references'));

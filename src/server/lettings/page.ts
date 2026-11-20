@@ -420,7 +420,7 @@ export async function peopleFor(member: Member, lettingId: string): Promise<Pers
                 ]
               : [],
           checks: (checks.get(p.id) ?? []).map((c) => {
-            const line = checkLine(c, { rentCents, ruleTenths });
+            const line = checkLine(c);
             return { label: line.label, text: line.text, tone: line.tone };
           }),
           conversationHref: conversationHref(conversationKey({ kind: 'renter', id: p.id })),

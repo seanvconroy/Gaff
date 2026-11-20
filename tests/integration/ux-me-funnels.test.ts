@@ -48,6 +48,7 @@ import {
   createTestPerson,
   databaseError,
   renterTokenFor,
+  shareChecksFor,
   threeComparables,
   tokenInMessage,
   type Member,
@@ -327,10 +328,6 @@ describe('UX-ME-2: the funnels, from the record’s events and the new steps', (
       kind: 'identity',
       result: { verified: true, verifiedName: 'Renter 1' },
     });
-    await recordProviderResult((await check('income')).id, {
-      kind: 'income',
-      result: { confirmed: true, monthlyIncomeCents: 520_000 },
-    });
     // Not done yet: no referees named.
     expect((await stepsOf(first)).map((row) => row.step)).not.toContain('renter_checks.all_done');
     expect(
@@ -341,6 +338,9 @@ describe('UX-ME-2: the funnels, from the record’s events and the new steps', (
         employerEmail: 'sean.daly@example.ie',
       }),
     ).toEqual({ ok: true });
+    // P39: their work and income documents, shared in one step with the referees' names.
+    expect((await stepsOf(first)).map((row) => row.step)).not.toContain('renter_checks.all_done');
+    await shareChecksFor(checksToken);
     expect((await stepsOf(first)).map((row) => row.step)).toContain('renter_checks.all_done');
     expect(await stepsOf(lettingId)).toEqual([]);
     await deliverDueMessages(member);

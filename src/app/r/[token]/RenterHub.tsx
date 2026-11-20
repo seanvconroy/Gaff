@@ -27,6 +27,7 @@ import { SummaryList } from '@/ui/SummaryList';
 import styles from '../renter.module.css';
 import { takePlaceAction } from './booking-actions';
 import { ChecksTask } from './Checks';
+import type { DocumentsPage } from '@/server/documents/renter';
 import type { IdentityView } from './KeptIdentity';
 import { respondAction } from './offer-actions';
 import { PpsStep } from './PpsStep';
@@ -49,6 +50,16 @@ export interface HubOptions {
   idProblem?: string;
   /** Q35: the renter's verified identity at their checks (`IdentityView`). */
   identity?: IdentityView | null;
+  /**
+   * BA-16: their work and income documents, at that check, and the ID check's name and date as
+   * the share screen shows it (P39).
+   */
+  documents?: {
+    view: DocumentsPage;
+    identity: { name: string; on: string } | null;
+  } | null;
+  /** BA-16: a code for a document that couldn't be added, said once (without a script). */
+  documentProblem?: string;
   /**
    * UX-RN-13: they ticked "Keep my details for next time" and came back from its code: whether
    * the details were kept.

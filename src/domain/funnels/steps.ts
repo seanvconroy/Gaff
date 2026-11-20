@@ -75,7 +75,8 @@ export function renterPageStep(page: {
 
 type Check = { kind: CheckKind; status: CheckStatus };
 
-const HAS_RESULT: readonly CheckStatus[] = ['passed', 'not_passed', 'not_needed'];
+// BA-16: work and income have their result once the renter shares the documents (`answered`).
+const HAS_RESULT: readonly CheckStatus[] = ['passed', 'not_passed', 'answered', 'not_needed'];
 const BACK: readonly CheckStatus[] = [
   'passed',
   'not_passed',

@@ -34,6 +34,7 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0028](0028-drafted-descriptions.md) | A home's description drafted from its facts and the lister's statements only (the `description` AI task), shown only if it keeps to them and passes the wording check, and marked "Drafted by AI" for the lister until its words change | Accepted |
 | [0029](0029-developments-and-alike-homes.md) | Developments and unit types as facts about homes; many alike homes made as ordinary lettings that share values until changed by hand; one card per type in search; a scheme counts once towards a burst | Accepted (M32 to M35, M75) |
 | [0030](0030-search-in-the-database-more-facts-closing-enquiries.md) | Search, map pins, place counts and similar homes answered by the database with the domain's rules as SQL twins (held to the in-memory rule by a generated test); more of a home's facts; and "Stop taking enquiries", now or at a time | Accepted (M39, M40, M44, M52, M58, M59, M61, M116, M122) |
+| [0031](0031-work-and-income-documents.md) | Chosen renters show work and income with the documents letters already ask for, read by the `document` AI task and checked at once; their own copy in a zone no operator's path reaches, other income shared only as a reading of "regular income", every copy deleted on its date | Accepted |
 
 ## Template
 

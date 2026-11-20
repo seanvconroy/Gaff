@@ -48,8 +48,6 @@ const schema = z
     /** Stripe's secret key (sk_test_… on the test copy), and the identity webhook's secret. */
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_IDENTITY_WEBHOOK_SECRET: z.string().optional(),
-    /** R18: the income check's stand-in, or "none", until documents replace it (Q51). */
-    INCOME_PROVIDER: z.enum(['none', 'stand_in']).default('stand_in'),
     /** ADR-0005: key for check results, encrypted in the application. 32 bytes, base64. */
     DATA_ENCRYPTION_KEY: z
       .string()
@@ -178,6 +176,15 @@ const schema = z
     SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
     /** The private bucket homes' photos go in. */
     PHOTO_BUCKET: z.string().min(1).default('homes'),
+    /**
+     * BA-16 (P53): where chosen renters' work and income documents are kept, encrypted with
+     * DATA_ENCRYPTION_KEY on top of the store's own encryption. "local" is a table in Gaff's own
+     * database, for local work and tests; "supabase" is a private bucket in Supabase Storage in
+     * Ireland (an approved vendor). Production refuses "local".
+     */
+    DOCUMENT_STORE: z.enum(['local', 'supabase']).default('local'),
+    /** The private bucket documents go in: never the photos' bucket, never public. */
+    DOCUMENT_BUCKET: z.string().min(1).default('documents'),
   })
   .superRefine((env, ctx) => {
     if (Boolean(env.GOOGLE_CLIENT_ID) !== Boolean(env.GOOGLE_CLIENT_SECRET)) {
@@ -230,10 +237,10 @@ const schema = z
         ['SMS_PROVIDER', env.SMS_PROVIDER, 'fake'],
         ['AI_PROVIDER', env.AI_PROVIDER, 'fake'],
         ['IDENTITY_PROVIDER', env.IDENTITY_PROVIDER, 'stand_in'],
-        ['INCOME_PROVIDER', env.INCOME_PROVIDER, 'stand_in'],
         ['PSRA_REGISTER_SOURCE', env.PSRA_REGISTER_SOURCE, 'sample'],
         ['ADDRESS_SEARCH', env.ADDRESS_SEARCH, 'sample'],
         ['PHOTO_STORE', env.PHOTO_STORE, 'local'],
+        ['DOCUMENT_STORE', env.DOCUMENT_STORE, 'local'],
       ] as const;
       if (!env.DATA_ENCRYPTION_KEY) {
         ctx.addIssue({
@@ -306,16 +313,26 @@ const schema = z
         message: 'PSRA_REGISTER_URL is required when PSRA_REGISTER_SOURCE is "url"',
       });
     }
-    if (env.PHOTO_STORE === 'supabase') {
+    const onSupabase = (['PHOTO_STORE', 'DOCUMENT_STORE'] as const).filter(
+      (store) => env[store] === 'supabase',
+    );
+    if (onSupabase.length > 0) {
       for (const key of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'] as const) {
         if (!env[key]) {
           ctx.addIssue({
             code: 'custom',
             path: [key],
-            message: `${key} is required when PHOTO_STORE is "supabase"`,
+            message: `${key} is required when ${onSupabase.join(' or ')} is "supabase"`,
           });
         }
       }
+    }
+    if (env.DOCUMENT_STORE === 'supabase' && env.DOCUMENT_BUCKET === env.PHOTO_BUCKET) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['DOCUMENT_BUCKET'],
+        message: 'DOCUMENT_BUCKET must be its own private bucket, not the photos’ bucket',
+      });
     }
     if (env.EMAIL_PROVIDER === 'resend') {
       // Production receives replies and forwarded enquiries, so it needs the webhook's secret.

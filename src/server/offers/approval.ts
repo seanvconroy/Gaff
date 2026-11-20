@@ -385,14 +385,6 @@ export async function loadApprovalSummary(token: string) {
           /** Why a reference has no answer, as a code (UX-RF-4). */
           reason: c.reason,
           summary: c.summary ?? null,
-          incomeConfirmed:
-            c.monthlyIncomeCents === undefined
-              ? null
-              : incomeAgainstRule(
-                  c.monthlyIncomeCents,
-                  row.letting.monthlyRentCents,
-                  row.organisation.incomeRuleTenths,
-                ),
         })),
       };
     };

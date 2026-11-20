@@ -24,6 +24,8 @@ import { purgeOldCodes } from '@/server/auth/codes';
 import { purgeOldConfirmations } from '@/server/auth/confirm';
 import { purgeOldLimits } from '@/server/auth/limits';
 import { purgeEndedSignIns } from '@/server/auth/housekeeping';
+import { clearSharedReadings } from '@/server/documents/retention';
+import { dropFiles } from '@/server/documents/files';
 import { purgeFunnelEvents } from '@/server/funnels/steps';
 import { recordEvent } from '@/server/record/events';
 
@@ -49,7 +51,9 @@ export async function sweepPersonalData(
   const today = irishToday(now);
   const backstop = new Date(now.getTime() - BACKSTOP_DAYS * 86_400_000);
   const unplacedBefore = new Date(now.getTime() - env().RETENTION_PERSONAL_DAYS * 86_400_000);
-  return withSystem(async (tx) => {
+  // BA-16 (P49): document files to delete once the sweep's transaction has committed.
+  const documentFiles: Array<string | null> = [];
+  const swept = await withSystem(async (tx) => {
     const candidates = await tx
       .select({
         id: applications.id,
@@ -182,6 +186,8 @@ export async function sweepPersonalData(
             ),
           );
       }
+      // P49: the readings of documents shared from it go too, with any file still kept.
+      documentFiles.push(...(await clearSharedReadings(tx, application.id, now)));
       await recordEvent(tx, {
         organisationId: application.organisationId,
         lettingId: application.lettingId,
@@ -352,4 +358,6 @@ export async function sweepPersonalData(
       recordDecisions: oldDecisions.length,
     };
   });
+  await dropFiles(documentFiles);
+  return swept;
 }

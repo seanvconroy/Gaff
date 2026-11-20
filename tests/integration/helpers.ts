@@ -451,3 +451,32 @@ export async function bookAs(token: string, slotId: string, mobile?: string) {
   await confirmBookingMobile(token);
   return bookViewing(token, slotId);
 }
+
+/**
+ * BA-16 (P39): a chosen renter adds one made-up payslip (or, if they don't earn from a job, a
+ * statement of other income) and shares their checks, which is when the referees they named are
+ * emailed. The name on it is the application's, so nothing is flagged for the name.
+ */
+export async function shareChecksFor(
+  token: string,
+  options: { name?: string; userId?: string | null } = {},
+): Promise<void> {
+  const { addDocument, shareChecks } = await import('@/server/documents/renter');
+  const { payslipPdf, otherIncomeStatementPdf } = await import('../fixtures/documents');
+  const date = new Date(Date.now() - 10 * 86_400_000).toISOString().slice(0, 10);
+  const name = options.name ?? 'Renter 1';
+  const userId = options.userId ?? null;
+  const asPayslip = await addDocument(token, userId, {
+    kind: 'payslip',
+    bytes: payslipPdf({ name, date, netCents: 148_000 }),
+  });
+  if (!asPayslip.ok) {
+    const asOther = await addDocument(token, userId, {
+      kind: 'other_income',
+      bytes: otherIncomeStatementPdf({ name, date, amountCents: 27_730 }),
+    });
+    if (!asOther.ok) throw new Error(`couldn't add a document: ${asOther.problem}`);
+  }
+  const shared = await shareChecks(token, userId, { keep: false });
+  if (!shared.ok) throw new Error(`couldn't share: ${shared.problem}`);
+}

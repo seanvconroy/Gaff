@@ -62,6 +62,10 @@ describe('BA-1, AU1: forms may send the browser on to a configured sign-in provi
       photoUploadOrigin({ PHOTO_STORE: 'local', SUPABASE_URL: 'https://x.supabase.co' }),
     ).toBeNull();
     expect(photoUploadOrigin({ PHOTO_STORE: 'supabase' })).toBeNull();
+    // BA-16 (P36): documents go straight to their own private bucket in the same project.
+    expect(
+      photoUploadOrigin({ DOCUMENT_STORE: 'supabase', SUPABASE_URL: 'https://x.supabase.co' }),
+    ).toBe('https://x.supabase.co');
   });
 });
 

@@ -39,7 +39,7 @@ import {
 
 type Member = Awaited<ReturnType<typeof createTestMember>>;
 
-const options = { providers: { identity: true, income: true }, retentionDays: 30 };
+const options = { providers: { identity: true }, retentionDays: 30 };
 
 async function modelFor(token: string) {
   const page = await loadRenterPage(token);
@@ -260,8 +260,8 @@ describe('UX-RN-15, UX-RN-18: the checks, one at a time', () => {
     expect(chosen.view).toBe('checks');
     expect(chosen.checks.list).toEqual([
       { check: 'identity', state: 'next' },
-      { check: 'income', state: 'to_come' },
       { check: 'references', state: 'to_come' },
+      { check: 'income', state: 'to_come' },
     ]);
     expect(chosen.checks.next).toBe('identity');
     expect((await modelFor(tokens[1]!)).view).toBe('checks');

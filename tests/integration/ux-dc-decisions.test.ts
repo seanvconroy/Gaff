@@ -12,7 +12,13 @@ import {
   remindOwner,
 } from '@/server/offers/approval';
 import { makeOffer } from '@/server/offers/offer';
-import { createTestMember, peopleWhoApplied, threeComparables, tokenInMessage } from './helpers';
+import {
+  createTestMember,
+  peopleWhoApplied,
+  shareChecksFor,
+  threeComparables,
+  tokenInMessage,
+} from './helpers';
 
 type Member = Awaited<ReturnType<typeof createTestMember>>;
 const terms = { deposit: '€1,850', startDate: '2026-12-01', deadlineHours: '48' };
@@ -172,6 +178,8 @@ describe('UX-DC-13: a check waiting more than three days', () => {
       landlordEmail: 'mary.kelly@example.ie',
       employerNone: 'yes',
     });
+    // P39: the referee is asked when the renter shares their checks.
+    await shareChecksFor(token);
     const [reference] = await withOrg(member.organisationId, (tx) =>
       tx
         .select()

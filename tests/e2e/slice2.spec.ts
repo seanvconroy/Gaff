@@ -16,7 +16,13 @@ import {
   twoChosen,
   twoPeopleWhoCame,
 } from './journeys';
-import { enterLinkCode, expectFramePageAtBothWidths, expectRenterPageAtBothWidths } from './renter';
+import {
+  aPayslipFile,
+  addDocumentThroughUi,
+  enterLinkCode,
+  expectFramePageAtBothWidths,
+  expectRenterPageAtBothWidths,
+} from './renter';
 
 test('R16: someone who came applies on their phone, with two questions and no documents', async ({
   browser,
@@ -128,7 +134,7 @@ test('R17, UX-DC-7 to UX-DC-9: from Today, the operator chooses a preferred appl
   await expect(page.getByRole('heading', { name: 'Check and confirm' })).toBeVisible();
   await expect(
     page.getByText(
-      'Gaff will ask Aoife and Ciarán for an ID check, an income check and references. It tells them what each is for. Neither is told who’s first.',
+      'Gaff will ask Aoife and Ciarán for an ID check, work and income documents and references. It tells them what each is for. Neither is told who’s first.',
     ),
   ).toBeVisible();
   await flowAtBothWidths(page, 'choose-check');
@@ -172,8 +178,8 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   const list = renter.getByRole('list', { name: 'Your checks' }).getByRole('listitem');
   await expect(list).toHaveText([
     /Your ID.*To come/,
-    /Your income.*To come/,
     /Your references.*To come/,
+    /Your work and income.*To come/,
   ]);
   await expect(renter.getByRole('button', { name: /Check my/ })).toHaveCount(0);
   await expectRenterPageAtBothWidths(renter, { shots: 'wp12-live-checks-start' });
@@ -182,10 +188,11 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   // UX-RN-15: one at a time: the three as a short list, and only the next one's task and button.
   await expect(list).toHaveText([
     /Your ID.*Next/,
-    /Your income.*To come/,
     /Your references.*To come/,
+    /Your work and income.*To come/,
   ]);
-  await expect(renter.getByRole('button', { name: 'Check my income' })).toHaveCount(0);
+  // Rule 2: nothing about documents is asked until it's their turn.
+  await expect(renter.getByLabel('Document', { exact: true })).toHaveCount(0);
   // UX-RN-16: what's kept, who sees it and when it goes, said before the check starts.
   await expect(renter.locator('[data-notice="check"]')).toContainText(
     'Gaff keeps only the result and the name on your ID, never the photos. Only Halcyon Lettings sees it',
@@ -207,28 +214,13 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   ).toBeVisible();
   await renter.getByRole('link', { name: 'Not now' }).click();
   await expect(renter).toHaveURL(checksLink);
-  await expect(list).toHaveText([/Your ID.*Done/, /Your income.*Next/, /Your references.*To come/]);
-
-  // Income: the first try doesn't work, and that's said kindly, then it's confirmed.
-  await renter.getByRole('button', { name: 'Check my income' }).click();
-  await renter.getByRole('button', { name: 'No regular income found' }).click();
-  await expect(renter).toHaveURL(checksLink);
-  // A check that didn't work is shown in "warning", never "danger", with a plain reason.
-  const failed = renter.locator('[data-box="notice"]').filter({ hasText: 'That didn’t work' });
-  await expect(failed).toContainText('The check couldn’t find a regular income in your account.');
-  await expect(failed).toHaveAttribute('data-tone', 'warning');
-  await expect(renter.locator('[data-tone="danger"]')).toHaveCount(0);
-  await expectAccessible(renter);
-  await expectRenterPageAtBothWidths(renter, {
-    notices: ['check'],
-    shots: 'wp12-live-checks-income-failed',
-  });
-  await renter.getByRole('button', { name: 'Try again' }).click();
-  await renter.getByRole('button', { name: 'Confirm this income' }).click();
-  await expect(renter).toHaveURL(checksLink);
+  await expect(list).toHaveText([
+    /Your ID.*Done/,
+    /Your references.*Next/,
+    /Your work and income.*To come/,
+  ]);
 
   // References, one referee per screen: a previous landlord, and no employer to ask.
-  await expect(list).toHaveText([/Your ID.*Done/, /Your income.*Done/, /Your references.*Next/]);
   const next = renter.getByRole('button', { name: 'Next', exact: true });
   await expect(renter.getByRole('heading', { name: 'Have you rented before?' })).toBeVisible();
   await expectRenterPageAtBothWidths(renter, {
@@ -246,8 +238,66 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   ).toBeVisible();
   await renter.getByRole('radio', { name: 'No', exact: true }).check();
   await renter.getByRole('button', { name: 'Send', exact: true }).click();
+
+  // BA-16 (P30 to P39): work and income, with the documents asked for by how she earns.
+  await expect(list).toHaveText([
+    /Your ID.*Done/,
+    /Your references.*Done/,
+    /Your work and income.*Next/,
+  ]);
+  await expect(renter.getByRole('heading', { name: 'Your work and income' })).toBeVisible();
+  await expect(renter.getByText(/^Add your three most recent payslips/)).toBeVisible();
+  await expect(renter.locator('[data-notice="check"]')).toContainText(
+    'Only Halcyon Lettings sees your documents',
+  );
+  await expectRenterPageAtBothWidths(renter, { notices: ['check'], shots: 'ba16-documents' });
+  // P38: a payslip in another name is flagged at once, in "warning", and never refused.
+  await addDocumentThroughUi(renter, aPayslipFile('Aoife Brennan'));
+  const flagged = renter.locator('[data-flag="name_differs"]');
+  await expect(flagged).toContainText('The name on it isn’t Aoife Byrne, the name on your ID.');
+  await expect(flagged.locator('[data-pill="warning"]')).toBeVisible();
+  await expect(renter.locator('[data-tone="danger"]')).toHaveCount(0);
+  await expectRenterPageAtBothWidths(renter, {
+    notices: ['check'],
+    shots: 'ba16-documents-flagged',
+  });
+  await renter.getByRole('button', { name: 'Remove' }).click();
+  await expect(flagged).toHaveCount(0);
+  // P37: the right one, read by AI, with no PPS number anywhere on the page.
+  await addDocumentThroughUi(renter, aPayslipFile('Aoife Byrne'));
+  await expect(
+    renter.getByText(
+      /^Acme Ltd, €1,480 take-home every two weeks, dated .*, in the name Aoife Byrne\./,
+    ),
+  ).toBeVisible();
+  await expect(renter.getByText('Read by AI')).toBeVisible();
+  expect(await renter.content()).not.toContain('1234567T');
+  await expectRenterPageAtBothWidths(renter, { notices: ['check'], shots: 'ba16-documents-read' });
+  // P39: she checks what was read, and saves it: the letter will see it as changed by her.
+  await renter.getByRole('link', { name: 'Check what was read' }).click();
+  await expect(renter.getByRole('heading', { name: 'Check what was read' })).toBeVisible();
+  await expect(renter.getByLabel('Take-home pay')).toHaveValue('1,480');
+  await expect(renter.getByLabel('Name on it')).toHaveValue('Aoife Byrne');
+  await expectRenterPageAtBothWidths(renter, { shots: 'ba16-check-what-was-read' });
+  await renter.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(renter.getByText('Changed by you')).toBeVisible();
+  // P39: exactly what will be shared, then one step that shares it all.
+  await renter.getByRole('link', { name: 'Check and share' }).click();
+  await expect(renter.getByRole('heading', { name: 'Share with Halcyon Lettings' })).toBeVisible();
+  await expect(
+    renter.getByText(
+      'Your last landlord, Mary Kelly (mary.kelly@example.ie). We’ll email them a short form now.',
+    ),
+  ).toBeVisible();
+  await expect(renter.getByText('Halcyon Lettings can open this document.')).toBeVisible();
+  await expectRenterPageAtBothWidths(renter, { shots: 'ba16-share' });
+  await renter.getByRole('button', { name: 'Share with Halcyon Lettings' }).click();
   await expect(renter.getByRole('heading', { name: 'That’s everything from you' })).toBeVisible();
-  await expect(list).toHaveText([/Your ID.*Done/, /Your income.*Done/, /Your references.*Done/]);
+  await expect(list).toHaveText([
+    /Your ID.*Done/,
+    /Your references.*Done/,
+    /Your work and income.*Done/,
+  ]);
   await expect(renter.getByText(/Your last landlord, Mary Kelly: asked on/)).toBeVisible();
   expect(await renter.getByRole('main').innerText()).not.toMatch(/missing|incomplete/i);
   await expectRenterPageAtBothWidths(renter, { shots: 'wp12-live-checks-done' });
@@ -324,9 +374,8 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   // UX-DC-10: each result in words.
   const results = page.getByRole('region', { name: 'Aoife Byrne' });
   await expect(results.getByText('Verified: Aoife Byrne.')).toBeVisible();
-  await expect(
-    results.getByText(/Confirmed €5,200 a month, 2\.8 times the rent: meets your rule\./),
-  ).toBeVisible();
+  // BA-16 (P44): documents shared, never a figure against the rule.
+  await expect(results.getByText(/Documents shared on /)).toBeVisible();
   await expect(
     results.getByText(/Mary Kelly answered\. Rented from them\. Rent always on time\./),
   ).toBeVisible();
@@ -339,6 +388,31 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   await expect(page.getByRole('link', { name: 'Continue to the offer' })).toBeVisible();
   await flowAtBothWidths(page, 'checks-back');
   await screenshot(page, '39-operator-check-results');
+
+  // BA-16 (P44 to P47): what her documents show, in words, beside the income she gave.
+  await results.getByRole('link', { name: 'See what they shared' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Aoife Byrne’s checks' })).toBeVisible();
+  await expect(
+    page.getByText(
+      'The decision is yours, and the same standard applies to everyone. Refusing someone because they get HAP, rent supplement or any other social welfare payment is against the law.',
+    ),
+  ).toBeVisible();
+  await expect(page.getByText(/^Verified by Gaff, in the name Aoife Byrne, on /)).toBeVisible();
+  await expect(page.getByText('€5,200 a month, after tax')).toBeVisible();
+  await expect(
+    page.getByText(/^Acme Ltd, €1,480 take-home every two weeks, .* About €3,207 a month\.$/),
+  ).toBeVisible();
+  await expect(page.getByText('Changed by Aoife')).toBeVisible();
+  expect(await page.content()).not.toMatch(/times the rent|1234567T/);
+  await expect(page.locator('[data-tone="danger"]')).toHaveCount(0);
+  await flowAtBothWidths(page, 'ba16-letter-pack');
+  // P45: the payslip opens on Gaff's own address, uncached; each opening is recorded.
+  const open = page.getByRole('link', { name: 'Open', exact: true });
+  const href = await open.getAttribute('href');
+  const opened = await page.request.get(href!);
+  expect(opened.status()).toBe(200);
+  expect(opened.headers()['content-type']).toBe('application/pdf');
+  expect(opened.headers()['cache-control']).toContain('no-store');
 });
 
 test('R19, UX-DC-14, UX-DC-16: the owner is asked from a focused flow, and approves the chosen tenant and the backup with no account', async ({

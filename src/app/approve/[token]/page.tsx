@@ -20,7 +20,7 @@ type Person = Summary['people'][number];
  * multiple of the rent and never as an amount, and each check in words. A check that isn't
  * finished says "Still under way" (UX-OP-7).
  */
-function PersonCard({ person, ruleTenths }: { person: Person; ruleTenths: number }) {
+function PersonCard({ person }: { person: Person }) {
   return (
     <>
       <h3 id={`person-${person.role}`} className="type-title">
@@ -32,7 +32,7 @@ function PersonCard({ person, ruleTenths }: { person: Person; ruleTenths: number
           { label: approvalCopy.rows.income, value: approvalCopy.income(person.income) },
           ...person.checks.map((check) => ({
             label: approvalCopy.checkName(check.kind),
-            value: approvalCopy.check(check, ruleTenths),
+            value: approvalCopy.check(check),
           })),
         ]}
       />
@@ -117,7 +117,7 @@ export default async function ApprovePage({
         : approvalCopy.backup.lead(operator, tenant, firstNameOf(person.name)),
     card: (
       <>
-        <PersonCard person={person} ruleTenths={summary.incomeRuleTenths} />
+        <PersonCard person={person} />
         <p className={styles.muted}>
           {approvalCopy.basis(operator, letting.criteria, summary.incomeRuleTenths)}
         </p>

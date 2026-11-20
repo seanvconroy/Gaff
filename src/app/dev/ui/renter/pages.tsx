@@ -6,6 +6,7 @@ import { listerFrom } from '@/domain/frame/frame';
 import type { RenterView } from '@/domain/renter/path';
 import { tenantSteps, tenantTask, type TenantProgress } from '@/domain/tenancy/tenant-steps';
 import { chosenTime, viewingDays } from '@/domain/viewings/choosing';
+import type { DocumentsPage } from '@/server/documents/renter';
 import type { RenterModel } from '@/server/renter/model';
 import { PrivateFrame } from '@/ui/PrivateFrame';
 import { ApplyFlow } from '../../../r/[token]/ApplyFlow';
@@ -98,7 +99,7 @@ function model(
   view: RenterView,
   over: Partial<RenterModel> & {
     checkItems?: ReturnType<typeof checks>;
-    unavailable?: Array<'identity' | 'income'>;
+    unavailable?: Array<'identity'>;
     progress?: TenantProgress;
     phone?: string | null;
   } = {},
@@ -188,6 +189,78 @@ function model(
 
 const closed: HubOptions = { open: false, sentTo: 'a…@example.ie' };
 const open: HubOptions = { open: true, sentTo: 'a…@example.ie' };
+
+/** BA-16: a made-up work and income step: what's asked, and what's added so far. */
+const reading = (over: Partial<DocumentsPage['documents'][number]['reading']> = {}) => ({
+  name: 'Aoife Byrne',
+  date: '2026-11-07',
+  employer: 'Acme Ltd',
+  amountCents: 148_000,
+  period: 'fortnightly' as const,
+  taxYear: null,
+  ...over,
+});
+function documentsView(documents: DocumentsPage['documents'] = []): DocumentsPage {
+  return {
+    ask: 'payslips',
+    kinds: ['payslip', 'contract', 'employer_letter', 'other_income'],
+    documents,
+    answered: documents.length >= 3,
+    canAdd: true,
+    readerOn: true,
+    matchName: 'Aoife Byrne',
+    identity: { name: 'Aoife Byrne', verifiedAt: at('2026-11-12T10:00:00Z') },
+    canKeep: true,
+    referees: [{ kind: 'landlord', name: 'Mary Kelly', email: 'mary.kelly@example.ie' }],
+    shared: false,
+  };
+}
+const addedDocuments: DocumentsPage['documents'] = [
+  {
+    id: '00000000-0000-4000-8000-000000000001',
+    kind: 'payslip',
+    reading: { kind: 'payslip', ...reading() },
+    readBy: 'gaff',
+    flags: [],
+    correctedByRenter: false,
+    fromProfile: false,
+    hasFile: true,
+  },
+  {
+    id: '00000000-0000-4000-8000-000000000002',
+    kind: 'payslip',
+    reading: { kind: 'payslip', ...reading({ name: 'Aoife Brennan', date: '2026-10-24' }) },
+    readBy: 'gaff',
+    flags: ['name_differs'],
+    correctedByRenter: false,
+    fromProfile: false,
+    hasFile: true,
+  },
+];
+const withDocuments = (documents: DocumentsPage['documents'], q?: string): HubOptions => ({
+  ...open,
+  q,
+  documents: {
+    view: documentsView(documents),
+    identity: { name: 'Aoife Byrne', on: 'Thursday 12 November' },
+  },
+});
+const referencesNamed = () => [
+  { kind: 'identity' as const, status: 'passed' as const, reason: null, refereeName: null },
+  { kind: 'income' as const, status: 'in_progress' as const, reason: null, refereeName: null },
+  {
+    kind: 'landlord_reference' as const,
+    status: 'to_do' as const,
+    reason: null,
+    refereeName: 'Mary Kelly',
+  },
+  {
+    kind: 'employer_reference' as const,
+    status: 'not_needed' as const,
+    reason: null,
+    refereeName: null,
+  },
+];
 const hub = (m: RenterModel, options: HubOptions = closed) => (
   <RenterHub token={TOKEN} model={m} options={options} />
 );
@@ -521,38 +594,40 @@ export const pages: Record<string, { label: string; render: (q?: string) => Reac
       );
     },
   },
-  'checks-income': {
-    label: 'Checks: your income',
-    render: () =>
-      hub(model('checks', { checkItems: checks('passed', 'to_do', 'to_do', 'to_do') }), open),
+  'checks-documents': {
+    label: 'Checks: your work and income',
+    render: () => hub(model('checks', { checkItems: referencesNamed() }), withDocuments([])),
   },
-  'checks-income-failed': {
-    label: 'Checks: a check that didn’t work',
+  'checks-documents-read': {
+    label: 'Checks: documents read, one to check',
+    render: () =>
+      hub(model('checks', { checkItems: referencesNamed() }), withDocuments(addedDocuments)),
+  },
+  'checks-share': {
+    label: 'Checks: share everything in one step',
     render: () =>
       hub(
-        model('checks', {
-          checkItems: checks('passed', 'not_passed', 'to_do', 'to_do', 'no_regular_income'),
-        }),
-        open,
+        model('checks', { checkItems: referencesNamed() }),
+        withDocuments(addedDocuments.slice(0, 1), 'share'),
       ),
   },
   'checks-references': {
     label: 'Checks: your references',
     render: (q) =>
-      hub(model('checks', { checkItems: checks('passed', 'passed', 'to_do', 'to_do') }), {
+      hub(model('checks', { checkItems: checks('passed', 'to_do', 'to_do', 'to_do') }), {
         ...open,
         q,
       }),
   },
   'checks-arranged': {
     label: 'Checks: arranged by the lister',
-    render: () => hub(model('checks', { unavailable: ['identity', 'income'] }), open),
+    render: () => hub(model('checks', { unavailable: ['identity'] }), open),
   },
   'checks-done': {
     label: 'Checks: all done',
     render: () =>
       hub(
-        model('checks', { checkItems: checks('passed', 'passed', 'in_progress', 'not_needed') }),
+        model('checks', { checkItems: checks('passed', 'answered', 'in_progress', 'not_needed') }),
         open,
       ),
   },

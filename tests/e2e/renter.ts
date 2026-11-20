@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import pg from 'pg';
 import { E2E_DATABASE_URL } from '../../playwright.config';
+import { payslipPdf } from '../fixtures/documents';
 import { expectAccessible, expectNoSidewaysScroll, expectOnePrimary, screenshot } from './support';
 
 /**
@@ -269,4 +270,53 @@ export async function applyThroughUi(
   await expect(page.getByRole('heading', { name: 'Is this right?' })).toBeVisible();
   await page.getByRole('button', { name: 'Send my application' }).click();
   await expect(page.getByRole('heading', { name: 'Your application is in' })).toBeVisible();
+}
+
+/** A made-up payslip, dated ten days ago, as a file a renter would pick (BA-16). */
+export function aPayslipFile(name: string, options: { daysAgo?: number } = {}) {
+  const date = new Date(Date.now() - (options.daysAgo ?? 10) * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  return {
+    name: 'payslip.pdf',
+    mimeType: 'application/pdf',
+    buffer: payslipPdf({ name, date, netCents: 148_000, pps: '1234567T' }),
+  };
+}
+
+/**
+ * BA-16 (P36, P37): adds one document on the work and income step: what kind, the file, then
+ * "Add this document" (or "Add another document"), and waits until it's read.
+ */
+export async function addDocumentThroughUi(
+  page: Page,
+  file: { name: string; mimeType: string; buffer: Buffer },
+  kind = 'Payslip',
+): Promise<void> {
+  const before = await page.getByRole('heading', { level: 4, name: kind }).count();
+  await page.getByLabel('What is it?').selectOption({ label: kind });
+  await page.getByLabel('Document', { exact: true }).setInputFiles(file);
+  await page.getByRole('button', { name: /^Add (this|another) document$/ }).click();
+  await expect(page.getByRole('heading', { level: 4, name: kind })).toHaveCount(before + 1);
+}
+
+/**
+ * BA-16 (P39): on the work and income step, one made-up payslip in their name, then the one
+ * step that shares everything: "Check and share", then "Share with <operator>".
+ */
+export async function sharePayslipThroughUi(
+  page: Page,
+  name: string,
+  operator?: string,
+): Promise<void> {
+  await expect(page.getByRole('heading', { name: 'Your work and income' })).toBeVisible();
+  await addDocumentThroughUi(page, aPayslipFile(name));
+  await page.getByRole('link', { name: 'Check and share' }).click();
+  await expect(
+    page.getByRole('heading', { name: operator ? `Share with ${operator}` : /^Share with / }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: operator ? `Share with ${operator}` : /^Share with / })
+    .click();
+  await expect(page.getByRole('heading', { name: 'That’s everything from you' })).toBeVisible();
 }

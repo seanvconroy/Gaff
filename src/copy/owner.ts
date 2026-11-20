@@ -394,12 +394,11 @@ export interface CheckToDescribe {
   reason: string | null;
   /** A referee's answers in plain words. */
   summary: string | null;
-  incomeConfirmed: { ratioTenths: number; meetsRule: boolean } | null;
 }
 
 const checkNames: Record<string, string> = {
   identity: 'ID',
-  income: 'Income check',
+  income: 'Work and income',
   landlord_reference: 'Previous landlord',
   employer_reference: 'Employer',
 };
@@ -441,17 +440,15 @@ export const approvalCopy = {
     income ? `${formatRatio(income.ratioTenths)} times the rent` : 'Not given',
   checkName: (kind: string) => checkNames[kind] ?? 'Check',
   /** UX-OP-7: each check in words. One that isn't finished says "Still under way". */
-  check(check: CheckToDescribe, ruleTenths: number): string {
+  check(check: CheckToDescribe): string {
     switch (check.status) {
       case 'passed':
-        if (check.kind === 'identity') return 'Verified';
-        if (!check.incomeConfirmed) return 'Confirmed';
-        return check.incomeConfirmed.meetsRule
-          ? `Confirmed: ${formatRatio(check.incomeConfirmed.ratioTenths)} times the rent`
-          : `Confirmed: ${formatRatio(check.incomeConfirmed.ratioTenths)} times the rent, under the ${formatRatio(ruleTenths)} asked`;
+        return check.kind === 'identity' ? 'Verified' : 'Confirmed';
       case 'not_passed':
         return 'Not confirmed';
       case 'answered':
+        // BA-16: the documents went to the letting agent, who reads them; the owner sees that.
+        if (check.kind === 'income') return 'Documents shared with the letting agent';
         return (check.summary ?? 'Answered').replace(/\.$/, '');
       case 'no_answer':
         return check.reason === 'cant_give'

@@ -1,6 +1,7 @@
 import type { TokenCounts } from '@/domain/ai/prices';
 import { inASentence } from '@/domain/answers/sentences';
 import type { AiProvider, AiReply } from '@/ports/ai';
+import { readFixtureDocument } from './fake-document';
 import { readAdvertByPattern } from './fake-reader';
 
 /**
@@ -59,6 +60,8 @@ const reply = <T>(output: T): AiReply<T> => ({
  * - `wording`: it finds only the few phrases in `fakeUnfairPhrases`, word for word.
  * - `description`: it joins the facts it was given into sentences, so it can't add anything
  *   they don't say, and cites every one.
+ * - `document`: it reads the labelled lines of the made-up PDFs in tests/fixtures/documents.ts
+ *   (./fake-document.ts), and can't read a photo.
  */
 export const fakeAi: AiProvider = {
   name: 'fake',
@@ -99,6 +102,9 @@ export const fakeAi: AiProvider = {
       ].join(' '),
       factIds: facts.map((fact) => fact.id),
     });
+  },
+  async readDocument(request) {
+    return reply<unknown>(readFixtureDocument(request));
   },
 };
 

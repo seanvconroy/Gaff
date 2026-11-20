@@ -28,7 +28,7 @@ export default async function CheckDonePage({
   if (back && token && kind === 'identity') await settleRenterIdentity(token);
   // UX-PF-8: back from the ID check, the page asks whether to keep it, if it passed.
   if (back) redirect(kind === 'identity' ? `${back}?q=keep_id` : back);
-  const what = kind === 'income' ? 'income check' : kind === 'identity' ? 'ID check' : 'check';
+  const what = kind === 'identity' ? 'ID check' : 'check';
   return (
     <PrivateFrame audience="renter" lister={null}>
       <Outcome tone="success" title={`Thanks, that’s your ${what} done`} headingLevel={1}>

@@ -128,7 +128,7 @@ describe('BA-4: the test copy’s seed', () => {
       AI_PROVIDER: 'bedrock',
       ANTHROPIC_API_KEY: '',
       IDENTITY_PROVIDER: 'none',
-      INCOME_PROVIDER: 'none',
+      DOCUMENT_STORE: 'supabase',
       PSRA_REGISTER_SOURCE: 'url',
       PSRA_REGISTER_URL: 'https://register.example.ie/register.csv',
       ADDRESS_SEARCH: 'off',

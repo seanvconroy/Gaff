@@ -1,6 +1,6 @@
 import { APIConnectionError, APIConnectionTimeoutError, APIError } from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
-import type { Message } from '@anthropic-ai/sdk/resources/messages';
+import type { ContentBlockParam, Message } from '@anthropic-ai/sdk/resources/messages';
 import type { z } from 'zod';
 import type { TokenCounts } from '@/domain/ai/prices';
 import type { AiTask } from '@/domain/ai/tasks';
@@ -9,6 +9,7 @@ import type { MessagesClient } from './clients';
 import * as advert from './prompts/advert';
 import * as answers from './prompts/answers';
 import * as description from './prompts/description';
+import * as document from './prompts/document';
 import * as people from './prompts/people';
 import * as wording from './prompts/wording';
 
@@ -27,6 +28,7 @@ const versions: Record<AiTask, string> = {
   people: people.version,
   wording: wording.version,
   description: description.version,
+  document: document.version,
 };
 
 /** Room for adaptive thinking as well as the answer; only what's used is billed. */
@@ -38,7 +40,8 @@ interface TaskCall<S extends z.ZodType> {
   maxRetries: number;
   schema: S;
   system: string;
-  content: string;
+  /** Quoted data: text, or for a document the file itself and the little told about it. */
+  content: string | ContentBlockParam[];
 }
 
 export function usageOf(message: Pick<Message, 'usage'>): TokenCounts {
@@ -151,6 +154,15 @@ export function claudeProvider(config: {
         schema: description.schema,
         system: description.system,
         content: description.userContent(request),
+      }),
+    readDocument: (request) =>
+      run({
+        effort: document.effort,
+        timeoutMs: document.timeoutMs,
+        maxRetries: document.maxRetries,
+        schema: document.schema,
+        system: document.system,
+        content: document.userContent(request),
       }),
   };
 }

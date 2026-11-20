@@ -164,6 +164,19 @@ export function describeEvent(
       };
     case 'letting.on_gaff_set':
       return { what: data.on ? 'Set to show on gaff.ie' : 'Set not to show on gaff.ie' };
+    case 'letting.freshness_asked':
+      return { what: `Asked if it’s still available, after ${String(data.days)} days unchanged` };
+    case 'letting.stepped_back':
+      return {
+        what: 'Off gaff.ie until someone says it’s still available; its enquiries wait',
+      };
+    case 'letting.confirmed_available':
+      return {
+        what: data.wasStale
+          ? 'Said it’s still available: back on gaff.ie'
+          : 'Said it’s still available',
+        detail: data.via === 'email' ? 'From the email' : undefined,
+      };
     case 'listing.reported':
       return {
         what: 'Reported to Gaff’s team',

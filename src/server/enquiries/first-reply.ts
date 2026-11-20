@@ -26,7 +26,10 @@ export async function queueFirstReply(
     .innerJoin(organisations, eq(organisations.id, applications.organisationId))
     .where(eq(applications.id, applicationId));
   // UX-TS-4: a home Gaff's team has hidden waits too: its first replies go when it's back.
-  if (!row || row.letting.status !== 'live' || row.letting.hiddenAt) return false;
+  // M49: so does one that stepped back, unconfirmed, until its lister says it's still available.
+  if (!row || row.letting.status !== 'live' || row.letting.hiddenAt || row.letting.staleAt) {
+    return false;
+  }
   const { application, letting, organisation } = row;
 
   const [already] = await tx

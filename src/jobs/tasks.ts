@@ -19,6 +19,8 @@ import { sweepPersonalData } from '@/server/retention/sweep';
 import { sweepPlaceMisses } from '@/server/places/places';
 import { sweepMapCounts } from '@/server/search/map-counts';
 import { sweepPhotoUploads } from '@/server/lettings/photos';
+import { sweepFreshness } from '@/server/lettings/freshness';
+import { sweepHomeCounts } from '@/server/lettings/home-numbers';
 import { endLetHomePages } from '@/server/homes/let-pages';
 import { purgeListingCases } from '@/server/homes/report';
 import { sendSearchAlerts, sweepEmailSearches } from '@/server/saved/alerts';
@@ -39,9 +41,12 @@ export const CRONTAB = [
   // UX-AG-1, UX-AG-6 (Q39): the PSRA register, weekly, early on Monday. A missed week runs when
   // jobs next run. The job key matches the one a first load uses, so two never queue up.
   '15 3 * * 1 psra_register_refresh ?fill=8d&jobKey=psra_register_refresh&max=5',
-  // UX-SR-10: alerts for saved searches, once a day, in the morning in Ireland. A missed one runs
-  // when jobs next run; the job sends at most one email a day to anyone, however often it runs.
-  '0 8 * * * saved_search_alerts ?fill=1d&jobKey=saved_search_alerts',
+  // UX-SR-10, M86: the daily alerts for saved searches, at 8am Irish time: 07:00 UTC in summer,
+  // 08:00 in winter, so both run and the job waits for 8 in Ireland. A missed one runs when jobs
+  // next run; the job sends at most one email a day to anyone, however often it runs.
+  '0 7,8 * * * saved_search_alerts ?fill=1d&jobKey=saved_search_alerts',
+  // M49: the sweep that keeps live homes fresh, each morning. Running it twice asks nobody twice.
+  '0 9 * * * listing_freshness ?fill=1d&jobKey=listing_freshness',
 ].join('\n');
 
 /** Every background task. Tasks are thin: they call use cases in src/server. */
@@ -79,6 +84,9 @@ export const taskList: TaskList = {
     // M133 (rule 9): the search map's daily counts, after 13 months. Numbers only.
     const mapCounts = await sweepMapCounts();
     console.log(`Map: ${mapCounts.deleted} daily counts over 13 months old deleted.`);
+    // M92 (rule 9): a home's daily counts of page opens and saves, after 13 months. Numbers only.
+    const homeCounts = await sweepHomeCounts();
+    console.log(`Homes: ${homeCounts.deleted} daily counts over 13 months old deleted.`);
     // M43: photos sent straight to the store and never finished, after a day. Counts only.
     const uploads = await sweepPhotoUploads();
     console.log(`Photos: ${uploads} unfinished uploads deleted.`);
@@ -101,9 +109,21 @@ export const taskList: TaskList = {
     console.log(`AI: ${await sweepAiCalls()} usage rows over 12 months old deleted.`);
   },
   saved_search_alerts: async () => {
-    const sent = await sendSearchAlerts();
+    const sent = await sendSearchAlerts('daily');
     // Counts only: never who was told, or about which home.
+    console.log(`Saved searches: ${sent.emails} daily alerts queued, ${sent.homes} homes in them.`);
+  },
+  // M86, M87: a couple of minutes after a home went public or came down in rent.
+  instant_search_alerts: async () => {
+    const sent = await sendSearchAlerts('instant');
     console.log(`Saved searches: ${sent.emails} alerts queued, ${sent.homes} homes in them.`);
+  },
+  // M49: ask about homes unchanged for two weeks; step back those nobody answered for three days.
+  listing_freshness: async () => {
+    const swept = await sweepFreshness();
+    console.log(
+      `Freshness: ${swept.asked} listers asked; ${swept.steppedBack} homes stepped back.`,
+    );
   },
   send_saved_search_email: async (payload) => {
     await sendSavedSearchEmail(payload);

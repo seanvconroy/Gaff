@@ -23,6 +23,7 @@ import { queueWaitingFirstReplies } from '@/server/enquiries/first-reply';
 import { recordFunnelStep } from '@/server/funnels/steps';
 import { setListerPhoneIn } from '@/server/organisations/phone';
 import { recordEvent } from '@/server/record/events';
+import { queueInstantAlerts } from '@/server/saved/alerts';
 import { type LettingDetail, lettingDetailIn } from './queries';
 import { assertMayActOn } from '@/server/team/permissions';
 
@@ -248,6 +249,8 @@ async function goLive(
   }
   // R7: anyone who enquired during set-up gets their first reply now.
   await queueWaitingFirstReplies(tx, input.organisationId, input.lettingId);
+  // M86, M87: saved searches it fits hear within minutes.
+  await queueInstantAlerts(tx);
 }
 
 /**

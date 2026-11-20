@@ -15,6 +15,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import type { KeptAnswers } from '@/domain/profile/kept';
 import type { SearchFilters } from '@/domain/search/filters';
+import { alertFrequencies } from '@/domain/saved/saved';
 import { users } from './auth';
 import { createdAt, personPolicy, updatedAt } from './columns';
 import { applications } from './enquiries';
@@ -114,6 +115,11 @@ export const savedHomes = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     homeRef: text().notNull(),
+    /**
+     * M85 (BA-13): the rent when it was saved, so Saved can say it has come down. Null for a
+     * home saved before this was kept.
+     */
+    rentCentsWhenSaved: integer(),
     createdAt: createdAt(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.homeRef] }), personPolicy()],
@@ -155,7 +161,12 @@ export const savedSearches = pgTable(
       .array()
       .notNull()
       .default(sql`'{}'::text[]`),
-    /** UX-SR-10: when its last alert went, for one email a day at most. */
+    /**
+     * M86 (Q51): as soon as a home that fits is listed (`instant`, the default), or once a day
+     * at 8am Irish time (`daily`). Changed on Saved and from the foot of every alert.
+     */
+    frequency: text({ enum: alertFrequencies }).notNull().default('instant'),
+    /** UX-SR-10, M86: when its last alert went; a daily search sends one a day at most. */
     lastAlertAt: timestamp({ withTimezone: true }),
     createdAt: createdAt(),
   },

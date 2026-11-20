@@ -15,6 +15,7 @@ import { irishToday } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
+import { rentChanged } from '@/server/saved/alerts';
 import { assertMayActOn } from '@/server/team/permissions';
 
 /**
@@ -74,6 +75,7 @@ export async function recordRentCheck(
         type: 'letting.rent_changed',
         data: { fromCents: letting.rent, toCents: askingRentCents },
       });
+      await rentChanged(tx, letting, letting.rent, askingRentCents);
     }
     await recordEvent(tx, {
       organisationId: member.organisationId,
@@ -134,6 +136,7 @@ export async function changeAskingRent(
       type: 'letting.rent_changed',
       data: { fromCents: letting.rent, toCents: rentCents },
     });
+    await rentChanged(tx, letting, letting.rent, rentCents);
   });
 }
 

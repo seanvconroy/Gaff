@@ -25,6 +25,7 @@ import { processInboundEmailIn } from '@/server/enquiries/process';
 import { UserFacingError } from '@/server/errors';
 import { recordFunnelStep } from '@/server/funnels/steps';
 import { recordEvent } from '@/server/record/events';
+import { rentChanged } from '@/server/saved/alerts';
 import { makeLettingIn } from './create-letting';
 import { type HomePhoto, type LettingDetail, lettingDetailIn, photosIn } from './queries';
 import { assertMayActOn } from '@/server/team/permissions';
@@ -378,6 +379,7 @@ async function changeLettingIn(
       type: 'letting.rent_changed',
       data: { fromCents: letting.monthlyRentCents, toCents: answers.rentCents },
     });
+    await rentChanged(tx, letting, letting.monthlyRentCents, answers.rentCents);
   }
   await recordEvent(tx, {
     organisationId: member.organisationId,

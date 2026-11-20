@@ -43,7 +43,7 @@ export const savedCopy = {
     tooMany: 'This address has too many searches waiting. Confirm one from your email first.',
     tooManySaved: 'You have 20 searches saved. Remove one on Profile to save this one.',
     failed: 'That didn’t save. Try again in a moment.',
-    sheetLead: 'We’ll email you when a new home fits, once a day at most.',
+    sheetLead: 'We’ll email you as soon as a new home fits. You can choose once a day instead.',
     checkTitle: 'Check your email',
     check: (email: string) =>
       `We’ve sent a link to ${email}. Open it to confirm, and we’ll email you when a new home fits.`,
@@ -54,8 +54,8 @@ export const savedCopy = {
   },
   confirmed: {
     title: 'You’ll hear when one comes up',
-    text: 'We’ll email you when a new home fits, once a day at most, and tell you about each home once.',
-    stop: 'Every email has “Stop these”, to stop them in one tap.',
+    text: 'We’ll email you as soon as a new home fits, and tell you about each home once.',
+    stop: 'Every email has “Once a day instead” and “Stop these”, each one tap.',
     action: 'See homes now',
   },
   expired: {
@@ -82,17 +82,43 @@ export const savedCopy = {
     let: 'This home has been let',
     gone: 'No longer on Gaff',
     search: 'Search homes',
-    alertsOn: 'We’ll email you when a new home fits one of your searches, once a day at most.',
+    alertsOn: 'We’ll email you when a new home fits one of your searches, each home once.',
     alertsOff: 'Emails about new homes are off. You can switch them on in Profile.',
     removedSearch: 'Search removed',
     savedOn: (date: string) => `Saved ${date}`,
+    /** M85: what changed on a saved home since it was saved. */
+    rentDown: (to: string, from: string) => `Rent down to ${to}, from ${from}`,
+    newViewings: 'New viewing times added',
+    /** M86: how each search tells them, and the switch. */
+    howOften: 'Emails',
+    instant: 'As soon as one is listed',
+    daily: 'Once a day, at 8am',
+    toDaily: 'Once a day instead',
+    toInstant: 'As soon as listed instead',
+    changedTo: {
+      instant: 'You’ll hear as soon as one is listed',
+      daily: 'You’ll hear once a day, at 8am',
+    },
+  },
+  /** M86: the switch at the foot of an alert, once pressed. */
+  frequencyChanged: {
+    instant: {
+      title: 'You’ll hear as soon as one is listed',
+      text: 'We’ll email you within minutes of a new home that fits, each home once. You can change this on Saved.',
+    },
+    daily: {
+      title: 'You’ll hear once a day',
+      text: 'We’ll email you at 8am on any day a new home fits, each home once. You can change this on Saved.',
+    },
+    action: 'Search homes',
   },
   profile: {
     title: 'What you’re looking for',
     lead: 'Your saved searches. Search opens on any of them.',
     none: 'Nothing yet. Search, then press “Tell me when one comes up”.',
     alertsLabel: 'Email me when a new home fits',
-    alertsHint: 'Once a day at most, each home once.',
+    alertsHint:
+      'As soon as one is listed, or once a day: you choose for each search on Saved. Each home once.',
     alertsOn: 'Emails about new homes are on',
     alertsOff: 'Emails about new homes are off',
   },
@@ -113,7 +139,7 @@ export function confirmSearchEmail(input: { search: string; confirmUrl: string }
       '',
       input.confirmUrl,
       '',
-      'Once you confirm, we’ll email you when a new home fits, once a day at most. If you didn’t ask for this, there’s nothing to do: the search is dropped tomorrow.',
+      'Once you confirm, we’ll email you as soon as a new home fits. If you didn’t ask for this, there’s nothing to do: the search is dropped tomorrow.',
       '',
       'Gaff',
     ].join('\n'),
@@ -130,9 +156,10 @@ export interface AlertHome {
 }
 
 /**
- * UX-SR-10: the alert. New homes that fit what the renter asked, each with its page; the search
- * itself; and "Stop these", which works in one tap with no sign-in. At most one a day. NEW
- * WORDING for the solicitor.
+ * UX-SR-10, M86: the alert. New homes that fit what the renter asked, each with its page; the
+ * search itself; the switch between "as soon as one is listed" and "once a day"; and "Stop
+ * these", which works in one tap with no sign-in. NEW WORDING for the solicitor (the timing
+ * words changed with Q51).
  */
 export function searchAlertEmail(input: {
   homes: readonly AlertHome[];
@@ -141,12 +168,20 @@ export function searchAlertEmail(input: {
   /** The first search's results on Gaff. */
   searchUrl: string;
   stopUrl: string;
+  /** How these searches hear now. */
+  frequency: 'instant' | 'daily';
+  /** The other choice, in one tap. */
+  switchUrl: string;
 }): AccountEmail {
   const one = input.homes.length === 1;
   const what =
     input.searches.length === 1
       ? `what you asked for: ${input.searches[0]}`
       : 'what you asked for in your searches';
+  const again =
+    input.frequency === 'instant'
+      ? 'We’ll email you again as soon as another home fits.'
+      : 'We’ll email you again at 8am on a day another home fits.';
   return {
     subject: one
       ? `A new home fits your search: ${input.homes[0]!.address}`
@@ -164,8 +199,12 @@ export function searchAlertEmail(input: {
       input.searchUrl,
       '',
       one
-        ? 'You can ask to view it on its page, and you’ll hear back either way. We’ll email you again when another home fits, once a day at most.'
-        : 'You can ask to view any of them on its page, and you’ll hear back either way. We’ll email you again when another home fits, once a day at most.',
+        ? `You can ask to view it on its page, and you’ll hear back either way. ${again}`
+        : `You can ask to view any of them on its page, and you’ll hear back either way. ${again}`,
+      '',
+      input.frequency === 'instant'
+        ? `Once a day instead: ${input.switchUrl}`
+        : `As soon as one is listed instead: ${input.switchUrl}`,
       '',
       `Stop these: ${input.stopUrl}`,
       '',

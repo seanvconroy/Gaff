@@ -153,6 +153,25 @@ export const eventCatalogue = {
   /** UX-LT-21: "On gaff.ie" was switched on or off. */
   'letting.on_gaff_set': z.object({ on: z.boolean() }),
   /**
+   * M49 (BA-13): the home had no change and no "Still available" for this many days, so its
+   * lister was asked, on Today and by email. The actor is the system.
+   */
+  'letting.freshness_asked': z.object({ days: z.number().int().min(1) }),
+  /** M49: nobody answered for this many days, so it stepped back from Gaff's public pages. */
+  'letting.stepped_back': z.object({
+    reason: z.enum(['not_confirmed']),
+    days: z.number().int().min(1),
+  }),
+  /**
+   * M49: the lister said "Still available": on Gaff (a person), or from the email's signed link
+   * (the system, as nobody signed in). `firstReplies` went to enquiries that waited.
+   */
+  'letting.confirmed_available': z.object({
+    via: z.enum(['gaff', 'email']),
+    wasStale: z.boolean(),
+    firstReplies: z.number().int().min(0),
+  }),
+  /**
    * UX-TS-3, BA-9: a visitor reported the home's listing to Gaff's team, for this reason, and it
    * opened or joined this case. Nothing about who sent it is here. The actor is the system.
    */

@@ -309,6 +309,13 @@
       "when": 1795134354532,
       "tag": "0043_listing_cases",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1795142620305,
+      "tag": "0044_fresh_alerts_numbers",
+      "breakpoints": true
     }
   ]
 }

@@ -53,6 +53,12 @@ export const askCopy = {
   sendButton: 'Send',
   sending: 'Sending…',
   sendFailed: 'That didn’t send. Check your connection and try again.',
+  /** M82: 30 enquiries a day from one person or one network address. */
+  limited: {
+    title: 'That’s a lot of enquiries for one day',
+    text: 'Gaff takes up to 30 a day from one person, to keep it fair for everyone. Nothing more was sent. You can ask about this home tomorrow.',
+    action: 'See homes on Gaff',
+  },
   gone: {
     title: 'This home isn’t taking enquiries now',
     text: 'It may have been let, or taken off Gaff. Nothing was sent. Homes are added every week.',

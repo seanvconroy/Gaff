@@ -16,6 +16,7 @@ import {
   signInRefusedEmail,
 } from '@/copy/account-emails';
 import { layOutGaffEmail } from '@/copy/email-layout';
+import { stillAvailableEmail } from '@/copy/freshness';
 import { hiddenReasons } from '@/copy/trust';
 import {
   appealKeptEmail,
@@ -37,6 +38,8 @@ import {
 } from '@/db/schema';
 import { env } from '@/lib/env';
 import { shownName } from '@/domain/team/members';
+import { stepsBackAt } from '@/domain/lettings/freshness';
+import { stillAvailablePath } from '@/server/lettings/freshness';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { invitePath } from '@/server/team/invite-links';
 import { INVITE_LASTS_DAYS } from './invites';
@@ -108,6 +111,16 @@ export const accountEmailJob = z.discriminatedUnion('kind', [
    */
   z.object({ kind: z.literal('report_outcome'), caseId: z.uuid() }),
   /**
+   * M49 (BA-13): a live home had no change and no "Still available" for two weeks. To its
+   * lead, with the signed link. `askedAt` is the ask the link answers.
+   */
+  z.object({
+    kind: z.literal('still_available'),
+    organisationId: z.uuid(),
+    lettingId: z.uuid(),
+    askedAt: z.iso.datetime(),
+  }),
+  /**
    * UX-PF-7: a renter's profile will be deleted for want of use. This one is to a person, about
    * their own profile, and belongs to no organisation.
    */
@@ -169,6 +182,10 @@ export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promi
         : signInRefusedEmail({ provider: job.provider, when, profileUrl }),
       `account-${job.kind}-${job.userId}-${job.kind === 'sign_in_changed' ? `${job.change}-${job.method}` : job.provider}-${job.at}`,
     );
+    return;
+  }
+  if (job.kind === 'still_available') {
+    await sendStillAvailable(job, app);
     return;
   }
   if (job.kind === 'report_outcome') {
@@ -469,4 +486,40 @@ async function sendReportOutcome(caseId: string, app: string): Promise<void> {
       tx.update(listingReports).set({ outcomeEmail: null }).where(eq(listingReports.id, report.id)),
     );
   }
+}
+
+/**
+ * M49 (BA-13): "Is it still available?", to the home's lead, once for each ask. Answered,
+ * changed or asked again since it was queued: this email would no longer be true.
+ */
+async function sendStillAvailable(
+  job: Extract<AccountEmailJob, { kind: 'still_available' }>,
+  app: string,
+): Promise<void> {
+  const askedAt = new Date(job.askedAt);
+  const [found] = await withOrg(job.organisationId, (tx) =>
+    tx
+      .select({
+        address: lettings.addressLine1,
+        status: lettings.status,
+        askedAt: lettings.freshnessAskedAt,
+        confirmedAt: lettings.confirmedAvailableAt,
+        leadEmail: users.email,
+      })
+      .from(lettings)
+      .innerJoin(users, eq(users.id, lettings.leadUserId))
+      .where(eq(lettings.id, job.lettingId)),
+  );
+  if (!found || found.status !== 'live' || found.askedAt?.getTime() !== askedAt.getTime()) return;
+  if (found.confirmedAt && found.confirmedAt.getTime() >= askedAt.getTime()) return;
+  await send(
+    found.leadEmail,
+    stillAvailableEmail({
+      address: found.address,
+      link: `${app}${stillAvailablePath(job.lettingId, askedAt)}`,
+      stepsBackOn: formatDate(stepsBackAt(askedAt)),
+      lettingUrl: `${app}/lettings/${job.lettingId}`,
+    }),
+    `account-still_available-${job.lettingId}-${job.askedAt}`,
+  );
 }

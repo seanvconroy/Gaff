@@ -6,7 +6,7 @@ import {
   developmentCounts,
   developmentCountsLine,
   developmentHref,
-  sharedFields,
+  type sharedFields,
 } from '@/domain/developments/development';
 import {
   developmentStepHref,

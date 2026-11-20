@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, isNotNull, notInArray, sql } from 'drizzle-orm';
 import type { Tx } from '@/db/client';
-import { developments, lettingPhotos, lettings, unitTypes } from '@/db/schema';
+import { type developments, lettingPhotos, lettings, unitTypes } from '@/db/schema';
 import {
   type DevelopmentShared,
   type SharedColumns,

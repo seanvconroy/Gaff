@@ -98,6 +98,8 @@ export const developmentCopy = {
     change: 'Change',
     shared: 'Shared by the homes',
     noHomes: 'No homes added yet.',
+    /** Lettings: developments with no homes yet. */
+    starting: 'Developments being set up',
     ownValues: 'Changed on this home',
     publicPage: 'See its page on Gaff',
     homesOf: (type: string) => `Homes of ${type}`,

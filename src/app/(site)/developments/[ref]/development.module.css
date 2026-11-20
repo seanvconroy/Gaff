@@ -73,14 +73,14 @@
   text-decoration: none;
 }
 
-.homeLink:hover .homeName,
-.homeLink:focus-visible .homeName {
-  text-decoration: underline;
-}
-
 .homeName {
   font-weight: var(--type-heading-weight);
   color: var(--color-brand-text);
+}
+
+.homeLink:hover .homeName,
+.homeLink:focus-visible .homeName {
+  text-decoration: underline;
 }
 
 @media (width > 900px) {

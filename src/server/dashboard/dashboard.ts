@@ -102,6 +102,8 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         goLiveHeldAt: lettings.goLiveHeldAt,
         setupStep: lettings.setupStep,
         advertisedOn: lettings.advertisedOn,
+        // BA-15: Lettings groups a development's homes under its name.
+        developmentId: lettings.developmentId,
       })
       .from(lettings)
       .orderBy(desc(lettings.createdAt));
@@ -417,6 +419,7 @@ export async function dashboardFor(member: Member, now: Date = new Date()) {
         closedAt: letting.closedAt,
         leadUserId: leadFor(letting),
         coverPhoto: coverPhotos.get(letting.id) ?? null,
+        developmentId: letting.developmentId,
         goLiveHeld: letting.goLiveHeldAt !== null,
         setupStepsLeft,
         advertisedOn: letting.advertisedOn,

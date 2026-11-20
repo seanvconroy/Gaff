@@ -1,8 +1,13 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, ne } from 'drizzle-orm';
 import { withOrg, type Tx } from '@/db/client';
 import { applications, lettings, messages, organisations } from '@/db/schema';
 import { APPLY_INVITATION_TEMPLATE, applyInvitationEmail } from '@/copy/templates/applications';
-import { applicationSchema } from '@/domain/applications/apply';
+import {
+  EMAIL_TAKEN,
+  applicantDetailsSchema,
+  applicationSchema,
+} from '@/domain/applications/apply';
+import { normaliseEmail } from '@/domain/enquiries/parse';
 import { env } from '@/lib/env';
 import { createAccessLink, resolveAccessLink } from '@/server/access/links';
 import { queueMessage } from '@/server/messages/outbox';
@@ -74,19 +79,30 @@ export async function cancelApplyInvitation(tx: Tx, applicationId: string): Prom
 }
 
 export type ApplyResult =
-  { ok: true } | { ok: false; errors: Record<string, string> } | { ok: false; closed: true };
+  | { ok: true }
+  | { ok: false; errors: Record<string, string> }
+  | { ok: false; closed: true }
+  /** UX-RN-11, UX-SI-12: the email is changing, so the one-time code is asked for first. */
+  | { ok: false; needsCode: true };
 
 /**
  * R16: the renter applies from their private link. Only someone who came to view, and only
  * until a person has chosen, can write stage-5 data (ADR-0005, staged data).
+ *
+ * UX-RN-11: the check screen shows their name and email, each with "Change". A corrected name is
+ * kept as it's sent. A different email is where Gaff writes to them from then on, and where the
+ * one-time code for their checks goes, so it is changed only for someone who has shown the
+ * current address is theirs (`emailCanChange`: they entered the code, or are signed in with it).
  */
 export async function submitApplication(
   token: string,
   values: Record<string, string>,
+  options: { emailCanChange?: boolean } = {},
 ): Promise<ApplyResult | null> {
   const link = await resolveAccessLink(token, 'renter');
   if (!link) return null;
   const parsed = applicationSchema.safeParse(values);
+  const details = applicantDetailsSchema.safeParse(values);
   return withOrg(link.organisationId, async (tx) => {
     const [row] = await tx
       .select({ application: applications, letting: lettings })
@@ -98,12 +114,35 @@ export async function submitApplication(
     const open =
       row.letting.status === 'live' && ['attended', 'applied'].includes(row.application.status);
     if (!open) return { ok: false, closed: true };
-    if (!parsed.success) {
+    if (!parsed.success || !details.success) {
       const errors: Record<string, string> = {};
-      for (const issue of parsed.error.issues) {
+      for (const issue of [
+        ...(parsed.success ? [] : parsed.error.issues),
+        ...(details.success ? [] : details.error.issues),
+      ]) {
         errors[String(issue.path[0] ?? 'form')] ??= issue.message;
       }
       return { ok: false, errors };
+    }
+    const fullName = details.data.fullName ?? row.application.fullName;
+    const email = details.data.email ?? row.application.email;
+    const nameChanged = fullName !== row.application.fullName;
+    const emailChanged = normaliseEmail(email) !== row.application.emailNormalised;
+    if (emailChanged) {
+      if (!options.emailCanChange) return { ok: false, needsCode: true };
+      // One person, one enquiry per home (R6).
+      const [taken] = await tx
+        .select({ id: applications.id })
+        .from(applications)
+        .where(
+          and(
+            eq(applications.lettingId, row.letting.id),
+            eq(applications.emailNormalised, normaliseEmail(email)),
+            ne(applications.id, row.application.id),
+          ),
+        )
+        .limit(1);
+      if (taken) return { ok: false, errors: { email: EMAIL_TAKEN } };
     }
     await tx
       .update(applications)
@@ -112,6 +151,8 @@ export async function submitApplication(
         monthlyIncomeCents: parsed.data.monthlyIncomeCents,
         appliedAt: new Date(),
         status: 'applied',
+        ...(nameChanged ? { fullName } : {}),
+        ...(emailChanged ? { email, emailNormalised: normaliseEmail(email) } : {}),
       })
       .where(eq(applications.id, row.application.id));
     if (row.letting.stage === 'viewings') {
@@ -128,6 +169,16 @@ export async function submitApplication(
       subject: { type: 'application', id: row.application.id },
       data: { applicationId: row.application.id, changed: row.application.status === 'applied' },
     });
+    if (nameChanged || emailChanged) {
+      await recordEvent(tx, {
+        organisationId: link.organisationId,
+        lettingId: row.letting.id,
+        actor: { type: 'renter', applicationId: row.application.id },
+        type: 'application.details_changed',
+        subject: { type: 'application', id: row.application.id },
+        data: { applicationId: row.application.id, name: nameChanged, email: emailChanged },
+      });
+    }
     return { ok: true };
   });
 }

@@ -6,6 +6,7 @@ import {
   MAX_PHOTO_BYTES,
   checklistSchema,
   inventoryItemSchema,
+  inventoryQuerySchema,
   photoKind,
   stripJpegMetadata,
 } from '@/domain/tenancy/movein';
@@ -15,6 +16,7 @@ import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
+import { assertMayActOn } from '@/server/team/permissions';
 
 async function tenancyOf(tx: Tx, lettingId: string) {
   const [tenancy] = await tx.select().from(tenancies).where(eq(tenancies.lettingId, lettingId));
@@ -31,6 +33,7 @@ export async function saveChecklist(
   const parsed = checklistSchema.safeParse(values);
   if (!parsed.success) throw new UserFacingError(parsed.error.issues[0]!.message);
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const tenancy = await tenancyOf(tx, lettingId);
     const keys = parsed.data.keys === 'yes';
     await tx
@@ -81,6 +84,7 @@ export async function addInventoryItem(
   }
   if (!parsed.success || Object.keys(errors).length > 0) return { ok: false, errors };
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const tenancy = await tenancyOf(tx, lettingId);
     if (tenancy.inventoryConfirmedAt) {
       throw new UserFacingError('The tenant has confirmed the inventory, so it can’t change.');
@@ -114,6 +118,7 @@ export async function removeInventoryItem(
   itemId: string,
 ): Promise<void> {
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const tenancy = await tenancyOf(tx, lettingId);
     if (tenancy.inventoryConfirmedAt) {
       throw new UserFacingError('The tenant has confirmed the inventory, so it can’t change.');
@@ -133,6 +138,7 @@ export async function inventoryOf(tx: Tx, tenancyId: string) {
       item: inventoryItems.item,
       condition: inventoryItems.condition,
       note: inventoryItems.note,
+      tenantNote: inventoryItems.tenantNote,
       photoType: inventoryItems.photoType,
     })
     .from(inventoryItems)
@@ -151,6 +157,7 @@ export async function inventoryFor(member: Member, lettingId: string) {
 /** R25: the tenant gets the inventory to look over and confirm. */
 export async function shareInventory(member: Member, lettingId: string): Promise<void> {
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const tenancy = await tenancyOf(tx, lettingId);
     const items = await inventoryOf(tx, tenancy.id);
     if (items.length === 0) throw new UserFacingError('Add what’s in the home first.');
@@ -219,6 +226,49 @@ export async function confirmInventory(token: string): Promise<boolean> {
       data: { tenancyId: tenancy.id },
     });
     return true;
+  });
+}
+
+export type QueryItemResult =
+  { ok: true } | { ok: false; errors: Record<string, string> } | { ok: false; closed: true };
+
+/**
+ * UX-RN-25: "Something's not right". The tenant sends a short note to the lister about one item
+ * of the inventory, before or after confirming it. The note is kept with the item, where the
+ * operator sees it; the record holds only that it happened.
+ */
+export async function queryInventoryItem(
+  token: string,
+  itemId: string,
+  values: Record<string, string>,
+): Promise<QueryItemResult | null> {
+  // The note is read first: an empty one is told so before anything is looked up.
+  const parsed = inventoryQuerySchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, errors: { note: parsed.error.issues[0]!.message } };
+  }
+  const link = await resolveAccessLink(token, 'renter');
+  if (!link) return null;
+  return withOrg(link.organisationId, async (tx) => {
+    const [row] = await tx
+      .select({ item: inventoryItems.id, tenancy: tenancies })
+      .from(inventoryItems)
+      .innerJoin(tenancies, eq(tenancies.id, inventoryItems.tenancyId))
+      .where(and(eq(inventoryItems.id, itemId), eq(tenancies.applicationId, link.subjectId)));
+    if (!row?.tenancy.inventorySharedAt) return { ok: false, closed: true };
+    await tx
+      .update(inventoryItems)
+      .set({ tenantNote: parsed.data.note, tenantNotedAt: new Date() })
+      .where(eq(inventoryItems.id, itemId));
+    await recordEvent(tx, {
+      organisationId: link.organisationId,
+      lettingId: row.tenancy.lettingId,
+      actor: { type: 'renter', applicationId: link.subjectId },
+      type: 'inventory.item_queried',
+      subject: { type: 'tenancy', id: row.tenancy.id },
+      data: { tenancyId: row.tenancy.id, itemId },
+    });
+    return { ok: true };
   });
 }
 

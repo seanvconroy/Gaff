@@ -5,9 +5,38 @@
   max-width: 68ch;
 }
 
+/* Links that jump to each section: a quiet panel at the top, left off the printed page. */
+.contents {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-md);
+}
+
+.contentsTitle {
+  font-weight: var(--type-title-weight);
+}
+
+.links {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each link is a line of its own, and a full 44px target. */
+.link {
+  display: flex;
+  align-items: center;
+  min-height: var(--size-target);
+}
+
+/* A section reached by its link stops clear of the top of the screen. */
 .section {
   display: grid;
   gap: var(--space-2);
+  scroll-margin-top: var(--space-4);
 }
 
 .section p {
@@ -24,5 +53,9 @@
 @media print {
   .document {
     max-width: none;
+  }
+
+  .contents {
+    display: none;
   }
 }

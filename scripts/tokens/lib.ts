@@ -1,6 +1,6 @@
 /**
  * Design tokens: docs/design-tokens.json is the single source of styling (ADR-0011).
- * This module validates the file, resolves references such as "{atlantic-text}", and renders
+ * This module validates the file, resolves references such as "{brand-text}", and renders
  * the generated CSS custom properties and TypeScript token names.
  */
 import { readFileSync } from 'node:fs';
@@ -73,6 +73,11 @@ export const tokensFileSchema = z.object({
   spacing: z.object({
     tokens: z.array(z.object({ name: tokenName, value: pixels, usage: z.string().optional() })),
   }),
+  sizing: z.object({
+    /** Every adaptive component has two layouts, below and above this width (UX-DS-27). */
+    breakpoint: pixels,
+    tokens: z.array(z.object({ name: tokenName, value: pixels, usage: z.string().optional() })),
+  }),
   radius: z.object({
     tokens: z.array(z.object({ name: tokenName, value: pixels, usage: z.string().optional() })),
   }),
@@ -127,6 +132,8 @@ export interface ResolvedTokens {
     textTransform?: string;
   }>;
   spacing: Record<string, string>;
+  sizes: Record<string, string>;
+  breakpoint: string;
   radius: Record<string, string>;
   shadows: Record<string, Record<Theme, string>>;
   motion: Record<string, string>;
@@ -213,6 +220,8 @@ export function resolveTokens(file: TokensFile): ResolvedTokens {
     families: file.type.families,
     typeStyles,
     spacing: Object.fromEntries(file.spacing.tokens.map((t) => [t.name, t.value])),
+    sizes: Object.fromEntries(file.sizing.tokens.map((t) => [t.name, t.value])),
+    breakpoint: file.sizing.breakpoint,
     radius: Object.fromEntries(file.radius.tokens.map((t) => [t.name, t.value])),
     shadows: Object.fromEntries(file.shadow.tokens.map((t) => [t.name, t.value])),
     motion: Object.fromEntries(file.motion.tokens.map((t) => [t.name, t.value])),
@@ -252,6 +261,7 @@ export function renderCss(tokens: ResolvedTokens): string {
     }
   }
   for (const [name, value] of Object.entries(tokens.spacing)) lines.push(`  --${name}: ${value};`);
+  for (const [name, value] of Object.entries(tokens.sizes)) lines.push(`  --${name}: ${value};`);
   for (const [name, value] of Object.entries(tokens.radius)) lines.push(`  --${name}: ${value};`);
   for (const [name, value] of Object.entries(tokens.motion)) lines.push(`  --${name}: ${value};`);
   lines.push('}', '');
@@ -266,6 +276,11 @@ export function renderCss(tokens: ResolvedTokens): string {
     '',
   );
   lines.push(':root[data-theme="dark"] {', ...themeBlock(tokens, 'dark'), '}', '');
+  // M129 (BA-5): a map has a scheme of its own, which its pins follow whatever the page's
+  // theme: a light map on a dark page keeps light pins.
+  for (const theme of ['light', 'dark'] as const) {
+    lines.push(`[data-map-scheme="${theme}"] {`, ...themeBlock(tokens, theme), '}', '');
+  }
 
   // Reduced motion: every duration drops to 0ms, so nothing animates.
   const durations = Object.entries(tokens.motion).filter(([, value]) => DURATION.test(value));
@@ -309,6 +324,12 @@ export function renderTypeScript(tokens: ResolvedTokens): string {
     '',
     `export const spaceTokens = ${list(Object.keys(tokens.spacing))};`,
     'export type SpaceToken = (typeof spaceTokens)[number];',
+    '',
+    `export const sizeTokens = ${list(Object.keys(tokens.sizes))};`,
+    'export type SizeToken = (typeof sizeTokens)[number];',
+    '',
+    '/** Every adaptive component has two layouts, below and above this width (UX-DS-27). */',
+    `export const breakpointPx = ${parseFloat(tokens.breakpoint)};`,
     '',
     `export const radiusTokens = ${list(Object.keys(tokens.radius))};`,
     'export type RadiusToken = (typeof radiusTokens)[number];',

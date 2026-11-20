@@ -1,8 +1,12 @@
 import { asc, eq } from 'drizzle-orm';
 import { withOrg, type Tx } from '@/db/client';
 import { events, users } from '@/db/schema';
-import { describeCriteria, type Criteria } from '@/domain/criteria/criteria';
-import { formatDate, formatEuro, formatRent } from '@/lib/format';
+import { lettingDetailsParts, NO_SMOKING_INDOORS, type Criteria } from '@/domain/criteria/criteria';
+import { sourcesInWords } from '@/domain/enquiries/sources';
+import { reportCopy } from '@/copy/home-page';
+import { hiddenReasons } from '@/copy/trust';
+import type { ReportReason } from '@/domain/homes/report';
+import { formatDate, formatDateTime, formatEuro, formatRent } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 
 export interface TimelineEntry {
@@ -11,9 +15,14 @@ export interface TimelineEntry {
   who: string;
   what: string;
   detail?: string;
+  /** A person's decision (ADR-0007): History's "Decisions only" (UX-LP-6). */
+  decision?: boolean;
 }
 
 type EventRow = typeof events.$inferSelect;
+
+/** UX-TS-3: the answer a visitor tapped, as the report page put it. */
+const reportReasonWords: Record<string, string> = reportCopy.reasons;
 
 const messageTitles: Record<string, string> = {
   first_reply: 'First reply sent',
@@ -26,11 +35,13 @@ const messageTitles: Record<string, string> = {
   reminder: 'Viewing reminder sent',
   place_offered: 'A freed place offered',
   letting_closed: 'Closing message sent',
+  enquiries_closed: 'Told enquiries have closed',
   apply_invitation: 'Invitation to apply sent',
   checks_invitation: 'Checks explained to the renter',
   reference_request: 'Reference request sent',
   reference_reminder: 'Reference reminder sent',
   landlord_approval: 'Approval request sent to the landlord',
+  owner_link: 'Link to follow the letting sent to the owner',
   offer: 'Offer sent',
   offer_expired: 'Offer closed message sent',
   outcome: 'Outcome message sent',
@@ -39,6 +50,8 @@ const messageTitles: Record<string, string> = {
   payment_request: 'Payment request sent',
   payment_received: 'Payment receipt sent',
   inventory_shared: 'Inventory sent to the tenant',
+  message: 'Message sent',
+  owner_message: 'Message sent to the owner',
 };
 
 const rentCheckTitles: Record<string, string> = {
@@ -47,7 +60,27 @@ const rentCheckTitles: Record<string, string> = {
   get_advice: 'Rent check: get advice before setting the rent',
 };
 
+/** Adding a letting, a step at a time (UX-FL-2): which step was answered, never what was typed. */
+const savedSteps: Record<string, string> = {
+  review: 'The home’s details looked over',
+  address: 'Address saved',
+  rent: 'Rent and date saved',
+  home: 'The home’s details saved',
+};
+const changedSteps: Record<string, string> = {
+  address: 'Address changed',
+  rent: 'Rent or available date changed',
+  home: 'The home’s details changed',
+};
+const portalNames = (data: Record<string, unknown>) =>
+  [data.daft ? 'Daft' : null, data.myhome ? 'MyHome' : null].filter(Boolean).join(' and ');
+
 /** One event in plain words. Personal details are never in events, so none appear here. */
+/** "1 person", "3 people". */
+function people(n: number): string {
+  return `${n} ${n === 1 ? 'person' : 'people'}`;
+}
+
 export function describeEvent(
   event: Pick<EventRow, 'type' | 'data'>,
 ): Omit<TimelineEntry, 'id' | 'at' | 'who'> {
@@ -66,6 +99,141 @@ export function describeEvent(
             .filter(Boolean)
             .join(', ') || undefined,
       };
+    case 'letting.draft_started':
+      return {
+        what: 'Started adding the home',
+        detail:
+          data.origin === 'again'
+            ? 'From the last time it was let'
+            : data.origin === 'advert'
+              ? 'From its advert'
+              : data.origin === 'enquiry'
+                ? 'From an enquiry'
+                : undefined,
+      };
+    // P10: whether the draft was shown. Never its words, which aren't in the record.
+    case 'letting.description_drafted':
+      return {
+        what: data.accepted
+          ? 'Description drafted by Gaff, for the lister to check'
+          : 'Gaff couldn’t draft a description that kept to the facts',
+      };
+    case 'letting.advert_read': {
+      const count = (n: unknown, one: string, many: string) =>
+        `${Number(n)} ${Number(n) === 1 ? one : many}`;
+      return {
+        what: 'Advert read by Gaff',
+        detail: [
+          count(data.found, 'detail found', 'details found'),
+          Number(data.leftOut) > 0 ? count(data.leftOut, 'line left out', 'lines left out') : null,
+        ]
+          .filter(Boolean)
+          .join(', '),
+      };
+    }
+    case 'letting.enquiry_attached':
+      return {
+        what: data.matched
+          ? 'The enquiry it was started from was added to it'
+          : 'The enquiry it was started from could no longer be read',
+      };
+    case 'letting.draft_saved':
+      return { what: savedSteps[String(data.step)] ?? 'The home’s details saved' };
+    // M38, M126: never the point itself, which isn't in the record.
+    case 'letting.point_set':
+      return {
+        what: 'Pin placed on the map',
+        detail: data.check === 'outside' ? 'Outside the area in the address' : undefined,
+      };
+    case 'letting.advert_link_kept':
+      return {
+        what: 'Advert link kept, to match enquiries to this home',
+        detail: portalNames(data) || undefined,
+      };
+    case 'letting.details_changed':
+      return { what: changedSteps[String(data.step)] ?? 'The home’s details changed' };
+    case 'letting.photos_changed':
+      return {
+        what: data.floorPlan
+          ? data.floorPlan === 'marked'
+            ? 'Photo marked as a floor plan'
+            : 'Floor plan marked as a photo'
+          : data.reordered
+            ? 'Photos put in a new order'
+            : Number(data.removed) > 0
+              ? 'Photo removed'
+              : 'Photo added',
+        detail: `${data.count} ${data.count === 1 ? 'photo' : 'photos'} now`,
+      };
+    case 'letting.house_rules_set':
+      return {
+        what: 'House rule set',
+        detail: data.noSmokingIndoors ? NO_SMOKING_INDOORS : 'None',
+      };
+    case 'letting.on_gaff_set':
+      return { what: data.on ? 'Set to show on gaff.ie' : 'Set not to show on gaff.ie' };
+    case 'letting.enquiries_closed':
+      return {
+        what:
+          data.when === 'now'
+            ? 'Stopped taking enquiries'
+            : `Set to stop taking enquiries on ${formatDateTime(new Date(String(data.closesAt)))}`,
+      };
+    case 'letting.enquiries_reopened':
+      return { what: 'Taking enquiries again' };
+    case 'enquiry.after_close':
+      return { what: 'An enquiry came after enquiries closed: told they’ve closed' };
+    case 'letting.freshness_asked':
+      return { what: `Asked if it’s still available, after ${String(data.days)} days unchanged` };
+    case 'letting.stepped_back':
+      return {
+        what: 'Off gaff.ie until someone says it’s still available; its enquiries wait',
+      };
+    case 'letting.confirmed_available':
+      return {
+        what: data.wasStale
+          ? 'Said it’s still available: back on gaff.ie'
+          : 'Said it’s still available',
+        detail: data.via === 'email' ? 'From the email' : undefined,
+      };
+    case 'listing.reported':
+      return {
+        what: 'Reported to Gaff’s team',
+        detail: reportReasonWords[String(data.reason)] ?? undefined,
+      };
+    case 'listing.hidden':
+      return {
+        what: 'Taken off gaff.ie by Gaff’s team after a report; its enquiries wait',
+        detail: hiddenReasons[data.reason as ReportReason] ?? undefined,
+      };
+    case 'listing.held':
+      return {
+        what: 'Taken off gaff.ie automatically after reports that it may be a scam, for a person to check',
+      };
+    case 'listing.kept_up':
+      return { what: 'Gaff’s team read the reports about it and kept it on gaff.ie' };
+    case 'listing.appeal_decided':
+      return data.decision === 'hide_listing'
+        ? {
+            what: 'Gaff’s team looked again and kept it off gaff.ie',
+            detail: hiddenReasons[data.reason as ReportReason] ?? undefined,
+          }
+        : { what: 'Gaff’s team looked again and agreed with you' };
+    case 'listing.look_again_asked':
+      return { what: 'Asked Gaff’s team to look again' };
+    case 'listing.unhidden':
+      return { what: 'Back on gaff.ie: Gaff’s team looked again' };
+    case 'letting.gaff_page_removed':
+      return {
+        what: `Its page on gaff.ie was removed, ${String(data.daysAfterLet)} days after it was let`,
+      };
+    case 'letting.advertised_set':
+      return {
+        what: 'Said where else it’s advertised',
+        detail: portalNames(data) || 'Nowhere else',
+      };
+    case 'letting.test_enquiry_sent':
+      return { what: 'Test enquiry tried', detail: 'Nothing was sent to anyone' };
     case 'viewings.session_added':
       return {
         what: 'Viewing time added',
@@ -75,9 +243,17 @@ export function describeEvent(
             : `${data.slots} slots, one booking each`,
       };
     case 'viewings.session_removed':
-      return { what: 'Viewing time removed' };
+      return {
+        what: 'Viewing time cancelled',
+        detail: data.told ? `${people(Number(data.told))} booked were told` : undefined,
+      };
+    case 'viewings.session_changed':
+      return {
+        what: 'Viewing time changed',
+        detail: data.moved ? `${people(Number(data.told))} booked were told it moved` : undefined,
+      };
     case 'criteria.set': {
-      const lines = describeCriteria(data as unknown as Criteria);
+      const lines = lettingDetailsParts(data as unknown as Criteria, false);
       return { what: 'Criteria set', detail: lines.length ? lines.join('; ') : 'No criteria' };
     }
     case 'rent_check.recorded':
@@ -87,6 +263,10 @@ export function describeEvent(
         what: 'Rent changed',
         detail: `From ${formatRent(Number(data.fromCents))} to ${formatRent(Number(data.toCents))}`,
       };
+    case 'comparable.recorded':
+      return { what: 'Comparable rent recorded', detail: `${data.count} of 3` };
+    case 'tenancy.ppsn_shown':
+      return { what: 'PPS number shown, to register with the RTB' };
     case 'comparables.recorded':
       return {
         what: 'Three comparable rents recorded',
@@ -95,12 +275,12 @@ export function describeEvent(
     case 'enquiry.received':
       return {
         what: 'Enquiry received',
-        detail: `Via ${data.portal === 'daft' ? 'Daft' : 'MyHome'}`,
+        detail: `Via ${sourcesInWords([String(data.portal)])}`,
       };
     case 'enquiry.repeated':
       return {
         what: 'The same renter enquired again',
-        detail: `Via ${data.portal === 'daft' ? 'Daft' : 'MyHome'}. Kept as one enquiry.`,
+        detail: `Via ${sourcesInWords([String(data.portal)])}. Kept as one enquiry.`,
       };
     case 'reply.received':
       return { what: 'Reply received' };
@@ -133,6 +313,10 @@ export function describeEvent(
       return { what: data.edited ? 'Draft edited and approved' : 'Draft approved' };
     case 'message.discarded':
       return { what: 'Draft not sent' };
+    case 'message.written':
+      return {
+        what: data.to === 'owner' ? 'Message written to the owner' : 'Message written to a renter',
+      };
     case 'question.answered':
       return {
         what: 'Question answered by your team',
@@ -162,7 +346,10 @@ export function describeEvent(
             : 'To the next person, with a 2-hour hold',
       };
     case 'letting.shared_with_landlord':
-      return { what: 'Read-only link shared with the landlord' };
+      return {
+        what: 'Read-only link shared with the landlord',
+        detail: Number(data.replaced) > 0 ? 'It replaces the link they had' : undefined,
+      };
     case 'letting.landlord_link_revoked':
       return { what: 'Stopped sharing with the landlord' };
     case 'application.submitted':
@@ -177,7 +364,43 @@ export function describeEvent(
     case 'checks.requested':
       return { what: 'Checks requested', detail: `${data.checks} to do` };
     case 'check.started':
-      return { what: data.kind === 'identity' ? 'ID check started' : 'Income check started' };
+      return { what: 'ID check started' };
+    case 'reference.named':
+      return {
+        what:
+          data.kind === 'landlord_reference'
+            ? 'The renter named their previous landlord'
+            : 'The renter named their employer',
+      };
+    // BA-16: documents, by count and copy alone: never what kind they are (rule 3).
+    case 'document.added':
+      return { what: 'The renter added a document' };
+    case 'document.read':
+      return { what: data.by === 'gaff' ? 'A document was read by AI' : 'A document wasn’t read' };
+    case 'document.corrected':
+      return { what: 'The renter changed what was read from a document' };
+    case 'document.removed':
+      return { what: 'The renter removed a document' };
+    case 'documents.shared':
+      return {
+        what: 'The renter shared their checks',
+        detail: `${data.documents} ${data.documents === 1 ? 'document' : 'documents'}, ${data.toLookAt} to look at`,
+      };
+    case 'document.viewed':
+      return { what: 'A shared document was opened' };
+    case 'document.deleted':
+      return {
+        what:
+          data.copy === 'letter'
+            ? 'Your copy of a document was deleted on schedule'
+            : 'The renter’s copy of a document was deleted',
+      };
+    case 'check.redacted':
+      return { what: 'ID check’s photos deleted by the ID service' };
+    case 'booking.mobile_code_sent':
+      return { what: 'Texted a code to confirm their mobile' };
+    case 'booking.mobile_confirmed':
+      return { what: 'Mobile confirmed' };
     case 'reference.requested':
       return {
         what:
@@ -191,6 +414,20 @@ export function describeEvent(
       return { what: data.updated ? 'Landlord’s details updated' : 'Landlord’s details added' };
     case 'landlord.approval_requested':
       return { what: 'The landlord was asked to approve' };
+    case 'landlord.approval_reminded':
+      return { what: 'The landlord was reminded to approve' };
+    case 'landlord.approval_confirmed':
+      return {
+        what: 'Recorded that the landlord had already approved',
+        detail: data.withBackup ? 'The preferred applicant and the backup' : undefined,
+      };
+    case 'check.reminded':
+      return {
+        what:
+          data.to === 'referee'
+            ? 'A referee was reminded'
+            : 'The renter was reminded about a check',
+      };
     case 'landlord.approval_answered':
       return {
         what:
@@ -278,12 +515,37 @@ export function describeEvent(
       return { what: 'A renter’s personal details deleted on schedule' };
     case 'letting.went_live':
       return { what: 'Set-up confirmed: Gaff started answering enquiries' };
+    case 'letting.go_live_held':
+      return {
+        what: 'Set-up confirmed: the home goes live when Gaff has confirmed the agency',
+      };
+    case 'letting.go_live_hold_ended':
+      return { what: 'The home didn’t go live: its set-up was changed while it waited' };
+    case 'letting.conflict_noted':
+      return {
+        what: 'Stopped from working on this letting: they enquired about this home as a renter',
+      };
+    case 'letting.lead_changed':
+      return {
+        what:
+          data.reason === 'handover'
+            ? 'A new lead took the letting over, as the last one left the team'
+            : 'The letting’s lead changed',
+      };
+    case 'letting.help_started':
+      return { what: 'Started helping with this letting' };
     default:
       return { what: event.type };
   }
 }
 
 type Who = (event: EventRow, personName: string | null) => string;
+
+/** UX-LP-6: an event that records a person's decision carries the decision it was. */
+export function isDecision(event: Pick<EventRow, 'subjectType' | 'data'>): boolean {
+  const data = event.data as Record<string, unknown>;
+  return event.subjectType === 'decision' || typeof data.decisionId === 'string';
+}
 
 /** R27: the letting's events in order, in plain words, with "who" decided by the viewer. */
 export async function timelineEntries(
@@ -301,6 +563,7 @@ export async function timelineEntries(
     id: event.id,
     at: event.occurredAt,
     who: who(event, personName),
+    decision: isDecision(event),
     ...describeEvent(event),
   }));
 }
@@ -325,15 +588,16 @@ export async function timelineFor(member: Member, lettingId: string): Promise<Ti
 function checkOutcomeWords(kind: string, outcome: string): string {
   const name: Record<string, string> = {
     identity: 'ID check',
-    income: 'Income check',
+    income: 'Work and income',
     landlord_reference: 'Landlord reference',
     employer_reference: 'Employer reference',
   };
   const words: Record<string, string> = {
-    passed: kind === 'identity' ? 'verified' : 'income confirmed',
-    not_passed: kind === 'identity' ? 'not verified' : 'income not confirmed',
-    answered: 'answered',
+    passed: 'verified',
+    not_passed: 'not verified',
+    answered: kind === 'income' ? 'documents shared' : 'answered',
     no_answer: 'no answer after two reminders',
+    cant_give: 'the referee can’t give one',
     not_needed: 'not needed',
   };
   return `${name[kind] ?? 'Check'}: ${words[outcome] ?? outcome}`;

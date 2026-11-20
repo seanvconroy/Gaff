@@ -30,6 +30,29 @@ export async function createAccessLink(
 }
 
 /**
+ * UX-AV-6: a private link's token made ahead of what it will open, for an enquiry that waits
+ * for its renter to open it. Only the hash is kept; `adoptAccessLink` gives it its subject.
+ */
+export function newLinkToken(): { token: string; tokenHash: string } {
+  const token = randomBytes(32).toString('base64url');
+  return { token, tokenHash: hashToken(token) };
+}
+
+/** A link made with `newLinkToken`, now opening its subject. Runs in the caller's transaction. */
+export async function adoptAccessLink(
+  tx: Tx,
+  input: { organisationId: string; purpose: LinkPurpose; subjectId: string; tokenHash: string },
+): Promise<void> {
+  await tx.insert(accessLinks).values({
+    organisationId: input.organisationId,
+    purpose: input.purpose,
+    subjectId: input.subjectId,
+    tokenHash: input.tokenHash,
+    expiresAt: new Date(Date.now() + LINK_DAYS * 24 * 60 * 60 * 1000),
+  });
+}
+
+/**
  * Finds the organisation and subject behind a private link, if it's valid. The visitor has
  * no account, so this one lookup runs across organisations; everything after it is scoped.
  */

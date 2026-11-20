@@ -4,6 +4,7 @@ import { organisations } from '@/db/schema';
 import { incomeRuleChoices } from '@/domain/applications/apply';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
+import { requirePermission } from '@/server/team/permissions';
 import { recordEvent } from '@/server/record/events';
 
 /**
@@ -11,7 +12,7 @@ import { recordEvent } from '@/server/record/events';
  * apply, and never an automatic refusal (PRD fairness rules). Only an admin changes it.
  */
 export async function setIncomeRule(member: Member, ruleTenths: number): Promise<void> {
-  if (member.role !== 'admin') throw new UserFacingError('Only an admin can change this.');
+  await requirePermission(member, 'change_settings');
   if (!(incomeRuleChoices as readonly number[]).includes(ruleTenths)) {
     throw new UserFacingError('Choose one of the income rules.');
   }

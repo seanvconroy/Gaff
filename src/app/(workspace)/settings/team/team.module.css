@@ -1,0 +1,18 @@
+/* Team: each list under its heading, with space before the next. */
+.section {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* "Add to the team" and "Say no", side by side under the person on a phone. */
+.answer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.note {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}

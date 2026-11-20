@@ -4,10 +4,16 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 
 ## Founders
 
-- [ ] Choose the domain Gaff will use (for the app, the inbound addresses and sending)
+- [ ] Register gaff.ie and point it at Gaff (for the site, the inbound addresses and sending) (Q29)
 - [ ] Get 3 to 5 real Daft and 3 to 5 MyHome enquiry emails, with the personal details changed, to confirm the parsers
 - [ ] Pick the first pilot operator(s)
-- [ ] Price per letting for the pilots
+- [x] Price per letting for the pilots: free (Q33)
+- [ ] Confirm two decisions made for you: private landlords verify their identity before their first home goes live (Q47), and Veriff for identity checks (Q48)
+- [ ] Confirm that a private landlord's identity is kept at their first go-live without the "Keep this?" question a renter gets (Q47): their homes can't stay on gaff.ie without it. "Confirm it's you" says, before the check, that Gaff keeps the result, the name and the date so they aren't asked again, and that deleting their profile removes it and takes their homes off gaff.ie
+- [ ] Confirm two places where the redesign's PRD disagrees with itself, each built one way: the results screen's one next action is "Send the owner the summary" first (UX-TN-6), not "Add your next letting" (section 9's table); and the reference form is one screen (section 5), not one question per screen
+- [ ] Run the current flows on the test copy, open `/internal/funnels`, and copy the numbers into the note at the end of section 9 as baselines
+- [ ] Check the forwarding steps for Gmail and Outlook (`/forwarding`) against the live settings screens
+- [ ] Replace the hand-made list of places search knows (26 counties, Dublin's districts, about 150 towns and 90 neighbourhoods) by running `scripts/places/build-places.ts` against OpenStreetMap, which couldn't be reached from the build
 
 ## Accounts (founders create; CTO wires in)
 
@@ -16,8 +22,15 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] **AWS:** account with Amazon Bedrock access to Claude through the EU geographic inference profile; invocation logging off. Sign the DPA.
 - [ ] **Resend:** sending domain in `eu-west-1` with SPF and DKIM, open and click tracking off; receiving on the inbound subdomain (MX record); `email.received` webhook to `/api/inbound/resend`. Sign the DPA (data is stored in the US under the Data Privacy Framework, Q26). Mailgun EU remains an alternative.
 - [ ] **Sinch:** EU region SMS account; check Irish sender ID rules. Sign the DPA.
-- [ ] **ID and income checks:** choose providers (for example Veriff or Onfido for ID; TrueLayer, Tink or Yapily for open banking, checking AIB, Bank of Ireland, PTSB and Revolut coverage), sign DPAs, and add their adapters. Until then production runs with `IDENTITY_PROVIDER=none` and `INCOME_PROVIDER=none`, and operators arrange those checks themselves.
+- [ ] **Google and Apple sign-in (approved, Q30):** Google sign-in credentials; an Apple developer account, with Gaff's sending domain registered so "Hide My Email" addresses can be reached. Name both in the privacy notice.
+- [ ] **The PSRA register (Q39):** check the reader against the real download from psr.ie, then set `PSRA_REGISTER_SOURCE=url` and `PSRA_REGISTER_URL` ([deploy.md](deploy.md), "The PSRA register"). Read the PSRA's re-use terms and check the credit shown where an agency is picked. Add Gaff's copy of the register to the DPIA: it names sole traders, who are people.
+- [ ] **Confirming agencies (Q32):** set `STAFF_EMAILS` to the founders' addresses. Agencies that sign up by themselves wait at `/internal/agencies` for one press of Confirm; pilot agencies are set up there, confirmed, with their first admin's invitation.
+- [ ] **Autoaddress (chosen, Q40):** an account, a signed DPA, and where it's hosted, in writing. Until then people type the address.
+- [ ] **ID checks:** Veriff is recommended (Q48). Confirm it, get EU hosting in writing, sign the DPA, and add its adapter. Private landlords now need this check before their first home goes live (Q47), as well as chosen applicants.
+- [ ] **Work and income documents (BA-16):** create a private `documents` bucket in the Ireland project and set `DOCUMENT_STORE=supabase` (production refuses the local store); run `pnpm evals document --confirm` on Bedrock before relying on what the model reads; the solicitor's answers on HAP and affordability, asking the backup at the same time, and Gaff reading statements of other income (the other line's Q42, Q43, Q52). No open banking provider is needed: chosen renters show documents (Q51)
 - [ ] **GitHub:** push access and Actions enabled for CI.
+- [ ] **Search indexing:** set `SEARCH_INDEXING=on` in production only, so search engines may find live homes' pages. Leave it off on the test copy and on preview deployments ([deploy.md](deploy.md)).
+- [ ] **The RTB's Rent Register (OQ-2):** whether software may read it. Until it's settled, people type three comparable rents themselves.
 
 ## Solicitor (before the first pilot letting)
 
@@ -30,7 +43,17 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] Criteria list, pets wording and assistance-dog rule (Q9)
 - [ ] Fixed answers on protected grounds (Q7)
 - [ ] Message templates in `src/copy/templates/`: first reply (with AI disclosure), holding message, invitation, waiting list, booking confirmation, reminders (email and SMS), place offered, letting closed, and later offer and outcome
-- [ ] Privacy notice for renters (GDPR Article 14)
+- [ ] The new email wordings from the redesign, each pinned by a test so it can't change unnoticed: the email that sends an owner their link (`src/copy/templates/owner.test.ts`); a saved search's confirmation and its alert (`src/copy/saved.test.ts`); and the two emails to a lister about a listing taken off gaff.ie and put back (`src/copy/trust-emails.test.ts`)
+- [ ] Reports of a listing: deleted six months after Gaff's team answers them, and the reporter, who gives no contact details, is never told the outcome
+- [ ] "Stop taking enquiries" (UX-LP-5) needs a new fixed message to everyone who enquired; it isn't built until the wording is agreed
+- [ ] Privacy notice for renters (GDPR Article 14), now also covering Gaff as controller for profiles, saved searches and verified identities (Q25, Q35), and naming Google and Apple
+- [ ] Terms of use for both sides: operators and renters (they carry what the screens no longer say, Q46)
+- [ ] The matching design: objective fit, the Letting details line, "No smoking indoors", asking who fits (Q36)
+- [ ] A home's public page: what an advert for a home to rent must show, including the BER, and whether the wording check is enough
+- [ ] What a small platform that hosts other people's listings must offer under the EU Digital Services Act: a way to report a listing, a contact point, reasons when one is taken down
+- [ ] Whether showing homes to the public changes Gaff's position under the PSRA
+- [ ] Consent wording for keeping and reusing an identity check and work and income documents (Q35, Q51); the basis for private landlords' identity checks and what "Identity verified" may claim (Q47)
+- [ ] Agents' own PSRA licences (Q38)
 - [ ] Collecting the PPSN for RTB registration (optional, sealed, deleted once registered; no date of birth, Q24), and the registration deadline
 - [ ] Gaff’s standard tenancy agreement wording (`src/copy/templates/tenancy-agreement.ts`), and whether it can be signed electronically or must be signed on paper (Electronic Commerce Act 2000, s.10(1)(b); Q23)
 
@@ -45,3 +68,5 @@ Everything that has to be true before a real renter's details enter Gaff. The co
 - [ ] Error alerts going to a founder
 - [ ] Test copy on Vercel and Supabase ([deploy.md](deploy.md)), made-up details only
 - [ ] Approve-before-send on for the pilot operator
+- [ ] Gaff's internal page open to named founders only; a founder confirms each agency that signs up by itself, before its first home goes live (Q32)
+- [ ] Reports of a listing answered within one working day

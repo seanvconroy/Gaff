@@ -1,35 +1,69 @@
 import type { Metadata } from 'next';
-import { stayChoices } from '@/domain/criteria/answers';
-import { formatDate, formatEuro, irishToday } from '@/lib/format';
-import { formatRatio, minimumIncomeCents } from '@/domain/applications/apply';
-import { loadRenterPage } from '@/server/renter/answers';
-import { env } from '@/lib/env';
-import { Card, Stack } from '@/ui/Layout';
-import { Notice } from '@/ui/Notice';
-import { Outcome } from '@/ui/Outcome';
-import { HomeSummary, RenterShell } from '../RenterShell';
-import styles from '../renter.module.css';
-import { AnswersForm } from './AnswersForm';
-import { ApplyForm } from './ApplyForm';
-import { BookingSection } from './BookingSection';
-import { ChecksSection } from './ChecksSection';
-import { InventoryReview } from './InventoryReview';
-import { OfferSection } from './OfferSection';
-import { PaymentDetails } from './PaymentDetails';
-import { PpsnForm } from './PpsnForm';
-import { TenancySteps } from './TenancySteps';
+import { answersAsValues } from '@/domain/criteria/answers';
+import { answersToOffer } from '@/domain/profile/offer-back';
+import { identityStep } from '@/domain/identity/identity';
+import { formatDate, formatShortDate, irishToday } from '@/lib/format';
+import { documentsForRenter } from '@/server/documents/renter';
+import { keptIdentityOf } from '@/server/identity/kept';
+import { keepQuestionFor } from '@/server/identity/renter';
+import type { RenterModel } from '@/server/renter/model';
+import { personOnRenterPage } from '@/server/renter/person';
+import { LinkEnded, loadRenter } from './load';
+import type { IdentityView } from './KeptIdentity';
+import { RenterHub } from './RenterHub';
 
-export const metadata: Metadata = { title: 'A few quick questions' };
-export const dynamic = 'force-dynamic';
-
-function firstName(fullName: string): string {
-  const first = fullName.trim().split(/\s+/)[0] ?? '';
-  return /^[\p{L}'’-]{2,}$/u.test(first) ? first : '';
-}
+export const metadata: Metadata = { title: 'Your enquiry' };
 
 /**
- * R9: the renter's private page. No account; the link is the key. One thing at a time: the home
- * it's about, then the single task or message for where they are now.
+ * Q35: what the checks show of a verified identity, for a page whose checks are open (only a
+ * renter an operator has chosen has checks). What they keep is read only for the signed-in
+ * person whose enquiry this is, from their own profile.
+ * - `?q=keep_id`, where the ID service sends them back: "Keep this?", if the check passed and
+ *   isn't the one kept already (UX-PF-8).
+ * - At the ID check: the one they keep, unless they said no (`?q=new_id`) (UX-PF-12, UX-PF-14).
+ */
+async function identityView(
+  token: string,
+  applicationName: string,
+  model: RenterModel,
+  userId: string | null,
+  query: { q?: string; kept?: string },
+): Promise<IdentityView> {
+  const now = new Date();
+  const keep = query.q === 'keep_id' ? await keepQuestionFor(token, userId) : null;
+  let step: IdentityView['step'] = null;
+  if (!keep && userId && model.checks.next === 'identity') {
+    const found = identityStep({
+      kept: await keptIdentityOf(userId),
+      applicationName,
+      doAgain: query.q === 'new_id',
+    });
+    if (found.step !== 'provider') {
+      const on = formatShortDate(found.kept.verifiedAt, now);
+      step =
+        found.step === 'use_kept'
+          ? { step: 'use_kept', name: found.kept.verifiedName, on }
+          : { step: 'check_name', name: found.kept.verifiedName, on, applied: applicationName };
+    }
+  }
+  return {
+    step,
+    keep: keep
+      ? {
+          name: keep.verifiedName,
+          on: formatDate(keep.verifiedAt, now),
+          signedIn: userId !== null,
+        }
+      : null,
+    kept: query.kept === 'yes' || query.kept === 'no' ? query.kept : null,
+  };
+}
+export const dynamic = 'force-dynamic';
+
+/**
+ * R9, UX-PP-7, UX-PP-8: the renter's private page. No account; the link is the key. One link
+ * from the first reply to move-in, and it always shows where they stand now. The address holds
+ * only codes: which screen of a flow (`q`), and a problem to say once. Never anything personal.
  */
 export default async function RenterPage({
   params,
@@ -37,358 +71,73 @@ export default async function RenterPage({
 }: {
   params: Promise<{ token: string }>;
   searchParams: Promise<{
-    saved?: string;
-    booked?: string;
-    cancelled?: string;
-    problem?: string;
-    applied?: string;
+    q?: string;
     change?: string;
     check_problem?: string;
-    referees?: string;
-    decline?: string;
     offer_problem?: string;
-    accepted?: string;
-    declined?: string;
+    kept?: string;
+    kept_id?: string;
+    id_problem?: string;
+    document_problem?: string;
   }>;
 }) {
   const { token } = await params;
-  const {
-    saved,
-    booked,
-    cancelled,
-    problem,
-    applied,
-    change,
-    check_problem,
-    referees,
-    decline,
-    offer_problem,
-  } = await searchParams;
-  const page = await loadRenterPage(token);
-  if (!page) {
-    return (
-      <RenterShell operatorName="Gaff">
-        <Outcome tone="info" title="This link isn’t working" headingLevel={1}>
-          <p>It may have expired. Reply to any email from us and we’ll help you.</p>
-        </Outcome>
-      </RenterShell>
-    );
-  }
-  const { application, letting, organisation, questions, firstViewing, canChange, offer } = page;
-  const status = application.status;
-  const closed = letting.status === 'let' || letting.status === 'withdrawn';
-  const canBook =
-    status === 'invited' || status === 'booked' || (status === 'waitlisted' && offer !== null);
-  const deletion = application.deleteAfter
-    ? ` We’ll delete your details from Gaff by ${formatDate(application.deleteAfter)}.`
-    : '';
-  if (closed && !['accepted', 'declined', 'not_chosen'].includes(application.status)) {
-    return (
-      <RenterShell operatorName={organisation.name}>
-        <Stack gap={6}>
-          <HomeSummary letting={letting} />
-          <Outcome
-            tone="info"
-            title={
-              letting.status === 'let' ? 'This home has been let' : 'This home isn’t available now'
-            }
-          >
-            <p>
-              Enquiries are closed. Thank you for your interest.
-              {deletion}
-            </p>
-          </Outcome>
-        </Stack>
-      </RenterShell>
-    );
-  }
-  const name = firstName(application.fullName);
-  const answers = application.answers ?? {};
-  const answered = application.answersAt !== null;
-  const nextSteps = `${firstViewing ? `Viewings start on ${formatDate(firstViewing)}. ` : ''}If you’re invited to view, we’ll email you a link to book a time that suits you. Either way, you’ll hear back from us.`;
-  const current: Record<string, string> = {
-    moveInDate: answers.moveInDate ?? '',
-    stayMonths: answers.stayMonths ? String(answers.stayMonths) : '',
-    occupants: answers.occupants ? String(answers.occupants) : '',
-    hasPets: answers.hasPets === undefined ? '' : answers.hasPets ? 'yes' : 'no',
-  };
-  const summary = [
-    answers.moveInDate ? ['Move in', formatDate(answers.moveInDate)] : null,
-    answers.stayMonths
-      ? ['Stay', stayChoices.find((c) => c.months === answers.stayMonths)?.label ?? '']
-      : null,
-    answers.occupants
-      ? ['People', answers.occupants === 1 ? 'Just me' : `${answers.occupants} people`]
-      : null,
-    answers.hasPets !== undefined ? ['Pets', answers.hasPets ? 'Yes' : 'No'] : null,
-  ].filter((row): row is [string, string] => row !== null);
-
+  const { q, change, check_problem, offer_problem, kept, kept_id, id_problem, document_problem } =
+    await searchParams;
+  const loaded = await loadRenter(token, { hub: true });
+  if (!loaded) return <LinkEnded />;
+  const { model } = loaded;
+  // UX-RH-4: a signed-in renter whose enquiry this is has it added to their Enquiries. UX-PF-3:
+  // their kept answers are offered back on the questions this home asks, and only there.
+  const person = await personOnRenterPage(token, loaded.page, { attach: true });
+  const open = model.view === 'checks' ? await loaded.isOpen() : false;
+  const identity = open
+    ? await identityView(token, loaded.page.application.fullName, model, person?.userId ?? null, {
+        q,
+        kept: kept_id,
+      })
+    : null;
+  // BA-16: the work and income documents, at that check, for an open page only.
+  const documentsView =
+    open && model.checks.next === 'income'
+      ? await documentsForRenter(token, person?.userId ?? null)
+      : null;
+  const offered =
+    person && model.view === 'questions'
+      ? answersToOffer(person.kept.answers, model.questions.asked, irishToday())
+      : {};
   return (
-    <RenterShell operatorName={organisation.name}>
-      <Stack gap={8}>
-        <HomeSummary letting={letting} />
-
-        {booked ? (
-          <Notice
-            tone="success"
-            title={booked === 'moved' ? 'Your viewing has moved' : 'You’re booked'}
-            role="status"
-          >
-            <p>We’ve emailed you the details, and we’ll remind you the day before.</p>
-          </Notice>
-        ) : null}
-        {cancelled ? (
-          <Notice tone="info" title="Your viewing is cancelled" role="status">
-            <p>Thanks for letting us know. Someone else can have the place now.</p>
-          </Notice>
-        ) : null}
-
-        {canBook ? <BookingSection page={page} token={token} problem={problem} /> : null}
-
-        {status === 'waitlisted' && !offer ? (
-          <Outcome tone="waiting" title="You’re on the waiting list">
-            <p>
-              If a place opens up, we’ll email you straight away with a link to book it. Either way,
-              you’ll hear back from us.
-            </p>
-          </Outcome>
-        ) : null}
-
-        {status === 'attended' || (status === 'applied' && change && !applied) ? (
-          <section className={styles.section} aria-labelledby="apply-heading">
-            <div className={styles.sectionHead}>
-              <h2 id="apply-heading" className="type-title">
-                {status === 'applied'
-                  ? 'Change your application'
-                  : `Apply for ${letting.addressLine1}`}
-              </h2>
-              <p>
-                {status === 'applied'
-                  ? 'Change anything that’s not right, then send it again.'
-                  : 'Thanks for coming to view. To apply, answer two questions. It takes a minute, and you don’t need any documents now.'}
-              </p>
-            </div>
-            <Card>
-              <h3 className="type-title">From your enquiry</h3>
-              <dl className={styles.answers}>
-                {[['Name', application.fullName], ['Email', application.email], ...summary].map(
-                  ([label, value]) => (
-                    <div key={label} className={styles.answer}>
-                      <dt>{label}</dt>
-                      <dd>{value}</dd>
-                    </div>
-                  ),
-                )}
-              </dl>
-            </Card>
-            <ApplyForm
-              token={token}
-              rule={`${organisation.name} looks for at least ${formatRatio(organisation.incomeRuleTenths)} times the rent: ${formatEuro(minimumIncomeCents(letting.monthlyRentCents, organisation.incomeRuleTenths))} a month. Everyone is asked the same.`}
-              current={{
-                earning: application.earning ?? '',
-                monthlyIncome:
-                  application.monthlyIncomeCents === null
-                    ? ''
-                    : String(application.monthlyIncomeCents / 100),
-              }}
-            />
-            <div className={styles.next}>
-              <p className={styles.nextTitle}>What happens next</p>
-              <p>
-                Only {organisation.name} sees this. If they choose you, they’ll ask to check your
-                ID, income and references, and explain each check first.
-              </p>
-            </div>
-          </section>
-        ) : null}
-
-        {status === 'preferred' || status === 'backup' ? (
-          <>
-            {referees ? (
-              <Notice tone="success" title="Thanks" role="status">
-                <p>We’ve asked for your references. We’ll remind them if they don’t answer.</p>
-              </Notice>
-            ) : null}
-            <ChecksSection
-              token={token}
-              operatorName={organisation.name}
-              checks={page.checks}
-              providers={{
-                identity: env().IDENTITY_PROVIDER !== 'none',
-                income: env().INCOME_PROVIDER !== 'none',
-              }}
-              problem={check_problem}
-            />
-          </>
-        ) : null}
-
-        {status === 'offered' && page.homeOffer ? (
-          <OfferSection
-            token={token}
-            operatorName={organisation.name}
-            address={letting.addressLine1}
-            offer={page.homeOffer}
-            confirmDecline={Boolean(decline)}
-            problem={offer_problem}
-          />
-        ) : null}
-
-        {status === 'accepted' ? (
-          <Stack gap={8}>
-            <TenancySteps token={token} operatorName={organisation.name} tenancy={page.tenancy} />
-            {page.tenancy?.paymentRequestedAt && page.payTo ? (
-              <PaymentDetails
-                operatorName={organisation.name}
-                tenancy={page.tenancy}
-                payTo={page.payTo}
-              />
-            ) : null}
-            {page.tenancy?.inventorySharedAt && page.inventory.length > 0 ? (
-              <InventoryReview
-                token={token}
-                operatorName={organisation.name}
-                items={page.inventory}
-                confirmedAt={page.tenancy.inventoryConfirmedAt}
-              />
-            ) : null}
-            {page.tenancy && !page.tenancy.rtbRegisteredAt ? (
-              <PpsnForm
-                token={token}
-                operatorName={organisation.name}
-                given={page.tenancy.ppsnGivenAt !== null}
-              />
-            ) : null}
-          </Stack>
-        ) : null}
-
-        {status === 'declined' ? (
-          <Outcome
-            tone="info"
-            title={
-              page.homeOffer?.status === 'expired'
-                ? 'The offer has closed'
-                : 'You’ve declined the offer'
+    <RenterHub
+      token={token}
+      model={model}
+      options={{
+        q,
+        changing: change === 'answers',
+        // UX-RN-14: only the checks ask who's looking; every other page needs the link alone.
+        open,
+        sentTo: loaded.sentTo,
+        checkProblem: check_problem,
+        offerProblem: offer_problem,
+        idProblem: id_problem,
+        identity,
+        documents: documentsView
+          ? {
+              view: documentsView,
+              identity: documentsView.identity
+                ? {
+                    name: documentsView.identity.name,
+                    on: formatDate(documentsView.identity.verifiedAt),
+                  }
+                : null,
             }
-            role="status"
-          >
-            <p>
-              Thank you for letting us know, and for your interest in the home.
-              {deletion}
-            </p>
-          </Outcome>
-        ) : null}
-
-        {status === 'not_chosen' ? (
-          <Outcome tone="info" title="The home has been let" role="status">
-            <p>
-              Thank you for applying. {organisation.name} has let the home to another applicant. We
-              wish you well with your search.
-              {deletion}
-            </p>
-          </Outcome>
-        ) : null}
-
-        {status === 'applied' && !change ? (
-          <Outcome
-            tone="success"
-            title={applied ? (name ? `Thanks, ${name}` : 'Thanks') : 'Your application is in'}
-            role="status"
-          >
-            <p>
-              Your application is with {organisation.name}. They’ll choose who to offer the home to
-              after the viewings, and we’ll email you either way.
-            </p>
-            <p>
-              <a href={`/r/${token}?change=1`}>Change my application</a>
-            </p>
-          </Outcome>
-        ) : null}
-
-        {status === 'no_show' ? (
-          <Outcome tone="info" title="Your viewing time has passed">
-            <p>
-              If you’d still like to see the home, reply to any of our emails and we’ll see what we
-              can do. Either way, you’ll hear back from us.
-            </p>
-          </Outcome>
-        ) : null}
-
-        {status === 'not_invited' ? (
-          <Outcome tone="info" title="Thanks for your interest">
-            <p>
-              We’ve had a lot of interest, so we can’t invite everyone to view this time. You’ll
-              hear from us either way once a tenant has been chosen.
-            </p>
-          </Outcome>
-        ) : null}
-
-        {status === 'enquired' && (saved || (answered && !canChange)) ? (
-          <Outcome tone="success" title={name ? `Thanks, ${name}` : 'Thanks'} role="status">
-            <p>
-              Your answers are with {organisation.name}. {nextSteps}
-            </p>
-          </Outcome>
-        ) : null}
-
-        {status === 'enquired' && answered && summary.length > 0 && (saved || !canChange) ? (
-          <Card>
-            <h2 className="type-title">Your answers</h2>
-            <dl className={styles.answers}>
-              {summary.map(([label, value]) => (
-                <div key={label} className={styles.answer}>
-                  <dt>{label}</dt>
-                  <dd>{value}</dd>
-                </div>
-              ))}
-            </dl>
-            {canChange ? (
-              <p>
-                <a href={`/r/${token}`}>Change my answers</a>
-              </p>
-            ) : null}
-          </Card>
-        ) : null}
-
-        {!saved && canChange && questions.length > 0 ? (
-          <section className={styles.section} aria-labelledby="questions-heading">
-            <div className={styles.sectionHead}>
-              <h2 id="questions-heading" className="type-title">
-                {name ? `Hi ${name}, a` : 'A'} few quick questions
-              </h2>
-              <p>
-                So {organisation.name} can arrange viewings fairly, everyone is asked the same few
-                questions. It takes about a minute.
-              </p>
-            </div>
-            <AnswersForm
-              token={token}
-              questions={questions}
-              availableFrom={formatDate(letting.availableFrom)}
-              today={irishToday()}
-              current={current}
-            />
-            <div className={styles.next}>
-              <p className={styles.nextTitle}>What happens next</p>
-              <p>{nextSteps}</p>
-            </div>
-          </section>
-        ) : null}
-
-        {!canChange && !answered && status === 'enquired' ? (
-          <Outcome tone="info" title="Viewings are arranged">
-            <p>
-              {organisation.name} has chosen who to invite to view. You’ll hear from us by email
-              either way.
-            </p>
-          </Outcome>
-        ) : null}
-
-        {canChange && questions.length === 0 ? (
-          <Outcome tone="info" title="There’s nothing to answer right now">
-            <p>{nextSteps}</p>
-          </Outcome>
-        ) : null}
-      </Stack>
-    </RenterShell>
+          : null,
+        documentProblem: document_problem,
+        kept: kept === 'yes' || kept === 'no' ? kept : null,
+        offeredAnswers:
+          Object.keys(offered).length > 0
+            ? answersAsValues(offered, model.questions.criteria)
+            : null,
+      }}
+    />
   );
 }

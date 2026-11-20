@@ -6,11 +6,10 @@ import { recordActiveMinute } from '@/server/dashboard/activity';
 import { dashboardFor } from '@/server/dashboard/dashboard';
 import { setUsualTimes } from '@/server/organisations/usual-times';
 import { inviteToView } from '@/server/shortlist/invite';
-import { bookViewing } from '@/server/viewings/booking';
 import { UserFacingError } from '@/server/errors';
 import { createLetting } from '@/server/lettings/create-letting';
 import { aLetting } from '../fixtures/lettings';
-import { aLiveLetting, aRenterEnquires, createTestMember, tokenInMessage } from './helpers';
+import { aLiveLetting, aRenterEnquires, createTestMember, tokenInMessage, bookAs } from './helpers';
 
 describe('R28: the dashboard', () => {
   it('lists who to decide on, and people to mark once their viewing starts', async () => {
@@ -20,31 +19,38 @@ describe('R28: the dashboard', () => {
     await aRenterEnquires(member, 2, { occupants: '1', hasPets: 'no' });
 
     let board = await dashboardFor(member);
-    expect(board.today).toEqual([
+    expect(board.today).toMatchObject([
       { kind: 'shortlist', lettingId, address: '12 Ranelagh Road', count: 2 },
     ]);
+    expect(board.today).toHaveLength(1);
     expect(board.lettings[0]).toMatchObject({ stage: 'enquiries', undecided: 2, toMark: 0 });
 
     await inviteToView(member, lettingId, { chosenIds: [first], waitlistSize: 1 });
     const [slot] = await withOrg(member.organisationId, (tx) =>
       tx.select().from(viewingSlots).where(eq(viewingSlots.lettingId, lettingId)).limit(1),
     );
-    await bookViewing(await tokenInMessage(member, first, 'invitation'), slot!.id);
+    await bookAs(await tokenInMessage(member, first, 'invitation'), slot!.id);
     board = await dashboardFor(member);
     expect(board.today).toEqual([]);
 
     // On the day: the viewing has started, so there's someone to mark.
     board = await dashboardFor(member, new Date(slot!.startsAt.getTime() + 5 * 60_000));
-    expect(board.today).toEqual([
+    expect(board.today).toMatchObject([
       { kind: 'attendance', lettingId, address: '12 Ranelagh Road', count: 1 },
     ]);
+    expect(board.today).toHaveLength(1);
   });
 
   it('shows a letting still being set up', async () => {
     const member = await createTestMember();
     const { lettingId } = await createLetting(member, aLetting());
     const board = await dashboardFor(member);
-    expect(board.today).toEqual([{ kind: 'setup', lettingId, address: '12 Ranelagh Road' }]);
+    expect(board.today).toMatchObject([
+      // UX-FL-2: its address, rent and home are in; photos, letting details, the rent check
+      // and going live are ahead.
+      { kind: 'setup', lettingId, address: '12 Ranelagh Road', stepsLeft: 4 },
+    ]);
+    expect(board.today).toHaveLength(1);
   });
 
   it('compares time in Gaff with the usual time, counting each minute once', async () => {

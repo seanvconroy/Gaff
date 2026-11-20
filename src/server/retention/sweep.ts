@@ -11,12 +11,22 @@ import {
   messages,
   inventoryItems,
   operatorQuestions,
+  renterEnquiries,
   tenancies,
 } from '@/db/schema';
 import { BACKSTOP_DAYS, isDue } from '@/domain/retention/retention';
 import { recordCutoff } from '@/domain/tenancy/steps';
 import { env } from '@/lib/env';
 import { irishToday } from '@/lib/format';
+import { purgeExpiredInvites } from '@/server/accounts/invites';
+import { purgeProfileEvents } from '@/server/accounts/profile-events';
+import { purgeOldCodes } from '@/server/auth/codes';
+import { purgeOldConfirmations } from '@/server/auth/confirm';
+import { purgeOldLimits } from '@/server/auth/limits';
+import { purgeEndedSignIns } from '@/server/auth/housekeeping';
+import { clearSharedReadings } from '@/server/documents/retention';
+import { dropFiles } from '@/server/documents/files';
+import { purgeFunnelEvents } from '@/server/funnels/steps';
 import { recordEvent } from '@/server/record/events';
 
 const DELETED = 'Deleted';
@@ -41,7 +51,9 @@ export async function sweepPersonalData(
   const today = irishToday(now);
   const backstop = new Date(now.getTime() - BACKSTOP_DAYS * 86_400_000);
   const unplacedBefore = new Date(now.getTime() - env().RETENTION_PERSONAL_DAYS * 86_400_000);
-  return withSystem(async (tx) => {
+  // BA-16 (P49): document files to delete once the sweep's transaction has committed.
+  const documentFiles: Array<string | null> = [];
+  const swept = await withSystem(async (tx) => {
     const candidates = await tx
       .select({
         id: applications.id,
@@ -72,6 +84,10 @@ export async function sweepPersonalData(
           phone: null,
           phoneE164: null,
           smsReminders: false,
+          // P16: a number waiting for its code, and the code's hash, go too.
+          mobilePending: null,
+          mobileCodeHash: null,
+          mobileCodeExpiresAt: null,
           answers: null,
           earning: null,
           monthlyIncomeCents: null,
@@ -103,17 +119,59 @@ export async function sweepPersonalData(
         .update(accessLinks)
         .set({ revokedAt: now })
         .where(and(eq(accessLinks.subjectId, application.id), isNull(accessLinks.revokedAt)));
+      // UX-RH-5: it leaves the renter's own Enquiries too: there is nothing left to open. Their
+      // profile is theirs, and stays (Q25).
+      await tx.delete(renterEnquiries).where(eq(renterEnquiries.applicationId, application.id));
       // Stage 8: the typed signature and any PPS number go with the rest.
-      await tx
+      const theirTenancies = await tx
         .update(tenancies)
         .set({ tenantSignedName: null, ppsnSealed: null })
-        .where(eq(tenancies.applicationId, application.id));
+        .where(eq(tenancies.applicationId, application.id))
+        .returning({ id: tenancies.id });
+      // UX-RN-25: so do the notes they wrote about the inventory ("Something's not right").
+      if (theirTenancies.length > 0) {
+        await tx
+          .update(inventoryItems)
+          .set({ tenantNote: null, tenantNotedAt: null })
+          .where(
+            inArray(
+              inventoryItems.tenancyId,
+              theirTenancies.map((t) => t.id),
+            ),
+          );
+      }
       // R18: check results and referees' details go too; their links stop working.
       const theirChecks = await tx
         .update(checks)
-        .set({ refereeName: null, refereeEmail: null, resultSealed: null, providerRef: null })
+        .set({ refereeName: null, refereeEmail: null, resultSealed: null })
         .where(eq(checks.applicationId, application.id))
         .returning({ id: checks.id });
+      // P26: a session Stripe still holds is redacted tonight (src/server/identity/redact.ts),
+      // which lets its reference go; any other provider's reference goes now.
+      await tx
+        .update(checks)
+        .set({ redactAfter: now })
+        .where(
+          and(
+            eq(checks.applicationId, application.id),
+            eq(checks.provider, 'stripe'),
+            isNotNull(checks.providerRef),
+            isNull(checks.providerRedactedAt),
+          ),
+        );
+      await tx
+        .update(checks)
+        .set({ providerRef: null })
+        .where(
+          and(
+            eq(checks.applicationId, application.id),
+            or(
+              isNull(checks.provider),
+              ne(checks.provider, 'stripe'),
+              isNotNull(checks.providerRedactedAt),
+            ),
+          ),
+        );
       if (theirChecks.length > 0) {
         await tx
           .update(accessLinks)
@@ -128,6 +186,8 @@ export async function sweepPersonalData(
             ),
           );
       }
+      // P49: the readings of documents shared from it go too, with any file still kept.
+      documentFiles.push(...(await clearSharedReadings(tx, application.id, now)));
       await recordEvent(tx, {
         organisationId: application.organisationId,
         lettingId: application.lettingId,
@@ -158,6 +218,35 @@ export async function sweepPersonalData(
         type: 'inbound_email.content_deleted',
         subject: { type: 'inbound_email', id: email.id },
         data: { inboundEmailId: email.id },
+      });
+    }
+    // UX-LP-5 (BA-14): the reply to an enquiry that came after close holds that person's
+    // address and name, and nothing else of theirs is kept: cleared on the same schedule.
+    const answered = await tx
+      .update(messages)
+      .set({ toAddress: '', subject: '', body: '' })
+      .where(
+        and(
+          onlyOrganisationId ? eq(messages.organisationId, onlyOrganisationId) : undefined,
+          eq(messages.kind, 'enquiries_closed'),
+          isNull(messages.applicationId),
+          lt(messages.createdAt, unplacedBefore),
+          ne(messages.body, ''),
+        ),
+      )
+      .returning({
+        id: messages.id,
+        organisationId: messages.organisationId,
+        lettingId: messages.lettingId,
+      });
+    for (const message of answered) {
+      await recordEvent(tx, {
+        organisationId: message.organisationId,
+        lettingId: message.lettingId,
+        actor: { type: 'system' },
+        type: 'message.content_deleted',
+        subject: { type: 'message', id: message.id },
+        data: { messageId: message.id },
       });
     }
     // R26: a tenant's references are deleted once the tenancy starts (PRD checks table).
@@ -224,6 +313,23 @@ export async function sweepPersonalData(
       .where(and(inOrg(events), lt(events.occurredAt, cutoff)))
       .returning({ id: events.id });
     await tx.execute(sql`select set_config('app.allow_event_purge', 'off', true)`);
+    // UX-ME-1: funnel events are part of that anonymous record. They belong to no organisation,
+    // so they go when the sweep runs for everyone.
+    if (!onlyOrganisationId) await purgeFunnelEvents(tx, cutoff);
+    // Rule 8: so is the record of people's own profiles, which belongs to no organisation either.
+    if (!onlyOrganisationId) await purgeProfileEvents(tx, cutoff);
+    // UX-SI-2, UX-SI-10: one-time codes and confirmations belong to no organisation either.
+    // They are deleted a day after they were sent or ran out.
+    if (!onlyOrganisationId) {
+      await purgeOldCodes(tx, now);
+      await purgeOldConfirmations(tx, now);
+      // AU14: sessions that have ended, provider sign-ins and passkey challenges that ran out,
+      // and the limiter's counters a day after their window began.
+      await purgeEndedSignIns(tx, now);
+      await purgeOldLimits(tx, now);
+      // UX-AG-5: an invite holds an email address. One that has expired unanswered is deleted.
+      await purgeExpiredInvites(tx, now);
+    }
     const oldDecisions = await tx
       .delete(decisions)
       .where(and(inOrg(decisions), lt(decisions.decidedAt, cutoff)))
@@ -252,4 +358,6 @@ export async function sweepPersonalData(
       recordDecisions: oldDecisions.length,
     };
   });
+  await dropFiles(documentFiles);
+  return swept;
 }

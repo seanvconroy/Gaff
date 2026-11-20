@@ -9,6 +9,8 @@ import {
   type WorkerPool,
 } from 'graphile-worker';
 import { db, pool } from '@/db/client';
+import { dailyAlertsMayGo, nextDailySend } from '@/domain/saved/saved';
+import { queueRegisterRefreshIfDue } from '@/server/register/refresh';
 import { taskList } from './tasks';
 
 const CONCURRENCY = 3;
@@ -120,6 +122,20 @@ export async function runDueJobs(
 export async function queueDailyJobs(): Promise<void> {
   await db().execute(sql`
     select graphile_worker.add_job('retention_sweep', '{}'::json, job_key => 'retention_sweep')`);
+  // UX-SR-10, M86: the day's daily alerts for saved searches, at 8am Irish time, which the minute
+  // tick runs when it's due. The job itself sends at most one email a day to anyone.
+  // Called before 8, it waits for 8; called after, it runs now.
+  const now = new Date();
+  const eight = dailyAlertsMayGo(now) ? now : nextDailySend(now);
+  await db().execute(sql`
+    select graphile_worker.add_job('saved_search_alerts', '{}'::json, job_key => 'saved_search_alerts',
+      run_at => ${eight.toISOString()}::timestamptz)`);
+  // M49: the freshness sweep, an hour later. Running it twice asks nobody twice.
+  await db().execute(sql`
+    select graphile_worker.add_job('listing_freshness', '{}'::json, job_key => 'listing_freshness',
+      run_at => ${new Date(eight.getTime() + 60 * 60 * 1000).toISOString()}::timestamptz)`);
+  // UX-AG-1 (Q39): and, once a week, the refresh of the PSRA register.
+  await queueRegisterRefreshIfDue();
 }
 
 /**

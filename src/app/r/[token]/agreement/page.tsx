@@ -1,107 +1,137 @@
+import { Download } from 'lucide-react';
 import type { Metadata } from 'next';
+import { tenancyCopy } from '@/copy/renter';
+import { homeFrom, listerFrom } from '@/domain/frame/frame';
 import { formatDateTime } from '@/lib/format';
 import { loadTenantAgreement } from '@/server/tenancy/tenancy';
+import { ButtonLink, buttonProps } from '@/ui/Button';
 import { DocumentView } from '@/ui/Document';
-import { Card, Stack } from '@/ui/Layout';
-import { Outcome } from '@/ui/Outcome';
 import { Notice } from '@/ui/Notice';
+import { Outcome } from '@/ui/Outcome';
+import { PrivateFrame } from '@/ui/PrivateFrame';
 import { SignForm } from '@/ui/SignForm';
-import { RenterShell } from '../../RenterShell';
+import styles from '../../renter.module.css';
 import { tenantSignAction } from './actions';
 
 export const metadata: Metadata = { title: 'Your tenancy agreement' };
 export const dynamic = 'force-dynamic';
 
-/** R22: the tenant reads their agreement and signs it, on their phone, with no account. */
+const copy = tenancyCopy.agreement;
+
+/**
+ * R22, UX-RN-21: the tenant reads their agreement and signs it, on their phone, with no account.
+ * The home is at the top, as on every page; links jump to each section; a copy can be
+ * downloaded. To sign, they tick one box and type their name: that is the signature (Q23).
+ */
 export default async function TenantAgreementPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ signed?: string }>;
 }) {
   const { token } = await params;
-  const { signed } = await searchParams;
   const view = await loadTenantAgreement(token);
   if (!view || view.tenancy.agreementStatus === 'draft') {
     return (
-      <RenterShell operatorName={view?.organisation.name ?? 'Gaff'}>
-        <Outcome tone="waiting" title="Your agreement isn’t ready yet" headingLevel={1}>
-          <p>We’ll email you a link as soon as it is.</p>
+      <PrivateFrame audience="renter" lister={view ? listerFrom(view.organisation) : null}>
+        <Outcome tone="waiting" title={copy.notReady} headingLevel={1}>
+          <p>{copy.notReadyText}</p>
         </Outcome>
-      </RenterShell>
+      </PrivateFrame>
     );
   }
   const { tenancy, organisation } = view;
   const status = tenancy.agreementStatus;
+  const toSign = status === 'with_tenant' && view.unchanged;
+  const both = status === 'signed' || status === 'signed_on_paper';
   return (
-    <RenterShell operatorName={organisation.name}>
-      <Stack gap={6}>
-        <h1 className="type-display-mobile">Your tenancy agreement</h1>
+    <PrivateFrame
+      audience="renter"
+      lister={listerFrom(organisation)}
+      home={homeFrom(view.letting, tenancy.startDate)}
+      homeHeading="p"
+      next={
+        <p>
+          {both
+            ? copy.bothNext(organisation.name)
+            : status === 'tenant_signed'
+              ? copy.signedNext(organisation.name)
+              : copy.signNext(organisation.name)}
+        </p>
+      }
+    >
+      <div className={styles.task}>
+        <h1 className={styles.title}>{copy.title}</h1>
         {!view.unchanged ? (
-          <Notice tone="warning" title="This agreement has changed">
-            <p>{organisation.name} will send you the new version to sign.</p>
+          <Notice tone="warning" title={copy.changedTitle}>
+            <p>{copy.changedText(organisation.name)}</p>
           </Notice>
         ) : null}
         {status === 'tenant_signed' ? (
-          <Notice
-            tone="success"
-            title={signed ? 'Thanks, you’ve signed' : 'You’ve signed'}
-            role="status"
+          <Outcome tone="success" title={copy.signedTitle} role="status" />
+        ) : null}
+        {both ? <Outcome tone="success" title={copy.bothTitle} role="status" /> : null}
+        <DocumentView
+          title={view.document.title}
+          sections={view.document.sections}
+          contents={copy.contents}
+          signatures={
+            both || status === 'tenant_signed' ? (
+              <>
+                <p>
+                  <strong>{copy.signatures.tenant}</strong>{' '}
+                  {tenancy.tenantSignedAt
+                    ? copy.signatures.tenantSigned(
+                        tenancy.tenantSignedName ?? '',
+                        formatDateTime(tenancy.tenantSignedAt),
+                      )
+                    : copy.signatures.onPaper}
+                </p>
+                <p>
+                  <strong>{copy.signatures.landlord}</strong>{' '}
+                  {tenancy.operatorSignedAt
+                    ? copy.signatures.landlordSigned(
+                        view.signerName ?? '',
+                        organisation.name,
+                        formatDateTime(tenancy.operatorSignedAt),
+                      )
+                    : copy.signatures.notYet}
+                </p>
+              </>
+            ) : undefined
+          }
+        />
+        <div className={styles.actions}>
+          {/* A file to keep: a plain link, so the phone saves it or opens it. */}
+          <a
+            href={`/r/${token}/agreement/download`}
+            {...buttonProps('secondary', 'phone')}
+            download
           >
-            <p>
-              {organisation.name} will sign too, and we’ll email you your copy. Then they’ll send
-              you how to pay the deposit and first month’s rent.
-            </p>
-          </Notice>
-        ) : null}
-        {status === 'signed' || status === 'signed_on_paper' ? (
-          <Notice tone="success" title="Signed by both sides" role="status">
-            <p>
-              To keep a copy, use your browser’s Print or Share and choose Save as PDF. Next,{' '}
-              {organisation.name} will send you how to pay the deposit and first month’s rent.
-            </p>
-          </Notice>
-        ) : null}
-        <Card>
-          <DocumentView
-            title={view.document.title}
-            sections={view.document.sections}
-            signatures={
-              status === 'signed' || status === 'signed_on_paper' || status === 'tenant_signed' ? (
-                <>
-                  <p>
-                    <strong>Tenant:</strong>{' '}
-                    {tenancy.tenantSignedAt
-                      ? `signed electronically by ${tenancy.tenantSignedName} on ${formatDateTime(tenancy.tenantSignedAt)}`
-                      : 'signed on paper'}
-                  </p>
-                  <p>
-                    <strong>For the landlord:</strong>{' '}
-                    {tenancy.operatorSignedAt
-                      ? `signed by ${view.signerName} for ${organisation.name} on ${formatDateTime(tenancy.operatorSignedAt)}`
-                      : 'not signed yet'}
-                  </p>
-                </>
-              ) : undefined
-            }
-          />
-        </Card>
-        {status === 'with_tenant' && view.unchanged ? (
-          <Card>
-            <h2 className="type-title">Sign your agreement</h2>
+            <Download size={20} strokeWidth={1.75} aria-hidden="true" />
+            {copy.download}
+          </a>
+          {toSign ? null : (
+            <ButtonLink href={`/r/${token}`} variant="quiet" fullWidth="phone">
+              {copy.back}
+            </ButtonLink>
+          )}
+        </div>
+        {toSign ? (
+          <section className={styles.group} aria-labelledby="sign-title">
+            <h2 id="sign-title" className="type-title">
+              {copy.signTitle}
+            </h2>
             <SignForm
               action={tenantSignAction.bind(null, token)}
               hash={view.hash}
-              nameHint={`As it’s written on the agreement: ${view.tenant.fullName}.`}
-              consentLabel="I’ve read the agreement, and I agree to sign it electronically"
-              button="Sign my tenancy agreement"
+              nameHint={copy.nameHint(view.tenant.fullName)}
+              consentLabel={copy.consent}
+              button={copy.button}
               fullWidth
             />
-            <p>Once you’ve signed, {organisation.name} signs too, and you’ll both have a copy.</p>
-          </Card>
+          </section>
         ) : null}
-      </Stack>
-    </RenterShell>
+      </div>
+    </PrivateFrame>
   );
 }

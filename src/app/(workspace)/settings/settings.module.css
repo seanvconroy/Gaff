@@ -1,45 +1,14 @@
-/* Settings: each one a row, with what it is on the left and its form on the right. */
-.sections {
+/* UX-ST-1: each settings page holds one subject: a few lines about it, then its one form. */
+.subject {
   display: grid;
-}
-
-.section {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-  gap: var(--space-4) var(--space-10);
-  padding: var(--space-8) 0;
-  border-top: 1px solid var(--color-border);
-}
-
-.section:first-child {
-  padding-top: 0;
-  border-top: 0;
-}
-
-.about {
-  display: grid;
-  align-content: start;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 .description {
-  display: grid;
-  gap: var(--space-2);
   color: var(--color-ink-muted);
-  font-size: var(--type-body-sm-size);
-  line-height: var(--type-body-sm-line);
 }
 
-.panel {
-  display: grid;
-  gap: var(--space-4);
-  padding: var(--space-6);
-  background-color: var(--color-surface-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  min-width: 0;
-}
-
+/* The Gaff address, to copy into a mail rule. */
 .address {
   display: flex;
   flex-wrap: wrap;
@@ -55,27 +24,4 @@
 
 .address code {
   font-family: var(--font-sans);
-}
-
-.steps {
-  display: grid;
-  gap: var(--space-3);
-  padding-left: var(--space-5);
-}
-
-.narrow {
-  max-width: 400px;
-}
-
-@media (width <= 900px) {
-  .section {
-    grid-template-columns: minmax(0, 1fr);
-    padding: var(--space-6) 0;
-  }
-}
-
-@media (width <= 640px) {
-  .panel {
-    padding: var(--space-4);
-  }
 }

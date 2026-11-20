@@ -1,0 +1,35 @@
+/*
+ * Steps to follow elsewhere: a number, then what to do. No box round them, and no hairlines:
+ * space holds the rows apart (UX-DS-12). Nothing here is below body size.
+ */
+.list {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.mark {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-surface-2);
+  color: var(--color-ink);
+  font-weight: var(--type-title-weight);
+}
+
+.words {
+  min-width: 0;
+  padding-top: var(--space-1);
+  overflow-wrap: anywhere;
+}

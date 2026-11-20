@@ -11,43 +11,67 @@ import { paymentAccountSchema, paymentAmounts } from '@/domain/tenancy/payment';
 import { env } from '@/lib/env';
 import { formatDate, formatEuro, irishToday } from '@/lib/format';
 import { createAccessLink } from '@/server/access/links';
+import { ConfirmationNeeded, spendConfirmation, type Confirmation } from '@/server/auth/confirm';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
+import { assertMayActOn, requirePermission } from '@/server/team/permissions';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
 
 /**
  * R23: where tenants pay: the operator's own account (rule 5). Only an admin can change it, and
  * every change is logged (without the IBAN), since payment details are what fraudsters target.
+ *
+ * UX-SI-10: changing it asks the admin to confirm it's them again, whatever the age of their
+ * session. The change is saved only by spending a `Confirmation` in the same transaction.
+ * Without one, valid details come back as `confirm: true` and nothing is saved.
  */
 export async function setPaymentAccount(
   member: Member,
   values: Record<string, string>,
-): Promise<{ ok: true } | { ok: false; errors: Record<string, string> }> {
-  if (member.role !== 'admin') throw new UserFacingError('Only an admin can change this.');
+  confirmation: Confirmation | null,
+): Promise<
+  { ok: true } | { ok: false; errors: Record<string, string> } | { ok: false; confirm: true }
+> {
+  // The permissions table: an admin, once they've confirmed it's them (below); never an agent.
+  await requirePermission(member, 'change_payment_account');
   const parsed = paymentAccountSchema.safeParse(values);
   if (!parsed.success) {
     const errors: Record<string, string> = {};
     for (const issue of parsed.error.issues) errors[String(issue.path[0])] ??= issue.message;
     return { ok: false, errors };
   }
-  await withOrg(member.organisationId, async (tx) => {
-    await tx
-      .update(organisations)
-      .set({ paymentAccountName: parsed.data.accountName, paymentIban: parsed.data.iban })
-      .where(eq(organisations.id, member.organisationId));
-    await recordEvent(tx, {
-      organisationId: member.organisationId,
-      actor: { type: 'person', userId: member.userId },
-      type: 'settings.payment_account',
-      data: { changed: true },
+  if (!confirmation) return { ok: false, confirm: true };
+  try {
+    await withOrg(member.organisationId, async (tx) => {
+      const confirmedBy = await spendConfirmation(
+        tx,
+        confirmation,
+        'change_payment_account',
+        member.userId,
+      );
+      await tx
+        .update(organisations)
+        .set({ paymentAccountName: parsed.data.accountName, paymentIban: parsed.data.iban })
+        .where(eq(organisations.id, member.organisationId));
+      await recordEvent(tx, {
+        organisationId: member.organisationId,
+        actor: { type: 'person', userId: member.userId },
+        type: 'settings.payment_account',
+        data: { changed: true, confirmedBy },
+      });
     });
-  });
+  } catch (error) {
+    // Expired, or spent already: ask again. Nothing was saved.
+    if (error instanceof ConfirmationNeeded) return { ok: false, confirm: true };
+    throw error;
+  }
   return { ok: true };
 }
 
 async function loadForPayment(member: Member, lettingId: string) {
   return withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const [row] = await tx
       .select({
         tenancy: tenancies,
@@ -78,8 +102,13 @@ export async function requestPayment(
   if (!['signed', 'signed_on_paper'].includes(row.tenancy.agreementStatus)) {
     throw new UserFacingError('Ask for payment once the agreement is signed.');
   }
+  // UX-TN-2: where tenants pay is asked at this step of the first tenancy, then remembered.
   if (!row.organisation.paymentIban || !row.organisation.paymentAccountName) {
-    throw new UserFacingError('Add the account tenants pay into, in Settings, first.');
+    throw new UserFacingError('Add the account tenants pay into first.');
+  }
+  // UX-RN-23, UX-TS-6 (rule 5): the tenant is always shown a number to ring to check the account.
+  if (!row.organisation.phone) {
+    throw new UserFacingError('Add a number the tenant can ring to check the account first.');
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(values.dueDate) || values.dueDate < irishToday()) {
     throw new UserFacingError('Choose a date from today on.');

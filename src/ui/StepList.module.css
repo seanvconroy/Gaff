@@ -1,0 +1,79 @@
+/*
+ * A short list of steps: a mark, the step's name, and its state in words. Rows are held apart by
+ * hairlines, with no box round them (UX-DS-12). Nothing here is below body size.
+ */
+.list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: var(--size-control);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.step:first-child {
+  border-top: 0;
+}
+
+/* The mark: the step's number, or a tick once it's done. */
+.mark {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-surface-2);
+  color: var(--color-ink-muted);
+  font-weight: var(--type-title-weight);
+}
+
+.done .mark {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+/* The step to do now: ink, as the page's one button is. */
+.next .mark {
+  background-color: var(--color-primary);
+  color: var(--color-ink-inverse);
+}
+
+.words {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.name {
+  overflow-wrap: anywhere;
+}
+
+.next .name {
+  font-weight: var(--type-title-weight);
+}
+
+.note {
+  color: var(--color-ink-muted);
+}
+
+.state {
+  color: var(--color-ink-muted);
+  white-space: nowrap;
+}
+
+.done .state {
+  color: var(--color-success);
+}
+
+.next .state {
+  color: var(--color-ink);
+  font-weight: var(--type-title-weight);
+}

@@ -40,9 +40,9 @@ ol {
   padding: 0;
 }
 
-/* Links are atlantic-text and underlined in running text, so colour is never the only cue. */
+/* Links are brand-text and underlined in running text, so colour is never the only cue. */
 a {
-  color: var(--color-atlantic-text);
+  color: var(--color-brand-text);
   text-underline-offset: 0.15em;
   transition: color var(--motion-fast) var(--ease-standard);
 }
@@ -58,11 +58,32 @@ a:not([class]):hover {
   outline-offset: 2px;
 }
 
-/* On a phone the workspace has a bottom bar: keep what has focus above it (WCAG 2.4.11). */
+/* On a phone the navigation is a tab bar at the foot: keep what has focus above it (WCAG 2.4.11). */
 @media (width <= 900px) {
   html:has([data-bottom-bar]) {
-    scroll-padding-bottom: calc(var(--space-16) + var(--space-6));
+    scroll-padding-bottom: calc(var(--size-bar) + var(--space-6));
   }
+}
+
+/* A home's page has its action fixed at the foot of a phone's screen, over any tab bar. */
+@media (width <= 900px) {
+  html:has([data-action-bar]) {
+    scroll-padding-bottom: calc(
+      var(--size-bar) + var(--size-control) + var(--space-16) + var(--space-12)
+    );
+  }
+}
+
+/* On a desktop it is a top bar that stays put: keep what has focus below it. */
+@media (width > 900px) {
+  html:has([data-top-bar]) {
+    scroll-padding-top: calc(var(--size-bar) + var(--space-4));
+  }
+}
+
+/* A flow has a fixed footer at every width: keep what has focus above it too. */
+html:has([data-flow-footer]) {
+  scroll-padding-bottom: calc(var(--size-footer) + var(--space-6));
 }
 
 input,

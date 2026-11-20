@@ -1,0 +1,13 @@
+/* The pages a saved search's links open: one message, and one way on. */
+.page {
+  max-width: var(--size-task);
+}
+
+/* The search itself, in its chips' words. */
+.search {
+  font-weight: var(--type-title-weight);
+}
+
+.action {
+  margin-top: var(--space-3);
+}

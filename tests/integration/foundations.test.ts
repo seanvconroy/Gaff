@@ -9,6 +9,13 @@ import { createTestMember, databaseError } from './helpers';
 // Identity tables are read before an organisation is known; every other table with an
 // organisation_id column holds tenant data and must be protected by row-level security.
 const IDENTITY_TABLES = new Set(['organisations', 'memberships']);
+// P3 (ADR-0017): Gaff's own record of AI calls names an organisation only to see the cost per
+// operator. It holds no tenant data, and no operator can read it: only withSystem() reads or
+// deletes its rows (tests/integration/p3-ai-usage.test.ts holds that).
+// BA-10 (M107): Gaff's own record of a lister's listings paused by its team. It names the
+// organisation it's about, and only withSystem() reads or writes it; the lister's side is
+// `organisations.listings_paused_at` (tests/integration/ba10-listing-checks.test.ts).
+const PLATFORM_TABLES = new Set(['ai_calls', 'lister_pauses']);
 
 describe('ADR-0004: tenant isolation', () => {
   it('every tenant table has row-level security enabled, forced and a tenant policy', async () => {
@@ -24,7 +31,9 @@ describe('ADR-0004: tenant isolation', () => {
       join pg_namespace n on n.oid = c.relnamespace
       join information_schema.columns col on col.table_name = c.relname and col.table_schema = n.nspname
       where n.nspname = 'public' and c.relkind = 'r' and col.column_name = 'organisation_id'`);
-    const tenantTables = rows.filter((row) => !IDENTITY_TABLES.has(row.table));
+    const tenantTables = rows.filter(
+      (row) => !IDENTITY_TABLES.has(row.table) && !PLATFORM_TABLES.has(row.table),
+    );
     expect(tenantTables.length).toBeGreaterThan(0);
     for (const row of tenantTables) {
       expect(row, `${row.table} must be protected`).toMatchObject({

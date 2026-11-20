@@ -22,3 +22,6 @@ blob-report/
 .DS_Store
 *.log
 *.tsbuildinfo
+
+# sub-agent worktrees (temporary working copies)
+.claude/worktrees/

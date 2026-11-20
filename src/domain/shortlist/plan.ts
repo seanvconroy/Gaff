@@ -43,3 +43,40 @@ export function planInvitations(input: {
 export function defaultInviteCount(placesLeft: number, undecided: number): number {
   return Math.max(0, Math.min(placesLeft, undecided));
 }
+
+/** UX-DC-3: the waiting list's size when nobody has changed it: the next ten. */
+export const DEFAULT_WAITLIST = 10;
+
+/**
+ * UX-DC-3: how many go on the waiting list. What was asked for, or ten, but never more people
+ * than are left once the ticked ones are invited, and never more than the list can hold.
+ */
+export function waitlistSize(requested: number | null, left: number): number {
+  const wanted =
+    requested === null || !Number.isInteger(requested) || requested < 0
+      ? DEFAULT_WAITLIST
+      : requested;
+  return Math.max(0, Math.min(wanted, left, MAX_WAITLIST));
+}
+
+/**
+ * UX-DC-2, UX-DC-4: what "Check and send" says before anything goes: how many are invited, how
+ * many go on the waiting list, how many are told they'll hear either way, and how many places
+ * nobody is being invited to.
+ */
+export function invitationCounts(input: {
+  placesLeft: number;
+  undecided: number;
+  chosen: number;
+  waitlist: number | null;
+}): { invited: number; waitlisted: number; told: number; unoffered: number } {
+  const invited = Math.min(input.chosen, input.undecided);
+  const left = input.undecided - invited;
+  const waitlisted = waitlistSize(input.waitlist, left);
+  return {
+    invited,
+    waitlisted,
+    told: left - waitlisted,
+    unoffered: Math.max(0, input.placesLeft - invited),
+  };
+}

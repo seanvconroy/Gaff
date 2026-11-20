@@ -1,28 +1,150 @@
-import { sql } from 'drizzle-orm';
-import { db } from '@/db/client';
-import { users } from '@/db/schema';
+import { eq, sql } from 'drizzle-orm';
+import { db, withPerson } from '@/db/client';
+import { psraRegister, users } from '@/db/schema';
+import type { SensitiveAction } from '@/domain/auth/confirm';
+import type { OrganisationKind } from '@/domain/organisations/kinds';
+import { searchTextFor } from '@/domain/register/search';
+import type { SignedInPerson } from '@/server/accounts/contexts';
+import { findConfirmation, grantConfirmation, type Confirmation } from '@/server/auth/confirm';
 import { findMember, type Member } from '@/server/auth/member';
 export type { Member };
-import { createOrganisation } from '@/server/organisations/create-organisation';
+import { keepIdentityIn } from '@/server/identity/kept';
+import { createOrganisationIn } from '@/server/organisations/create-organisation';
 
-/** A signed-up operator with their own organisation, isolated from every other test. */
-export async function createTestMember(
-  overrides: { name?: string; organisation?: string; kind?: 'agency' | 'landlord' } = {},
-): Promise<Member> {
+/** A made-up person who has signed in and done nothing else yet. */
+export async function createTestPerson(
+  overrides: { name?: string; email?: string; emailVerified?: boolean } = {},
+): Promise<SignedInPerson> {
   const id = crypto.randomUUID();
+  const person = {
+    id,
+    name: overrides.name ?? 'Ann Power',
+    email: overrides.email ?? `${id}@test.gaff.ie`,
+    emailVerified: overrides.emailVerified ?? true,
+  };
+  await db().insert(users).values(person);
+  return person;
+}
+
+/** The person as the session would give them now: with the name they've given since. */
+export async function reloaded(person: SignedInPerson): Promise<SignedInPerson> {
+  const [row] = await db().select().from(users).where(eq(users.id, person.id));
+  return { id: row!.id, name: row!.name, email: row!.email, emailVerified: row!.emailVerified };
+}
+
+/** A made-up business licensed to let, in Gaff's copy of the PSRA register. */
+export async function aRegisterEntry(
+  overrides: {
+    registeredName?: string;
+    tradingName?: string | null;
+    licenceNumber?: string;
+    county?: string;
+  } = {},
+) {
+  const id = crypto.randomUUID();
+  const entry = {
+    id,
+    // A 9 and fourteen digits from the random ID: no other test has it, no real licence is so
+    // long, and it starts with neither the sample register's 0 nor a register test's 4.
+    licenceNumber:
+      overrides.licenceNumber ??
+      `9${String(BigInt(`0x${id.replace(/-/g, '')}`) % 10n ** 14n).padStart(14, '0')}`,
+    registeredName: overrides.registeredName ?? `Halcyon ${id.slice(0, 6)} Limited`,
+    tradingName: overrides.tradingName === undefined ? null : overrides.tradingName,
+    licenceType: 'company',
+    county: overrides.county ?? 'Dublin',
+  };
   await db()
-    .insert(users)
-    .values({ id, name: 'pending', email: `${id}@test.gaff.ie`, emailVerified: true });
+    .insert(psraRegister)
+    .values({ ...entry, searchText: searchTextFor(entry) })
+    .onConflictDoUpdate({
+      target: psraRegister.licenceNumber,
+      set: { removedAt: null, lastSeenAt: sql`now()` },
+    });
+  const [stored] = await db()
+    .select()
+    .from(psraRegister)
+    .where(eq(psraRegister.licenceNumber, entry.licenceNumber));
+  return stored!;
+}
+
+/**
+ * A signed-up operator with their own organisation, isolated from every other test. An agency is
+ * on the register and CONFIRMED unless `confirmed: false` is asked for, so its homes can go live
+ * (UX-AG-4); its licence number is 001234, as the agreement and the emails print it, unless
+ * `licenceNumber` says otherwise. Pass `kind` for a landlord's team or a private landlord.
+ *
+ * A private landlord has CONFIRMED IT'S THEM (Q47, UX-TS-2) unless `confirmed: false` is asked
+ * for: their person keeps a verified identity, in the name they signed up with, so their homes
+ * can go live.
+ */
+export async function createTestMember(
+  overrides: {
+    name?: string;
+    organisation?: string;
+    kind?: OrganisationKind;
+    confirmed?: boolean;
+  } = {},
+): Promise<Member> {
+  const person = await createTestPerson({ name: overrides.name });
   const kind = overrides.kind ?? 'agency';
-  await createOrganisation(id, {
-    yourName: overrides.name ?? 'Ann Power',
-    name: overrides.organisation ?? `Halcyon ${id.slice(0, 6)}`,
-    kind,
-    psraLicenceNumber: kind === 'agency' ? '001234' : undefined,
-  });
-  const member = await findMember(id);
+  const name = overrides.organisation ?? `Halcyon ${person.id.slice(0, 6)}`;
+  const entry = kind === 'agency' ? await aRegisterEntry({ registeredName: name }) : null;
+  await db().transaction((tx) =>
+    createOrganisationIn(tx, {
+      kind,
+      name,
+      psraRegisterEntryId: entry?.id ?? null,
+      // The number tests read in an agreement or an email, not the made-up entry's own.
+      psraLicenceNumber: entry ? '001234' : null,
+      confirmed: entry && overrides.confirmed !== false ? { at: new Date(), by: null } : null,
+      adminUserId: person.id,
+      actor: { type: 'person', userId: person.id },
+    }),
+  );
+  if (kind === 'private_landlord' && overrides.confirmed !== false) {
+    await verifyForTest(person.id, person.name);
+  }
+  const member = await findMember(person.id);
   if (!member) throw new Error('test member was not created');
   return member;
+}
+
+/**
+ * Test only: the person keeps a verified identity in this name (UX-PF-10), as an ID check that
+ * passed and was kept leaves it, with the date on their own homes if they let any (UX-TS-1).
+ */
+export async function verifyForTest(
+  userId: string,
+  verifiedName: string,
+  verifiedAt: Date = new Date(),
+): Promise<void> {
+  await withPerson(userId, (tx) =>
+    keepIdentityIn(tx, userId, { verifiedName, verifiedAt }, 'go_live'),
+  );
+}
+
+/** Test only: the agency as it is once someone at Gaff has confirmed it (UX-AG-4). */
+export async function confirmForTest(organisationId: string): Promise<void> {
+  const { organisations } = await import('@/db/schema');
+  await db()
+    .update(organisations)
+    .set({ confirmedAt: new Date() })
+    .where(eq(organisations.id, organisationId));
+}
+
+/**
+ * UX-SI-10: the member has just confirmed it's them, as the "Confirm it's you" sheet leaves it.
+ * For tests of use cases that spend a confirmation, such as changing where tenants pay.
+ */
+export async function confirmedAgain(
+  member: Member,
+  action: SensitiveAction = 'change_payment_account',
+): Promise<Confirmation> {
+  const grant = await grantConfirmation(member.userId, action, 'email_code');
+  const confirmation = await findConfirmation(member.userId, action, grant);
+  if (!confirmation) throw new Error('the confirmation was not found');
+  return confirmation;
 }
 
 /** The database's own message for a failed query (Drizzle wraps it as the error's cause). */
@@ -179,7 +301,6 @@ export async function peopleWhoApplied(
   const { withOrg } = await import('@/db/client');
   const { bookings, viewingSlots } = await import('@/db/schema');
   const { inviteToView } = await import('@/server/shortlist/invite');
-  const { bookViewing } = await import('@/server/viewings/booking');
   const { markAttendance } = await import('@/server/viewings/attendance');
   const { submitApplication } = await import('@/server/applications/apply');
   const { lettingId } = await aLiveLetting(member);
@@ -197,7 +318,7 @@ export async function peopleWhoApplied(
   );
   for (const [i, id] of ids.entries()) {
     const token = await tokenInMessage(member, id, 'invitation');
-    const booked = await bookViewing(token, slots[i]!.id);
+    const booked = await bookAs(token, slots[i]!.id);
     if (!booked.ok) throw new Error(`booking failed: ${JSON.stringify(booked)}`);
   }
   await withOrg(member.organisationId, (tx) =>
@@ -225,6 +346,24 @@ export async function peopleWhoApplied(
     if (!applied?.ok) throw new Error(`apply failed: ${JSON.stringify(applied)}`);
   }
   return { lettingId, ids };
+}
+
+/**
+ * UX-DC-19 (R4, Q41): the three comparable rents the offer waits for, made up, for a letting at
+ * the usual €1,850 a month.
+ */
+export async function threeComparables(member: Member, lettingId: string): Promise<void> {
+  const { recordComparables } = await import('@/server/lettings/comparables');
+  await recordComparables(
+    member,
+    lettingId,
+    [180_000, 185_000, 195_000].map((monthlyRentCents) => ({
+      area: 'Dublin 6',
+      propertyType: 'apartment' as const,
+      bedrooms: 2,
+      monthlyRentCents,
+    })),
+  );
 }
 
 /**
@@ -256,14 +395,88 @@ export async function aLetHome(member: Member): Promise<{
     preferred: 'approve',
     backup: 'approve',
   });
+  await threeComparables(member, lettingId);
+  // UX-DC-19: the person goes ahead before the checks are back.
   const made = await makeOffer(member, lettingId, {
     deposit: '1,850',
     startDate: '2026-12-01',
     deadlineHours: '48',
+    withoutChecks: 'yes',
   });
   if (!made.ok) throw new Error(`offer failed: ${JSON.stringify(made)}`);
   const tenantToken = await tokenInMessage(member, ids[0]!, 'offer');
   const accepted = await respondToOffer(tenantToken, 'accept');
   if (!accepted.ok) throw new Error(`accept failed: ${JSON.stringify(accepted)}`);
   return { lettingId, tenantId: ids[0]!, otherId: ids[1]!, tenantToken };
+}
+
+/** P16: the code in the latest text to a number, from the development outbox. */
+export async function lastSmsCode(e164: string): Promise<string> {
+  const { and, desc, eq: equals, like } = await import('drizzle-orm');
+  const { devOutbox } = await import('@/db/schema');
+  const [sms] = await db()
+    .select({ text: devOutbox.text })
+    .from(devOutbox)
+    .where(and(equals(devOutbox.toAddress, e164), like(devOutbox.text, '%Gaff code%')))
+    .orderBy(desc(devOutbox.createdAt))
+    .limit(1);
+  const code = /(\d{6})/.exec(sms?.text ?? '')?.[1];
+  if (!code) throw new Error('no code was texted to that number');
+  return code;
+}
+
+/** A made-up Irish mobile, different each time. */
+export const aMobile = () => `087${String(Math.random()).slice(2, 9)}`;
+
+/** P16: confirms a mobile for a renter's link with the texted code. Returns it as +353… */
+export async function confirmBookingMobile(token: string, mobile = aMobile()): Promise<string> {
+  const { confirmBookingCode, sendBookingCode } = await import('@/server/viewings/mobile');
+  const sent = await sendBookingCode(token, mobile);
+  if (!sent.ok) throw new Error(`no code sent: ${sent.problem}`);
+  const e164 = `+353${mobile.replace(/\s/g, '').slice(1)}`;
+  const confirmed = await confirmBookingCode(token, await lastSmsCode(e164));
+  if (!confirmed.ok) throw new Error(`mobile not confirmed: ${confirmed.problem}`);
+  return e164;
+}
+
+/**
+ * R12, P16: books a viewing as a renter would. A new booking asks for a confirmed mobile, so one
+ * is confirmed first when it's needed (`mobile`, or a made-up one).
+ */
+export async function bookAs(token: string, slotId: string, mobile?: string) {
+  const { bookViewing } = await import('@/server/viewings/booking');
+  if (mobile) await confirmBookingMobile(token, mobile);
+  const first = await bookViewing(token, slotId);
+  if (first.ok || first.reason !== 'mobile_needed') return first;
+  await confirmBookingMobile(token);
+  return bookViewing(token, slotId);
+}
+
+/**
+ * BA-16 (P39): a chosen renter adds one made-up payslip (or, if they don't earn from a job, a
+ * statement of other income) and shares their checks, which is when the referees they named are
+ * emailed. The name on it is the application's, so nothing is flagged for the name.
+ */
+export async function shareChecksFor(
+  token: string,
+  options: { name?: string; userId?: string | null } = {},
+): Promise<void> {
+  const { addDocument, shareChecks } = await import('@/server/documents/renter');
+  const { payslipPdf, otherIncomeStatementPdf } = await import('../fixtures/documents');
+  const date = new Date(Date.now() - 10 * 86_400_000).toISOString().slice(0, 10);
+  const name = options.name ?? 'Renter 1';
+  const userId = options.userId ?? null;
+  const asPayslip = await addDocument(token, userId, {
+    kind: 'payslip',
+    bytes: payslipPdf({ name, date, netCents: 148_000 }),
+  });
+  if (!asPayslip.ok) {
+    const asOther = await addDocument(token, userId, {
+      kind: 'other_income',
+      bytes: otherIncomeStatementPdf({ name, date, amountCents: 27_730 }),
+    });
+    if (!asOther.ok) throw new Error(`couldn't add a document: ${asOther.problem}`);
+  }
+  const shared = await shareChecks(token, userId, { keep: false });
+  if (!shared.ok) throw new Error(`couldn't share: ${shared.problem}`);
 }

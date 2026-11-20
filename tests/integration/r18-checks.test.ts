@@ -1,4 +1,4 @@
-import { asc, and, eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { db, withOrg } from '@/db/client';
 import { accessLinks, applications, checks, devOutbox, events, messages } from '@/db/schema';
@@ -6,6 +6,7 @@ import { sendMessage } from '@/server/messages/outbox';
 import { chooseApplicants } from '@/server/applications/choose';
 import {
   checkResultsFor,
+  declineReference,
   loadReferenceRequest,
   markReferenceOverdue,
   recordProviderResult,
@@ -16,7 +17,7 @@ import {
 } from '@/server/checks/checks';
 import { closeLetting } from '@/server/lettings/close';
 import { sweepPersonalData } from '@/server/retention/sweep';
-import { createTestMember, peopleWhoApplied, tokenInMessage } from './helpers';
+import { createTestMember, peopleWhoApplied, shareChecksFor, tokenInMessage } from './helpers';
 
 type Member = Awaited<ReturnType<typeof createTestMember>>;
 
@@ -65,12 +66,13 @@ describe('R18: checks only for the preferred applicant and the backup', () => {
   });
 });
 
-describe('R18: ID and income checks, through a provider', () => {
+describe('R18: the ID check, through a provider', () => {
   it('sends the renter to the provider without their private link, and keeps only a sealed result', async () => {
     const { member, ids, token } = await chosen();
     const started = await startProviderCheck(token, 'identity');
     expect('redirectUrl' in started && started.redirectUrl).toMatch(
-      /\/dev\/checks\/[0-9a-f-]{36}\?return=.*%2Fchecks%2Fdone%3Fkind%3Didentity$/,
+      // The way back, and the stand-in check's own key (BA-6): never the renter's link.
+      /\/dev\/checks\/[0-9a-f-]{36}\?return=.*%2Fchecks%2Fdone%3Fkind%3Didentity&key=[\w-]{43}$/,
     );
     expect(JSON.stringify(started)).not.toContain(token);
     const [identity] = (await checksOfPerson(member, ids[0]!)).filter((c) => c.kind === 'identity');
@@ -86,38 +88,6 @@ describe('R18: ID and income checks, through a provider', () => {
     expect(stored!.resultSealed).not.toContain('Renter');
     const results = await withOrg(member.organisationId, (tx) => checkResultsFor(tx, [ids[0]!]));
     expect(results.get(ids[0]!)!.find((c) => c.kind === 'identity')!.verifiedName).toBe('Renter 1');
-  });
-
-  it('records a check that didn’t pass with a reason code, and lets the renter try again', async () => {
-    const { member, ids, token } = await chosen();
-    await startProviderCheck(token, 'income');
-    const [income] = (await checksOfPerson(member, ids[0]!)).filter((c) => c.kind === 'income');
-    await recordProviderResult(income!.id, {
-      kind: 'income',
-      result: { confirmed: false, reason: 'no_regular_income' },
-    });
-    expect((await checksOfPerson(member, ids[0]!)).find((c) => c.kind === 'income')).toMatchObject({
-      status: 'not_passed',
-      reason: 'no_regular_income',
-      resultSealed: null,
-    });
-    await startProviderCheck(token, 'income');
-    await recordProviderResult(income!.id, {
-      kind: 'income',
-      result: { confirmed: true, monthlyIncomeCents: 510_000 },
-    });
-    const results = await withOrg(member.organisationId, (tx) => checkResultsFor(tx, [ids[0]!]));
-    expect(results.get(ids[0]!)!.find((c) => c.kind === 'income')).toMatchObject({
-      status: 'passed',
-      monthlyIncomeCents: 510_000,
-    });
-    const logged = await withOrg(member.organisationId, (tx) =>
-      tx.select().from(events).where(eq(events.type, 'check.completed')).orderBy(asc(events.id)),
-    );
-    expect(logged.map((e) => (e.data as { outcome: string }).outcome)).toEqual([
-      'not_passed',
-      'passed',
-    ]);
   });
 });
 
@@ -140,6 +110,12 @@ describe('R18: references', () => {
         employerEmail: 'sean.daly@example.ie',
       }),
     ).toEqual({ ok: true });
+    // P39: named, the referees wait for the renter to share their checks; then they're asked.
+    const waiting = await withOrg(member.organisationId, (tx) =>
+      tx.select().from(messages).where(eq(messages.toAddress, 'mary.kelly@example.ie')),
+    );
+    expect(waiting).toEqual([]);
+    await shareChecksFor(token);
     const sent = await withOrg(member.organisationId, (tx) =>
       tx.select().from(messages).where(eq(messages.toAddress, 'mary.kelly@example.ie')),
     );
@@ -211,6 +187,99 @@ describe('R18: references', () => {
     ).toEqual(['not_needed', 'not_needed']);
   });
 
+  it('UX-RF-2: a referee who says the renter didn’t rent from them sends that alone', async () => {
+    const { member, ids, token } = await chosen();
+    await submitReferees(token, {
+      landlordName: 'Mary Kelly',
+      landlordEmail: 'mary.kelly@example.ie',
+      employerNone: 'yes',
+    });
+    await shareChecksFor(token);
+    const [request] = await withOrg(member.organisationId, (tx) =>
+      tx
+        .select()
+        .from(messages)
+        .where(and(eq(messages.applicationId, ids[0]!), eq(messages.kind, 'reference_request'))),
+    );
+    const landlordToken = refereeToken(request!.body);
+    expect(await submitReference(landlordToken, { rentedFromYou: 'no' })).toEqual({ ok: true });
+    const results = await withOrg(member.organisationId, (tx) => checkResultsFor(tx, [ids[0]!]));
+    expect(results.get(ids[0]!)!.find((c) => c.kind === 'landlord_reference')).toMatchObject({
+      status: 'answered',
+    });
+  });
+
+  it('UX-RF-4: "I can’t give this reference" tells the agency at once, and stops the reminders', async () => {
+    const { member, ids, token } = await chosen();
+    await submitReferees(token, {
+      landlordName: 'Mary Kelly',
+      landlordEmail: 'mary.kelly@example.ie',
+      employerName: 'Seán Daly',
+      employerEmail: 'sean.daly@example.ie',
+    });
+    await shareChecksFor(token);
+    const requests = await withOrg(member.organisationId, (tx) =>
+      tx
+        .select()
+        .from(messages)
+        .where(and(eq(messages.applicationId, ids[0]!), eq(messages.kind, 'reference_request'))),
+    );
+    const landlordToken = refereeToken(
+      requests.find((m) => m.toAddress === 'mary.kelly@example.ie')!.body,
+    );
+    const employerToken = refereeToken(
+      requests.find((m) => m.toAddress === 'sean.daly@example.ie')!.body,
+    );
+
+    expect(await declineReference(landlordToken)).toEqual({ ok: true });
+    const landlord = (await checksOfPerson(member, ids[0]!)).find(
+      (c) => c.kind === 'landlord_reference',
+    )!;
+    expect(landlord).toMatchObject({
+      status: 'no_answer',
+      reason: 'cant_give',
+      resultSealed: null,
+    });
+    expect(await loadReferenceRequest(landlordToken)).toMatchObject({ cantGive: true });
+    const reminders = await withOrg(member.organisationId, (tx) =>
+      tx
+        .select()
+        .from(messages)
+        .where(
+          and(
+            eq(messages.toAddress, 'mary.kelly@example.ie'),
+            eq(messages.kind, 'reference_reminder'),
+          ),
+        ),
+    );
+    expect(reminders.map((m) => m.status)).toEqual(['cancelled', 'cancelled']);
+    const logged = await withOrg(member.organisationId, (tx) =>
+      tx.select().from(events).where(eq(events.type, 'check.completed')),
+    );
+    // The share's own line for work and income aside (BA-16).
+    expect(
+      logged.map((e) => e.data).filter((d) => (d as { kind: string }).kind !== 'income'),
+    ).toEqual([{ checkId: landlord.id, kind: 'landlord_reference', outcome: 'cant_give' }]);
+
+    // Once said, it stays said: the form can't be sent after, and the overdue job leaves it.
+    expect(await submitReference(landlordToken, { rentedFromYou: 'yes' })).toEqual({ ok: true });
+    await markReferenceOverdue({ organisationId: member.organisationId, checkId: landlord.id });
+    expect((await checksOfPerson(member, ids[0]!)).find((c) => c.id === landlord.id)).toMatchObject(
+      { status: 'no_answer', reason: 'cant_give' },
+    );
+
+    // A reference that's already in stays as it is.
+    await submitReference(employerToken, {
+      worksForYou: 'yes',
+      contract: 'permanent',
+      howLong: 'over_3',
+    });
+    expect(await declineReference(employerToken)).toEqual({ ok: true });
+    expect(
+      (await checksOfPerson(member, ids[0]!)).find((c) => c.kind === 'employer_reference'),
+    ).toMatchObject({ status: 'answered', reason: null });
+  });
+
   it('deletes check results and referees’ details on schedule, and their links stop working', async () => {
     const { member, lettingId, ids, token } = await chosen();
     await submitReferees(token, {
@@ -218,6 +287,7 @@ describe('R18: references', () => {
       landlordEmail: 'mary.kelly@example.ie',
       employerNone: 'yes',
     });
+    await shareChecksFor(token);
     const [request] = await withOrg(member.organisationId, (tx) =>
       tx
         .select()

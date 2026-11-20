@@ -1,0 +1,62 @@
+/* Initials in a circle. Quiet is the neutral fill; strong is ink, for the page's own agency. */
+.avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  font-weight: var(--type-title-weight);
+  user-select: none;
+}
+
+.small {
+  width: 32px;
+  height: 32px;
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+}
+
+.medium {
+  width: 40px;
+  height: 40px;
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.large {
+  width: 56px;
+  height: 56px;
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
+}
+
+.quiet {
+  background-color: var(--color-surface-2);
+  color: var(--color-ink);
+}
+
+.strong {
+  background-color: var(--color-primary);
+  color: var(--color-ink-inverse);
+}
+
+/* A badge: an icon and words on one line, at the size of the text it sits in. */
+.badge {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  color: var(--color-ink);
+  font-weight: var(--type-title-weight);
+}
+
+.badgeIcon {
+  flex: none;
+}
+
+.badgeVerified .badgeIcon {
+  color: var(--color-success);
+}
+
+.badgeQuiet {
+  color: var(--color-ink-muted);
+}

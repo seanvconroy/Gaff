@@ -1,0 +1,16 @@
+/* BA-10 (M29): a held listing's photos, small, in a row, for Gaff's team to look at. */
+.photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.photo {
+  display: block;
+  width: var(--size-field-short);
+  height: auto;
+  border-radius: var(--radius-sm);
+}

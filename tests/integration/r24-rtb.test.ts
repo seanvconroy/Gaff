@@ -7,6 +7,7 @@ import {
   givePpsn,
   markRtbRegistered,
   rentSettingPack,
+  revealPpsn,
   rtbPack,
   sendRtbReminder,
 } from '@/server/tenancy/rtb';
@@ -53,6 +54,26 @@ describe('R24 (Q24): the PPS number, optional and for the RTB only', () => {
   });
 });
 
+describe('UX-TN-3 (rule 2): the PPS number is shown only when asked for', () => {
+  it('UX-TN-3: is given only on "Show", logged without the number, and gone once registered', async () => {
+    const member = await createTestMember();
+    const { lettingId, tenantToken } = await aLetHome(member);
+    expect(await revealPpsn(member, lettingId)).toBeNull();
+    await givePpsn(tenantToken, { ppsn: '1234567T' });
+    expect(await revealPpsn(member, lettingId)).toBe('1234567T');
+    const stored = await tenancyOf(member, lettingId);
+    const shown = await withOrg(member.organisationId, (tx) =>
+      tx.select().from(events).where(eq(events.type, 'tenancy.ppsn_shown')),
+    );
+    expect(shown.map((e) => e.data)).toEqual([{ tenancyId: stored.id }]);
+    await markRtbRegistered(member, lettingId, { reference: '' });
+    expect(await revealPpsn(member, lettingId)).toBeNull();
+    // Another organisation can't ask for it.
+    const other = await createTestMember();
+    expect(await revealPpsn(other, lettingId)).toBeNull();
+  });
+});
+
 describe('R24: the packs, and the reminder to register', () => {
   it('has the rent-setting pack: the check and the comparables', async () => {
     const member = await createTestMember();
@@ -81,12 +102,14 @@ describe('R24: the packs, and the reminder to register', () => {
     await withOrg(member.organisationId, (tx) =>
       tx.update(tenancies).set({ startDate: '2026-10-01' }).where(eq(tenancies.id, tenancy.id)),
     );
-    expect((await dashboardFor(member)).today).toContainEqual({
-      kind: 'rtb',
-      lettingId,
-      address: '12 Ranelagh Road',
-      dueBy: '2026-11-01',
-    });
+    expect((await dashboardFor(member)).today).toContainEqual(
+      expect.objectContaining({
+        kind: 'rtb',
+        lettingId,
+        address: '12 Ranelagh Road',
+        dueBy: '2026-11-01',
+      }),
+    );
     await markRtbRegistered(member, lettingId, { reference: '' });
     expect((await dashboardFor(member)).today.some((i) => i.kind === 'rtb')).toBe(false);
   });

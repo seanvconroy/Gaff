@@ -67,6 +67,12 @@ export function formatShortDate(value: Date | string, now: Date = new Date()): s
   return `${day} ${MONTHS[month - 1]}${year === parts(now).year ? '' : ` ${year}`}`;
 }
 
+/** "Fri 20 Nov": a day in a short row of days. The full date is said beside it. */
+export function formatShortDay(value: Date | string): string {
+  const { month, day, weekday } = parts(value);
+  return `${WEEKDAYS[weekday]!.slice(0, 3)} ${day} ${MONTHS[month - 1]!.slice(0, 3)}`;
+}
+
 /** "6pm", "9:12am", "12pm". */
 export function formatTime(instant: Date): string {
   const local = new TZDate(instant, TIME_ZONE);
@@ -93,6 +99,12 @@ export function formatTimeRange(start: Date, end: Date): string {
 export function irishToday(now: Date = new Date()): string {
   const { year, month, day } = parts(now);
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+/** The wall-clock time in Ireland of an instant, as "18:00" (what a time field takes). */
+export function irishClock(instant: Date): string {
+  const local = new TZDate(instant, TIME_ZONE);
+  return `${String(local.getHours()).padStart(2, '0')}:${String(local.getMinutes()).padStart(2, '0')}`;
 }
 
 /** The instant for a wall-clock time in Ireland, e.g. ("2026-11-06", "18:00"). */

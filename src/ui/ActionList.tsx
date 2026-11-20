@@ -6,12 +6,35 @@ import styles from './ActionList.module.css';
 export type TileTone = 'quiet' | 'ai' | 'warning' | 'success' | 'primary';
 
 /**
- * Hairline rows inside a card, each a whole-row link where it leads somewhere (A4's "Needs you
- * today" list): an icon tile, the words, anything on the right, and a chevron. The same row is
- * used for the dashboard, a letting's set-up checklist and lists of things to do.
+ * Hairline rows, each a whole-row link where it leads somewhere ("Needs you" on Today): an icon
+ * tile, the words, anything on the right, and a chevron. The same row is used inside a card (a
+ * letting's set-up checklist) and, `bare`, on the page itself under a heading.
  */
-export function ActionList({ children, flush }: { children: ReactNode; flush?: boolean }) {
-  return <ul className={`${styles.list} ${flush ? styles.flush : ''}`}>{children}</ul>;
+export function ActionList({
+  children,
+  flush,
+  bare,
+  labelledBy,
+}: {
+  children: ReactNode;
+  /** Straight under a card's header: a hairline above the first row too. */
+  flush?: boolean;
+  /**
+   * On the page itself, under a heading, with no card round it (UX-DS-12): the rows run from
+   * edge to edge of the column, in line with the heading above them.
+   */
+  bare?: boolean;
+  /** The id of the heading that names the list. */
+  labelledBy?: string;
+}) {
+  return (
+    <ul
+      className={`${styles.list} ${flush ? styles.flush : ''} ${bare ? styles.bare : ''}`}
+      aria-labelledby={labelledBy}
+    >
+      {children}
+    </ul>
+  );
 }
 
 export function ActionRow({
@@ -43,11 +66,11 @@ export function ActionRow({
 }) {
   const tile = Icon ? (
     <span className={`${styles.tile} ${styles[tone]}`}>
-      <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
+      <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
     </span>
   ) : null;
   const chevron = href ? (
-    <ChevronRight className={styles.chevron} size={18} strokeWidth={1.75} aria-hidden="true" />
+    <ChevronRight className={styles.chevron} size={20} strokeWidth={1.75} aria-hidden="true" />
   ) : null;
   const rest = (
     <>

@@ -1,5 +1,6 @@
 import { devices, expect, test } from '@playwright/test';
 import { daftEnquiry } from '../fixtures/emails';
+import { expectRenterPageAtBothWidths } from './renter';
 import {
   createLettingThroughUi,
   expectAccessible,
@@ -11,6 +12,7 @@ import {
   signUpOperator,
   subjectsSentTo,
 } from './support';
+import { expectOverview, openLettingMenu } from './journeys';
 
 test('R26 (basic): a person closes the letting, everyone hears back, and renters see when their details go', async ({
   browser,
@@ -33,15 +35,22 @@ test('R26 (basic): a person closes the letting, everyone hears back, and renters
   }).toPass({ timeout: 20_000 });
 
   await page.goto(lettingUrl);
-  // A rare step that can't be undone, so it waits behind a summary line until it's wanted.
-  await expect(page.getByRole('button', { name: 'Close the letting' })).toBeHidden();
-  await page.getByText('Close this letting').click();
+  // UX-LP-5: a rare step that can't be undone, so it waits in the letting's menu, and opens as
+  // a task of its own: one question, with the error at it (UX-FL-3).
+  await expect(page.getByRole('button', { name: 'Close the letting' })).toHaveCount(0);
+  const menu = await openLettingMenu(page, '9 Canal View');
+  await menu.getByRole('menuitem', { name: 'Close this letting' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'How did it end?' })).toBeVisible();
   await page.getByRole('button', { name: 'Close the letting' }).click();
   await expect(page.getByText('Choose whether the home is let or withdrawn')).toBeVisible();
+  await expectAccessible(page);
   await page.getByLabel('It’s let').check();
   await page.getByRole('button', { name: 'Close the letting' }).click();
   await expect(page.getByText('Closed. Everyone who enquired has been told')).toBeVisible();
-  await expect(page.getByText('Step 9 of 9 · Close')).toBeVisible();
+  await expectOverview(page, {
+    says: 'This letting is closed.',
+    next: /Gaff deletes renters’ details on \w+day \d+ \w+\./,
+  });
   await expectAccessible(page);
 
   await expect(async () => {
@@ -55,15 +64,21 @@ test('R26 (basic): a person closes the letting, everyone hears back, and renters
   });
   const renter = await phone.newPage();
   await renter.goto(renterLink);
-  await expect(renter.getByText('This home has been let')).toBeVisible();
+  await expect(renter.getByRole('heading', { name: '9 Canal View has been let' })).toBeVisible();
   await expect(
     renter.getByText(/We’ll delete your details from Gaff by \w+day \d+ \w+\./),
   ).toBeVisible();
-  await expect(renter.getByRole('button')).toHaveCount(0);
+  // Nothing is left to do on the page itself; "Talk to a person" stays in the header (rule 6).
+  await expect(renter.getByRole('main').getByRole('button')).toHaveCount(0);
   await expectAccessible(renter);
   await screenshot(renter, '34-renter-closed');
+  // UX-PP-6: the one notice on a closed home is when their details will be deleted.
+  await expectRenterPageAtBothWidths(renter, {
+    notices: ['deletion'],
+    shots: 'wp12-live-home-let',
+  });
   await phone.close();
 
-  await page.goto(`${lettingUrl}/timeline`);
+  await page.goto(`${lettingUrl}/history`);
   await expect(page.getByText('Letting closed: the home is let')).toBeVisible();
 });

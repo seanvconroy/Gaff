@@ -1,0 +1,80 @@
+/*
+ * Filter chips. Below 900px: one row that scrolls sideways, fading out at the edge where there's
+ * more. Above: a row that wraps. 36px to look at, 44px to press.
+ */
+.scroller {
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-1) 0;
+  list-style: none;
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-target);
+  height: var(--size-chip);
+  padding: 0 var(--space-4);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-title-weight);
+  white-space: nowrap;
+  cursor: pointer;
+  transition-property: background-color, border-color;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease-standard);
+}
+
+/* The target reaches past the 36px chip to 44px. */
+.chip::after {
+  content: '';
+  position: absolute;
+  inset: calc((var(--size-chip) - var(--size-target)) / 2 - 1px) -1px;
+}
+
+.chip:hover {
+  background-color: var(--color-surface-2);
+}
+
+/* A filter in use: the selected tint and edge, with its words. */
+.applied {
+  background-color: var(--color-brand-bg);
+  border-color: var(--color-brand);
+}
+
+.applied:hover {
+  background-color: var(--color-brand-bg);
+  border-color: var(--color-ink);
+}
+
+@media (width <= 900px) {
+  .scroller {
+    margin-inline-start: calc(var(--space-1) * -1);
+    overflow-x: auto;
+    mask-image: linear-gradient(
+      to right,
+      var(--color-ink) calc(100% - var(--space-8)),
+      transparent
+    );
+    scrollbar-width: none;
+  }
+
+  .row {
+    flex-wrap: nowrap;
+    width: max-content;
+    padding-inline: var(--space-1) var(--space-10);
+  }
+}

@@ -9,13 +9,14 @@ import {
   sendTestEmail,
   signUpOperator,
 } from './support';
+import { letAndClosed, usualFromOnboarding } from './today';
 
-test('R28: the dashboard shows each letting’s stage, what needs a person today, and time against the usual', async ({
+test('R28: Today shows what needs a person, Lettings shows each letting’s stage in words, and a closed home shows the time it saved against the usual', async ({
   page,
 }) => {
   test.slow();
-  await signUpOperator(page);
-  await expect(page.getByText('No lettings yet')).toBeVisible();
+  const operator = await signUpOperator(page);
+  await expect(page.getByRole('heading', { name: 'Add your first letting' })).toBeVisible();
 
   // A letting being set up needs finishing.
   await createLettingThroughUi(page);
@@ -23,26 +24,34 @@ test('R28: the dashboard shows each letting’s stage, what needs a person today
     .url()
     .replace(/\/viewings.*$/, '')
     .replace(/\?.*$/, '');
-  await page.goto('/');
-  const today = page.getByRole('region', { name: 'Needs you today' });
+  await page.goto('/today');
+  const today = page.getByRole('region', { name: 'Needs you' });
   await expect(
-    today.getByRole('link', { name: '12 Ranelagh Road: finish setting up' }),
+    today.getByRole('link', { name: /Finish setting up · 12 Ranelagh Road/ }),
   ).toBeVisible();
-  await expect(page.getByText('Step 1 of 9 · Set up')).toBeVisible();
+  // UX-NV-9, UX-NV-11: its stage is on Lettings, in words, with no "Step 1 of 9".
+  await page.goto('/lettings');
+  const settingUp = page.getByRole('list', { name: 'Setting up' });
+  await expect(settingUp.getByRole('listitem')).toHaveText([/^12 Ranelagh Road\s*4 steps left/]);
 
   // Live, with an enquiry: a person decides who views.
   await page.goto(lettingUrl);
   await goLiveThroughUi(page);
   await sendTestEmail(page, { to: await gaffAddress(page), ...daftEnquiry });
   await expect(async () => {
-    await page.goto('/');
+    await page.goto('/today');
     await expect(
-      today.getByRole('link', { name: '12 Ranelagh Road: decide who views (1 person waiting)' }),
+      today.getByRole('link', { name: /Choose who views · 12 Ranelagh Road/ }),
     ).toBeVisible({ timeout: 1000 });
   }).toPass({ timeout: 20_000 });
-  await expect(page.getByText('Step 2 of 9 · Enquiries')).toBeVisible();
+  await expect(today.getByRole('listitem').first()).toContainText('1 person is waiting to hear');
+  await page.goto('/lettings');
+  await expect(page.getByRole('list', { name: 'Live' }).getByRole('listitem')).toHaveText([
+    /^12 Ranelagh Road\s*Enquiries · 1 so far\s*Needs you$/,
+  ]);
 
-  // Q15: a minute of active use on the letting counts; the usual time comes from Settings.
+  // Q15: a minute of active use on the letting counts; the usual time comes from the pilot's
+  // onboarding (UX-ST-3: it isn't in Settings).
   await page.clock.install();
   await page.goto(lettingUrl);
   await page.mouse.move(200, 200);
@@ -53,21 +62,29 @@ test('R28: the dashboard shows each letting’s stage, what needs a person today
   await heartbeat;
 
   await page.goto('/settings');
-  await page.getByLabel('Hours of your time a letting usually takes').fill('6.5');
-  await page.getByLabel('Days from advert to signed tenancy, usually').fill('30');
-  await page.getByRole('button', { name: 'Save usual times' }).click();
-  await expect(page.getByText('Saved.')).toBeVisible();
-  await expectAccessible(page);
+  await expect(page.getByRole('main').getByText(/usual/i)).toHaveCount(0);
+  await usualFromOnboarding(operator, { minutesPerLetting: 390, daysToLet: 30 });
 
-  await page.goto('/');
-  await expect(
-    page.getByText(
-      /Your time in Gaff: 1 minute · usually 6 hours 30 minutes a letting · first enquiry today, usually let in 30 days/,
-    ),
-  ).toBeVisible();
+  // UX-HM-9: none of that is on the home screen, nor on a home that is still being let.
+  await page.goto('/today');
+  await expect(page.getByRole('main').getByText(/time in Gaff|usual/i)).toHaveCount(0);
   await expectAccessible(page);
   await screenshot(page, '32-dashboard');
+  await page.goto('/lettings');
+  await expect(page.getByRole('main').getByText(/time in Gaff|usual|saved/i)).toHaveCount(0);
 
-  await today.getByRole('link', { name: /decide who views/ }).click();
-  await expect(page.getByRole('heading', { name: 'Decide who views' })).toBeVisible();
+  await page.goto('/today');
+  await today.getByRole('link', { name: /Choose who views/ }).click();
+  // WP-17: the decision opens its focused flow.
+  await expect(page.getByRole('heading', { level: 1, name: 'Choose who views' })).toBeVisible();
+
+  // Once the home is let and closed, Lettings shows what it saved: the usual six and a half
+  // hours, less the minute spent in Gaff.
+  await letAndClosed('12 Ranelagh Road', operator);
+  await page.goto('/lettings');
+  await expect(
+    page.getByRole('list', { name: 'Let', exact: true }).getByRole('listitem'),
+  ).toHaveText([/^12 Ranelagh Road\s*Let · saved 6 hours 29 minutes/]);
+  await expectAccessible(page);
+  await screenshot(page, '32-lettings-closed');
 });

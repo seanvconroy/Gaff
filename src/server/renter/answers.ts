@@ -1,7 +1,8 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { asc, desc, eq } from 'drizzle-orm';
 import { withOrg } from '@/db/client';
 import {
   applications,
+  bookings,
   lettings,
   organisations,
   tenancies,
@@ -10,8 +11,11 @@ import {
 } from '@/db/schema';
 import { renterAnswersSchema, type RenterAnswers } from '@/domain/criteria/answers';
 import { questionsFor } from '@/domain/criteria/criteria';
+import { renterPageStep } from '@/domain/funnels/steps';
 import { bookableSlots } from '@/domain/viewings/booking';
 import { resolveAccessLink } from '@/server/access/links';
+import { confirmWaitingEnquiry } from '@/server/enquiries/ask-to-view';
+import { noteFunnelStep } from '@/server/funnels/steps';
 import { recordEvent } from '@/server/record/events';
 import { checksOf } from '@/server/checks/checks';
 import { offerOf } from '@/server/offers/offer';
@@ -21,14 +25,27 @@ import { currentBooking, slotAvailability } from '@/server/viewings/booking';
 /** R9: what a renter's private link shows: their application, the home and the questions. */
 export async function loadRenterPage(token: string) {
   const link = await resolveAccessLink(token, 'renter');
-  if (!link) return null;
-  return withOrg(link.organisationId, async (tx) => {
+  if (link) return loadRenterPageFor(link.organisationId, link.subjectId);
+  // UX-AV-6: the link in the first email of an enquiry made on Gaff. Opening it proves the
+  // address is theirs: the enquiry goes into the letting now, and this is its page.
+  const confirmed = await confirmWaitingEnquiry(token);
+  if (!confirmed) return null;
+  return loadRenterPageFor(confirmed.organisationId, confirmed.applicationId);
+}
+
+/**
+ * The same, for an application whose organisation is already known: behind a link that has been
+ * resolved, or from a signed-in renter's own Enquiries (UX-RH-1), which hold both IDs. Null once
+ * the renter's details have been deleted.
+ */
+export async function loadRenterPageFor(organisationId: string, applicationId: string) {
+  return withOrg(organisationId, async (tx) => {
     const [row] = await tx
       .select({ application: applications, letting: lettings, organisation: organisations })
       .from(applications)
       .innerJoin(lettings, eq(lettings.id, applications.lettingId))
       .innerJoin(organisations, eq(organisations.id, applications.organisationId))
-      .where(eq(applications.id, link.subjectId));
+      .where(eq(applications.id, applicationId));
     if (!row || row.application.personalDataDeletedAt) return null;
     const [firstSlot] = await tx
       .select({ startsAt: viewingSlots.startsAt })
@@ -39,15 +56,21 @@ export async function loadRenterPage(token: string) {
     const criteria = row.letting.criteria ?? { noPets: false };
     const allSlots = await slotAvailability(tx, row.letting.id, row.application.id);
     const booking = await currentBooking(tx, row.application.id);
-    const offers = await tx
+    // UX-RN-9: someone whose viewing was cancelled is told so, and offered another time.
+    const [lastBooking] = booking
+      ? []
+      : await tx
+          .select({ status: bookings.status })
+          .from(bookings)
+          .where(eq(bookings.applicationId, row.application.id))
+          .orderBy(desc(bookings.createdAt))
+          .limit(1);
+    const placeOffers = await tx
       .select()
       .from(waitlistOffers)
-      .where(
-        and(
-          eq(waitlistOffers.applicationId, row.application.id),
-          eq(waitlistOffers.status, 'open'),
-        ),
-      );
+      .where(eq(waitlistOffers.applicationId, row.application.id))
+      .orderBy(desc(waitlistOffers.offeredAt));
+    const offers = placeOffers.filter((o) => o.status === 'open');
     // Someone on the waiting list sees only a place they've been offered that's still free
     // to book (R14).
     const bookable = bookableSlots(allSlots, new Date());
@@ -76,6 +99,10 @@ export async function loadRenterPage(token: string) {
         : null;
     const inventory = tenancy?.inventorySharedAt ? await inventoryOf(tx, tenancy.id) : [];
     return {
+      // UX-RN-9, UX-RN-10: what became of their last viewing, and of the last place held for them.
+      bookingCancelled: lastBooking?.status === 'cancelled',
+      holdRanOut: offer === null && placeOffers[0]?.status === 'expired',
+      lastViewing: allSlots.at(-1)?.startsAt ?? null,
       inventory,
       payTo,
       tenancy: tenancy ?? null,
@@ -92,6 +119,25 @@ export async function loadRenterPage(token: string) {
       canChange: row.application.status === 'enquired' && row.letting.status === 'live',
     };
   });
+}
+
+/**
+ * UX-ME-4: the renter opens their page. Records only that they reached the step it shows (the
+ * questions, the viewing times or the application) and when, once: nothing about their device,
+ * where they are or what they do on the page.
+ */
+export async function openRenterPage(token: string) {
+  const page = await loadRenterPage(token);
+  if (!page) return null;
+  // A home that's let or withdrawn shows no task, so there's no step to reach.
+  if (page.letting.status !== 'live') return page;
+  const step = renterPageStep({
+    status: page.application.status,
+    canAnswer: page.canChange && page.questions.length > 0,
+    hasPlaceOffer: page.offer !== null,
+  });
+  if (step) await noteFunnelStep({ step, subjectId: page.application.id });
+  return page;
 }
 
 export type SaveAnswersResult =

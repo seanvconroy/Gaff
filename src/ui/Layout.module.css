@@ -15,7 +15,7 @@
   border-color: transparent;
 }
 
-@media (width <= 640px) {
+@media (width <= 900px) {
   .card {
     padding: var(--space-4);
   }
@@ -113,12 +113,12 @@
   margin-bottom: var(--space-2);
 }
 
-/* A quiet link up a level: muted until it's hovered, and a full 44px tall to tap. */
+/* A quiet link up a level: muted until it's hovered, and a full target tall to tap. */
 .back {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  min-height: 44px;
+  min-height: var(--size-target);
   margin-inline-start: calc(var(--space-1) * -1);
   padding-inline-end: var(--space-2);
   color: var(--color-ink-muted);
@@ -147,44 +147,15 @@
   display: grid;
   gap: var(--space-6);
   width: 100%;
-  max-width: 720px;
+  max-width: var(--size-task);
   min-width: 0;
 }
 
 /* Page titles at phone width use display-mobile. */
-@media (width <= 640px) {
+@media (width <= 900px) {
   .title {
-    font-family: var(--type-display-mobile-family);
     font-size: var(--type-display-mobile-size);
     line-height: var(--type-display-mobile-line);
     letter-spacing: var(--type-display-mobile-tracking);
   }
-}
-
-/* The A4 wordmark: lowercase Fraunces at its display optical size, with an Atlantic full stop. */
-.wordmark {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  color: var(--color-ink);
-  font-family: var(--type-heading-family);
-  font-size: var(--type-heading-size);
-  line-height: var(--type-heading-line);
-  font-weight: var(--type-heading-weight);
-  letter-spacing: var(--type-heading-tracking);
-  font-variation-settings: 'opsz' 144;
-  text-decoration: none;
-}
-
-.wordmarkDot {
-  color: var(--color-atlantic);
-}
-
-/* On the navy sidebar and bar. */
-.onNavy {
-  color: var(--color-nav-ink);
-}
-
-.onNavy:focus-visible {
-  outline-color: var(--color-nav-focus);
 }

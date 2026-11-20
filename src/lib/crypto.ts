@@ -38,3 +38,28 @@ export function openJson<T = unknown>(sealed: string): T {
   const plain = Buffer.concat([decipher.update(Buffer.from(data, 'base64')), decipher.final()]);
   return JSON.parse(plain.toString('utf8')) as T;
 }
+
+/**
+ * BA-16 (P53): a file encrypted with Gaff's own key, on top of the store's encryption, for
+ * renters' work and income documents: 'GAFF1', then the 12-byte IV, the 16-byte tag and the data.
+ */
+const SEALED_FILE = Buffer.from('GAFF1');
+
+export function sealBytes(plain: Buffer): Buffer {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', key(), iv);
+  const data = Buffer.concat([cipher.update(plain), cipher.final()]);
+  return Buffer.concat([SEALED_FILE, iv, cipher.getAuthTag(), data]);
+}
+
+export function openBytes(sealed: Buffer): Buffer {
+  if (!sealed.subarray(0, SEALED_FILE.length).equals(SEALED_FILE)) {
+    throw new Error('Not a sealed file');
+  }
+  const at = SEALED_FILE.length;
+  const iv = sealed.subarray(at, at + 12);
+  const tag = sealed.subarray(at + 12, at + 28);
+  const decipher = createDecipheriv('aes-256-gcm', key(), iv);
+  decipher.setAuthTag(tag);
+  return Buffer.concat([decipher.update(sealed.subarray(at + 28)), decipher.final()]);
+}

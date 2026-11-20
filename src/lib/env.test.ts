@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { environmentProblems, withPlatformDefaults } from './env';
+import { environmentProblems, readEnvironment, withPlatformDefaults } from './env';
 
 const base = {
   DATABASE_URL: 'postgres://gaff:gaff@localhost:5432/gaff',
@@ -19,10 +19,16 @@ const production = {
   SINCH_FROM: 'Gaff',
   AI_PROVIDER: 'bedrock',
   IDENTITY_PROVIDER: 'none',
-  INCOME_PROVIDER: 'none',
   DATA_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
   DEV_TOOLS: '0',
   CRON_SECRET: 'c'.repeat(32),
+  PSRA_REGISTER_SOURCE: 'url',
+  PSRA_REGISTER_URL: 'https://register.example/licensees.csv',
+  ADDRESS_SEARCH: 'off',
+  PHOTO_STORE: 'supabase',
+  DOCUMENT_STORE: 'supabase',
+  SUPABASE_URL: 'https://example.supabase.co',
+  SUPABASE_SERVICE_ROLE_KEY: 'k',
 };
 
 describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)', () => {
@@ -30,16 +36,112 @@ describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)'
     expect(environmentProblems(production)).toEqual([]);
   });
 
-  it('refuses stand-in ID or income checks, dev tools, or a missing key', () => {
+  it('refuses the interim single sender address: production sends from its own domain', () => {
+    expect(
+      environmentProblems({ ...production, MAIL_FROM_ADDRESS: 'onboarding@resend.dev' }),
+    ).toEqual(['MAIL_FROM_ADDRESS']);
+  });
+
+  it('refuses stand-in ID checks, the local document store, dev tools, or a missing key', () => {
     expect(environmentProblems({ ...production, IDENTITY_PROVIDER: 'stand_in' })).toEqual([
       'IDENTITY_PROVIDER',
     ]);
-    expect(environmentProblems({ ...production, INCOME_PROVIDER: 'stand_in' })).toEqual([
-      'INCOME_PROVIDER',
+    // P53: renters' documents are only ever in the private bucket in production.
+    expect(environmentProblems({ ...production, DOCUMENT_STORE: 'local' })).toEqual([
+      'DOCUMENT_STORE',
+    ]);
+    expect(environmentProblems({ ...production, DOCUMENT_STORE: undefined })).toEqual([
+      'DOCUMENT_STORE',
+    ]);
+    expect(environmentProblems({ ...production, DOCUMENT_BUCKET: 'homes' })).toEqual([
+      'DOCUMENT_BUCKET',
     ]);
     expect(environmentProblems({ ...production, DEV_TOOLS: '1' })).toEqual(['DEV_TOOLS']);
     expect(environmentProblems({ ...production, DATA_ENCRYPTION_KEY: undefined })).toEqual([
       'DATA_ENCRYPTION_KEY',
+    ]);
+  });
+
+  it('P17 (Q51): Stripe Identity needs its secret key and its webhook’s secret, anywhere', () => {
+    const stripe = {
+      ...production,
+      IDENTITY_PROVIDER: 'stripe',
+      STRIPE_SECRET_KEY: 'sk_live_made_up',
+      STRIPE_IDENTITY_WEBHOOK_SECRET: 'whsec_made_up',
+    };
+    expect(environmentProblems(stripe)).toEqual([]);
+    expect(environmentProblems({ ...stripe, STRIPE_SECRET_KEY: undefined })).toEqual([
+      'STRIPE_SECRET_KEY',
+    ]);
+    expect(
+      environmentProblems({ ...stripe, GAFF_ENV: 'staging', STRIPE_IDENTITY_WEBHOOK_SECRET: '' }),
+    ).toEqual(['STRIPE_IDENTITY_WEBHOOK_SECRET']);
+  });
+
+  it('UX-AG-1: refuses the made-up PSRA register, and needs the address of the real one', () => {
+    expect(environmentProblems({ ...production, PSRA_REGISTER_SOURCE: 'sample' })).toEqual([
+      'PSRA_REGISTER_SOURCE',
+    ]);
+    expect(environmentProblems({ ...production, PSRA_REGISTER_SOURCE: undefined })).toEqual([
+      'PSRA_REGISTER_SOURCE',
+    ]);
+    expect(environmentProblems({ ...production, PSRA_REGISTER_URL: undefined })).toEqual([
+      'PSRA_REGISTER_URL',
+    ]);
+    expect(environmentProblems({ ...production, PSRA_REGISTER_URL: 'not a web address' })).toEqual([
+      'PSRA_REGISTER_URL',
+    ]);
+  });
+
+  it('UX-AI-12: reading adverts is on unless it is switched off, and takes no other value', () => {
+    expect(environmentProblems({ ...production, ADVERT_READER: 'off' })).toEqual([]);
+    expect(environmentProblems({ ...production, ADVERT_READER: 'on' })).toEqual([]);
+    expect(environmentProblems({ ...production, ADVERT_READER: 'fetch' })).toEqual([
+      'ADVERT_READER',
+    ]);
+  });
+
+  it('P1, P7: production refuses the Claude API and its key, and the stand-in AI: only Bedrock in the EU', () => {
+    expect(environmentProblems({ ...production, AI_PROVIDER: 'fake' })).toEqual(['AI_PROVIDER']);
+    expect(
+      environmentProblems({ ...production, AI_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'k' }),
+    ).toEqual(['AI_PROVIDER', 'ANTHROPIC_API_KEY']);
+    expect(environmentProblems({ ...production, ANTHROPIC_API_KEY: 'k' })).toEqual([
+      'ANTHROPIC_API_KEY',
+    ]);
+  });
+
+  it('P1: the test copy and development may use the Claude API, with its key', () => {
+    const staging = { ...base, GAFF_ENV: 'staging', CRON_SECRET: 'c'.repeat(32) };
+    expect(
+      environmentProblems({ ...staging, AI_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'k' }),
+    ).toEqual([]);
+    expect(environmentProblems({ ...base, AI_PROVIDER: 'anthropic' })).toEqual([
+      'ANTHROPIC_API_KEY',
+    ]);
+  });
+
+  it('P4, P8: a budget in dollars, never below nothing, and tasks switched off by name', () => {
+    expect(environmentProblems({ ...production, AI_MONTHLY_BUDGET_USD: '250' })).toEqual([]);
+    expect(environmentProblems({ ...production, AI_MONTHLY_BUDGET_USD: '-1' })).toEqual([
+      'AI_MONTHLY_BUDGET_USD',
+    ]);
+    expect(environmentProblems({ ...production, AI_TASKS_OFF: 'advert, people' })).toEqual([]);
+  });
+
+  it('UX-LT-9, UX-LT-10: refuses the made-up address search and the local photo store', () => {
+    expect(environmentProblems({ ...production, ADDRESS_SEARCH: 'sample' })).toEqual([
+      'ADDRESS_SEARCH',
+    ]);
+    expect(environmentProblems({ ...production, ADDRESS_SEARCH: undefined })).toEqual([
+      'ADDRESS_SEARCH',
+    ]);
+    expect(environmentProblems({ ...production, PHOTO_STORE: 'local' })).toEqual(['PHOTO_STORE']);
+    expect(environmentProblems({ ...production, SUPABASE_SERVICE_ROLE_KEY: undefined })).toEqual([
+      'SUPABASE_SERVICE_ROLE_KEY',
+    ]);
+    expect(environmentProblems({ ...production, SUPABASE_URL: 'not a web address' })).toEqual([
+      'SUPABASE_URL',
     ]);
   });
 
@@ -51,7 +153,7 @@ describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)'
         CRON_SECRET: 'c'.repeat(32),
         DEV_TOOLS: '1',
         IDENTITY_PROVIDER: 'stand_in',
-        INCOME_PROVIDER: 'stand_in',
+        DOCUMENT_STORE: 'local',
       }),
     ).toEqual([]);
   });
@@ -111,5 +213,86 @@ describe('Hosting on Vercel (ADR-0014)', () => {
         RESEND_WEBHOOK_SECRET: 'whsec_x',
       }),
     ).toEqual([]);
+  });
+});
+
+describe('UX-TS-5: who Gaff’s own team is (STAFF_EMAILS)', () => {
+  it('UX-ME-2: is empty by default, and takes email addresses separated by commas', () => {
+    expect(environmentProblems(base)).toEqual([]);
+    expect(
+      environmentProblems({ ...base, STAFF_EMAILS: 'founder@gaff.test, second@gaff.test' }),
+    ).toEqual([]);
+    expect(environmentProblems({ ...base, STAFF_EMAILS: 'everyone' })).toEqual(['STAFF_EMAILS.0']);
+  });
+});
+
+describe('UX-SI-1: Google and Apple are switched on by their credentials (Q30)', () => {
+  it('needs neither: production starts without them, and the buttons aren’t shown', () => {
+    expect(environmentProblems(production)).toEqual([]);
+    expect(
+      environmentProblems({ ...base, GOOGLE_CLIENT_ID: '', GOOGLE_CLIENT_SECRET: '' }),
+    ).toEqual([]);
+  });
+
+  it('takes each provider’s two values together, or not at all', () => {
+    const google = { GOOGLE_CLIENT_ID: 'id.apps.example', GOOGLE_CLIENT_SECRET: 's' };
+    const apple = { APPLE_CLIENT_ID: 'ie.gaff.signin', APPLE_CLIENT_SECRET: 'signed.token' };
+    expect(environmentProblems({ ...production, ...google, ...apple })).toEqual([]);
+    expect(environmentProblems({ ...base, GOOGLE_CLIENT_ID: 'id.apps.example' })).toEqual([
+      'GOOGLE_CLIENT_SECRET',
+    ]);
+    expect(environmentProblems({ ...base, APPLE_CLIENT_SECRET: 'signed.token' })).toEqual([
+      'APPLE_CLIENT_ID',
+    ]);
+  });
+
+  it('BA-8: takes Apple’s Services ID with the three values its secret is made from', () => {
+    const made = {
+      APPLE_CLIENT_ID: 'ie.gaff.signin',
+      APPLE_TEAM_ID: 'TEAM123456',
+      APPLE_KEY_ID: 'KEY1234567',
+      APPLE_PRIVATE_KEY: '-----BEGIN PRIVATE KEY-----',
+    };
+    expect(environmentProblems({ ...production, ...made })).toEqual([]);
+    expect(environmentProblems({ ...base, ...made, APPLE_KEY_ID: undefined })).toEqual([
+      'APPLE_PRIVATE_KEY',
+      'APPLE_CLIENT_SECRET',
+    ]);
+    expect(environmentProblems({ ...base, ...made, APPLE_CLIENT_ID: undefined })).toEqual([
+      'APPLE_CLIENT_ID',
+    ]);
+  });
+});
+
+describe('BA-5: the map’s provider (the live line’s ADR-0027)', () => {
+  const testCopy = { ...base, GAFF_ENV: 'staging', CRON_SECRET: 'c'.repeat(32) };
+  const google = { MAP_PROVIDER: 'google', GOOGLE_MAPS_API_KEY: 'key', GOOGLE_MAPS_MAP_ID: 'id' };
+
+  it('M135: the stand-in until Google Maps is set up, and in production the list alone', () => {
+    expect(readEnvironment(testCopy).MAP_PROVIDER).toBe('static');
+    expect(readEnvironment(production).MAP_PROVIDER).toBe('none');
+    expect(readEnvironment({ ...testCopy, ...google }).MAP_PROVIDER).toBe('google');
+    expect(readEnvironment({ ...testCopy, ...google }).GOOGLE_MAPS_VERSION).toBe('quarterly');
+    expect(
+      readEnvironment({ ...testCopy, ...google, GOOGLE_MAPS_VERSION: 'weekly' })
+        .GOOGLE_MAPS_VERSION,
+    ).toBe('weekly');
+  });
+
+  it('needs a key and a Map ID for Google, and never the stand-in in production', () => {
+    expect(environmentProblems({ ...testCopy, MAP_PROVIDER: 'google' }).sort()).toEqual([
+      'GOOGLE_MAPS_API_KEY',
+      'GOOGLE_MAPS_MAP_ID',
+    ]);
+    expect(environmentProblems({ ...production, MAP_PROVIDER: 'static' })).toEqual([
+      'MAP_PROVIDER',
+    ]);
+    expect(environmentProblems({ ...production, ...google })).toEqual([]);
+  });
+
+  it('M132: a preview copy on Vercel shows the stand-in, so no look at one is billed', () => {
+    const preview = { ...testCopy, ...google, VERCEL: '1', VERCEL_ENV: 'preview' };
+    expect(readEnvironment(preview).MAP_PROVIDER).toBe('static');
+    expect(readEnvironment({ ...preview, VERCEL_ENV: 'production' }).MAP_PROVIDER).toBe('google');
   });
 });

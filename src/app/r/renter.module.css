@@ -1,352 +1,193 @@
 /*
- * The private pages (renters, referees, tenants): phone first, surface-1, a space-4 gutter, and
- * never below body size. The shell's data-density="comfortable" gives fields and buttons 48px and
- * body-size hints.
+ * What the renter's and tenant's pages show inside the frame (src/ui/PrivateFrame). The frame
+ * holds the header, the home, what happens next and the footer; these lay out each page's one
+ * task. Space and type first, then a hairline: there are no boxes here. Nothing is below body
+ * size, and every layout changes only at 900px.
  */
-.page {
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  min-height: 100vh;
-  background-color: var(--color-surface-1);
-}
-
-.header {
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.headerInner,
-.main,
-.footer {
-  width: 100%;
-  max-width: 560px;
-  margin: 0 auto;
-}
-
-.headerInner {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-}
-
-/* The agency's initial, in navy: their page, not Gaff's. */
-.monogram {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background-color: var(--color-navy);
-  border-radius: var(--radius-pill);
-  color: var(--color-nav-ink);
-  font-family: var(--type-heading-family);
-  font-size: var(--type-title-size);
-  line-height: var(--type-title-line);
-  font-weight: var(--type-heading-weight);
-}
-
-.who {
-  display: grid;
-  min-width: 0;
-}
-
-.operator {
-  font-weight: var(--type-title-weight);
-}
-
-.assistant {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--color-ink-muted);
-}
-
-.assistant svg {
-  flex: none;
-  color: var(--color-ai);
-}
-
-.main {
-  padding: var(--space-6) var(--space-4) var(--space-12);
-}
-
-.footer {
-  padding: var(--space-6) var(--space-4) var(--space-10);
-  border-top: 1px solid var(--color-border);
-  color: var(--color-ink-muted);
-}
-
-.footer strong {
-  color: var(--color-ink);
-}
-
-/* The home: its address as the title, then where, how much and when. */
-.home {
-  display: grid;
-  gap: var(--space-1);
-}
-
-.homeArea {
-  color: var(--color-ink-muted);
-}
-
-.homeFacts {
-  font-weight: var(--type-title-weight);
-}
-
 .muted {
   color: var(--color-ink-muted);
 }
 
-/* A section of the page: a title, a line about it, then what to do. */
-.section {
+/*
+ * A page's task: its title, a line or two, then what to do. The frame is there at once; the task
+ * fades in when it's ready (section 5, "States"). Once, and not at all with reduced motion.
+ */
+.task {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-6);
+  min-width: 0;
+  animation: task-in var(--motion-base) var(--ease-enter);
 }
 
-.sectionHead {
+/* A task inside a task (a check's own part, a form) arrives with it, not after it. */
+.task .task {
+  animation: none;
+}
+
+.titles {
   display: grid;
   gap: var(--space-2);
 }
 
-/* What happens next, and when: a quiet panel at the end of a task (design principle 2). */
-.next {
-  display: grid;
-  gap: var(--space-2);
-  padding: var(--space-4);
-  background-color: var(--color-surface-2);
-  border-radius: var(--radius-md);
-}
-
-.nextTitle {
-  font-weight: var(--type-title-weight);
-}
-
-.answers {
-  display: grid;
-  margin: 0;
-}
-
-.answer {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-3) 0;
-  border-top: 1px solid var(--color-border);
-}
-
-.answer:first-child {
-  padding-top: 0;
-  border-top: 0;
-}
-
-.answer:last-child {
-  padding-bottom: 0;
-}
-
-.answer dt {
-  color: var(--color-ink-muted);
-}
-
-.answer dd {
-  margin: 0;
-  font-weight: var(--type-title-weight);
-  text-align: end;
+/* The task's title: display size, as a question in a flow is. */
+.title {
+  font-family: var(--type-display-mobile-family);
+  font-size: var(--type-display-mobile-size);
+  line-height: var(--type-display-mobile-line);
+  font-weight: var(--type-display-mobile-weight);
+  letter-spacing: var(--type-display-mobile-tracking);
   overflow-wrap: anywhere;
 }
 
-/* A total under a list of amounts. */
-.total {
-  font-family: var(--type-heading-family);
-  font-size: var(--type-heading-size);
-  line-height: var(--type-heading-line);
-  font-weight: var(--type-heading-weight);
+/* A group inside a task: a small heading and what's under it. */
+.group {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
 }
 
-.big {
+/* The one fact a page is about: a viewing's time, a total to pay. */
+.fact {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.factLine {
   font-family: var(--type-title-family);
   font-size: var(--type-title-size);
   line-height: var(--type-title-line);
   font-weight: var(--type-title-weight);
+  letter-spacing: var(--type-title-tracking);
 }
 
-.day {
+.total {
+  font-size: var(--type-display-mobile-size);
+  line-height: var(--type-display-mobile-line);
+  font-weight: var(--type-display-mobile-weight);
+  letter-spacing: var(--type-display-mobile-tracking);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The primary button, then anything quieter under it. On a phone each spans the screen. */
+.actions {
   display: grid;
-  gap: var(--space-3);
-  margin: 0;
-  padding: 0;
-  border: 0;
-  min-width: 0;
-}
-
-.day legend {
-  padding: 0;
-  margin-bottom: var(--space-3);
-}
-
-/* Viewing times as a grid of big cards: two across on a phone, so a short list fits on screen. */
-.slots {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
   gap: var(--space-2);
 }
 
-/* Viewing slots (A4): big cards; the chosen one gets a 2px primary edge that grows inwards. */
-.slot {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 64px;
-  padding: var(--space-3) var(--space-4);
-  background-color: var(--color-surface-1);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: border-color var(--motion-fast) var(--ease-standard);
+/* A form that holds one button among others, laid out as if it were the button alone. */
+.inlineForm {
+  display: contents;
 }
 
-.slot:hover {
-  border-color: var(--color-ink-muted);
-}
-
-.slot:has(input:checked) {
-  padding: calc(var(--space-3) - 1px) calc(var(--space-4) - 1px);
-  border-width: 2px;
-  border-color: var(--color-primary);
-}
-
-.slot:has(input:focus-visible) {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
-}
-
-/* Where the card can show the ring, the radio doesn't need its own. */
-@supports selector(:has(*)) {
-  .slot input:focus-visible {
-    outline: none;
-  }
-}
-
-.slot input {
-  flex: none;
-  width: 22px;
-  height: 22px;
-  margin: 0;
-  accent-color: var(--color-primary);
-}
-
-.slotText {
-  display: grid;
-}
-
-.slotTime {
-  font-weight: var(--type-title-weight);
-}
-
-/* A tenancy's steps: an icon for each (never colour alone), its name, and what's next. */
-.steps {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.step {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: var(--space-3);
-  align-items: start;
-  padding: var(--space-4) 0;
-  border-top: 1px solid var(--color-border);
-}
-
-.step:first-child {
-  padding-top: 0;
-  border-top: 0;
-}
-
-.step:last-child {
-  padding-bottom: 0;
-}
-
-.stepIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-pill);
-  background-color: var(--color-surface-2);
-  color: var(--color-ink-muted);
-}
-
-.stepDone {
-  background-color: var(--color-success-bg);
-  color: var(--color-success);
-}
-
-.stepNow {
-  background-color: var(--color-primary);
-  color: var(--color-ink-inverse);
-}
-
-.stepText {
-  display: grid;
-  gap: var(--space-1);
-}
-
-.stepName {
-  font-weight: var(--type-title-weight);
-}
-
-.inventory {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.inventoryItem {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--space-3);
-  align-items: center;
-  padding: var(--space-3) 0;
-  border-top: 1px solid var(--color-border);
-}
-
-.inventoryItem:first-child {
-  padding-top: 0;
-  border-top: 0;
-}
-
-.inventoryPhoto {
-  width: 88px;
-  height: 88px;
-  object-fit: cover;
-  border-radius: var(--radius-md);
-}
-
-.inventoryText {
-  display: grid;
-  gap: var(--space-1);
-  justify-items: start;
-}
-
-/* Bank details: each value with a copy button beside it. */
-.copyRow {
+/* Quiet actions side by side: "Change the time", "Cancel". */
+.quietRow {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-3);
+  gap: var(--space-2);
+}
+
+/* A link on a line of its own is a full 44px target. */
+.lineLink {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
+  min-height: var(--size-target);
 }
 
 .mono {
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
-.centred {
-  text-align: center;
+/* A check's one line on what's kept, with "More" under it. */
+.keeps {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-ink-muted);
+}
+
+/* The inventory, room by room: each room a heading and its items, held apart by hairlines. */
+.rooms {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.items {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.item:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.itemHead {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.itemPhoto {
+  width: 96px;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.itemText {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: start;
+  min-width: 0;
+}
+
+.itemName {
+  font-weight: var(--type-title-weight);
+  overflow-wrap: anywhere;
+}
+
+/* What the tenant said about an item, back to them in their own words. */
+.said {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  overflow-wrap: anywhere;
+}
+
+.saidLabel {
+  color: var(--color-ink-muted);
+}
+
+@keyframes task-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (width > 900px) {
+  .title {
+    font-family: var(--type-display-family);
+    font-size: var(--type-display-size);
+    line-height: var(--type-display-line);
+    font-weight: var(--type-display-weight);
+    letter-spacing: var(--type-display-tracking);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
 }

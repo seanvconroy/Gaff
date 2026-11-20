@@ -1,0 +1,729 @@
+/*
+ * The calendar (section 8, "Calendar"): two layouts, one breakpoint. Below 900px, a strip of the
+ * week's days and the chosen day as a list; from 900px, the week as a grid, 8am to 9pm in quarter
+ * hours. A time is a quiet fill with its words, never a colour alone. Today is marked by a ring
+ * and heavier figures; the chosen day takes the brand colour, as a selected state does.
+ */
+.calendar {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.moves {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.week {
+  min-width: 0;
+  padding: 0 var(--space-1);
+}
+
+.arrow,
+.today {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-target);
+  min-height: var(--size-target);
+  color: var(--color-ink);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.today {
+  padding: 0 var(--space-3);
+  font-weight: var(--type-heading-weight);
+}
+
+.arrow:hover,
+.today:hover {
+  background-color: var(--color-surface-2);
+}
+
+/* The one primary action: fixed above the tab bar on a phone, in the bar from 900px. */
+.action {
+  position: fixed;
+  z-index: 4;
+  inset-inline: 0;
+  bottom: calc(var(--size-bar) + env(safe-area-inset-bottom));
+  display: grid;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface-0);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Below 900px: the day strip and the chosen day's list. */
+.phone {
+  display: grid;
+  gap: var(--space-4);
+  padding-bottom: var(--space-16);
+}
+
+.desktop {
+  display: none;
+}
+
+.strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stripDay {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  min-height: var(--size-row);
+  padding: var(--space-2) 0;
+  color: var(--color-ink);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.stripDay:hover {
+  background-color: var(--color-surface-2);
+}
+
+.stripName {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.stripNumber {
+  font-weight: var(--type-heading-weight);
+}
+
+.stripDay[data-today] {
+  border-color: var(--color-border-strong);
+}
+
+.stripDay[aria-current='true'] {
+  background-color: var(--color-brand);
+  border-color: var(--color-brand);
+  color: var(--color-ink-inverse);
+}
+
+.stripDay[aria-current='true'] .stripName {
+  color: var(--color-ink-inverse);
+}
+
+/* A day with a viewing has a dot under its number. */
+.dot,
+.noDot {
+  width: var(--space-1);
+  height: var(--space-1);
+  border-radius: var(--radius-pill);
+}
+
+.dot {
+  background-color: currentcolor;
+}
+
+.dayHeading {
+  margin: 0;
+}
+
+.emptyDay {
+  color: var(--color-ink-muted);
+}
+
+/* From 900px: the week as a grid. */
+@media (width > 900px) {
+  .action {
+    position: static;
+    padding: 0;
+    background-color: transparent;
+    border: 0;
+  }
+
+  .phone {
+    display: none;
+  }
+
+  .desktop {
+    display: block;
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: var(--space-16) repeat(7, minmax(0, 1fr));
+  border-bottom: 1px solid var(--color-border);
+}
+
+.corner {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.columnHead {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  justify-content: center;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.headName {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.headNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-8);
+  min-height: var(--space-8);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-weight: var(--type-heading-weight);
+}
+
+.columnHead[data-today] .headNumber {
+  background-color: var(--color-brand);
+  color: var(--color-ink-inverse);
+}
+
+/* The hours down the left, and each day's column: 52 quarter hours of 16px. */
+.hours,
+.column,
+.blocks {
+  display: grid;
+  grid-template-rows: repeat(52, var(--space-4));
+}
+
+.hours {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.hour {
+  padding-right: var(--space-2);
+  text-align: right;
+  transform: translateY(-50%);
+}
+
+.hour.from0 {
+  transform: none;
+}
+
+/* A hairline every hour. */
+.column {
+  grid-template-rows: none;
+  border-left: 1px solid var(--color-border);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--color-border) 0 1px,
+    transparent 1px var(--space-16)
+  );
+}
+
+.column[data-today] {
+  background-color: var(--color-surface-2);
+}
+
+.blocks {
+  grid-auto-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: 0 var(--space-1);
+  list-style: none;
+}
+
+.slot {
+  display: flex;
+  min-width: 0;
+}
+
+.block {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  min-width: 0;
+  min-height: var(--size-target);
+  padding: var(--space-1) var(--space-2);
+  overflow: hidden;
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border-strong);
+  border-left: var(--space-1) solid var(--color-ink);
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+  text-decoration: none;
+  transition: box-shadow var(--motion-fast) var(--ease-standard);
+}
+
+.block:hover,
+.block:focus-visible {
+  z-index: 1;
+  box-shadow: var(--shadow-raised);
+}
+
+.blockTime {
+  font-weight: var(--type-heading-weight);
+}
+
+.blockTitle,
+.blockMeta,
+.blockTime {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.blockMeta {
+  color: var(--color-ink-muted);
+}
+
+/* Side by side with another time: the home's name wraps rather than being cut short. */
+.block[data-shared] .blockTitle,
+.block[data-shared] .blockMeta {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.block[data-shared] .blockTitle {
+  font-weight: var(--type-heading-weight);
+}
+
+/* Where each time falls: the quarter hour it starts in, and how many it spans. */
+.from0 {
+  grid-row-start: 1;
+}
+
+.from1 {
+  grid-row-start: 2;
+}
+
+.from2 {
+  grid-row-start: 3;
+}
+
+.from3 {
+  grid-row-start: 4;
+}
+
+.from4 {
+  grid-row-start: 5;
+}
+
+.from5 {
+  grid-row-start: 6;
+}
+
+.from6 {
+  grid-row-start: 7;
+}
+
+.from7 {
+  grid-row-start: 8;
+}
+
+.from8 {
+  grid-row-start: 9;
+}
+
+.from9 {
+  grid-row-start: 10;
+}
+
+.from10 {
+  grid-row-start: 11;
+}
+
+.from11 {
+  grid-row-start: 12;
+}
+
+.from12 {
+  grid-row-start: 13;
+}
+
+.from13 {
+  grid-row-start: 14;
+}
+
+.from14 {
+  grid-row-start: 15;
+}
+
+.from15 {
+  grid-row-start: 16;
+}
+
+.from16 {
+  grid-row-start: 17;
+}
+
+.from17 {
+  grid-row-start: 18;
+}
+
+.from18 {
+  grid-row-start: 19;
+}
+
+.from19 {
+  grid-row-start: 20;
+}
+
+.from20 {
+  grid-row-start: 21;
+}
+
+.from21 {
+  grid-row-start: 22;
+}
+
+.from22 {
+  grid-row-start: 23;
+}
+
+.from23 {
+  grid-row-start: 24;
+}
+
+.from24 {
+  grid-row-start: 25;
+}
+
+.from25 {
+  grid-row-start: 26;
+}
+
+.from26 {
+  grid-row-start: 27;
+}
+
+.from27 {
+  grid-row-start: 28;
+}
+
+.from28 {
+  grid-row-start: 29;
+}
+
+.from29 {
+  grid-row-start: 30;
+}
+
+.from30 {
+  grid-row-start: 31;
+}
+
+.from31 {
+  grid-row-start: 32;
+}
+
+.from32 {
+  grid-row-start: 33;
+}
+
+.from33 {
+  grid-row-start: 34;
+}
+
+.from34 {
+  grid-row-start: 35;
+}
+
+.from35 {
+  grid-row-start: 36;
+}
+
+.from36 {
+  grid-row-start: 37;
+}
+
+.from37 {
+  grid-row-start: 38;
+}
+
+.from38 {
+  grid-row-start: 39;
+}
+
+.from39 {
+  grid-row-start: 40;
+}
+
+.from40 {
+  grid-row-start: 41;
+}
+
+.from41 {
+  grid-row-start: 42;
+}
+
+.from42 {
+  grid-row-start: 43;
+}
+
+.from43 {
+  grid-row-start: 44;
+}
+
+.from44 {
+  grid-row-start: 45;
+}
+
+.from45 {
+  grid-row-start: 46;
+}
+
+.from46 {
+  grid-row-start: 47;
+}
+
+.from47 {
+  grid-row-start: 48;
+}
+
+.from48 {
+  grid-row-start: 49;
+}
+
+.from49 {
+  grid-row-start: 50;
+}
+
+.from50 {
+  grid-row-start: 51;
+}
+
+.from51 {
+  grid-row-start: 52;
+}
+
+.span1 {
+  grid-row-end: span 1;
+}
+
+.span2 {
+  grid-row-end: span 2;
+}
+
+.span3 {
+  grid-row-end: span 3;
+}
+
+.span4 {
+  grid-row-end: span 4;
+}
+
+.span5 {
+  grid-row-end: span 5;
+}
+
+.span6 {
+  grid-row-end: span 6;
+}
+
+.span7 {
+  grid-row-end: span 7;
+}
+
+.span8 {
+  grid-row-end: span 8;
+}
+
+.span9 {
+  grid-row-end: span 9;
+}
+
+.span10 {
+  grid-row-end: span 10;
+}
+
+.span11 {
+  grid-row-end: span 11;
+}
+
+.span12 {
+  grid-row-end: span 12;
+}
+
+.span13 {
+  grid-row-end: span 13;
+}
+
+.span14 {
+  grid-row-end: span 14;
+}
+
+.span15 {
+  grid-row-end: span 15;
+}
+
+.span16 {
+  grid-row-end: span 16;
+}
+
+.span17 {
+  grid-row-end: span 17;
+}
+
+.span18 {
+  grid-row-end: span 18;
+}
+
+.span19 {
+  grid-row-end: span 19;
+}
+
+.span20 {
+  grid-row-end: span 20;
+}
+
+.span21 {
+  grid-row-end: span 21;
+}
+
+.span22 {
+  grid-row-end: span 22;
+}
+
+.span23 {
+  grid-row-end: span 23;
+}
+
+.span24 {
+  grid-row-end: span 24;
+}
+
+.span25 {
+  grid-row-end: span 25;
+}
+
+.span26 {
+  grid-row-end: span 26;
+}
+
+.span27 {
+  grid-row-end: span 27;
+}
+
+.span28 {
+  grid-row-end: span 28;
+}
+
+.span29 {
+  grid-row-end: span 29;
+}
+
+.span30 {
+  grid-row-end: span 30;
+}
+
+.span31 {
+  grid-row-end: span 31;
+}
+
+.span32 {
+  grid-row-end: span 32;
+}
+
+.span33 {
+  grid-row-end: span 33;
+}
+
+.span34 {
+  grid-row-end: span 34;
+}
+
+.span35 {
+  grid-row-end: span 35;
+}
+
+.span36 {
+  grid-row-end: span 36;
+}
+
+.span37 {
+  grid-row-end: span 37;
+}
+
+.span38 {
+  grid-row-end: span 38;
+}
+
+.span39 {
+  grid-row-end: span 39;
+}
+
+.span40 {
+  grid-row-end: span 40;
+}
+
+.span41 {
+  grid-row-end: span 41;
+}
+
+.span42 {
+  grid-row-end: span 42;
+}
+
+.span43 {
+  grid-row-end: span 43;
+}
+
+.span44 {
+  grid-row-end: span 44;
+}
+
+.span45 {
+  grid-row-end: span 45;
+}
+
+.span46 {
+  grid-row-end: span 46;
+}
+
+.span47 {
+  grid-row-end: span 47;
+}
+
+.span48 {
+  grid-row-end: span 48;
+}
+
+.span49 {
+  grid-row-end: span 49;
+}
+
+.span50 {
+  grid-row-end: span 50;
+}
+
+.span51 {
+  grid-row-end: span 51;
+}
+
+.span52 {
+  grid-row-end: span 52;
+}

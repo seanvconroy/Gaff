@@ -1,5 +1,7 @@
 import { devices, expect, test } from '@playwright/test';
 import { daftEnquiry } from '../fixtures/emails';
+import { chooseWhoViews } from './journeys';
+import { bookFirstTime } from './renter';
 import {
   createLettingThroughUi,
   expectAccessible,
@@ -29,16 +31,17 @@ test('R15: the operator marks who came, on a phone, with one tap per person', as
     text: daftEnquiry.text.replaceAll('12 Ranelagh Road, Ranelagh, Dublin 6', '4 Harbour View'),
   });
   await expect(async () => {
-    await page.goto(`${lettingUrl}/shortlist`);
-    await expect(page.getByLabel('Invite Aoife Byrne')).toBeVisible({ timeout: 1000 });
+    await page.goto(`${lettingUrl}/who-views`);
+    await expect(page.getByRole('checkbox', { name: 'Aoife Byrne' })).toBeVisible({
+      timeout: 1000,
+    });
   }).toPass({ timeout: 20_000 });
 
-  // Before anyone books, the tab says what will happen.
+  // Before anyone books, the screen says what will happen.
   await page.goto(`${lettingUrl}/attendance`);
   await expect(page.getByRole('heading', { name: 'Nobody has booked yet' })).toBeVisible();
 
-  await page.goto(`${lettingUrl}/shortlist`);
-  await page.getByRole('button', { name: 'Send invitations' }).click();
+  await chooseWhoViews(page, lettingUrl, { waitFor: 'Aoife Byrne', tick: ['Aoife Byrne'] });
   await expect(page.getByText('1 invited to book a viewing')).toBeVisible();
 
   let invitation = '';
@@ -52,9 +55,7 @@ test('R15: the operator marks who came, on a phone, with one tap per person', as
   });
   const renter = await phone.newPage();
   await renter.goto(invitation);
-  await renter.getByRole('radio').first().check();
-  await renter.getByRole('button', { name: 'Book this time' }).click();
-  await expect(renter.getByText('You’re booked')).toBeVisible();
+  await bookFirstTime(renter);
 
   // Before the viewing, the operator sees when they can mark it.
   await page.setViewportSize({ width: 412, height: 915 });
@@ -72,7 +73,8 @@ test('R15: the operator marks who came, on a phone, with one tap per person', as
   await expectAccessible(page);
   await aoife.getByRole('button', { name: 'Came' }).click();
   await expect(aoife.getByRole('button', { name: 'Came' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByText('1 booked · 1 came · 0 didn’t come · 0 to mark')).toBeVisible();
+  // UX-VW-11: one line says how many are left to mark.
+  await expect(page.getByText('Everyone is marked.')).toBeVisible();
   await expectAccessible(page);
   await expectNoSidewaysScroll(page);
   await screenshot(page, '31-attendance-phone');
@@ -88,11 +90,14 @@ test('R15: the operator marks who came, on a phone, with one tap per person', as
 
   // The renter's page moves on, and the timeline shows the person's decisions.
   await renter.reload();
-  await expect(renter.getByText('Thanks for coming to view')).toBeVisible();
+  await expect(
+    renter.getByRole('heading', { name: 'Thanks for coming. Would you like to apply?' }),
+  ).toBeVisible();
+  await expect(renter.getByRole('link', { name: 'Apply', exact: true })).toBeVisible();
   await expectAccessible(renter);
   await phone.close();
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto(`${lettingUrl}/timeline`);
+  await page.goto(`${lettingUrl}/history`);
   await expect(page.getByText('Marked as came to the viewing').first()).toBeVisible();
   await expect(page.getByText('Marked as didn’t come')).toBeVisible();
 });

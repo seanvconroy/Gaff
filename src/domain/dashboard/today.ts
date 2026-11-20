@@ -1,100 +1,412 @@
+import { needsForwarding, type Portal } from '@/domain/lettings/setup';
 import type { TenancyStep } from '@/domain/tenancy/steps';
+import type { FreshnessShown } from '@/domain/lettings/freshness';
 
 /**
- * R28: what needs a person today, most urgent first. Renters waiting on a reply come first,
- * then people to mark at today's viewings, then applicants to choose from (R17), then who to
- * invite (soonest viewings first), then homes still being set up. Gaff only lists these; a person does each one.
+ * R28, UX-HM-2: everything waiting on a person, across their homes, most urgent first. Gaff only
+ * lists these; a person does each one (rule 1).
+ *
+ * The order is one rule, the same for everyone (UX-HM-4): `todayRank`. Things of the same kind
+ * for the same home are one item with a count, never several (UX-HM-5): `needsYouToday` does the
+ * grouping. An item holds IDs, counts, dates and, for one question, a first name. Never contact
+ * details or the words of a message (UX-HM-10).
  */
 export interface LettingSnapshot {
   id: string;
   addressLine1: string;
   status: string;
+  /** UX-AG-9: the member responsible for it. See `leadOf` in `@/domain/lettings/lead`. */
+  leadUserId?: string | null;
+  /** UX-AG-4: a person decided to go live, and it waits for the agency to be confirmed. */
+  goLiveHeld?: boolean;
+  /** Stage 1: how many steps are left before it can take enquiries. */
+  setupStepsLeft?: number;
   /** People who enquired and are waiting for a person to decide who views. */
   undecided: number;
+  /** Places still free at the viewings to come. */
+  placesFree?: number | null;
   /** People booked at a viewing that has started and who aren't marked yet. */
   toMark: number;
+  /** When the first of those viewings started, and when the last of them ends. */
+  toMarkFrom?: Date | null;
+  toMarkUntil?: Date | null;
   /** People who applied, while nobody has been chosen yet (R17). */
   toChoose: number;
   /** R20: chosen and approved, so the offer can go. */
   readyToOffer?: boolean;
+  /**
+   * UX-DC-11: every check for the preferred applicant is back and nothing is out yet: their
+   * first name, for "The checks are back for Aoife". Undefined when that isn't so.
+   */
+  checksBackFor?: string | null;
   /** R19, R20: the landlord declined, or the offer wasn't accepted and nothing else is out. */
   needsNewChoice?: boolean;
+  newChoiceReason?: NewChoiceReason | null;
   /** R24: the tenancy has started and isn't registered with the RTB: the deadline. */
   rtbDueBy?: string | null;
   /** Stage 8: the operator's next step on the tenancy, if it's theirs. */
   tenancyStep?: TenancyStep | null;
-  firstViewingAt: Date | null;
+  tenancyStartDate?: string | null;
+  /** "Is it advertised anywhere else?": Daft, MyHome, neither (an empty list), or not answered. */
+  advertisedOn?: readonly Portal[] | null;
+  /**
+   * M49 (BA-13): a live home its lister has been asked about ("Is it still available?"), or
+   * one that stepped back because nobody answered. Null or missing: nothing to ask.
+   */
+  freshness?: FreshnessShown | null;
+  /** When each thing started waiting on a person, where Gaff knows. */
+  waitingSince?: Partial<Record<TodayKind, Date | null>>;
 }
 
-export type TodayItem =
-  | { kind: 'approvals' | 'attention' | 'questions'; count: number }
-  | { kind: 'offer' | 'rechoose'; lettingId: string; address: string }
-  | { kind: 'rtb'; lettingId: string; address: string; dueBy: string }
-  | { kind: 'tenancy'; lettingId: string; address: string; step: TenancyStep }
-  | {
-      kind: 'attendance' | 'choose' | 'shortlist';
-      lettingId: string;
-      address: string;
-      count: number;
-    }
-  | { kind: 'setup'; lettingId: string; address: string };
+export type NewChoiceReason = 'owner_declined' | 'offer_not_accepted';
 
-export function needsYouToday(input: {
-  approvals: number;
-  attention: number;
-  questions: number;
-  lettings: readonly LettingSnapshot[];
-}): TodayItem[] {
-  const items: TodayItem[] = [];
-  if (input.approvals > 0) items.push({ kind: 'approvals', count: input.approvals });
-  if (input.attention > 0) items.push({ kind: 'attention', count: input.attention });
-  if (input.questions > 0) items.push({ kind: 'questions', count: input.questions });
-  for (const l of input.lettings) {
-    if (l.toMark > 0) {
-      items.push({ kind: 'attendance', lettingId: l.id, address: l.addressLine1, count: l.toMark });
+/** What every item carries: how long it has waited, and who leads its home. */
+interface Waiting {
+  /** When it started waiting on a person. Null where Gaff doesn't know. */
+  since: Date | null;
+  /** UX-AG-9, UX-HM-11: the home's lead. Null for something that belongs to no home. */
+  leadUserId: string | null;
+}
+
+interface Home {
+  lettingId: string;
+  address: string;
+}
+
+/**
+ * Where a row opens when it is about one conversation (UX-NV-14): the renter's application, or
+ * the email. Null, or left out, when the row counts several: it opens the list instead.
+ */
+interface OneConversation {
+  only?: string | null;
+}
+
+export type TodayItem = Waiting &
+  (
+    | ({ kind: 'attention'; count: number } & OneConversation)
+    /** `count` is conversations with an answer waiting to be approved. */
+    | (Home & { kind: 'approvals'; count: number } & OneConversation)
+    /**
+     * `count` is conversations with a question and no draft. `firstName` is given only when it
+     * is one person's (UX-HM-10).
+     */
+    | (Home & { kind: 'questions'; count: number; firstName: string | null } & OneConversation)
+    | (Home & { kind: 'offer' })
+    /** UX-DC-11: `firstName` is the preferred applicant's, and nobody else's. */
+    | (Home & { kind: 'checks'; firstName: string | null })
+    | (Home & { kind: 'rechoose'; reason: NewChoiceReason | null })
+    | (Home & { kind: 'rtb'; dueBy: string })
+    | (Home & { kind: 'tenancy'; step: TenancyStep; startDate: string | null })
+    | (Home & { kind: 'attendance'; count: number; from: Date | null; until: Date | null })
+    | (Home & { kind: 'choose'; count: number })
+    | (Home & { kind: 'shortlist'; count: number; placesFree: number | null })
+    | (Home & { kind: 'setup'; stepsLeft: number | null })
+    /** UX-LT-20: advertised on Daft or MyHome, and no enquiry has come through a rule yet. */
+    | (Home & { kind: 'forwarding'; portals: readonly Portal[] })
+    /**
+     * M49: "Is it still available?". `stepsBackAt` while it's asking; `stale` once it has
+     * stepped back from gaff.ie until someone says it is.
+     */
+    | (Home & { kind: 'freshness'; stale: boolean; stepsBackAt: Date | null })
+  );
+
+export type TodayKind = TodayItem['kind'];
+
+/**
+ * UX-HM-4: the seven ranks, in order. One rule for everyone: an agent, an admin and a private
+ * landlord see their rows in the same order.
+ */
+export const todayRanks = {
+  /** Something with a deadline today: marking who came, a registration due. */
+  deadline: 1,
+  /** A decision or a step only a person can make: who views, who is offered, what is signed. */
+  decision: 2,
+  /** A renter waiting on a reply: answers to approve. */
+  reply: 3,
+  /** A question only a person can answer. */
+  question: 4,
+  /** Email Gaff couldn't place. */
+  unplaced: 5,
+  /** Setup to finish on a home. */
+  setup: 6,
+  /** A date coming up. */
+  date: 7,
+} as const;
+
+/** `today` is the date in Ireland, as "2026-11-16". */
+export function todayRank(item: TodayItem, today: string): number {
+  switch (item.kind) {
+    case 'attendance':
+      return todayRanks.deadline;
+    case 'rtb':
+      // On the day it's due, and after it, it is a deadline; before that, a date coming up.
+      return item.dueBy <= today ? todayRanks.deadline : todayRanks.date;
+    case 'choose':
+    case 'checks':
+    case 'offer':
+    case 'rechoose':
+    case 'shortlist':
+    case 'tenancy':
+    case 'freshness':
+      return todayRanks.decision;
+    case 'approvals':
+      return todayRanks.reply;
+    case 'questions':
+      return todayRanks.question;
+    case 'attention':
+      return todayRanks.unplaced;
+    case 'setup':
+    case 'forwarding':
+      return todayRanks.setup;
+  }
+}
+
+/** Inside a rank, where two things have waited equally long: this order, then by address. */
+const kindOrder: readonly TodayKind[] = [
+  'attendance',
+  'rtb',
+  'rechoose',
+  'freshness',
+  'checks',
+  'offer',
+  'choose',
+  'tenancy',
+  'shortlist',
+  'approvals',
+  'questions',
+  'attention',
+  'forwarding',
+  'setup',
+];
+
+const NEVER = Number.MAX_SAFE_INTEGER;
+
+/**
+ * Inside a rank, what comes first. Among today's deadlines, people who came to a viewing come
+ * before paperwork. Among dates coming up, the nearest date. Everywhere else, whatever has
+ * waited longest; something Gaff has no time for goes last.
+ */
+function urgency(item: TodayItem, rank: number): number {
+  if (rank === todayRanks.deadline) return kindOrder.indexOf(item.kind);
+  if (item.kind === 'rtb') return Date.parse(`${item.dueBy}T00:00:00Z`);
+  return item.since?.getTime() ?? NEVER;
+}
+
+/** UX-HM-4: puts items in the one order. It never drops or merges anything. */
+export function inTodayOrder<T extends TodayItem>(items: readonly T[], today: string): T[] {
+  const address = (item: TodayItem) => ('address' in item ? item.address : '');
+  const home = (item: TodayItem) => ('lettingId' in item ? item.lettingId : '');
+  return [...items].sort((a, b) => {
+    const rank = todayRank(a, today);
+    return (
+      rank - todayRank(b, today) ||
+      urgency(a, rank) - urgency(b, rank) ||
+      kindOrder.indexOf(a.kind) - kindOrder.indexOf(b.kind) ||
+      address(a).localeCompare(address(b)) ||
+      home(a).localeCompare(home(b))
+    );
+  });
+}
+
+/** One thing waiting, as the server counts it: which home, and since when. */
+export interface WaitingReply {
+  lettingId: string;
+  since: Date;
+  /** The conversation it is in: the renter's application (UX-NV-13). */
+  applicationId?: string | null;
+}
+
+export interface WaitingQuestion extends WaitingReply {
+  /** Who asked, by first name only (UX-HM-10). */
+  firstName?: string | null;
+}
+
+const earliest = (dates: ReadonlyArray<Date | null | undefined>): Date | null => {
+  const times = dates.filter((d): d is Date => d instanceof Date).map((d) => d.getTime());
+  return times.length > 0 ? new Date(Math.min(...times)) : null;
+};
+
+/** UX-HM-5: things of one kind, by home. Each home gets its count and how long the oldest waited. */
+function byHome<T extends WaitingReply>(waiting: readonly T[]): Map<string, T[]> {
+  const homes = new Map<string, T[]>();
+  for (const one of waiting) homes.set(one.lettingId, [...(homes.get(one.lettingId) ?? []), one]);
+  return homes;
+}
+
+/**
+ * UX-NV-15: what is waiting, one per conversation. Two drafts for one renter are one thing to
+ * open, and so are two questions: each conversation keeps whichever has waited longest.
+ * Something Gaff can't tie to a conversation stands on its own.
+ */
+function byConversation<T extends WaitingReply>(waiting: readonly T[]): T[] {
+  const conversations = new Map<string, T>();
+  const alone: T[] = [];
+  for (const one of waiting) {
+    if (!one.applicationId) {
+      alone.push(one);
+      continue;
+    }
+    const known = conversations.get(one.applicationId);
+    if (!known || one.since.getTime() < known.since.getTime()) {
+      conversations.set(one.applicationId, one);
     }
   }
+  return [...conversations.values(), ...alone];
+}
+
+/** The one conversation a row is about, if it is about just one. */
+const onlyOne = (waiting: readonly WaitingReply[]) =>
+  waiting.length === 1 ? (waiting[0]!.applicationId ?? null) : null;
+
+export function needsYouToday(input: {
+  /** Answers Gaff drafted that wait for a person's approval (R29). */
+  approvals: readonly WaitingReply[];
+  /** Questions only a person can answer (R8). */
+  questions: readonly WaitingQuestion[];
+  /** Emails Gaff couldn't place (R5, R6). They belong to no home. */
+  attention: ReadonlyArray<{ since: Date; id?: string }>;
+  lettings: readonly LettingSnapshot[];
+  /**
+   * UX-LT-20: whether mail has come through the organisation's forwarding rule (the test or a
+   * portal's enquiry). One rule covers every home, so it is known once, not for each letting.
+   */
+  forwardingInPlace?: boolean;
+  /** The date in Ireland, as "2026-11-16". It decides whether a date is today's deadline. */
+  today: string;
+}): TodayItem[] {
+  const items: TodayItem[] = [];
+  // UX-NV-15: a conversation with a draft waiting holds its questions in that draft, so it is
+  // one thing to do, under "Approve": its questions aren't a second row.
+  const drafted = new Set(
+    input.approvals.flatMap((a) => (a.applicationId ? [a.applicationId] : [])),
+  );
+  const approvals = byHome(byConversation(input.approvals));
+  const questions = byHome(
+    byConversation(
+      input.questions.filter((q) => !q.applicationId || !drafted.has(q.applicationId)),
+    ),
+  );
+
+  if (input.attention.length > 0) {
+    items.push({
+      kind: 'attention',
+      count: input.attention.length,
+      only: input.attention.length === 1 ? (input.attention[0]!.id ?? null) : null,
+      since: earliest(input.attention.map((a) => a.since)),
+      leadUserId: null,
+    });
+  }
+
   for (const l of input.lettings) {
+    const home = { lettingId: l.id, address: l.addressLine1, leadUserId: l.leadUserId ?? null };
+    const since = (kind: TodayKind) => l.waitingSince?.[kind] ?? null;
+
+    const drafts = approvals.get(l.id) ?? [];
+    if (drafts.length > 0) {
+      items.push({
+        kind: 'approvals',
+        ...home,
+        count: drafts.length,
+        only: onlyOne(drafts),
+        since: earliest(drafts.map((d) => d.since)),
+      });
+    }
+    const asked = questions.get(l.id) ?? [];
+    if (asked.length > 0) {
+      items.push({
+        kind: 'questions',
+        ...home,
+        count: asked.length,
+        firstName: asked.length === 1 ? (asked[0]!.firstName ?? null) : null,
+        only: onlyOne(asked),
+        since: earliest(asked.map((q) => q.since)),
+      });
+    }
+    if (l.toMark > 0) {
+      items.push({
+        kind: 'attendance',
+        ...home,
+        count: l.toMark,
+        from: l.toMarkFrom ?? null,
+        until: l.toMarkUntil ?? null,
+        since: since('attendance') ?? l.toMarkFrom ?? null,
+      });
+    }
     if (l.tenancyStep) {
       items.push({
         kind: 'tenancy',
-        lettingId: l.id,
-        address: l.addressLine1,
+        ...home,
         step: l.tenancyStep,
+        startDate: l.tenancyStartDate ?? null,
+        since: since('tenancy'),
       });
     }
-  }
-  // R24: a legal deadline, so it comes straight after today's viewings.
-  for (const l of input.lettings) {
-    if (l.rtbDueBy)
-      items.push({ kind: 'rtb', lettingId: l.id, address: l.addressLine1, dueBy: l.rtbDueBy });
-  }
-  for (const l of input.lettings) {
-    if (l.status === 'live' && l.toChoose > 0) {
-      items.push({ kind: 'choose', lettingId: l.id, address: l.addressLine1, count: l.toChoose });
+    // R24: a legal deadline.
+    if (l.rtbDueBy) items.push({ kind: 'rtb', ...home, dueBy: l.rtbDueBy, since: since('rtb') });
+    if (l.status === 'live') {
+      if (l.toChoose > 0) {
+        items.push({ kind: 'choose', ...home, count: l.toChoose, since: since('choose') });
+      }
+      if (l.checksBackFor !== undefined) {
+        items.push({
+          kind: 'checks',
+          ...home,
+          firstName: l.checksBackFor,
+          since: since('checks'),
+        });
+      }
+      if (l.readyToOffer) items.push({ kind: 'offer', ...home, since: since('offer') });
+      if (l.needsNewChoice) {
+        items.push({
+          kind: 'rechoose',
+          ...home,
+          reason: l.newChoiceReason ?? null,
+          since: since('rechoose'),
+        });
+      }
+      // M49: unchanged for two weeks, it asks; unanswered, it steps back until someone says.
+      if (l.freshness) {
+        items.push({
+          kind: 'freshness',
+          ...home,
+          stale: l.freshness.kind === 'stepped_back',
+          stepsBackAt: l.freshness.kind === 'asked' ? l.freshness.stepsBackAt : null,
+          since: since('freshness'),
+        });
+      }
+      // UX-LT-20: it never sits silently waiting for enquiries that aren't reaching Gaff.
+      if (
+        needsForwarding({
+          advertisedOn: l.advertisedOn ?? null,
+          forwardingInPlace: input.forwardingInPlace ?? false,
+        })
+      ) {
+        items.push({
+          kind: 'forwarding',
+          ...home,
+          portals: l.advertisedOn ?? [],
+          since: since('forwarding'),
+        });
+      }
+      if (l.undecided > 0) {
+        items.push({
+          kind: 'shortlist',
+          ...home,
+          count: l.undecided,
+          placesFree: l.placesFree ?? null,
+          since: since('shortlist'),
+        });
+      }
     }
-  }
-  for (const l of input.lettings) {
-    if (l.status !== 'live') continue;
-    if (l.readyToOffer) items.push({ kind: 'offer', lettingId: l.id, address: l.addressLine1 });
-    if (l.needsNewChoice) {
-      items.push({ kind: 'rechoose', lettingId: l.id, address: l.addressLine1 });
-    }
-  }
-  const soonest = (l: LettingSnapshot) => l.firstViewingAt?.getTime() ?? Number.MAX_SAFE_INTEGER;
-  for (const l of [...input.lettings].sort((a, b) => soonest(a) - soonest(b))) {
-    if (l.status === 'live' && l.undecided > 0) {
+    // A home held until its agency is confirmed waits on Gaff's team, not on this person.
+    if (l.status === 'draft' && !l.goLiveHeld) {
       items.push({
-        kind: 'shortlist',
-        lettingId: l.id,
-        address: l.addressLine1,
-        count: l.undecided,
+        kind: 'setup',
+        ...home,
+        stepsLeft: l.setupStepsLeft ?? null,
+        since: since('setup'),
       });
     }
   }
-  for (const l of input.lettings) {
-    if (l.status === 'draft')
-      items.push({ kind: 'setup', lettingId: l.id, address: l.addressLine1 });
-  }
-  return items;
+  return inTodayOrder(items, input.today);
 }

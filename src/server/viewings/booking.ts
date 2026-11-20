@@ -16,7 +16,6 @@ import {
   reminderEmail,
   reminderSms,
 } from '@/copy/templates/viewings';
-import { normalisePhone } from '@/domain/enquiries/parse';
 import { BOOKING_CUTOFF_MINUTES, placesLeft, reminderTimes } from '@/domain/viewings/booking';
 import { heldForOthers } from '@/domain/viewings/waitlist';
 import { env } from '@/lib/env';
@@ -82,24 +81,93 @@ export async function currentBooking(tx: Tx, applicationId: string) {
   return row ?? null;
 }
 
+/**
+ * R13: a booking's confirmation, then its reminders the day before and two hours before (the
+ * two-hour one also by text, to a number the renter gave for it). Used when a renter books or
+ * moves, and when the operator moves a viewing time people have booked (UX-VW-6): the same
+ * fixed wording, "Your viewing has moved".
+ */
+export async function queueBookingMessages(
+  tx: Tx,
+  input: {
+    organisationId: string;
+    operatorName: string;
+    letting: { id: string; addressLine1: string; area: string };
+    application: { id: string; fullName: string; email: string };
+    bookingId: string;
+    startsAt: Date;
+    rescheduled: boolean;
+    sms: string | null;
+  },
+): Promise<void> {
+  const { application, letting } = input;
+  const manageUrl = `${env().APP_URL}/r/${await createAccessLink(tx, {
+    organisationId: input.organisationId,
+    purpose: 'renter',
+    subjectId: application.id,
+  })}`;
+  const viewing = {
+    renterName: application.fullName,
+    operatorName: input.operatorName,
+    address: letting.addressLine1,
+    area: letting.area,
+    startsAt: input.startsAt,
+    manageUrl,
+  };
+  const common = {
+    organisationId: input.organisationId,
+    lettingId: letting.id,
+    applicationId: application.id,
+    author: 'template' as const,
+    bookingId: input.bookingId,
+  };
+  await queueMessage(tx, {
+    ...common,
+    kind: 'booking_confirmation',
+    templateKey: BOOKING_CONFIRMATION_TEMPLATE,
+    toAddress: application.email,
+    ...bookingConfirmationEmail({ ...viewing, rescheduled: input.rescheduled }),
+  });
+  for (const reminder of reminderTimes(input.startsAt, new Date())) {
+    await queueMessage(tx, {
+      ...common,
+      kind: 'reminder',
+      templateKey: REMINDER_TEMPLATE,
+      toAddress: application.email,
+      sendAt: reminder.sendAt,
+      ...reminderEmail({ ...viewing, when: reminder.kind }),
+    });
+    if (reminder.kind === 'two_hours' && input.sms) {
+      await queueMessage(tx, {
+        ...common,
+        kind: 'reminder',
+        channel: 'sms',
+        templateKey: REMINDER_SMS_TEMPLATE,
+        toAddress: input.sms,
+        subject: '',
+        body: reminderSms(viewing),
+        sendAt: reminder.sendAt,
+      });
+    }
+  }
+}
+
 export type BookResult =
   | { ok: true; rescheduled: boolean }
-  | { ok: false; reason: 'invalid_link' | 'not_invited' | 'full' | 'too_late' | 'invalid_phone' };
+  | { ok: false; reason: 'invalid_link' | 'not_invited' | 'full' | 'too_late' | 'mobile_needed' };
 
 /**
  * R12: a renter books (or moves) their viewing from their private link. The slot row is locked
  * while its places are counted, so two people can't take the last place. R13: confirmation and
  * reminders are queued in the same transaction.
+ *
+ * P16 (Q51): a new booking needs a mobile the renter has confirmed with a text code
+ * (src/server/viewings/mobile.ts); moving a booking doesn't ask again. The 2-hour reminder goes
+ * to that confirmed number, and only to it: a number that came with an enquiry is never used.
  */
-export async function bookViewing(
-  token: string,
-  slotId: string,
-  mobile?: string,
-): Promise<BookResult> {
+export async function bookViewing(token: string, slotId: string): Promise<BookResult> {
   const link = await resolveAccessLink(token, 'renter');
   if (!link) return { ok: false, reason: 'invalid_link' };
-  const phoneE164 = mobile?.trim() ? normalisePhone(mobile) : null;
-  if (mobile?.trim() && !phoneE164) return { ok: false, reason: 'invalid_phone' };
 
   return withOrg(link.organisationId, async (tx) => {
     const [row] = await tx
@@ -146,6 +214,7 @@ export async function bookViewing(
     const open = await openOffers(tx, { slotId });
     const existing = await currentBooking(tx, application.id);
     if (existing?.slot.id === slotId) return { ok: true, rescheduled: false };
+    if (!existing && !application.mobileConfirmedAt) return { ok: false, reason: 'mobile_needed' };
     // R14: a place held for someone on the waiting list isn't free for anyone else.
     const held = heldForOthers(open, application.id);
     if (placesLeft({ capacity: slot.capacity, booked: booked + held }) === 0) {
@@ -170,10 +239,7 @@ export async function bookViewing(
       .returning({ id: bookings.id });
     await tx
       .update(applications)
-      .set({
-        status: 'booked',
-        ...(phoneE164 ? { phoneE164, phone: mobile!.trim(), smsReminders: true } : {}),
-      })
+      .set({ status: 'booked' })
       .where(eq(applications.id, application.id));
     if (offer) {
       await tx
@@ -189,57 +255,17 @@ export async function bookViewing(
         .where(and(eq(waitlistOffers.slotId, slotId), eq(waitlistOffers.status, 'open')));
     }
 
-    const manageUrl = `${env().APP_URL}/r/${await createAccessLink(tx, {
+    // P16 (changing Q12): text reminders only to the mobile the renter confirmed to book.
+    await queueBookingMessages(tx, {
       organisationId: link.organisationId,
-      purpose: 'renter',
-      subjectId: application.id,
-    })}`;
-    const viewing = {
-      renterName: application.fullName,
       operatorName: organisation.name,
-      address: letting.addressLine1,
-      area: letting.area,
-      startsAt: slot.startsAt,
-      manageUrl,
-    };
-    const common = {
-      organisationId: link.organisationId,
-      lettingId: letting.id,
-      applicationId: application.id,
-      author: 'template' as const,
+      letting,
+      application,
       bookingId: booking!.id,
-    };
-    await queueMessage(tx, {
-      ...common,
-      kind: 'booking_confirmation',
-      templateKey: BOOKING_CONFIRMATION_TEMPLATE,
-      toAddress: application.email,
-      ...bookingConfirmationEmail({ ...viewing, rescheduled: Boolean(existing) }),
+      startsAt: slot.startsAt,
+      rescheduled: Boolean(existing),
+      sms: application.mobileConfirmedAt ? application.phoneE164 : null,
     });
-    // Q12: text reminders only to a number the renter gave for them when booking.
-    const sms = phoneE164 ?? (application.smsReminders ? application.phoneE164 : null);
-    for (const reminder of reminderTimes(slot.startsAt, new Date())) {
-      await queueMessage(tx, {
-        ...common,
-        kind: 'reminder',
-        templateKey: REMINDER_TEMPLATE,
-        toAddress: application.email,
-        sendAt: reminder.sendAt,
-        ...reminderEmail({ ...viewing, when: reminder.kind }),
-      });
-      if (reminder.kind === 'two_hours' && sms) {
-        await queueMessage(tx, {
-          ...common,
-          kind: 'reminder',
-          channel: 'sms',
-          templateKey: REMINDER_SMS_TEMPLATE,
-          toAddress: sms,
-          subject: '',
-          body: reminderSms(viewing),
-          sendAt: reminder.sendAt,
-        });
-      }
-    }
     await recordEvent(tx, {
       organisationId: link.organisationId,
       lettingId: letting.id,

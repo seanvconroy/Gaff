@@ -15,27 +15,61 @@ const rgb = (hex: string) =>
 const pageColour = (page: Page) =>
   page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 
-test('ADR-0011: the A4 look: a navy sidebar that becomes a bottom bar on a phone, light and dark themes, a focus ring on everything, and no motion when it’s reduced', async ({
+test('UX-DS-1, UX-DS-7: the look: a white page in ink and one blue, one type family, a top bar that becomes a bottom tab bar on a phone, light and dark themes, a focus ring on everything, and no motion when it’s reduced', async ({
   page,
 }) => {
   test.slow();
   await signUpOperator(page);
+
+  // UX-DS-2, UX-DS-13: the one primary button is ink, and 48px high. With no homes yet, it is
+  // "Add a letting" on Lettings (UX-HM-6).
+  await page.goto('/lettings');
+  const add = page.getByRole('link', { name: 'Add a letting' });
+  await expect(add).toHaveCSS('background-color', rgb(tokens.colors['ink']!.light));
+  expect((await add.boundingBox())!.height).toBe(48);
+
   await createLettingThroughUi(page);
 
-  // The current page is marked in the navigation, and the dashboard's one accent is the count.
-  await page.goto('/');
-  const nav = page.getByRole('navigation', { name: 'Workspace' });
-  await expect(nav.getByRole('link', { name: 'Lettings' })).toHaveAttribute('aria-current', 'page');
-  await expect(nav.getByRole('link', { name: 'Approvals' })).not.toHaveAttribute('aria-current');
+  // The current page is marked in the navigation, and Today's one accent is the count.
+  await page.goto('/today');
+  const nav = page.getByRole('navigation', { name: 'Main' });
+  await expect(nav.getByRole('link', { name: 'Today' })).toHaveAttribute('aria-current', 'page');
+  await expect(nav.getByRole('link', { name: 'Lettings' })).not.toHaveAttribute('aria-current');
   await expect(page.getByText('1 thing', { exact: true })).toHaveCSS(
     'color',
-    rgb(tokens.colors['atlantic-text']!.light),
+    rgb(tokens.colors['brand-text']!.light),
   );
 
-  // Both themes: every interactive element shows a focus ring, including in the sidebar.
+  // UX-DS-1: the page is white, and so is the navigation: it uses the ordinary tokens.
+  expect(await pageColour(page)).toBe('rgb(255, 255, 255)');
+  await expect(page.locator('header').filter({ has: nav })).toHaveCSS(
+    'background-color',
+    'rgb(255, 255, 255)',
+  );
+
+  // UX-DS-7: one family. The title is DM Sans, not a serif, and no page loads Fraunces.
+  const title = page.getByRole('heading', { level: 1, name: 'Today' });
+  await expect(title).toHaveCSS('font-family', /^"DM Sans"/);
+  await expect(title).toHaveCSS('font-size', '32px');
+  expect(
+    await page.evaluate(() => [...document.fonts].map((font) => font.family.replace(/"/g, ''))),
+  ).not.toContain('Fraunces');
+
+  // UX-DS-8: no uppercase eyebrow above the title.
+  await expect(page.locator('main header').getByText('Halcyon Lettings')).toHaveCount(0);
+
+  // UX-DS-22: the wordmark is a drawing named "Gaff", with its full stop in the brand colour.
+  const wordmark = page.getByRole('link', { name: 'Gaff', exact: true });
+  await expect(wordmark.getByRole('img', { name: 'Gaff' })).toBeVisible();
+  await expect(wordmark.locator('path').last()).toHaveCSS(
+    'fill',
+    rgb(tokens.colors['brand']!.light),
+  );
+
+  // Both themes: every interactive element shows a focus ring, including in the navigation.
   for (const colorScheme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme });
-    await page.goto('/');
+    await page.goto('/today');
     expect(await pageColour(page)).toBe(rgb(tokens.colors['surface-0']![colorScheme]));
     await expectFocusRings(page);
     await expectAccessible(page);
@@ -50,16 +84,16 @@ test('ADR-0011: the A4 look: a navy sidebar that becomes a bottom bar on a phone
   expect(await pageColour(page)).toBe(rgb(tokens.colors['surface-0']!.dark));
 
   // Colour changes take motion-fast, and nothing at all under reduced motion.
-  await page.goto('/');
+  await page.goto('/lettings');
   const button = page.getByRole('link', { name: 'Add a letting' });
   await expect(button).toHaveCSS('transition-duration', '0.12s');
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/');
+  await page.goto('/lettings');
   await expect(button).toHaveCSS('transition-duration', '0s');
 
   // On a phone the navigation is a bar along the bottom, and nothing scrolls sideways.
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto('/today');
   const bar = await nav.boundingBox();
   expect(bar!.y + bar!.height).toBeCloseTo(844, 0);
   expect(bar!.width).toBeCloseTo(390, 0);

@@ -2,7 +2,7 @@ import { and, asc, eq, isNull } from 'drizzle-orm';
 import type { Tx } from '@/db/client';
 import { lettingFacts, type lettings, viewingSessions } from '@/db/schema';
 import type { Fact } from '@/domain/answers/guardrails';
-import { describeCriteria } from '@/domain/criteria/criteria';
+import { lettingDetailsParts, NO_SMOKING_INDOORS } from '@/domain/criteria/criteria';
 import {
   describeKeyFacts,
   type berRatings,
@@ -10,6 +10,7 @@ import {
   type parkingOptions,
   type propertyTypes,
 } from '@/domain/lettings/new-letting';
+import { readMoreFacts, tourLink } from '@/domain/lettings/more-facts';
 import { formatDate, formatRent, formatTimeRange } from '@/lib/format';
 
 type Letting = typeof lettings.$inferSelect;
@@ -31,14 +32,24 @@ export async function factsFor(tx: Tx, letting: Letting): Promise<Fact[]> {
       furnished: letting.furnished as keyof typeof furnishing,
       berRating: letting.berRating as (typeof berRatings)[number],
       parking: letting.parking as keyof typeof parkingOptions | null,
+      // M39 (BA-14): en-suites, floor area, floor and lift, heating and the rest, each a fact.
+      more: readMoreFacts(letting.moreFacts),
     }).map((fact) => ({
       id: `core:${fact.label.toLowerCase().replace(/\W+/g, '-')}`,
       text: `${fact.label}: ${fact.value}`,
     })),
   ];
+  // M44: a tour is a link out, as its own fact, so an answer can point to it.
+  const tour = tourLink(readMoreFacts(letting.moreFacts));
+  if (tour) facts.push({ id: 'core:tour', text: `Video or virtual tour: ${tour.href}` });
   if (letting.photosUrl) facts.push({ id: 'core:photos', text: `Photos: ${letting.photosUrl}` });
-  for (const [i, line] of describeCriteria(letting.criteria ?? { noPets: false }).entries()) {
+  // UX-MT-3: the letting details in Gaff's own fixed words. The house rule is a term of the
+  // tenancy, not something asked of anyone (UX-MT-5), so it is a fact of its own.
+  for (const [i, line] of lettingDetailsParts(letting.criteria, false).entries()) {
     facts.push({ id: `core:criteria-${i + 1}`, text: `Criteria for viewing: ${line}` });
+  }
+  if (letting.noSmokingIndoors) {
+    facts.push({ id: 'core:house-rule', text: `House rule: ${NO_SMOKING_INDOORS}` });
   }
   const sessions = await tx
     .select({ startsAt: viewingSessions.startsAt, endsAt: viewingSessions.endsAt })

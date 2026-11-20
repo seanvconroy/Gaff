@@ -1,0 +1,209 @@
+/* The date and time fields: the one 48px control, as a button that says what's chosen. */
+.control {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  text-align: start;
+  cursor: pointer;
+}
+
+.control svg {
+  flex: none;
+  color: var(--color-ink-muted);
+}
+
+.control[aria-expanded='true'] {
+  border-color: var(--color-ink);
+}
+
+/* The same 2px danger edge as any field that needs another look; it grows inwards. */
+.control[data-invalid] {
+  padding-inline: calc(var(--space-4) - 1px);
+  border-color: var(--color-danger);
+  border-width: 2px;
+}
+
+.value,
+.placeholder {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.placeholder {
+  color: var(--color-ink-muted);
+}
+
+/* The calendar: a month at a time, Monday first, every day a 44px target. */
+.calendar {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.monthRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.monthButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-target);
+  height: var(--size-target);
+  padding: 0;
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.monthButton:hover {
+  background-color: var(--color-surface-2);
+}
+
+.monthButton:disabled {
+  color: var(--color-ink-muted);
+  cursor: default;
+  opacity: 0.4;
+}
+
+.monthButton:disabled:hover {
+  background-color: transparent;
+}
+
+.month {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.month th {
+  height: var(--size-chip);
+  padding: 0;
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+  font-weight: var(--type-body-weight);
+  text-align: center;
+}
+
+.month td {
+  padding: 0;
+  text-align: center;
+}
+
+.day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-target);
+  height: var(--size-target);
+  padding: 0;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition-property: background-color, border-color;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease-standard);
+}
+
+.day:hover {
+  background-color: var(--color-surface-2);
+}
+
+/* Today: a ring and heavier figures, so it isn't told by colour alone. */
+.day[aria-current='date'] {
+  border-color: var(--color-border-strong);
+  font-weight: var(--type-title-weight);
+}
+
+/* The chosen day takes the brand colour: the selected state. */
+.day[aria-pressed='true'] {
+  background-color: var(--color-brand);
+  border-color: var(--color-brand);
+  color: var(--color-ink-inverse);
+  font-weight: var(--type-title-weight);
+}
+
+.day:disabled {
+  color: var(--color-ink-muted);
+  text-decoration: line-through;
+  cursor: default;
+  opacity: 0.5;
+}
+
+.day:disabled:hover {
+  background-color: transparent;
+}
+
+/* The times: a list of whole-row targets, 48px high. */
+.times {
+  display: grid;
+  margin: 0;
+  padding: var(--space-2);
+  list-style: none;
+}
+
+.time {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 192px;
+  min-height: var(--size-control);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.time:hover {
+  background-color: var(--color-surface-2);
+}
+
+/* The chosen time: the brand tint, heavier words and a tick. */
+.time[aria-selected='true'] {
+  background-color: var(--color-brand-bg);
+  font-weight: var(--type-title-weight);
+}
+
+.time svg {
+  flex: none;
+  color: var(--color-brand);
+}
+
+/* Inside the rounded panel, so the ring isn't clipped. */
+.time:focus-visible {
+  outline-offset: -2px;
+}
+
+/* As a popover the calendar is seven 44px days wide. */
+@media (width > 900px) {
+  .calendar {
+    width: calc(7 * var(--size-target) + 2 * var(--space-4));
+  }
+}
+
+@media (width <= 900px) {
+  .calendar {
+    padding: 0 var(--space-4) var(--space-5);
+  }
+
+  .times {
+    padding: 0 var(--space-3) var(--space-4);
+  }
+}

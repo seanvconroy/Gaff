@@ -1,47 +1,26 @@
-import { LogOut } from 'lucide-react';
+import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { requireMember } from '@/server/auth/member';
-import { Wordmark } from '@/ui/Layout';
-import { signOut } from './actions';
-import { ActivityTracker } from './ActivityTracker';
-import { WorkspaceNav } from './WorkspaceNav';
-import styles from './workspace.module.css';
+import { requirePerson } from '@/server/context/current-person';
+import { ActivityTracker } from '../_shell/ActivityTracker';
+import { AppShell } from '../_shell/AppShell';
 
 export const dynamic = 'force-dynamic';
 
-/** The workspace: a navy sidebar (a top bar and a bottom bar on a phone) beside the page. */
+/**
+ * The letting side: Today, Lettings, Calendar, Inbox, and the pages under them, inside the shell
+ * with the navigation. Signed out → sign-in; signed in with nothing to let → first run.
+ *
+ * A workspace page works for one organisation: the one the person let for last (UX-AC-11). It
+ * is on the letting side whatever context was open, so the shell is told so; the tracker then
+ * notes that this is the context in use.
+ */
 export default async function WorkspaceLayout({ children }: { children: ReactNode }) {
-  const member = await requireMember();
+  const person = await requirePerson();
+  if (!person.member) redirect('/welcome');
   return (
-    <div className={styles.shell}>
-      <a href="#main" className={styles.skip}>
-        Skip to content
-      </a>
-      <header className={styles.side}>
-        <div className={styles.sideInner}>
-          <div className={styles.brand}>
-            <Wordmark onNavy />
-          </div>
-          <WorkspaceNav />
-          <div className={styles.account}>
-            <p className={styles.who}>
-              <span className={styles.name}>{member.name}</span>
-              <span className="visually-hidden"> · </span>
-              <span>{member.organisationName}</span>
-            </p>
-            <form action={signOut}>
-              <button type="submit" className={styles.signOut}>
-                <LogOut size={18} strokeWidth={1.75} aria-hidden="true" />
-                Sign out
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
-      <main id="main" className={styles.main}>
-        {children}
-      </main>
+    <>
+      <AppShell side="letting">{children}</AppShell>
       <ActivityTracker />
-    </div>
+    </>
   );
 }

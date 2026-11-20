@@ -1,0 +1,456 @@
+'use client';
+
+import { Check } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
+import type { z } from 'zod';
+import { addLettingCopy } from '@/copy/add-letting';
+import { developmentCopy } from '@/copy/developments';
+import { lettingDetailsFormSchema } from '@/domain/criteria/criteria';
+import {
+  addressStepSchema,
+  descriptionSchema,
+  homeFactsSchema,
+  homeStepSchema,
+  rentStepSchema,
+} from '@/domain/lettings/add-letting';
+import { MAX_HOME_PHOTOS } from '@/domain/lettings/photos';
+import { fieldErrors, type FormState } from '@/lib/forms';
+import { ButtonLink } from '@/ui/Button';
+import { TextArea } from '@/ui/Field';
+import { FlowExit, FlowShell, FlowTitle } from '@/ui/FlowShell';
+import { Skeleton, SkeletonGroup } from '@/ui/Skeleton';
+import {
+  type DirectUpload,
+  PhotoUploader,
+  type UploadedPhoto,
+  type UploadResult,
+} from '@/ui/PhotoUploader';
+import { SubmitButton } from '@/ui/SubmitButton';
+import {
+  AddressFields,
+  DescriptionFields,
+  type DescriptionDrafting,
+  DetailsFields,
+  HomeFields,
+  RentFields,
+} from './fields';
+import styles from './flow.module.css';
+import { firstAddressHref, screenHref } from '@/domain/lettings/links';
+import { progressOf, StepForm, type StepFrame } from './StepForm';
+
+const copy = addLettingCopy;
+
+type Action = (state: FormState, data: FormData) => Promise<FormState>;
+
+/** A step's rule as the problems by field, for the form to show where they are. */
+const problemsBy = (schema: () => z.ZodType) => (values: Record<string, string>) => {
+  const parsed = schema().safeParse(values);
+  return parsed.success ? {} : fieldErrors(parsed.error);
+};
+
+/** Homes this organisation started and didn't finish, under the first screen (UX-FL-2). */
+function Drafts({
+  drafts,
+}: {
+  drafts: ReadonlyArray<{ id: string; label: string; href: string }>;
+}) {
+  if (drafts.length === 0) return null;
+  return (
+    <section className={styles.drafts} aria-labelledby="drafts-heading">
+      <h2 id="drafts-heading" className="type-heading">
+        {copy.start.drafts}
+      </h2>
+      <ul className={styles.factList}>
+        {drafts.map((each) => (
+          <li key={each.id}>
+            <Link href={each.href}>{each.label}</Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** BA-15: the way to add many alike homes at once, beside "Fill it in myself". */
+function Several({ href }: { href: string }) {
+  return (
+    <div className={styles.aside}>
+      <ButtonLink href={href} variant="quiet">
+        {developmentCopy.start.several}
+      </ButtonLink>
+      <p className={styles.muted}>{developmentCopy.start.severalLead}</p>
+    </div>
+  );
+}
+
+/** UX-AI-13: the review's layout, at once, while Gaff reads what was pasted. */
+function ReadingNow() {
+  return (
+    <SkeletonGroup label={copy.start.reading}>
+      <Skeleton shape="title" width="long" />
+      <Skeleton width="half" />
+      {[0, 1, 2, 3, 4, 5].map((row) => (
+        <Skeleton key={row} shape="control" />
+      ))}
+    </SkeletonGroup>
+  );
+}
+
+/**
+ * Step 1, "Tell Gaff about the home" (UX-LT-1): one box for a pasted advert or a description,
+ * one primary button, and the quiet way round it, "Fill it in myself". A Daft or MyHome link
+ * is kept and never fetched (UX-LT-8); no other link is opened either (Q31).
+ *
+ * Continue reads what's in the box (UX-LT-2) and opens "Here's what Gaff found". While it
+ * reads, the review's layout shows (UX-AI-13). If the reader is switched off (`readerOn`), the
+ * screen offers only what works: "Fill it in myself", as its one primary button (UX-AI-12).
+ *
+ * NOT BUILT YET: attaching a brochure, screenshots or photos (UX-LT-1). The reader carries text
+ * only, and every value it keeps must point at the words it came from, so files wait until they
+ * can be turned into text that can be checked (`advertFilesAreRead`). Until then there is no
+ * attach button, rather than one that does nothing.
+ */
+export function StartStep({
+  frame,
+  action,
+  from,
+  draftId,
+  kept,
+  readerOn,
+  drafts,
+  several,
+}: {
+  frame: StepFrame;
+  action: Action;
+  /**
+   * BA-15: "Several alike in one development", for an agency or a landlord's team: where it
+   * starts. Left out for a private landlord's own homes.
+   */
+  several?: string;
+  from: string | null;
+  /** A draft that holds only an advert link so far. */
+  draftId: string | null;
+  /** UX-LT-8: a link was just kept. */
+  kept: boolean;
+  readerOn: boolean;
+  /** Homes this organisation started and didn't finish, to carry on with (UX-FL-2). */
+  drafts: ReadonlyArray<{ id: string; label: string; href: string }>;
+}) {
+  if (!readerOn) {
+    const manual = draftId ? screenHref(draftId, 'address', from) : firstAddressHref(from);
+    return (
+      <FlowShell
+        leave={{ kind: 'close', href: frame.leaveHref }}
+        primary={
+          <ButtonLink href={manual} variant="primary" fullWidth="phone">
+            {copy.start.manual}
+          </ButtonLink>
+        }
+      >
+        <FlowTitle title={copy.start.title} lead={copy.start.readerOff} />
+        {several ? <Several href={several} /> : null}
+        <Drafts drafts={drafts} />
+      </FlowShell>
+    );
+  }
+  return (
+    <StepForm
+      id="start"
+      frame={frame}
+      action={action}
+      title={copy.start.title}
+      primary={copy.start.continue}
+      pending={copy.start.readingButton}
+    >
+      {({ errors, values, sending }) => {
+        const draft = values?.draft || draftId;
+        return (
+          <>
+            {sending ? <ReadingNow /> : null}
+            <div hidden={sending} className={styles.fields}>
+              <TextArea
+                name="about"
+                label={copy.start.box}
+                rows={8}
+                defaultValue={values?.about ?? ''}
+                error={errors.about}
+              />
+              {kept && !errors.about ? (
+                <p className={styles.note} role="status">
+                  <Check size={20} strokeWidth={2} aria-hidden="true" />
+                  <span>{copy.start.linkKept}</span>
+                </p>
+              ) : null}
+              <div className={styles.aside}>
+                <ButtonLink
+                  href={draft ? screenHref(draft, 'address', from) : firstAddressHref(from)}
+                  variant="quiet"
+                >
+                  {copy.start.manual}
+                </ButtonLink>
+              </div>
+              {several ? <Several href={several} /> : null}
+              <Drafts drafts={drafts} />
+            </div>
+          </>
+        );
+      }}
+    </StepForm>
+  );
+}
+
+/** Step 3, "Where is it?" (UX-LT-9). */
+export function AddressStep({
+  frame,
+  action,
+  values: start,
+  searchOn,
+}: {
+  frame: StepFrame;
+  action: Action;
+  values: Record<string, string>;
+  searchOn: boolean;
+}) {
+  const check = (values: Record<string, string>): Record<string, string> =>
+    values.addressLine1 === undefined
+      ? { addressSearch: copy.address.choose }
+      : problemsBy(addressStepSchema)(values);
+  return (
+    <StepForm id="address" frame={frame} action={action} check={check} title={copy.address.title}>
+      {({ errors, values }) => (
+        <AddressFields values={values ?? start} errors={errors} searchOn={searchOn} />
+      )}
+    </StepForm>
+  );
+}
+
+/** Step 4, "Rent and date". */
+export function RentStep({
+  frame,
+  action,
+  values: start,
+  today,
+  inAYear,
+}: {
+  frame: StepFrame;
+  action: Action;
+  values: Record<string, string>;
+  today: string;
+  inAYear: string;
+}) {
+  return (
+    <StepForm
+      id="rent"
+      frame={frame}
+      action={action}
+      check={problemsBy(rentStepSchema)}
+      title={copy.rent.title}
+    >
+      {({ errors, values }) => (
+        <RentFields values={values ?? start} errors={errors} today={today} inAYear={inAYear} />
+      )}
+    </StepForm>
+  );
+}
+
+/** Step 5, "The home". Where it's offered, Gaff drafts the description from the facts (P10). */
+export function HomeStep({
+  frame,
+  action,
+  values: start,
+  drafting,
+}: {
+  frame: StepFrame;
+  action: Action;
+  values: Record<string, string>;
+  drafting?: DescriptionDrafting;
+}) {
+  return (
+    <StepForm
+      id="home"
+      frame={frame}
+      action={action}
+      check={problemsBy(homeStepSchema)}
+      title={copy.home.title}
+    >
+      {({ errors, values }) => (
+        <>
+          <HomeFields values={values ?? start} errors={errors} />
+          <DescriptionFields values={values ?? start} errors={errors} drafting={drafting} />
+        </>
+      )}
+    </StepForm>
+  );
+}
+
+/**
+ * UX-LP-11, UX-LP-12: the home's facts on their own, opened by "Change" on Home. Saved, it goes
+ * back to Home, and Gaff answers renters from the facts as they are now.
+ */
+export function FactsStep({
+  frame,
+  action,
+  values: start,
+}: {
+  frame: StepFrame;
+  action: Action;
+  values: Record<string, string>;
+}) {
+  return (
+    <StepForm
+      id="facts"
+      frame={frame}
+      action={action}
+      check={problemsBy(homeFactsSchema)}
+      title={copy.home.title}
+      primary={copy.save}
+    >
+      {({ errors, values }) => <HomeFields values={values ?? start} errors={errors} />}
+    </StepForm>
+  );
+}
+
+/** UX-LP-11: the description and the other facts on their own, opened by "Change" on Home. */
+export function DescriptionStep({
+  frame,
+  action,
+  values: start,
+  drafting,
+}: {
+  frame: StepFrame;
+  action: Action;
+  values: Record<string, string>;
+  drafting?: DescriptionDrafting;
+}) {
+  return (
+    <StepForm
+      id="description"
+      frame={frame}
+      action={action}
+      check={problemsBy(descriptionSchema)}
+      title={copy.review.description}
+      primary={copy.save}
+    >
+      {({ errors, values }) => (
+        <DescriptionFields values={values ?? start} errors={errors} drafting={drafting} />
+      )}
+    </StepForm>
+  );
+}
+
+/**
+ * Step 6, "Photos" (UX-LT-10). Each photo is kept as it uploads, so there is nothing for the
+ * button to save: it moves on, as Next with photos or "Skip for now" without.
+ */
+export function PhotosStep({
+  frame,
+  photos,
+  upload,
+  direct,
+  remove,
+  reorder,
+  setKind,
+  done,
+  problem,
+  doneLabel,
+  title = copy.photos.title,
+  lead,
+}: {
+  frame: StepFrame;
+  /** BA-15: a development's or a type's photos have a title of their own. */
+  title?: string;
+  lead?: string;
+  photos: UploadedPhoto[];
+  upload: (data: FormData) => Promise<UploadResult>;
+  /** M43: photos straight to the store, where it can take them. */
+  direct?: DirectUpload;
+  remove: (id: string) => Promise<void>;
+  reorder: (ids: string[]) => Promise<void>;
+  /** M44: marks a picture as a floor plan, or a photo again. */
+  setKind?: (id: string, kind: 'photo' | 'floor_plan') => Promise<void>;
+  done: () => Promise<void>;
+  problem?: string;
+  /** Opened on its own from Home: one button that goes back, whatever the count. */
+  doneLabel?: string;
+}) {
+  const [count, setCount] = useState(photos.length);
+  return (
+    <FlowShell
+      leave={{ kind: 'close', href: frame.leaveHref }}
+      progress={progressOf(frame)}
+      saveAndExit={<FlowExit href={frame.leaveHref}>{copy.saveAndExit}</FlowExit>}
+      back={
+        frame.backHref ? (
+          <ButtonLink href={frame.backHref} variant="quiet">
+            {copy.back}
+          </ButtonLink>
+        ) : undefined
+      }
+      primary={
+        <SubmitButton fullWidth="phone" pendingLabel={copy.saving}>
+          {doneLabel ?? (count > 0 ? copy.next : copy.photos.skip)}
+        </SubmitButton>
+      }
+      form={{ action: done }}
+    >
+      <FlowTitle title={title} lead={lead} />
+      <PhotoUploader
+        photos={photos}
+        max={MAX_HOME_PHOTOS}
+        upload={upload}
+        direct={direct}
+        remove={remove}
+        reorder={reorder}
+        setKind={setKind}
+        problem={problem}
+        onCount={setCount}
+      />
+    </FlowShell>
+  );
+}
+
+/**
+ * Step 7, "Letting details" (UX-LT-11). In the flow its button is Next, or "Nothing to add"
+ * while every row is off. Opened on its own from the letting's page, it is Save.
+ */
+export function DetailsStep({
+  frame,
+  action,
+  values: start,
+  availableFrom,
+  today,
+  alone,
+  startsWithLine,
+}: {
+  frame: StepFrame;
+  action: Action;
+  values: Record<string, string>;
+  availableFrom: string;
+  today: string;
+  alone: boolean;
+  startsWithLine: boolean;
+}) {
+  const [asked, setAsked] = useState(startsWithLine);
+  return (
+    <StepForm
+      id="details"
+      frame={frame}
+      action={action}
+      check={problemsBy(lettingDetailsFormSchema)}
+      title={copy.details.title}
+      lead={copy.details.lead}
+      primary={alone ? copy.save : asked ? copy.next : copy.details.nothingToAdd}
+    >
+      {({ errors, values }) => (
+        <DetailsFields
+          values={values ?? start}
+          errors={errors}
+          availableFrom={availableFrom}
+          today={today}
+          onLine={(line) => setAsked(line !== null)}
+        />
+      )}
+    </StepForm>
+  );
+}

@@ -1,59 +1,22 @@
-/* The two packs, side by side. */
+/* UX-TN-1: the tenancy's steps, then the one to do now. */
+.steps {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.lead:empty {
+  display: none;
+}
+
+/* The agreement and the pack, side by side: links on their own, so each is a full 44px target. */
 .links {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-6);
+  gap: 0 var(--space-6);
 }
 
-/* R25: the inventory, one row per item, a photo where there is one. */
-.inventoryBlock {
-  display: grid;
-  gap: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
-}
-
-.inventory {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.item {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: var(--space-3);
+.links a {
+  display: inline-flex;
   align-items: center;
-  padding: var(--space-3) 0;
-  border-top: 1px solid var(--color-border);
-}
-
-.item:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-
-.photo,
-.noPhoto {
-  width: 64px;
-  height: 64px;
-  border-radius: var(--radius-md);
-}
-
-.photo {
-  object-fit: cover;
-}
-
-.noPhoto {
-  background-color: var(--color-surface-2);
-}
-
-.itemText {
-  display: grid;
-  gap: var(--space-1);
-}
-
-.note {
-  color: var(--color-ink-muted);
+  min-height: var(--size-target);
 }

@@ -14,7 +14,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:16
@@ -31,7 +31,6 @@ jobs:
     env:
       # Synthetic data only. The app role is not a superuser, so row-level security applies.
       TEST_DATABASE_URL: postgres://gaff:gaff@localhost:5432/gaff_test
-      E2E_DATABASE_URL: postgres://gaff:gaff@localhost:5432/gaff_e2e
       NEXT_TELEMETRY_DISABLED: '1'
     steps:
       - uses: actions/checkout@v4
@@ -49,15 +48,55 @@ jobs:
       - run: pnpm test
       - run: pnpm test:int
       - run: pnpm build
+
+  # The journeys take about 25 minutes on one machine, so they run as four parts side by side,
+  # each with its own database. Every part must pass.
+  e2e:
+    name: e2e (${{ matrix.shard }} of 4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Synthetic data only. The app role is not a superuser, so row-level security applies.
+      E2E_DATABASE_URL: postgres://gaff:gaff@localhost:5432/gaff_e2e
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Create the app database role
+        run: psql postgres://postgres:postgres@localhost:5432/postgres -c "create role gaff login password 'gaff' createdb nosuperuser nobypassrls"
+      - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       # Jobs run as on Vercel (ADR-0014): no worker, runs after requests and a frequent tick.
-      - run: pnpm test:e2e
+      # A trace is kept only for a journey that failed once and is being tried again.
+      - run: pnpm test:e2e --shard=${{ matrix.shard }}/4 --trace on-first-retry
         env:
           E2E_JOBS: vercel
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/

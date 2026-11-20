@@ -69,7 +69,7 @@ describe('R27: the letting’s timeline', () => {
       ['Three comparable rents recorded', 'Ann Power'],
       ['Set-up confirmed: Gaff started answering enquiries', 'Ann Power'],
     ]);
-    expect(entries[2]?.detail).toBe('Up to 3 people; No pets (assistance dogs are always welcome)');
+    expect(entries[2]?.detail).toBe('Up to 3 people; No pets (assistance dogs always welcome)');
     expect(entries[4]?.detail).toBe('Middle rent €1,950 a month');
     expect(JSON.stringify(entries)).not.toMatch(/Mary|mary\.byrne|Ranelagh/);
   });

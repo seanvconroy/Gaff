@@ -1,0 +1,158 @@
+/*
+ * The frame of every private page (UX-PP-1 to UX-PP-10): the pages a renter, a tenant, an owner
+ * or a referee reaches by a link. Phone first, and the same at every width: one column, a
+ * space-4 gutter, nothing below body size (the frame's data-density="comfortable" makes help text
+ * body size), and 48px controls as everywhere.
+ */
+.page {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+  background-color: var(--color-surface-0);
+}
+
+/* One column for the header, the page and the footer: the width of a task. */
+.inner {
+  width: 100%;
+  max-width: var(--size-task);
+  margin: 0 auto;
+}
+
+/* An owner's page holds a table, so its column is wider. */
+.wide {
+  max-width: 880px;
+}
+
+.header {
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.headerInner {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--size-bar);
+}
+
+/* An owner's or a referee's page is the agency's: its initials and its name (UX-PP-9). */
+.lister {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.listerName {
+  font-weight: var(--type-title-weight);
+  overflow-wrap: anywhere;
+}
+
+.main {
+  padding: var(--space-6) var(--space-4) var(--space-12);
+}
+
+.column {
+  display: grid;
+  gap: var(--space-8);
+  align-content: start;
+}
+
+/* The home this page is about: its cover photo, its address, one summary line, who lets it. */
+.home {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3) var(--space-4);
+  align-items: center;
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* The cover photo's slot, 3:2 (UX-DS-10). A home with no photos shows a house, never a gap. */
+.photo {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  aspect-ratio: 3 / 2;
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-lg);
+  color: var(--color-ink-muted);
+}
+
+.address {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.addressLine {
+  font-family: var(--type-title-family);
+  font-size: var(--type-title-size);
+  line-height: var(--type-title-line);
+  font-weight: var(--type-title-weight);
+  letter-spacing: var(--type-title-tracking);
+  overflow-wrap: anywhere;
+}
+
+.area {
+  color: var(--color-ink-muted);
+}
+
+.homeFacts {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: var(--space-1);
+}
+
+.summary {
+  font-weight: var(--type-title-weight);
+}
+
+.letBy {
+  color: var(--color-ink-muted);
+}
+
+/* What happens next, and when: one quiet panel, once, after the task (UX-PP-2). */
+.next {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-md);
+}
+
+.nextTitle {
+  font-weight: var(--type-title-weight);
+}
+
+/* Words the assistant wrote, marked as the assistant's (UX-AI-1). */
+.assistant {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.footer {
+  padding: var(--space-6) var(--space-4) var(--space-10);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-ink-muted);
+}
+
+.footerInner {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: start;
+}
+
+.footerName {
+  color: var(--color-ink);
+  font-weight: var(--type-title-weight);
+}
+
+/* A link on its own line is a full 44px target. */
+.footerLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-target);
+}

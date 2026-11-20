@@ -21,7 +21,7 @@ export default async function RentPackPage({ params }: { params: Promise<{ letti
   if (!pack) return null;
   return (
     <Stack gap={6}>
-      <h1 className="type-heading">Rent-setting pack: {pack.letting.addressLine1}</h1>
+      <h1 className="type-display-mobile">Rent-setting pack: {pack.letting.addressLine1}</h1>
       <p>
         {pack.letting.addressLine1}, {pack.letting.area}. New rent:{' '}
         {formatRent(pack.tenancy?.rentCents ?? pack.letting.monthlyRentCents)}

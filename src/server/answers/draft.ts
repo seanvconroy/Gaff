@@ -1,5 +1,4 @@
 import { and, eq } from 'drizzle-orm';
-import { aiDrafter } from '@/adapters/ai';
 import { withOrg, type Tx } from '@/db/client';
 import {
   aiDrafts,
@@ -19,6 +18,8 @@ import {
   type CheckedItem,
   type Fact,
 } from '@/domain/answers/guardrails';
+import { asASentence } from '@/domain/answers/sentences';
+import { runAi } from '@/server/ai/usage';
 import { enqueue } from '@/server/jobs/enqueue';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
@@ -59,7 +60,11 @@ export async function draftAnswersFor(input: { organisationId: string; messageId
       .innerJoin(lettings, eq(lettings.id, messages.lettingId))
       .innerJoin(organisations, eq(organisations.id, messages.organisationId))
       .where(and(eq(messages.id, input.messageId), eq(messages.direction, 'inbound')));
-    if (!row || row.letting.status === 'draft') return null;
+    // UX-TS-4: a home Gaff's team has hidden answers nothing until it's back, as in set-up.
+    // M49: and so does one that stepped back, unconfirmed.
+    if (!row || row.letting.status === 'draft' || row.letting.hiddenAt || row.letting.staleAt) {
+      return null;
+    }
     const [done] = await tx
       .select({ id: aiDrafts.id })
       .from(aiDrafts)
@@ -111,37 +116,36 @@ export async function draftAnswersFor(input: { organisationId: string; messageId
   });
   const remaining = questions.filter((q) => !fixedAnswerFor(q));
 
-  // 2. Ask the AI, with names and contact details removed.
+  // 2. Ask the AI, with names and contact details removed. A refusal, a failure, a paused
+  // budget or the task switched off all leave the questions with the operator (P5).
   let checked: CheckedItem[] = [];
   let ai: { model: string; promptVersion: string; refused: boolean } | null = null;
   if (remaining.length > 0) {
-    const drafter = aiDrafter();
-    try {
-      const response = await drafter.draftAnswers({
-        operatorName: organisation.name,
-        facts,
-        questions: remaining.map((q) => redact(q, application.fullName)),
-      });
-      ai = {
-        model: response.model,
-        promptVersion: drafter.promptVersion,
-        refused: Boolean(response.refused),
-      };
-      checked = remaining.map((question, i) => {
-        const item = response.items[i];
-        return item
-          ? { ...checkDraftItem({ ...item, question }, facts), question }
-          : { question, outcome: 'to_operator' as const, reason: 'no_facts' as const };
-      });
-    } catch (error) {
-      console.error('AI drafting failed; the questions go to the operator', error);
-      checked = remaining.map((question) => ({
-        question,
-        outcome: 'to_operator' as const,
-        reason: 'no_facts' as const,
-      }));
-      ai = { model: 'unavailable', promptVersion: drafter.promptVersion, refused: false };
-    }
+    const run = await runAi({
+      task: 'answers',
+      organisationId: input.organisationId,
+      call: (provider) =>
+        provider.draftAnswers({
+          operatorName: organisation.name,
+          facts,
+          questions: remaining.map((q) => redact(q, application.fullName)),
+        }),
+    });
+    const replied = run.outcome === 'ok' || run.outcome === 'refused' || run.outcome === 'invalid';
+    ai = {
+      model: replied ? run.model : 'unavailable',
+      promptVersion: run.promptVersion,
+      refused: run.outcome === 'refused',
+    };
+    const items = run.output?.items ?? [];
+    checked = remaining.map((question, i) => {
+      const item = items[i];
+      // UX-AI-11: an answer that only repeats a fact's field and value is put as a sentence,
+      // from that same fact, before the guardrails check what would go out.
+      return item
+        ? { ...checkDraftItem(asASentence({ ...item, question }, facts), facts), question }
+        : { question, outcome: 'to_operator' as const, reason: 'no_facts' as const };
+    });
   }
 
   // 3. Save the outcome in one transaction.

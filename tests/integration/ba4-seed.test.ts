@@ -1,3 +1,4 @@
+import { readMoreFacts } from '@/domain/lettings/more-facts';
 import { and, count, eq, gt, inArray } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { db, withOrg, withSystem } from '@/db/client';
@@ -213,7 +214,11 @@ describe('BA-4: the test copy’s seed', () => {
         expect(detail.setup.criteriaSet, address).toBe(true);
         expect(isShownOnGaff(detail), address).toBe(true);
         expect(detail.photos.length, address).toBeGreaterThanOrEqual(3);
-        expect(detail.facts.length, address).toBeGreaterThan(3);
+        // BA-14: what renters ask is in the further facts now (floor, heating and the rest),
+        // with the free-text facts beside them: more than three in all, and four or more facts.
+        const more = Object.keys(readMoreFacts(detail.letting.moreFacts)).length;
+        expect(more, address).toBeGreaterThanOrEqual(4);
+        expect(detail.facts.length + more, address).toBeGreaterThan(3);
         expect(placedPoint(detail.letting), address).not.toBeNull();
         expect(
           detail.sessions.filter((s) => s.startsAt > new Date()).length,

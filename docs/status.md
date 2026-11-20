@@ -42,7 +42,7 @@ Sean agreed the plan on 19 November 2026. The decisions are Q50 to Q54 in [open-
 | 2 | BA-11 a description drafted from the home's facts (P10, P11) | **Done**, 20 November 2026. "Draft a description" is a quiet button beside the description, in adding a letting and on Home. The model is given the home's facts and the lister's own statements, never the rent, the criteria, the street or anyone's name or contact details. A draft is used only if it passes the wording checks, cites only what it was given and adds no number; otherwise the lister is told to write their own. It carries "Drafted by AI" on the lister's side until a word changes, and is never labelled to renters. The button isn't shown when the task is switched off or the month's budget is spent. A golden set of 30 homes for `pnpm evals description`. ADR-0028. `tests/integration/p10-drafted-description.test.ts`, `tests/e2e/ba11-drafted-description.spec.ts` |
 | 2 | BA-14 more of a home's facts, "Stop taking enquiries", and search answered by the database (M39, M40, M44, M47, M52, M58, M61) | In progress |
 | 2 | BA-15 developments, and letting many alike homes (M32 to M35, M75) | In progress |
-| 3 | Work and income documents (P30 to P49): specified on the live line, built on neither | Not started |
+| 3 | BA-16 a chosen renter shows their work and income with documents (P30 to P49): specified on the other line, built on neither | In progress |
 - **CI:** the journeys had outgrown the job's 25 minutes, so every run on the redesign's branch was cut off. They now run as four parts side by side.
 
 ## Done

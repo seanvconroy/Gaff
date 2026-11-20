@@ -11,6 +11,12 @@ import {
   listingBackEmail,
   listingHeldEmail,
   listingHiddenEmail,
+  listingCheckingEmail,
+  listingClearedEmail,
+  listingNotShownEmail,
+  listingsPausedEmail,
+  pauseKeptEmail,
+  pauseLiftedEmail,
   reasonGrounds,
   reportOutcomeEmail,
 } from './trust-emails';
@@ -231,5 +237,209 @@ describe('UX-PP-10, rule 3: every one in the Gaff layout, naming no reporter and
       ...emails.map((email) => email.text.replace(/the Equal Status Acts 2000 to 2018, /g, '')),
     ];
     for (const line of words) expect(findProtectedGrounds(line), line).toEqual([]);
+  });
+});
+
+/**
+ * BA-10 (the live line's M29, M48, M98, M107): the emails about a home the checks held, and a
+ * paused lister. New wording, for the solicitor's list, pinned word for word.
+ */
+describe('M48, M98, M107: the checks and a paused lister, word for word', () => {
+  const PAUSED = `${APP}/paused`;
+  const pause = {
+    listerName: 'Halcyon Lettings',
+    reason: 'scam' as const,
+    reasonWords: hiddenReasons.scam,
+    facts: ['checks', 'lister'] as const,
+    decidedOn: 'Thursday 19 November',
+    pausedUrl: PAUSED,
+  };
+
+  it('M48: held for a person: nobody has decided, when they’ll look, and what waits', () => {
+    const email = listingCheckingEmail({
+      address: '12 Ranelagh Road',
+      lookBy: 'Thursday 19 November, 2pm',
+      phrases: [],
+      lettingUrl: LETTING,
+    });
+    expect(email.subject).toBe('12 Ranelagh Road is waiting for a check before it goes on gaff.ie');
+    expect(email.button).toBe('Open the letting');
+    expect(email.text).toBe(
+      [
+        'Hello,',
+        '',
+        'Gaff checks every home before it goes on gaff.ie, and something about 12 Ranelagh Road needs a person to look at it. Nobody has decided anything about it yet.',
+        '',
+        'Until then, it has no page on gaff.ie and isn’t in search. Gaff isn’t answering its enquiries: they wait, and are answered once it’s on gaff.ie.',
+        '',
+        LETTING,
+        '',
+        'A person on Gaff’s team will look at it by Thursday 19 November, 2pm. If it’s fine, it goes on gaff.ie straight away, and we’ll email you either way.',
+        '',
+        'Gaff',
+      ].join('\n'),
+    );
+  });
+
+  it('P13: wording the check found is quoted, so the lister can change it while they wait', () => {
+    const email = listingCheckingEmail({
+      address: '12 Ranelagh Road',
+      lookBy: 'Thursday 19 November, 2pm',
+      phrases: ['Locals preferred', 'English speakers only'],
+      lettingUrl: LETTING,
+    });
+    expect(email.text.split('\n')[4]).toBe(
+      'These words in what renters read about it may not be fair to everyone who could apply: “Locals preferred” and “English speakers only”. You can change them while you wait.',
+    );
+  });
+
+  it('M98: released, and kept off with the statement of reasons', () => {
+    expect(listingClearedEmail({ address: '12 Ranelagh Road', lettingUrl: LETTING })).toEqual({
+      subject: '12 Ranelagh Road is on gaff.ie now',
+      button: 'Open the letting',
+      text: [
+        'Hello,',
+        '',
+        'A person on Gaff’s team has checked 12 Ranelagh Road, and it’s on gaff.ie now, with its page and its place in search.',
+        '',
+        'Gaff is answering its enquiries, starting with anyone who enquired while it waited.',
+        '',
+        LETTING,
+        '',
+        'There’s nothing you need to do.',
+        '',
+        'Gaff',
+      ].join('\n'),
+    });
+    const kept = listingNotShownEmail({
+      ...statement,
+      reason: 'scam',
+      reasonWords: hiddenReasons.scam,
+      facts: ['checks', 'photos'],
+    });
+    expect(kept.subject).toBe('12 Ranelagh Road won’t go on gaff.ie for now');
+    expect(kept.text).toBe(
+      [
+        'Hello,',
+        '',
+        'Gaff’s team has checked 12 Ranelagh Road, and it won’t go on gaff.ie for now: it may not be a genuine listing.',
+        '',
+        'What we relied on: the checks Gaff makes on every home before it goes on gaff.ie and the home’s photos. This rests on Gaff’s listing rules: every home on gaff.ie must be a real home, offered by someone who may let it. A person on Gaff’s team decided this on Thursday 19 November.',
+        '',
+        'While it’s off, it has no page and isn’t in search. Gaff isn’t answering its enquiries: they wait, and are answered when it’s back.',
+        '',
+        'If you think we got it wrong, or once you’ve put right anything that needs it, press “Ask Gaff to look again” on the letting. You can ask once, within six months.',
+        '',
+        LETTING,
+        '',
+        'A different person on Gaff’s team will look within one working day of your asking, and email you.',
+        '',
+        'Gaff',
+      ].join('\n'),
+    );
+  });
+
+  it('M107: paused, with the statement of reasons, what it means and how to appeal', () => {
+    const email = listingsPausedEmail(pause);
+    expect([email.subject, email.button]).toEqual([
+      'Your listings on gaff.ie are paused',
+      'See why',
+    ]);
+    expect(email.text).toBe(
+      [
+        'Hello,',
+        '',
+        'Gaff’s team has paused Halcyon Lettings’s listings on gaff.ie after a case about one of its homes: it may not be a genuine listing.',
+        '',
+        'What we relied on: the checks Gaff makes on every home before it goes on gaff.ie and the lister’s details on its page. This rests on Gaff’s listing rules: every home on gaff.ie must be a real home, offered by someone who may let it. A person on Gaff’s team decided this on Thursday 19 November.',
+        '',
+        'While they’re paused, none of your homes is on gaff.ie and no new home goes live. The homes you have live carry on with the people already in them.',
+        '',
+        'If you think we got it wrong, press “Ask Gaff to look again”. You can ask once, within six months.',
+        '',
+        PAUSED,
+        '',
+        'A different person on Gaff’s team will look within one working day of your asking, and email you.',
+        '',
+        'Gaff',
+      ].join('\n'),
+    );
+  });
+
+  it('M107, M98: lifted, and kept on appeal, which is final', () => {
+    expect(
+      pauseLiftedEmail({ listerName: 'Halcyon Lettings', lettingsUrl: `${APP}/lettings` }),
+    ).toEqual({
+      subject: 'Your listings are back on gaff.ie',
+      button: 'Open your lettings',
+      text: [
+        'Hello,',
+        '',
+        'Gaff’s team has lifted the pause on Halcyon Lettings’s listings. Your live homes are back on gaff.ie, and you can put new homes live again.',
+        '',
+        `${APP}/lettings`,
+        '',
+        'There’s nothing you need to do.',
+        '',
+        'Gaff',
+      ].join('\n'),
+    });
+    const kept = pauseKeptEmail(pause);
+    expect(kept.subject).toBe('Your listings stay paused');
+    expect(kept.text).toBe(
+      [
+        'Hello,',
+        '',
+        'A different person on Gaff’s team has looked again, as you asked, and Halcyon Lettings’s listings stay paused: it may not be a genuine listing.',
+        '',
+        'What we relied on: the checks Gaff makes on every home before it goes on gaff.ie and the lister’s details on its page. This rests on Gaff’s listing rules: every home on gaff.ie must be a real home, offered by someone who may let it. A person on Gaff’s team decided this on Thursday 19 November.',
+        '',
+        'You can’t ask Gaff to look again a second time. You can take it to an out-of-court dispute settlement body certified under the EU Digital Services Act, or to the courts.',
+        '',
+        PAUSED,
+        '',
+        'The homes you have live carry on with the people already in them. Nothing more happens unless you take it further.',
+        '',
+        'Gaff',
+      ].join('\n'),
+    );
+  });
+
+  it('UX-PP-10, rule 3: each goes in the Gaff layout with one button, no exclamation, no protected ground', () => {
+    const all = [
+      listingCheckingEmail({
+        address: '12 Ranelagh Road',
+        lookBy: 'Thursday 19 November, 2pm',
+        phrases: [],
+        lettingUrl: LETTING,
+      }),
+      listingClearedEmail({ address: '12 Ranelagh Road', lettingUrl: LETTING }),
+      ...reportReasons.map((reason) =>
+        listingNotShownEmail({ ...statement, reason, reasonWords: hiddenReasons[reason] }),
+      ),
+      ...reportReasons.flatMap((reason) => [
+        listingsPausedEmail({ ...pause, reason, reasonWords: hiddenReasons[reason] }),
+        pauseKeptEmail({ ...pause, reason, reasonWords: hiddenReasons[reason] }),
+      ]),
+      pauseLiftedEmail({ listerName: 'Halcyon Lettings', lettingsUrl: `${APP}/lettings` }),
+    ];
+    for (const email of all) {
+      const laidOut = layOutGaffEmail({
+        subject: email.subject,
+        body: email.text,
+        button: email.button,
+        appUrl: APP,
+      });
+      // One button, to the one link in the email's words.
+      const link = email.text.split('\n').find((line) => line.startsWith(APP))!;
+      expect(laidOut.html.split(`href="${link}"`).length - 1, email.subject).toBe(1);
+      expect(laidOut.html).toContain(email.button);
+      expect(email.text).not.toMatch(/!/);
+      expect(email.text.trimEnd().endsWith('Gaff')).toBe(true);
+      expect(
+        findProtectedGrounds(email.text.replace(/the Equal Status Acts 2000 to 2018, /g, '')),
+        email.subject,
+      ).toEqual([]);
+    }
   });
 });

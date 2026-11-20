@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Tx } from '@/db/client';
 import { events } from '@/db/schema';
 import { draftOrigins } from '@/domain/lettings/add-letting';
+import { descriptionProblems } from '@/domain/lettings/drafted-description';
 import { enquirySources } from '@/domain/enquiries/sources';
 import { reportReasons } from '@/domain/homes/report';
 import { caseDecisions, caseFacts } from '@/domain/trust/cases';
@@ -116,6 +117,14 @@ export const eventCatalogue = {
    * content was deleted on schedule, say): then it stays in Inbox.
    */
   'letting.enquiry_attached': z.object({ inboundEmailId: z.uuid(), matched: z.boolean() }),
+  /**
+   * P10, P11: the lister asked Gaff to draft the home's description. Whether the draft passed
+   * Gaff's checks and was shown, and if not, why: never the facts or the words.
+   */
+  'letting.description_drafted': z.object({
+    accepted: z.boolean(),
+    problem: z.enum([...descriptionProblems, 'unavailable']).optional(),
+  }),
   /** A step of adding it was answered, or the review confirmed. Which step: never what was typed. */
   'letting.draft_saved': z.object({ step: z.enum(['review', 'address', 'rent', 'home']) }),
   /**

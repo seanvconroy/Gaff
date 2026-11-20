@@ -26,6 +26,8 @@ export interface LettingToMake {
   berRating?: string;
   parking?: string;
   description?: string;
+  /** P11: the description is the AI's draft, unchanged. */
+  descriptionByAi?: boolean;
   otherFacts?: string[];
   photosUrl?: string;
   daftUrl?: string;
@@ -74,6 +76,7 @@ export async function makeLettingIn(
       berRating: input.berRating ?? null,
       parking: input.parking ?? null,
       description: input.description ?? null,
+      descriptionByAi: Boolean(input.description && input.descriptionByAi),
       photosUrl: input.photosUrl ?? null,
       daftUrl: input.daftUrl ?? null,
       myhomeUrl: input.myhomeUrl ?? null,

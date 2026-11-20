@@ -18,6 +18,7 @@ import {
   fieldsChanged,
   readingAfterSave,
 } from '@/domain/lettings/advert-reading';
+import { withDescriptionMark } from '@/domain/lettings/drafted-description';
 import { placedPoint } from '@/domain/map/pin';
 import { irishToday } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
@@ -86,6 +87,7 @@ function answersOfLetting(detail: LettingDetail): DraftAnswers {
         berRating: known(letting.berRating),
         parking: known(letting.parking),
         description: known(letting.description),
+        descriptionByAi: letting.descriptionByAi && letting.description ? true : undefined,
         otherFacts: facts.filter((fact) => fact.source === 'setup').map((fact) => fact.answer),
         daftUrl: known(letting.daftUrl),
         myhomeUrl: known(letting.myhomeUrl),
@@ -339,6 +341,7 @@ async function changeLettingIn(
       berRating: answers.berRating ?? null,
       parking: answers.parking ?? null,
       description: answers.description ?? null,
+      descriptionByAi: Boolean(answers.description && answers.descriptionByAi),
     })
     .where(eq(lettings.id, letting.id));
 
@@ -403,6 +406,11 @@ export async function saveAnswers(
     step: CoreStep | 'description' | 'details';
     patch: Partial<{ [K in keyof DraftAnswers]: DraftAnswers[K] | undefined }>;
     advance: boolean;
+    /**
+     * P11: the description saved is the draft Gaff gave, as the server checked it
+     * (`isGaffsDraft`). It is then marked "Drafted by AI" until its words change.
+     */
+    draftedByAi?: boolean;
   },
 ): Promise<{ kind: 'draft' | 'letting'; next: FlowStep }> {
   return withOrg(member.organisationId, async (tx) => {
@@ -416,7 +424,10 @@ export async function saveAnswers(
 
     if (draft) {
       const before = draftAnswersSchema.parse(draft.answers);
-      const answers = withAnswers(before, input.patch);
+      const answers = withAnswers(
+        before,
+        withDescriptionMark(before, input.patch, input.draftedByAi ?? false),
+      );
       // UX-AI-4: a value the person changed is theirs now, and no longer "from your advert".
       const reading = draft.reading
         ? readingAfterSave(draftReadingSchema.parse(draft.reading), input.step, before, answers)
@@ -460,7 +471,10 @@ export async function saveAnswers(
     if (input.step === 'details')
       throw new Error('A letting’s details are set with setLettingDetails');
     const home = await homeIn(tx, id);
-    const answers = withAnswers(home!.answers, input.patch);
+    const answers = withAnswers(
+      home!.answers,
+      withDescriptionMark(home!.answers, input.patch, input.draftedByAi ?? false),
+    );
     await changeLettingIn(tx, member, detail, input.step, answers);
     const next = stepAfter(from, { answers, photos: detail.photos.length }, 'manual');
     if (input.advance) await reachIn(tx, id, next);

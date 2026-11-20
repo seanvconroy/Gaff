@@ -88,6 +88,11 @@ export const lettings = pgTable(
     parking: text(),
     /** UX-LS-6: the home in the lister's own words. Screened for protected grounds (rule 3). */
     description: text(),
+    /**
+     * P11: the description is the AI's draft, saved as Gaff gave it and not changed since. The
+     * lister sees "Drafted by AI" on it until they change its words. Renters never see it.
+     */
+    descriptionByAi: boolean().notNull().default(false),
     /** Before the redesign: a link to photos kept elsewhere. Photos are uploaded now (UX-LT-10). */
     photosUrl: text(),
     daftUrl: text(),

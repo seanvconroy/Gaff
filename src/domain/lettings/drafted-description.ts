@@ -11,12 +11,15 @@ import { furnishing, MAX_DESCRIPTION, parkingOptions, propertyTypes } from './ne
  * when what it gives back may be used. Nothing about any person, ever.
  */
 
+const PLACEHOLDER = /\[(?:name|phone|email|link)\]/;
+
 const labelOf = <T extends Record<string, string>>(labels: T, key: string | undefined) =>
   key && key in labels ? labels[key as keyof T] : null;
 
 /**
  * P10: the facts a drafted description may use. The home's own facts, the area by name, and
- * the lister's own statements about it, with names and contact details taken out (rule 7).
+ * the lister's own statements about it, without any that name someone or give contact
+ * details (rule 7).
  * Never the rent, the criteria or the house rule (renters see those apart, in Gaff's fixed
  * words), never the street, the house number or the Eircode, and nothing about a renter.
  * `names` are the lister's and their organisation's, for taking out of their statements.
@@ -60,9 +63,11 @@ export function descriptionFacts(
       ? { id: 'home:available', text: `Available from ${formatDate(answers.availableFrom, now)}` }
       : null,
   ];
+  // A statement that names someone or says how to reach them is about them, not the home:
+  // it is left out whole, rather than sent with gaps the draft might copy.
   const own = (answers.otherFacts ?? [])
     .map((statement) => stripPersonalDetails(statement, names).trim())
-    .filter(Boolean)
+    .filter((text) => text && !PLACEHOLDER.test(text))
     .map((text, index) => ({ id: `own:${index + 1}`, text }));
   return [...facts.filter((fact): fact is Fact => fact !== null), ...own];
 }

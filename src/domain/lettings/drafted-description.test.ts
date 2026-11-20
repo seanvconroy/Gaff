@@ -99,14 +99,18 @@ describe('P10: what the model is given', () => {
     berRating: 'B2' as const,
     parking: 'space' as const,
     description: 'The lister’s own words',
-    otherFacts: ['Gas central heating', 'Ring Aoife Byrne on 087 123 4567 to view'],
+    otherFacts: [
+      'Gas central heating',
+      'Ring Aoife Byrne on 087 123 4567 to view',
+      'Ask the owner, Aoife, about the bins',
+    ],
     daftUrl: 'https://www.daft.ie/for-rent/1',
     criteria: { noPets: true, maxOccupants: 3, minStayMonths: 12 as const },
     noSmokingIndoors: true,
   };
   const now = new Date('2026-11-20T12:00:00Z');
 
-  it('P10: gives the home’s facts, the area and the lister’s own statements', () => {
+  it('P10: gives the home’s facts, the area and the lister’s own statements, leaving out any about a person', () => {
     const given = descriptionFacts(answers, ['Aoife Byrne'], now);
     expect(given).toEqual([
       { id: 'home:type', text: 'Type: Apartment' },
@@ -118,7 +122,6 @@ describe('P10: what the model is given', () => {
       { id: 'home:parking', text: 'Parking: A parking space' },
       { id: 'home:available', text: 'Available from Tuesday 1 December' },
       { id: 'own:1', text: 'Gas central heating' },
-      { id: 'own:2', text: 'Ring [name] on [phone] to view' },
     ]);
   });
 

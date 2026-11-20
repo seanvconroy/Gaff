@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { type SQL, and, eq, inArray, sql } from 'drizzle-orm';
 import { type Tx, withOrg, withSystem } from '@/db/client';
-import { bookings, events, lettings, offers, viewingSlots } from '@/db/schema';
+import { lettings } from '@/db/schema';
 import {
   defaultFreshness,
   type FreshnessFacts,
@@ -31,13 +31,16 @@ import { assertMayActOn } from '@/server/team/permissions';
  * own organisation. Confirming needs no sign-in when it comes from the email's link.
  */
 
-/** The lister's last change that restarts the clock: a person's, on this letting. */
+/**
+ * The lister's last change that restarts the clock: a person's, on this letting. Written with
+ * whole column names, as drizzle leaves a one-table select's columns unqualified.
+ */
 const changedAt = sql<Date | null>`(
-  select max(${events.occurredAt}) from ${events}
-  where ${events.organisationId} = ${lettings.organisationId}
-    and ${events.lettingId} = ${lettings.id}
-    and ${events.actorType} = 'person'
-    and ${events.type} in (${sql.join(
+  select max(e.occurred_at) from events e
+  where e.organisation_id = "lettings"."organisation_id"
+    and e.letting_id = "lettings"."id"
+    and e.actor_type = 'person'
+    and e.type in (${sql.join(
       freshnessChangeEvents.map((type) => sql`${type}`),
       sql`, `,
     )})
@@ -46,15 +49,15 @@ const changedAt = sql<Date | null>`(
 /** M49: a viewing booked ahead, or an offer out: the home is being let. */
 const beingLet = (now: Date) => sql<boolean>`(
   exists (
-    select 1 from ${bookings}
-    inner join ${viewingSlots} on ${viewingSlots.id} = ${bookings.slotId}
-    where ${bookings.lettingId} = ${lettings.id}
-      and ${bookings.status} = 'booked'
-      and ${viewingSlots.startsAt} > ${now.toISOString()}::timestamptz
+    select 1 from bookings b
+    inner join viewing_slots s on s.id = b.slot_id
+    where b.letting_id = "lettings"."id"
+      and b.status = 'booked'
+      and s.starts_at > ${now.toISOString()}::timestamptz
   )
   or exists (
-    select 1 from ${offers}
-    where ${offers.lettingId} = ${lettings.id} and ${offers.status} = 'open'
+    select 1 from offers o
+    where o.letting_id = "lettings"."id" and o.status = 'open'
   )
 )`;
 

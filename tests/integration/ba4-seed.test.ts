@@ -21,6 +21,7 @@ import { setHomePoint } from '@/server/lettings/location';
 import { addPhoto } from '@/server/lettings/photos';
 import { getLetting } from '@/server/lettings/queries';
 import { seedTestCopy } from '@/server/dev/seed';
+import { sweepFreshness } from '@/server/lettings/freshness';
 import { seedListers } from '@/server/dev/seed-homes';
 import { aPng } from '../fixtures/photos';
 import { aRegisterEntry } from './helpers';
@@ -305,5 +306,36 @@ describe('BA-4: the test copy’s seed', () => {
         .where(and(eq(viewingSessions.lettingId, first!.id), gt(viewingSessions.startsAt, later))),
     );
     expect(ahead).toHaveLength(2);
+  }, 60_000);
+
+  it('M49 (BA-13): each run counts as its listers saying every home is still available', async () => {
+    const members = await seededMembers();
+    const [agency] = members.filter((m) => m.organisationKind === 'agency');
+    const [live] = await withOrg(agency!.organisationId, (tx) =>
+      tx
+        .select({ id: lettings.id, ref: lettings.publicRef })
+        .from(lettings)
+        .where(
+          and(eq(lettings.organisationId, agency!.organisationId), eq(lettings.status, 'live')),
+        )
+        .limit(1),
+    );
+    // A home that stepped back while the test copy sat undeployed.
+    await withOrg(agency!.organisationId, (tx) =>
+      tx.update(lettings).set({ staleAt: new Date() }).where(eq(lettings.id, live!.id)),
+    );
+    expect(await publicHomePage(live!.ref)).toBeNull();
+    // Forty days on, the next deploy: every home is confirmed, and that one is back.
+    const later = new Date(Date.now() + 40 * 86_400_000);
+    await seedTestCopy(later);
+    expect(await publicHomePage(live!.ref)).not.toBeNull();
+    for (const member of members) {
+      expect(
+        await sweepFreshness(new Date(later.getTime() + 86_400_000), member.organisationId),
+      ).toEqual({
+        asked: 0,
+        steppedBack: 0,
+      });
+    }
   }, 60_000);
 });

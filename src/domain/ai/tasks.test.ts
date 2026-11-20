@@ -12,7 +12,7 @@ describe('P8: each task can be switched off on its own', () => {
     for (const task of aiTasks) expect(isSwitchedOff(task, ['all'])).toBe(true);
   });
 
-  it('has the three uses built so far, and nothing that is not built yet', () => {
-    expect([...aiTasks]).toEqual(['answers', 'advert', 'people']);
+  it('has the four uses built so far, and nothing that is not built yet', () => {
+    expect([...aiTasks]).toEqual(['answers', 'advert', 'people', 'description']);
   });
 });

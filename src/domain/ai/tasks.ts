@@ -7,11 +7,13 @@
  *     offered "Fill it in myself".
  *   - `people`: an operator's question about who has enquired, read into a filter (UX-LP-15).
  *     Without a reading, it is declined in its fixed words.
+ *   - `description`: a home's description drafted from its facts (P10, P11). Without a draft
+ *     that passes the checks, the lister writes their own.
  *
- * Not built here, and added to this list when they are: drafting a home's description and the
- * unfair-wording check (the live line's P10 to P14), and reading documents (P30 on).
+ * Not built here, and added to this list when they are: the unfair-wording check (the live
+ * line's P12 to P14), and reading documents (P30 on).
  */
-export const aiTasks = ['answers', 'advert', 'people'] as const;
+export const aiTasks = ['answers', 'advert', 'people', 'description'] as const;
 export type AiTask = (typeof aiTasks)[number];
 
 export const aiOutcomes = [

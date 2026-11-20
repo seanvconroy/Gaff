@@ -56,6 +56,11 @@ export const draftAnswersSchema = z.strictObject({
   berRating: z.enum(berRatings).optional(),
   parking: z.enum(keys(parkingOptions)).optional(),
   description: z.string().max(4000).optional(),
+  /**
+   * P11: the description is the AI's draft, as Gaff gave it, and the lister hasn't changed its
+   * words. The lister sees "Drafted by AI" on it; renters never see the mark.
+   */
+  descriptionByAi: z.literal(true).optional(),
   otherFacts: z.array(z.string().max(300)).max(20).optional(),
   /** UX-LT-8: kept to match enquiries to this home. Gaff never fetches them (Q31). */
   daftUrl: z.url().optional(),
@@ -236,7 +241,7 @@ export function thingsToCheck(progress: FlowProgress, today: string): CheckThis[
   return checks;
 }
 
-type Patch<T> = { [K in keyof T]?: T[K] | undefined };
+export type Patch<T> = { [K in keyof T]?: T[K] | undefined };
 
 /** Puts a step's answers into what's known. A value given as undefined is taken out. */
 export function withAnswers(answers: DraftAnswers, patch: Patch<DraftAnswers>): DraftAnswers {

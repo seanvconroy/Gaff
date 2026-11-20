@@ -68,7 +68,7 @@ export const lettings = pgTable(
     eircode: text(),
     /**
      * BA-14: the address as search reads it (`addressWordsOf` in src/domain/search/places.ts),
-     * kept by Postgres from the three lines above (`gaff_address_words`, migration 0045), so a
+     * kept by Postgres from the three lines above (`gaff_address_words`, ADR-0027), so a
      * search matches places in SQL. Never shown; never in an event or a log.
      */
     addressWords: text().generatedAlwaysAs(

@@ -218,16 +218,16 @@ test('UX-SI-14: a mobile number finds the account its email already has, and Pro
     // Profile lists it, masked, and takes it off behind "Confirm it's you".
     await page.goto('/profile');
     const signIn = page.getByRole('region', { name: 'Sign-in', exact: true });
-    await expect(signIn.getByRole('term').filter({ hasText: 'Mobile number' })).toBeVisible();
-    await expect(signIn.getByText(masked)).toBeVisible();
+    await expect(signIn.getByRole('term').filter({ hasText: 'A code by text' })).toBeVisible();
+    await expect(signIn.getByText(`To ${masked}`)).toBeVisible();
     await expectAccessible(page);
     await screenshot(page, `ux-si-profile-mobile-${width}`);
-    await signIn.getByRole('button', { name: 'Remove Mobile number' }).click();
+    await signIn.getByRole('button', { name: 'Remove a code by text' }).click();
     await confirmItsYou(page);
     await expect(page.getByText('Mobile number removed.')).toBeVisible();
     // The row stays, to add one again.
     await expect(signIn.getByText('Not added')).toBeVisible();
-    await expect(signIn.getByText(masked)).toHaveCount(0);
+    await expect(signIn.getByText(`To ${masked}`)).toHaveCount(0);
     expect(await ownerOf(mobile.e164)).toBeNull();
     await context.close();
   }
@@ -281,7 +281,9 @@ test('UX-SI-13: a signed-in person adds a mobile number on Profile, and signs in
     await page.goto('/profile');
     const signIn = page.getByRole('region', { name: 'Sign-in', exact: true });
     await expect(signIn.getByText('Not added')).toBeVisible();
-    await signIn.getByRole('button', { name: 'Add Mobile number' }).click();
+    await signIn.getByRole('button', { name: 'Add a code by text' }).click();
+    // Never mistaken for the mobile kept under "Your details": each button has its own name.
+    await expect(page.getByRole('button', { name: 'Add mobile', exact: true })).toHaveCount(1);
     const sheet = page.getByRole('dialog', { name: 'Add a mobile number' });
     await expect(sheet.getByLabel('Country code')).toHaveValue('IE');
     await expectAccessible(page);
@@ -313,7 +315,7 @@ test('UX-SI-13: a signed-in person adds a mobile number on Profile, and signs in
     await sheet.getByLabel('Six-digit code').fill(code);
     await expect(page.getByText('Mobile number added. You can sign in with it now.')).toBeVisible();
     await expect(sheet).toHaveCount(0);
-    await expect(signIn.getByText(`087 ••• ${mobile.e164.slice(-4)}`)).toBeVisible();
+    await expect(signIn.getByText(`To 087 ••• ${mobile.e164.slice(-4)}`)).toBeVisible();
     expect(await ownerOf(mobile.e164)).toBe(person!.id);
 
     // And the number signs them in, with no email asked for.

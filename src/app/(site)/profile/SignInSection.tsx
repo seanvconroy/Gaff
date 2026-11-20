@@ -218,8 +218,8 @@ export function SignInSection({ view }: { view: SignInView }) {
             ...(view.mobile
               ? [
                   {
-                    label: c.mobile,
-                    value: view.mobile,
+                    label: c.codeByText,
+                    value: c.codeToMobile(view.mobile),
                     action: (
                       <Button
                         variant="quiet"
@@ -227,7 +227,7 @@ export function SignInSection({ view }: { view: SignInView }) {
                         onClick={() => change('remove-mobile', () => removeMobileAction())}
                       >
                         {c.remove}
-                        <span className="visually-hidden"> {c.mobile}</span>
+                        <span className="visually-hidden"> {c.codeByTextNamed}</span>
                       </Button>
                     ),
                   },
@@ -235,7 +235,7 @@ export function SignInSection({ view }: { view: SignInView }) {
               : view.canAddMobile
                 ? [
                     {
-                      label: c.mobile,
+                      label: c.codeByText,
                       value: <span className={styles.nothing}>{c.mobileNone}</span>,
                       action: (
                         <Button
@@ -247,7 +247,7 @@ export function SignInSection({ view }: { view: SignInView }) {
                           }}
                         >
                           {profileCopy.add}
-                          <span className="visually-hidden"> {c.mobile}</span>
+                          <span className="visually-hidden"> {c.codeByTextNamed}</span>
                         </Button>
                       ),
                     },

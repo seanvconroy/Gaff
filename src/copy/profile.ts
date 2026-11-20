@@ -209,8 +209,14 @@ export const profileCopy = {
     /** BA-8 (AU7): what each way in is, and whether it's on. */
     lead: 'A code to your email always works. Add another way in, or take one off, here.',
     codeTo: 'Always works, to the email above',
-    /** UX-SI-13: the mobile number they sign in with, by a code by text. */
-    mobile: 'Mobile number',
+    /**
+     * UX-SI-13: the mobile number they sign in with. Named for what it does, beside "A code by
+     * email", so it is never mistaken for the mobile kept under "Your details" for reminders.
+     */
+    codeByText: methodWords.sms_code,
+    codeToMobile: (masked: string) => `To ${masked}`,
+    /** What a screen reader hears after "Add" or "Remove" on that row. */
+    codeByTextNamed: 'a code by text',
     mobileNone: 'Not added',
     mobileRemoved: 'Mobile number removed.',
     mobileAdded: 'Mobile number added. You can sign in with it now.',

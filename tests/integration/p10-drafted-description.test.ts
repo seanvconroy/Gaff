@@ -50,9 +50,7 @@ async function drafted(member: Member, lettingId: string) {
     tx
       .select({ data: events.data, actorType: events.actorType })
       .from(events)
-      .where(
-        and(eq(events.lettingId, lettingId), eq(events.type, 'letting.description_drafted')),
-      )
+      .where(and(eq(events.lettingId, lettingId), eq(events.type, 'letting.description_drafted')))
       .orderBy(desc(events.id)),
   );
   return rows;

@@ -190,3 +190,15 @@
 .pinWhere {
   font-weight: var(--type-label-weight);
 }
+
+/* P10, P11: "Draft a description" beside the field, with "Drafted by AI" while it's the draft. */
+.drafting {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.draftNote {
+  color: var(--color-ink-muted);
+}

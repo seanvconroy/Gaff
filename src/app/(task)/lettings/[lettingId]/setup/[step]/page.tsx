@@ -45,6 +45,7 @@ import type { FlowHome } from '@/server/lettings/drafts';
 import { personCheckOf } from '@/server/identity/person-checks';
 import { settlePersonIdentity } from '@/server/identity/provider-results';
 import { goLiveStepFor } from '@/server/lettings/go-live';
+import { descriptionDraftingIsOffered } from '@/server/lettings/drafted-description';
 import { rentAnswersFromLettingBefore } from '@/server/lettings/rent-check';
 import {
   advertisedAction,
@@ -291,6 +292,11 @@ export default async function SetupStepPage({
 
   const { today, inAYear } = availableWindow();
   const values = formValuesFrom(home.answers);
+  // P10: "Draft a description" only where the AI can draft one just now (P4, P8).
+  const drafting =
+    (screen === 'home' || screen === 'review') && (await descriptionDraftingIsOffered())
+      ? { homeId: id, byAi: Boolean(home.answers.descriptionByAi) }
+      : undefined;
   const searchOn = addressSearch().name !== 'off';
   // M43: where the photo store can take photos straight from the browser, they go there.
   const direct = photosGoStraightToStore()
@@ -367,6 +373,7 @@ export default async function SetupStepPage({
           remove={removePhotoAction.bind(null, id)}
           reorder={reorderPhotosAction.bind(null, id)}
           setKind={setPhotoKindAction.bind(null, id)}
+          drafting={drafting}
         />
       );
     }
@@ -423,6 +430,7 @@ export default async function SetupStepPage({
             frame={{ leaveHref }}
             action={saveHomePartAction.bind(null, 'description', id)}
             values={values}
+            drafting={drafting}
           />
         ) : (
           <FactsStep
@@ -437,6 +445,7 @@ export default async function SetupStepPage({
           frame={frameFor('home')}
           action={saveStepAction.bind(null, 'home', id, from)}
           values={values}
+          drafting={drafting}
         />
       );
     default:

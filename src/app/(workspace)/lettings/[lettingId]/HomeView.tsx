@@ -12,6 +12,7 @@ import { comparableWarnings, medianRentCents } from '@/domain/rent/comparables';
 import { formatDate, formatDateTime, formatRent } from '@/lib/format';
 import type { LettingDetail } from '@/server/lettings/queries';
 import { Notice } from '@/ui/Notice';
+import { DraftedByAi } from '@/ui/StatusPill';
 import { SummaryList } from '@/ui/SummaryList';
 import styles from './letting.module.css';
 import { RentCheckResult } from './RentCheckResult';
@@ -130,6 +131,12 @@ export function HomeView({
         title={copy.description}
         action={change(alone('home', { edit: 'description' }), 'description')}
       >
+        {/* P11: the AI's draft, saved unchanged, says so here, on the lister's side only. */}
+        {letting.description && letting.descriptionByAi ? (
+          <div>
+            <DraftedByAi />
+          </div>
+        ) : null}
         {letting.description ? (
           <p className={styles.description}>{letting.description}</p>
         ) : (

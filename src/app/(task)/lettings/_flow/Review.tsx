@@ -35,6 +35,7 @@ import { useFlowForm } from '@/ui/useFlowForm';
 import {
   AddressFields,
   DescriptionFields,
+  type DescriptionDrafting,
   DetailsFields,
   type GroupProps,
   HomeFields,
@@ -236,6 +237,7 @@ export function ReviewStep({
   remove,
   reorder,
   setKind,
+  drafting,
 }: {
   frame: StepFrame;
   origin: DraftOrigin;
@@ -265,6 +267,8 @@ export function ReviewStep({
   reorder: (ids: string[]) => Promise<void>;
   /** M44: marks a picture as a floor plan, or a photo again. */
   setKind?: (id: string, kind: 'photo' | 'floor_plan') => Promise<void>;
+  /** P10: where it's offered, "Draft a description" in the description's sheet. */
+  drafting?: DescriptionDrafting;
 }) {
   const router = useRouter();
   const close = () => {
@@ -361,7 +365,7 @@ export function ReviewStep({
                 ) : form === 'home' ? (
                   <HomeFields values={typed ?? values} errors={errors} />
                 ) : form === 'description' ? (
-                  <DescriptionFields values={typed ?? values} errors={errors} />
+                  <DescriptionFields values={typed ?? values} errors={errors} drafting={drafting} />
                 ) : (
                   <DetailsFields
                     values={typed ?? details}

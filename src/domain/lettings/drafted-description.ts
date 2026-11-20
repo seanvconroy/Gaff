@@ -42,7 +42,8 @@ export function descriptionFacts(
       ? null
       : {
           id: 'home:bedrooms',
-          text: answers.bedrooms === 0 ? 'Bedrooms: none, a studio' : `Bedrooms: ${answers.bedrooms}`,
+          text:
+            answers.bedrooms === 0 ? 'Bedrooms: none, a studio' : `Bedrooms: ${answers.bedrooms}`,
         },
     answers.bathrooms === undefined
       ? null
@@ -71,6 +72,17 @@ export function descriptionFacts(
     .map((text, index) => ({ id: `own:${index + 1}`, text }));
   return [...facts.filter((fact): fact is Fact => fact !== null), ...own];
 }
+
+/** The fields of the home step a draft may read from the screen: never the description itself. */
+export const descriptionDraftFields = [
+  'propertyType',
+  'bedrooms',
+  'bathrooms',
+  'furnished',
+  'berRating',
+  'parking',
+  'otherFacts',
+] as const;
 
 /** P10: a draft needs at least the type of home or its bedrooms to say what the home is. */
 export function canDraftFrom(answers: DraftAnswers): boolean {
@@ -118,7 +130,8 @@ export type DescriptionProblem = (typeof descriptionProblems)[number];
 export const DRAFT_MIN_CHARS = 200;
 export const DRAFT_MAX_CHARS = 1500;
 
-const CONTACT = /https?:\/\/|www\.|[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|\[(?:name|phone|email|link)\]/i;
+const CONTACT =
+  /https?:\/\/|www\.|[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|\[(?:name|phone|email|link)\]/i;
 
 /** A drafted text as the field keeps it: Unix line ends, no space at either end. */
 export function tidyDescription(text: string): string {

@@ -20,6 +20,7 @@ import {
 } from '@/domain/lettings/add-letting';
 import { isOnlyLinks, MAX_ADVERT_CHARS } from '@/domain/lettings/advert-reading';
 import { berRatings, parseEuroToCents } from '@/domain/lettings/new-letting';
+import { descriptionDraftFields } from '@/domain/lettings/drafted-description';
 import type { Portal } from '@/domain/lettings/setup';
 import { forwardingHref } from '@/domain/enquiries/forwarding';
 import { returnPath } from '@/domain/navigation/return-to';
@@ -38,6 +39,7 @@ import { forwardingStillToDoFor } from '@/server/enquiries/forwarding';
 import { UserFacingError } from '@/server/errors';
 import { readAdvertIntoDraft } from '@/server/lettings/advert-reader';
 import { readingIsOffered } from '@/server/lettings/reader-setting';
+import { draftDescription, isGaffsDraft } from '@/server/lettings/drafted-description';
 import {
   confirmReview,
   keepAdvertLinks,
@@ -160,7 +162,12 @@ export async function saveStepAction(
       const member = await memberOrBecomeOne();
       const home = id ?? (await startDraft(member, { origin: 'manual' })).id;
       try {
-        await saveAnswers(member, home, { step, patch, advance: false });
+        await saveAnswers(member, home, {
+          step,
+          patch,
+          advance: false,
+          draftedByAi: isGaffsDraft(home, patch.description, values.descriptionMark),
+        });
       } catch (error) {
         if (!(error instanceof UserFacingError)) throw error;
       }
@@ -177,10 +184,12 @@ export async function saveStepAction(
   const home = id ?? (await startDraft(member, { origin: 'manual' })).id;
   let next;
   try {
+    const patch = parsed.data as Partial<DraftAnswers>;
     ({ next } = await saveAnswers(member, home, {
       step,
-      patch: parsed.data as Partial<DraftAnswers>,
+      patch,
       advance: true,
+      draftedByAi: isGaffsDraft(home, patch.description, values.descriptionMark),
     }));
   } catch (error) {
     return problem(error, values);
@@ -218,7 +227,12 @@ export async function saveReviewAction(
     patch = parsed.data as Partial<DraftAnswers>;
   }
   try {
-    await saveAnswers(member, id, { step: group, patch, advance: false });
+    await saveAnswers(member, id, {
+      step: group,
+      patch,
+      advance: false,
+      draftedByAi: isGaffsDraft(id, patch.description, values.descriptionMark),
+    });
   } catch (error) {
     return problem(error, values);
   }
@@ -231,6 +245,31 @@ export async function confirmReviewAction(id: string, from: string | null): Prom
   const member = await requireMember();
   const { next } = await confirmReview(member, id);
   redirect(screenHref(id, next, from));
+}
+
+/**
+ * P10, P11: "Draft a description". The facts on the screen, chosen but perhaps not saved yet,
+ * are used over the saved ones; the description in the field is never sent. The draft comes
+ * back for the field, with the mark that lets the save know it is Gaff's; nothing is saved.
+ */
+export async function draftDescriptionAction(
+  id: string,
+  typed: Record<string, string>,
+): Promise<{ ok: true; description: string; mark: string } | { ok: false; message: string }> {
+  const member = await requireMember();
+  const onScreen = Object.fromEntries(
+    descriptionDraftFields.flatMap((field) =>
+      typeof typed?.[field] === 'string' ? [[field, typed[field].slice(0, 6000)]] : [],
+    ),
+  );
+  try {
+    const draft = await draftDescription(member, String(id), onScreen);
+    if (draft.ok) return draft;
+    return { ok: false, message: copy.home.drafting[draft.reason] };
+  } catch (error) {
+    if (!(error instanceof UserFacingError)) throw error;
+    return { ok: false, message: error.message };
+  }
 }
 
 /** UX-LT-9: addresses that match what's typed. Nothing typed is kept or logged. */
@@ -331,11 +370,13 @@ export async function saveHomePartAction(
   if (values.intent === 'exit') redirect(`/lettings/${id}?view=home`);
   const parsed = (part === 'home' ? homeFactsSchema : descriptionSchema)().safeParse(values);
   if (!parsed.success) return invalid(fieldErrors(parsed.error), values);
+  const patch = parsed.data as Partial<DraftAnswers>;
   try {
     await saveAnswers(member, id, {
       step: part,
-      patch: parsed.data as Partial<DraftAnswers>,
+      patch,
       advance: false,
+      draftedByAi: isGaffsDraft(id, patch.description, values.descriptionMark),
     });
   } catch (error) {
     return problem(error, values);

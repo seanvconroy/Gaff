@@ -39,7 +39,6 @@ export function SignForm({
         <TextField
           name="typedName"
           label="Type your full name to sign"
-          width="medium"
           hint={nameHint}
           autoComplete="name"
           defaultValue={v.typedName}

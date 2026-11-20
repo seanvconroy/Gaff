@@ -1,0 +1,306 @@
+/* The component page (development only): one column of sections, each a component and its states. */
+.page {
+  min-height: 100vh;
+  background-color: var(--color-surface-0);
+}
+
+.header,
+.main {
+  width: 100%;
+  max-width: calc(var(--size-page) + 2 * var(--space-8));
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-8);
+}
+
+.main {
+  display: grid;
+  gap: var(--space-12);
+  padding: var(--space-8) var(--space-8) var(--space-16);
+}
+
+.intro {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.lead {
+  max-width: 64ch;
+  color: var(--color-ink-muted);
+}
+
+/* Under the navigation's example: on a phone, clear of the tab bar at the foot. */
+.underBar {
+  padding-bottom: calc(var(--size-bar) + var(--space-16));
+}
+
+/* Each component: a title, a line about it, then its states. A hairline separates the groups. */
+.section {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--color-border);
+}
+
+.sectionHead {
+  display: grid;
+  gap: var(--space-1);
+  max-width: 64ch;
+}
+
+.muted {
+  color: var(--color-ink-muted);
+}
+
+.strong {
+  font-weight: var(--type-title-weight);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* Fields and anything else that belongs in a task's column. */
+.fields,
+.narrow {
+  display: grid;
+  gap: var(--space-6);
+  width: 100%;
+  max-width: var(--size-task);
+  min-width: 0;
+}
+
+.example {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.exampleLabel {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.listCard {
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.person {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.personText {
+  display: grid;
+  gap: var(--space-1);
+}
+
+/* Colour: each token as a swatch, with its name and its job. */
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 256px), 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.swatch {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.chip {
+  flex: none;
+  width: var(--size-control);
+  height: var(--size-control);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.swatchText {
+  display: grid;
+  min-width: 0;
+}
+
+.token {
+  font-family: var(--font-sans);
+  font-weight: var(--type-title-weight);
+}
+
+.surface0 {
+  background-color: var(--color-surface-0);
+}
+
+.surface2 {
+  background-color: var(--color-surface-2);
+}
+
+.ink {
+  background-color: var(--color-ink);
+}
+
+.inkMuted {
+  background-color: var(--color-ink-muted);
+}
+
+.border {
+  background-color: var(--color-border);
+}
+
+.borderStrong {
+  background-color: var(--color-border-strong);
+}
+
+.brand {
+  background-color: var(--color-brand);
+}
+
+.brandBg {
+  background-color: var(--color-brand-bg);
+}
+
+.success {
+  background-color: var(--color-success);
+}
+
+.successBg {
+  background-color: var(--color-success-bg);
+}
+
+.warning {
+  background-color: var(--color-warning);
+}
+
+.warningBg {
+  background-color: var(--color-warning-bg);
+}
+
+.danger {
+  background-color: var(--color-danger);
+}
+
+.dangerBg {
+  background-color: var(--color-danger-bg);
+}
+
+.info {
+  background-color: var(--color-info);
+}
+
+.infoBg {
+  background-color: var(--color-info-bg);
+}
+
+/* Type: the style's name beside a line set in it. */
+.typeList {
+  display: grid;
+  margin: 0;
+}
+
+.typeRow {
+  display: grid;
+  grid-template-columns: 10rem minmax(0, 1fr);
+  gap: var(--space-1) var(--space-6);
+  align-items: baseline;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.typeRow:first-child {
+  border-top: 0;
+}
+
+.typeSample {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The flow shell's example: a step's title and its fields. */
+.stepHead {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.done {
+  display: grid;
+  gap: var(--space-4);
+}
+
+@media (width <= 900px) {
+  .header {
+    padding: var(--space-2) var(--space-4);
+  }
+
+  .main {
+    gap: var(--space-8);
+    padding: var(--space-6) var(--space-4) var(--space-16);
+  }
+
+  .title {
+    font-size: var(--type-display-mobile-size);
+    line-height: var(--type-display-mobile-line);
+    letter-spacing: var(--type-display-mobile-tracking);
+  }
+
+  .section {
+    padding-top: var(--space-6);
+  }
+
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .typeRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The list of a renter's pages (/dev/ui/renter): each a line of its own, and a full target. */
+.pageList {
+  display: grid;
+  margin: 0;
+  padding: var(--space-6) 0 var(--space-16);
+  list-style: none;
+}
+
+.pageLink {
+  display: flex;
+  align-items: center;
+  min-height: var(--size-target);
+}
+
+/* The search map demo needs a height of its own. */
+.mapDemo {
+  height: 420px;
+}

@@ -1,0 +1,82 @@
+/*
+ * M57: a list and its map. Below 900px, one at a time, with a control between them held above
+ * the tab bar. At 900px and up, side by side, the map held in view as the list scrolls.
+ */
+.layout {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.list {
+  min-width: 0;
+}
+
+.map {
+  display: none;
+  min-width: 0;
+}
+
+.layout[data-view='map'] .list {
+  display: none;
+}
+
+.layout[data-view='map'] .map {
+  display: block;
+  height: calc(100dvh - 2 * var(--size-bar) - var(--space-16));
+  min-height: 360px;
+}
+
+/* In the flow after the list (or the map), held at the foot of the screen while the list
+   scrolls: it never covers the map or its card. */
+.toggle {
+  position: sticky;
+  bottom: calc(var(--size-bar) + var(--space-4) + env(safe-area-inset-bottom));
+  z-index: 4;
+  justify-self: center;
+  margin-block-start: var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--size-control);
+  padding: 0 var(--space-5);
+  background-color: var(--color-surface-0);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-overlay);
+  color: var(--color-ink);
+  font-family: var(--type-label-family);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  cursor: pointer;
+}
+
+.toggle:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (width > 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-8);
+    align-items: start;
+  }
+
+  .layout[data-view] .list {
+    display: block;
+  }
+
+  .layout[data-view] .map {
+    position: sticky;
+    top: calc(var(--size-bar) + var(--space-4));
+    display: block;
+    height: calc(100dvh - var(--size-bar) - var(--space-12));
+    min-height: 480px;
+  }
+
+  .toggle {
+    display: none;
+  }
+}

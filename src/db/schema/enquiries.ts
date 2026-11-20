@@ -117,6 +117,20 @@ export const applications = pgTable(
     status: applicationStatus().notNull().default('enquired'),
     /** R13 (Q12): the renter gave a mobile number for text reminders when they booked. */
     smsReminders: boolean().notNull().default(false),
+    /**
+     * P16 (Q51): before booking a viewing, the renter confirms their mobile with a 6-digit text
+     * code, keyed to this application, so a renter from Daft or MyHome needs no account. The
+     * number waits in `mobile_pending` until the code matches; the code is kept only as a hash,
+     * for 10 minutes and 5 tries, with at most 5 texts a day. Once confirmed, the number is the
+     * application's `phone_e164`, and the 2-hour reminder goes to it.
+     */
+    mobileConfirmedAt: timestamp({ withTimezone: true }),
+    mobilePending: text(),
+    mobileCodeHash: text(),
+    mobileCodeExpiresAt: timestamp({ withTimezone: true }),
+    mobileCodeAttempts: integer().notNull().default(0),
+    mobileCodesToday: integer().notNull().default(0),
+    mobileCodeSentAt: timestamp({ withTimezone: true }),
     /** R16, stage 5 only: how they mainly earn, and household take-home income (cents). */
     earning: text({ enum: ['employed', 'self_employed', 'other'] }),
     monthlyIncomeCents: integer(),
@@ -133,6 +147,50 @@ export const applications = pgTable(
   (t) => [
     uniqueIndex('applications_letting_email_idx').on(t.lettingId, t.emailNormalised),
     index('applications_letting_idx').on(t.organisationId, t.lettingId, t.firstEnquiredAt),
+    tenantPolicy(),
+  ],
+).enableRLS();
+
+/**
+ * UX-AV-6: an enquiry made on Gaff from a typed email, waiting for its renter to open the link in
+ * their first email, which proves the address is theirs. Until then nothing reaches the letting:
+ * no application, no message and no event about the letting. Opening the link turns it into an
+ * application (or adds Gaff to the one this person already has, UX-AV-9), whose place in the
+ * order is `sentAt`, and deletes this row. Unconfirmed, it's deleted 24 hours after `sentAt`
+ * by a job (rule 9).
+ *
+ * The first reply is written when Send is pressed, so it is the same fixed message a Daft
+ * enquiry gets (UX-AV-7), and kept here until it becomes the application's first message.
+ */
+export const waitingEnquiries = pgTable(
+  'waiting_enquiries',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organisationId: organisationId(),
+    lettingId: uuid()
+      .notNull()
+      .references(() => lettings.id, { onDelete: 'cascade' }),
+    /** The application's reference once confirmed, so a reply to the first email threads. */
+    ref: text().notNull().unique(),
+    fullName: text().notNull(),
+    email: text().notNull(),
+    emailNormalised: text().notNull(),
+    answers: jsonb().$type<RenterAnswers>().notNull(),
+    /** The one question about the home, as typed: untrusted text, like any enquiry's. */
+    question: text(),
+    /** When Send was pressed: the enquiry's place in the order. */
+    sentAt: timestamp({ withTimezone: true }).notNull(),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    /** The private link's hash (ADR-0013). The link becomes the renter's own once confirmed. */
+    tokenHash: text().notNull().unique(),
+    replySubject: text().notNull(),
+    replyBody: text().notNull(),
+    replySentAt: timestamp({ withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('waiting_enquiries_letting_email_idx').on(t.lettingId, t.emailNormalised),
+    index('waiting_enquiries_expires_idx').on(t.expiresAt),
     tenantPolicy(),
   ],
 ).enableRLS();

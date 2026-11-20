@@ -9,6 +9,7 @@ import { irishToday } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { recordEvent } from '@/server/record/events';
+import { assertMayActOn } from '@/server/team/permissions';
 
 /**
  * R26, stage 9: the operator finishes a let home. The letting record is archived (it stays,
@@ -20,6 +21,7 @@ export async function finishLetting(
   lettingId: string,
 ): Promise<{ deleteAfter: string; daysToLet: number | null }> {
   return withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const [tenancy] = await tx.select().from(tenancies).where(eq(tenancies.lettingId, lettingId));
     if (!tenancy) throw new UserFacingError('There’s no tenancy for this home yet.');
     if (!canFinish(tenancy)) {

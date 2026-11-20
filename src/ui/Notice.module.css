@@ -1,4 +1,4 @@
-/* Notices: the status tint behind ink words, with the status colour on the icon (A4). */
+/* Notices: the status tint behind ink words, with the status colour on the icon. */
 .notice {
   display: flex;
   gap: var(--space-3);

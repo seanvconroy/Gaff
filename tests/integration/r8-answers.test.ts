@@ -1,16 +1,16 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
-import { fakeDrafter } from '@/adapters/ai/fake';
+import { fakeAi } from '@/adapters/ai/fake';
 import { withOrg } from '@/db/client';
 import { aiDrafts, decisions, lettingFacts, messages, operatorQuestions } from '@/db/schema';
 import { draftAnswersFor } from '@/server/answers/draft';
-import { listAwaitingApproval, listOpenQuestions } from '@/server/answers/queries';
 import {
   answerQuestion,
   approveMessage,
   discardDraft,
   setApproveBeforeSend,
 } from '@/server/answers/review';
+import { inboxFor, threadFor } from '@/server/inbox/queries';
 import { daftEnquiry } from '../fixtures/emails';
 import { aLiveLetting, createTestMember, deliverEmail, type Member } from './helpers';
 
@@ -55,6 +55,13 @@ async function answerMessages(member: Member, applicationId: string) {
   );
 }
 
+/** UX-NV-2: questions only a person can answer wait in the renter's conversation, in Inbox. */
+async function openQuestions(member: Member, applicationId: string) {
+  const thread = await threadFor(member, { kind: 'renter', id: applicationId });
+  if (thread?.kind !== 'renter' || thread.reply.kind === 'write') return [];
+  return thread.reply.questions;
+}
+
 describe('R8 and R29: answers from the facts, approved by a person', () => {
   it('drafts an answer from the facts, and holds it for approval (R29 on by default)', async () => {
     const member = await createTestMember();
@@ -66,7 +73,7 @@ describe('R8 and R29: answers from the facts, approved by a person', () => {
       status: 'awaiting_approval',
       inReplyToId: inboundId,
     });
-    expect(answer!.body).toContain('You asked: Is there parking?\nParking: On-street parking.');
+    expect(answer!.body).toContain('You asked: Is there parking?\nYes, there’s on-street parking.');
     expect(answer!.body).toMatch(/AI assistant$/);
     const [draft] = await withOrg(member.organisationId, (tx) =>
       tx.select().from(aiDrafts).where(eq(aiDrafts.sourceMessageId, inboundId)),
@@ -77,7 +84,11 @@ describe('R8 and R29: answers from the facts, approved by a person', () => {
       toOperator: 0,
       model: 'fake',
     });
-    expect(await listAwaitingApproval(member)).toHaveLength(1);
+    // UX-NV-2: it waits in the renter's conversation, in Inbox, which needs the member.
+    const { conversations } = await inboxFor(member);
+    expect(conversations).toMatchObject([
+      { key: `renter-${applicationId}`, waiting: 'draft', needsYou: true },
+    ]);
   });
 
   it('sends it once a person approves, as their recorded decision', async () => {
@@ -121,7 +132,7 @@ describe('R8 and R29: answers from the facts, approved by a person', () => {
     const { lettingId } = await aLiveLetting(member);
     const first = await ask(member, 'Is there a garden?');
     expect(await answerMessages(member, first.applicationId)).toEqual([]);
-    const [question] = await listOpenQuestions(member);
+    const [question] = await openQuestions(member, first.applicationId);
     expect(question).toMatchObject({ question: 'Is there a garden?', reason: 'no_facts' });
 
     await answerQuestion(member, question!.id, 'Yes, a small back garden.', true);
@@ -155,8 +166,8 @@ describe('R8 and R29: answers from the facts, approved by a person', () => {
   it('won’t remember or send an operator answer that touches a protected ground', async () => {
     const member = await createTestMember();
     await aLiveLetting(member);
-    await ask(member, 'Is there a garden?');
-    const [question] = await listOpenQuestions(member);
+    const { applicationId } = await ask(member, 'Is there a garden?');
+    const [question] = await openQuestions(member, applicationId);
     await expect(
       answerQuestion(member, question!.id, 'Yes, ideal for kids.', true),
     ).rejects.toThrow(/family status/);
@@ -183,23 +194,27 @@ describe('R8 and R29: answers from the facts, approved by a person', () => {
     const [answer] = await answerMessages(member, applicationId);
     await discardDraft(member, answer!.id);
     expect((await answerMessages(member, applicationId))[0]?.status).toBe('discarded');
-    expect((await listOpenQuestions(member)).map((q) => q.reason)).toEqual(['draft_not_sent']);
+    expect((await openQuestions(member, applicationId)).map((q) => q.reason)).toEqual([
+      'draft_not_sent',
+    ]);
   });
 
   it('if the AI is down, nothing is lost: the questions go to a person', async () => {
     const member = await createTestMember();
     await aLiveLetting(member);
-    const spy = vi.spyOn(fakeDrafter, 'draftAnswers').mockRejectedValueOnce(new Error('timeout'));
+    const spy = vi.spyOn(fakeAi, 'draftAnswers').mockRejectedValueOnce(new Error('timeout'));
     vi.spyOn(console, 'error').mockImplementationOnce(() => {});
-    await ask(member, 'Is there parking?');
+    const { applicationId } = await ask(member, 'Is there parking?');
     spy.mockRestore();
-    expect((await listOpenQuestions(member)).map((q) => q.question)).toEqual(['Is there parking?']);
+    expect((await openQuestions(member, applicationId)).map((q) => q.question)).toEqual([
+      'Is there parking?',
+    ]);
   });
 
   it('only sends the AI redacted questions, never the renter’s name or contact details', async () => {
     const member = await createTestMember();
     await aLiveLetting(member);
-    const spy = vi.spyOn(fakeDrafter, 'draftAnswers');
+    const spy = vi.spyOn(fakeAi, 'draftAnswers');
     await ask(member, 'Hi, Aoife Byrne here (087 123 4567). Is there parking, Aoife?');
     const sent = JSON.stringify(spy.mock.calls[0]?.[0]?.questions);
     spy.mockRestore();

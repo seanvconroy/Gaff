@@ -73,7 +73,7 @@
   gap: var(--space-3);
 }
 
-@media (width <= 640px) {
+@media (width <= 900px) {
   .section {
     padding: var(--space-4);
   }

@@ -1,0 +1,27 @@
+/* One way to reach a person: an icon tile, what to do, and the words or the number. */
+.route {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+}
+
+.words {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.title {
+  font-weight: var(--type-title-weight);
+}

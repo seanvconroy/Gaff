@@ -1,7 +1,7 @@
 /*
- * Fields (A4). One height for every control: 44px in the workspace, and 48px on the private
- * pages for renters, referees and landlords, whose shells carry data-density="comfortable" (the
- * rules at the end of this file). A field never stretches to its neighbour's height.
+ * Fields. One height for every control, 48px, everywhere (UX-DS-13), and one of three widths:
+ * short, medium, or the full column (UX-DS-14). A field never stretches to its neighbour's
+ * height. The label sits above its control; the error and then the help sit below it.
  */
 .field {
   display: grid;
@@ -10,17 +10,13 @@
   min-width: 0;
 }
 
-/* Width as a cue to the answer's length (GOV.UK pattern): a number, a short code, a name. */
-.number {
-  max-width: 160px;
-}
-
+/* Width as a cue to the answer's length: about 8 characters, or about 16. */
 .short {
-  max-width: 240px;
+  max-width: var(--size-field-short);
 }
 
 .medium {
-  max-width: 400px;
+  max-width: var(--size-field-medium);
 }
 
 .label {
@@ -36,7 +32,7 @@
  * In a row of fields (Form's Columns), each field shares the row's three tracks: label, control,
  * messages. So the controls line up even when one label wraps or one field has a hint.
  */
-@media (width > 640px) {
+@media (width > 900px) {
   [data-columns] > .field {
     grid-row: span 3;
     grid-template-rows: subgrid;
@@ -58,13 +54,14 @@
   font-weight: var(--type-body-weight);
 }
 
-/* Workspace hints are body-sm; the private pages set them to body (never below 16px there). */
+/* Workspace help is body-sm, a secondary line; the private pages set it to body (16px there). */
 .hint {
   color: var(--color-ink-muted);
   font-size: var(--type-body-sm-size);
   line-height: var(--type-body-sm-line);
 }
 
+/* One error pattern (UX-DS-18): at the field, with an icon, in a sentence that says what to do. */
 .error {
   display: flex;
   gap: var(--space-2);
@@ -80,24 +77,30 @@
 
 .control {
   width: 100%;
-  height: 44px;
-  padding: 0 var(--space-3);
+  height: var(--size-control);
+  padding: 0 var(--space-4);
   background-color: var(--color-surface-1);
   color: var(--color-ink);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   font-family: var(--type-body-family);
   font-size: var(--type-body-size);
   line-height: var(--type-body-line);
   transition: border-color var(--motion-fast) var(--ease-standard);
 }
 
+.control::placeholder {
+  color: var(--color-ink-muted);
+  opacity: 1;
+}
+
 .control:hover {
   border-color: var(--color-ink-muted);
 }
 
+/* The edge grows inwards, so nothing moves. */
 .control[aria-invalid='true'] {
-  padding-inline: calc(var(--space-3) - 1px);
+  padding-inline: calc(var(--space-4) - 1px);
   border-color: var(--color-danger);
   border-width: 2px;
 }
@@ -120,14 +123,14 @@
 textarea.control {
   height: auto;
   min-height: 132px;
-  padding-block: var(--space-2);
+  padding-block: var(--space-3);
   resize: vertical;
 }
 
 /* A file input: the button inside it, not the box, is what people press. */
 .control[type='file'] {
   height: auto;
-  min-height: 44px;
+  min-height: var(--size-control);
   padding: var(--space-2);
 }
 
@@ -166,12 +169,17 @@ textarea.control {
   background-color: var(--color-surface-2);
   border: 1px solid var(--color-border-strong);
   border-inline-end: 0;
-  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
   color: var(--color-ink-muted);
 }
 
 .affixed .control {
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding-inline-start: var(--space-3);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+.affixed .control[aria-invalid='true'] {
+  padding-inline-start: calc(var(--space-3) - 1px);
 }
 
 .fieldset {
@@ -199,26 +207,32 @@ textarea.control {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 104px), 1fr));
 }
 
+/* Two across at every width: a run of short answers where one is a few words. */
+.pairs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .inline:has(.optionHint) {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
 }
 
-/* A choice card, like a viewing slot: the chosen one gets a 2px primary edge (A4). */
+/*
+ * A choice row: the whole row is the target, 48px or taller. The chosen one takes the brand
+ * colour: a 2px edge and the brand tint (the selected state, UX-DS-3).
+ */
 .option {
   display: flex;
   gap: var(--space-3);
   align-items: flex-start;
-  min-height: 44px;
-  padding: var(--space-3);
+  min-height: var(--size-control);
+  padding: calc(var(--space-3) - 1px) var(--space-4);
   background-color: var(--color-surface-1);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: border-color var(--motion-fast) var(--ease-standard);
-}
-
-[data-density='comfortable'] .option {
-  min-height: 48px;
+  transition-property: background-color, border-color;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease-standard);
 }
 
 .option:hover {
@@ -227,9 +241,10 @@ textarea.control {
 
 /* The edge grows inwards, so nothing moves. */
 .option:has(input:checked) {
-  padding: calc(var(--space-3) - 1px);
+  padding: calc(var(--space-3) - 2px) calc(var(--space-4) - 1px);
+  background-color: var(--color-brand-bg);
   border-width: 2px;
-  border-color: var(--color-primary);
+  border-color: var(--color-brand);
 }
 
 .option:has(input:focus-visible) {
@@ -237,7 +252,7 @@ textarea.control {
   outline-offset: 2px;
 }
 
-/* Where the card can show the ring, the input doesn't need its own. */
+/* Where the row can show the ring, the input doesn't need its own. */
 @supports selector(:has(*)) {
   .option input:focus-visible {
     outline: none;
@@ -249,7 +264,7 @@ textarea.control {
   width: 20px;
   height: 20px;
   margin: calc(var(--space-1) / 2) 0 0;
-  accent-color: var(--color-primary);
+  accent-color: var(--color-brand);
   cursor: pointer;
 }
 
@@ -266,19 +281,11 @@ textarea.control {
 }
 
 /*
- * The private pages (data-density="comfortable" on their shell): 48px controls, and hints at body
- * size, because nothing a renter must read or act on is below 16px.
+ * The private pages (data-density="comfortable" on their shell): help at body size, because
+ * nothing a renter must read or act on is below 16px. Control heights are the same everywhere.
  */
 [data-density='comfortable'] .hint,
 [data-density='comfortable'] .optionHint {
   font-size: var(--type-body-size);
   line-height: var(--type-body-line);
-}
-
-[data-density='comfortable'] :is(input, select).control:not([type='file']) {
-  height: 48px;
-}
-
-[data-density='comfortable'] .control[type='file'] {
-  min-height: 48px;
 }

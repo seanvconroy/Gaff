@@ -1,5 +1,5 @@
-import { and, eq, inArray } from 'drizzle-orm';
-import { identityProvider, incomeProvider } from '@/adapters/checks';
+import { and, eq, inArray, sql } from 'drizzle-orm';
+import { identityProvider } from '@/adapters/identity';
 import { withOrg, withSystem, type Tx } from '@/db/client';
 import { applications, checks, lettings, messages, organisations } from '@/db/schema';
 import {
@@ -18,15 +18,27 @@ import {
   type CheckKind,
   type CheckStatus,
 } from '@/domain/checks/checks';
+import { listerFrom } from '@/domain/frame/frame';
+import { ID_CHECK_NOTICE_VERSION, mayAttempt, redactAfter } from '@/domain/identity/attempts';
+import { waitingTooLong } from '@/domain/checks/review';
+import { checksBack, renterChecksDone } from '@/domain/funnels/steps';
 import { openJson, sealJson } from '@/lib/crypto';
 import { env } from '@/lib/env';
-import type { IdentityResult, IncomeResult } from '@/ports/checks';
+import type { IdentityResult } from '@/ports/checks';
+import type { Member } from '@/server/auth/member';
+import { UserFacingError } from '@/server/errors';
 import { createAccessLink, resolveAccessLink } from '@/server/access/links';
+import { listerColumns } from '@/server/frame/lister';
+import { noteFunnelStep, recordFunnelStep } from '@/server/funnels/steps';
 import { enqueue } from '@/server/jobs/enqueue';
 import { queueMessage } from '@/server/messages/outbox';
+import { recordPersonCheckResult } from '@/server/identity/person-checks';
 import { recordEvent } from '@/server/record/events';
+import { assertMayActOn } from '@/server/team/permissions';
 
 const CHOSEN = ['preferred', 'backup'] as const;
+/** Why a reference has no answer, where the referee said they can't give it (UX-RF-4). */
+export const CANT_GIVE = 'cant_give';
 type ReferenceKind = 'landlord_reference' | 'employer_reference';
 
 /**
@@ -96,6 +108,31 @@ export async function requestChecks(
   }
 }
 
+/**
+ * UX-ME-1: after a check ends or a referee is named, records the funnel steps that completes,
+ * in the same transaction: the renter has done their part ("all three done"), and, for the
+ * preferred applicant, the checks are back. Each is recorded once.
+ */
+export async function noteCheckProgress(tx: Tx, applicationId: string): Promise<void> {
+  const rows = await tx
+    .select({
+      kind: checks.kind,
+      status: checks.status,
+      lettingId: checks.lettingId,
+      chosenAs: applications.status,
+    })
+    .from(checks)
+    .innerJoin(applications, eq(applications.id, checks.applicationId))
+    .where(eq(checks.applicationId, applicationId));
+  if (renterChecksDone(rows)) {
+    await recordFunnelStep(tx, { step: 'renter_checks.all_done', subjectId: applicationId });
+  }
+  const [first] = rows;
+  if (first?.chosenAs === 'preferred' && checksBack(rows)) {
+    await recordFunnelStep(tx, { step: 'offer.checks_back', subjectId: first.lettingId });
+  }
+}
+
 /** A renter's own checks, for their page: what's done and what's left (no results shown). */
 export async function checksOf(tx: Tx, applicationId: string) {
   return tx
@@ -106,6 +143,7 @@ export async function checksOf(tx: Tx, applicationId: string) {
       reason: checks.reason,
       refereeName: checks.refereeName,
       requestedAt: checks.requestedAt,
+      attempts: checks.attempts,
     })
     .from(checks)
     .where(eq(checks.applicationId, applicationId));
@@ -118,9 +156,14 @@ export type CheckSummary = {
   reason: string | null;
   refereeName: string | null;
   requestedAt: Date | null;
+  /** When the check was set up: the moment its person was chosen. */
+  createdAt: Date;
   remindersSent: number;
   verifiedName?: string;
-  monthlyIncomeCents?: number;
+  /** BA-16 (P39): when the renter shared their work and income documents. */
+  documentsSharedAt?: Date;
+  /** BA-16 (P38, P46): how many of the shared documents have something to look at. */
+  documentsToLookAt?: number;
   summary?: string;
 };
 
@@ -143,11 +186,14 @@ export async function checkResultsFor(
       reason: row.reason,
       refereeName: row.refereeName,
       requestedAt: row.requestedAt,
+      createdAt: row.createdAt,
       remindersSent: row.remindersSent,
     };
     if (opened && row.kind === 'identity') summary.verifiedName = String(opened.verifiedName);
-    if (opened && row.kind === 'income')
-      summary.monthlyIncomeCents = Number(opened.monthlyIncomeCents);
+    if (opened && row.kind === 'income' && typeof opened.sharedAt === 'string') {
+      summary.documentsSharedAt = new Date(opened.sharedAt);
+      summary.documentsToLookAt = Number(opened.toLookAt ?? 0);
+    }
     if (opened && (row.kind === 'landlord_reference' || row.kind === 'employer_reference')) {
       summary.summary = describeReference(row.kind, opened as Record<string, string>);
     }
@@ -162,14 +208,22 @@ async function chosenRenter(token: string) {
   return { link };
 }
 
+export type StartProblem = 'link' | 'not_chosen' | 'done' | 'no_provider' | 'no_attempts_left';
+
 /**
- * R18: the renter starts their ID or income check. They go to the provider, and come back to a
- * page that says it's done. Their private link is never given to the provider.
+ * R18: the renter starts their ID check. They go to the provider, and come back to a page that
+ * says it's done. Their private link is never given to the provider. (Work and income are shown
+ * with documents on Gaff's own page: src/server/documents.)
+ *
+ * P17, P18, P25 (the ID check): one provider session for this check, reused for each try, as
+ * Stripe advises; three tries at most (`mayAttempt`, with its seam for more); and the version of
+ * the words they were shown before it started, recorded with the try.
  */
 export async function startProviderCheck(
   token: string,
-  kind: 'identity' | 'income',
-): Promise<{ redirectUrl: string } | { problem: 'link' | 'not_chosen' | 'done' | 'no_provider' }> {
+  kind: 'identity',
+  now: Date = new Date(),
+): Promise<{ redirectUrl: string } | { problem: StartProblem }> {
   const found = await chosenRenter(token);
   if (!found) return { problem: 'link' };
   const { link } = found;
@@ -184,63 +238,93 @@ export async function startProviderCheck(
   if (!check || !(CHOSEN as readonly string[]).includes(check.status))
     return { problem: 'not_chosen' };
   if (check.check.status === 'passed') return { problem: 'done' };
-  const provider = kind === 'identity' ? identityProvider() : incomeProvider();
+  const returnUrl = `${env().APP_URL}/checks/done?kind=${kind}`;
+  const provider = identityProvider();
   if (!provider) return { problem: 'no_provider' };
+  if (!mayAttempt({ attempts: check.check.attempts, passed: false })) {
+    return { problem: 'no_attempts_left' };
+  }
+  const attempt = check.check.attempts + 1;
   const started = await provider.start({
     checkId: check.check.id,
-    returnUrl: `${env().APP_URL}/checks/done?kind=${kind}`,
+    kind: 'letting',
+    returnUrl,
+    // A session from another provider (the stand-in, before Stripe) can't be reused.
+    providerRef: check.check.provider === provider.name ? check.check.providerRef : null,
+    attempt,
   });
+  await markStarted(link, check.check, {
+    provider: provider.name,
+    providerRef: started.providerRef,
+    attempt,
+    now,
+  });
+  return { redirectUrl: started.redirectUrl };
+}
+
+/** The check is under way with its provider, and the record says so, in one transaction. */
+async function markStarted(
+  link: { organisationId: string; subjectId: string },
+  check: typeof checks.$inferSelect,
+  input: { provider: string; providerRef: string; attempt: number; now: Date },
+): Promise<void> {
   await withOrg(link.organisationId, async (tx) => {
     await tx
       .update(checks)
       .set({
         status: 'in_progress',
-        provider: kind === 'identity' ? env().IDENTITY_PROVIDER : env().INCOME_PROVIDER,
-        providerRef: started.providerRef,
-        requestedAt: new Date(),
+        provider: input.provider,
+        providerRef: input.providerRef,
+        requestedAt: input.now,
         reason: null,
+        attempts: input.attempt,
+        consentVersion: ID_CHECK_NOTICE_VERSION,
+        // P26, rule 9: a session nobody finishes is deleted at the provider too.
+        redactAfter: redactAfter(input.now),
       })
-      .where(eq(checks.id, check.check.id));
+      .where(eq(checks.id, check.id));
     await recordEvent(tx, {
       organisationId: link.organisationId,
-      lettingId: check.check.lettingId,
+      lettingId: check.lettingId,
       actor: { type: 'renter', applicationId: link.subjectId },
       type: 'check.started',
-      subject: { type: 'check', id: check.check.id },
-      data: { checkId: check.check.id, kind },
+      subject: { type: 'check', id: check.id },
+      data: { checkId: check.id, kind: 'identity', attempt: input.attempt },
     });
   });
-  return { redirectUrl: started.redirectUrl };
 }
 
 /**
- * R18: a provider's result arrives (for real providers, from a signed webhook). Only the
- * result is kept, sealed: the verified name, or the confirmed monthly income.
+ * R18: the ID provider's result arrives (Gaff reads it from the provider itself, ADR-0020). Only
+ * the result is kept, sealed: the verified name and the date.
  */
 export async function recordProviderResult(
   checkId: string,
-  outcome: { kind: 'identity'; result: IdentityResult } | { kind: 'income'; result: IncomeResult },
+  outcome: { kind: 'identity'; result: IdentityResult },
+  now: Date = new Date(),
 ): Promise<void> {
+  // UX-TS-2, UX-PF-9: a person's own ID check, outside any letting's checks.
+  if (await recordPersonCheckResult(checkId, outcome.result, now)) return;
   const [found] = await withSystem((tx) =>
     tx
       .select({
         organisationId: checks.organisationId,
         kind: checks.kind,
         lettingId: checks.lettingId,
+        applicationId: checks.applicationId,
       })
       .from(checks)
       .where(eq(checks.id, checkId)),
   );
   if (!found || found.kind !== outcome.kind) return;
-  const passed = outcome.kind === 'identity' ? outcome.result.verified : outcome.result.confirmed;
-  const sealed = !passed
-    ? null
-    : outcome.kind === 'identity' && outcome.result.verified
-      ? sealJson({ verifiedName: outcome.result.verifiedName })
-      : outcome.kind === 'income' && outcome.result.confirmed
-        ? sealJson({ monthlyIncomeCents: outcome.result.monthlyIncomeCents })
-        : null;
-  const reason = passed ? null : (outcome.result as { reason: string }).reason;
+  const result = outcome.result;
+  const passed = result.verified;
+  // P18: saying no on the provider's own consent screen doesn't count as one of the tries.
+  const declined = !result.verified && result.consentDeclined;
+  const sealed = result.verified
+    ? sealJson({ verifiedName: result.verifiedName, verifiedAt: now.toISOString() })
+    : null;
+  const reason = result.verified ? null : result.reason;
   await withOrg(found.organisationId, async (tx) => {
     await tx
       .update(checks)
@@ -248,7 +332,10 @@ export async function recordProviderResult(
         status: passed ? 'passed' : 'not_passed',
         resultSealed: sealed,
         reason,
-        completedAt: new Date(),
+        completedAt: now,
+        // P26: the provider deletes the document and selfie 30 days after the result.
+        redactAfter: redactAfter(now),
+        ...(declined ? { attempts: sql`greatest(${checks.attempts} - 1, 0)` } : {}),
       })
       .where(eq(checks.id, checkId));
     await recordEvent(tx, {
@@ -259,6 +346,7 @@ export async function recordProviderResult(
       subject: { type: 'check', id: checkId },
       data: { checkId, kind: found.kind, outcome: passed ? 'passed' : 'not_passed' },
     });
+    await noteCheckProgress(tx, found.applicationId);
   });
 }
 
@@ -278,8 +366,10 @@ export type RefereesResult =
   { ok: true } | { ok: false; errors: Record<string, string> } | { ok: false; closed: true };
 
 /**
- * R18: the renter names their last landlord and employer (or says they don't have one). Gaff
- * emails each a short form, reminds them twice, and flags it if there's no answer.
+ * R18: the renter names their last landlord and employer (or says they don't have one). P39
+ * (BA-16): the names wait with the renter's other checks, and Gaff emails each referee when the
+ * renter shares everything in one step (`askNamedReferees`, from src/server/documents/renter.ts).
+ * Until then they can change them. Saying they don't have one ends that reference now.
  */
 export async function submitReferees(
   token: string,
@@ -289,10 +379,9 @@ export async function submitReferees(
   if (!link) return null;
   return withOrg(link.organisationId, async (tx) => {
     const [row] = await tx
-      .select({ application: applications, letting: lettings, organisation: organisations })
+      .select({ application: applications, letting: lettings })
       .from(applications)
       .innerJoin(lettings, eq(lettings.id, applications.lettingId))
-      .innerJoin(organisations, eq(organisations.id, applications.organisationId))
       .where(eq(applications.id, link.subjectId))
       .for('update', { of: applications });
     if (!row || !(CHOSEN as readonly string[]).includes(row.application.status)) {
@@ -310,7 +399,6 @@ export async function submitReferees(
       return { ok: false, errors };
     }
     const now = new Date();
-    const schedule = referenceSchedule(now);
     for (const [kind, referee] of [
       ['landlord_reference', parsed.data.landlord],
       ['employer_reference', parsed.data.employer],
@@ -320,7 +408,7 @@ export async function submitReferees(
       if (!referee) {
         await tx
           .update(checks)
-          .set({ status: 'not_needed', completedAt: now })
+          .set({ status: 'not_needed', completedAt: now, refereeName: null, refereeEmail: null })
           .where(eq(checks.id, check.id));
         await recordEvent(tx, {
           organisationId: link.organisationId,
@@ -334,65 +422,103 @@ export async function submitReferees(
       }
       await tx
         .update(checks)
-        .set({
-          status: 'in_progress',
-          refereeName: referee.name,
-          refereeEmail: referee.email,
-          requestedAt: now,
-        })
+        .set({ refereeName: referee.name, refereeEmail: referee.email })
         .where(eq(checks.id, check.id));
-      const refereeToken = await createAccessLink(tx, {
-        organisationId: link.organisationId,
-        purpose: 'referee',
-        subjectId: check.id,
-      });
-      const request = {
-        refereeName: referee.name,
-        renterName: row.application.fullName,
-        operatorName: row.organisation.name,
-        role: kind === 'landlord_reference' ? ('landlord' as const) : ('employer' as const),
-        referenceUrl: `${env().APP_URL}/reference/${refereeToken}`,
-      };
-      const common = {
-        organisationId: link.organisationId,
-        lettingId: row.letting.id,
-        applicationId: row.application.id,
-        checkId: check.id,
-        author: 'template' as const,
-        toAddress: referee.email,
-      };
-      await queueMessage(tx, {
-        ...common,
-        kind: 'reference_request',
-        templateKey: REFERENCE_REQUEST_TEMPLATE,
-        ...referenceRequestEmail({ ...request, reminder: false }),
-      });
-      for (const sendAt of schedule.reminders) {
-        await queueMessage(tx, {
-          ...common,
-          kind: 'reference_reminder',
-          templateKey: REFERENCE_REMINDER_TEMPLATE,
-          sendAt,
-          ...referenceRequestEmail({ ...request, reminder: true }),
-        });
-      }
-      await enqueue(
-        tx,
-        'reference_overdue',
-        { organisationId: link.organisationId, checkId: check.id },
-        { runAt: schedule.noAnswerAt, jobKey: `reference_overdue:${check.id}` },
-      );
       await recordEvent(tx, {
         organisationId: link.organisationId,
         lettingId: row.letting.id,
         actor: { type: 'renter', applicationId: row.application.id },
-        type: 'reference.requested',
+        type: 'reference.named',
         subject: { type: 'check', id: check.id },
         data: { checkId: check.id, kind },
       });
     }
+    await noteCheckProgress(tx, row.application.id);
     return { ok: true };
   });
+}
+
+/**
+ * R18, P39: the referees the renter named are emailed a short form, reminded twice, and flagged
+ * if there's no answer, once the renter shares their checks. In the sharing transaction.
+ */
+export async function askNamedReferees(
+  tx: Tx,
+  input: { organisationId: string; applicationId: string; now: Date },
+): Promise<number> {
+  const [row] = await tx
+    .select({ application: applications, letting: lettings, organisation: organisations })
+    .from(applications)
+    .innerJoin(lettings, eq(lettings.id, applications.lettingId))
+    .innerJoin(organisations, eq(organisations.id, applications.organisationId))
+    .where(eq(applications.id, input.applicationId));
+  if (!row) return 0;
+  const named = (await checksOf(tx, input.applicationId)).filter(
+    (c) =>
+      (c.kind === 'landlord_reference' || c.kind === 'employer_reference') &&
+      c.status === 'to_do' &&
+      c.refereeName,
+  );
+  const schedule = referenceSchedule(input.now);
+  for (const check of named) {
+    const [referee] = await tx
+      .update(checks)
+      .set({ status: 'in_progress', requestedAt: input.now })
+      .where(eq(checks.id, check.id))
+      .returning({ name: checks.refereeName, email: checks.refereeEmail });
+    if (!referee?.name || !referee.email) continue;
+    const kind = check.kind as ReferenceKind;
+    const refereeToken = await createAccessLink(tx, {
+      organisationId: input.organisationId,
+      purpose: 'referee',
+      subjectId: check.id,
+    });
+    const request = {
+      refereeName: referee.name,
+      renterName: row.application.fullName,
+      operatorName: row.organisation.name,
+      role: kind === 'landlord_reference' ? ('landlord' as const) : ('employer' as const),
+      referenceUrl: `${env().APP_URL}/reference/${refereeToken}`,
+    };
+    const common = {
+      organisationId: input.organisationId,
+      lettingId: row.letting.id,
+      applicationId: row.application.id,
+      checkId: check.id,
+      author: 'template' as const,
+      toAddress: referee.email,
+    };
+    await queueMessage(tx, {
+      ...common,
+      kind: 'reference_request',
+      templateKey: REFERENCE_REQUEST_TEMPLATE,
+      ...referenceRequestEmail({ ...request, reminder: false }),
+    });
+    for (const sendAt of schedule.reminders) {
+      await queueMessage(tx, {
+        ...common,
+        kind: 'reference_reminder',
+        templateKey: REFERENCE_REMINDER_TEMPLATE,
+        sendAt,
+        ...referenceRequestEmail({ ...request, reminder: true }),
+      });
+    }
+    await enqueue(
+      tx,
+      'reference_overdue',
+      { organisationId: input.organisationId, checkId: check.id },
+      { runAt: schedule.noAnswerAt, jobKey: `reference_overdue:${check.id}` },
+    );
+    await recordEvent(tx, {
+      organisationId: input.organisationId,
+      lettingId: row.letting.id,
+      actor: { type: 'renter', applicationId: row.application.id },
+      type: 'reference.requested',
+      subject: { type: 'check', id: check.id },
+      data: { checkId: check.id, kind },
+    });
+  }
+  return named.length;
 }
 
 /** R18: what a referee's private link shows. No address, nothing beyond what they need. */
@@ -406,6 +532,7 @@ export async function loadReferenceRequest(token: string) {
         renterName: applications.fullName,
         deletedAt: applications.personalDataDeletedAt,
         operatorName: organisations.name,
+        organisation: listerColumns,
       })
       .from(checks)
       .innerJoin(applications, eq(applications.id, checks.applicationId))
@@ -416,13 +543,28 @@ export async function loadReferenceRequest(token: string) {
       return null;
     }
     return {
+      checkId: row.check.id,
       kind: row.check.kind as ReferenceKind,
       status: row.check.status,
+      /** UX-RF-4: the referee said they can't give this reference. */
+      cantGive: row.check.status === 'no_answer' && row.check.reason === CANT_GIVE,
       refereeName: row.check.refereeName,
       renterName: row.renterName,
       operatorName: row.operatorName,
+      /** Whoever asked for the reference, for the page's frame (UX-PP-9). */
+      lister: listerFrom(row.organisation),
     };
   });
+}
+
+/**
+ * UX-ME-1: a referee opens their form. Records that the step was reached, once per request, and
+ * nothing else about the visit.
+ */
+export async function openReferenceRequest(token: string) {
+  const request = await loadReferenceRequest(token);
+  if (request) await noteFunnelStep({ step: 'referee.opened', subjectId: request.checkId });
+  return request;
 }
 
 /** R18: the referee answers. Their answers are sealed; reminders stop. */
@@ -441,7 +583,8 @@ export async function submitReference(
     if (!check || (check.kind !== 'landlord_reference' && check.kind !== 'employer_reference')) {
       return null;
     }
-    if (check.status === 'answered') return { ok: true };
+    // UX-RF-4: a referee who said they can't give it has nothing more to send.
+    if (check.status === 'answered' || check.reason === CANT_GIVE) return { ok: true };
     const parsed = referenceAnswersSchema(check.kind).safeParse(values);
     if (!parsed.success) {
       const errors: Record<string, string> = {};
@@ -464,6 +607,46 @@ export async function submitReference(
       subject: { type: 'check', id: check.id },
       data: { checkId: check.id, kind: check.kind, outcome: 'answered' },
     });
+    await noteCheckProgress(tx, check.applicationId);
+    return { ok: true };
+  });
+}
+
+/**
+ * UX-RF-4: the referee says "I can't give this reference", in one tap. Nothing is asked of them
+ * and no reason is kept. The agency sees it on the applicant's checks at once, and the reminders
+ * that hadn't gone yet never do. A reference that's already in stays as it is.
+ */
+export async function declineReference(token: string): Promise<{ ok: true } | null> {
+  const link = await resolveAccessLink(token, 'referee');
+  if (!link) return null;
+  return withOrg(link.organisationId, async (tx) => {
+    const [check] = await tx
+      .select()
+      .from(checks)
+      .where(eq(checks.id, link.subjectId))
+      .for('update');
+    if (!check || (check.kind !== 'landlord_reference' && check.kind !== 'employer_reference')) {
+      return null;
+    }
+    if (check.status !== 'in_progress') return { ok: true };
+    await tx
+      .update(checks)
+      .set({ status: 'no_answer', reason: CANT_GIVE, completedAt: new Date() })
+      .where(eq(checks.id, check.id));
+    await tx
+      .update(messages)
+      .set({ status: 'cancelled' })
+      .where(and(eq(messages.checkId, check.id), eq(messages.status, 'scheduled')));
+    await recordEvent(tx, {
+      organisationId: link.organisationId,
+      lettingId: check.lettingId,
+      actor: { type: 'system' },
+      type: 'check.completed',
+      subject: { type: 'check', id: check.id },
+      data: { checkId: check.id, kind: check.kind, outcome: 'cant_give' },
+    });
+    await noteCheckProgress(tx, check.applicationId);
     return { ok: true };
   });
 }
@@ -488,5 +671,95 @@ export async function markReferenceOverdue(input: {
       subject: { type: 'check', id: check.id },
       data: { checkId: check.id, kind: check.kind, outcome: 'no_answer' },
     });
+    await noteCheckProgress(tx, check.applicationId);
+  });
+}
+
+/**
+ * UX-DC-13: "Send a reminder" for a check that has waited more than three days. The renter gets
+ * the email about their checks again, with a new private link; a referee gets the reminder Gaff
+ * sends on its own, now. Only for a check of someone chosen, and only once it has waited.
+ */
+export async function remindAboutCheck(
+  member: Member,
+  lettingId: string,
+  checkId: string,
+  now: Date = new Date(),
+): Promise<{ to: 'renter' | 'referee' }> {
+  return withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
+    const [row] = await tx
+      .select({ check: checks, application: applications, organisation: organisations })
+      .from(checks)
+      .innerJoin(applications, eq(applications.id, checks.applicationId))
+      .innerJoin(organisations, eq(organisations.id, checks.organisationId))
+      .where(and(eq(checks.id, checkId), eq(checks.lettingId, lettingId)))
+      .for('update', { of: checks });
+    if (!row || !(CHOSEN as readonly string[]).includes(row.application.status)) {
+      throw new UserFacingError('That check isn’t waiting on anyone now.');
+    }
+    const waiting = waitingTooLong(row.check, now);
+    if (!waiting) throw new UserFacingError('That check isn’t waiting on anyone now.');
+    const [letting] = await tx.select().from(lettings).where(eq(lettings.id, lettingId));
+    if (waiting.who === 'renter') {
+      const token = await createAccessLink(tx, {
+        organisationId: member.organisationId,
+        purpose: 'renter',
+        subjectId: row.application.id,
+      });
+      await queueMessage(tx, {
+        organisationId: member.organisationId,
+        lettingId,
+        applicationId: row.application.id,
+        kind: 'checks_invitation',
+        author: 'template',
+        templateKey: CHECKS_INVITATION_TEMPLATE,
+        toAddress: row.application.email,
+        ...checksInvitationEmail({
+          renterName: row.application.fullName,
+          operatorName: row.organisation.name,
+          address: letting!.addressLine1,
+          area: letting!.area,
+          checksUrl: `${env().APP_URL}/r/${token}`,
+        }),
+      });
+    } else {
+      const refereeToken = await createAccessLink(tx, {
+        organisationId: member.organisationId,
+        purpose: 'referee',
+        subjectId: row.check.id,
+      });
+      await queueMessage(tx, {
+        organisationId: member.organisationId,
+        lettingId,
+        applicationId: row.application.id,
+        checkId: row.check.id,
+        kind: 'reference_reminder',
+        author: 'template',
+        templateKey: REFERENCE_REMINDER_TEMPLATE,
+        toAddress: row.check.refereeEmail!,
+        ...referenceRequestEmail({
+          refereeName: row.check.refereeName ?? '',
+          renterName: row.application.fullName,
+          operatorName: row.organisation.name,
+          role: row.check.kind === 'landlord_reference' ? 'landlord' : 'employer',
+          referenceUrl: `${env().APP_URL}/reference/${refereeToken}`,
+          reminder: true,
+        }),
+      });
+    }
+    await tx
+      .update(checks)
+      .set({ remindersSent: row.check.remindersSent + 1 })
+      .where(eq(checks.id, row.check.id));
+    await recordEvent(tx, {
+      organisationId: member.organisationId,
+      lettingId,
+      actor: { type: 'person', userId: member.userId },
+      type: 'check.reminded',
+      subject: { type: 'check', id: row.check.id },
+      data: { checkId: row.check.id, kind: row.check.kind, to: waiting.who },
+    });
+    return { to: waiting.who };
   });
 }

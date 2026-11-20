@@ -15,7 +15,6 @@ import {
 import { closeLetting } from '@/server/lettings/close';
 import { sweepPersonalData } from '@/server/retention/sweep';
 import { inviteToView } from '@/server/shortlist/invite';
-import { bookViewing } from '@/server/viewings/booking';
 import { loadRenterPage } from '@/server/renter/answers';
 import {
   aLiveLetting,
@@ -23,6 +22,7 @@ import {
   createTestMember,
   deliverEmail,
   tokenInMessage,
+  bookAs,
 } from './helpers';
 import { draftAnswersFor } from '@/server/answers/draft';
 import { operatorQuestions, organisations } from '@/db/schema';
@@ -40,7 +40,7 @@ async function aClosedLetting() {
     tx.select().from(viewingSlots).where(eq(viewingSlots.lettingId, lettingId)).limit(1),
   );
   const token = await tokenInMessage(member, booked, 'invitation');
-  await bookViewing(token, slot!.id);
+  await bookAs(token, slot!.id);
   return { member, lettingId, booked, other, token };
 }
 

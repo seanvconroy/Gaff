@@ -1,0 +1,10 @@
+/* A place's page: search's own view, with the place's one line and the places around it. */
+.free {
+  color: var(--color-ink);
+}
+
+.places {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}

@@ -1,27 +1,76 @@
 import type { TaskList } from 'graphile-worker';
 import { z } from 'zod';
+import { sweepProfiles } from '@/server/accounts/delete-profile';
+import { sendAccountEmail } from '@/server/accounts/emails';
+import { sweepAiCalls } from '@/server/ai/usage';
 import { draftAnswersFor } from '@/server/answers/draft';
+import {
+  dropExpiredWaitingEnquiries,
+  dropWaitingEnquiry,
+  sendWaitingReply,
+} from '@/server/enquiries/ask-to-view';
 import { processInboundEmail } from '@/server/enquiries/process';
 import { markReferenceOverdue } from '@/server/checks/checks';
 import { sendMessage } from '@/server/messages/outbox';
 import { expireHomeOffer } from '@/server/offers/offer';
 import { sendRtbReminder } from '@/server/tenancy/rtb';
+import { refreshRegister } from '@/server/register/refresh';
 import { sweepPersonalData } from '@/server/retention/sweep';
+import { sweepDocuments } from '@/server/documents/retention';
+import { sweepPlaceMisses } from '@/server/places/places';
+import { sweepMapCounts } from '@/server/search/map-counts';
+import { sweepPhotoUploads } from '@/server/lettings/photos';
+import { sweepFreshness } from '@/server/lettings/freshness';
+import { sweepHomeCounts } from '@/server/lettings/home-numbers';
+import { endLetHomePages } from '@/server/homes/let-pages';
+import { purgeListingCases } from '@/server/homes/report';
+import { sendSearchAlerts, sweepEmailSearches } from '@/server/saved/alerts';
+import { sendSavedSearchEmail } from '@/server/saved/emails';
 import { expireOffer, offerFreedPlace } from '@/server/viewings/waitlist';
+import { redactIdentitySessions, redactSession } from '@/server/identity/redact';
+import { checkParts } from '@/domain/listings/checks';
+import { checkListing } from '@/server/trust/checks';
+import { purgeListerPauses } from '@/server/trust/pauses';
 
 const inboundEmailJob = z.object({ organisationId: z.uuid(), inboundEmailId: z.uuid() });
 const messageJob = z.object({ organisationId: z.uuid(), messageId: z.uuid() });
+const waitingJob = z.object({ organisationId: z.uuid(), waitingEnquiryId: z.uuid() });
 
 /**
  * R26 (ADR-0005): the retention job, daily at 02:30 UTC. "?fill=2d" runs a missed one when jobs
  * next run, so a quiet night or a deploy never skips it.
  */
-export const CRONTAB = '30 2 * * * retention_sweep ?fill=2d';
+export const CRONTAB = [
+  '30 2 * * * retention_sweep ?fill=2d',
+  // UX-AG-1, UX-AG-6 (Q39): the PSRA register, weekly, early on Monday. A missed week runs when
+  // jobs next run. The job key matches the one a first load uses, so two never queue up.
+  '15 3 * * 1 psra_register_refresh ?fill=8d&jobKey=psra_register_refresh&max=5',
+  // UX-SR-10, M86: the daily alerts for saved searches, at 8am Irish time: 07:00 UTC in summer,
+  // 08:00 in winter, so both run and the job waits for 8 in Ireland. A missed one runs when jobs
+  // next run; the job sends at most one email a day to anyone, however often it runs.
+  '0 7,8 * * * saved_search_alerts ?fill=1d&jobKey=saved_search_alerts',
+  // M49: the sweep that keeps live homes fresh, each morning. Running it twice asks nobody twice.
+  '0 9 * * * listing_freshness ?fill=1d&jobKey=listing_freshness',
+].join('\n');
 
 /** Every background task. Tasks are thin: they call use cases in src/server. */
 export const taskList: TaskList = {
   process_inbound_email: async (payload) => {
     await processInboundEmail(inboundEmailJob.parse(payload));
+  },
+  check_listing: async (payload) => {
+    const job = z
+      .object({
+        organisationId: z.uuid(),
+        lettingId: z.uuid(),
+        part: z.enum(checkParts),
+        photoIds: z.array(z.uuid()).optional(),
+      })
+      .parse(payload);
+    await checkListing(job);
+  },
+  redact_identity_session: async (payload) => {
+    await redactSession(z.object({ providerRef: z.string().min(1) }).parse(payload).providerRef);
   },
   offer_place: async (payload) => {
     const job = z.object({ organisationId: z.uuid(), slotId: z.uuid() }).parse(payload);
@@ -36,6 +85,81 @@ export const taskList: TaskList = {
     console.log(
       `Retention: ${swept.applications} applications, ${swept.inboundEmails} emails and ${swept.references} references cleared; ${swept.recordEvents} record events and ${swept.recordDecisions} decisions past their period deleted.`,
     );
+    // BA-16 (P41, rule 9): chosen renters' documents, each copy on its own date. Counts only.
+    const documents = await sweepDocuments();
+    console.log(
+      `Documents: ${documents.renterCopies} renters' copies and ${documents.letterCopies} letting agents' copies deleted.`,
+    );
+    // UX-PF-7 (rule 9): renters' own profiles, unused for two years. Counts only.
+    const profiles = await sweepProfiles();
+    console.log(
+      `Retention: ${profiles.deleted} unused profiles deleted; ${profiles.notices} told theirs will be in 30 days.`,
+    );
+    // UX-LS-10: a let home's page on gaff.ie, 30 days after it was let. Counts only.
+    const pages = await endLetHomePages();
+    console.log(`Homes on Gaff: ${pages.removed} let homes' pages removed.`);
+    // M124 (rule 9): counts of places nobody found, after 30 days. Counts only.
+    const misses = await sweepPlaceMisses();
+    console.log(`Place search: ${misses.deleted} counts of places not found deleted.`);
+    // M133 (rule 9): the search map's daily counts, after 13 months. Numbers only.
+    const mapCounts = await sweepMapCounts();
+    console.log(`Map: ${mapCounts.deleted} daily counts over 13 months old deleted.`);
+    // M92 (rule 9): a home's daily counts of page opens and saves, after 13 months. Numbers only.
+    const homeCounts = await sweepHomeCounts();
+    console.log(`Homes: ${homeCounts.deleted} daily counts over 13 months old deleted.`);
+    // M43: photos sent straight to the store and never finished, after a day. Counts only.
+    const uploads = await sweepPhotoUploads();
+    console.log(`Photos: ${uploads} unfinished uploads deleted.`);
+    // UX-TS-3, BA-9 (rule 9): cases about listings, with their reports, six months after a
+    // person decided them.
+    const cases = await purgeListingCases();
+    console.log(`Reports: ${cases} cases about listings deleted, with their reports.`);
+    // BA-10 (M107, rule 9): a lister's ended pause, six months after it ended. Counts only.
+    const pauses = await purgeListerPauses();
+    console.log(`Pauses: ${pauses} ended pauses of listers' listings deleted.`);
+    // UX-AV-6: any enquiry still waiting past its 24 hours, should its own job have missed it.
+    const waiting = await dropExpiredWaitingEnquiries();
+    console.log(`Asking to view: ${waiting} unconfirmed enquiries dropped.`);
+    // UX-SR-10 (rule 9): saved searches held by an email alone, unconfirmed or two years old.
+    const searches = await sweepEmailSearches();
+    console.log(`Saved searches: ${searches.deleted} held by an email alone deleted.`);
+    // P26 (rule 9): Stripe deletes the ID and selfie of each check 30 days after its result.
+    const redaction = await redactIdentitySessions();
+    console.log(
+      `ID checks: ${redaction.redacted} redacted at the provider; ${redaction.failed} to try again.`,
+    );
+    // P3 (rule 9): the log of AI calls, after 12 months. It holds usage only, never text.
+    console.log(`AI: ${await sweepAiCalls()} usage rows over 12 months old deleted.`);
+  },
+  saved_search_alerts: async () => {
+    const sent = await sendSearchAlerts('daily');
+    // Counts only: never who was told, or about which home.
+    console.log(`Saved searches: ${sent.emails} daily alerts queued, ${sent.homes} homes in them.`);
+  },
+  // M86, M87: a couple of minutes after a home went public or came down in rent.
+  instant_search_alerts: async () => {
+    const sent = await sendSearchAlerts('instant');
+    console.log(`Saved searches: ${sent.emails} alerts queued, ${sent.homes} homes in them.`);
+  },
+  // M49: ask about homes unchanged for two weeks; step back those nobody answered for three days.
+  listing_freshness: async () => {
+    const swept = await sweepFreshness();
+    console.log(
+      `Freshness: ${swept.asked} listers asked; ${swept.steppedBack} homes stepped back.`,
+    );
+  },
+  send_saved_search_email: async (payload) => {
+    await sendSavedSearchEmail(payload);
+  },
+  psra_register_refresh: async () => {
+    const refreshed = await refreshRegister();
+    // Counts only: the register names businesses, and some are one person's.
+    console.log(
+      `PSRA register: ${refreshed.entries} businesses licensed to let (${refreshed.added} new, ${refreshed.removed} gone); ${refreshed.lapsed} agencies lapsed and ${refreshed.renewed} renewed.`,
+    );
+  },
+  send_account_email: async (payload, helpers) => {
+    await sendAccountEmail(payload, String(helpers.job.id));
   },
   reference_overdue: async (payload) => {
     await markReferenceOverdue(
@@ -52,6 +176,12 @@ export const taskList: TaskList = {
   },
   draft_answers: async (payload) => {
     await draftAnswersFor(messageJob.parse(payload));
+  },
+  send_waiting_reply: async (payload) => {
+    await sendWaitingReply(waitingJob.parse(payload));
+  },
+  drop_waiting_enquiry: async (payload) => {
+    await dropWaitingEnquiry(waitingJob.parse(payload));
   },
   send_message: async (payload, helpers) => {
     await sendMessage({

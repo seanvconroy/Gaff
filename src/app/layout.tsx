@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import '@/styles/tokens.css';
 import '@/styles/fonts.css';
 import '@/styles/base.css';
+import { MapBoundary } from '@/ui/MapBoundary';
+import { isTestCopy, TestCopyBanner } from '@/ui/TestCopyBanner';
 
 export const metadata: Metadata = {
   title: { default: 'Gaff', template: '%s · Gaff' },
@@ -13,6 +15,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // UX-NV-4: lets the tab bar's safe-area padding take effect on phones with a home indicator.
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -26,15 +30,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           type="font/woff2"
           crossOrigin="anonymous"
         />
-        <link
-          rel="preload"
-          href="/fonts/fraunces-latin-opsz-normal.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
       </head>
-      <body>{children}</body>
+      <body>
+        {/* BA-1: the test copy says so on every page. Read from the process, as the build sees it. */}
+        {isTestCopy(process.env.GAFF_ENV) ? <TestCopyBanner /> : null}
+        {/* BA-5, M119: Google's script stays on the map's pages (src/lib/map-pages.ts). */}
+        <MapBoundary />
+        {children}
+      </body>
     </html>
   );
 }

@@ -1,4 +1,20 @@
-import type { AiDrafter } from '@/ports/ai';
+import type { TokenCounts } from '@/domain/ai/prices';
+import { inASentence } from '@/domain/answers/sentences';
+import type { AiProvider, AiReply } from '@/ports/ai';
+import { readFixtureDocument } from './fake-document';
+import { readAdvertByPattern } from './fake-reader';
+
+/**
+ * BA-10: the stand-in's wording check knows a few indirect phrases the word list lets through,
+ * so development and tests can see a finding hold a listing. The real check is the model's.
+ */
+export const fakeUnfairPhrases: Array<[RegExp, string]> = [
+  [/\blocals preferred\b/i, 'race'],
+  [/\benglish speakers only\b/i, 'race'],
+  [/\bsuit a gentleman\b/i, 'gender'],
+  [/\bmust have a permanent job\b/i, 'housing_assistance'],
+  [/\bnot suitable for wheelchair users\b/i, 'disability'],
+];
 
 /** Words a question uses, mapped to the words in a fact that answer it. */
 const topics: Array<[RegExp, RegExp]> = [
@@ -15,22 +31,84 @@ const topics: Array<[RegExp, RegExp]> = [
   [/\bgarden|\boutdoor/i, /\bgarden\b/i],
 ];
 
+export const noUsage: TokenCounts = {
+  inputTokens: 0,
+  outputTokens: 0,
+  cacheReadTokens: 0,
+  cacheWriteTokens: 0,
+};
+
+const reply = <T>(output: T): AiReply<T> => ({
+  output,
+  refused: false,
+  model: 'fake',
+  usage: noUsage,
+});
+
 /**
- * A deterministic stand-in for the AI, for development and tests. It answers a question only
- * when one fact clearly covers its topic, and otherwise leaves it for the operator.
+ * A deterministic stand-in for the AI, for development and tests. It costs nothing, so it never
+ * touches the budget; its calls are still logged, so the log can be seen working locally.
+ *
+ * - `answers`: it answers a question only when one fact clearly covers its topic, and otherwise
+ *   leaves it for the operator. Like the real one, it answers in a sentence, from that fact
+ *   alone (UX-AI-11).
+ * - `advert`: it finds what a plain Irish advert says in so many words, by pattern
+ *   (./fake-reader.ts), and `checkReading` decides what is kept.
+ * - `people`: plain code has already read everything it can (src/domain/fit/ask.ts), so the
+ *   stand-in understands nothing more: whatever plain code couldn't read is declined, in the
+ *   fixed words, exactly as with the model off.
+ * - `wording`: it finds only the few phrases in `fakeUnfairPhrases`, word for word.
+ * - `description`: it joins the facts it was given into sentences, so it can't add anything
+ *   they don't say, and cites every one.
+ * - `document`: it reads the labelled lines of the made-up PDFs in tests/fixtures/documents.ts
+ *   (./fake-document.ts), and can't read a photo.
  */
-export const fakeDrafter: AiDrafter = {
-  promptVersion: 'fake@1',
+export const fakeAi: AiProvider = {
+  name: 'fake',
+  model: 'fake',
+  promptVersion: (task) => `fake-${task}@1`,
   async draftAnswers({ facts, questions }) {
-    return {
-      model: 'fake',
+    return reply({
       items: questions.map((question) => {
         const topic = topics.find(([asks]) => asks.test(question));
         const fact = topic ? facts.find((f) => topic[1].test(f.text)) : undefined;
         return fact
-          ? { question, answer: `${fact.text.replace(/\.$/, '')}.`, factIds: [fact.id] }
+          ? { question, answer: inASentence(question, fact), factIds: [fact.id] }
           : { question, answer: null, factIds: [] };
       }),
-    };
+    });
+  },
+  async readAdvert({ text, today }) {
+    return reply<unknown>(readAdvertByPattern(text, today));
+  },
+  async readPeopleQuestion() {
+    return reply<unknown>({ filter: null });
+  },
+  async checkWording({ text }) {
+    return reply<unknown>({
+      findings: fakeUnfairPhrases.flatMap(([pattern, ground]) => {
+        const found = pattern.exec(text);
+        return found ? [{ phrase: found[0], ground }] : [];
+      }),
+    });
+  },
+  async draftDescription({ facts }) {
+    const sentences = facts.map((fact) => `${fact.text.trim().replace(/[.\s]+$/, '')}.`);
+    return reply({
+      description: [
+        'This home is described from the facts entered for it.',
+        ...sentences,
+        'Everything here comes from those facts, and nothing has been added to them.',
+      ].join(' '),
+      factIds: facts.map((fact) => fact.id),
+    });
+  },
+  async readDocument(request) {
+    return reply<unknown>(readFixtureDocument(request));
   },
 };
+
+/** The stand-in with some of its tasks replaced, for tests that script what the model says. */
+export function fakeAiWith(tasks: Partial<AiProvider>): AiProvider {
+  return { ...fakeAi, ...tasks };
+}

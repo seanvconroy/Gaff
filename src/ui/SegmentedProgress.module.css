@@ -1,0 +1,118 @@
+/*
+ * Segmented progress. Below 900px: the bar, with the current part's name beside it. Above: the
+ * same bar, with every part named under its segment.
+ */
+.progress {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.segments {
+  display: grid;
+  flex: 1;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: var(--space-1);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.segment {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* The bar fills: grey becomes the brand colour as each part is reached. */
+.bar {
+  display: block;
+  height: 4px;
+  background-color: var(--color-border);
+  border-radius: var(--radius-pill);
+  transition: background-color var(--motion-base) var(--ease-standard);
+}
+
+.done .bar,
+.current .bar {
+  background-color: var(--color-brand);
+}
+
+/* On a phone the names are for screen readers; the current one is shown beside the bar. */
+.name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.currentName {
+  flex: none;
+  max-width: 60%;
+  overflow: hidden;
+  color: var(--color-ink);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+  font-weight: var(--type-title-weight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* On a private page the names are body size. */
+.large .currentName {
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+@media (width > 900px) {
+  .progress {
+    display: block;
+  }
+
+  .name {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: hidden;
+    clip-path: none;
+    color: var(--color-ink-muted);
+    font-size: var(--type-body-sm-size);
+    line-height: var(--type-body-sm-line);
+    text-overflow: ellipsis;
+  }
+
+  .current .name {
+    color: var(--color-ink);
+    font-weight: var(--type-title-weight);
+  }
+
+  .large .name {
+    font-size: var(--type-body-size);
+    line-height: var(--type-body-line);
+  }
+
+  .currentName {
+    display: none;
+  }
+
+  /* More than six steps: no room for every name, so the words say which step it is. */
+  .progress[data-many] {
+    display: flex;
+  }
+
+  .progress[data-many] .name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    clip-path: inset(50%);
+  }
+
+  .progress[data-many] .currentName {
+    display: block;
+  }
+}

@@ -131,6 +131,17 @@ describe('ADR-0014: sending with Resend', () => {
     });
   });
 
+  it('UX-PP-10: sends the laid-out email beside its plain text when there is one', async () => {
+    const fetchMock = vi.fn(async () => Response.json({ id: 'em_124' }));
+    vi.stubGlobal('fetch', fetchMock);
+    await resendSender({ apiKey: 're_test' }).send({ ...email, html: '<p>Hello</p>' });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toMatchObject({
+      text: 'Hello',
+      html: '<p>Hello</p>',
+    });
+  });
+
   it('fails with the error name only, never the address', async () => {
     vi.stubGlobal(
       'fetch',

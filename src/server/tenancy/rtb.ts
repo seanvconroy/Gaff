@@ -23,6 +23,7 @@ import type { Member } from '@/server/auth/member';
 import { UserFacingError } from '@/server/errors';
 import { enqueue } from '@/server/jobs/enqueue';
 import { recordEvent } from '@/server/record/events';
+import { assertMayActOn } from '@/server/team/permissions';
 
 /** R24: a reminder a week before the RTB deadline, queued with the tenancy. */
 export async function scheduleRtbReminder(
@@ -68,7 +69,7 @@ export async function sendRtbReminder(input: {
   const email = rtbReminderEmail({
     address: found.address,
     deadline: formatDate(rtbDeadline(found.tenancy.startDate)),
-    tenancyUrl: `${env().APP_URL}/lettings/${found.tenancy.lettingId}/tenancy`,
+    tenancyUrl: `${env().APP_URL}/lettings/${found.tenancy.lettingId}/tenancy/rtb`,
   });
   for (const admin of found.admins) {
     await emailSender().send({ to: admin.email, from: gaffSender(), ...email });
@@ -108,6 +109,36 @@ export async function givePpsn(
       data: { tenancyId: tenancy.id, given: parsed.data.ppsn !== null },
     });
     return { ok: true };
+  });
+}
+
+/**
+ * UX-RN-24: the tenant chose "Skip". Nothing is kept but that they were asked, so the question
+ * isn't put to them again.
+ */
+export async function skipPpsn(token: string): Promise<boolean> {
+  const link = await resolveAccessLink(token, 'renter');
+  if (!link) return false;
+  return withOrg(link.organisationId, async (tx) => {
+    const [tenancy] = await tx
+      .select()
+      .from(tenancies)
+      .where(eq(tenancies.applicationId, link.subjectId));
+    if (!tenancy) return false;
+    if (tenancy.ppsnSkippedAt || tenancy.ppsnGivenAt) return true;
+    await tx
+      .update(tenancies)
+      .set({ ppsnSkippedAt: new Date() })
+      .where(eq(tenancies.id, tenancy.id));
+    await recordEvent(tx, {
+      organisationId: link.organisationId,
+      lettingId: tenancy.lettingId,
+      actor: { type: 'renter', applicationId: link.subjectId },
+      type: 'tenancy.ppsn_skipped',
+      subject: { type: 'tenancy', id: tenancy.id },
+      data: { tenancyId: tenancy.id },
+    });
+    return true;
   });
 }
 
@@ -156,6 +187,27 @@ export async function rtbPack(member: Member, lettingId: string) {
   });
 }
 
+/**
+ * UX-TN-3 (rule 2): the tenant's PPS number, shown only when the operator presses "Show" on the
+ * RTB screen, to enter on the RTB's form. It isn't in the page until then. Null once it's
+ * deleted (after registration) or if the tenant didn't give it. Showing it is logged, without it.
+ */
+export async function revealPpsn(member: Member, lettingId: string): Promise<string | null> {
+  return withOrg(member.organisationId, async (tx) => {
+    const [tenancy] = await tx.select().from(tenancies).where(eq(tenancies.lettingId, lettingId));
+    if (!tenancy?.ppsnSealed || tenancy.rtbRegisteredAt) return null;
+    await recordEvent(tx, {
+      organisationId: member.organisationId,
+      lettingId,
+      actor: { type: 'person', userId: member.userId },
+      type: 'tenancy.ppsn_shown',
+      subject: { type: 'tenancy', id: tenancy.id },
+      data: { tenancyId: tenancy.id },
+    });
+    return openJson<{ ppsn: string }>(tenancy.ppsnSealed).ppsn;
+  });
+}
+
 /** R24: the operator registered the tenancy with the RTB. The PPSN has done its job: deleted. */
 export async function markRtbRegistered(
   member: Member,
@@ -169,6 +221,7 @@ export async function markRtbRegistered(
     );
   }
   await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const [tenancy] = await tx.select().from(tenancies).where(eq(tenancies.lettingId, lettingId));
     if (!tenancy) throw new UserFacingError('There’s no tenancy for this home yet.');
     if (tenancy.rtbRegisteredAt) return;

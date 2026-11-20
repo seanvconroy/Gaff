@@ -1,82 +1,30 @@
-/* The screen's one Atlantic accent. */
+/* Today and Lettings: space and type first, then a hairline. No box round a list (UX-DS-12). */
+
+/* The screen's one accent: the brand colour. */
 .accent {
-  color: var(--color-atlantic-text);
+  color: var(--color-brand-text);
   font-weight: var(--type-title-weight);
 }
 
-/* R28 panels, as A4's list: a card with a title row and hairline rows, each a whole-row link. */
-.panel {
-  background-color: var(--color-surface-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-
-.panelHeading,
-.panelHeader {
-  padding: var(--space-4) var(--space-5);
-}
-
-.panelHeader {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.count {
-  color: var(--color-ink-muted);
-  font-size: var(--type-body-sm-size);
-  line-height: var(--type-body-sm-line);
-}
-
-.panelEmpty {
-  padding: 0 var(--space-5) var(--space-5);
-  color: var(--color-ink-muted);
-}
-
-.line {
-  display: block;
-}
-
-.stage {
+/* One block of Today, or one group of Lettings: a heading, then what's in it. */
+.block {
   display: grid;
-  justify-items: end;
-  gap: var(--space-2);
+  gap: var(--space-4);
+  min-width: 0;
 }
 
-.stageTop {
-  display: flex;
+/* "While you were away": one sentence. */
+.away {
+  max-width: 64ch;
+  color: var(--color-ink-muted);
 }
 
-.stageWords {
+/* UX-HM-11: who leads a row's home, in "Everyone": their initials and their name. */
+.lead {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
   color: var(--color-ink-muted);
   font-size: var(--type-body-sm-size);
   line-height: var(--type-body-sm-line);
-  white-space: nowrap;
-}
-
-.note {
-  color: var(--color-ink-muted);
-  font-size: var(--type-body-sm-size);
-  line-height: var(--type-body-sm-line);
-}
-
-@media (width <= 640px) {
-  .panelHeading,
-  .panelHeader {
-    padding-inline: var(--space-4);
-  }
-
-  .panelEmpty {
-    padding: 0 var(--space-4) var(--space-4);
-  }
-
-  .stage {
-    justify-items: start;
-  }
 }

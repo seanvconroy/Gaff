@@ -1,0 +1,129 @@
+/*
+ * Pick list: rows divided by hairlines, each a tick, a name and one line, with "Why here" beside
+ * it. The whole row is the tick's target, 64px or taller. One layout at every width.
+ */
+.fieldset {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-weight: var(--type-title-weight);
+}
+
+.summary {
+  color: var(--color-ink-muted);
+}
+
+.group {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* The divider before a later group: a hairline, then its heading. */
+.group + .group {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-strong);
+}
+
+.heading {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+  font-weight: var(--type-title-weight);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-2);
+}
+
+.list > .row + .row {
+  border-top: 1px solid var(--color-border);
+}
+
+.pick {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: var(--size-row);
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.pick:hover {
+  background-color: var(--color-surface-2);
+}
+
+.pick:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+@supports selector(:has(*)) {
+  .pick input:focus-visible {
+    outline: none;
+  }
+}
+
+.pick input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--color-brand);
+  cursor: pointer;
+}
+
+.text {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.label {
+  font-weight: var(--type-title-weight);
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
+/* A quiet button: 44px target, the words in the link colour. */
+.why {
+  min-width: var(--size-target);
+  min-height: var(--size-target);
+  padding: 0 var(--space-2);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-brand-text);
+  font: inherit;
+  font-size: var(--type-body-sm-size);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.detail {
+  grid-column: 1 / -1;
+  padding: 0 var(--space-2) var(--space-3) calc(var(--space-2) + 20px + var(--space-3));
+  color: var(--color-ink-muted);
+}

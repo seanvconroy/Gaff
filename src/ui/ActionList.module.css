@@ -1,4 +1,4 @@
-/* A4's list rows: hairlines, 20px insets, a whole-row link. */
+/* List rows: hairlines, 20px insets, and the whole row as the link, 64px or taller. */
 .list {
   margin: 0;
   padding: 0;
@@ -18,8 +18,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  min-height: 44px;
-  padding: var(--space-4) var(--space-5);
+  min-height: var(--size-row);
+  padding: var(--space-3) var(--space-5);
   color: var(--color-ink);
   text-decoration: none;
   transition: background-color var(--motion-fast) var(--ease-standard);
@@ -93,7 +93,7 @@ a.row:focus-visible {
   color: var(--color-success);
 }
 
-/* The step to do next: primary, like its button (the page's accent is the stage tracker). */
+/* The step to do next: ink, like its button. */
 .primary {
   background-color: var(--color-primary);
   color: var(--color-ink-inverse);
@@ -129,7 +129,7 @@ a.row:focus-visible {
   color: var(--color-ink-muted);
 }
 
-@media (width <= 640px) {
+@media (width <= 900px) {
   .row {
     flex-wrap: wrap;
     padding-inline: var(--space-4);
@@ -145,4 +145,25 @@ a.row:focus-visible {
   .row:not(:has(.tile)) .trailing {
     padding-inline-start: 0;
   }
+}
+
+/*
+ * On the page, with no card: the rows line up with the heading above them, with a hairline above
+ * the first and below the last. Hover underlines the title instead of filling an inset row.
+ */
+.bare {
+  border-block: 1px solid var(--color-border);
+}
+
+.bare .row {
+  padding-inline: 0;
+}
+
+.bare a.row:hover {
+  background-color: transparent;
+}
+
+.bare a.row:hover .title {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }

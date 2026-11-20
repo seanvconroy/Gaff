@@ -3,9 +3,11 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { db } from '@/db/client';
 import { organisations } from '@/db/schema';
+import { listerFrom } from '@/domain/frame/frame';
 import { env } from '@/lib/env';
+import { listerColumns } from '@/server/frame/lister';
 import { Stack } from '@/ui/Layout';
-import { RenterShell } from '../../r/RenterShell';
+import { PrivateFrame } from '@/ui/PrivateFrame';
 
 export const metadata: Metadata = { title: 'How we use your details' };
 export const dynamic = 'force-dynamic';
@@ -17,13 +19,13 @@ export const dynamic = 'force-dynamic';
 export default async function PrivacyPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const [organisation] = await db()
-    .select({ name: organisations.name })
+    .select(listerColumns)
     .from(organisations)
     .where(eq(organisations.inboundSlug, slug));
   if (!organisation) notFound();
   const days = env().RETENTION_PERSONAL_DAYS;
   return (
-    <RenterShell operatorName={organisation.name}>
+    <PrivateFrame audience="renter" lister={listerFrom(organisation)}>
       <Stack gap={6}>
         <h1 className="type-display-mobile">How we use your details</h1>
         <p>
@@ -59,6 +61,6 @@ export default async function PrivacyPage({ params }: { params: Promise<{ slug: 
           can also complain to the Data Protection Commission.
         </p>
       </Stack>
-    </RenterShell>
+    </PrivateFrame>
   );
 }

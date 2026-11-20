@@ -1,4 +1,4 @@
-/* Status pills: the status tint behind, the status colour for icon and words (A4). */
+/* Status pills: the status tint behind, the status colour for icon and words. */
 .pill {
   display: inline-flex;
   align-items: center;
@@ -41,9 +41,9 @@
   color: var(--color-danger);
 }
 
-/* Soft brand fill: text on sky is ink, never atlantic-text. */
+/* The soft brand tint, with ink words. */
 .accent {
-  background-color: var(--color-sky);
+  background-color: var(--color-brand-bg);
   color: var(--color-ink);
 }
 

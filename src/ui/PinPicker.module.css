@@ -1,0 +1,173 @@
+/* M38: the map a lister places their home's pin on, with the buttons that move it. */
+.picker {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.frame {
+  position: relative;
+  height: 320px;
+  overflow: hidden;
+  background-color: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.map {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.google {
+  width: 100%;
+  height: 100%;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.land {
+  fill: var(--color-surface-2);
+}
+
+.gridLine {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+/* The stand-in draws the streets around the pin from Gaff's own place index. */
+.street {
+  fill: none;
+  stroke: var(--color-surface-0);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.streetName {
+  fill: var(--color-ink-muted);
+  font-family: var(--type-body-sm-family);
+  font-size: var(--type-body-sm-size);
+  text-anchor: middle;
+}
+
+/* The pin: ink, with its tip on the point. */
+.pin {
+  cursor: grab;
+}
+
+.pin path,
+.homePin path {
+  fill: var(--color-primary);
+  stroke: var(--color-surface-0);
+  stroke-width: 2;
+}
+
+.pin circle,
+.homePin circle {
+  fill: var(--color-surface-0);
+}
+
+.hitArea {
+  fill: transparent;
+  stroke: none;
+}
+
+.pin:focus {
+  outline: none;
+}
+
+.pin:focus-visible path {
+  stroke: var(--color-focus);
+  stroke-width: 4;
+}
+
+.homePin {
+  display: block;
+  overflow: visible;
+  cursor: grab;
+}
+
+.zoom {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: grid;
+  overflow: hidden;
+  background-color: var(--color-surface-0);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-raised);
+}
+
+.zoom button {
+  display: grid;
+  place-items: center;
+  width: var(--size-control);
+  height: var(--size-control);
+  background: none;
+  border: 0;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.zoom button + button {
+  border-top: 1px solid var(--color-border);
+}
+
+.zoom button:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -3px;
+}
+
+.standIn {
+  position: absolute;
+  bottom: var(--space-2);
+  left: var(--space-3);
+  margin: 0;
+  color: var(--color-ink-muted);
+  font-size: var(--type-caption-size);
+}
+
+/* Four buttons that move the pin a step: dragging is never the only way (WCAG 2.5.7). */
+.moves {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.move {
+  display: inline-grid;
+  place-items: center;
+  width: var(--size-control);
+  height: var(--size-control);
+  background-color: var(--color-surface-0);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.move:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.hint {
+  flex: 1 1 240px;
+  color: var(--color-ink-muted);
+}
+
+@media (width > 900px) {
+  .frame {
+    height: 400px;
+  }
+}

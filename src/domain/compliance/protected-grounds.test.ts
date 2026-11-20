@@ -5,6 +5,7 @@ describe('Q7: wording that touches the protected grounds is caught', () => {
   it.each([
     ['No HAP', 'housing_assistance'],
     ['Rent supplement not accepted', 'housing_assistance'],
+    ['Rent allowance not accepted', 'housing_assistance'],
     ['Would suit working professionals', 'housing_assistance'],
     ['Suits a professional couple', 'housing_assistance'],
     ['No children', 'family_status'],

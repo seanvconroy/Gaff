@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { env } from '@/lib/env';
+import { requireDevTools } from '@/server/dev/gate';
 import { TextArea, TextField } from '@/ui/Field';
 import { FormActions, FormSection, formClass } from '@/ui/Form';
 import { PageHeader, Stack } from '@/ui/Layout';
@@ -12,13 +11,16 @@ import { simulateInboundEmail } from './actions';
 export const metadata: Metadata = { title: 'Development inbox' };
 export const dynamic = 'force-dynamic';
 
-/** Local development only (DEV_TOOLS=1): send an email to a Gaff address (R5). */
+/**
+ * Development and the test copy (DEV_TOOLS=1): send an email to a Gaff address (R5). On the test
+ * copy, Gaff's own team only (BA-1): it can write to any letting.
+ */
 export default async function DevInboundPage({
   searchParams,
 }: {
   searchParams: Promise<{ result?: string }>;
 }) {
-  if (!env().DEV_TOOLS) notFound();
+  await requireDevTools();
   const { result } = await searchParams;
   return (
     <main className={styles.main}>

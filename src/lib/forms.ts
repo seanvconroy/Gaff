@@ -6,6 +6,11 @@ export interface FormState {
   values?: Record<string, string>;
   message?: string;
   /**
+   * UX-SI-10: the form is fine, but the person must confirm it's them before it's saved. The
+   * value is the sensitive action's code; the form shows "Confirm it's you" and sends again.
+   */
+  confirm?: string;
+  /**
    * Changes on every response. Forms use it as their React key, so after React resets a
    * submitted form it remounts with what the person typed (selects included).
    */
@@ -27,6 +32,11 @@ export function invalid(
     attempt: Date.now() * 1000 + (attempts % 1000),
     ...(message ? { message } : {}),
   };
+}
+
+/** UX-SI-10: nothing is wrong, but this needs "Confirm it's you" first. The values are kept. */
+export function needsConfirming(action: string, values: Record<string, string>): FormState {
+  return { ...invalid({}, values), confirm: action };
 }
 
 export const emptyFormState: FormState = {};

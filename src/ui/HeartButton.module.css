@@ -1,0 +1,28 @@
+/* A round 44px target over a photo: the surface with a soft shadow, so it reads on any picture. */
+.heart {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-target);
+  height: var(--size-target);
+  padding: 0;
+  background-color: var(--color-surface-1);
+  border: 0;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-ink);
+  cursor: pointer;
+  transition-property: background-color, color;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease-standard);
+}
+
+.heart:hover {
+  background-color: var(--color-surface-2);
+}
+
+/* Saved: filled in the brand colour, and said as "pressed" too. */
+.filled {
+  color: var(--color-brand);
+  fill: currentcolor;
+}

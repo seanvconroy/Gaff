@@ -22,6 +22,7 @@ export function resendSender(config: { apiKey: string }): EmailSender {
           to: [email.to],
           subject: email.subject,
           text: email.text,
+          ...(email.html ? { html: email.html } : {}),
           ...(email.replyTo ? { reply_to: email.replyTo } : {}),
         }),
       });

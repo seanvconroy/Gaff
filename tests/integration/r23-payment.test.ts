@@ -5,8 +5,9 @@ import { events, messages, tenancies } from '@/db/schema';
 import { UserFacingError } from '@/server/errors';
 import { loadRenterPage } from '@/server/renter/answers';
 import { confirmPayment, requestPayment, setPaymentAccount } from '@/server/tenancy/payment';
+import { setListerPhone } from '@/server/organisations/phone';
 import { markSignedOnPaper } from '@/server/tenancy/tenancy';
-import { aLetHome, createTestMember } from './helpers';
+import { aLetHome, confirmedAgain, createTestMember } from './helpers';
 
 const IBAN = 'IE29 AIBK 9311 5212 3456 78';
 const dueDate = '2026-11-28';
@@ -15,14 +16,28 @@ describe('R23: where tenants pay', () => {
   it('is set by an admin, checked, and logged without the IBAN', async () => {
     const member = await createTestMember();
     await expect(
-      setPaymentAccount({ ...member, role: 'negotiator' }, { accountName: 'X', iban: IBAN }),
+      setPaymentAccount(
+        { ...member, role: 'negotiator' },
+        { accountName: 'X', iban: IBAN },
+        await confirmedAgain(member),
+      ),
     ).rejects.toThrow(UserFacingError);
     expect(
-      await setPaymentAccount(member, { accountName: 'Client account', iban: 'IE00' }),
+      await setPaymentAccount(
+        member,
+        { accountName: 'Client account', iban: 'IE00' },
+        await confirmedAgain(member),
+      ),
     ).toMatchObject({
       ok: false,
     });
-    expect(await setPaymentAccount(member, { accountName: 'Client account', iban: IBAN })).toEqual({
+    expect(
+      await setPaymentAccount(
+        member,
+        { accountName: 'Client account', iban: IBAN },
+        await confirmedAgain(member),
+      ),
+    ).toEqual({
       ok: true,
     });
     const logged = await withOrg(member.organisationId, (tx) =>
@@ -41,9 +56,18 @@ describe('R23: asking for the deposit and first month’s rent', () => {
     );
     await markSignedOnPaper(member, lettingId);
     await expect(requestPayment(member, lettingId, { dueDate })).rejects.toThrow(
-      'Add the account tenants pay into, in Settings, first.',
+      'Add the account tenants pay into first.',
     );
-    await setPaymentAccount(member, { accountName: 'Halcyon client account', iban: IBAN });
+    await setPaymentAccount(
+      member,
+      { accountName: 'Halcyon client account', iban: IBAN },
+      await confirmedAgain(member),
+    );
+    // UX-RN-23, UX-TN-2: a number the tenant can ring, asked at this step if there isn't one.
+    await expect(requestPayment(member, lettingId, { dueDate })).rejects.toThrow(
+      'Add a number the tenant can ring to check the account first.',
+    );
+    await setListerPhone(member, '01 234 5678');
     await expect(requestPayment(member, lettingId, { dueDate: '2020-01-01' })).rejects.toThrow(
       'Choose a date from today on.',
     );

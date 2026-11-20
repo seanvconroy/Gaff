@@ -18,6 +18,12 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   await admin.query(`create database "${name}"`);
   await admin.end();
   await runMigrations(url.toString());
+  // M56 (ADR-0018): the whole place index, loaded as a production deployment loads it.
+  await loadThePlaceIndex();
+
+  // UX-AG-1: the weekly job loads Gaff's copy of the PSRA register (the made-up sample here). It
+  // is run now, on the empty database, so every journey finds the same register from the start.
+  await loadTheRegister(url.toString());
 
   if (vercelJobs) {
     const tick = () =>
@@ -47,4 +53,41 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   return async () => {
     worker.kill('SIGTERM');
   };
+}
+
+/** `pnpm places:load` against this run's database: every place in Ireland the index knows. */
+async function loadThePlaceIndex(): Promise<void> {
+  const loader = spawn('pnpm', ['places:load'], {
+    env: { ...process.env, ...e2eEnv },
+    stdio: ['ignore', 'inherit', 'inherit'],
+  });
+  await new Promise<void>((resolve, reject) => {
+    loader.on('exit', (code) =>
+      code === 0 ? resolve() : reject(new Error(`The place index didn't load (${code})`)),
+    );
+  });
+}
+
+/**
+ * Asks the app to run its daily jobs, as the daily cron does: that queues the refresh of the
+ * register, which has never run on this database, and runs it. Then waits for the copy.
+ */
+async function loadTheRegister(databaseUrl: string): Promise<void> {
+  const client = new pg.Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    for (let tries = 0; tries < 60; tries++) {
+      const daily = await fetch(`${e2eEnv.APP_URL}/api/cron/daily`, {
+        headers: { authorization: `Bearer ${E2E_CRON_SECRET}` },
+      }).catch(() => null);
+      const { rows } = await client.query<{ n: number }>(
+        'select count(*)::int as n from psra_register',
+      );
+      if (daily?.ok && rows[0]!.n > 0) return;
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  } finally {
+    await client.end();
+  }
+  throw new Error('The PSRA register was not loaded');
 }

@@ -38,7 +38,10 @@ export function StatusPill({
 }) {
   const Icon = icons[tone];
   return (
-    <span className={`${styles.pill} ${styles[tone]} ${large ? styles.large : ''}`}>
+    <span
+      className={`${styles.pill} ${styles[tone]} ${large ? styles.large : ''}`}
+      data-pill={tone}
+    >
       <Icon size={large ? 16 : 14} strokeWidth={2} aria-hidden="true" />
       {children}
     </span>

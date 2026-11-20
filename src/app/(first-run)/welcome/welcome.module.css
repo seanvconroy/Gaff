@@ -1,0 +1,30 @@
+/* Under the search field: the agencies found, then the other ways on, then where they're from. */
+.results {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.otherWays {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A link on a line of its own: a full 44px target. */
+.way {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-target);
+  color: var(--color-brand-text);
+  font-weight: var(--type-title-weight);
+}
+
+.way:hover {
+  color: var(--color-ink);
+}
+
+.credit {
+  color: var(--color-ink-muted);
+}

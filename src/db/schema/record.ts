@@ -3,7 +3,15 @@ import { users } from './auth';
 import { createdAt, tenantPolicy } from './columns';
 import { organisations } from './organisations';
 
-export const actorType = pgEnum('actor_type', ['person', 'ai', 'system', 'renter', 'landlord']);
+/** `staff` is one of Gaff's own team, who can confirm an agency and nothing else (Q13, Q32). */
+export const actorType = pgEnum('actor_type', [
+  'person',
+  'ai',
+  'system',
+  'renter',
+  'landlord',
+  'staff',
+]);
 
 /**
  * The append-only log behind each letting's record (R27, ADR-0006). A trigger blocks

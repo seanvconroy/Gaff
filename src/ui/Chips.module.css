@@ -1,0 +1,132 @@
+/*
+ * Chips. Below 900px: one row that scrolls sideways, fading out at the edge where there's more.
+ * Above: a row that wraps. 36px to look at, 44px to press.
+ */
+.fieldset {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  padding: 0;
+  font-weight: var(--type-title-weight);
+}
+
+.optional {
+  color: var(--color-ink-muted);
+  font-weight: var(--type-body-weight);
+}
+
+.scroller {
+  min-width: 0;
+}
+
+/* The row's own padding is room for the 44px targets and the focus ring, past the 36px chips. */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-1) 0;
+  list-style: none;
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  gap: var(--space-1);
+  align-items: center;
+  justify-content: center;
+
+  /* A chip that says only "2" is still a 44px target across. */
+  min-width: var(--size-target);
+  height: var(--size-chip);
+  padding: 0 var(--space-4);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font-weight: var(--type-title-weight);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition-property: background-color, border-color, color;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease-standard);
+}
+
+/* The target is 44px high, though the chip is 36px: a link's reaches past its edge. */
+a.chip::after {
+  content: '';
+  position: absolute;
+  inset: calc((var(--size-chip) - var(--size-target)) / 2 - 1px) -1px;
+}
+
+.chip:hover {
+  border-color: var(--color-ink-muted);
+  background-color: var(--color-surface-2);
+}
+
+/*
+ * The real radio or checkbox: there for the keyboard and screen readers, drawn as the chip. It
+ * reaches past the chip's edge, so the target is 44px high.
+ */
+.input {
+  position: absolute;
+  inset: calc((var(--size-chip) - var(--size-target)) / 2 - 1px) -1px;
+  width: calc(100% + 2px);
+  height: var(--size-target);
+  margin: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.tick {
+  display: none;
+  flex: none;
+}
+
+/* Chosen: the brand tint and edge, and a tick, so it isn't told by colour alone. */
+.chip[aria-current='true'],
+.chip:has(.input:checked) {
+  padding-inline: var(--space-3) var(--space-4);
+  background-color: var(--color-brand-bg);
+  border-color: var(--color-brand);
+}
+
+.chip[aria-current='true'] .tick,
+.chip:has(.input:checked) .tick {
+  display: block;
+  color: var(--color-brand);
+}
+
+.chip:has(.input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (width <= 900px) {
+  /* The fade: the row's last 32px thin out, and it has that much spare to scroll clear. */
+  .scroller {
+    margin-inline-start: calc(var(--space-1) * -1);
+    overflow-x: auto;
+    mask-image: linear-gradient(
+      to right,
+      var(--color-ink) calc(100% - var(--space-8)),
+      transparent
+    );
+    scrollbar-width: none;
+  }
+
+  /* A little room at the start too, so the first chip's focus ring isn't clipped. */
+  .row {
+    flex-wrap: nowrap;
+    width: max-content;
+    padding-inline: var(--space-1) var(--space-10);
+  }
+}

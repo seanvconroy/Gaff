@@ -19,6 +19,7 @@ import { recordDecision } from '@/server/decisions/record-decision';
 import { UserFacingError } from '@/server/errors';
 import { queueMessage } from '@/server/messages/outbox';
 import { recordEvent } from '@/server/record/events';
+import { assertMayActOn } from '@/server/team/permissions';
 
 /**
  * R26 (basic): a person closes a letting as let or withdrawn. It ends everyone's chances, so
@@ -31,6 +32,7 @@ export async function closeLetting(
   outcome: 'let' | 'withdrawn',
 ): Promise<{ told: number; deleteAfter: string }> {
   return withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
     const [letting] = await tx
       .select()
       .from(lettings)
@@ -64,7 +66,13 @@ export async function closeLetting(
     });
     await tx
       .update(lettings)
-      .set({ status: outcome, stage: 'close', closedAt: new Date() })
+      .set({
+        status: outcome,
+        stage: 'close',
+        closedAt: new Date(),
+        // UX-LS-10: a home's page says it has been let, for 30 days from now.
+        ...(outcome === 'let' ? { letAt: new Date() } : {}),
+      })
       .where(eq(lettings.id, lettingId));
     await tx
       .update(applications)

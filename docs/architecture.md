@@ -46,7 +46,7 @@ Inside the code, dependencies point inwards:
 - `app/` (Next.js routes) and `jobs/` (worker tasks) are thin. They call...
 - `server/` use cases, which load data, apply a domain rule, then save the result and its event in one transaction. Use cases call...
 - `domain/`: pure business rules with no I/O and no framework code, unit-tested first. Criteria, ranking, rent rules, viewing capacity, reminder times and message templates all live here.
-- `ports/` are interfaces to the outside world (email, SMS, AI, clock). `adapters/` implement them: local stand-ins for development and tests, real providers once approved.
+- `ports/` are interfaces to the outside world. `adapters/` implement them: local stand-ins for development and tests, real providers once approved (see "Ports" below).
 
 The web framework, the email provider and the AI provider can each be swapped without touching the rules.
 
@@ -60,17 +60,20 @@ The web framework, the email provider and the AI provider can each be swapped wi
 | Database | PostgreSQL 16+, Drizzle ORM, SQL migrations in the repo | [0003](adr/0003-postgres-only-data-store.md) |
 | Jobs | graphile-worker (queue in Postgres), outbox table for every message; run by a cron tick on Vercel | [0003](adr/0003-postgres-only-data-store.md), [0014](adr/0014-vercel-supabase-approved-vendors.md) |
 | Tenant isolation | `organisation_id` on every row, plus Postgres row-level security | [0004](adr/0004-tenant-isolation-row-level-security.md) |
+| Accounts | One person, several roles: each organisation they belong to, a private landlord's silent organisation of one, and renting. A person's own profile has no organisation and its own row-level security | [0016](adr/0016-one-person-several-roles.md) |
 | Privacy | Staged collection, renter data scoped to one application, retention jobs | [0005](adr/0005-staged-data-and-retention.md) |
 | Record | Append-only event log with no personal data | [0006](adr/0006-event-log-without-personal-data.md) |
 | Decisions | Renter-affecting changes need a person's decision record | [0007](adr/0007-people-decide.md) |
 | Ranking | Deterministic code with reasons in words; no AI | [0008](adr/0008-deterministic-ranking.md) |
-| AI | Claude on Amazon Bedrock (EU routing), drafting answers from letting facts only | [0009](adr/0009-ai-drafting-with-claude-in-the-eu.md) |
+| AI | Claude on Amazon Bedrock in Dublin in production, the Claude API on the test copy; one adapter for three tasks (answers, reading an advert, reading a question about who's enquired), every call logged by usage alone, a monthly budget and switches | [0009](adr/0009-ai-drafting-with-claude-in-the-eu.md), [0017](adr/0017-one-ai-provider-with-usage-budget-and-switches.md) |
 | Email and SMS | Resend (or Mailgun EU) and Sinch EU, behind adapters; dev outbox and fakes locally | [0010](adr/0010-messaging-adapters-and-outbox.md), [0014](adr/0014-vercel-supabase-approved-vendors.md) |
 | Styling | Design tokens to CSS variables; CSS Modules; lint blocks raw values | [0011](adr/0011-design-tokens-drive-styling.md) |
 | Validation and dates | Zod for every input; date-fns with Europe/Dublin | [0001](adr/0001-modular-monolith-typescript-nextjs.md) |
 | Testing | Vitest, real Postgres, Playwright with axe, compliance suite, AI evals | [0012](adr/0012-testing-and-ci.md) |
 | CI | GitHub Actions; synthetic data only | [0012](adr/0012-testing-and-ci.md) |
-| Sign-in | Operators: email link (Better Auth, data in our DB). Renters and landlords: private links, no accounts | [0013](adr/0013-sign-in-operators-links-for-renters.md) |
+| Sign-in | People with accounts: Google, Apple, a six-digit email code, or a passkey (Better Auth, data in our DB). Renters, owners and referees: private links, no accounts | [0015](adr/0015-sign-in-google-apple-codes-passkeys.md), [0013](adr/0013-sign-in-operators-links-for-renters.md) |
+| Places and the map | Gaff's own place index for "Where" (Postgres); the search map and the lister's pin on Google Maps (the Maps JavaScript API only), or a stand-in drawn from Gaff's own data, behind `MAP_PROVIDER`; Google's script only on the map's pages | [0018](adr/0018-own-place-index-from-openstreetmap.md), [0021](adr/0021-search-map-on-google-maps.md), [0022](adr/0022-google-script-only-on-map-pages.md) |
+| Search | One SQL query over the public homes answers a search, its one-miss group, the map's pins, place counts and similar homes, with the domain's rules as SQL twins (no PostGIS); the in-memory matcher stays as the spec a generated test holds it to | [0030](adr/0030-search-in-the-database-more-facts-closing-enquiries.md) |
 
 ## Where the PRD's rules live
 
@@ -99,10 +102,14 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 
 | Table | Holds | Personal data? |
 | --- | --- | --- |
-| `organisations` | Agency or portfolio landlord: name, kind, PSRA licence number (agencies), Gaff inbound address, sending identity, approve-before-send flag, pilot baselines | No |
-| `users`, `sessions`, `memberships` | Operator accounts (Better Auth tables) and their role in an organisation (admin or negotiator) | Operator staff |
+| `organisations` | An agency, a landlord's team, or one private landlord's silent organisation: name, kind, the agency's entry in the PSRA register and the licence number copied from it, when someone at Gaff confirmed it, whether its licence has lapsed, Gaff inbound address, sending identity, approve-before-send flag, pilot baselines | A private landlord's first name |
+| `users`, `sessions`, `memberships` | People's accounts (Better Auth tables) and their role in each organisation they belong to (admin or negotiator) | Yes |
+| `profiles` | A person's own profile (ADR-0016): whether they're renting, the context they used last, where they are in first run. No `organisation_id`; only `withPerson()` reads it | Yes, the person's own |
+| `organisation_invites` | An invitation to join an organisation, by email address (UX-AG-5). Deleted when accepted, or once expired | Yes |
+| `join_requests` | A person's request to join an agency that is already on Gaff (UX-AG-3) | IDs only |
+| `psra_register`, `psra_register_refreshes` | Gaff's weekly copy of the PSRA register: businesses licensed to let, and a count for each refresh (Q39). No organisation, no person | Sole traders' names |
 | `landlords` | Owner's name and contact details, when an agent lets for them | Yes |
-| `lettings` | Address, rent, available from, key facts, photos link, advert links, criteria (typed), stage, status | No |
+| `lettings` | Address, rent, available from, key facts, photos link, advert links, criteria (typed), stage, status; where the home is, as its lister placed the pin (ADR-0021; a private landlord's is shown within about 150 m, and never logged) | No |
 | `letting_facts` | Facts the AI may answer from, each with an ID: set-up facts and operator answers | No (screened) |
 | `rent_checks` | How the last tenancy ended, previous rent and date, outcome, rule version, who confirmed | No |
 | `rent_comparables` | Three comparables from the RTB Rent Register | No |
@@ -118,11 +125,42 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 | `decisions` | Who decided what and when, with a snapshot of the criteria and ranking used | No (IDs only) |
 | `events` | Append-only log behind the timeline and the metrics | **Never** |
 | `activity_minutes` | Operator active minutes per letting, for time saved | Operator staff |
+| `funnel_events` | Funnel steps the record has no event for (UX-ME-1): a step code, an ID, an optional split code and a time, once per step per subject. No `organisation_id`: any use case may add a row, and only `withSystem()` can read them, for Gaff's internal page | **Never** |
 
-### Later slices (sketch)
+### Slices 2 and 3, and the UX redesign
 
-- **Slice 2:** `applications` gains self-declared employment and income (stage 5 only). Plus `checks` (provider, result, expiry, deletion date; no document images), `references`, `guarantors`, `offers`.
-- **Slice 3:** `tenancy_packs` (agreement, signatures, payment request, rent-setting pack, RTB pack; PPSN encrypted at application level) and `renter_profiles` (opt-in, owned by the renter).
+| Table | Holds | Personal data? |
+| --- | --- | --- |
+| `checks` | The ID, income and reference checks of the two people chosen: kind, status, the sealed result (a verified name or a confirmed income), deletion date. No document image, no date of birth | Yes, sealed |
+| `landlord_approvals`, `offers` | The owner's answer for the people chosen, and the offer with its terms and deadline | IDs and terms |
+| `tenancies`, `inventory_items` | The tenancy from the accepted offer: agreement and signatures, payment request, RTB registration (the PPSN sealed, deleted once registered), move-in checklist; the inventory, item by item, with photos | Yes |
+| `letting_drafts`, `letting_photos` | A letting part-way through "Add a letting" (Save and exit), and a home's photos and floor plans, with a cover photo, each photo's size, the fixed widths kept and a perceptual hash (ADR-0023). The photo files are in the photo store | No |
+| `letting_helpers` | Who chose "Help with this letting" on a colleague's letting (UX-AG-8) | IDs only |
+| `viewing_sessions` | A run of viewing times added in one go on the calendar | No |
+| `waiting_enquiries`, `waitlist_offers` | An ask to view not yet confirmed from its email (dropped after 24 hours), and places offered from a waiting list | Yes, until confirmed or dropped |
+| `listing_reports` | A report of a listing: the home, the reason tapped, an optional note. Nothing about who reported | No |
+| `listing_cases` (kind `hold`) | A listing the checks held as it went public (ADR-0027): its risk signals as codes, and for the AI's wording check each phrase and its ground as a code. Gaff's own record, reached only by `withSystem()` | No |
+| `lister_pauses` | A lister's listings paused by Gaff's team after a decided case (M107): the reason, the fixed facts, who and when, one appeal. Gaff's own record; the lister's side is `organisations.listings_paused_at` | No |
+| `one_time_codes`, `confirmations`, `passkeys`, `accounts`, `verifications` | Sign-in by email code, passkey, Google or Apple (ADR-0015), and "Confirm it's you" before a sensitive change | The person's own |
+| `places` | Gaff's own place index (ADR-0018): every county, town, village, area, Dublin district, townland, street and landmark in the Republic, built from OpenStreetMap around a curated base and loaded on deploy. Reference data, with no organisation and no person | No |
+| `place_misses` | What renters typed under "Where" that found no place, counted by day, with no digits, person or device; deleted after 30 days (M124) | No |
+| `map_daily_counts` | How the search map was used, by day, as fixed codes (opened, drawn, failed and why, area searched, pin opened); nothing about any renter, device, area or search; deleted after 13 months (M133, ADR-0021) | No |
+
+### Data that belongs to a person (ADR-0016)
+
+A person is one person whatever they do on Gaff. What belongs to them, not to an organisation, has no `organisation_id`. It carries `personPolicy()` instead of `tenantPolicy()` and is read only through `withPerson()`, with the signed-in person's own ID; `withOrg()` can't read it, and a test holds that.
+
+| Table | Holds |
+| --- | --- |
+| `profiles` | Whether they rent, the context they used last, where they are in first run |
+| `renter_profiles` | What a renter chose to keep for next time: their details, the four answers, work and income with its date (Q25) |
+| `verified_identities`, `identity_checks` | A kept identity: that the check passed, the verified name and the date (Q35, Q47). Never an image, document details, country or date of birth. An operator sees it only at the checks stage, with the renter's yes |
+| `saved_homes`, `saved_searches` | Homes saved and searches to hear about; a search keeps the chips, never the sentence |
+| `renter_enquiries` | The renter's own list of enquiries, pointing at the operator's application |
+| `profile_events` | The record of the profile, with IDs and codes only |
+| `renter_documents` | A chosen renter's own work and income documents (BA-16, ADR-0031): before they share them, reached only from their own private link (`applicantPolicy()`, opened by `scopeToApplicant()` in `src/server/documents/renter.ts` alone); and those they keep, through `withPerson()`. No operator's path can read it, so a statement of other income never reaches a letter. The letter's copy is `check_documents`, a tenant table, which holds work documents and, for other income, only a reading of "regular income" with no file |
+
+An application to one letting stays the operator's copy, in `applications`, and is deleted on the letting's own schedule. A renter's profile is kept while they choose to keep it, deleted at once from Profile, and deleted after two years unused, 30 days after an email that says so (UX-PF-7).
 
 ## Project structure
 
@@ -134,9 +172,21 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 ├── scripts/build-tokens.ts      tokens JSON → src/styles/tokens.css + tokens.ts
 ├── src/
 │   ├── app/                     Next.js routes only: thin pages, server actions, route handlers
-│   │   ├── (workspace)/         operator workspace, sign-in required
-│   │   ├── r/[token]/           renter pages: questions, booking (no account)
-│   │   ├── l/[token]/           landlord pages: read-only timeline (no account)
+│   │   ├── _shell/              the one shell: the navigation round the page (NavBar)
+│   │   ├── (workspace)/         the letting side: Today, Lettings, Calendar, Inbox, Settings
+│   │   ├── (task)/              its focused tasks on FlowShell: no navigation, one question a screen
+│   │   ├── (site)/              Search (the public site's first screen), a home's page, Saved,
+│   │   │                        Enquiries, Profile, Help
+│   │   ├── (open-task)/         focused tasks open to anyone: asking to view, reporting a listing
+│   │   ├── (first-run)/         /welcome: at most four questions, one a screen
+│   │   ├── (auth)/              sign-in: email code, passkey, Google and Apple; privacy and terms
+│   │   ├── r/[token]/           a renter's private pages: questions, booking, applying, checks,
+│   │   │                        the offer, the tenancy (no account)
+│   │   ├── l/[token]/           the owner's page (no account)
+│   │   ├── approve/[token]/     the owner approves the people chosen (no account)
+│   │   ├── reference/[token]/   a referee's form (no account)
+│   │   ├── internal/            Gaff's own team: agencies to confirm, reported listings, funnels
+│   │   ├── dev/                 development tools (outbox, inbound, stand-in checks, /dev/ui)
 │   │   └── api/                 inbound email webhooks, cron tick, health check
 │   ├── domain/                  pure rules, unit-tested first
 │   │   ├── criteria/  ranking/  rent/  viewings/  enquiries/
@@ -144,7 +194,8 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 │   ├── server/                  use cases: one transaction each, writes its event
 │   ├── db/                      Drizzle schema, migrations, RLS policies, withOrg()
 │   ├── jobs/                    task handlers, local worker, time-boxed runner for the tick
-│   ├── ports/                   interfaces: email, SMS, AI, clock
+│   ├── ports/                   interfaces: email, SMS, AI, checks, address search, photos,
+│   │                            the PSRA register, sign-in providers
 │   ├── adapters/                dev outbox, fakes, real providers once approved
 │   ├── ui/                      design-system components with CSS Modules (tokens only)
 │   ├── copy/                    every word renters see, in one place, for voice review
@@ -158,6 +209,43 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 ├── evals/                       AI guardrail evals, run on demand against the real model
 └── .github/workflows/ci.yml
 ```
+
+## Ports
+
+Every outside service sits behind an interface in `src/ports/` with a local stand-in in `src/adapters/`, so nothing needs a real account to build or test (rule 10). Each is chosen by a setting ([deploy.md](deploy.md)); production refuses a stand-in.
+
+| Port | What it does | Stand-in | Real |
+| --- | --- | --- | --- |
+| `email.ts`, `inbound-email.ts` | Sending, and receiving with signed webhooks | Development outbox (`/dev/outbox`), `/dev/inbound` | Resend; Mailgun EU |
+| `sms.ts` | Text reminders, and the code that confirms a renter's mobile before booking (P16) | Fake SMS (on the test copy, the code is shown on screen) | Sinch (EU) |
+| `ai.ts` | One `AiProvider` for four tasks: drafting answers, reading a pasted advert (`ADVERT_READER`), reading a question about who's enquired into chips, and drafting a home's description from its facts (ADR-0028). Called only through `runAi` (`src/server/ai/usage.ts`), which logs each call in `ai_calls`, keeps to `AI_MONTHLY_BUDGET_USD` and honours `AI_TASKS_OFF` | Fake AI | Claude on Amazon Bedrock (Dublin) in production; the Claude API on the test copy and in development, made-up data only |
+| `identity.ts` | The ID check, a photo ID and a live selfie: a chosen applicant's, and a private landlord's "Confirm it's you" (Q47). Start, read the outcome from the provider, redact ([ADR-0020](adr/0018-id-check-on-stripe-identity-and-booking-mobile.md)) | A stand-in page (`/dev/checks`), opened by its own link on the test copy | Stripe Identity (Q51), with a signed webhook at `/api/webhooks/stripe-identity` |
+| `checks.ts` | The income check | A stand-in page (`/dev/checks`) | None (`none` in production; documents later, Q51) |
+| `address-search.ts` | Finding an address when adding a letting (`ADDRESS_SEARCH`) | A made-up list | Autoaddress, once its DPA is signed (Q40); `off` types it in |
+| `photo-store.ts` | Homes' photos (`PHOTO_STORE`), cleaned and sized by sharp first (ADR-0023) | A table in this database; photos go through Gaff's server | Supabase Storage (Ireland), a private bucket; browsers send photos straight to it with a signed upload |
+| `document-store.ts` | Chosen renters' work and income documents (`DOCUMENT_STORE`), encrypted with Gaff's key first, never served to a browser (ADR-0031) | A table in this database, reached only as the system; documents go through Gaff's own route | Supabase Storage (Ireland), a private bucket of their own; browsers send documents straight to it with a signed upload |
+| `register.ts` | Gaff's weekly copy of the PSRA register (`PSRA_REGISTER_SOURCE`) | A made-up register | The PSRA's download, once its format is checked |
+| `sign-in-providers.ts` | Google and Apple sign-in, for sign-in only (Q30) | `/dev/sign-in` | Google, Apple |
+
+## Jobs
+
+Background tasks wait in graphile-worker's queue in Postgres (`src/jobs/tasks.ts`). A use case queues one in the same transaction as its change.
+
+| Job | When | What |
+| --- | --- | --- |
+| `send_message` | Queued with each message | Sends it through the outbox, with retries |
+| `process_inbound_email` | Each email received | Reads, matches and merges an enquiry |
+| `draft_answers` | A renter's question | Drafts a grounded answer for a person to approve |
+| `send_waiting_reply`, `drop_waiting_enquiry` | An ask to view from someone without an account (UX-AV-6) | Sends the first reply, which they confirm from; drops it unconfirmed after 24 hours |
+| `offer_place` | A cancelled booking | Offers the place down the waiting list |
+| `expire_offer`, `expire_home_offer` | An offer's deadline | Closes a waiting-list place or a home's offer |
+| `reference_overdue` | Six days after a referee is asked | Marks the reference overdue |
+| `rtb_reminder` | A week before the RTB deadline | Reminds the admins |
+| `saved_search_alerts`, `send_saved_search_email` | Daily at 08:00 UTC, and per alert | Tells people who saved a search about new homes |
+| `psra_register_refresh` | Weekly | Refreshes Gaff's copy of the PSRA register; a lapsed licence holds go-live |
+| `send_account_email` | Sign-in codes, invitations | Sends account emails |
+| `check_listing` | A public home's words, photos or rent changed, or it went back on gaff.ie (ADR-0027) | Runs the checks again on what changed; holds it for a person on a risk signal |
+| `retention_sweep` | Daily (02:30 UTC) | Deletes personal data on its date (rule 9); renters' profiles unused for two years; a let home's page 30 days after it was let; reports and held listings' cases six months after they're decided; a lister's ended pause six months after it ended; unconfirmed asks to view; saved searches held by an email alone; the AI's usage log (`ai_calls`) after 12 months; and the anonymous record after `RETENTION_RECORD_MONTHS` |
 
 ## Two flows in detail
 
@@ -179,9 +267,9 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 
 ## Design tokens drive all styling
 
-1. `docs/design-tokens.json` is the only place colours, fonts, type sizes, spacing, radii, shadows and motion are defined. Today it holds design direction A4, Navy and Atlantic.
-2. `pnpm tokens` validates the file against a schema, resolves references such as `{atlantic-text}`, and generates:
-   - `src/styles/tokens.css`: CSS custom properties (`--color-surface-0`, `--space-4`, `--radius-md`, `--font-display`, `--motion-fast` and so on) for light and dark themes. Dark follows the system setting, and `data-theme` can override it either way. Type sizes are in rem, so they follow the reader's browser text size. Under reduced motion every duration is 0ms. It also generates one class per type style (`.type-heading`, `.type-label` and so on).
+1. `docs/design-tokens.json` is the only place colours, fonts, type sizes, spacing, sizes, radii, shadows and motion are defined. Today it holds the UX redesign's direction: ink, white and Atlantic blue (`docs/design-system.md`).
+2. `pnpm tokens` validates the file against a schema, resolves references such as `{brand-text}`, and generates:
+   - `src/styles/tokens.css`: CSS custom properties (`--color-surface-0`, `--space-4`, `--size-control`, `--radius-md`, `--font-sans`, `--motion-fast` and so on) for light and dark themes. Dark follows the system setting, and `data-theme` can override it either way. Type sizes are in rem, so they follow the reader's browser text size. Under reduced motion every duration is 0ms. It also generates one class per type style (`.type-heading`, `.type-label` and so on).
    - `src/styles/tokens.ts`: typed token names, so components can only ask for tokens that exist.
 3. Components use CSS Modules that reference only `var(--…)`. Stylelint rejects raw colours, font sizes, font families, spacing, radii and shadows. ESLint rejects inline `style` props.
 4. The tokens file lists every text and background pair the screens use, with its contrast in both themes. A test checks each pair meets WCAG AA for its rule (text 4.5:1; large text and accent fills 3:1; edges, controls and focus rings 3:1), that the recorded ratios are right, and that the list covers the pairs the design system promises. A tokens file that breaks WCAG AA fails CI.
@@ -211,7 +299,7 @@ All checks run with one command, `pnpm check`, and in CI on every push.
 | --- | --- | --- | --- |
 | Local | Your machine or this container: Postgres 16 and Node | Synthetic seed data | Dev outbox, fake SMS, fake AI |
 | CI | GitHub Actions with a Postgres service | Synthetic | Fakes |
-| Test copy | Vercel and Supabase, a separate project of each ([deploy.md](deploy.md)) | Synthetic only | Stand-ins: outbox page, fake SMS and AI, test check page |
+| Test copy | Vercel and Supabase, a separate project of each ([deploy.md](deploy.md)), on a public address with a banner on every page | Synthetic only: each deploy adds the made-up agencies, landlord and nine homes (`pnpm db:seed --deploy`) | Real email for real addresses (made-up ones to the outbox); fake SMS (the booking code shown on screen) and AI, Stripe Identity's test mode or the test check page. Everything under `/dev` but `/dev/ui` is for Gaff's own team only; no Google or Apple stand-in |
 | Production | Vercel (Dublin) and Supabase (Ireland) | Real | Real |
 
 Production needs, before the first pilot letting: the DPIA, the solicitor's sign-off, the retention job (R26), backups with tested restores, and error alerts. A provider for error alerts is a later approval.
@@ -252,7 +340,7 @@ Chosen by the CTO on 31 October 2026; hosting and email changed on 1 November 20
 | --- | --- | --- | --- |
 | Hosting | Vercel, functions in Dublin (Pro before real data) | The founders already use it; deploys on push | DPA; Data Privacy Framework for anything stored in the US; region set to `dub1` |
 | Database | Supabase, West EU (Ireland) | The founders already use it; plain Postgres with row-level security | DPA; Data API off; daily backups, and point-in-time recovery before real data |
-| AI | Claude on Amazon Bedrock, EU geographic routing | Keeps prompts and outputs in EU regions; Anthropic's own API currently offers global or US-only processing | The model is offered in the EU profile; Bedrock DPA; invocation logging off |
+| AI | Claude on Amazon Bedrock in Dublin (`eu-west-1`); the Claude API on the test copy and in development only, with made-up data (ADR-0017) | Keeps prompts and outputs in the EU; Anthropic's own API offers global or US-only processing, so production refuses it | The model is offered in-region; Bedrock DPA; invocation logging off |
 | Email in and out | Resend (Mailgun EU as an alternative) | The founders already use it; sends and receives with signed webhooks | DPA; Data Privacy Framework (data stored in the US); DKIM and SPF on our domains; open and click tracking off |
 | SMS | Sinch, EU region | EU company (it owns Mailgun), EU API region | DPA; Irish sender ID rules; price |
 | Operator sign-in | Better Auth (a library, not a service) | Accounts stay in our database; no third-party identity provider | None: open source, runs inside Gaff |

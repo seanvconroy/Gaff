@@ -12,6 +12,7 @@ export function mailgunSender(config: { apiKey: string; domain: string }): Email
       form.set('to', email.to);
       form.set('subject', email.subject);
       form.set('text', email.text);
+      if (email.html) form.set('html', email.html);
       if (email.replyTo) form.set('h:Reply-To', email.replyTo);
       // No open or click tracking: it would follow renters around (ADR-0005).
       form.set('o:tracking', 'no');

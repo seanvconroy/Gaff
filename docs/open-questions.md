@@ -241,3 +241,242 @@ The PRD asks for data hosted in the EU, and the build turned that into "EU only"
 - the AI disclosure (EU AI Act Article 50);
 - the caps on the deposit and advance rent;
 - Gaff never holding money.
+
+## F. The UX redesign and the two-sided MVP
+
+Decided by Sean on 14 November 2026, in answer to the UX redesign PRD ([ux-redesign/](ux-redesign/README.md)). Where Sean left the choice to the CTO role, the entry says "delegated". Items a solicitor reviews before launch are marked **Solicitor**; none of them holds up the build.
+
+### Q27. What the MVP covers (the PRD's "Out of scope" list vs a product for both sides)
+
+**Decision (Sean):** the MVP is a full two-sided product.
+- **Letting side:** agencies, landlords with several homes, and private landlords with one home.
+- **Renter side:** search homes let through Gaff, ask to view inside Gaff, and keep a profile.
+- Operators can still advertise on Daft and MyHome. Those enquiries arrive by forwarding, as now.
+- The sales effort stays on the letting side.
+- The PRD's out-of-scope list loses "A Gaff search site or marketplace for renters". Still out: posting adverts to Daft or MyHome, native apps, answering phone calls, holding money.
+
+### Q28. One person, one profile
+
+**Decision (Sean):** one person has one profile and can hold several roles: agent in an agency, private landlord, renter. An agent can look for a home, or let one of their own, on the same profile.
+
+### Q29. Name, wordmark and colour
+
+**Decision (Sean):** the name is Gaff and the domain will be gaff.ie. The wordmark stays as it is: the two letters "f" read as a key. Colour stays neutral with an off-blue, refined from today's. **Delegated:** the accent is a cleaner Atlantic blue (`#3a5fa8` to start) on a white ground with cool greys. Sean will revisit it once it's on real screens.
+
+### Q30. Sign-in
+
+**Decision (Sean):** Google, Apple, or a six-digit code by email, with a passkey offered afterwards. Google and Apple are approved for sign-in only. Both are named in the privacy notice. This replaces the email link in ADR-0013 for people with accounts; private links for renters, owners and referees stay.
+
+### Q31. Importing an advert
+
+**Decision (Sean):** Gaff doesn't fetch pages from Daft or MyHome, because their terms don't allow it. Adding a letting is made as easy as it can be without that: paste the advert's text, upload it, describe the home, start from an enquiry, or let a home again.
+
+### Q32. Confirming an agency
+
+The PSRA register is public, so picking an agency from it proves nothing about the person. What Gaff confirms is one thing: that the person who claimed the agency works there. Without it, anyone could message renters in an agency's name and put their own bank account on a deposit request.
+
+**Decision (Sean):** keep it simple. Pilot agencies are invited by a founder, and the invitation is the confirmation. An agency that signs up by itself is confirmed once by a founder, in one press, before its first home goes live. Every later member is vouched for by an admin's invite.
+
+### Q33. Price during the pilot
+
+**Decision (Sean):** free. There is no billing in the product. Pricing and billing are defined later, with the sales effort.
+
+### Q34. One design for phone, desktop and a future app
+
+**Decision (Sean):** no native app yet, but one is wanted later. There is one design: the same flows, steps and components on a phone, a desktop and a future app. Screens are designed at phone width first and given more room on a desktop.
+
+### Q35. A verified identity that's reused (adds to Q19 and Q25)
+
+**Decision (Sean, detail delegated):**
+- A person verifies their identity once. The result is kept on their profile and reused in every role.
+- It has no fixed expiry. It lasts while the profile does: until the person deletes it, or after 2 years without use (Q25). A person whose name has changed can do it again.
+- Gaff keeps the result, the verified name and the date. It keeps no image, document number, document type, issuing country or date of birth (Q19).
+- The check happens the first time a step needs it: when a renter is the chosen applicant or the backup, or when a private landlord puts their first home live (Q47). Renters are never invited to verify before they're chosen.
+- An operator sees it only at the checks stage, for a renter they've chosen, and only when the renter says yes that time. Nobody can see who is verified before choosing.
+- A confirmed income is kept for 3 months, because incomes change. References are never reused: the referee was told who would see their answers.
+
+**Solicitor:** the consent wording.
+
+### Q36. Matching and fit (the redesign's first open question)
+
+**Decision (delegated, on Sean's steer: objective, never subjective):**
+- Gaff shows whether a person meets what was asked, as a count with the detail ("Meets 3 of 4"). It never recommends, scores or ranks a person by anything else.
+- What an operator can ask stays the fixed four: move-in date, length of stay, most people, pets. One house rule is added, "No smoking indoors", as a term of the tenancy that isn't used in ranking.
+- Gaff writes the "Letting details" line renters see, from those four. Nobody can type who a home would suit.
+- A renter sees their answers beside the letting details, without judgement, and is never stopped.
+- An operator can ask Gaff about who's enquired in plain words. The answer is always a filter on the four answers.
+
+**Solicitor:** reviews this with the criteria list (Q9).
+
+### Q37. Conversational AI
+
+**Decision (Sean):** not for account set-up. Use it where loose words become structure: adding a letting, a renter saying what they're looking for, and an operator asking who fits.
+
+### Q38. Agents' own PSRA licences
+
+**Decision (Sean):** not checked for the pilots. Left open to come back to. **Solicitor.**
+
+### Q39. Gaff's copy of the PSRA register
+
+**Decision (delegated):** Gaff keeps the entries for businesses licensed to let, because that's all the lookup needs, refreshes them weekly, and credits the PSRA as its re-use terms ask. It's added to the DPIA.
+
+### Q40. Address lookup provider
+
+**Decision (delegated):** Autoaddress, an Irish provider licensed for Eircode data. Before real addresses go through it, the founders sign its DPA and confirm where it's hosted ([launch-checklist.md](launch-checklist.md)).
+
+### Q41. Comparable rents (R4)
+
+**Decision (delegated):** the rent check stays before a home goes live. The three comparable rents are needed before the offer, not before go-live. If the RTB's Rent Register can be read by software within its terms, Gaff finds them and the operator confirms. If not, the operator types three, with the area and type filled in. Finding out is the first task of that work package.
+
+### Q42. An owner declines a tenant
+
+**Decision (delegated):** the owner's page takes no written reason, and the agent's screen gets no extra warning line. The agent is told at once and talks to the owner.
+
+### Q43. A phone number for renters
+
+**Decision (Sean):** as on Daft and Rightmove. The main action is to ask to view through Gaff. A phone number is there for anyone who'd rather call.
+
+### Q44. Who in an agency sees which lettings
+
+**Decision (Sean):** every member sees every letting, for now.
+
+### Q45. Gaff's brand on an agency's pages
+
+**Decision (Sean):** Gaff isn't white-label. Renter pages carry Gaff's brand with the agency's name. Gaff never prompts an agency's owners or a referee to use Gaff themselves.
+
+### Q46. Disclaimers
+
+**Decision (Sean):** no line of caution or legal comfort is shown unless the law needs it at that moment or it stops a real mistake. Everything else sits in the terms or behind one "How this works" link. The line about only adding photos you may use is removed.
+
+### Q47. Private landlords verify their identity before their first home goes live
+
+Gaff now shows homes to the public and shows renters where to pay a deposit. A private landlord has no licence to check.
+
+**Decision (CTO; confirmed by Sean on 19 November 2026, see Q52):** a private landlord verifies their identity once, at the go-live step of their first home. It takes about two minutes and is never asked again (Q35). Renters see "Identity verified" beside the landlord's first name. Agencies are confirmed through their licence (Q32) and don't do this.
+
+### Q48. The identity check provider
+
+**Replaced on 19 November 2026 by Q51: Stripe Identity, which Sean had already chosen on 8 November.** The recommendation below was written without sight of that decision.
+
+**Recommendation (CTO, for the founders to confirm):** Veriff, an EU company with self-serve pricing. Before real checks run, the founders confirm in writing that data stays in the EU and sign its DPA. Until then the build uses the stand-in provider, as now.
+
+### OQ-2. Can software read the RTB's Rent Register? (UX-LP-14, Q41)
+
+**Status: unverified.** Checked on 17 November 2026 from the build environment. This environment can't reach `rtb.ie` or `data.gov.ie` (both fail to resolve), so neither site's own pages were read. What follows comes from web search results only, and needs a person to confirm on the sites themselves.
+
+**What was found:**
+
+- **No official API.** No search result points to an API, a developer page or a data feed for the Rent Register itself. The register is a search page on rtb.ie ([RTB Rent Register](https://rtb.ie/?p=55258)). It holds new and annual registrations from the last 24 months, and the RTB says a rent notice must give three examples from it of recent rents for similar homes.
+- **Open data is averages, not homes.** data.gov.ie lists the CSO's "RTB Average Monthly Rent Report" tables ([RIH02](https://data.gov.ie/ga/dataset/rih02-rtb-average-monthly-rent-report), [RIA02](https://data.gov.ie/dataset/ria02-rtb-average-monthly-rent-report/resource/96d0071b-db5e-4a7b-bda9-cebe02be7d97)) under CC BY 4.0, as CSV, XLSX and JSON-stat. They give average rents by area and type, not individual registered tenancies, so they can't supply the three comparable homes a rent notice needs. The RTB's own data hub ([data insights](https://www.rtb.ie/about-rtb/data-insights), [registration statistics](https://www.rtb.ie/data-hub/rtb-private-tenancy-registration-statistics)) publishes counts and averages, also not single tenancies.
+- **The site's terms don't allow it.** The RTB's website terms ([rtb-terms-of-use.pdf](https://www.rtb.ie/images/uploads/general/rtb-terms-of-use.pdf), seen only as a search extract and possibly out of date) license use of the website and reserve every right not expressly granted. Nothing found grants automated reading of the register.
+
+**Decision (build):** reading the register by software is not clearly allowed, so Gaff doesn't do it, and never scrapes it. There is no lookup and no `src/ports` interface for one. The operator enters three comparable homes, one per screen, with the area, type and bedrooms filled in from the home, and a button opens the RTB's register in a new tab.
+
+**To verify (founders):** allow `rtb.ie` and `data.gov.ie` in the environment's network settings so the pages can be read directly, or ask the RTB whether it offers, or would license, a feed of register entries. If it does, the lookup is built behind an interface in `src/ports` with a local stand-in, and the operator confirms the three it suggests.
+
+### Q49. A map beside the search results (OQ-7, UX-SR-8)
+
+**Replaced on 19 November 2026 by Q51: the search map is on Google Maps, which Sean approved on 8 November, and it is being brought across.** The answer below was written without sight of that decision.
+
+**Answer (build, WP-21): not practical yet. Search ships with the list alone, and the list is complete without a map.** The "Map" button is left off the screen rather than shown doing nothing.
+
+Why, in this package:
+- **A renderer is a new dependency.** Showing a map someone can pan and zoom needs a map library (MapLibre GL JS is the natural one: open source, and it fetches only what Gaff points it at). The build rules allow no new dependency without approval, and a hand-written renderer isn't a sensible thing to build.
+- **The data couldn't be fetched here.** OpenStreetMap's servers (Geofabrik's extracts, Overpass) are blocked from the build environment, so there was no Irish extract to turn into tiles.
+- **Homes have no coordinates.** A letting holds an address and an Eircode, not a point. Pins need a point for each home: from Autoaddress's Eircode lookup at "Add a letting" once its DPA is signed (Q40), or a rough one from the place's centre.
+
+What it would take, all inside the approved vendors and with no visitor's request leaving Gaff:
+1. Approve MapLibre GL JS as a dependency (no vendor: it calls nothing on its own).
+2. Build vector tiles for Ireland from Geofabrik's Ireland and Northern Ireland extract (about 300 MB) with an offline tool such as Planetiler, as one PMTiles file (roughly 0.5 to 1 GB to zoom 14), plus the style, fonts and icons the map draws with.
+3. Keep that file in Supabase Storage (Ireland) and serve it through Gaff's own address (`/tiles/…`, with range requests), so the page's content policy stays `'self'`. Vercel's function and static file limits rule out serving it from the deployment itself.
+4. A point for each home, stored with the letting (see above), and refreshing the tiles every few months by a job.
+5. Credit "© OpenStreetMap contributors" on the map. The ODbL's share-alike applies to the database, not to the pictures of the map.
+
+Gaff's list of places for "Where" is in the repository (`src/domain/search/places-list.ts`), hand-made for now because of the same blocked download; `scripts/places/build-places.ts` builds the full list from OpenStreetMap when it can reach it.
+
+## G. One project
+
+Found on 19 November 2026: Gaff had two lines of work from the same starting point. The test copy ran one (the marketplace, the providers work, the place index, the map and sign-in: requirements `M`, `P` and `AU`); the redesign was built from the other. Sean's objective: "one live project, with all of the changes we intended to build." The plan and its packages are in [status.md](status.md) under "Going live".
+
+The other line kept its own list of decisions, numbered from Q27 with different questions. Below, "the other line's Q48" means that list, which is on the branch `claude/gallant-darwin-dpy9oz`.
+
+### Q50. Which line carries on?
+
+**Decision (Sean, 19 November 2026):** the redesign is the base. Everything the other line can do that the redesign can't is brought across and fitted to the redesign's screens, account model and rules. Then the test copy switches to it and one branch carries on.
+
+### Q51. Where the two lines disagree
+
+**Decision (Sean, 19 November 2026, on the CTO's recommendation):** Sean's latest explicit decision wins. Where the redesign only had a stopgap, or a recommendation waiting to be confirmed, Sean's earlier decision on the other line wins. So:
+
+- **No passwords.** Q30 (14 November) replaces Sean's request for email and password on 8 November (the other line's Q63).
+- **Google Maps for the search map** (the other line's Q58, ADR-0027), replacing Q49 here. Google Maps Platform, the Maps JavaScript API only, is an approved vendor.
+- **The place index from OpenStreetMap** (the other line's Q57), replacing the hand-made list.
+- **Stripe Identity for ID checks** (the other line's Q48), replacing Q48 here. A photo ID with a live selfie. Before real people use it: Stripe's DPA, the privacy notice, and the solicitor's answer on consent to the selfie (the other line's Q45).
+- **The Claude API on the test copy and in development; Claude on Bedrock in the EU in production** (the other line's Q37).
+- **Chosen renters show work and income with documents, not open banking** (the other line's Q49). Not built on either line yet.
+- **Agents' own PSRA licences aren't checked for the pilots** (Q38, 14 November), though the other line checked them.
+- **A renter is asked once whether Gaff keeps their ID check** (Q35, UX-PF-8). The other line kept it automatically.
+- **Renters confirm their mobile by text code before booking a viewing** (the other line's Q60). Listers aren't asked to.
+- **Alerts go out as soon as a home is listed, with a daily option** (the other line's M86, M87), replacing "one email a day at most" (UX-SR-10).
+- **Kept as the redesign has them:** one photo and a BER to publish; the short list of filters; a let home's page comes down after 30 days; a home's web address is a random reference.
+
+### Q52. Who proves who they are before listing?
+
+On 8 November Sean decided on one standard with no opt-outs: everyone who lists, agents included, does the photo ID and selfie check (the other line's Q60). The redesign checks private landlords only and confirms agencies through their licence (Q32, Q47).
+
+**Decision (Sean, 19 November 2026):** the redesign's version, for the pilots. Private landlords verify once, at their first go-live. Renters verify when they are chosen. An agency is confirmed through its PSRA licence, and its staff aren't asked for a selfie. See Q55, which this leaves open.
+
+### Q53. What Gaff's own team may do
+
+The redesign held Gaff's team to two things: confirming agencies and hiding reported listings. Stopping scams, and the EU's rules for marketplaces (the Digital Services Act), need more.
+
+**Decision (Sean, 19 November 2026):** Gaff's team may also review a listing that is held as suspicious, and handle a report as a case, with a statement of reasons and an appeal. Cases are built (BA-9, 20 November 2026); reviewing a listing held for suspicious wording or photos comes with the risk holds. They still never open a letting, read a renter, send a message or make a decision about a person. The tests that hold those limits stay.
+
+### Q54. Erasing the test copy when it switches
+
+**Decision (Sean, 19 November 2026):** yes. Everything testers created on the test copy is erased at the switch. The made-up homes are created again by the build.
+
+### Q55. How does Gaff know someone belongs to an agency, and is who they say they are? (**Open**)
+
+Raised by Sean on 19 November 2026, with Q52. Today an agency is found on the PSRA register and confirmed by Gaff's team, and colleagues join by an invitation to their email address. Nothing shows that the person who set the agency up works there, or that a person is who they say they are.
+
+**Banked, to come back to.** Things to weigh when it is picked up: an ID check for whoever sets an agency up or for every member (the other line's Q60); matching a verified name to the licence holder or to an agent's own licence (the other line's P24, and Q38 here); a letter or a call to the agency's registered address or number; joining by the agency's email domain (UX-AG-14); and what an agency will put up with during a pilot.
+
+### Q56. Loose ends from the place index (**Open**)
+
+Found while bringing the place index across (BA-2, 19 November 2026). None holds up the build.
+
+- **A copy of the index for anyone who asks.** OpenStreetMap's licence asks Gaff to offer its place index to anyone who asks for it. `/map-and-place-data` credits the data; how someone asks for a copy isn't said yet (Help is still short). **Solicitor**, with the other licence terms.
+- **What a renter types, in the request log.** The place search sends what is typed to Gaff's own server as part of a web address, so it may appear in Vercel's request logs. It holds no name or contact details, and the count of misses already drops anything with digits. To check before launch.
+- **Recent searches** are kept in the browser tab only, for everyone, because searching isn't recorded against a person (UX-SR-11). The other line kept them on the server for signed-in renters.
+
+### Q57. Notes from hardening sign-in (BA-8, 19 November 2026)
+
+Recorded, not open, unless Sean wants one changed.
+
+- **Signing up with Google from an address Google doesn't host** (a work address on another mail service) is refused: the person signs in with a code and connects Google from Profile. It stops an account being joined on a provider's say-so alone (the other line's Q66).
+- **The list of signed-in devices** was left for later in the redesign's section 2 and is now built.
+- **"Confirm it's you"** is the one check before a sensitive change. The sign-in library's own "signed in recently" check is off.
+- **Two events** (a provider joined, a passkey added) are written just after the sign-in library's own write, not in the same transaction (the other line's Q67). A failure between the two loses the event, never the change.
+- **The security emails** are new fixed wording, for the solicitor with the other templates.
+
+### Q58. Loose ends from the map (**Open**)
+
+Found while bringing the map across (BA-5, 19 November 2026). None holds up the build.
+
+- **A private landlord's home is shown within about 150 m of its pin**, never at its door, because their own home is personal data. Agencies' homes are shown at the pin. This is the build's reading of the other line's street-only rule. Sean to confirm the distance.
+- **Does the map need consent before it loads?** Google's map sets nothing on a phone until the renter asks for the map, but it loads with the page on a larger screen (the other line's M134). **Solicitor.**
+- **Moving into and out of Search is a full page load**, the price of Google's script running only on the map's pages. To measure once real people use it.
+- **Nothing has been run with a real Google key yet.** `docs/deploy.md` ("The search map") lists the two checks to do with one, and the keys the test copy and GitHub need.
+- **A daily cap and a budget for the map in production**, set in Google's console before launch.
+
+### Q59. What bringing the other line across left open
+
+Recorded on 20 November 2026, when every package was merged. None holds up the switch.
+
+- **Product rules 2 and 3 now say what Sean agreed on the other line on 8 November** (work and income documents for the chosen applicant and one backup; a document may show a PPS number, never read out or recorded; the housing assistance ground covers HAP, rent supplement and any social welfare payment; statements of other income are read by Gaff and never shown to letters). Sean to read the two rules as they now stand.
+- **For the solicitor, from the other line and still open:** HAP and affordability (its Q42), asking the backup at the same time (Q43), consent to the selfie (Q45), statements of other income (Q52), and every new fixed message: the security emails, the freshness email, the changed alert emails, the emails about a held, hidden or paused listing, the "enquiries have closed" reply.
+- **Not brought across, on purpose:** passwords (Q51); a character reference in place of a landlord's, a guarantor, and marking a flag "seen and accepted" (P42, P43, P48); drawing an area on the map; pasting a spreadsheet of a development's homes; Gaff's team giving more than three tries at an ID check; a renter's private note on a saved home (a profile has no free text); filters beyond the redesign's short list.
+- **Needs a key or an account before it does anything on the test copy:** the Google map (`GOOGLE_MAPS_API_KEY`), the real model (`ANTHROPIC_API_KEY`), a private bucket for documents and, in production, for photos.
+- **Two people on Gaff's team list** are needed for an appeal to be decided by someone else.
+

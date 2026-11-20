@@ -1,0 +1,126 @@
+/*
+ * R15, UX-VW-10, UX-VW-11: one row per person, in time order, with two large buttons each.
+ * Readable outdoors on a phone. Space and type, then a hairline between people.
+ */
+.summary {
+  font-weight: var(--type-title-weight);
+}
+
+.list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3) var(--space-4);
+  align-items: center;
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.row:last-child {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.who {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  align-items: baseline;
+}
+
+.time {
+  min-width: 5rem;
+  color: var(--color-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.name {
+  font-weight: var(--type-title-weight);
+}
+
+.choices {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.choices form {
+  display: contents;
+}
+
+.opens {
+  color: var(--color-ink-muted);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: var(--size-target);
+  min-height: var(--size-control);
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--color-surface-1);
+  color: var(--color-ink);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  font-weight: var(--type-title-weight);
+  white-space: nowrap;
+  cursor: pointer;
+  transition-property: background-color, border-color;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease-standard);
+}
+
+.toggle:hover {
+  background-color: var(--color-surface-2);
+}
+
+.toggle:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+/* Pressed: the status tint and a 2px edge in the status colour, with its icon and words. */
+.came[aria-pressed='true'] {
+  padding-inline: calc(var(--space-4) - 1px);
+  border-width: 2px;
+  border-color: var(--color-success);
+  background-color: var(--color-success-bg);
+}
+
+.came[aria-pressed='true'] svg {
+  color: var(--color-success);
+}
+
+.missed[aria-pressed='true'] {
+  padding-inline: calc(var(--space-4) - 1px);
+  border-width: 2px;
+  border-color: var(--color-warning);
+  background-color: var(--color-warning-bg);
+}
+
+.missed[aria-pressed='true'] svg {
+  color: var(--color-warning);
+}
+
+@media (width <= 900px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .choices > * {
+    flex: 1;
+  }
+
+  .toggle {
+    width: 100%;
+  }
+}

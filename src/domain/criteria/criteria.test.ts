@@ -3,7 +3,7 @@ import {
   countCriteria,
   criteriaFormSchema,
   criteriaSchema,
-  describeCriteria,
+  lettingDetailsParts,
   questionsFor,
 } from './criteria';
 
@@ -65,17 +65,18 @@ describe('R2: criteria come from a fixed list of lawful options', () => {
     expect(result.error?.issues[0]?.message).toContain(message);
   });
 
-  it('describes the criteria in plain words, with assistance dogs always welcome', () => {
+  it('UX-MT-3: describes the criteria in the letting details’ fixed words, with assistance dogs always welcome', () => {
     expect(
-      describeCriteria(
+      lettingDetailsParts(
         { moveInBy: '2026-12-01', minStayMonths: 24, maxOccupants: 1, noPets: true },
+        false,
         now,
       ),
     ).toEqual([
-      'Can move in by Tuesday 1 December',
-      'Plans to stay at least 2 years',
+      'Move in by Tuesday 1 December',
+      '2 years or longer',
       'Up to 1 person',
-      'No pets (assistance dogs are always welcome)',
+      'No pets (assistance dogs always welcome)',
     ]);
   });
 

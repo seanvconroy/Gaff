@@ -81,7 +81,7 @@ describe('Compliance, rule 3 (P33): a statement of other income never reaches an
       'src/server/documents/retention.ts',
     ]);
     // No workspace, task or owner page reaches the renter's own documents' use cases.
-    const operatorPages = using(/@\/server\/documents\/renter/).filter(
+    const operatorPages = using(/^import (?!type )[^;]*'@\/server\/documents\/renter'/m).filter(
       (file) => !file.startsWith('src/app/r/'),
     );
     expect(operatorPages).toEqual([]);

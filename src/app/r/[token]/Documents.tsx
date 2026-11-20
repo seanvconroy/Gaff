@@ -6,7 +6,6 @@ import type { DocumentsPage, RenterDocument } from '@/server/documents/renter';
 import { ButtonLink } from '@/ui/Button';
 import { Disclosure } from '@/ui/Disclosure';
 import { Stack } from '@/ui/Layout';
-import { Notice } from '@/ui/Notice';
 import { StatusPill } from '@/ui/StatusPill';
 import { SubmitButton } from '@/ui/SubmitButton';
 import styles from '../renter.module.css';
@@ -71,9 +70,13 @@ function DocumentItem({
         </div>
         {unread ? null : <p>{readingInWords(document.kind, document.reading)}</p>}
         {document.flags.map((flag) => (
-          <Notice key={flag} tone="warning">
-            <p>{flagWords(flag, document, view, operator, verified)}</p>
-          </Notice>
+          // P38: in `warning`, with the words, never `danger`; not a boxed notice (UX-PP-6).
+          <p key={flag} data-flag={flag}>
+            <StatusPill tone="warning" large>
+              {copy.toCheck}
+            </StatusPill>{' '}
+            {flagWords(flag, document, view, operator, verified)}
+          </p>
         ))}
         <div className={styles.quietRow}>
           <Link href={change} className={styles.lineLink}>
@@ -124,11 +127,7 @@ export function DocumentsTask({
           <p>{copy.more(operator)}</p>
         </Disclosure>
       </div>
-      {view.readerOn ? null : (
-        <Notice tone="info">
-          <p>{copy.readerOff(operator)}</p>
-        </Notice>
-      )}
+      {view.readerOn ? null : <p>{copy.readerOff(operator)}</p>}
       {any ? (
         <section aria-labelledby="documents-added">
           <Stack gap={3}>

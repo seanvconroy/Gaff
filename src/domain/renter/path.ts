@@ -130,7 +130,7 @@ export const collectedAt: Record<RenterView, readonly string[]> = {
   after_viewing: ['how they mainly earn', 'household take-home income'],
   missed_viewing: [],
   applied: [],
-  checks: ['identity check', 'income check', 'referees'],
+  checks: ['identity check', 'work and income documents', 'referees'],
   offer: ['answer to the offer'],
   offer_closed: [],
   offer_declined: [],

@@ -140,6 +140,7 @@ export const renterDocumentsCopy = {
   readerOff: (operator: string) =>
     `Gaff can’t read documents just now. A person at ${operator} will look at your documents.`,
   readByGaff: 'Read by AI',
+  toCheck: 'To check',
   enteredByYou: 'Entered by you',
   changedByYou: 'Changed by you',
   fromProfile: 'From your profile',

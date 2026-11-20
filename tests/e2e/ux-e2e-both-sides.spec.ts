@@ -13,6 +13,7 @@ import {
   bookFirstTime,
   enterLinkCode,
   expectFramePageAtBothWidths,
+  sharePayslipThroughUi,
 } from './renter';
 import {
   addATime,
@@ -127,10 +128,11 @@ async function standInIdPasses(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'The ID and selfie match' }).click();
 }
 
-/** Income through the stand-in provider, then no previous landlord and no employer to ask. */
-async function incomeAndNoReferees(renter: Page): Promise<void> {
-  await renter.getByRole('button', { name: 'Check my income' }).click();
-  await renter.getByRole('button', { name: 'Confirm this income' }).click();
+/**
+ * No previous landlord and no employer to ask, then work and income: one made-up payslip, read,
+ * and everything shared in one step (BA-16, P39).
+ */
+async function referencesThenDocuments(renter: Page, name: string): Promise<void> {
   await expect(renter.getByRole('heading', { name: 'Have you rented before?' })).toBeVisible();
   await look(renter, 'checks-references');
   await renter.getByRole('radio', { name: 'No', exact: true }).check();
@@ -140,7 +142,9 @@ async function incomeAndNoReferees(renter: Page): Promise<void> {
   ).toBeVisible();
   await renter.getByRole('radio', { name: 'No', exact: true }).check();
   await renter.getByRole('button', { name: 'Send', exact: true }).click();
-  await expect(renter.getByRole('heading', { name: 'That’s everything from you' })).toBeVisible();
+  await expect(renter.getByRole('heading', { name: 'Your work and income' })).toBeVisible();
+  await look(renter, 'checks-documents');
+  await sharePayslipThroughUi(renter, name);
   await look(renter, 'checks-done');
 }
 
@@ -325,7 +329,7 @@ test('UX-E2E-1: an agency’s home, added from an advert, is found on Gaff and l
   ).toBeVisible();
   await look(renter.page, 'checks-keep-id');
   await renter.page.getByRole('link', { name: 'Not now' }).click();
-  await incomeAndNoReferees(renter.page);
+  await referencesThenDocuments(renter.page, name);
   await expect(async () => {
     await page.goto(`${lettingUrl}/checks`);
     await expect(page.getByText('Verified: Niamh Kelly.')).toBeVisible({ timeout: 1000 });
@@ -596,8 +600,7 @@ test('UX-E2E-2: a private landlord confirms it’s them once, and lets a home to
   ).toBeVisible();
   await atBothWidths(renter.page, 'use-kept-id');
   await renter.page.getByRole('button', { name: 'Yes, use it' }).click();
-  await expect(renter.page.getByRole('heading', { name: 'Your income' })).toBeVisible();
-  await incomeAndNoReferees(renter.page);
+  await referencesThenDocuments(renter.page, name);
   await expect(async () => {
     await page.goto(`${lettingUrl}/checks`);
     await expect(page.getByText(`Verified: ${name}.`)).toBeVisible({ timeout: 1000 });

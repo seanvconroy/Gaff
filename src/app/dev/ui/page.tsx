@@ -1039,7 +1039,7 @@ export default function ComponentsPage() {
                 label="Your checks"
                 steps={[
                   { name: 'Your ID', state: 'done', stateLabel: 'Done' },
-                  { name: 'Your income', state: 'next', stateLabel: 'Next' },
+                  { name: 'Your work and income', state: 'next', stateLabel: 'Next' },
                   {
                     name: 'Your references',
                     state: 'to_come',

@@ -285,7 +285,7 @@ test('UX-TS-1, UX-TS-2, UX-PF-11, UX-PF-12: a private landlord confirms it’s t
   await expectReadable(mary.page);
   await atBothWidths(mary.page, 'use-kept');
   await mary.page.getByRole('button', { name: 'Yes, use it' }).click();
-  await expect(mary.page.getByRole('heading', { name: 'Your income' })).toBeVisible();
+  await expect(mary.page.getByRole('heading', { name: 'Have you rented before?' })).toBeVisible();
   await page.goto(`${lettings[0]}/checks`);
   await expect(page.getByText('Verified: Mary Byrne.')).toBeVisible();
 
@@ -304,7 +304,7 @@ test('UX-TS-1, UX-TS-2, UX-PF-11, UX-PF-12: a private landlord confirms it’s t
   ).toBeVisible();
   const before = await keptFor(niamhEmail);
   await niamh.page.getByRole('link', { name: 'Not now' }).click();
-  await expect(niamh.page.getByRole('heading', { name: 'Your income' })).toBeVisible();
+  await expect(niamh.page.getByRole('heading', { name: 'Have you rented before?' })).toBeVisible();
   expect(await keptFor(niamhEmail)).toEqual(before);
 
   await mary.context.close();
@@ -341,7 +341,7 @@ test('UX-PF-8, UX-PF-12, UX-PF-9: a chosen renter keeps their ID check, says yes
   await atBothWidths(aoife.page, 'keep-this');
   await aoife.page.getByRole('button', { name: 'Keep it' }).click();
   await expect(aoife.page.getByText('Your ID check is kept on your profile')).toBeVisible();
-  await expect(aoife.page.getByRole('heading', { name: 'Your income' })).toBeVisible();
+  await expect(aoife.page.getByRole('heading', { name: 'Have you rented before?' })).toBeVisible();
   expect(await keptFor(email)).toHaveLength(1);
 
   // The second home: chosen too. Its operator sees nothing of it yet.
@@ -356,7 +356,7 @@ test('UX-PF-8, UX-PF-12, UX-PF-9: a chosen renter keeps their ID check, says yes
   ).toBeVisible();
   await expect(aoife.page.getByText(/It’s in the name Aoife Byrne\./)).toBeVisible();
   await aoife.page.getByRole('button', { name: 'Yes, use it' }).click();
-  await expect(aoife.page.getByRole('heading', { name: 'Your income' })).toBeVisible();
+  await expect(aoife.page.getByRole('heading', { name: 'Have you rented before?' })).toBeVisible();
   // Only now, with her yes, does the operator see it.
   await page.goto(`${lettings[1]}/checks`);
   await expect(page.getByText('Verified: Aoife Byrne.')).toBeVisible();

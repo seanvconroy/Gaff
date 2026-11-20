@@ -165,8 +165,8 @@ export const decisionsCopy = {
       title: 'Check and confirm',
       text: (first: string, backup: string | null) =>
         backup
-          ? `Gaff will ask ${first} and ${backup} for an ID check, an income check and references. It tells them what each is for. Neither is told who’s first.`
-          : `Gaff will ask ${first} for an ID check, an income check and references. It tells them what each is for.`,
+          ? `Gaff will ask ${first} and ${backup} for an ID check, work and income documents and references. It tells them what each is for. Neither is told who’s first.`
+          : `Gaff will ask ${first} for an ID check, work and income documents and references. It tells them what each is for.`,
       preferred: 'Your choice',
       backup: 'Backup',
       start: 'Start the checks',

@@ -157,7 +157,7 @@ A person is one person whatever they do on Gaff. What belongs to them, not to an
 | `saved_homes`, `saved_searches` | Homes saved and searches to hear about; a search keeps the chips, never the sentence |
 | `renter_enquiries` | The renter's own list of enquiries, pointing at the operator's application |
 | `profile_events` | The record of the profile, with IDs and codes only |
-| `renter_documents` | A chosen renter's own work and income documents (BA-16, ADR-0029): before they share them, reached only from their own private link (`applicantPolicy()`, opened by `scopeToApplicant()` in `src/server/documents/renter.ts` alone); and those they keep, through `withPerson()`. No operator's path can read it, so a statement of other income never reaches a letter. The letter's copy is `check_documents`, a tenant table, which holds work documents and, for other income, only a reading of "regular income" with no file |
+| `renter_documents` | A chosen renter's own work and income documents (BA-16, ADR-0031): before they share them, reached only from their own private link (`applicantPolicy()`, opened by `scopeToApplicant()` in `src/server/documents/renter.ts` alone); and those they keep, through `withPerson()`. No operator's path can read it, so a statement of other income never reaches a letter. The letter's copy is `check_documents`, a tenant table, which holds work documents and, for other income, only a reading of "regular income" with no file |
 
 An application to one letting stays the operator's copy, in `applications`, and is deleted on the letting's own schedule. A renter's profile is kept while they choose to keep it, deleted at once from Profile, and deleted after two years unused, 30 days after an email that says so (UX-PF-7).
 
@@ -222,7 +222,7 @@ Every outside service sits behind an interface in `src/ports/` with a local stan
 | `checks.ts` | The income check | A stand-in page (`/dev/checks`) | None (`none` in production; documents later, Q51) |
 | `address-search.ts` | Finding an address when adding a letting (`ADDRESS_SEARCH`) | A made-up list | Autoaddress, once its DPA is signed (Q40); `off` types it in |
 | `photo-store.ts` | Homes' photos (`PHOTO_STORE`), cleaned and sized by sharp first (ADR-0023) | A table in this database; photos go through Gaff's server | Supabase Storage (Ireland), a private bucket; browsers send photos straight to it with a signed upload |
-| `document-store.ts` | Chosen renters' work and income documents (`DOCUMENT_STORE`), encrypted with Gaff's key first, never served to a browser (ADR-0029) | A table in this database, reached only as the system; documents go through Gaff's own route | Supabase Storage (Ireland), a private bucket of their own; browsers send documents straight to it with a signed upload |
+| `document-store.ts` | Chosen renters' work and income documents (`DOCUMENT_STORE`), encrypted with Gaff's key first, never served to a browser (ADR-0031) | A table in this database, reached only as the system; documents go through Gaff's own route | Supabase Storage (Ireland), a private bucket of their own; browsers send documents straight to it with a signed upload |
 | `register.ts` | Gaff's weekly copy of the PSRA register (`PSRA_REGISTER_SOURCE`) | A made-up register | The PSRA's download, once its format is checked |
 | `sign-in-providers.ts` | Google and Apple sign-in, for sign-in only (Q30) | `/dev/sign-in` | Google, Apple |
 

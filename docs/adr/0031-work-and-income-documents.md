@@ -1,4 +1,4 @@
-# ADR-0029: Chosen renters show their work and income with documents
+# ADR-0031: Chosen renters show their work and income with documents
 
 - Status: Accepted (BA-16, from the live line's ADR-0026 and P30 to P49; the founder's decisions of 8 November 2026 there, Q49, Q50, Q53, confirmed for the one project on 19 November, Q51)
 - Date: 2026-11-20

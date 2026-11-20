@@ -166,7 +166,18 @@ export async function checkProviderIdentity(
   // mailbox, here and now, instead of sending the person back to start again.
   if (refused !== 'email_not_verified') {
     const name = (user as { name?: unknown }).name;
-    const asked = await askTheMailbox(ctx, provider.data, claims, source.oauth?.profile, name);
+    // If asking fails for any reason, the answer is the one this rule always gave: nobody is
+    // joined, and the sign-in screen says to use a code. Nothing about the person is logged.
+    const asked = await askTheMailbox(
+      ctx,
+      provider.data,
+      claims,
+      source.oauth?.profile,
+      name,
+    ).catch(() => {
+      console.error('The code for a Google or Apple sign-in could not be sent.');
+      return false;
+    });
     if (asked) return { error: CONFIRM_BY_CODE };
   }
   return notJoined(provider.data, refused, newPerson ? null : userId);

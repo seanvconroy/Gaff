@@ -55,7 +55,7 @@ Sean asked for Airbnb's standard: a phone number or an email with a one-time cod
 | UX-SI-14: a number Gaff hasn't seen finds its account | The right code by text signs nobody in for a number nobody has (or one unused for 180 days): "What's your email?" follows, and a code goes to that address carrying the number. Entering it signs in the account that has the address, or makes one, and joins the number. "We've found your account" is shown for an account that was already there, and only after the code. The owner gets a security email | As above |
 | UX-SI-15: Google or Apple that can't vouch for the address | No dead end: a code goes to the address as the provider comes back, and entering it signs the person in and connects the provider in one step. ADR-0019's rule stands: nothing is joined on a provider's say-so | `tests/integration/ux-si-mobile.test.ts`, `tests/e2e/ux-si-sign-in.spec.ts` |
 
-Left open, on purpose (Q61):
+Left open, on purpose. The calls made while building it that are Sean's to make are banked in Q61, as a list:
 
 - **Nothing is texted until Sinch is set up.** On the test copy the field still reads "Email". Sinch's settings, a sender registered for Ireland and a spend cap are on the launch checklist.
 - **A text alone opens any account**, an agent's included. "Confirm it's you" is still a passkey or an email code. Sean to say if people who let homes should need more.

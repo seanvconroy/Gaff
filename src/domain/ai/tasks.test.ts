@@ -13,6 +13,6 @@ describe('P8: each task can be switched off on its own', () => {
   });
 
   it('has the four uses built so far, and nothing that is not built yet', () => {
-    expect([...aiTasks]).toEqual(['answers', 'advert', 'people', 'wording']);
+    expect([...aiTasks]).toEqual(['answers', 'advert', 'people', 'wording', 'description']);
   });
 });

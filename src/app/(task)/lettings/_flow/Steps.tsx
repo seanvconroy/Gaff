@@ -26,7 +26,14 @@ import {
   type UploadResult,
 } from '@/ui/PhotoUploader';
 import { SubmitButton } from '@/ui/SubmitButton';
-import { AddressFields, DescriptionFields, DetailsFields, HomeFields, RentFields } from './fields';
+import {
+  AddressFields,
+  DescriptionFields,
+  type DescriptionDrafting,
+  DetailsFields,
+  HomeFields,
+  RentFields,
+} from './fields';
 import styles from './flow.module.css';
 import { firstAddressHref, screenHref } from '@/domain/lettings/links';
 import { progressFor, StepForm, type StepFrame } from './StepForm';
@@ -226,15 +233,17 @@ export function RentStep({
   );
 }
 
-/** Step 5, "The home". */
+/** Step 5, "The home". Where it's offered, Gaff drafts the description from the facts (P10). */
 export function HomeStep({
   frame,
   action,
   values: start,
+  drafting,
 }: {
   frame: StepFrame;
   action: Action;
   values: Record<string, string>;
+  drafting?: DescriptionDrafting;
 }) {
   return (
     <StepForm
@@ -247,7 +256,7 @@ export function HomeStep({
       {({ errors, values }) => (
         <>
           <HomeFields values={values ?? start} errors={errors} />
-          <DescriptionFields values={values ?? start} errors={errors} />
+          <DescriptionFields values={values ?? start} errors={errors} drafting={drafting} />
         </>
       )}
     </StepForm>
@@ -286,10 +295,12 @@ export function DescriptionStep({
   frame,
   action,
   values: start,
+  drafting,
 }: {
   frame: StepFrame;
   action: Action;
   values: Record<string, string>;
+  drafting?: DescriptionDrafting;
 }) {
   return (
     <StepForm
@@ -300,7 +311,9 @@ export function DescriptionStep({
       title={copy.review.description}
       primary={copy.save}
     >
-      {({ errors, values }) => <DescriptionFields values={values ?? start} errors={errors} />}
+      {({ errors, values }) => (
+        <DescriptionFields values={values ?? start} errors={errors} drafting={drafting} />
+      )}
     </StepForm>
   );
 }

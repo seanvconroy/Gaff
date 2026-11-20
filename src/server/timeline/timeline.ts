@@ -110,6 +110,13 @@ export function describeEvent(
                 ? 'From an enquiry'
                 : undefined,
       };
+    // P10: whether the draft was shown. Never its words, which aren't in the record.
+    case 'letting.description_drafted':
+      return {
+        what: data.accepted
+          ? 'Description drafted by Gaff, for the lister to check'
+          : 'Gaff couldn’t draft a description that kept to the facts',
+      };
     case 'letting.advert_read': {
       const count = (n: unknown, one: string, many: string) =>
         `${Number(n)} ${Number(n) === 1 ? one : many}`;

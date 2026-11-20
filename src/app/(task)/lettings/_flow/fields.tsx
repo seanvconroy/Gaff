@@ -16,6 +16,7 @@ import {
   parkingOptions,
   propertyTypes,
 } from '@/domain/lettings/new-letting';
+import { descriptionDraftFields } from '@/domain/lettings/drafted-description';
 import type { PostalAddress } from '@/ports/address-search';
 import { AddressSearch } from '@/ui/AddressSearch';
 import { Button } from '@/ui/Button';
@@ -23,8 +24,9 @@ import { Chips } from '@/ui/Chips';
 import { Disclosure } from '@/ui/Disclosure';
 import { SelectField, TextArea, TextField } from '@/ui/Field';
 import { OptionRow } from '@/ui/OptionRow';
+import { DraftedByAi } from '@/ui/StatusPill';
 import { DateField } from '@/ui/Pickers';
-import { lookUpAddressAction, suggestAddressesAction } from './actions';
+import { draftDescriptionAction, lookUpAddressAction, suggestAddressesAction } from './actions';
 import styles from './flow.module.css';
 
 const copy = addLettingCopy;
@@ -181,19 +183,115 @@ export function RentFields({
   );
 }
 
-/** The home in the lister's own words. Both are checked for wording about who should apply. */
-export function DescriptionFields({ values, errors }: GroupProps) {
+/**
+ * P10, P11: "Draft a description" is offered for this home. `byAi`: the saved description is
+ * the AI's draft, unchanged.
+ */
+export interface DescriptionDrafting {
+  homeId: string;
+  byAi: boolean;
+}
+
+/**
+ * The description, and where it's offered, "Draft a description" beside it: a quiet action,
+ * never the screen's primary button (P10). The draft goes into the field to be read and
+ * changed; nothing is saved until the lister saves. While the words are the draft's, they
+ * carry "Drafted by AI", and the save hands back Gaff's mark so the server knows (P11).
+ */
+function DescriptionField({
+  values,
+  errors,
+  drafting,
+}: GroupProps & { drafting?: DescriptionDrafting }) {
+  const words = copy.home.drafting;
+  const [text, setText] = useState(values.description ?? '');
+  // The draft Gaff gave, and its mark: from this visit, from a save that came back, or saved.
+  const [draft, setDraft] = useState<{ text: string; mark: string } | null>(() =>
+    values.descriptionMark
+      ? { text: values.description ?? '', mark: values.descriptionMark }
+      : drafting?.byAi && values.description
+        ? { text: values.description, mark: '' }
+        : null,
+  );
+  const [note, setNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const fromAi = draft !== null && draft.text.trim() === text.trim() && text.trim() !== '';
+  // What the draft is, said while the words are still the draft's.
+  const shown = note === words.drafted && !fromAi ? null : note;
+
+  async function draftOne(form: HTMLFormElement | null) {
+    if (!drafting) return;
+    setNote(null);
+    setBusy(true);
+    const data = form ? new FormData(form) : new FormData();
+    const typed = Object.fromEntries(
+      descriptionDraftFields.flatMap((field) => {
+        const value = data.get(field);
+        return typeof value === 'string' ? [[field, value]] : [];
+      }),
+    );
+    try {
+      const result = await draftDescriptionAction(drafting.homeId, typed);
+      if (result.ok) {
+        setText(result.description);
+        setDraft({ text: result.description, mark: result.mark });
+        setNote(words.drafted);
+      } else {
+        setNote(result.message);
+      }
+    } catch {
+      setNote(words.unavailable);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <>
+    <div className={styles.aside}>
       <TextArea
         name="description"
         label={copy.home.description}
         hint={copy.home.descriptionHint}
         optional
-        rows={5}
-        defaultValue={values.description}
+        rows={drafting ? 8 : 5}
+        value={text}
+        onChange={(event) => setText(event.currentTarget.value)}
         error={errors.description}
       />
+      {fromAi && draft?.mark ? (
+        <input type="hidden" name="descriptionMark" value={draft.mark} />
+      ) : null}
+      {drafting ? (
+        <div className={styles.drafting}>
+          {fromAi ? <DraftedByAi /> : null}
+          <Button
+            variant="quiet"
+            disabled={busy}
+            aria-busy={busy || undefined}
+            onClick={(event) => void draftOne(event.currentTarget.form)}
+          >
+            {busy ? words.busy : text.trim() ? words.again : words.draft}
+          </Button>
+        </div>
+      ) : null}
+      {shown ? (
+        <p className={styles.draftNote} role="status">
+          {shown}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/** The home in the lister's own words. Both are checked for wording about who should apply. */
+export function DescriptionFields({
+  values,
+  errors,
+  drafting,
+}: GroupProps & { drafting?: DescriptionDrafting }) {
+  return (
+    <>
+      <DescriptionField values={values} errors={errors} drafting={drafting} />
       <TextArea
         name="otherFacts"
         label={copy.home.facts}

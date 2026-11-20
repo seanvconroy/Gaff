@@ -81,6 +81,21 @@ export interface WordingRequest {
   text: string;
 }
 
+/**
+ * Task `description` (P10, P11): a home's description drafted from its facts and the lister's
+ * own statements, and nothing else: never the rent, the criteria, the street or anyone's name
+ * or contact details (`descriptionFacts` in src/domain/lettings/drafted-description.ts).
+ */
+export interface DescriptionRequest {
+  facts: Fact[];
+}
+
+export interface DescriptionDraft {
+  description: string;
+  /** The facts it used: every one must be in the request. */
+  factIds: string[];
+}
+
 export interface AiProvider {
   readonly name: AiProviderName;
   /** The model every task uses (P2), without Bedrock's prefix. */
@@ -105,4 +120,9 @@ export interface AiProvider {
    * ground, and a finding only ever holds a listing for a person.
    */
   checkWording(request: WordingRequest): Promise<AiReply<unknown>>;
+  /**
+   * A draft, trusted for nothing: `descriptionProblem` (src/domain/lettings/drafted-description.ts)
+   * holds it to the facts and to the wording rules before anyone sees it.
+   */
+  draftDescription(request: DescriptionRequest): Promise<AiReply<DescriptionDraft>>;
 }

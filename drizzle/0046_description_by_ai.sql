@@ -1,0 +1,1 @@
+ALTER TABLE "lettings" ADD COLUMN "description_by_ai" boolean DEFAULT false NOT NULL;

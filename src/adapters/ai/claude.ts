@@ -8,6 +8,7 @@ import { AiCallError, type AiProvider, type AiReply } from '@/ports/ai';
 import type { MessagesClient } from './clients';
 import * as advert from './prompts/advert';
 import * as answers from './prompts/answers';
+import * as description from './prompts/description';
 import * as people from './prompts/people';
 import * as wording from './prompts/wording';
 
@@ -25,6 +26,7 @@ const versions: Record<AiTask, string> = {
   advert: advert.version,
   people: people.version,
   wording: wording.version,
+  description: description.version,
 };
 
 /** Room for adaptive thinking as well as the answer; only what's used is billed. */
@@ -140,6 +142,15 @@ export function claudeProvider(config: {
         schema: wording.schema,
         system: wording.system,
         content: wording.userContent(request),
+      }),
+    draftDescription: (request) =>
+      run({
+        effort: description.effort,
+        timeoutMs: description.timeoutMs,
+        maxRetries: description.maxRetries,
+        schema: description.schema,
+        system: description.system,
+        content: description.userContent(request),
       }),
   };
 }

@@ -15,6 +15,7 @@ import type { LettingDetail } from '@/server/lettings/queries';
 import { Disclosure } from '@/ui/Disclosure';
 import { Notice } from '@/ui/Notice';
 import { Cell, Table } from '@/ui/Table';
+import { DraftedByAi } from '@/ui/StatusPill';
 import { SummaryList } from '@/ui/SummaryList';
 import styles from './letting.module.css';
 import { RentCheckResult } from './RentCheckResult';
@@ -136,6 +137,12 @@ export function HomeView({
         title={copy.description}
         action={change(alone('home', { edit: 'description' }), 'description')}
       >
+        {/* P11: the AI's draft, saved unchanged, says so here, on the lister's side only. */}
+        {letting.description && letting.descriptionByAi ? (
+          <div>
+            <DraftedByAi />
+          </div>
+        ) : null}
         {letting.description ? (
           <p className={styles.description}>{letting.description}</p>
         ) : (

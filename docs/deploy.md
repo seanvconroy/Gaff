@@ -141,7 +141,7 @@ Gaff's AI does four tasks: it answers renters' questions from a letting's facts 
   | --- | --- |
   | `AI_MODEL` | `claude-opus-5-5` unless set. Bedrock adds its `anthropic.` prefix itself. Change it only once that task's evals pass on the new model |
   | `AI_MONTHLY_BUDGET_USD` | the month's AI spend, in US dollars, `100` unless set. At 80%, everyone on `STAFF_EMAILS` gets one email. At 100%, the AI pauses until the 1st of next month, or until you raise this and redeploy |
-  | `AI_TASKS_OFF` | tasks to switch off without a code change, separated by commas: `answers`, `advert`, `people`, `wording`, or `all`. Empty unless set. Change it in Vercel and redeploy |
+  | `AI_TASKS_OFF` | tasks to switch off without a code change, separated by commas: `answers`, `advert`, `people`, `wording`, `description`, or `all`. Empty unless set. Change it in Vercel and redeploy |
 
 - **Every call is logged** in the `ai_calls` table: its task, model, prompt version, tokens, estimated cost, time and outcome, never its words. Only Gaff's own jobs read it. The nightly job deletes rows over 12 months old. In Supabase's **SQL Editor**, `select task, outcome, count(*), sum(cost_micros) / 1e6 as dollars from ai_calls where occurred_at >= date_trunc('month', now()) group by 1, 2` shows the month so far.
 - **Before changing a prompt or the model,** run its golden set against the real model: `pnpm evals` prints what it would cost, and `pnpm evals advert --confirm` (or `answers`, `people`) runs it and saves the results under `tests/evals/results/`. Commit them with the change. Evals never run in CI. The `wording` set has not been run against the real model yet: run `pnpm evals wording --confirm` on the test copy before relying on it.

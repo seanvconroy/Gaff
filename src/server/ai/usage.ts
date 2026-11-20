@@ -117,6 +117,18 @@ async function warnGaffsTeam(now: Date, spentMicros: number, budgetUsd: number):
 }
 
 /**
+ * P4, P8: whether a task can run at all just now: it isn't switched off, and (for a paid
+ * provider) the month's budget isn't spent. A screen asks this before offering an action that
+ * only the AI can do, so it never offers one that can't work.
+ */
+export async function aiTaskIsOffered(task: AiTask, now: Date = new Date()): Promise<boolean> {
+  const config = env();
+  if (isSwitchedOff(task, config.AI_TASKS_OFF)) return false;
+  if (aiProvider().name === 'fake') return true;
+  return budgetState(await monthSpendMicros(now), config.AI_MONTHLY_BUDGET_USD) !== 'spent';
+}
+
+/**
  * Runs one AI task. `ai` is the configured provider; a test or a caller that was handed one may
  * pass its own. The result is the task's output, or an outcome that says why there is none.
  */

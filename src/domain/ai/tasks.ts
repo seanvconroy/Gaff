@@ -11,11 +11,13 @@
  *     home's description that may exclude people on a protected ground. A finding only holds
  *     the listing for a person on Gaff's team. Without a reading, the word list alone has
  *     checked the words, and the home goes ahead.
+ *   - `description`: a home's description drafted from its facts (P10, P11). Without a draft
+ *     that passes the checks, the lister writes their own.
  *
- * Not built here, and added to this list when they are: drafting a home's description (the
- * live line's P10, P11), and reading documents (P30 on).
+ * Not built here, and added to this list when it is: reading documents (the live line's P30
+ * on).
  */
-export const aiTasks = ['answers', 'advert', 'people', 'wording'] as const;
+export const aiTasks = ['answers', 'advert', 'people', 'wording', 'description'] as const;
 export type AiTask = (typeof aiTasks)[number];
 
 export const aiOutcomes = [

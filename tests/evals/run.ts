@@ -19,12 +19,19 @@ import type { AiTask } from '@/domain/ai/tasks';
 import type { AiReply } from '@/ports/ai';
 import * as advert from './advert';
 import * as answers from './answers';
+import * as description from './description';
 import * as people from './people';
 import * as wording from './wording';
 
 if (existsSync('.env')) process.loadEnvFile('.env');
 
-const tasks = ['answers', 'advert', 'people', 'wording'] as const satisfies readonly AiTask[];
+const tasks = [
+  'answers',
+  'advert',
+  'people',
+  'wording',
+  'description',
+] as const satisfies readonly AiTask[];
 type Task = (typeof tasks)[number];
 
 /** A rough guess: four characters a token, and about 1,500 tokens out per call with thinking. */
@@ -152,11 +159,34 @@ async function runWording(confirm: boolean): Promise<Outcome | null> {
   return outcome('wording', usage, wording.summarise(results), results);
 }
 
+async function runDescription(confirm: boolean): Promise<Outcome | null> {
+  const ai = aiProvider();
+  const chars = description.homes.reduce((n, home) => n + JSON.stringify(home.facts).length, 0);
+  console.log(
+    `description: ${description.homes.length} calls, about ${formatUsd(estimateMicros(chars, description.homes.length))}, on ${ai.name} (${ai.model}).`,
+  );
+  if (!confirm) return null;
+  const usage = new Usage();
+  const results: Array<{ home: string; passed: boolean; problem: string | null; text: unknown }> =
+    [];
+  for (const home of description.homes) {
+    const reply = usage.add(await ai.draftDescription({ facts: home.facts }));
+    if (reply.refused) console.log(`  ${home.name}: refused`);
+    results.push({
+      home: home.name,
+      ...description.grade(home.facts, reply.output),
+      text: reply.output?.description ?? null,
+    });
+  }
+  return outcome('description', usage, description.summarise(results), results);
+}
+
 const runners: Record<Task, (confirm: boolean) => Promise<Outcome | null>> = {
   answers: runAnswers,
   advert: runAdvert,
   people: runPeople,
   wording: runWording,
+  description: runDescription,
 };
 
 async function main() {

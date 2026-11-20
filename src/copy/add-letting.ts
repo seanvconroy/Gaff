@@ -76,6 +76,18 @@ export const addLettingCopy = {
     parking: 'Parking',
     description: 'About this home',
     descriptionHint: 'In your own words. Describe the home, not who should live in it.',
+    /** P10, P11: "Draft a description", a quiet action beside the field. */
+    drafting: {
+      draft: 'Draft a description',
+      again: 'Draft a new description',
+      busy: 'Drafting…',
+      drafted:
+        'Drafted by AI from the facts you’ve given. Read it through and change anything that isn’t right. Renters see it only once you save.',
+      needs_facts:
+        'Choose the type of home or the bedrooms first, and Gaff can draft a description from them.',
+      unavailable:
+        'Gaff couldn’t draft a description just now. Write your own, or try again in a few minutes.',
+    },
     facts: 'Anything else renters often ask?',
     factsHint: 'One fact on each line, like “Gas central heating”.',
   },

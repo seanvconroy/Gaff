@@ -59,7 +59,7 @@
   text-anchor: middle;
 }
 
-/* The pin: ink, with its tip on the point. */
+/* The pin: ink, with its tip on the point. With focus it wears the ring every control wears. */
 .pin {
   cursor: grab;
 }
@@ -79,15 +79,6 @@
 .hitArea {
   fill: transparent;
   stroke: none;
-}
-
-.pin:focus {
-  outline: none;
-}
-
-.pin:focus-visible path {
-  stroke: var(--color-focus);
-  stroke-width: 4;
 }
 
 .homePin {

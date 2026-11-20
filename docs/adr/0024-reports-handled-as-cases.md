@@ -1,4 +1,4 @@
-# ADR-0021: Reports handled as cases, with a statement of reasons and one appeal
+# ADR-0024: Reports handled as cases, with a statement of reasons and one appeal
 
 - Status: Accepted (brought across from the live line's ADR-0023 and M96 to M98, M106 on 19 November 2026; Q53)
 - Date: 2026-11-19

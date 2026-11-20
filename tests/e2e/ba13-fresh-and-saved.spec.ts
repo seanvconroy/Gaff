@@ -53,32 +53,29 @@ async function atBothWidths(page: Page, name: string): Promise<void> {
 }
 
 /** The sweep asked about this home now, as it does after 14 days with no change. */
-async function theSweepAsks(lettingId: string, organisationId: string): Promise<void> {
+async function theSweepAsks(lettingId: string, organisationId: string): Promise<string> {
   const askedAt = new Date().toISOString();
   await asSystem('update lettings set freshness_asked_at = $2 where id = $1', [lettingId, askedAt]);
   await asSystem(`select graphile_worker.add_job('send_account_email', $1::json)`, [
     JSON.stringify({ kind: 'still_available', organisationId, lettingId, askedAt }),
   ]);
+  return askedAt;
 }
 
-async function stillAvailableEmail(to: string) {
-  await expect
-    .poll(
-      async () =>
-        (
-          await asSystem<{ subject: string }>(
-            'select subject from dev_outbox where to_address = $1',
-            [to],
-          )
-        ).map((row) => row.subject),
-      { timeout: 30_000 },
-    )
-    .toContainEqual(expect.stringMatching(/still available\?$/));
-  const [mail] = await asSystem<{ html: string; text: string }>(
-    `select html, text from dev_outbox where to_address = $1 and subject like 'Is %still available?'
-     order by created_at desc limit 1`,
-    [to],
-  );
+/**
+ * The email for one ask. Each ask sends one, by a job, and only while it is still the latest
+ * ask: so an email made at or after an ask is that ask's, and an earlier one's link is dead.
+ */
+async function stillAvailableEmail(to: string, askedAt: string) {
+  const forThisAsk = () =>
+    asSystem<{ html: string; text: string }>(
+      `select html, text from dev_outbox
+       where to_address = $1 and subject like 'Is %still available?' and created_at >= $2::timestamptz
+       order by created_at desc limit 1`,
+      [to, askedAt],
+    );
+  await expect.poll(async () => (await forThisAsk()).length, { timeout: 30_000 }).toBe(1);
+  const [mail] = await forThisAsk();
   return mail!;
 }
 
@@ -144,7 +141,7 @@ test('M49, M92: a stale home asks its lister on Today, steps back unanswered, an
   await expect(page.getByRole('link', { name: /Say if it’s still available/ })).toHaveCount(0);
 
   // Asked again, unanswered for three days: it steps back, and the letting says why.
-  await theSweepAsks(lettingId, row!.organisationId);
+  const askedAgainAt = await theSweepAsks(lettingId, row!.organisationId);
   await asSystem('update lettings set stale_at = now() where id = $1', [lettingId]);
   const visitor = await browser.newContext({ viewport: phone, locale: 'en-IE' });
   const renter = await visitor.newPage();
@@ -157,7 +154,7 @@ test('M49, M92: a stale home asks its lister on Today, steps back unanswered, an
   await atBothWidths(page, 'letting-stepped-back');
 
   // The email's link, with no sign-in: it asks first, then puts the home back.
-  const mail = await stillAvailableEmail(email);
+  const mail = await stillAvailableEmail(email, askedAgainAt);
   await emailAsPage(browser, mail.html, 'email-still-available');
   const link = /https?:\/\/\S+\/still-available\/[0-9a-f-]{36}\/[A-Za-z0-9_-]{43}/.exec(
     mail.text,

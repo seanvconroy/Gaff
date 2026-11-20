@@ -28,6 +28,15 @@ const schema = z
       .optional(),
     INBOUND_DOMAIN: z.string().min(3).default('in.gaff.test'),
     MAIL_FROM_DOMAIN: z.string().min(3).default('mail.gaff.test'),
+    /**
+     * Interim: send every email from this one address instead of `<mailbox>@MAIL_FROM_DOMAIN`,
+     * e.g. Resend's test sender `onboarding@resend.dev`. Display names and reply-to addresses
+     * stay the same. Leave unset once Gaff's own sending domain is verified.
+     */
+    MAIL_FROM_ADDRESS: z
+      .union([z.string().email(), z.literal('')])
+      .optional()
+      .transform((v) => v || undefined),
     /** Resend (ADR-0014): sending, and the signing secret of the email.received webhook. */
     RESEND_API_KEY: z.string().optional(),
     RESEND_WEBHOOK_SECRET: z.string().optional(),

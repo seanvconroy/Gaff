@@ -116,6 +116,7 @@ Before the first real renter (see [launch-checklist.md](launch-checklist.md)):
   | `RESEND_WEBHOOK_SECRET` | from Resend |
   | `INBOUND_DOMAIN` | e.g. `in.gaff.ie` |
   | `MAIL_FROM_DOMAIN` | e.g. `mail.gaff.ie` |
+  | `MAIL_FROM_ADDRESS` | leave unset. Only for testing before a domain is verified: `onboarding@resend.dev` sends everything from Resend's test address, which delivers only to the Resend account owner's inbox. |
   | SMS | the Sinch settings |
   | AI | the Bedrock settings and AWS keys |
   | `IDENTITY_PROVIDER`, `INCOME_PROVIDER` | `none` |

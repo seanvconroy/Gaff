@@ -138,6 +138,8 @@ The core objects follow the PRD's data model. Every tenant table carries `organi
 | `viewing_sessions` | A run of viewing times added in one go on the calendar | No |
 | `waiting_enquiries`, `waitlist_offers` | An ask to view not yet confirmed from its email (dropped after 24 hours), and places offered from a waiting list | Yes, until confirmed or dropped |
 | `listing_reports` | A report of a listing: the home, the reason tapped, an optional note. Nothing about who reported | No |
+| `listing_cases` (kind `hold`) | A listing the checks held as it went public (ADR-0025): its risk signals as codes, and for the AI's wording check each phrase and its ground as a code. Gaff's own record, reached only by `withSystem()` | No |
+| `lister_pauses` | A lister's listings paused by Gaff's team after a decided case (M107): the reason, the fixed facts, who and when, one appeal. Gaff's own record; the lister's side is `organisations.listings_paused_at` | No |
 | `one_time_codes`, `confirmations`, `passkeys`, `accounts`, `verifications` | Sign-in by email code, passkey, Google or Apple (ADR-0015), and "Confirm it's you" before a sensitive change | The person's own |
 | `places` | Gaff's own place index (ADR-0018): every county, town, village, area, Dublin district, townland, street and landmark in the Republic, built from OpenStreetMap around a curated base and loaded on deploy. Reference data, with no organisation and no person | No |
 | `place_misses` | What renters typed under "Where" that found no place, counted by day, with no digits, person or device; deleted after 30 days (M124) | No |
@@ -239,7 +241,8 @@ Background tasks wait in graphile-worker's queue in Postgres (`src/jobs/tasks.ts
 | `saved_search_alerts`, `send_saved_search_email` | Daily at 08:00 UTC, and per alert | Tells people who saved a search about new homes |
 | `psra_register_refresh` | Weekly | Refreshes Gaff's copy of the PSRA register; a lapsed licence holds go-live |
 | `send_account_email` | Sign-in codes, invitations | Sends account emails |
-| `retention_sweep` | Daily (02:30 UTC) | Deletes personal data on its date (rule 9); renters' profiles unused for two years; a let home's page 30 days after it was let; reports six months after they're answered; unconfirmed asks to view; saved searches held by an email alone; the AI's usage log (`ai_calls`) after 12 months; and the anonymous record after `RETENTION_RECORD_MONTHS` |
+| `check_listing` | A public home's words, photos or rent changed, or it went back on gaff.ie (ADR-0025) | Runs the checks again on what changed; holds it for a person on a risk signal |
+| `retention_sweep` | Daily (02:30 UTC) | Deletes personal data on its date (rule 9); renters' profiles unused for two years; a let home's page 30 days after it was let; reports and held listings' cases six months after they're decided; a lister's ended pause six months after it ended; unconfirmed asks to view; saved searches held by an email alone; the AI's usage log (`ai_calls`) after 12 months; and the anonymous record after `RETENTION_RECORD_MONTHS` |
 
 ## Two flows in detail
 

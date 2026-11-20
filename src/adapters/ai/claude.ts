@@ -8,6 +8,7 @@ import { AiCallError, type AiProvider, type AiReply } from '@/ports/ai';
 import type { MessagesClient } from './clients';
 import * as advert from './prompts/advert';
 import * as answers from './prompts/answers';
+import * as description from './prompts/description';
 import * as people from './prompts/people';
 
 /**
@@ -23,6 +24,7 @@ const versions: Record<AiTask, string> = {
   answers: answers.version,
   advert: advert.version,
   people: people.version,
+  description: description.version,
 };
 
 /** Room for adaptive thinking as well as the answer; only what's used is billed. */
@@ -130,5 +132,14 @@ export function claudeProvider(config: {
       });
       return { ...reply, output: reply.output === null ? null : people.withoutNulls(reply.output) };
     },
+    draftDescription: (request) =>
+      run({
+        effort: description.effort,
+        timeoutMs: description.timeoutMs,
+        maxRetries: description.maxRetries,
+        schema: description.schema,
+        system: description.system,
+        content: description.userContent(request),
+      }),
   };
 }

@@ -48,6 +48,11 @@ function paidAi(reply: Partial<Awaited<ReturnType<AiProvider['draftAnswers']>>> 
       model: 'claude-opus-5-5',
       usage: tokens,
     })),
+    draftDescription: vi.fn(async (input: Parameters<AiProvider['draftDescription']>[0]) => ({
+      ...(await fakeAi.draftDescription(input)),
+      model: 'claude-opus-5-5',
+      usage: tokens,
+    })),
   } satisfies AiProvider;
 }
 

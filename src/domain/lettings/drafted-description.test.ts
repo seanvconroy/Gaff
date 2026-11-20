@@ -101,7 +101,7 @@ describe('P10: what the model is given', () => {
     description: 'The lister’s own words',
     otherFacts: ['Gas central heating', 'Ring Aoife Byrne on 087 123 4567 to view'],
     daftUrl: 'https://www.daft.ie/for-rent/1',
-    criteria: { noPets: true, maxOccupants: 3, minStayMonths: 12 },
+    criteria: { noPets: true, maxOccupants: 3, minStayMonths: 12 as const },
     noSmokingIndoors: true,
   };
   const now = new Date('2026-11-20T12:00:00Z');

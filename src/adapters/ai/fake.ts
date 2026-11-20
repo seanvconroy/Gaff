@@ -44,6 +44,8 @@ const reply = <T>(output: T): AiReply<T> => ({
  * - `people`: plain code has already read everything it can (src/domain/fit/ask.ts), so the
  *   stand-in understands nothing more: whatever plain code couldn't read is declined, in the
  *   fixed words, exactly as with the model off.
+ * - `description`: it joins the facts it was given into sentences, so it can't add anything
+ *   they don't say, and cites every one.
  */
 export const fakeAi: AiProvider = {
   name: 'fake',
@@ -65,6 +67,17 @@ export const fakeAi: AiProvider = {
   },
   async readPeopleQuestion() {
     return reply<unknown>({ filter: null });
+  },
+  async draftDescription({ facts }) {
+    const sentences = facts.map((fact) => `${fact.text.trim().replace(/[.\s]+$/, '')}.`);
+    return reply({
+      description: [
+        'This home is described from the facts entered for it.',
+        ...sentences,
+        'Everything here comes from those facts, and nothing has been added to them.',
+      ].join(' '),
+      factIds: facts.map((fact) => fact.id),
+    });
   },
 };
 

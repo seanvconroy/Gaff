@@ -281,5 +281,7 @@ Left open, on purpose:
 
 ## Known issues
 
+- **One journey fails on the default branch, and did before sign-in was touched:** `ui-components.spec.ts`, UX-DS-20, on the focus ring of the home's pin on the component page (an ink ring where the brand colour is wanted). Found on 20 November 2026 while building Q60; not fixed there.
+
 - **Interim sender:** the test copy can send everything from Resend's test address (`MAIL_FROM_ADDRESS=onboarding@resend.dev`). Resend delivers that only to the Resend account owner's inbox, so renters, landlords and other members get nothing until Gaff's own sending domain is verified and the setting is removed.
 - **Dark theme:** new in A4. It passes WCAG AA for every pair the screens use, and the dashboard, a letting, Approvals and the booking screen have been checked in it, but the founders haven't reviewed it yet. (A4 fixed the old dark-theme problem with text on `forest`: text on `navy` now uses `nav-ink`, 9.01:1.)

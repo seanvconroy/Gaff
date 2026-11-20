@@ -1,4 +1,4 @@
-# ADR-0027: Search answered by the database, more of a home's facts, and enquiries that close
+# ADR-0030: Search answered by the database, more of a home's facts, and enquiries that close
 
 - Status: Accepted (brought across from the live line's M39, M40, M44, M52, M58, M59, M61, M116 and M122 on 20 November 2026; Q51)
 - Date: 2026-11-20

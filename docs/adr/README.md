@@ -32,6 +32,7 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0026](0026-fresh-listings-and-instant-alerts.md) | Fresh listings (asked after 14 days, stepping back 3 days after an unanswered ask), alerts as soon as a home is listed or daily at 8am, what changed on a saved home, a home's numbers, and a limit on asking to view | Accepted (M49, M82, M85, M86, M87, M92) |
 | [0027](0027-checks-at-going-public.md) | Checks as a home goes public: contact details refused at the field, risk signals and the AI's wording check hold it for a person as a case; pausing a lister | Accepted (M29, M45, M48, M107, P12 to P14) |
 | [0028](0028-drafted-descriptions.md) | A home's description drafted from its facts and the lister's statements only (the `description` AI task), shown only if it keeps to them and passes the wording check, and marked "Drafted by AI" for the lister until its words change | Accepted |
+| [0029](0029-work-and-income-documents.md) | Chosen renters show work and income with the documents letters already ask for, read by the `document` AI task and checked at once; their own copy in a zone no operator's path reaches, other income shared only as a reading of "regular income", every copy deleted on its date | Accepted |
 
 ## Template
 

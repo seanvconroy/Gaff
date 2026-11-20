@@ -91,10 +91,13 @@ export function googleMapsBuild(source: Record<string, string | undefined>): boo
 /**
  * M43 (ADR-0023): where browsers send photos straight to the photo store, its origin, so the
  * page may reach it (connect-src) and nothing else. Only Supabase Storage takes them; with the
- * local store, photos go through Gaff's own server and the policy stays 'self'.
+ * local store, photos go through Gaff's own server and the policy stays 'self'. BA-16 (P36): a
+ * chosen renter's documents go straight to their own private bucket in the same project when
+ * DOCUMENT_STORE is "supabase", so the same origin is named for them.
  */
 export function photoUploadOrigin(source: Record<string, string | undefined>): string | null {
-  if (source.PHOTO_STORE !== 'supabase' || !source.SUPABASE_URL) return null;
+  const direct = source.PHOTO_STORE === 'supabase' || source.DOCUMENT_STORE === 'supabase';
+  if (!direct || !source.SUPABASE_URL) return null;
   try {
     return new URL(source.SUPABASE_URL).origin;
   } catch {

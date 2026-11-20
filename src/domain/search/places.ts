@@ -212,10 +212,10 @@ function addressWords(home: HomeAddress): string[] {
 }
 
 /**
- * BA-14: a home's address as search reads it, one word after another: what the database keeps
- * in `lettings.address_words` (the SQL function `gaff_address_words`, ADR-0027), so a
- * search can match places in SQL. A test holds the two to the same words for generated
- * addresses. This is the rule; the SQL is its twin.
+ * BA-14: a home's address as search reads it, one word after another. The database reads an
+ * address the same way (the SQL function `gaff_address_words`, ADR-0027), so a search can match
+ * places in SQL; a test holds the two to the same words for generated addresses. This is the
+ * rule; the SQL is its twin.
  */
 export function addressWordsOf(home: Pick<HomeAddress, 'addressLine1' | 'addressLine2' | 'area'>) {
   return [home.addressLine1, home.addressLine2 ?? '', home.area]

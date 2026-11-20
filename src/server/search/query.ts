@@ -24,7 +24,7 @@ import type { HomeOnGaff } from './homes';
  * The rules are the domain's, unchanged, and these are their SQL twins:
  * - which homes are public: the public query's own conditions (`onGaff`, `openToEnquiries`);
  * - where a home is: `placeHasHome`, through `placePlan` (src/domain/search/places.ts), against
- *   the address as search reads it (`lettings.address_words`, kept by `gaff_address_words`) and
+ *   the address as search reads it (`gaff_address_words`, the SQL twin of `addressWordsOf`) and
  *   the point renters see (`publicPoint`, here as SQL);
  * - what it misses: `missesOf` (src/domain/search/match.ts), in the same order;
  * - the order: what fits first, then what misses one point, each newest first.
@@ -72,7 +72,7 @@ function publicRows() {
       ${lettings.area} as area,
       ${lettings.county} as county,
       ${lettings.eircode} as eircode,
-      coalesce(${lettings.addressWords}, '') as words,
+      gaff_address_words(${lettings.addressLine1}, ${lettings.addressLine2}, ${lettings.area}) as words,
       ${routingKey} as routing_key,
       ${publicLat} as lat,
       ${publicLng} as lng,

@@ -133,13 +133,18 @@ export function readAdvertByPattern(text: string, today: string): AdvertReading 
       add('floor', 0, line);
     else {
       const floor = /\b(\d{1,2})(?:st|nd|rd|th) floor\b/i.exec(line);
+      const said =
+        /\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth) floor\b/i.exec(line);
+      const ordinals = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh'];
+      const words = [...ordinals, 'eighth', 'ninth', 'tenth'];
       if (floor) add('floor', Number(floor[1]), line);
+      else if (said) add('floor', words.indexOf(said[1]!.toLowerCase()) + 1, line);
     }
     if (/\bno lift\b/i.test(line)) add('lift', 'no', line);
     else if (/\b(lift|elevator)\b/i.test(line)) add('lift', 'yes', line);
     if (/\bheat pump\b/i.test(line)) add('heating', 'heat_pump', line);
-    else if (/\bgas (central )?heating\b/i.test(line)) add('heating', 'gas', line);
-    else if (/\boil (central |fired )?heating\b/i.test(line)) add('heating', 'oil', line);
+    else if (/\bgas (fired )?(central )?heating\b/i.test(line)) add('heating', 'gas', line);
+    else if (/\boil (fired )?(central )?heating\b/i.test(line)) add('heating', 'oil', line);
     else if (/\bdistrict heating\b/i.test(line)) add('heating', 'district', line);
     else if (/\b(electric (storage )?heating|storage heaters?)\b/i.test(line)) {
       add('heating', 'electric', line);

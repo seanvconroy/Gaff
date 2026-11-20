@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { type Tx, withSystem } from '@/db/client';
 import { lettingPhotos, lettings } from '@/db/schema';
@@ -229,7 +229,7 @@ async function makeHomes(tx: Tx, made: readonly Made[]): Promise<Set<string>> {
 }
 
 describe('M58, M59, M61: search answered by the database', () => {
-  it('BA-14: the address search reads is the same in Postgres as in Gaff’s own rule', async () => {
+  it('BA-14: an address reads the same in Postgres (`gaff_address_words`) as in Gaff’s own rule', async () => {
     const agency = await createTestMember();
     const landlord = await createTestMember({ kind: 'private_landlord' });
     const r = random(14);
@@ -241,7 +241,7 @@ describe('M58, M59, M61: search answered by the database', () => {
       return tx
         .select({
           ref: lettings.publicRef,
-          words: lettings.addressWords,
+          words: sql<string>`gaff_address_words(${lettings.addressLine1}, ${lettings.addressLine2}, ${lettings.area})`,
           line1: lettings.addressLine1,
           line2: lettings.addressLine2,
           area: lettings.area,

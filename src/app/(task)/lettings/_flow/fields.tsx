@@ -302,9 +302,13 @@ function floorOptions(chosen: string) {
  * Facts about the home and its building only; none of them is a search filter.
  */
 function MoreFields({ values, errors }: GroupProps) {
-  const said = moreFactKeys.some((key) => values[key]) || moreFactKeys.some((key) => errors[key]);
+  const problem = moreFactKeys.some((key) => errors[key]);
+  // Open when something is said or needs a fix, and it stays open once it is: fixing a field
+  // never closes the panel it's in.
+  const [open, setOpen] = useState(() => problem || moreFactKeys.some((key) => values[key]));
+  if (problem && !open) setOpen(true);
   return (
-    <Disclosure summary={copy.home.more} open={said}>
+    <Disclosure summary={copy.home.more} open={open}>
       <div className={styles.fields}>
         <Chips
           name="ensuites"

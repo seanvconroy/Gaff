@@ -1,12 +1,13 @@
 -- BA-14: a home's address as search reads it, so a search can match places in SQL. The twin of
 -- `normalise` (src/domain/places/normalise.ts) and `addressWordsOf` (src/domain/search/places.ts):
--- a test holds them to the same words. Immutable, so Postgres keeps the column itself.
+-- a test holds them to the same words. Search reads it from the address as it is, so there is
+-- nothing kept that could go stale.
 CREATE FUNCTION gaff_normalise(value text) RETURNS text
 LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
   SELECT btrim(regexp_replace(
     replace(
       regexp_replace(
-        lower(regexp_replace(normalize(coalesce(value, ''), NFD), '[̀-ͯ]', '', 'g')),
+        lower(regexp_replace(normalize(coalesce(value, ''), NFD), '[\u0300-\u036f]', '', 'g')),
         '[''’‘`]', '', 'g'),
       '&', ' and '),
     '[^abcdefghijklmnopqrstuvwxyz0123456789]+', ' ', 'g'))
@@ -70,6 +71,5 @@ BEGIN
 END;
 $$;
 --> statement-breakpoint
-ALTER TABLE "lettings" ADD COLUMN "address_words" text GENERATED ALWAYS AS (gaff_address_words("address_line1", "address_line2", "area")) STORED;--> statement-breakpoint
 ALTER TABLE "lettings" ADD COLUMN "more_facts" jsonb;--> statement-breakpoint
 ALTER TABLE "lettings" ADD COLUMN "enquiries_close_at" timestamp with time zone;

@@ -10,7 +10,7 @@ The redesign read every public home into memory and matched it in Gaff's own cod
 ## Decision
 
 - **Search in SQL.** One query (`searchOnGaff`, `src/server/search/query.ts`) finds a search's homes with what each misses, over the public homes as the public query defines them (`onGaff`, `openToEnquiries`), and a second reads the cover photo of the homes found. Its rules are the domain's, as SQL twins:
-  - where a home is: `placePlan` turns the search's place into plain values (a county, a district's routing key, the names an address writes it by, a centre or a street's line and a distance), matched against `lettings.address_words` and the point renters see (`publicPoint`, the 150 m snap for a private landlord done in SQL). `address_words` is a generated column kept by `gaff_address_words`, the SQL twin of `addressWordsOf`, so there is nothing for a write path to forget;
+  - where a home is: `placePlan` turns the search's place into plain values (a county, a district's routing key, the names an address writes it by, a centre or a street's line and a distance), matched against the address as search reads it (`gaff_address_words`, an immutable SQL function, the twin of `addressWordsOf`, read from the address lines as they are, so nothing is kept that could go stale) and the point renters see (`publicPoint`, the 150 m snap for a private landlord done in SQL);
   - what a home misses: `missesOf`, point by point, in its order; at most one miss is "Close to what you asked";
   - the order: fits first, then close, each newest first, then by reference.
   The map's pins (`fitsOnly`), the counts beside places and on place pages (`countHomesIn`: one grouped query for any number of areas), the sitemap and similar homes (`similarCandidates`, `isLike` in SQL) read through the same rows. No PostGIS: haversine and the flat projection of `distanceToLineMetres` in plain SQL.
@@ -27,5 +27,5 @@ The redesign read every public home into memory and matched it in Gaff's own cod
 ## Alternatives considered
 
 - **Narrowing in SQL, then matching in memory (the live line's way).** It still reads every candidate in a county; the one-miss group needs the miss count anyway, which SQL gives directly.
-- **A column of address words kept by each write path.** Every place an address changes would need to remember it; a generated column can't be forgotten.
+- **A stored column of address words.** A write path could forget it, and a generated text column is one more free-text column on a letting (`tests/compliance/fit.test.ts` allows none); reading the function per row is fast enough at several thousand homes, and an expression index can come later.
 - **PostGIS.** A new extension on the database for two distance formulas Gaff already has.

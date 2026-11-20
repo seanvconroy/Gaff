@@ -1,5 +1,5 @@
 {
-  "id": "a35aaf9d-98ba-4441-9cb6-7457c24dc0b1",
+  "id": "f07a42e7-5881-457f-b871-cb2171fe917d",
   "prevId": "bf49d208-aef0-4350-b72c-b32f1ea4232c",
   "version": "7",
   "dialect": "postgresql",
@@ -3604,16 +3604,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "address_words": {
-          "name": "address_words",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "generated": {
-            "as": "gaff_address_words(\"address_line1\", \"address_line2\", \"area\")",
-            "type": "stored"
-          }
         },
         "latitude": {
           "name": "latitude",

@@ -44,12 +44,15 @@ describe('UX-LT-2: what an advert says is read into the home', () => {
 
   it('keeps other facts and the description in the lister’s own words', async () => {
     const { answers, text, reading } = await read(RANELAGH_ADVERT);
-    expect(answers.otherFacts).toEqual(['Gas fired central heating']);
+    // M39 (BA-14): the heating and the floor have fields of their own now, read from the same
+    // words; nothing else in this advert is a fact in the lister's own words.
+    expect(answers).toMatchObject({ heating: 'gas', floor: 1 });
+    expect(answers.otherFacts).toBeUndefined();
     expect(answers.description).toBe(
       'Bright two-bed apartment on the first floor, five minutes from the Luas.',
     );
     expect(text).toContain(answers.description);
-    expect(reading.ownWords).toEqual(['description', 'otherFacts']);
+    expect(reading.ownWords).toEqual(['description']);
   });
 
   it('hands back a reading of the strict shape, every time', async () => {

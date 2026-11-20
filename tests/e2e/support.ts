@@ -124,9 +124,11 @@ export async function expectFocusRings(page: Page): Promise<string[]> {
       // took it, say), and every stop after it would go unchecked.
       await page.keyboard.press('Tab');
       const next = await page.evaluate(() => {
-        const el = document.activeElement;
+        const el = document.activeElement as HTMLElement | null;
         if (!el || el === document.body) return null;
         const at = el.getBoundingClientRect();
+        // Focus goes back to the page, where it was: nothing is left showing only for this look.
+        el.blur();
         return `${el.outerHTML.slice(0, 120)}@${Math.round(at.left)},${Math.round(at.top + scrollY)}`;
       });
       if (next && !seen.has(next)) problems.push(`focus was lost after: ${names.at(-1)}`);

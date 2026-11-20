@@ -20,6 +20,7 @@ import type { AiReply } from '@/ports/ai';
 import * as advert from './advert';
 import * as answers from './answers';
 import * as description from './description';
+import * as document from './document';
 import * as people from './people';
 import * as wording from './wording';
 
@@ -31,6 +32,7 @@ const tasks = [
   'people',
   'wording',
   'description',
+  'document',
 ] as const satisfies readonly AiTask[];
 type Task = (typeof tasks)[number];
 
@@ -181,12 +183,39 @@ async function runDescription(confirm: boolean): Promise<Outcome | null> {
   return outcome('description', usage, description.summarise(results), results);
 }
 
+/**
+ * BA-16 (P37): each made-up document goes to the model as the product sends it: the file, the
+ * kind said and the date. A page is about 1,600 input tokens as an image or PDF page.
+ */
+async function runDocument(confirm: boolean): Promise<Outcome | null> {
+  const ai = aiProvider();
+  console.log(
+    `document: ${document.cases.length} calls, about ${formatUsd(estimateMicros(document.cases.length * 1600 * 4, document.cases.length))}, on ${ai.name} (${ai.model}).`,
+  );
+  if (!confirm) return null;
+  const usage = new Usage();
+  const results = [];
+  for (const item of document.cases) {
+    const reply = usage.add(
+      await ai.readDocument({
+        file: { mediaType: 'application/pdf', base64: item.bytes.toString('base64') },
+        saidKind: item.saidKind,
+        today: document.TODAY,
+      }),
+    );
+    if (reply.refused) console.log(`  ${item.name}: refused`);
+    results.push(document.grade(item, reply.output));
+  }
+  return outcome('document', usage, document.summarise(results), results);
+}
+
 const runners: Record<Task, (confirm: boolean) => Promise<Outcome | null>> = {
   answers: runAnswers,
   advert: runAdvert,
   people: runPeople,
   wording: runWording,
   description: runDescription,
+  document: runDocument,
 };
 
 async function main() {

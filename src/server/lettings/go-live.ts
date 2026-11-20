@@ -25,6 +25,7 @@ import { setListerPhoneIn } from '@/server/organisations/phone';
 import { recordEvent } from '@/server/record/events';
 import { type LettingDetail, lettingDetailIn } from './queries';
 import { assertMayActOn } from '@/server/team/permissions';
+import { checkListing, queueListingCheck } from '@/server/trust/checks';
 
 const gateColumns = {
   name: organisations.name,
@@ -33,6 +34,7 @@ const gateColumns = {
   confirmedAt: organisations.confirmedAt,
   licenceLapsedAt: organisations.licenceLapsedAt,
   identityVerifiedAt: organisations.identityVerifiedAt,
+  listingsPausedAt: organisations.listingsPausedAt,
   phone: organisations.phone,
 };
 
@@ -123,6 +125,7 @@ export async function startTakingEnquiries(
   lettingId: string,
   choices: GoLiveChoices = {},
 ): Promise<'live' | 'held'> {
+  await checkBeforeShowing(member, lettingId, choices);
   return withOrg(member.organisationId, async (tx) => {
     await assertMayActOn(tx, member, lettingId);
     let detail = await lettingDetailIn(tx, lettingId);
@@ -212,6 +215,40 @@ export async function startTakingEnquiries(
   });
 }
 
+/**
+ * BA-10 (M48): a home that will be public as it goes live is checked first (src/server/trust/
+ * checks.ts), so one held for a person on Gaff's team is never public, not even for a moment:
+ * it goes live (the person's decision stands, and Daft and MyHome enquiries are placed on it),
+ * off gaff.ie, its enquiries waiting. A home that won't be public yet, or whose lister must
+ * wait for Gaff to confirm them, is checked when it becomes public.
+ */
+async function checkBeforeShowing(
+  member: Member,
+  lettingId: string,
+  choices: GoLiveChoices,
+): Promise<void> {
+  const ready = await withOrg(member.organisationId, async (tx) => {
+    await assertMayActOn(tx, member, lettingId);
+    const detail = await lettingDetailIn(tx, lettingId);
+    if (!detail || detail.letting.stage !== 'setup' || detail.letting.goLiveHeldAt) return null;
+    const [organisation] = await tx
+      .select(gateColumns)
+      .from(organisations)
+      .where(eq(organisations.id, member.organisationId));
+    const gate = goLiveGate(organisation!);
+    if (!gate.open || !readyToTakeEnquiries(detail.setup)) return null;
+    return {
+      onGaff: choices.onGaff ?? detail.letting.onGaff,
+      berRating: detail.letting.berRating ?? choices.berRating ?? null,
+    };
+  });
+  if (!ready) return;
+  await checkListing(
+    { organisationId: member.organisationId, lettingId, part: 'all' },
+    { goingLive: ready },
+  );
+}
+
 async function goLive(
   tx: Tx,
   input: {
@@ -294,6 +331,8 @@ export async function releaseHeldLettings(
         decisionId: letting.decisionId,
         actor: { type: 'system' },
       });
+      // BA-10 (M48): checked as it goes public, straight after.
+      await queueListingCheck(tx, { organisationId, lettingId: letting.id, part: 'all' });
       live += 1;
     } else {
       await tx.update(lettings).set({ goLiveHeldAt: null }).where(eq(lettings.id, letting.id));
@@ -325,6 +364,10 @@ export async function setOnGaff(member: Member, lettingId: string, on: boolean):
     if (!letting) throw new UserFacingError('We couldn’t find that letting.');
     if (letting.onGaff === on) return;
     await tx.update(lettings).set({ onGaff: on }).where(eq(lettings.id, lettingId));
+    // BA-10 (M48): a home back on gaff.ie is checked again.
+    if (on) {
+      await queueListingCheck(tx, { organisationId: member.organisationId, lettingId, part: 'all' });
+    }
     await recordEvent(tx, {
       organisationId: member.organisationId,
       lettingId,

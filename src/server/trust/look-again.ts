@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { withOrg, withSystem } from '@/db/client';
 import { lettings, listingCases } from '@/db/schema';
 import { reportDeleteAfter, type ReportReason } from '@/domain/homes/report';
@@ -36,7 +36,8 @@ async function appealableCase(lettingId: string) {
       .where(
         and(
           eq(listingCases.lettingId, lettingId),
-          eq(listingCases.kind, 'report'),
+          // BA-10: a decision on a hold is appealed the same way.
+          inArray(listingCases.kind, ['report', 'hold']),
           eq(listingCases.decision, 'hide_listing'),
         ),
       )
@@ -103,7 +104,8 @@ export async function askToLookAgain(
       .where(
         and(
           eq(listingCases.lettingId, lettingId),
-          eq(listingCases.kind, 'report'),
+          // BA-10: a decision on a hold is appealed the same way.
+          inArray(listingCases.kind, ['report', 'hold']),
           eq(listingCases.decision, 'hide_listing'),
         ),
       )

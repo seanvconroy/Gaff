@@ -63,6 +63,8 @@ export interface ListerFacts {
   licenceLapsedAt: Date | null;
   /** A private landlord's verified identity, as a date alone (`goLiveGate`). */
   identityVerifiedAt: Date | null;
+  /** BA-10 (M107): when Gaff's team paused the lister's listings (`goLiveGate`). */
+  listingsPausedAt?: Date | null;
 }
 
 /**

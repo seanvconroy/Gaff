@@ -187,3 +187,190 @@ export function reportOutcomeEmail(input: {
     ].join('\n'),
   };
 }
+
+// ---------------------------------------------------------------------------------------------
+// BA-10 (the live line's M29, M48, M98, M107): the checks a home passes as it goes public, and
+// a paused lister. New wording, for the solicitor's list; pinned by `trust-emails.test.ts`.
+
+/** "“a”", "“a” and “b”": phrases the AI's wording check found, in the lister's own words. */
+function quoted(phrases: readonly string[]): string {
+  return inWords(phrases.map((phrase) => `“${phrase}”`));
+}
+
+/**
+ * M48, M29: the checks held a home for a person on Gaff's team as it went public. It says nobody
+ * has decided anything, and when a person will look. Wording the AI found is quoted, so the
+ * lister can change it while they wait; nothing else about the checks is said.
+ */
+export function listingCheckingEmail(input: {
+  address: string;
+  /** "Thursday 19 November, 2pm". */
+  lookBy: string;
+  /** P13: the phrases the wording check found, if that's what held it. */
+  phrases: readonly string[];
+  lettingUrl: string;
+}): AccountEmail {
+  return {
+    subject: `${input.address} is waiting for a check before it goes on gaff.ie`,
+    button: 'Open the letting',
+    text: [
+      'Hello,',
+      '',
+      `Gaff checks every home before it goes on gaff.ie, and something about ${input.address} needs a person to look at it. Nobody has decided anything about it yet.`,
+      '',
+      ...(input.phrases.length > 0
+        ? [
+            `These words in what renters read about it may not be fair to everyone who could apply: ${quoted(input.phrases)}. You can change them while you wait.`,
+            '',
+          ]
+        : []),
+      'Until then, it has no page on gaff.ie and isn’t in search. Gaff isn’t answering its enquiries: they wait, and are answered once it’s on gaff.ie.',
+      '',
+      input.lettingUrl,
+      '',
+      `A person on Gaff’s team will look at it by ${input.lookBy}. If it’s fine, it goes on gaff.ie straight away, and we’ll email you either way.`,
+      '',
+      'Gaff',
+    ].join('\n'),
+  };
+}
+
+/** M98: a person released a home the checks held. */
+export function listingClearedEmail(input: { address: string; lettingUrl: string }): AccountEmail {
+  return {
+    subject: `${input.address} is on gaff.ie now`,
+    button: 'Open the letting',
+    text: [
+      'Hello,',
+      '',
+      `A person on Gaff’s team has checked ${input.address}, and it’s on gaff.ie now, with its page and its place in search.`,
+      '',
+      'Gaff is answering its enquiries, starting with anyone who enquired while it waited.',
+      '',
+      input.lettingUrl,
+      '',
+      'There’s nothing you need to do.',
+      '',
+      'Gaff',
+    ].join('\n'),
+  };
+}
+
+/**
+ * M98: a person kept a home the checks held off gaff.ie, with the statement of reasons: what,
+ * why, the facts relied on, what it rests on, who and when, and how to appeal.
+ */
+export function listingNotShownEmail(input: {
+  address: string;
+  reason: ReportReason;
+  facts: readonly CaseFact[];
+  decidedOn: string;
+  reasonWords: string;
+  lettingUrl: string;
+}): AccountEmail {
+  return {
+    subject: `${input.address} won’t go on gaff.ie for now`,
+    button: 'Open the letting',
+    text: [
+      'Hello,',
+      '',
+      `Gaff’s team has checked ${input.address}, and it won’t go on gaff.ie for now: ${input.reasonWords}.`,
+      '',
+      `What we relied on: ${factsInWords(input.facts)}. This rests on ${reasonGrounds[input.reason]}. A person on Gaff’s team decided this on ${input.decidedOn}.`,
+      '',
+      whileOff,
+      '',
+      'If you think we got it wrong, or once you’ve put right anything that needs it, press “Ask Gaff to look again” on the letting. You can ask once, within six months.',
+      '',
+      input.lettingUrl,
+      '',
+      'A different person on Gaff’s team will look within one working day of your asking, and email you.',
+      '',
+      'Gaff',
+    ].join('\n'),
+  };
+}
+
+/**
+ * M107, M98: a person paused a lister's listings, with the statement of reasons, what it means,
+ * and how to appeal. To the organisation's admins.
+ */
+export function listingsPausedEmail(input: {
+  listerName: string;
+  reason: ReportReason;
+  facts: readonly CaseFact[];
+  decidedOn: string;
+  reasonWords: string;
+  pausedUrl: string;
+}): AccountEmail {
+  return {
+    subject: 'Your listings on gaff.ie are paused',
+    button: 'See why',
+    text: [
+      'Hello,',
+      '',
+      `Gaff’s team has paused ${input.listerName}’s listings on gaff.ie after a case about one of its homes: ${input.reasonWords}.`,
+      '',
+      `What we relied on: ${factsInWords(input.facts)}. This rests on ${reasonGrounds[input.reason]}. A person on Gaff’s team decided this on ${input.decidedOn}.`,
+      '',
+      'While they’re paused, none of your homes is on gaff.ie and no new home goes live. The homes you have live carry on with the people already in them.',
+      '',
+      'If you think we got it wrong, press “Ask Gaff to look again”. You can ask once, within six months.',
+      '',
+      input.pausedUrl,
+      '',
+      'A different person on Gaff’s team will look within one working day of your asking, and email you.',
+      '',
+      'Gaff',
+    ].join('\n'),
+  };
+}
+
+/** M107: the pause is lifted, by a person or on appeal. */
+export function pauseLiftedEmail(input: { listerName: string; lettingsUrl: string }): AccountEmail {
+  return {
+    subject: 'Your listings are back on gaff.ie',
+    button: 'Open your lettings',
+    text: [
+      'Hello,',
+      '',
+      `Gaff’s team has lifted the pause on ${input.listerName}’s listings. Your live homes are back on gaff.ie, and you can put new homes live again.`,
+      '',
+      input.lettingsUrl,
+      '',
+      'There’s nothing you need to do.',
+      '',
+      'Gaff',
+    ].join('\n'),
+  };
+}
+
+/** M98: the answer to an appeal that keeps the pause, with its own statement. */
+export function pauseKeptEmail(input: {
+  listerName: string;
+  reason: ReportReason;
+  facts: readonly CaseFact[];
+  decidedOn: string;
+  reasonWords: string;
+  pausedUrl: string;
+}): AccountEmail {
+  return {
+    subject: 'Your listings stay paused',
+    button: 'See why',
+    text: [
+      'Hello,',
+      '',
+      `A different person on Gaff’s team has looked again, as you asked, and ${input.listerName}’s listings stay paused: ${input.reasonWords}.`,
+      '',
+      `What we relied on: ${factsInWords(input.facts)}. This rests on ${reasonGrounds[input.reason]}. A person on Gaff’s team decided this on ${input.decidedOn}.`,
+      '',
+      'You can’t ask Gaff to look again a second time. You can take it to an out-of-court dispute settlement body certified under the EU Digital Services Act, or to the courts.',
+      '',
+      input.pausedUrl,
+      '',
+      'The homes you have live carry on with the people already in them. Nothing more happens unless you take it further.',
+      '',
+      'Gaff',
+    ].join('\n'),
+  };
+}

@@ -39,6 +39,7 @@ import { env } from '@/lib/env';
 import { shownName } from '@/domain/team/members';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { invitePath } from '@/server/team/invite-links';
+import { sendTrustEmail, type TrustEmailJob, trustEmailKinds } from '@/server/trust/emails';
 import { INVITE_LASTS_DAYS } from './invites';
 
 /**
@@ -131,7 +132,7 @@ export const accountEmailJob = z.discriminatedUnion('kind', [
     at: z.iso.datetime(),
   }),
 ]);
-export type AccountEmailJob = z.infer<typeof accountEmailJob>;
+export type AccountEmailJob = z.infer<typeof accountEmailJob> | TrustEmailJob;
 
 async function send(to: string, email: AccountEmail, key: string): Promise<void> {
   const laidOut = layOutGaffEmail({
@@ -151,8 +152,14 @@ async function send(to: string, email: AccountEmail, key: string): Promise<void>
 }
 
 export async function sendAccountEmail(payload: unknown, attemptKey = ''): Promise<void> {
-  const job = accountEmailJob.parse(payload);
   const app = env().APP_URL.replace(/\/$/, '');
+  // BA-10: a home the checks held, and a paused lister (src/server/trust/emails.ts).
+  const kind = (payload as { kind?: unknown } | null)?.kind;
+  if (trustEmailKinds.includes(kind as TrustEmailJob['kind'])) {
+    await sendTrustEmail(payload, app, send);
+    return;
+  }
+  const job = accountEmailJob.parse(payload);
   if (job.kind === 'sign_in_changed' || job.kind === 'sign_in_refused') {
     const [person] = await db()
       .select({ email: users.email })

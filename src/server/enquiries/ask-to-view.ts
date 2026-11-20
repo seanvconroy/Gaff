@@ -1,6 +1,6 @@
 import { enquiriesClosed } from '@/domain/lettings/enquiries-close';
 import { and, asc, eq, isNull, lte } from 'drizzle-orm';
-import { emailSender } from '@/adapters/email';
+import { emailSender, senderAddress } from '@/adapters/email';
 import { layOutEmail } from '@/copy/email-layout';
 import { FIRST_REPLY_TEMPLATE } from '@/copy/templates/first-reply';
 import { type Tx, withOrg, withSystem } from '@/db/client';
@@ -393,7 +393,7 @@ export async function sendWaitingReply(input: {
     to: waiting.email,
     from: {
       name: senderName({ kind: 'first_reply', operatorName, writer: null }),
-      address: `${slug}@${config.MAIL_FROM_DOMAIN}`,
+      address: senderAddress(slug),
     },
     replyTo: `${slug}+${waiting.ref}@${config.INBOUND_DOMAIN}`,
     subject: waiting.replySubject,

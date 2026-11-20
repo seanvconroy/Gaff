@@ -1,5 +1,5 @@
 import { and, eq, inArray } from 'drizzle-orm';
-import { emailSender } from '@/adapters/email';
+import { emailSender, senderAddress } from '@/adapters/email';
 import { smsSender } from '@/adapters/sms';
 import { layOutEmail } from '@/copy/email-layout';
 import { withOrg, type Tx } from '@/db/client';
@@ -178,7 +178,7 @@ export async function sendMessage(input: {
                 operatorName,
                 writer: message.author === 'person' ? writer : null,
               }),
-              address: `${slug}@${config.MAIL_FROM_DOMAIN}`,
+              address: senderAddress(slug),
             },
             // A renter's replies thread to their application. Anyone else's (a referee, a
             // landlord) go to the operator's own Gaff address, where a person sees them.

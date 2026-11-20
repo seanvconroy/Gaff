@@ -52,6 +52,7 @@ It takes about 20 minutes. Production uses the same steps with real providers; s
    | `EMAIL_PROVIDER` | `resend` |
    | `RESEND_API_KEY` | a Resend key with **sending access** only, limited to the sending domain |
    | `MAIL_FROM_DOMAIN` | a domain verified in Resend, in `eu-west-1` |
+   | `MAIL_FROM_ADDRESS` | optional, until a domain is verified: `onboarding@resend.dev` sends everything from Resend's test address. Resend delivers that only to the Resend account owner's inbox, so set `TEST_EMAIL_RECIPIENTS` to that address too, and everyone else's mail waits in the Outbox. Production refuses it |
    | `TEST_EMAIL_RECIPIENTS` | optional: real email goes only to these addresses, or `@domain` for a whole domain, separated by commas; everyone else's goes to the Outbox. Unset, every real address gets real email |
 
    For the random values, use a password manager's generator, or run `openssl rand -hex 32` in a terminal. Without `RESEND_WEBHOOK_SECRET` (and a real `INBOUND_DOMAIN` with receiving set up), the test copy sends email but doesn't receive it: replies go through the links in each email, and each email says so. Production refuses `TEST_EMAIL_RECIPIENTS` and `TEST_STAFF_EMAILS`.

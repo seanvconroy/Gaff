@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
+import { senderAddress } from '@/adapters/email';
 import { linkCodeEmail } from '@/copy/sign-in';
 import { withOrg } from '@/db/client';
 import { applications, lettings, organisations } from '@/db/schema';
@@ -95,7 +96,7 @@ export async function sendLinkCode(
       // From the operator, as every message about their home is.
       from: {
         name: `${application.operatorName} via Gaff`,
-        address: `${application.slug}@${env().MAIL_FROM_DOMAIN}`,
+        address: senderAddress(application.slug),
       },
     },
     now,

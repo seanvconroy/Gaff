@@ -56,6 +56,15 @@ const schema = z
     INBOUND_DOMAIN: z.string().min(3).default('in.gaff.test'),
     MAIL_FROM_DOMAIN: z.string().min(3).default('mail.gaff.test'),
     /**
+     * Interim: send every email from this one address instead of `<mailbox>@MAIL_FROM_DOMAIN`,
+     * e.g. Resend's test sender `onboarding@resend.dev`. Display names and reply-to addresses
+     * stay the same. The test copy only: production refuses it.
+     */
+    MAIL_FROM_ADDRESS: z
+      .union([z.string().email(), z.literal('')])
+      .optional()
+      .transform((v) => v || undefined),
+    /**
      * Resend (ADR-0014): sending, and the signing secret of the email.received webhook. Without
      * the secret, Gaff sends but doesn't receive: on the test copy, a send-only key is enough,
      * and each email that would invite a reply says to use its link instead. Production needs it.
@@ -247,6 +256,13 @@ const schema = z
           code: 'custom',
           path: ['DATA_ENCRYPTION_KEY'],
           message: 'DATA_ENCRYPTION_KEY is required in production',
+        });
+      }
+      if (env.MAIL_FROM_ADDRESS) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['MAIL_FROM_ADDRESS'],
+          message: 'MAIL_FROM_ADDRESS is for the test copy only: verify a sending domain',
         });
       }
       if (env.TEST_EMAIL_RECIPIENTS) {

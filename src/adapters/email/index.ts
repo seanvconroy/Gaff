@@ -16,6 +16,17 @@ function providerSender(config: Env): EmailSender {
   }
 }
 
+/**
+ * The address a mailbox sends from: `<mailbox>@MAIL_FROM_DOMAIN`, or the single
+ * MAIL_FROM_ADDRESS when one is set (an interim test sender).
+ */
+export function senderAddress(
+  mailbox: string,
+  config: { MAIL_FROM_DOMAIN: string; MAIL_FROM_ADDRESS?: string } = env(),
+): string {
+  return config.MAIL_FROM_ADDRESS ?? `${mailbox}@${config.MAIL_FROM_DOMAIN}`;
+}
+
 /** Whether replies by email reach Gaff: receiving is set up for a real inbound domain. */
 export function receivesEmail(config: Env = env()): boolean {
   if (config.EMAIL_PROVIDER === 'dev') return false;
@@ -46,10 +57,10 @@ export function emailSender(): EmailSender {
  * forwarding rule can take it without taking Gaff's other mail to them, such as sign-in codes.
  */
 export function forwardingTestSender(): { name: string; address: string } {
-  return { name: 'Gaff', address: `forwarding-test@${env().MAIL_FROM_DOMAIN}` };
+  return { name: 'Gaff', address: senderAddress('forwarding-test') };
 }
 
 /** Gaff's own sender, for operator email such as sign-in links. */
 export function gaffSender(): { name: string; address: string } {
-  return { name: 'Gaff', address: `no-reply@${env().MAIL_FROM_DOMAIN}` };
+  return { name: 'Gaff', address: senderAddress('no-reply') };
 }

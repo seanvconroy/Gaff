@@ -36,6 +36,12 @@ describe('Production refuses anything that isn’t real (rules 7, 10; ADR-0005)'
     expect(environmentProblems(production)).toEqual([]);
   });
 
+  it('refuses the interim single sender address: production sends from its own domain', () => {
+    expect(
+      environmentProblems({ ...production, MAIL_FROM_ADDRESS: 'onboarding@resend.dev' }),
+    ).toEqual(['MAIL_FROM_ADDRESS']);
+  });
+
   it('refuses stand-in ID checks, the local document store, dev tools, or a missing key', () => {
     expect(environmentProblems({ ...production, IDENTITY_PROVIDER: 'stand_in' })).toEqual([
       'IDENTITY_PROVIDER',

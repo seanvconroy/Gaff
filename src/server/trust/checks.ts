@@ -156,10 +156,10 @@ async function countsFor(
     select count(distinct mine.id)::int as n
     from letting_photos mine
     join letting_photos theirs
-      on theirs.organisation_id <> mine.organisation_id
+      on theirs.organisation_id <> mine.organisation_id and theirs.kind = 'photo'
       and theirs.phash is not null and ${detail('theirs.phash')}
       and bit_count((mine.phash # theirs.phash)::bit(64)) <= ${DUPLICATE_DISTANCE}
-    where mine.letting_id = ${letting.id} and mine.phash is not null and ${detail('mine.phash')}
+    where mine.letting_id = ${letting.id} and mine.kind = 'photo' and mine.phash is not null and ${detail('mine.phash')}
       ${onlyThese}`);
 
   // Similar homes on gaff.ie now: the same place and number of bedrooms, as the public query

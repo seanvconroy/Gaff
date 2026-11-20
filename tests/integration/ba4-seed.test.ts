@@ -14,6 +14,7 @@ import {
 import { goLiveNeeds } from '@/domain/lettings/setup';
 import { placedPoint } from '@/domain/map/pin';
 import { resetEnvForTests } from '@/lib/env';
+import { checkListing } from '@/server/trust/checks';
 import { findMember, type Member } from '@/server/auth/member';
 import { publicHomePage, publicHomesForSearch } from '@/server/homes/public-homes';
 import { goLiveGateFor, isShownOnGaff } from '@/server/lettings/go-live';
@@ -211,6 +212,17 @@ describe('BA-4: the test copy’s seed', () => {
         ).toEqual([]);
         expect(detail.setup.criteriaSet, address).toBe(true);
         expect(isShownOnGaff(detail), address).toBe(true);
+        // BA-10 (M29, M48): every check a home passes as it goes public, honestly: not held, and
+        // clear when it's looked at again in full.
+        expect(detail.letting.hiddenAt, address).toBeNull();
+        expect(
+          await checkListing({
+            organisationId: member.organisationId,
+            lettingId: id,
+            part: 'all',
+          }),
+          address,
+        ).toEqual({ outcome: 'clear' });
         expect(detail.photos.length, address).toBeGreaterThanOrEqual(3);
         expect(detail.facts.length, address).toBeGreaterThan(3);
         expect(placedPoint(detail.letting), address).not.toBeNull();

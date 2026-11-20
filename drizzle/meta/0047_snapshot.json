@@ -1,5 +1,5 @@
 {
-  "id": "ccba723f-eb20-4a0a-beba-d29eada18b6a",
+  "id": "55079538-9b76-48bd-82a5-264e6ae20926",
   "prevId": "b620ce29-ef3a-42a9-a648-f766bf9e8568",
   "version": "7",
   "dialect": "postgresql",
@@ -9343,13 +9343,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'nobody'"
-        },
-        "flags": {
-          "name": "flags",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::text[]"
         },
         "document_date": {
           "name": "document_date",

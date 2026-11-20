@@ -55,10 +55,7 @@ export const renterDocuments = pgTable(
     pages: integer().notNull().default(1),
     readingSealed: text(),
     readBy: text({ enum: readBy }).notNull().default('nobody'),
-    flags: text({ enum: documentFlags })
-      .array()
-      .notNull()
-      .default(sql`'{}'::text[]`),
+    // Its flags (P38) are worked out afresh each time from the reading and the name to match.
     documentDate: date({ mode: 'string' }),
     correctedByRenter: boolean().notNull().default(false),
     confirmedAt: timestamp({ withTimezone: true }),

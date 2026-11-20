@@ -98,7 +98,7 @@ export function CorrectionForm({
         optional
         width="medium"
         options={[
-          { value: '', label: '' },
+          { value: '', label: copy.choose },
           ...periods.map((period) => ({ value: period, label: copy.periods[period] })),
         ]}
         defaultValue={value('period', reading.period)}

@@ -40,7 +40,6 @@ CREATE TABLE "renter_documents" (
 	"pages" integer DEFAULT 1 NOT NULL,
 	"reading_sealed" text,
 	"read_by" text DEFAULT 'nobody' NOT NULL,
-	"flags" text[] DEFAULT '{}'::text[] NOT NULL,
 	"document_date" date,
 	"corrected_by_renter" boolean DEFAULT false NOT NULL,
 	"confirmed_at" timestamp with time zone,

@@ -195,6 +195,7 @@ export const renterDocumentsCopy = {
             ? 'Amount, or the balance'
             : 'Pay',
     period: 'How often',
+    choose: 'Choose',
     periods: {
       weekly: 'Every week',
       fortnightly: 'Every two weeks',

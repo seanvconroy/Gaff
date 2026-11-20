@@ -273,6 +273,14 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   await expect(renter.getByText('Read by AI')).toBeVisible();
   expect(await renter.content()).not.toContain('1234567T');
   await expectRenterPageAtBothWidths(renter, { notices: ['check'], shots: 'ba16-documents-read' });
+  // P39: she checks what was read, and saves it: the letter will see it as changed by her.
+  await renter.getByRole('link', { name: 'Check what was read' }).click();
+  await expect(renter.getByRole('heading', { name: 'Check what was read' })).toBeVisible();
+  await expect(renter.getByLabel('Take-home pay')).toHaveValue('1,480');
+  await expect(renter.getByLabel('Name on it')).toHaveValue('Aoife Byrne');
+  await expectRenterPageAtBothWidths(renter, { shots: 'ba16-check-what-was-read' });
+  await renter.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(renter.getByText('Changed by you')).toBeVisible();
   // P39: exactly what will be shared, then one step that shares it all.
   await renter.getByRole('link', { name: 'Check and share' }).click();
   await expect(renter.getByRole('heading', { name: 'Share with Halcyon Lettings' })).toBeVisible();
@@ -394,7 +402,7 @@ test('R18: the chosen renters do their checks, a referee answers, and the operat
   await expect(
     page.getByText(/^Acme Ltd, €1,480 take-home every two weeks, .* About €3,207 a month\.$/),
   ).toBeVisible();
-  await expect(page.getByText('Read by AI')).toBeVisible();
+  await expect(page.getByText('Changed by Aoife')).toBeVisible();
   expect(await page.content()).not.toMatch(/times the rent|1234567T/);
   await expect(page.locator('[data-tone="danger"]')).toHaveCount(0);
   await flowAtBothWidths(page, 'ba16-letter-pack');

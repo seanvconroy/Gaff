@@ -430,7 +430,7 @@ On 8 November Sean decided on one standard with no opt-outs: everyone who lists,
 
 The redesign held Gaff's team to two things: confirming agencies and hiding reported listings. Stopping scams, and the EU's rules for marketplaces (the Digital Services Act), need more.
 
-**Decision (Sean, 19 November 2026):** Gaff's team may also review a listing that is held as suspicious, and handle a report as a case, with a statement of reasons and an appeal. They still never open a letting, read a renter, send a message or make a decision about a person. The tests that hold those limits stay.
+**Decision (Sean, 19 November 2026):** Gaff's team may also review a listing that is held as suspicious, and handle a report as a case, with a statement of reasons and an appeal. Cases are built (BA-9, 20 November 2026); reviewing a listing held for suspicious wording or photos comes with the risk holds. They still never open a letting, read a renter, send a message or make a decision about a person. The tests that hold those limits stay.
 
 ### Q54. Erasing the test copy when it switches
 

@@ -225,7 +225,9 @@ test('UX-SI-14: a mobile number finds the account its email already has, and Pro
     await signIn.getByRole('button', { name: 'Remove Mobile number' }).click();
     await confirmItsYou(page);
     await expect(page.getByText('Mobile number removed.')).toBeVisible();
-    await expect(signIn.getByRole('term').filter({ hasText: 'Mobile number' })).toHaveCount(0);
+    // The row stays, to add one again.
+    await expect(signIn.getByText('Not added')).toBeVisible();
+    await expect(signIn.getByText(masked)).toHaveCount(0);
     expect(await ownerOf(mobile.e164)).toBeNull();
     await context.close();
   }

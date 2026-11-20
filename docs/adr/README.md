@@ -28,7 +28,7 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0022](0022-google-script-only-on-map-pages.md) | Google's script runs only in documents loaded for the map's pages | Accepted |
 | [0023](0023-photo-pipeline.md) | The photo pipeline: every photo made again upright, clean, at fixed WebP sizes with a hash; floor plans; straight to Supabase Storage | Accepted (M43, M44) |
 | [0024](0024-reports-handled-as-cases.md) | Reports handled as cases: due times in working hours, an automatic hide on strong scam signals, a person's decision with a fixed statement of reasons, one appeal decided by someone else | Accepted |
-| [0025](0025-fresh-listings-and-instant-alerts.md) | Fresh listings (asked after 14 days, stepping back 3 days after an unanswered ask), alerts as soon as a home is listed or daily at 8am, what changed on a saved home, a home's numbers, and a limit on asking to view | Accepted (M49, M82, M85, M86, M87, M92) |
+| [0026](0026-fresh-listings-and-instant-alerts.md) | Fresh listings (asked after 14 days, stepping back 3 days after an unanswered ask), alerts as soon as a home is listed or daily at 8am, what changed on a saved home, a home's numbers, and a limit on asking to view | Accepted (M49, M82, M85, M86, M87, M92) |
 
 ## Template
 

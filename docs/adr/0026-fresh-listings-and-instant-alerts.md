@@ -1,4 +1,4 @@
-# ADR-0025: Fresh listings, alerts as soon as a home is listed, and a home's numbers
+# ADR-0026: Fresh listings, alerts as soon as a home is listed, and a home's numbers
 
 - Status: Accepted (brought across from the live line's M49, M82, M85, M86, M87 and M92 on 20 November 2026; Q51)
 - Date: 2026-11-20

@@ -31,20 +31,26 @@ const kindOf = (propertyType: string): string =>
       ? 'house'
       : 'other';
 
+type Facts = Omit<SimilarCandidate, 'liveAt' | 'at'>;
+
+/** Whether another home is like this one, before distance: the county, kind, size and rent. */
+export function isLike(home: Facts, other: Facts): boolean {
+  return (
+    other.id !== home.id &&
+    other.county === home.county &&
+    kindOf(other.propertyType) === kindOf(home.propertyType) &&
+    Math.abs(other.bedrooms - home.bedrooms) <= 1 &&
+    Math.abs(other.rentCents - home.rentCents) <= home.rentCents * SIMILAR_RENT_RANGE
+  );
+}
+
 export function similarHomes<T extends SimilarCandidate>(
   home: Omit<SimilarCandidate, 'liveAt'>,
   candidates: readonly T[],
   limit = SIMILAR_LIMIT,
 ): T[] {
   return candidates
-    .filter(
-      (c) =>
-        c.id !== home.id &&
-        c.county === home.county &&
-        kindOf(c.propertyType) === kindOf(home.propertyType) &&
-        Math.abs(c.bedrooms - home.bedrooms) <= 1 &&
-        Math.abs(c.rentCents - home.rentCents) <= home.rentCents * SIMILAR_RENT_RANGE,
-    )
+    .filter((c) => isLike(home, c))
     .map((c) => ({ c, d: home.at && c.at ? distanceMetres(home.at, c.at) : null }))
     .filter(({ d }) => d === null || d <= SIMILAR_DISTANCE_METRES)
     .sort(

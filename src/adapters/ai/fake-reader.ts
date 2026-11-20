@@ -124,6 +124,52 @@ export function readAdvertByPattern(text: string, today: string): AdvertReading 
       add('parking', 'space', line);
     }
 
+    // M39, M40 (BA-14): more of what renters ask, in so many words.
+    const ensuites = new RegExp(`\\b${N}[ -]?en[- ]?suites?\\b`, 'i').exec(line);
+    if (ensuites) add('ensuites', numberOf(ensuites[1]!), line);
+    const area = /\b(\d{2,3})\s?(?:sq\.? ?m|m2|m²|square met(?:re|er)s?)\b/i.exec(line);
+    if (area) add('floorArea', area[1]!, line);
+    if (/\bground[- ]floor\b/i.test(line) && !/floor (area|plan)/i.test(line))
+      add('floor', 0, line);
+    else {
+      const floor = /\b(\d{1,2})(?:st|nd|rd|th) floor\b/i.exec(line);
+      const said =
+        /\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth) floor\b/i.exec(line);
+      const ordinals = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh'];
+      const words = [...ordinals, 'eighth', 'ninth', 'tenth'];
+      if (floor) add('floor', Number(floor[1]), line);
+      else if (said) add('floor', words.indexOf(said[1]!.toLowerCase()) + 1, line);
+    }
+    if (/\bno lift\b/i.test(line)) add('lift', 'no', line);
+    else if (/\b(lift|elevator)\b/i.test(line)) add('lift', 'yes', line);
+    if (/\bheat pump\b/i.test(line)) add('heating', 'heat_pump', line);
+    else if (/\bgas (fired )?(central )?heating\b/i.test(line)) add('heating', 'gas', line);
+    else if (/\boil (fired )?(central )?heating\b/i.test(line)) add('heating', 'oil', line);
+    else if (/\bdistrict heating\b/i.test(line)) add('heating', 'district', line);
+    else if (/\b(electric (storage )?heating|storage heaters?)\b/i.test(line)) {
+      add('heating', 'electric', line);
+    }
+    if (/\b(shared|communal) gardens?\b/i.test(line)) add('outdoorSpace', 'shared_garden', line);
+    else if (/\b(private|rear|back|front|own) garden\b/i.test(line))
+      add('outdoorSpace', 'garden', line);
+    else if (/\bbalcon(y|ies)\b/i.test(line)) add('outdoorSpace', 'balcony', line);
+    else if (/\b(patio|courtyard|yard)\b/i.test(line)) add('outdoorSpace', 'patio', line);
+    // Each appliance named is its own reading: they are kept together (`checkReading`).
+    for (const [key, words] of [
+      ['washing_machine', /\bwashing machine\b/i],
+      ['dryer', /\b(tumble )?dryer\b/i],
+      ['dishwasher', /\bdish ?washer\b/i],
+    ] as const) {
+      if (words.test(line) && !fields.some((f) => f.field === 'appliance' && f.value === key)) {
+        fields.push({ field: 'appliance', value: key, quote: line, sure: true });
+      }
+    }
+    if (/\bfib(re|er)\b/i.test(line) && /\b(broadband|internet|wi-?fi)\b/i.test(line)) {
+      add('broadband', 'fibre', line);
+    }
+    const berNumber = /\bBER (?:no\.?|number|cert(?:ificate)? no\.?)[:\s]*(\d{9})\b/i.exec(line);
+    if (berNumber) add('berNumber', berNumber[1]!, line);
+
     const named = new RegExp(
       `\\bavailable\\b[^.\\n]*?\\b(\\d{1,2})(?:st|nd|rd|th)?(?: of)? (${MONTHS})(?: (\\d{4}))?`,
       'i',

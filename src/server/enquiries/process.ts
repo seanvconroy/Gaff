@@ -11,6 +11,7 @@ import { needsAnswers, queueDraft } from '@/server/answers/draft';
 import { queueFirstReply } from './first-reply';
 import { enquiryArrived, takeForwardingTest } from './forwarding';
 import { confirmWaitingIn, waitingByRef } from './ask-to-view';
+import { answerAfterClose } from '@/server/lettings/enquiries-close';
 import { placeEnquiry } from './place';
 
 export { newApplicationRef } from './place';
@@ -22,6 +23,8 @@ export type ProcessOutcome =
   | { kind: 'needs_attention' }
   /** UX-LT-19: the forwarding flow's made-up enquiry. Nobody's enquiry: no renter is made. */
   | { kind: 'forwarding_test' }
+  /** UX-LP-5 (BA-14): the home had stopped taking enquiries: the fixed reply went instead. */
+  | { kind: 'closed_reply' }
   | { kind: 'already_processed' };
 
 type Problem =
@@ -176,6 +179,20 @@ export async function processInboundEmailIn(
         ? input.forcedLettingId
         : matchLetting(enquiry, email.subject, candidates);
     if (!lettingId) return setAside('no_matching_letting');
+
+    // UX-LP-5, M52 (BA-14): the home has stopped taking enquiries. Someone already in it
+    // carries on; anyone new gets the fixed reply and isn't added.
+    if (
+      await answerAfterClose(tx, {
+        organisationId: input.organisationId,
+        lettingId,
+        inboundEmailId: email.id,
+        renterName: enquiry.name,
+        email: enquiry.email,
+      })
+    ) {
+      return { kind: 'closed_reply' };
+    }
 
     const placed = await placeEnquiry(tx, {
       organisationId: input.organisationId,

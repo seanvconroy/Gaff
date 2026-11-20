@@ -16,15 +16,13 @@ import {
 } from '@/domain/search/place-pages';
 import {
   canonicalPlaceSlug,
-  type HomeAddress,
-  placeHasHome,
   placeLabel,
   searchPlace,
   type SearchPlace,
 } from '@/domain/search/places';
 import { slugify } from '@/domain/places/slug';
 import { loadGazetteer } from '@/server/places/places';
-import { liveHomesOnGaff } from './homes';
+import { countHomesIn, publicHomeRefs } from './query';
 
 /**
  * M62, M111 (BA-12): a place's page, read from its address, and the sitemap. Homes are read only
@@ -59,19 +57,12 @@ export type PlacePage =
 
 /**
  * Every area, with the live homes in it counted as search would find them (UX-SR-4): read fresh
- * on each page, so a place's line always agrees with the homes listed under it.
+ * on each page, so a place's line always agrees with the homes listed under it. BA-14: counted
+ * by the database, in one query, with search's own rules (`countHomesIn`).
  */
-function counted(
-  places: readonly Place[],
-  g: Gazetteer,
-  homes: readonly HomeAddress[],
-): CountedPlace[] {
-  return places.map((place) => {
-    const where = searchPlace(place.slug, g);
-    const liveHomes =
-      where?.kind === 'area' ? homes.filter((home) => placeHasHome(where, home)).length : 0;
-    return { ...place, liveHomes };
-  });
+async function counted(places: readonly Place[], g: Gazetteer): Promise<CountedPlace[]> {
+  const counts = await countHomesIn(places, g);
+  return places.map((place) => ({ ...place, liveHomes: counts.get(place.slug) ?? 0 }));
 }
 
 /** The slugs an address under /to-rent may name, for the index to look up beyond its areas. */
@@ -102,7 +93,7 @@ export async function placePageFor(segments: readonly string[], query: Query): P
   const filters: SearchFilters = { where: resolved.place.slug };
   if (hasFilters(asked)) return { kind: 'redirect', path: searchHref({ ...filters, ...asked }) };
   const where = searchPlace(resolved.place.slug, g)!;
-  const places = counted(g.places, g, await liveHomesOnGaff());
+  const places = await counted(g.places, g);
   const place = places.find((p) => p.slug === resolved.place.slug)!;
   const county =
     place.kind === 'county'
@@ -133,10 +124,10 @@ export interface SitemapEntry {
  * Whether there is a sitemap at all is the deployment's (`SEARCH_INDEXING`, src/app/sitemap.ts).
  */
 export async function sitemapEntries(): Promise<SitemapEntry[]> {
-  const [homes, g] = await Promise.all([liveHomesOnGaff(), loadGazetteer()]);
-  const places = placesWithHomes(counted(g.places, g, homes));
+  const [homes, g] = await Promise.all([publicHomeRefs(), loadGazetteer()]);
+  const places = placesWithHomes(await counted(g.places, g));
   return [
     ...places.map((place) => ({ path: placePath(place) })),
-    ...homes.map((home) => ({ path: homeHref(home.id), lastModified: home.liveAt })),
+    ...homes.map((home) => ({ path: homeHref(home.ref), lastModified: home.liveAt })),
   ];
 }

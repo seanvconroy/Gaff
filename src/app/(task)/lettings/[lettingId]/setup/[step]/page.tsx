@@ -148,6 +148,15 @@ const partOf: Record<SourcedField, ReviewPart> = {
   furnished: 'home',
   berRating: 'home',
   parking: 'home',
+  ensuites: 'home',
+  floorAreaSqm: 'home',
+  floor: 'home',
+  lift: 'home',
+  heating: 'home',
+  outdoorSpace: 'home',
+  appliances: 'home',
+  broadband: 'home',
+  berNumber: 'home',
 };
 
 /**

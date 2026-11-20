@@ -1,8 +1,14 @@
+import type { Tx } from '@/db/client';
 import type { SearchFilters } from '@/domain/search/filters';
 import type { Gazetteer } from '@/domain/search/places';
-import { type SearchableHome, type SearchResults, searchHomes } from '@/domain/search/match';
-import { publicHomesForSearch } from '@/server/homes/public-homes';
+import type { SearchableHome, SearchResults } from '@/domain/search/match';
+import {
+  type PlacedHome,
+  publicHomesForSearch,
+  publicHomesForSearchIn,
+} from '@/server/homes/public-homes';
 import type { CoverPhoto } from '@/server/lettings/cover-photo';
+import { searchOnGaff } from './query';
 
 /**
  * The homes search reads (UX-SR-2, UX-SR-6, UX-SR-7): every home that has a public page, across
@@ -12,9 +18,10 @@ import type { CoverPhoto } from '@/server/lettings/cover-photo';
  *
  * A home is known here by its public reference, never its internal ID (`id` is the reference).
  *
- * Every home is read and matched in Gaff's own code (src/domain/search/match.ts). That is right
- * for the number of homes on Gaff in the pilots; a search in the database replaces it when the
- * list grows, with the same rules.
+ * BA-14: a search is answered by the database (`searchOnGaff`, src/server/search/query.ts),
+ * by the same rules as the in-memory matcher (src/domain/search/match.ts), which stays as the
+ * spec a test holds it to. The whole list (`liveHomesOnGaff`) is read only by that test and by
+ * the saved-search job, which matches new homes against every saved search.
  */
 export interface HomeOnGaff extends SearchableHome {
   cover: CoverPhoto | null;
@@ -27,8 +34,16 @@ export interface HomeOnGaff extends SearchableHome {
 }
 
 export async function liveHomesOnGaff(): Promise<HomeOnGaff[]> {
-  const homes = await publicHomesForSearch();
-  return homes.map(({ home, addressLine2, eircode, point }) => ({
+  return (await publicHomesForSearch()).map(homeOnGaffOf);
+}
+
+/** The same, in a transaction the caller holds. */
+export async function liveHomesOnGaffIn(tx: Tx): Promise<HomeOnGaff[]> {
+  return (await publicHomesForSearchIn(tx)).map(homeOnGaffOf);
+}
+
+function homeOnGaffOf({ home, addressLine2, eircode, point }: PlacedHome): HomeOnGaff {
+  return {
     id: home.ref,
     addressLine1: home.home.addressLine1,
     addressLine2,
@@ -54,7 +69,7 @@ export async function liveHomesOnGaff(): Promise<HomeOnGaff[]> {
           typeName: home.unit.typeName,
         }
       : null,
-  }));
+  };
 }
 
 /**
@@ -66,5 +81,5 @@ export async function findHomes(
   filters: SearchFilters,
   g: Gazetteer,
 ): Promise<SearchResults<HomeOnGaff>> {
-  return searchHomes(await liveHomesOnGaff(), filters, g);
+  return searchOnGaff(filters, g);
 }

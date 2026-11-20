@@ -1,6 +1,7 @@
 import { kindOfHome } from '@/domain/frame/frame';
 import { formatRent } from '@/lib/format';
 import type { DraftAnswers } from './add-letting';
+import { keptMoreFacts } from './more-facts';
 import { describeKeyFacts, furnishing } from './new-letting';
 
 /**
@@ -32,6 +33,8 @@ export function previewFacts(home: DraftAnswers): Array<{ label: string; value: 
     furnished: home.furnished,
     // The BER has a block of its own on the page (UX-LS-8), so it isn't repeated here.
     parking: home.parking,
+    // M39 (BA-14): the further facts, as they were given.
+    more: keptMoreFacts(home),
   });
 }
 

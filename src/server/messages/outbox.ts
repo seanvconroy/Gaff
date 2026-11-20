@@ -22,6 +22,8 @@ export type OutboundKind =
   | 'reminder'
   | 'place_offered'
   | 'letting_closed'
+  /** UX-LP-5 (BA-14): the fixed reply to an enquiry that came after enquiries closed. */
+  | 'enquiries_closed'
   | 'apply_invitation'
   | 'checks_invitation'
   | 'reference_request'

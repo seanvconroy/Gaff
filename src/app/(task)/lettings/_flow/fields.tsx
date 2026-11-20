@@ -10,6 +10,15 @@ import {
   minimumStays,
 } from '@/domain/criteria/criteria';
 import {
+  appliances,
+  broadbandTypes,
+  floorWords,
+  heatingTypes,
+  HIGHEST_FLOOR,
+  moreFactKeys,
+  outdoorSpaces,
+} from '@/domain/lettings/more-facts';
+import {
   berRatings,
   counties,
   furnishing,
@@ -371,7 +380,136 @@ export function HomeFields({ values, errors }: GroupProps) {
         defaultValue={values.parking}
         error={errors.parking}
       />
+      <MoreFields values={values} errors={errors} />
     </>
+  );
+}
+
+/** "Basement", "Ground floor", then each floor up to the 19th, and one from an import beyond. */
+function floorOptions(chosen: string) {
+  const floors = Array.from({ length: 21 }, (_, index) => String(index - 1));
+  const list = chosen && !floors.includes(chosen) ? [...floors, chosen] : floors;
+  return list
+    .filter((value) => Number(value) <= HIGHEST_FLOOR)
+    .map((value) => ({ value, label: floorWords(Number(value)) }));
+}
+
+/**
+ * M39, M40, M44 (BA-14): more of what renters ask about, each optional, behind one line on the
+ * same step: no screen of their own. Open when something is already said, or needs a fix.
+ * Facts about the home and its building only; none of them is a search filter.
+ */
+function MoreFields({ values, errors }: GroupProps) {
+  const problem = moreFactKeys.some((key) => errors[key]);
+  // Open when something is said or needs a fix, and it stays open once it is: fixing a field
+  // never closes the panel it's in.
+  const [open, setOpen] = useState(() => problem || moreFactKeys.some((key) => values[key]));
+  if (problem && !open) setOpen(true);
+  return (
+    <Disclosure summary={copy.home.more} open={open}>
+      <div className={styles.fields}>
+        <Chips
+          name="ensuites"
+          legend={copy.home.ensuites}
+          optional
+          options={numbered(1, 4, values.ensuites ?? '').map((count) => ({
+            value: count,
+            label: count,
+          }))}
+          defaultValue={values.ensuites}
+          error={errors.ensuites}
+        />
+        <TextField
+          name="floorAreaSqm"
+          label={copy.home.floorArea}
+          optional
+          width="short"
+          inputMode="numeric"
+          autoComplete="off"
+          defaultValue={values.floorAreaSqm}
+          error={errors.floorAreaSqm}
+        />
+        <SelectField
+          name="floor"
+          label={copy.home.floor}
+          optional
+          width="medium"
+          defaultValue={values.floor ?? ''}
+          error={errors.floor}
+          options={[
+            { value: '', label: copy.home.floorChoose },
+            ...floorOptions(values.floor ?? ''),
+          ]}
+        />
+        <Chips
+          name="lift"
+          legend={copy.home.lift}
+          optional
+          options={[
+            { value: 'yes', label: copy.home.yes },
+            { value: 'no', label: copy.home.no },
+          ]}
+          defaultValue={values.lift}
+          error={errors.lift}
+        />
+        <SelectField
+          name="heating"
+          label={copy.home.heating}
+          optional
+          width="medium"
+          defaultValue={values.heating ?? ''}
+          error={errors.heating}
+          options={[{ value: '', label: copy.home.floorChoose }, ...options(heatingTypes)]}
+        />
+        <Chips
+          name="outdoorSpace"
+          legend={copy.home.outdoor}
+          optional
+          options={options(outdoorSpaces)}
+          defaultValue={values.outdoorSpace}
+          error={errors.outdoorSpace}
+        />
+        <Chips
+          name="appliances"
+          type="checkbox"
+          legend={copy.home.appliances}
+          optional
+          options={options(appliances)}
+          defaultValue={(values.appliances ?? '').split(',').filter(Boolean)}
+          error={errors.appliances}
+        />
+        <Chips
+          name="broadband"
+          legend={copy.home.broadband}
+          optional
+          options={options(broadbandTypes)}
+          defaultValue={values.broadband}
+          error={errors.broadband}
+        />
+        <TextField
+          name="berNumber"
+          label={copy.home.berNumber}
+          hint={copy.home.berNumberHint}
+          optional
+          width="medium"
+          inputMode="numeric"
+          autoComplete="off"
+          defaultValue={values.berNumber}
+          error={errors.berNumber}
+        />
+        <TextField
+          name="tourUrl"
+          label={copy.home.tour}
+          hint={copy.home.tourHint}
+          optional
+          type="url"
+          inputMode="url"
+          autoComplete="off"
+          defaultValue={values.tourUrl}
+          error={errors.tourUrl}
+        />
+      </div>
+    </Disclosure>
   );
 }
 

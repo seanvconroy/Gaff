@@ -33,6 +33,7 @@ Short records of the decisions that shape Gaff's code: the context, what we chos
 | [0027](0027-checks-at-going-public.md) | Checks as a home goes public: contact details refused at the field, risk signals and the AI's wording check hold it for a person as a case; pausing a lister | Accepted (M29, M45, M48, M107, P12 to P14) |
 | [0028](0028-drafted-descriptions.md) | A home's description drafted from its facts and the lister's statements only (the `description` AI task), shown only if it keeps to them and passes the wording check, and marked "Drafted by AI" for the lister until its words change | Accepted |
 | [0029](0029-developments-and-alike-homes.md) | Developments and unit types as facts about homes; many alike homes made as ordinary lettings that share values until changed by hand; one card per type in search; a scheme counts once towards a burst | Accepted (M32 to M35, M75) |
+| [0030](0030-search-in-the-database-more-facts-closing-enquiries.md) | Search, map pins, place counts and similar homes answered by the database with the domain's rules as SQL twins (held to the in-memory rule by a generated test); more of a home's facts; and "Stop taking enquiries", now or at a time | Accepted (M39, M40, M44, M52, M58, M59, M61, M116, M122) |
 
 ## Template
 

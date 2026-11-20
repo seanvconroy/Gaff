@@ -85,6 +85,15 @@
   padding-left: var(--space-5);
 }
 
+/* M44 (BA-14): the link out to a tour, and the closed page's way on (UX-LP-5). */
+.tour a,
+.closedLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--size-target);
+}
+
 /* UX-MT-10: a signed-in renter's own answers, beside the letting details. */
 .beside {
   display: grid;

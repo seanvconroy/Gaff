@@ -23,6 +23,7 @@ import { draftOrigins, flowSteps, type DraftAnswers } from '@/domain/lettings/ad
 import { pointSources } from '@/domain/map/pin';
 import { photoKinds } from '@/domain/lettings/photo-files';
 import type { DraftReading } from '@/domain/lettings/advert-reading';
+import type { MoreFacts } from '@/domain/lettings/more-facts';
 import type { Portal } from '@/domain/lettings/setup';
 import { stages } from '@/domain/lettings/stages';
 import { users } from './auth';
@@ -87,6 +88,12 @@ export const lettings = pgTable(
     furnished: text(),
     berRating: text(),
     parking: text(),
+    /**
+     * M39, M40, M44 (BA-14): more facts renters ask about (en-suites, floor area, floor and
+     * lift, heating, outdoor space, appliances, broadband, the BER's number, a tour link), each
+     * offered. Read through `readMoreFacts`. Facts about the home only; never a search filter.
+     */
+    moreFacts: jsonb().$type<MoreFacts>(),
     /** UX-LS-6: the home in the lister's own words. Screened for protected grounds (rule 3). */
     description: text(),
     /**
@@ -168,6 +175,13 @@ export const lettings = pgTable(
      * do. Null while it's fresh.
      */
     staleAt: timestamp({ withTimezone: true }),
+    /**
+     * UX-LP-5, M52 (BA-14): "Stop taking enquiries". From this time the home's page says
+     * enquiries have closed, "Ask to view" is gone, the home leaves search, and an enquiry that
+     * still arrives gets the fixed reply. People already in the letting carry on. Null: open.
+     * A time ahead is a close the lister set in advance.
+     */
+    enquiriesCloseAt: timestamp({ withTimezone: true }),
     /**
      * "Is it advertised anywhere else?", asked once after go-live: the portals named, an empty
      * list for "No", null until it's answered. A home on Daft or MyHome asks for forwarding

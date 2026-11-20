@@ -3,6 +3,7 @@ import { homeWordingReason } from '@/domain/compliance/who-should-apply';
 import { type Criteria, lettingDetailsParts } from '@/domain/criteria/criteria';
 import { kindOfHome } from '@/domain/frame/frame';
 import { contactDetailsIn } from '@/domain/listings/checks';
+import { type MoreFacts, moreFactHighlights } from '@/domain/lettings/more-facts';
 import { furnishing, parkingOptions } from '@/domain/lettings/new-letting';
 import { previewBer } from '@/domain/lettings/preview';
 import { onGaffNeeds } from '@/domain/lettings/setup';
@@ -165,6 +166,8 @@ export interface HomeFacts {
   noSmokingIndoors: boolean;
   /** "Anything else renters often ask?", a line each, as set up. */
   facts: readonly string[];
+  /** M39, M40, M44 (BA-14): en-suites, floor area, floor and lift, heating and the rest. */
+  more?: MoreFacts;
 }
 
 /**
@@ -193,7 +196,13 @@ export function homeSummary(
   ].join(' · ');
 }
 
-export type HighlightKind = 'bedrooms' | 'bathrooms' | 'furnished' | 'parking' | 'fact';
+export type HighlightKind =
+  | 'bedrooms'
+  | 'bathrooms'
+  | 'furnished'
+  | 'parking'
+  | ReturnType<typeof moreFactHighlights>[number]['key']
+  | 'fact';
 export interface Highlight {
   kind: HighlightKind;
   text: string;
@@ -225,6 +234,10 @@ export function homeHighlights(home: HomeFacts): Highlight[] {
   if (furnished) highlights.push({ kind: 'furnished', text: furnished });
   const parking = parkingOptions[home.parking as keyof typeof parkingOptions];
   if (parking) highlights.push({ kind: 'parking', text: parking });
+  // M39 (BA-14): the further facts, each a short phrase about the home or its building.
+  for (const more of moreFactHighlights(home.more ?? {})) {
+    highlights.push({ kind: more.key, text: more.text });
+  }
   for (const fact of home.facts) {
     const text = fact.trim();
     if (text && passes(text)) highlights.push({ kind: 'fact', text });

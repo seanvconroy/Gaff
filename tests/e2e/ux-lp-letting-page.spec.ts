@@ -453,6 +453,8 @@ test('UX-LP-5, UX-LP-6: the menu holds the rare actions, and History is the full
     'Change lead',
     'Add test enquiries',
     'History',
+    // BA-14 (UX-LP-5, M52): built now, while the letting is live.
+    'Stop taking enquiries',
     'Close this letting',
   ]);
   await expectAccessible(page);

@@ -307,6 +307,9 @@ describe('M75: the public side', () => {
       floor: 1,
       floorAreaSqm: 68,
     });
+    // With BA-14: the home's page says its floor and its type's floor area with its other facts,
+    // from the development, where the lister has said nothing else on the home itself.
+    expect(home!.home.more).toMatchObject({ floor: 1, floorAreaSqm: 68 });
     const ref = home!.unit!.developmentRef;
     const page = await publicDevelopmentPage(ref);
     expect(page).toMatchObject({ name: 'The Waterside', free: 4, ber: 'A2', parking: 'space' });

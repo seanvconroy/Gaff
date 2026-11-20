@@ -1,3 +1,4 @@
+import { enquiriesClosed } from '@/domain/lettings/enquiries-close';
 import { and, asc, eq, isNull, lte } from 'drizzle-orm';
 import { emailSender } from '@/adapters/email';
 import { layOutEmail } from '@/copy/email-layout';
@@ -73,8 +74,10 @@ export interface AskHome {
 
 /** The home behind a public reference, while it can be asked about. Null: it can't. */
 export async function askableHome(ref: string): Promise<AskHome | null> {
-  const found = await resolvePublicHome(ref);
-  if (!found) return null;
+  const resolved = await resolvePublicHome(ref);
+  // UX-LP-5, M52 (BA-14): a home that has stopped taking enquiries can't be asked about.
+  if (!resolved || resolved.enquiriesClosed) return null;
+  const { enquiriesClosed: _open, ...found } = resolved;
   return withOrg(found.organisationId, async (tx) => {
     const [row] = await tx
       .select({ criteria: lettings.criteria, operatorName: organisations.name })
@@ -255,6 +258,8 @@ async function askableLetting(tx: Tx, lettingId: string) {
     letting.hiddenAt === null &&
     // M49: a home that stepped back, unconfirmed, has no page to ask from.
     letting.staleAt === null &&
+    // UX-LP-5, M52 (BA-14): nor does one that has stopped taking enquiries.
+    !enquiriesClosed(letting.enquiriesCloseAt) &&
     listerMayShowHomes({
       kind: organisation.kind,
       name: organisation.name,

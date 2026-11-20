@@ -25,6 +25,7 @@ import { closeLetting } from '@/server/lettings/close';
 import { recordComparable } from '@/server/lettings/comparables';
 import { saveAnswers } from '@/server/lettings/drafts';
 import { setAdvertisedOn, setOnGaff, startTakingEnquiries } from '@/server/lettings/go-live';
+import { closeEnquiries, reopenEnquiries } from '@/server/lettings/enquiries-close';
 import { sendTestEnquiry } from '@/server/lettings/test-enquiry';
 import { remindAboutCheck } from '@/server/checks/checks';
 import { shareWithOwner, stopSharingWithLandlord } from '@/server/landlord/share';
@@ -393,6 +394,9 @@ const changesToALetting: Array<
   ],
   ['go live', (m, h) => startTakingEnquiries(m, h.lettingId)],
   ['put it on gaff.ie', (m, h) => setOnGaff(m, h.lettingId, false)],
+  // UX-LP-5, M52 (BA-14).
+  ['stop taking enquiries', (m, h) => closeEnquiries(m, h.lettingId, { when: 'now' })],
+  ['take enquiries again', (m, h) => reopenEnquiries(m, h.lettingId)],
   ['say where it is advertised', (m, h) => setAdvertisedOn(m, h.lettingId, [])],
   [
     'remind a renter or referee about a check',

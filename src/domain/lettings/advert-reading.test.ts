@@ -489,3 +489,72 @@ describe('the lines of an advert', () => {
     ]);
   });
 });
+
+describe('M39, M40 (BA-14): more facts, read where the advert says them', () => {
+  const text = [
+    'Bright 2nd floor apartment, 68 sq m, with a lift.',
+    'Heat pump and A2 rated. BER No. 104123456.',
+    'Private balcony. Washing machine, dryer and dishwasher.',
+    'Fibre broadband. One en-suite.',
+  ].join('\n');
+  const lines = text.split('\n');
+
+  it('M39: keeps each with the words it came from, and appliances together', () => {
+    const checked = checkReading(
+      text,
+      reading({
+        fields: [
+          found('floor', '2', lines[0]!),
+          found('floorArea', '68', lines[0]!),
+          found('lift', 'yes', lines[0]!),
+          found('heating', 'heat_pump', lines[1]!),
+          found('berNumber', '104123456', lines[1]!),
+          found('outdoorSpace', 'balcony', lines[2]!),
+          found('appliance', 'washing_machine', lines[2]!),
+          found('appliance', 'dishwasher', lines[2]!),
+          found('broadband', 'fibre', lines[3]!),
+          found('ensuites', '1', lines[3]!),
+        ],
+      }),
+      TODAY,
+    )!;
+    expect(checked.answers).toEqual({
+      floor: 2,
+      floorAreaSqm: 68,
+      lift: true,
+      heating: 'heat_pump',
+      berNumber: '104123456',
+      outdoorSpace: 'balcony',
+      appliances: ['washing_machine', 'dishwasher'],
+      broadband: 'fibre',
+      ensuites: 1,
+    });
+    expect(checked.reading.sources.heating).toEqual({ quote: lines[1], sure: true });
+    expect(checked.dropped).toBe(0);
+  });
+
+  it('M40, UX-LT-7: a BER’s own number stays for the reader; any other run of digits goes', () => {
+    expect(stripPersonalDetails('BER No. 104123456. Call 087 123 4567.')).toBe(
+      'BER No. 104123456. Call [phone].',
+    );
+    expect(stripPersonalDetails('Ring 104123456 today')).toBe('Ring [phone] today');
+  });
+
+  it('M39: drops what the words don’t say, whatever the reader claims', () => {
+    const checked = checkReading(
+      text,
+      reading({
+        fields: [
+          found('floor', '5', lines[0]!),
+          found('heating', 'oil', lines[1]!),
+          found('outdoorSpace', 'garden', lines[2]!),
+          found('lift', 'no', lines[0]!),
+          found('berNumber', '999999999', lines[1]!),
+        ],
+      }),
+      TODAY,
+    )!;
+    expect(checked.answers).toEqual({});
+    expect(checked.dropped).toBe(5);
+  });
+});

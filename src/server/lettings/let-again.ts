@@ -1,3 +1,4 @@
+import { readMoreFacts } from '@/domain/lettings/more-facts';
 import { and, eq } from 'drizzle-orm';
 import { photoStore } from '@/adapters/photos';
 import { withOrg } from '@/db/client';
@@ -59,6 +60,7 @@ export async function letAgain(
         furnished: letting.furnished,
         berRating: letting.berRating,
         parking: letting.parking,
+        more: readMoreFacts(letting.moreFacts),
         description: letting.description,
         // The facts written about the home. Answers given to one renter's question stay with
         // the letting they were given in.

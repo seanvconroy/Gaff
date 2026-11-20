@@ -6,7 +6,7 @@ import { inBBox, type BBox } from '@/domain/places/geo';
 import type { SearchFilters } from '@/domain/search/filters';
 import { irishToday, formatRent } from '@/lib/format';
 import { publicHomes } from '@/server/homes/public-homes';
-import { findHomes } from './homes';
+import { searchOnGaff } from './query';
 import { resolveSearch } from './where';
 
 /**
@@ -28,7 +28,8 @@ export interface MapAnswer {
 
 export async function mapPins(filters: SearchFilters, view: BBox): Promise<MapAnswer> {
   const resolved = await resolveSearch(filters);
-  const { fits } = await findHomes(resolved.filters, resolved.g);
+  // BA-14: through the same query as the list, the homes that fit and nothing else.
+  const { fits } = await searchOnGaff(resolved.filters, resolved.g, { fitsOnly: true });
   const pinned = fits.filter((home) => home.point);
   // BA-15 (M75): a development's alike homes are one pin, as they are one card: at the first of
   // them, with the lowest rent, its card naming how many (`mapCard`).

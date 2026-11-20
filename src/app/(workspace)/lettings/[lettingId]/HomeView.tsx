@@ -4,6 +4,7 @@ import { pinWords } from '@/copy/map';
 import { lettingPageCopy } from '@/copy/letting-page';
 import { lettingDetailsParts } from '@/domain/criteria/criteria';
 import { screenHref } from '@/domain/lettings/links';
+import { readMoreFacts, tourLink } from '@/domain/lettings/more-facts';
 import { describeKeyFacts } from '@/domain/lettings/new-letting';
 import { previewBer } from '@/domain/lettings/preview';
 import { placedPoint } from '@/domain/map/pin';
@@ -79,7 +80,9 @@ export function HomeView({
     bathrooms: letting.bathrooms,
     furnished: letting.furnished as Parameters<typeof describeKeyFacts>[0]['furnished'],
     parking: letting.parking as Parameters<typeof describeKeyFacts>[0]['parking'],
+    more: readMoreFacts(letting.moreFacts),
   });
+  const tour = tourLink(readMoreFacts(letting.moreFacts));
   const ber = previewBer(letting.berRating);
   // UX-MT-3: the letting details in Gaff's fixed words, the same everywhere they appear. The one
   // house rule sits with them (UX-MT-5), and never ranks anyone.
@@ -157,6 +160,7 @@ export function HomeView({
             { label: copy.available, value: formatDate(letting.availableFrom) },
             ...keyFacts,
             ...(ber ? [{ label: 'BER', value: ber.replace(/^BER /, '') }] : []),
+            ...(tour ? [{ label: copy.tour, value: tour.href }] : []),
           ]}
         />
         {facts.length > 0 ? (

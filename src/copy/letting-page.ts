@@ -200,6 +200,8 @@ export const lettingPageCopy = {
     noPhotos: 'No photos yet.',
     description: 'Description',
     noDescription: 'No description yet.',
+    /** M44 (BA-14): the tour link, among the facts. */
+    tour: 'Video or tour',
     facts: 'Facts',
     factsUsed: 'Gaff answers renters from these, as they are now.',
     details: 'Letting details',
@@ -249,6 +251,38 @@ export const lettingPageCopy = {
     change: 'Change the home’s details',
     shareWithColleague: 'Share with a colleague',
     history: 'History',
+    /** UX-LP-5, M52 (BA-14). */
+    stopEnquiries: 'Stop taking enquiries',
+    reopenEnquiries: 'Take enquiries again',
     close: 'Close this letting',
+  },
+
+  /**
+   * UX-LP-5, M52 (BA-14): "Stop taking enquiries", and opening them again. People already in
+   * the letting carry on; anyone who enquires after gets a fixed reply.
+   */
+  enquiries: {
+    metaTitle: 'Stop taking enquiries',
+    title: 'When should enquiries stop?',
+    lead: 'Everyone who has already enquired carries on as before. The home’s page will say it’s no longer taking enquiries, and it won’t show in search on Gaff.',
+    now: 'Now',
+    later: 'At a date and time',
+    date: 'Date',
+    time: 'Time',
+    stop: 'Stop taking enquiries',
+    stopping: 'Saving…',
+    reopenTitle: 'Take enquiries again?',
+    closedLead: (since: string) =>
+      `This home stopped taking enquiries on ${since}. Taking them again puts it back in search on Gaff, and anyone can ask to view.`,
+    closingLead: (at: string) =>
+      `This home stops taking enquiries on ${at}. Taking them again cancels that.`,
+    reopen: 'Take enquiries again',
+    reopening: 'Saving…',
+    /** On the letting's page, once it's saved. */
+    closedNotice: 'Not taking enquiries. Anyone who enquires is told it has closed.',
+    closingNotice: (at: string) => `Stops taking enquiries on ${at}.`,
+    savedClosed: 'Enquiries have stopped.',
+    savedClosing: 'Saved. Enquiries will stop at the time you set.',
+    savedReopened: 'Taking enquiries again.',
   },
 } as const;

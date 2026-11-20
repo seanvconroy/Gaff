@@ -19,6 +19,20 @@ export const homePageCopy = {
   showMore: 'Show more',
   showLess: 'Show less',
   ber: 'Energy rating',
+  /** M40 (BA-14): under the rating, where the lister gave it. */
+  berNumber: (number: string) => `BER number ${number}`,
+  /** M44 (BA-14): a link out to a video or virtual tour. */
+  tour: (host: string) => `Watch the tour on ${host}`,
+  opensElsewhere: '(opens on another site)',
+  /**
+   * UX-LP-5, M52 (BA-14): the lister has stopped taking enquiries. The page stays, without
+   * "Ask to view". Fixed words, for the solicitor's list.
+   */
+  closed: {
+    title: 'This home is no longer taking enquiries',
+    text: 'Whoever is letting it has stopped taking new enquiries. Homes are added to Gaff every week.',
+    otherHomes: 'See homes on Gaff',
+  },
   letBy: 'Let by',
   licence: (number: string) => `PSRA licence ${number}`,
   /** Q47, UX-TS-1: beside a private landlord's first name. */

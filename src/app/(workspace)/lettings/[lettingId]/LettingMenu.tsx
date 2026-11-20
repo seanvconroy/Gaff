@@ -5,6 +5,8 @@ import {
   ExternalLink,
   FlaskConical,
   History,
+  MailCheck,
+  MailX,
   Pencil,
   Repeat,
   Send,
@@ -28,7 +30,8 @@ const copy = lettingPageCopy.menu;
  * UX-LP-5: a letting's menu of rare actions, beside its address. It holds: See it on Gaff (a live
  * home on Gaff, once its public page exists); Change the home's details; Share with the owner
  * (a home let for someone else: UX-OW-1); Share with a colleague (an admin on a team: UX-AG-13);
- * History; Close this letting (while it's live). A closed letting has "Let it again" (UX-LT-23).
+ * History; Stop taking enquiries, or Take enquiries again (while it's live: BA-14); Close this
+ * letting (while it's live). A closed letting has "Let it again" (UX-LT-23).
  *
  * Two more belong to earlier packages and stay: "Send a test enquiry" until the first real one
  * arrives (UX-LT-24), and "Change lead" for whoever may change it (UX-AG-9).
@@ -45,6 +48,7 @@ export function LettingMenu({
   shareWithColleague,
   changeLead,
   close,
+  enquiries,
   letAgain,
   testEnquiries,
 }: {
@@ -56,6 +60,8 @@ export function LettingMenu({
   shareWithColleague: boolean;
   changeLead: boolean;
   close: boolean;
+  /** UX-LP-5, M52: a live letting stops taking enquiries, or takes them again. */
+  enquiries: 'stop' | 'reopen' | null;
   letAgain: boolean;
   /** BA-1: the development tools are on and the letting is live. */
   testEnquiries: boolean;
@@ -106,6 +112,11 @@ export function LettingMenu({
         <MenuItem icon={History} href={`${here}/history`}>
           {copy.history}
         </MenuItem>
+        {enquiries ? (
+          <MenuItem icon={enquiries === 'stop' ? MailX : MailCheck} href={`${here}/enquiries`}>
+            {enquiries === 'stop' ? copy.stopEnquiries : copy.reopenEnquiries}
+          </MenuItem>
+        ) : null}
         {close ? (
           <MenuItem icon={DoorClosed} href={`${here}/close`}>
             {copy.close}

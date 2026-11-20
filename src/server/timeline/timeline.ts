@@ -6,7 +6,7 @@ import { sourcesInWords } from '@/domain/enquiries/sources';
 import { reportCopy } from '@/copy/home-page';
 import { hiddenReasons } from '@/copy/trust';
 import type { ReportReason } from '@/domain/homes/report';
-import { formatDate, formatEuro, formatRent } from '@/lib/format';
+import { formatDate, formatDateTime, formatEuro, formatRent } from '@/lib/format';
 import type { Member } from '@/server/auth/member';
 
 export interface TimelineEntry {
@@ -35,6 +35,7 @@ const messageTitles: Record<string, string> = {
   reminder: 'Viewing reminder sent',
   place_offered: 'A freed place offered',
   letting_closed: 'Closing message sent',
+  enquiries_closed: 'Told enquiries have closed',
   apply_invitation: 'Invitation to apply sent',
   checks_invitation: 'Checks explained to the renter',
   reference_request: 'Reference request sent',
@@ -171,6 +172,17 @@ export function describeEvent(
       };
     case 'letting.on_gaff_set':
       return { what: data.on ? 'Set to show on gaff.ie' : 'Set not to show on gaff.ie' };
+    case 'letting.enquiries_closed':
+      return {
+        what:
+          data.when === 'now'
+            ? 'Stopped taking enquiries'
+            : `Set to stop taking enquiries on ${formatDateTime(new Date(String(data.closesAt)))}`,
+      };
+    case 'letting.enquiries_reopened':
+      return { what: 'Taking enquiries again' };
+    case 'enquiry.after_close':
+      return { what: 'An enquiry came after enquiries closed: told they’ve closed' };
     case 'letting.freshness_asked':
       return { what: `Asked if it’s still available, after ${String(data.days)} days unchanged` };
     case 'letting.stepped_back':

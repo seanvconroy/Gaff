@@ -178,9 +178,9 @@ test('UX-LT-2, UX-LT-3, UX-LT-6, UX-AI-4: a pasted advert becomes "Here’s what
     await expect(about.getByLabel('About this home')).toHaveValue(
       'Bright two-bed apartment on the first floor, five minutes from the Luas.',
     );
-    await expect(about.getByLabel('Anything else renters often ask?')).toHaveValue(
-      'Gas fired central heating',
-    );
+    // M39 (BA-14): the heating has a field of its own now, read from the same words, so it
+    // isn't a free-text fact as well.
+    await expect(about.getByLabel('Anything else renters often ask?')).toHaveValue('');
     await expect(about).toContainText('The description is in your advert’s own words.');
     // UX-AI-8, rule 3: the wording check holds for words typed here too, at the field.
     await about.getByLabel('About this home').fill('Bright two-bed. Would suit a couple.');
@@ -196,11 +196,14 @@ test('UX-LT-2, UX-LT-3, UX-LT-6, UX-AI-4: a pasted advert becomes "Here’s what
     await goLiveThroughUi(page);
 
     // Nothing the advert said became a criterion on its own, and no line left out did.
-    const [letting] = await asSystem<{ criteria: Record<string, unknown>; ber: string }>(
-      'select criteria, ber_rating as ber from lettings where id = $1',
-      [id],
-    );
+    const [letting] = await asSystem<{
+      criteria: Record<string, unknown>;
+      ber: string;
+      more: Record<string, unknown>;
+    }>('select criteria, ber_rating as ber, more_facts as more from lettings where id = $1', [id]);
     expect(letting!.ber).toBe('C1');
+    // M39 (BA-14): what the advert said of the heating and the floor, kept as facts.
+    expect(letting!.more).toEqual({ heating: 'gas', floor: 1 });
     expect(letting!.criteria).toMatchObject({ maxOccupants: 3, minStayMonths: 12, noPets: true });
     // Rule 8: the event of the reading holds counts, never the advert's words.
     const events = await asSystem<{ data: unknown }>(

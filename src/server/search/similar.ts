@@ -5,7 +5,8 @@ import { hasPlacePage } from '@/domain/search/place-pages';
 import type { HomeAddress } from '@/domain/search/places';
 import { isLike, similarHomes } from '@/domain/search/similar';
 import { loadGazetteer } from '@/server/places/places';
-import { type HomeOnGaff, liveHomesOnGaff } from './homes';
+import type { HomeOnGaff } from './homes';
+import { homeOnGaff, similarCandidates } from './query';
 
 /**
  * M73, M74 (BA-12): similar homes for a home's page, live or let, from the same public query
@@ -57,13 +58,14 @@ async function similarAmong(target: SimilarTarget, homes: HomeOnGaff[]): Promise
 
 /** Up to three live homes like this one, nearest first, and the place it is in. */
 export async function similarTo(target: SimilarTarget): Promise<Similar> {
-  return similarAmong(target, await liveHomesOnGaff());
+  // BA-14: the database finds the homes like it; distance and order are the domain's.
+  return similarAmong(target, await similarCandidates(target));
 }
 
 /** A live home's similar homes, found by its public reference among the homes on Gaff. */
 export async function similarToLiveHome(ref: string): Promise<Similar> {
-  const homes = await liveHomesOnGaff();
-  const home = homes.find((h) => h.id === ref);
+  const home = await homeOnGaff(ref);
   if (!home) return { homes: [], place: null };
-  return similarAmong({ ...home, ref: home.id }, homes);
+  const target: SimilarTarget = { ...home, ref: home.id };
+  return similarAmong(target, await similarCandidates(target));
 }

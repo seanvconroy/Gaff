@@ -211,6 +211,21 @@ function addressWords(home: HomeAddress): string[] {
   return words;
 }
 
+/**
+ * BA-14: a home's address as search reads it, one word after another. The database reads an
+ * address the same way (the SQL function `gaff_address_words`, ADR-0030), so a search can match
+ * places in SQL; a test holds the two to the same words for generated addresses. This is the
+ * rule; the SQL is its twin.
+ */
+export function addressWordsOf(home: Pick<HomeAddress, 'addressLine1' | 'addressLine2' | 'area'>) {
+  return [home.addressLine1, home.addressLine2 ?? '', home.area]
+    .join(',')
+    .split(',')
+    .flatMap((part) => streetName(part).split(' '))
+    .filter(Boolean)
+    .join(' ');
+}
+
 /** The metres from a home's point to a street's line or a landmark's centre. */
 function metresFrom(place: Place, point: Point): number {
   return place.line?.length
@@ -359,4 +374,62 @@ export function guessPlace(
   const best = ranked.groups[0]?.items[0]?.place ?? null;
   if (!best) return { place: null, didYouMean: null };
   return ranked.didYouMean ? { place: null, didYouMean: best } : { place: best, didYouMean: null };
+}
+
+/**
+ * BA-14: what the database is asked, for a home to be in a search's place: the same rule as
+ * `placeHasHome`, as plain values the search's SQL is built from (src/server/search/query.ts).
+ * A test holds the SQL to `placeHasHome` for generated homes and places.
+ */
+export type PlacePlan =
+  | { kind: 'routing_key'; routingKey: string }
+  | {
+      kind: 'area';
+      county: string;
+      /** A county: every home in it. */
+      wholeCounty: boolean;
+      /** A Dublin district: its Eircode's routing key, as well as its names. */
+      districtKey: string | null;
+      /** The names an address would write it by, each as `addressWordsOf` writes words. */
+      names: string[];
+    }
+  | {
+      kind: 'near';
+      /** A home with a point: within this of the centre, or of the street's line. */
+      withinMetres: number;
+      centre: Point;
+      line: Point[][] | null;
+      /** A home without one: in this county, with this routing key if both have one, and… */
+      county: string;
+      routingKey: string | null;
+      /** …one of these in its address, or (a landmark) its Eircode in the landmark's key. */
+      names: string[];
+      orRoutingKey: string | null;
+    };
+
+export function placePlan(where: SearchPlace): PlacePlan {
+  if (where.kind === 'routing_key') return { kind: 'routing_key', routingKey: where.routingKey };
+  const { place } = where;
+  if (where.kind === 'near') {
+    const landmark = place.kind === 'landmark';
+    const at = landmark && place.context ? contextWords(place.context).split(',')[0]!.trim() : '';
+    const said = landmark ? (at ? streetName(at) : '') : streetName(place.name);
+    return {
+      kind: 'near',
+      withinMetres: where.withinMetres,
+      centre: place.centre,
+      line: place.line?.length ? place.line : null,
+      county: place.county,
+      routingKey: place.routingKey ?? null,
+      names: said ? [said] : [],
+      orRoutingKey: landmark ? (place.routingKey ?? null) : null,
+    };
+  }
+  return {
+    kind: 'area',
+    county: place.county,
+    wholeCounty: place.kind === 'county',
+    districtKey: place.kind === 'district' ? (place.routingKey ?? null) : null,
+    names: addressNamesOf(place).filter(Boolean),
+  };
 }

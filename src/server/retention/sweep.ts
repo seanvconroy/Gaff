@@ -214,6 +214,35 @@ export async function sweepPersonalData(
         data: { inboundEmailId: email.id },
       });
     }
+    // UX-LP-5 (BA-14): the reply to an enquiry that came after close holds that person's
+    // address and name, and nothing else of theirs is kept: cleared on the same schedule.
+    const answered = await tx
+      .update(messages)
+      .set({ toAddress: '', subject: '', body: '' })
+      .where(
+        and(
+          onlyOrganisationId ? eq(messages.organisationId, onlyOrganisationId) : undefined,
+          eq(messages.kind, 'enquiries_closed'),
+          isNull(messages.applicationId),
+          lt(messages.createdAt, unplacedBefore),
+          ne(messages.body, ''),
+        ),
+      )
+      .returning({
+        id: messages.id,
+        organisationId: messages.organisationId,
+        lettingId: messages.lettingId,
+      });
+    for (const message of answered) {
+      await recordEvent(tx, {
+        organisationId: message.organisationId,
+        lettingId: message.lettingId,
+        actor: { type: 'system' },
+        type: 'message.content_deleted',
+        subject: { type: 'message', id: message.id },
+        data: { messageId: message.id },
+      });
+    }
     // R26: a tenant's references are deleted once the tenancy starts (PRD checks table).
     const started = await tx
       .select({

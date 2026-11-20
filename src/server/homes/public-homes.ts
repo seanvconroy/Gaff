@@ -20,6 +20,8 @@ import {
   placeOf,
   publicLister,
 } from '@/domain/homes/home-page';
+import { enquiriesClosed } from '@/domain/lettings/enquiries-close';
+import { type MoreFacts, readMoreFacts } from '@/domain/lettings/more-facts';
 import { placedPoint, publicPoint } from '@/domain/map/pin';
 import type { Point } from '@/domain/places/geo';
 import { COVER_WIDTH, SHOWN_WIDTH } from '@/domain/lettings/photo-files';
@@ -76,6 +78,11 @@ export interface PublicHome {
   phone: string | null;
   /** When it went live: homes are newest first. */
   liveAt: Date;
+  /**
+   * UX-LP-5, M52 (BA-14): false once its lister has stopped taking enquiries. The page stays,
+   * says so and has no "Ask to view"; the home is in no search (`openToEnquiries`).
+   */
+  askable: boolean;
   /** BA-15 (M33, M75): the development and type it belongs to. Null: a home on its own. */
   unit: PublicUnit | null;
 }
@@ -138,7 +145,7 @@ const listerMayShow = and(
 const hasAPhoto = sql`exists (select 1 from ${lettingPhotos} where ${lettingPhotos.lettingId} = ${lettings.id} and ${lettingPhotos.kind} = 'photo')`;
 
 /** UX-LT-21, UX-LT-22: on gaff.ie, with a BER and a photo, not hidden, by a lister who may show it. */
-const onGaff = and(
+export const onGaff = and(
   eq(lettings.onGaff, true),
   isNull(lettings.hiddenAt),
   // M49 (BA-13): a live home nobody confirmed has stepped back; a let one still says so.
@@ -156,6 +163,7 @@ const columns = {
   hiddenAt: lettings.hiddenAt,
   pageRemovedAt: lettings.pageRemovedAt,
   staleAt: lettings.staleAt,
+  enquiriesCloseAt: lettings.enquiriesCloseAt,
   liveAt: lettings.liveAt,
   addressLine1: lettings.addressLine1,
   addressLine2: lettings.addressLine2,
@@ -174,6 +182,7 @@ const columns = {
   parking: lettings.parking,
   berRating: lettings.berRating,
   description: lettings.description,
+  moreFacts: lettings.moreFacts,
   criteria: lettings.criteria,
   noSmokingIndoors: lettings.noSmokingIndoors,
   listerKind: organisations.kind,
@@ -295,6 +304,24 @@ function factsOf({ row, facts }: Loaded): HomeFacts {
     criteria: row.criteria,
     noSmokingIndoors: row.noSmokingIndoors,
     facts,
+    more: moreFactsOf(row),
+  };
+}
+
+/**
+ * BA-14 with BA-15: a home's own "more facts", and, for a development's home, the floor it is
+ * on and its type's floor area where the lister hasn't said otherwise on the home itself. One
+ * place, so a home's page says each once.
+ */
+function moreFactsOf(row: Loaded['row']): MoreFacts {
+  const more = readMoreFacts(row.moreFacts);
+  if (!row.typeRef) return more;
+  return {
+    ...(row.unitFloor !== null && more.floor === undefined ? { floor: row.unitFloor } : {}),
+    ...(row.floorAreaSqm !== null && more.floorAreaSqm === undefined
+      ? { floorAreaSqm: row.floorAreaSqm }
+      : {}),
+    ...more,
   };
 }
 
@@ -321,6 +348,7 @@ function toPublicHome(loaded: Loaded): PublicHome {
             floorAreaSqm: row.floorAreaSqm,
           }
         : null,
+    askable: !enquiriesClosed(row.enquiriesCloseAt),
   };
 }
 
@@ -345,9 +373,28 @@ function publicPointOf(row: Row): Point | null {
   return placed ? publicPoint(placed, row.listerKind) : null;
 }
 
+/**
+ * BA-14 (UX-LP-5, M52), THE ONE "ENQUIRIES CLOSED" CONDITION: a home whose lister has stopped
+ * taking enquiries keeps its page, which says so, but is in no search, place page, map, alert or
+ * list of similar homes. `enquiriesClosed` (src/domain/lettings/enquiries-close.ts) is its rule.
+ */
+export const openToEnquiries = or(
+  isNull(lettings.enquiriesCloseAt),
+  sql`${lettings.enquiriesCloseAt} > now()`,
+)!;
+
 /** Every live home on Gaff, newest first, for search to match. The same homes as `publicHomes`. */
 export async function publicHomesForSearch(): Promise<PlacedHome[]> {
-  const loaded = await withSystem((tx) => load(tx, and(eq(lettings.status, 'live'), onGaff)!));
+  return withSystem((tx) => publicHomesForSearchIn(tx));
+}
+
+/**
+ * The same, in a transaction the caller holds. BA-14: search itself asks the database
+ * (src/server/search/query.ts); this whole list is what the tests hold that search to, read
+ * through the domain's rules (`searchHomes`), and what the saved-search job reads.
+ */
+export async function publicHomesForSearchIn(tx: Tx): Promise<PlacedHome[]> {
+  const loaded = await load(tx, and(eq(lettings.status, 'live'), onGaff, openToEnquiries)!);
   return loaded
     .filter((home) => stateOf(home) === 'live')
     .map((home) => ({
@@ -485,9 +532,13 @@ export async function publicHomePages(
  * The letting behind a live home's public reference, for what a visitor does from its page
  * (asking to view, WP-22; reporting it, WP-26). Everything after it is scoped to the lister.
  */
-export async function resolvePublicHome(
-  ref: string,
-): Promise<{ organisationId: string; lettingId: string; rentCents: number } | null> {
+export async function resolvePublicHome(ref: string): Promise<{
+  organisationId: string;
+  lettingId: string;
+  rentCents: number;
+  /** UX-LP-5 (BA-14): asking to view is closed; reporting and saving still work. */
+  enquiriesClosed: boolean;
+} | null> {
   if (!isPublicRef(ref)) return null;
   const [found] = await withSystem((tx) =>
     tx
@@ -496,10 +547,13 @@ export async function resolvePublicHome(
         lettingId: lettings.id,
         // M85: what Saved compares with, to say a saved home's rent has come down.
         rentCents: lettings.monthlyRentCents,
+        enquiriesCloseAt: lettings.enquiriesCloseAt,
       })
       .from(lettings)
       .innerJoin(organisations, eq(organisations.id, lettings.organisationId))
       .where(and(eq(lettings.publicRef, ref), eq(lettings.status, 'live'), onGaff)),
   );
-  return found ?? null;
+  if (!found) return null;
+  const { enquiriesCloseAt, ...home } = found;
+  return { ...home, enquiriesClosed: enquiriesClosed(enquiriesCloseAt) };
 }

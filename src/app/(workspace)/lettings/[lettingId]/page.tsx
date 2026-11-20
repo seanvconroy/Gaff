@@ -37,6 +37,9 @@ import { pinWords } from '@/copy/map';
 import { freshnessCopy } from '@/copy/freshness';
 import { homeNumbersFor } from '@/server/lettings/home-numbers';
 import { mapSettings } from '@/lib/map';
+import { lettingPageCopy } from '@/copy/letting-page';
+import { enquiryState } from '@/domain/lettings/enquiries-close';
+import { formatDateTime } from '@/lib/format';
 
 export const metadata: Metadata = { title: 'Letting' };
 export const dynamic = 'force-dynamic';
@@ -59,6 +62,10 @@ const savedCopy: Record<string, string> = {
   // M49: "Still available".
   'still-available': freshnessCopy.done.text,
   'back-on-gaff': freshnessCopy.done.back,
+  // UX-LP-5, M52 (BA-14).
+  'enquiries-closed': lettingPageCopy.enquiries.savedClosed,
+  'enquiries-closing': lettingPageCopy.enquiries.savedClosing,
+  'enquiries-reopened': lettingPageCopy.enquiries.savedReopened,
 };
 
 const views: readonly LettingView[] = ['overview', 'people', 'home'];
@@ -136,6 +143,7 @@ export default async function LettingPage({
     asked === 'live' && letting.hiddenAfter === 'check' && letting.hiddenStage === 'held'
       ? 'live_checking'
       : asked;
+  const enquiries = enquiryState(letting.enquiriesCloseAt, now);
   // UX-GR-5: one prompt at most on the letting: viewing times, then the owner's link (UX-OW-1).
   const prompt = promptFor(
     'letting',
@@ -181,6 +189,13 @@ export default async function LettingPage({
             }
             changeLead={standing?.mayChangeLead ?? false}
             close={letting.status === 'live'}
+            enquiries={
+              letting.status === 'live'
+                ? enquiryState(letting.enquiriesCloseAt, now).state === 'open'
+                  ? 'stop'
+                  : 'reopen'
+                : null
+            }
             letAgain={canLetAgain(letting)}
             testEnquiries={env().DEV_TOOLS && letting.status === 'live'}
           />
@@ -197,6 +212,18 @@ export default async function LettingPage({
       {env().DEV_TOOLS && query.added !== undefined && /^\d+$/.test(query.added) ? (
         <Notice tone="success" role="status">
           <p>{testEnquiriesAdded(Number(query.added))}</p>
+        </Notice>
+      ) : null}
+      {/* UX-LP-5, M52 (BA-14): a home that has stopped, or is set to stop, taking enquiries. */}
+      {letting.status === 'live' &&
+      enquiries.state !== 'open' &&
+      !saved?.startsWith('enquiries') ? (
+        <Notice tone="info" role="status">
+          <p>
+            {enquiries.state === 'closed'
+              ? lettingPageCopy.enquiries.closedNotice
+              : lettingPageCopy.enquiries.closingNotice(formatDateTime(enquiries.at, now))}
+          </p>
         </Notice>
       ) : null}
       {saved && !(saved === 'rent-check' && detail.rentProblem) ? (

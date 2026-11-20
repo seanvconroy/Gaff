@@ -136,7 +136,7 @@ describe('ADR-0017: one implementation of each task, for either client', () => {
   it('P3, P6: each task has its own prompt version', () => {
     const ai = anthropic(clientReturning(message()).client);
     expect(ai.promptVersion('answers')).toBe('answers@2');
-    expect(ai.promptVersion('advert')).toBe('advert@1');
+    expect(ai.promptVersion('advert')).toBe('advert@2');
     expect(ai.promptVersion('people')).toBe('people@1');
     expect(ai.promptVersion('wording')).toBe('wording@1');
     expect(ai.promptVersion('description')).toBe('description@1');

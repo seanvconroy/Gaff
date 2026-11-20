@@ -52,6 +52,9 @@ Contact Mary Byrne on 087 123 4567 or mary.byrne@example.ie`),
       furnished: 'furnished',
       berRating: 'B2',
       parking: 'street',
+      // M39 (BA-14): the further facts it says in so many words.
+      floor: 1,
+      heating: 'gas',
     },
   },
   {
@@ -59,7 +62,7 @@ Contact Mary Byrne on 087 123 4567 or mary.byrne@example.ie`),
     text: advert(`Lovely house to let in Kinsale.
 Three bedrooms and a garden to the rear.
 Oil fired central heating.`),
-    finds: { propertyType: 'house', bedrooms: 3 },
+    finds: { propertyType: 'house', bedrooms: 3, heating: 'oil' },
   },
   {
     name: 'A house in Galway with a year to stay',
@@ -116,6 +119,7 @@ BER: A3`),
       bathrooms: 1,
       furnished: 'furnished',
       berRating: 'A3',
+      outdoorSpace: 'balcony',
     },
   },
   {

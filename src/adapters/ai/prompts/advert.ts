@@ -8,6 +8,12 @@ import {
   parkingOptions,
   propertyTypes,
 } from '@/domain/lettings/new-letting';
+import {
+  appliances,
+  broadbandTypes,
+  heatingTypes,
+  outdoorSpaces,
+} from '@/domain/lettings/more-facts';
 import type { AdvertReadRequest } from '@/ports/ai';
 
 /**
@@ -17,7 +23,7 @@ import type { AdvertReadRequest } from '@/ports/ai';
  * names, phone numbers, email addresses and links taken out before it gets here, and no link is
  * ever fetched (Q31).
  */
-export const version = 'advert@1';
+export const version = 'advert@2';
 export const effort = 'low';
 /** How long a person waits for a reading before the manual route is offered (UX-AI-13). */
 export const timeoutMs = 20_000;
@@ -60,6 +66,11 @@ export const system = [
   `- furnished: one of ${list(Object.keys(furnishing))}.`,
   `- berRating: one of ${list(berRatings)}.`,
   `- parking: one of ${list(Object.keys(parkingOptions))} (none: the advert says there is no parking; street: on-street; space: a space, a driveway or a garage).`,
+  '- ensuites: a whole number of en-suite bathrooms. floorArea: the floor area in square metres, as digits ("75"); leave it out if given only in square feet.',
+  '- floor: the floor the home is on, as a whole number (0 for the ground floor, -1 for a basement). lift: "yes" where the advert says there is a lift, "no" where it says there is none.',
+  `- heating: one of ${list(Object.keys(heatingTypes))}. outdoorSpace: one of ${list(Object.keys(outdoorSpaces))}.`,
+  `- appliance: one of ${list(Object.keys(appliances))}, once for each the advert names. broadband: one of ${list(Object.keys(broadbandTypes))}.`,
+  '- berNumber: the 9-digit number of the BER certificate, only where the advert gives it.',
   `- leaseMonths: one of ${list(minimumStays)}, only where the advert states the length of the lease.`,
   '- maxOccupants: a whole number, only where the advert states the most people who can live there.',
   '- noPets: "true", only where the advert says pets are not allowed.',

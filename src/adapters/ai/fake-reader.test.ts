@@ -169,3 +169,30 @@ describe('UX-LT-7, UX-AI-8, UX-AI-9: stripped first, and nothing in the text is 
     expect(JSON.stringify(answers)).not.toMatch(/admin|approves|instructions|assistant/i);
   });
 });
+
+describe('M39, M40 (BA-14): the stand-in reads the further facts too', () => {
+  it('M39: floor, lift, area, heating, outdoor space, appliances, broadband, en-suites and BER number', async () => {
+    const { answers } = await read(
+      [
+        '4 Harbour View, Kinsale, Co. Cork.',
+        'A bright 2nd floor apartment of 68 sq m, with a lift.',
+        'Gas central heating. BER No. 104123456.',
+        'Private balcony.',
+        'Washing machine and dishwasher.',
+        'Fibre broadband.',
+        'One en-suite.',
+      ].join('\n'),
+    );
+    expect(answers).toMatchObject({
+      floor: 2,
+      floorAreaSqm: 68,
+      lift: true,
+      heating: 'gas',
+      berNumber: '104123456',
+      outdoorSpace: 'balcony',
+      appliances: ['washing_machine', 'dishwasher'],
+      broadband: 'fibre',
+      ensuites: 1,
+    });
+  });
+});

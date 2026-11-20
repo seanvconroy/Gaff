@@ -21,6 +21,15 @@ import {
   parseEuroToCents,
   propertyTypes,
 } from './new-letting';
+import {
+  type Appliance,
+  type Heating,
+  HIGHEST_FLOOR,
+  LOWEST_FLOOR,
+  MIN_FLOOR_AREA,
+  normaliseBerNumber,
+  type OutdoorSpace,
+} from './more-facts';
 
 /**
  * Reading an advert into a letting (work package WP-10: UX-LT-2, UX-LT-3, UX-LT-6, UX-LT-7,
@@ -51,6 +60,8 @@ const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 const LINK = /\b(?:https?:\/\/|www\.)[^\s<>"']+/gi;
 /** Digits with spaces, dashes or brackets, on one line: long enough to be a phone number. */
 const PHONE = /(?<![\w€.,/-])(?:\+|00)?\(?\d[\d ()-]{6,}\d(?![\w/])/g;
+/** "BER No. ", "BER number: ", "BER cert no ": what comes before a BER's own number. */
+const BER_NUMBER_LABEL = /\bBER\s*(?:no\.?|number|cert(?:ificate)?\s*(?:no\.?|number))[:\s]*$/i;
 const A_DATE = /^(?:\d{4}-\d{1,2}-\d{1,2}|\d{1,2}[- ]\d{1,2}[- ]\d{2,4})$/;
 /** Words that come before a person's name in an advert: "Contact Mary Byrne on…". */
 const CUES = [
@@ -122,9 +133,12 @@ export function stripPersonalDetails(text: string, names: readonly string[] = []
   let result = tidy(text.slice(0, MAX_ADVERT_CHARS * 2))
     .replace(EMAIL, '[email]')
     .replace(LINK, '[link]')
-    .replace(PHONE, (found) => {
+    .replace(PHONE, (found: string, at: number, whole: string) => {
       const digits = found.replace(/\D/g, '').length;
-      return digits < 7 || A_DATE.test(found.trim()) ? found : '[phone]';
+      // M40 (BA-14): nine digits labelled as the BER certificate's number are about the home.
+      const berNumber =
+        digits === 9 && BER_NUMBER_LABEL.test(whole.slice(Math.max(0, at - 30), at));
+      return digits < 7 || berNumber || A_DATE.test(found.trim()) ? found : '[phone]';
     });
   for (const name of names) {
     for (const part of name.split(/\s+/).filter((each) => each.length > 1)) {
@@ -174,6 +188,16 @@ export const readFields = [
   'furnished',
   'berRating',
   'parking',
+  // M39, M40 (BA-14): more of what renters ask, where the advert says it in so many words.
+  'ensuites',
+  'floorArea',
+  'floor',
+  'lift',
+  'heating',
+  'outdoorSpace',
+  'appliance',
+  'broadband',
+  'berNumber',
   // Suggestions for letting details: never switched on by Gaff (section 6).
   'leaseMonths',
   'maxOccupants',
@@ -227,6 +251,15 @@ export const sourcedFields = [
   'furnished',
   'berRating',
   'parking',
+  'ensuites',
+  'floorAreaSqm',
+  'floor',
+  'lift',
+  'heating',
+  'outdoorSpace',
+  'appliances',
+  'broadband',
+  'berNumber',
   'daftUrl',
   'myhomeUrl',
 ] as const;
@@ -427,6 +460,43 @@ const TYPE_WORDS: Record<keyof typeof propertyTypes, RegExp> = {
   other: /./,
 };
 
+const ORDINALS: Record<number, string> = {
+  1: 'first',
+  2: 'second',
+  3: 'third',
+  4: 'fourth',
+  5: 'fifth',
+  6: 'sixth',
+  7: 'seventh',
+  8: 'eighth',
+  9: 'ninth',
+  10: 'tenth',
+};
+
+const HEATING_WORDS: Record<Heating, RegExp | null> = {
+  gas: /\bgas\b/,
+  oil: /\boil\b/,
+  electric: /\belectric(al)? (storage )?heat|\bstorage heaters?\b/,
+  heat_pump: /\bheat pump\b/,
+  district: /\bdistrict heating\b/,
+  solid_fuel: /\bsolid fuel\b|\bstove\b|\bopen fire\b/,
+  other: null,
+};
+
+const OUTDOOR_WORDS: Record<OutdoorSpace, RegExp> = {
+  none: /\bno (outdoor space|garden)\b/,
+  balcony: /\bbalcon(y|ies)\b/,
+  patio: /\bpatio\b|\byard\b|\bcourtyard\b/,
+  garden: /\b(private|rear|back|front|own) garden\b/,
+  shared_garden: /\b(shared|communal) gardens?\b/,
+};
+
+const APPLIANCE_WORDS: Record<Appliance, RegExp> = {
+  washing_machine: /\bwashing machine\b|\bwasher[- ]dryer\b/,
+  dryer: /\b(tumble )?dryer\b/,
+  dishwasher: /\bdish ?washer\b/,
+};
+
 type Kept =
   | { to: 'answer'; patch: Partial<DraftAnswers>; key: SourcedField }
   | { to: 'suggestion'; key: 'noPets' | 'minStayMonths' | 'maxOccupants'; value: number | true };
@@ -531,6 +601,69 @@ function keep(field: ReadField, raw: string, words: string, today: string): Kept
       );
       return choice && /\bpark|car space|driveway|garage/.test(words)
         ? answer('parking', { parking: choice })
+        : null;
+    }
+    // M39, M40 (BA-14): each only where the words say it.
+    case 'ensuites': {
+      const n = wholeNumber(value, 1, 10);
+      return n !== null && saysNumber(words, n) && /\ben[- ]?suites?\b/.test(words)
+        ? answer('ensuites', { ensuites: n })
+        : null;
+    }
+    case 'floorArea': {
+      const n = wholeNumber(value.replace(/\s*(m2|m²|sq\.? ?m)$/i, ''), MIN_FLOOR_AREA, 999);
+      return n !== null &&
+        new RegExp(`(?<![\\d.,])${n}(?![\\d])`).test(words) &&
+        /(sq\.? ?m|m2|m²|square met)/.test(words)
+        ? answer('floorAreaSqm', { floorAreaSqm: n })
+        : null;
+    }
+    case 'floor': {
+      const n = /^-?\d{1,2}$/.test(value) ? Number(value) : null;
+      if (n === null || n < LOWEST_FLOOR || n > HIGHEST_FLOOR) return null;
+      if (!/\b(floor|storey)\b/.test(words) || /floor (area|space|plan)/.test(words)) return null;
+      const said =
+        n === 0
+          ? /\bground[- ]floor\b/.test(words)
+          : n < 0
+            ? /\bbasement\b|\blower[- ]ground\b/.test(words)
+            : saysNumber(words, n) || new RegExp(`\\b${ORDINALS[n] ?? '-'}\\b`).test(words);
+      return said ? answer('floor', { floor: n }) : null;
+    }
+    case 'lift': {
+      const none = /\bno lift\b|\bwithout a lift\b|\bnot? (a )?lift\b/.test(words);
+      if (/^(yes|true)$/i.test(value)) {
+        return /\b(lift|elevator)\b/.test(words) && !none ? answer('lift', { lift: true }) : null;
+      }
+      return /^(no|false)$/i.test(value) && none ? answer('lift', { lift: false }) : null;
+    }
+    case 'heating': {
+      const said = HEATING_WORDS[value as Heating];
+      return said && said.test(words) ? answer('heating', { heating: value as Heating }) : null;
+    }
+    case 'outdoorSpace': {
+      const said = OUTDOOR_WORDS[value as OutdoorSpace];
+      return said && said.test(words)
+        ? answer('outdoorSpace', { outdoorSpace: value as OutdoorSpace })
+        : null;
+    }
+    case 'appliance': {
+      const said = APPLIANCE_WORDS[value as Appliance];
+      return said && said.test(words)
+        ? answer('appliances', { appliances: [value as Appliance] })
+        : null;
+    }
+    case 'broadband': {
+      const fibre = /\bfib(re|er)\b/.test(words);
+      if (value === 'fibre') return fibre ? answer('broadband', { broadband: 'fibre' }) : null;
+      return value === 'other' && !fibre && /\b(broadband|wi-?fi|internet)\b/.test(words)
+        ? answer('broadband', { broadband: 'other' })
+        : null;
+    }
+    case 'berNumber': {
+      const number = normaliseBerNumber(value);
+      return number && /\bber\b/.test(words) && words.replace(/[\s-]/g, '').includes(number)
+        ? answer('berNumber', { berNumber: number })
         : null;
     }
     case 'leaseMonths': {
@@ -645,6 +778,12 @@ export function checkReading(
       continue;
     }
     const before = reading.sources[kept.key];
+    if (before && kept.key === 'appliances') {
+      // Each appliance the advert names is one more on the list, from its own words.
+      const list = [...new Set([...(answers.appliances ?? []), ...(kept.patch.appliances ?? [])])];
+      answers = withAnswers(answers, { appliances: list });
+      continue;
+    }
     if (before) {
       // Said twice. If the two differ, the first stays and the person is asked to check.
       const [key] = Object.keys(kept.patch) as Array<keyof DraftAnswers>;
@@ -721,6 +860,15 @@ const checkOf: Record<SourcedField, CheckThis | null> = {
   bathrooms: 'home',
   furnished: 'home',
   parking: 'home',
+  ensuites: 'home',
+  floorAreaSqm: 'home',
+  floor: 'home',
+  lift: 'home',
+  heating: 'home',
+  outdoorSpace: 'home',
+  appliances: 'home',
+  broadband: 'home',
+  berNumber: 'ber',
   berRating: 'ber',
   daftUrl: null,
   myhomeUrl: null,
@@ -753,7 +901,23 @@ export function reviewChecks(
 const groupFields: Record<ReviewGroup | 'details', readonly SourcedField[]> = {
   address: ['addressLine1', 'addressLine2', 'area', 'county', 'eircode'],
   rent: ['rentCents', 'availableFrom'],
-  home: ['propertyType', 'bedrooms', 'bathrooms', 'furnished', 'berRating', 'parking'],
+  home: [
+    'propertyType',
+    'bedrooms',
+    'bathrooms',
+    'furnished',
+    'berRating',
+    'parking',
+    'ensuites',
+    'floorAreaSqm',
+    'floor',
+    'lift',
+    'heating',
+    'outdoorSpace',
+    'appliances',
+    'broadband',
+    'berNumber',
+  ],
   description: [],
   details: [],
 };
@@ -769,14 +933,14 @@ export function readingAfterSave(
   before: DraftAnswers,
   after: DraftAnswers,
 ): DraftReading {
+  const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
   const sources = { ...reading.sources };
   for (const field of groupFields[group]) {
     const source = sources[field];
     if (!source) continue;
-    if (before[field] !== after[field]) delete sources[field];
+    if (!same(before[field], after[field])) delete sources[field];
     else sources[field] = { ...source, sure: true };
   }
-  const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
   const ownWords =
     group === 'description' || group === 'home'
       ? reading.ownWords.filter((each) => same(before[each], after[each]))

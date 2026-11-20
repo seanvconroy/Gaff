@@ -73,6 +73,7 @@ The web framework, the email provider and the AI provider can each be swapped wi
 | CI | GitHub Actions; synthetic data only | [0012](adr/0012-testing-and-ci.md) |
 | Sign-in | People with accounts: Google, Apple, a six-digit email code, or a passkey (Better Auth, data in our DB). Renters, owners and referees: private links, no accounts | [0015](adr/0015-sign-in-google-apple-codes-passkeys.md), [0013](adr/0013-sign-in-operators-links-for-renters.md) |
 | Places and the map | Gaff's own place index for "Where" (Postgres); the search map and the lister's pin on Google Maps (the Maps JavaScript API only), or a stand-in drawn from Gaff's own data, behind `MAP_PROVIDER`; Google's script only on the map's pages | [0018](adr/0018-own-place-index-from-openstreetmap.md), [0021](adr/0021-search-map-on-google-maps.md), [0022](adr/0022-google-script-only-on-map-pages.md) |
+| Search | One SQL query over the public homes answers a search, its one-miss group, the map's pins, place counts and similar homes, with the domain's rules as SQL twins (no PostGIS); the in-memory matcher stays as the spec a generated test holds it to | [0027](adr/0027-search-in-the-database-more-facts-closing-enquiries.md) |
 
 ## Where the PRD's rules live
 

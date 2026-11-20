@@ -61,7 +61,7 @@ const savedCopy: Record<string, string> = {
   'back-on-gaff': freshnessCopy.done.back,
   // UX-LP-5, M52 (BA-14).
   'enquiries-closed': lettingPageCopy.enquiries.savedClosed,
-  'enquiries-closing': 'Saved. Enquiries will stop at the time you set.',
+  'enquiries-closing': lettingPageCopy.enquiries.savedClosing,
   'enquiries-reopened': lettingPageCopy.enquiries.savedReopened,
 };
 

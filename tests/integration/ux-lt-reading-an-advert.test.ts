@@ -91,7 +91,9 @@ describe('UX-LT-2, UX-LT-3: an advert is read into a home, for the person to rev
         furnished: 'furnished',
         berRating: 'B2',
         parking: 'street',
-        otherFacts: ['Gas fired central heating'],
+        // M39 (BA-14): the heating and the floor are facts of their own now.
+        heating: 'gas',
+        floor: 1,
       },
     });
     // UX-AI-4: the source of each value is kept with the draft.
@@ -121,7 +123,9 @@ describe('UX-LT-2, UX-LT-3: an advert is read into a home, for the person to rev
     expect(written[0]!.data).toEqual({ origin: 'advert' });
     expect(written[1]!.data).toEqual({
       reader: 'fake',
-      found: 14,
+      // M39 (BA-14): the heating and the floor are two more values found; the heating is no
+      // longer a fact in the lister's own words as well.
+      found: 15,
       dropped: 1,
       leftOut: 2,
       unsure: 0,
@@ -139,7 +143,7 @@ describe('UX-LT-2, UX-LT-3: an advert is read into a home, for the person to rev
     const timeline = await timelineFor(member, id);
     expect(timeline.map((entry) => entry.what)).toContain('Advert read by Gaff');
     expect(timeline.find((entry) => entry.what === 'Advert read by Gaff')?.detail).toBe(
-      '14 details found, 2 lines left out',
+      '15 details found, 2 lines left out',
     );
   });
 
@@ -169,7 +173,7 @@ describe('UX-LT-2, UX-LT-3: an advert is read into a home, for the person to rev
     expect(home?.answers).toEqual({
       propertyType: 'house',
       bedrooms: 3,
-      otherFacts: ['Oil fired central heating'],
+      heating: 'oil',
       description: 'Lovely house to let in Kinsale. Three bedrooms and a garden to the rear.',
     });
     // "Looks right" goes to the first step that still needs an answer, and makes no letting.
@@ -237,7 +241,8 @@ describe('UX-LT-4, UX-LT-5, UX-AI-4: reviewing what was found', () => {
       criteria: null,
       noSmokingIndoors: false,
     });
-    expect(detail?.facts.map((fact) => fact.answer)).toContain('Gas fired central heating');
+    // M39 (BA-14): what the advert said of the heating and floor, kept as the home's facts.
+    expect(detail?.letting.moreFacts).toEqual({ heating: 'gas', floor: 1 });
     // Rule 3: nothing about who should apply reached the letting.
     expect(JSON.stringify(detail)).not.toMatch(/professional|couple|HAP/i);
     expect(await draftsOf(member)).toHaveLength(0);

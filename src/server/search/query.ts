@@ -383,7 +383,9 @@ export async function countHomesInTx(
   });
   for (const { slug } of plans) counts.set(slug, 0);
   if (plans.length === 0) return counts;
+  // The public rows are read once, each address read once, before they are matched to places.
   const result = await tx.execute<{ slug: string; homes: number }>(sql`
+      with h as materialized (${publicRows()})
       select p.slug, count(h.ref)::int as homes
       from unnest(
         ${list(plans.map((p) => p.slug))}::text[],
@@ -399,7 +401,7 @@ export async function countHomesInTx(
           ),
         )}::text[]
       ) as p(slug, county, whole, district, patterns)
-      join (${publicRows()}) h on h.county = p.county
+      join h on h.county = p.county
       where p.whole
         or (p.district <> '' and h.routing_key = p.district)
         or (p.patterns <> '' and (' ' || h.words || ' ') like any (string_to_array(p.patterns, '|')))

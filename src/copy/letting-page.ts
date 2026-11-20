@@ -282,7 +282,7 @@ export const lettingPageCopy = {
     closedNotice: 'Not taking enquiries. Anyone who enquires is told it has closed.',
     closingNotice: (at: string) => `Stops taking enquiries on ${at}.`,
     savedClosed: 'Enquiries have stopped.',
-    savedClosing: (at: string) => `Enquiries will stop on ${at}.`,
+    savedClosing: 'Saved. Enquiries will stop at the time you set.',
     savedReopened: 'Taking enquiries again.',
   },
 } as const;

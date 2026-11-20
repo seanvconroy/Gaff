@@ -1,6 +1,6 @@
 import { eq, inArray, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
-import { type Tx, withSystem } from '@/db/client';
+import { db, type Tx } from '@/db/client';
 import { lettingPhotos, lettings } from '@/db/schema';
 import type { Criteria } from '@/domain/criteria/criteria';
 import { fixtureGazetteer } from '@/domain/places/fixture';
@@ -58,10 +58,15 @@ class Rollback extends Error {}
 async function inRolledBack<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
   let result: T | undefined;
   try {
-    await withSystem(async (tx) => {
-      result = await fn(tx);
-      throw new Rollback();
-    });
+    // One snapshot for the whole comparison: other tests add homes meanwhile.
+    await db().transaction(
+      async (tx) => {
+        await tx.execute(sql`select set_config('app.rls_bypass', 'on', true)`);
+        result = await fn(tx);
+        throw new Rollback();
+      },
+      { isolationLevel: 'repeatable read' },
+    );
   } catch (error) {
     if (!(error instanceof Rollback)) throw error;
   }

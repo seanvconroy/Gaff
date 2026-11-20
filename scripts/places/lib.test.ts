@@ -106,6 +106,32 @@ describe('ADR-0018: building the place index from OpenStreetMap', () => {
         ),
       ),
     ).toBeNull();
+    // Q60: a national primary road (OSM's "trunk") is a street where it has a name: the main
+    // street of the towns it runs through. Its number is still not a name.
+    expect(
+      classify(
+        road(
+          'Main Street',
+          [
+            [52.564, -8.79],
+            [52.565, -8.785],
+          ],
+          'trunk',
+        ),
+      ),
+    ).toMatchObject({ kind: 'street', name: 'Main Street' });
+    expect(
+      classify(
+        road(
+          'N21',
+          [
+            [52.564, -8.79],
+            [52.565, -8.785],
+          ],
+          'trunk',
+        ),
+      ),
+    ).toBeNull();
     expect(
       classify(
         road(

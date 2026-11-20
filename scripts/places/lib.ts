@@ -168,7 +168,13 @@ const placeKinds: Record<string, { kind: PlaceKind; radius: number }> = {
   quarter: { kind: 'area', radius: 800 },
 };
 
+/**
+ * The roads that are streets. "trunk" is OpenStreetMap's class for a national primary road,
+ * which is the main street of the towns it runs through (Adare, Charleville) and some city
+ * streets (Q60): its number ("N21") is still left out, below.
+ */
 const roadTypes = new Set([
+  'trunk',
   'primary',
   'secondary',
   'tertiary',

@@ -48,7 +48,7 @@ vi.hoisted(() => {
 });
 
 /**
- * UX-SI-13 to UX-SI-15 (ADR-0032): signing in with a mobile number, and one person however they
+ * UX-SI-13 to UX-SI-15 (ADR-0033): signing in with a mobile number, and one person however they
  * sign in. The real Better Auth runs against the test database; texts go to the outbox, and
  * Google and Apple are the stand-ins.
  */

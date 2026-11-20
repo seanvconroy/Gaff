@@ -119,7 +119,7 @@ type CodeSignIn =
     };
 
 /**
- * One person, however they sign in (ADR-0032). The right code, in the browser that asked for it:
+ * One person, however they sign in (ADR-0033). The right code, in the browser that asked for it:
  *
  * - by text, to a number that vouches for its owner: its owner is signed in;
  * - by text, to any other number: nobody is signed in yet (the email is asked for);

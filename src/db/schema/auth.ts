@@ -109,7 +109,7 @@ export const passkeys = pgTable(
 );
 
 /**
- * UX-SI-13 (ADR-0032): the mobile number a person signs in with, if they have one. One number a
+ * UX-SI-13 (ADR-0033): the mobile number a person signs in with, if they have one. One number a
  * person, and one person a number. A code by text to it signs its owner in while `provenAt` is
  * within 180 days (src/domain/auth/mobile.ts); after that, or for a number nobody has, the
  * holder proves their email too and the number goes to whoever does.

@@ -2,7 +2,7 @@
 
 - Status: Accepted (BA-8, brought across from the live line's sign-in work, AU). Extends [ADR-0015](0015-sign-in-google-apple-codes-passkeys.md).
 - Date: 2026-11-19
-- Changed by [ADR-0032](0032-mobile-sign-in-and-one-person-across-methods.md) (20 November 2026): where Google or Apple doesn't host the address, a code now goes to it as the provider comes back, and entering it connects the provider. The rule itself (AU4) stands.
+- Changed by [ADR-0033](0033-mobile-sign-in-and-one-person-across-methods.md) (20 November 2026): where Google or Apple doesn't host the address, a code now goes to it as the provider comes back, and entering it connects the provider. The rule itself (AU4) stands.
 
 ## Context
 

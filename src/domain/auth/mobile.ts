@@ -1,5 +1,5 @@
 /**
- * UX-SI-13: a mobile number as a way in, by a six-digit code sent by text (Q60, ADR-0032).
+ * UX-SI-13: a mobile number as a way in, by a six-digit code sent by text (Q61, ADR-0033).
  *
  * The rules here are pure: which numbers Gaff texts, how one is read from what a person typed,
  * how long a number still vouches for its owner, and how it's shown. Sending and storing are in

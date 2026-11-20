@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: 'Privacy notice' };
  * Gaff's own privacy notice, for people with an account: the one the sign-in screen links to
  * (UX-SI-1). DRAFT wording for the solicitor to review before launch (section 11). It covers
  * what signing in keeps, and names Google and Apple, as Q30 asks, and Sinch for a code by text
- * (Q60). A renter's notice for one
+ * (Q61). A renter's notice for one
  * letting is the operator's, at /privacy/[slug], and is unchanged.
  */
 export default function PrivacyNoticePage() {

@@ -91,7 +91,7 @@ const schema = z
     SINCH_API_TOKEN: z.string().optional(),
     SINCH_FROM: z.string().optional(),
     /**
-     * UX-SI-13 (ADR-0032): every sign-in text Gaff may send in an hour, to anyone. Past it,
+     * UX-SI-13 (ADR-0033): every sign-in text Gaff may send in an hour, to anyone. Past it,
      * sign-in by mobile asks for an email until the hour is out. 0 switches sign-in by mobile off.
      */
     SIGN_IN_TEXTS_PER_HOUR: z.coerce.number().int().min(0).default(300),

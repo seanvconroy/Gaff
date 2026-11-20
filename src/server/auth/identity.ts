@@ -27,7 +27,7 @@ import { limitFromAddress, type HookContext } from './limits';
  * Hide My Email for Apple. For any other address the provider only knows the person once had
  * it, so the mailbox itself has to say yes, with a code (ADR-0015's "take back by code").
  *
- * UX-SI-15 (ADR-0032): that code goes out here, as the provider comes back, to the address the
+ * UX-SI-15 (ADR-0033): that code goes out here, as the provider comes back, to the address the
  * provider named, and the person lands on the code screen. The code carries the provider's
  * account: entering it signs in whoever has the address (or makes them) and connects the
  * provider, in one step. Nothing is joined before the mailbox says yes. Where no code can go

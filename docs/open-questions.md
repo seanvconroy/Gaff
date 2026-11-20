@@ -480,11 +480,11 @@ Recorded on 20 November 2026, when every package was merged. None holds up the s
 - **Needs a key or an account before it does anything on the test copy:** the Google map (`GOOGLE_MAPS_API_KEY`), the real model (`ANTHROPIC_API_KEY`), a private bucket for documents and, in production, for photos.
 - **Two people on Gaff's team list** are needed for an appeal to be decided by someone else.
 
-### Q60. Signing in with a mobile number, and one account however you sign in
+### Q61. Signing in with a mobile number, and one account however you sign in
 
 Sean, on 20 November 2026, with Airbnb's sign-in as the standard: sign up or sign in with a phone number or an email, each with a one-time code, or with Google or Apple, and have every one of them reach the same account. His example was an account made with Google, opened later with a mobile number and the same email.
 
-**Decision (Sean, 20 November 2026):** build it. It is built ([ADR-0032](adr/0032-mobile-sign-in-and-one-person-across-methods.md), UX-SI-13 to UX-SI-15): one field for an email or a mobile number; a code by text through Sinch, which is already approved (rule 10); a number Gaff hasn't seen asks for the email next and joins the account that has it; and a Google or Apple account that can't vouch for its address is sent a code and connected with it, in place of the dead end recorded in Q57.
+**Decision (Sean, 20 November 2026):** build it. It is built ([ADR-0033](adr/0033-mobile-sign-in-and-one-person-across-methods.md), UX-SI-13 to UX-SI-15): one field for an email or a mobile number; a code by text through Sinch, which is already approved (rule 10); a number Gaff hasn't seen asks for the email next and joins the account that has it; and a Google or Apple account that can't vouch for its address is sent a code and connected with it, in place of the dead end recorded in Q57.
 
 **One difference from Airbnb, on purpose.** Airbnb shows "We've found your account", with the account's email and part of its phone number, as soon as an email is typed. Gaff shows it once the code sent to that email has been entered. Otherwise anyone could learn whether an address has an account, and see part of its owner's number.
 

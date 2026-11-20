@@ -54,7 +54,7 @@ export const signInCopy = {
       'We couldn’t send the text. Check the number and try again, or enter your email instead.',
     tooManyTexts:
       'We’ve sent a few codes to that number. Wait 10 minutes, then try again, or enter your email instead.',
-    /** The hour's texts are used up (ADR-0032). Nothing about why. */
+    /** The hour's texts are used up (ADR-0033). Nothing about why. */
     textsPaused: 'We can’t send texts right now. Enter your email instead.',
     /** States table: "Email didn't send". */
     notSent: 'We couldn’t send the code. Check the address and try again.',

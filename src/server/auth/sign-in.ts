@@ -142,7 +142,7 @@ async function send(input: {
 export type NoText =
   /** Sign-in by mobile isn't offered here. */
   | { sent: false; reason: 'off' }
-  /** The hour's texts are used up, for everyone (ADR-0032). */
+  /** The hour's texts are used up, for everyone (ADR-0033). */
   | { sent: false; reason: 'texts_paused' };
 
 async function sendText(input: {

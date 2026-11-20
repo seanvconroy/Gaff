@@ -47,7 +47,7 @@ Sean agreed the plan on 19 November 2026. The decisions are Q50 to Q54 in [open-
 
 ## Sign-in, joined up (20 November 2026)
 
-Sean asked for Airbnb's standard: a phone number or an email with a one-time code, or Google or Apple, all reaching the same account (Q60, [ADR-0032](adr/0032-mobile-sign-in-and-one-person-across-methods.md)).
+Sean asked for Airbnb's standard: a phone number or an email with a one-time code, or Google or Apple, all reaching the same account (Q61, [ADR-0033](adr/0033-mobile-sign-in-and-one-person-across-methods.md)).
 
 | Requirement | What | Proven by |
 | --- | --- | --- |
@@ -55,7 +55,7 @@ Sean asked for Airbnb's standard: a phone number or an email with a one-time cod
 | UX-SI-14: a number Gaff hasn't seen finds its account | The right code by text signs nobody in for a number nobody has (or one unused for 180 days): "What's your email?" follows, and a code goes to that address carrying the number. Entering it signs in the account that has the address, or makes one, and joins the number. "We've found your account" is shown for an account that was already there, and only after the code. The owner gets a security email | As above |
 | UX-SI-15: Google or Apple that can't vouch for the address | No dead end: a code goes to the address as the provider comes back, and entering it signs the person in and connects the provider in one step. ADR-0019's rule stands: nothing is joined on a provider's say-so | `tests/integration/ux-si-mobile.test.ts`, `tests/e2e/ux-si-sign-in.spec.ts` |
 
-Left open, on purpose (Q60):
+Left open, on purpose (Q61):
 
 - **Nothing is texted until Sinch is set up.** On the test copy the field still reads "Email". Sinch's settings, a sender registered for Ireland and a spend cap are on the launch checklist.
 - **A text alone opens any account**, an agent's included. "Confirm it's you" is still a passkey or an email code. Sean to say if people who let homes should need more.
@@ -281,6 +281,6 @@ Left open, on purpose:
 
 ## Known issues
 
-- **One journey fails on the default branch, and did before sign-in was touched:** `ui-components.spec.ts`, UX-DS-20, on the focus ring of the home's pin on the component page (an ink ring where the brand colour is wanted). Found on 20 November 2026 while building Q60; not fixed there.
+- **One journey fails on the default branch, and did before sign-in was touched:** `ui-components.spec.ts`, UX-DS-20, on the focus ring of the home's pin on the component page (an ink ring where the brand colour is wanted). Found on 20 November 2026 while building Q61; not fixed there.
 - **Interim sender:** the test copy can send everything from Resend's test address (`MAIL_FROM_ADDRESS=onboarding@resend.dev`). Resend delivers that only to the Resend account owner's inbox, so renters, landlords and other members get nothing until Gaff's own sending domain is verified and the setting is removed.
 - **Dark theme:** new in A4. It passes WCAG AA for every pair the screens use, and the dashboard, a letting, Approvals and the booking screen have been checked in it, but the founders haven't reviewed it yet. (A4 fixed the old dark-theme problem with text on `forest`: text on `navy` now uses `nav-ink`, 9.01:1.)

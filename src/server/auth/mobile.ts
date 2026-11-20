@@ -10,7 +10,7 @@ import { countTry, triesSoFar } from './limits';
 import { noteSignInChangeAfter } from './security';
 
 /**
- * UX-SI-13, UX-SI-14 (ADR-0032): the mobile number a person signs in with. Who has a number,
+ * UX-SI-13, UX-SI-14 (ADR-0033): the mobile number a person signs in with. Who has a number,
  * whether it still vouches for them, and joining one to a person who has just proved both the
  * number (a code by text) and their email (a code by email, in the same browser).
  */

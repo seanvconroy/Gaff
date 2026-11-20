@@ -15,7 +15,7 @@ import {
 } from './support';
 
 /**
- * UX-SI-13, UX-SI-14 (ADR-0032): signing in with a mobile number, through the real screens, at a
+ * UX-SI-13, UX-SI-14 (ADR-0033): signing in with a mobile number, through the real screens, at a
  * phone's width and a laptop's. Texts go to the development outbox, as email does.
  */
 const widths = [390, 1280] as const;

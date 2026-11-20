@@ -1,6 +1,6 @@
-# ADR-0032: Sign in with a mobile number, and one person however they sign in
+# ADR-0033: Sign in with a mobile number, and one person however they sign in
 
-- Status: Accepted (Sean, 20 November 2026, open question Q60). Adds to [ADR-0015](0015-sign-in-google-apple-codes-passkeys.md) and changes one row of [ADR-0019](0019-sign-in-hardened.md)'s rule for joining Google or Apple (AU4).
+- Status: Accepted (Sean, 20 November 2026, open question Q61). Adds to [ADR-0015](0015-sign-in-google-apple-codes-passkeys.md) and changes one row of [ADR-0019](0019-sign-in-hardened.md)'s rule for joining Google or Apple (AU4).
 - Date: 2026-11-20
 
 ## Context
@@ -72,7 +72,7 @@ An address the provider says it never checked is still refused, and nothing is s
 - New fixed wording for the solicitor: the text, the two lines the sign-in email gains, the "mobile number added/removed" security email, and the privacy notice's paragraph on mobile numbers and Sinch.
 - A mobile number is added by signing in with it, or on Profile while signed in: "Confirm it's you", then a code texted to the number (`add_mobile`, a code for that person and that number together). Either way the number leaves anyone else who had it, who is told.
 - Production needs Sinch's settings (it already refuses the fake sender), a sender registered for Ireland, and a spend cap at Sinch (launch checklist).
-- A text sign-in is only as safe as the phone number. That is accepted for getting in, and bounded by the 180 days and by what "Confirm it's you" protects. If operators' accounts should need more than a text, that is one condition in `signInWith` (Q60).
+- A text sign-in is only as safe as the phone number. That is accepted for getting in, and bounded by the 180 days and by what "Confirm it's you" protects. If operators' accounts should need more than a text, that is one condition in `signInWith` (Q61).
 
 ## Alternatives considered
 

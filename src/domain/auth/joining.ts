@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { signInProviderSchema, type SignInMethod, type SignInProvider } from './methods';
 
 /**
- * UX-SI-14, UX-SI-15: one person, however they sign in (ADR-0032). A sign-in code sent to an
+ * UX-SI-14, UX-SI-15: one person, however they sign in (ADR-0033). A sign-in code sent to an
  * email address can carry one more way in, to be joined to whoever proves that address:
  *
  * - a mobile number this browser has just proved by text, which nobody has (or whose owner

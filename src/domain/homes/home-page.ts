@@ -2,6 +2,7 @@ import { firstNameOf } from '@/domain/accounts/first-run';
 import { homeWordingReason } from '@/domain/compliance/who-should-apply';
 import { type Criteria, lettingDetailsParts } from '@/domain/criteria/criteria';
 import { kindOfHome } from '@/domain/frame/frame';
+import { contactDetailsIn } from '@/domain/listings/checks';
 import { furnishing, parkingOptions } from '@/domain/lettings/new-letting';
 import { previewBer } from '@/domain/lettings/preview';
 import { onGaffNeeds } from '@/domain/lettings/setup';
@@ -161,9 +162,13 @@ export interface HomeFacts {
   facts: readonly string[];
 }
 
-/** Words about the home that pass the wording check (rule 3, UX-LS-6). Anything else is left out. */
+/**
+ * Words about the home that pass the wording check (rule 3, UX-LS-6) and hold no contact details
+ * (M45, BA-10: both are refused at the field; this keeps older words in line). Anything else is
+ * left out.
+ */
 function passes(text: string): boolean {
-  return homeWordingReason(text) === null;
+  return homeWordingReason(text) === null && contactDetailsIn(text) === null;
 }
 
 /** The title: the address, as renters know the home. */

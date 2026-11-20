@@ -74,6 +74,8 @@ describe('UX-MT-3: the letting details line is Gaff’s, in fixed words, and can
         'hiddenReason',
         // BA-9: where a hidden listing stands with Gaff's team: one of four codes.
         'hiddenStage',
+        // BA-10: what took it off: a report or Gaff's checks. A code.
+        'hiddenAfter',
         'myhomeUrl',
         'parking',
         'photosUrl',

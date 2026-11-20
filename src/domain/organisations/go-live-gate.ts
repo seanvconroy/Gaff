@@ -15,8 +15,17 @@ import type { OrganisationKind } from './kinds';
  *   their own profile; `identityVerifiedAt` is the date alone, on their organisation of one, so
  *   every path that asks this rule can read it. Nothing waits: the step is theirs to do, then
  *   they go live.
+ * - BA-10 (M107): a lister whose listings a person on Gaff's team paused, after a decided case,
+ *   with reasons and one appeal (src/server/trust/pauses.ts). Like a lapsed licence: its live
+ *   lettings carry on with the renters already in them, none of its homes is public, and no new
+ *   one goes live until the pause is lifted.
  */
-export type GoLiveHold = 'no_licence' | 'being_confirmed' | 'licence_lapsed' | 'identity_needed';
+export type GoLiveHold =
+  | 'no_licence'
+  | 'being_confirmed'
+  | 'licence_lapsed'
+  | 'identity_needed'
+  | 'paused';
 
 export type GoLiveGate =
   | { open: true }
@@ -38,9 +47,15 @@ export interface LettingOrganisation {
    * keep it on their profile. Null: not verified. Read only for a private landlord.
    */
   identityVerifiedAt: Date | null;
+  /**
+   * BA-10 (M107): when Gaff's team paused its listings. Null or left out: they aren't. Every
+   * server path that reads the organisation passes it (`gateColumns`, the public query).
+   */
+  listingsPausedAt?: Date | null;
 }
 
 export function goLiveGate(organisation: LettingOrganisation): GoLiveGate {
+  if (organisation.listingsPausedAt) return { open: false, reason: 'paused', waits: false };
   if (organisation.kind === 'private_landlord') {
     return organisation.identityVerifiedAt
       ? { open: true }

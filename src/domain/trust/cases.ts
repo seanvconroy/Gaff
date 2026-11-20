@@ -9,13 +9,20 @@ import { reportReasons, type ReportReason } from '@/domain/homes/report';
  * appeal once. The rules may hide a listing at once on strong signs of a scam, until a person
  * looks: that is never a decision, and it is always undone or confirmed by one.
  *
- * Pausing or suspending a lister's account (M107) is not built: `accountActionsBuilt` is the
- * named seam, and nothing here or on the internal page offers one.
+ * BA-10 (M29): the checks a home passes as it goes public can hold it for a person too, as a
+ * case of its own kind (`hold`), decided the same way.
+ *
+ * BA-10 (M107): a person on Gaff's team may pause a lister's listings after a decided case, with
+ * a statement of reasons and one appeal (src/server/trust/pauses.ts). Suspending an account is
+ * not built.
  */
-export const accountActionsBuilt = false as const;
+export const accountActionsBuilt = true as const;
 
-/** What started a case: reports from visitors, or the lister asking Gaff to look again. */
-export const caseKinds = ['report', 'appeal'] as const;
+/**
+ * What started a case: reports from visitors; the checks at going public (`hold`, BA-10); or
+ * the lister asking Gaff to look again.
+ */
+export const caseKinds = ['report', 'hold', 'appeal'] as const;
 export type CaseKind = (typeof caseKinds)[number];
 
 /** What a person decides: the listing stays up (or goes back up), or it is hidden. */
@@ -26,12 +33,22 @@ export type CaseDecision = (typeof caseDecisions)[number];
  * M98: the facts a decision to hide relies on, chosen from a fixed list, so the statement the
  * lister receives is in fixed words (for the solicitor) and nobody writes free text to anyone.
  */
-export const caseFacts = ['reports', 'photos', 'description', 'rent', 'address', 'lister'] as const;
+export const caseFacts = [
+  'reports',
+  /** BA-10: what Gaff's checks found as the home went public. */
+  'checks',
+  'photos',
+  'description',
+  'rent',
+  'address',
+  'lister',
+] as const;
 export type CaseFact = (typeof caseFacts)[number];
 
 /**
  * Where a hidden listing stands, as its lister sees it (on `lettings.hidden_stage`):
- * - `held`: the rules hid it on strong signs of a scam; a person hasn't looked yet;
+ * - `held`: the rules hid it on strong signs of a scam, or the checks held it as it went public
+ *   (`lettings.hidden_after = 'check'`, BA-10); a person hasn't looked yet;
  * - `decided`: a person hid it, with reasons; the lister may ask Gaff to look again, once;
  * - `appealed`: the lister asked, and a different person is looking;
  * - `final`: the appeal was decided and the listing stays hidden.
@@ -91,9 +108,8 @@ export function joinedDueBy(open: { dueBy: Date; reasons: readonly ReportReason[
 
 /**
  * M97: strong signs of a scam hide a listing at once, before a person looks: two scam reports
- * on its open case, or one on a listing that was hidden before. (A listing held for a risk
- * signal at publishing counts as hidden before, once such holds exist: `hiddenBefore` is the
- * seam.)
+ * on its open case, or one on a listing that was hidden before. A listing held by the checks as
+ * it went public (BA-10) counts as hidden before: its case has `heldAt`.
  */
 export function strongScamSignals(input: { scamReports: number; hiddenBefore: boolean }): boolean {
   return input.scamReports >= 2 || (input.scamReports >= 1 && input.hiddenBefore);

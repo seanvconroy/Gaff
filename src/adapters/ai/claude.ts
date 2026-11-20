@@ -9,6 +9,7 @@ import type { MessagesClient } from './clients';
 import * as advert from './prompts/advert';
 import * as answers from './prompts/answers';
 import * as people from './prompts/people';
+import * as wording from './prompts/wording';
 
 /**
  * ADR-0017: each task once, for either client. Claude Opus 5.5 thinks adaptively on every call;
@@ -23,6 +24,7 @@ const versions: Record<AiTask, string> = {
   answers: answers.version,
   advert: advert.version,
   people: people.version,
+  wording: wording.version,
 };
 
 /** Room for adaptive thinking as well as the answer; only what's used is billed. */
@@ -130,5 +132,14 @@ export function claudeProvider(config: {
       });
       return { ...reply, output: reply.output === null ? null : people.withoutNulls(reply.output) };
     },
+    checkWording: (request) =>
+      run({
+        effort: wording.effort,
+        timeoutMs: wording.timeoutMs,
+        maxRetries: wording.maxRetries,
+        schema: wording.schema,
+        system: wording.system,
+        content: wording.userContent(request),
+      }),
   };
 }

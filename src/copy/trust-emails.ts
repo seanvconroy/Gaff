@@ -15,6 +15,8 @@ import type { AccountEmail } from './account-emails';
 /** What a decision to hide relies on, as the lister reads it: after "What we relied on: ". */
 export const caseFactWords: Record<CaseFact, string> = {
   reports: 'the reports we received',
+  /** BA-10 (M29): a listing the checks held as it went public. */
+  checks: 'the checks Gaff makes on every home before it goes on gaff.ie',
   photos: 'the home’s photos',
   description: 'the home’s description',
   rent: 'the rent asked',

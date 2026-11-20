@@ -3,6 +3,18 @@ import { inASentence } from '@/domain/answers/sentences';
 import type { AiProvider, AiReply } from '@/ports/ai';
 import { readAdvertByPattern } from './fake-reader';
 
+/**
+ * BA-10: the stand-in's wording check knows a few indirect phrases the word list lets through,
+ * so development and tests can see a finding hold a listing. The real check is the model's.
+ */
+export const fakeUnfairPhrases: Array<[RegExp, string]> = [
+  [/\blocals preferred\b/i, 'race'],
+  [/\benglish speakers only\b/i, 'race'],
+  [/\bsuit a gentleman\b/i, 'gender'],
+  [/\bmust have a permanent job\b/i, 'housing_assistance'],
+  [/\bnot suitable for wheelchair users\b/i, 'disability'],
+];
+
 /** Words a question uses, mapped to the words in a fact that answer it. */
 const topics: Array<[RegExp, RegExp]> = [
   [/\bpark/i, /\bparking\b/i],
@@ -44,6 +56,7 @@ const reply = <T>(output: T): AiReply<T> => ({
  * - `people`: plain code has already read everything it can (src/domain/fit/ask.ts), so the
  *   stand-in understands nothing more: whatever plain code couldn't read is declined, in the
  *   fixed words, exactly as with the model off.
+ * - `wording`: it finds only the few phrases in `fakeUnfairPhrases`, word for word.
  */
 export const fakeAi: AiProvider = {
   name: 'fake',
@@ -65,6 +78,14 @@ export const fakeAi: AiProvider = {
   },
   async readPeopleQuestion() {
     return reply<unknown>({ filter: null });
+  },
+  async checkWording({ text }) {
+    return reply<unknown>({
+      findings: fakeUnfairPhrases.flatMap(([pattern, ground]) => {
+        const found = pattern.exec(text);
+        return found ? [{ phrase: found[0], ground }] : [];
+      }),
+    });
   },
 };
 

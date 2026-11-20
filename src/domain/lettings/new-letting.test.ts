@@ -102,6 +102,19 @@ describe('R1: create a letting', () => {
     expect(result.error?.issues[0]?.message).toContain('housing assistance');
   });
 
+  it('M45: refuses contact details in the description or a fact, at the field', () => {
+    const described = schema.safeParse({
+      ...valid,
+      description: 'A bright flat. Text 087 123 4567 to view.',
+    });
+    expect(described.error?.issues[0]).toMatchObject({
+      path: ['description'],
+      message: expect.stringContaining('Take out a phone number.'),
+    });
+    const fact = schema.safeParse({ ...valid, otherFacts: 'Gas heating\nEmail me at a@b.ie' });
+    expect(fact.error?.issues[0]?.message).toContain('Take out an email address.');
+  });
+
   it('turns the key facts into plain answers the AI can use (R8)', () => {
     expect(
       describeKeyFacts({

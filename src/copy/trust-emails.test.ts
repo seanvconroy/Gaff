@@ -136,6 +136,7 @@ describe('M97, M98: telling the lister, word for word', () => {
     });
     expect(caseFactWords).toEqual({
       reports: 'the reports we received',
+      checks: 'the checks Gaff makes on every home before it goes on gaff.ie',
       photos: 'the home’s photos',
       description: 'the home’s description',
       rent: 'the rent asked',

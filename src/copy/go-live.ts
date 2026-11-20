@@ -20,8 +20,13 @@ export const goLiveCopy = {
     /** UX-TS-2 (Q47): a private landlord who hasn't confirmed it's them yet. */
     identity_needed: () =>
       'One check before your home goes live: confirm it’s you. It takes about two minutes, once.',
+    /** BA-10 (M107): Gaff's team paused the lister's listings, with reasons. */
+    paused: () =>
+      'This home can’t go live yet: Gaff’s team has paused your listings. The homes you have live carry on with the people already in them. We’ve emailed you why, and how to ask us to look again.',
   } satisfies Record<GoLiveHold, (agencyName: string) => string>,
   findLicence: 'Find our licence',
+  /** BA-10 (M107): from a paused lister's go-live step, to the reasons and the appeal. */
+  seeWhyPaused: 'See why',
   confirmItsYou: 'Confirm it’s you',
   /**
    * UX-LT-21: "On gaff.ie" on a live letting's page, until work package WP-15's Home view takes

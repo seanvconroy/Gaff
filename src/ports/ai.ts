@@ -71,6 +71,16 @@ export interface PeopleQuestionRequest {
   today: string;
 }
 
+/**
+ * Task `wording` (BA-10, P12 to P14): a public home's description, checked for wording that may
+ * exclude people on a protected ground, after the word list has passed it. It is given the
+ * description alone, with contact details already refused at the field and names stripped.
+ */
+export interface WordingRequest {
+  /** The description. Untrusted: data, never instructions. */
+  text: string;
+}
+
 export interface AiProvider {
   readonly name: AiProviderName;
   /** The model every task uses (P2), without Bedrock's prefix. */
@@ -89,4 +99,10 @@ export interface AiProvider {
    * enquiry, or nothing.
    */
   readPeopleQuestion(request: PeopleQuestionRequest): Promise<AiReply<unknown>>;
+  /**
+   * What the wording check found. It is trusted for nothing: `checkWordingReading`
+   * (src/domain/listings/wording.ts) keeps only phrases copied from the text, with a known
+   * ground, and a finding only ever holds a listing for a person.
+   */
+  checkWording(request: WordingRequest): Promise<AiReply<unknown>>;
 }

@@ -179,11 +179,27 @@ describe('UX-LS-10: a let home', () => {
     const member = await createTestMember();
     const { lettingId, ref } = await aHomeOnGaff(member);
     await closeLetting(member, lettingId, 'let');
-    expect(await publicHomePage(ref)).toEqual({
+    const page = await publicHomePage(ref);
+    expect(page).toMatchObject({
       state: 'let',
       title: '12 Ranelagh Road, Ranelagh, Dublin 6',
       place: 'Ranelagh',
     });
+    // M73, M74: what similar homes are found by, and nothing about any person.
+    expect(page?.state === 'let' && Object.keys(page.facts).sort()).toEqual(
+      [
+        'addressLine1',
+        'addressLine2',
+        'area',
+        'bedrooms',
+        'county',
+        'eircode',
+        'point',
+        'propertyType',
+        'ref',
+        'rentCents',
+      ].sort(),
+    );
     expect(await publicHomes({ ref })).toEqual([]);
   });
 

@@ -2,39 +2,37 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Suspense } from 'react';
-import { mapWords } from '@/copy/map';
-import { placeDataCopy } from '@/copy/place-data';
 import { searchCopy } from '@/copy/search';
-import { listAHomeHref, listAHomeSignedOutHref } from '@/domain/navigation/context';
 import { firstScreenRedirect } from '@/domain/navigation/context';
-import { mapAreaOf } from '@/domain/map/camera';
 import { isLikelyBot } from '@/domain/map/robots';
-import {
-  filtersFromParams,
-  filtersToParams,
-  hasFilters,
-  searchHref,
-} from '@/domain/search/filters';
-import { irishToday } from '@/lib/format';
+import { filtersFromParams, hasFilters, searchHref } from '@/domain/search/filters';
+import { canonicalSearchPath } from '@/domain/search/place-pages';
 import { mapSettings } from '@/lib/map';
 import { currentPerson } from '@/server/context/current-person';
 import { enquiriesNeedingThem } from '@/server/renter/enquiries';
 import { savedHomeRefs } from '@/server/saved/homes';
 import { keepsSearch } from '@/server/saved/searches';
-import { defaultNearMetres } from '@/domain/search/places';
 import { resolveSearch } from '@/server/search/where';
-import { ListAndMap } from '@/ui/ListAndMap';
-import { SearchBox } from '@/ui/SearchBox';
-import { searchWords } from './_search/actions';
-import { Results, ResultsLoading, type Saver } from './_search/Results';
-import { ResultsMap } from './_search/ResultsMap';
-import { SearchControls } from './_search/SearchControls';
+import type { Saver } from './_search/Results';
+import { SearchView } from './_search/SearchView';
 import styles from './_search/search.module.css';
 
-export const metadata: Metadata = { title: searchCopy.title };
-
 type Query = Record<string, string | string[] | undefined>;
+
+/**
+ * M58, as far as places' pages go (BA-12): a search for a place alone has that place's page as
+ * its canonical address. Every other search is never indexed: the first screen says "noindex"
+ * whatever the deployment (next.config.ts, src/app/layout.tsx).
+ */
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<Query>;
+}): Promise<Metadata> {
+  const { filters, where } = await resolveSearch(filtersFromParams(await searchParams));
+  const canonical = canonicalSearchPath(filters, where);
+  return { title: searchCopy.title, ...(canonical ? { alternates: { canonical } } : {}) };
+}
 
 /**
  * The public site's first screen, and Search on the renting side (UX-SR-1 to UX-SR-9, UX-NV-19,
@@ -77,23 +75,19 @@ export default async function FirstScreen({ searchParams }: { searchParams: Prom
     : { signedIn: false };
   // M132: no map for robots, so Google's script never loads and no map load is billed for them.
   const map = isLikelyBot((await headers()).get('user-agent')) ? null : mapSettings();
-  const results = (beside: boolean) => (
-    <Suspense key={searchHref(filters)} fallback={<ResultsLoading />}>
-      <Results filters={filters} g={g} saver={saver} beside={beside} />
-    </Suspense>
-  );
   return (
-    <div className={styles.page}>
-      <SearchBox
-        id="search-question"
-        question={searchCopy.question}
-        placeholder={searchCopy.placeholder}
-        submitLabel={searchCopy.search}
-        action={searchWords}
-        primary={!searching}
-        hidden={rent ? { rent } : {}}
-      >
-        {unclear ? (
+    <SearchView
+      question={searchCopy.question}
+      filters={filters}
+      g={g}
+      placeName={placeName}
+      where={where}
+      saver={saver}
+      map={map}
+      keepRent={rent === '1'}
+      signedIn={person !== null}
+      understood={
+        unclear ? (
           <p className={styles.unclear} role="status">
             {maybe?.where ? (
               <>
@@ -104,44 +98,9 @@ export default async function FirstScreen({ searchParams }: { searchParams: Prom
             ) : null}
             {searchCopy.unclear}
           </p>
-        ) : null}
-        <SearchControls
-          filters={filters}
-          placeName={placeName}
-          near={
-            where?.kind === 'near' ? { defaultKm: defaultNearMetres(where.place, g) / 1000 } : null
-          }
-          keepRent={rent === '1'}
-          today={irishToday()}
-        />
-        <p className={styles.promise}>{searchCopy.promise}</p>
-      </SearchBox>
-      {map ? (
-        <ListAndMap
-          words={{ showMap: mapWords.showMap, showList: mapWords.showList }}
-          list={results(true)}
-          map={
-            <ResultsMap
-              settings={map}
-              area={mapAreaOf(where, filters.box)}
-              query={new URLSearchParams(filtersToParams(filters)).toString()}
-              filters={filters}
-              keepRent={rent === '1'}
-            />
-          }
-        />
-      ) : (
-        results(false)
-      )}
-      <p className={styles.foot}>
-        {searchCopy.foot.line}{' '}
-        <Link href={person ? listAHomeHref : listAHomeSignedOutHref}>{searchCopy.foot.action}</Link>
-        <span className={styles.credit}>
-          {/* M56: the place index's licence asks for its credit where search uses it. */}
-          <Link href="/map-and-place-data">{placeDataCopy.footLink}</Link>
-        </span>
-      </p>
-    </div>
+        ) : null
+      }
+    />
   );
 }
 

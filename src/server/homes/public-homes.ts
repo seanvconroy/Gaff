@@ -336,7 +336,47 @@ export type PublicHomePage =
       title: string;
       /** "Ranelagh": for "See other homes in Ranelagh". */
       place: string;
+      /**
+       * M73, M74 (BA-12): what similar homes are found by, and where its place's page is:
+       * facts about the home and where search places it, as for `publicHomesForSearch`. Read on
+       * the server only; the page shows none of it.
+       */
+      facts: LetHomeFacts;
     };
+
+/** A let home's facts, for similar homes and its place (M73, M74). Nothing about any person. */
+export interface LetHomeFacts {
+  ref: string;
+  addressLine1: string;
+  addressLine2: string | null;
+  area: string;
+  county: string;
+  eircode: string | null;
+  point: Point | null;
+  propertyType: string;
+  bedrooms: number;
+  rentCents: number;
+}
+
+function letPageOf({ row }: Loaded): PublicHomePage {
+  return {
+    state: 'let',
+    title: homeTitle(row),
+    place: placeOf(row.area),
+    facts: {
+      ref: row.publicRef,
+      addressLine1: row.addressLine1,
+      addressLine2: row.addressLine2,
+      area: row.area,
+      county: row.county,
+      eircode: row.eircode,
+      point: publicPointOf(row),
+      propertyType: row.propertyType,
+      bedrooms: row.bedrooms,
+      rentCents: row.monthlyRentCents,
+    },
+  };
+}
 
 /** A home's page by its public reference. Null: "not available", whatever the reason. */
 export async function publicHomePage(ref: string): Promise<PublicHomePage | null> {
@@ -351,9 +391,7 @@ export async function publicHomePage(ref: string): Promise<PublicHomePage | null
   if (!found) return null;
   const state = stateOf(found);
   if (state === 'live') return { state, home: toPublicHome(found) };
-  if (state === 'let') {
-    return { state, title: homeTitle(found.row), place: placeOf(found.row.area) };
-  }
+  if (state === 'let') return letPageOf(found);
   return null;
 }
 
@@ -377,13 +415,7 @@ export async function publicHomePages(
   for (const found of loaded) {
     const state = stateOf(found);
     if (state === 'live') pages.set(found.row.publicRef, { state, home: toPublicHome(found) });
-    else if (state === 'let') {
-      pages.set(found.row.publicRef, {
-        state,
-        title: homeTitle(found.row),
-        place: placeOf(found.row.area),
-      });
-    }
+    else if (state === 'let') pages.set(found.row.publicRef, letPageOf(found));
   }
   return pages;
 }

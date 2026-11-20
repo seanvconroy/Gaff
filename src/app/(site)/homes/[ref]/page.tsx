@@ -15,6 +15,7 @@ import {
   homeDescription,
   homeHighlights,
   homeLettingDetails,
+  homeHref,
   homesInHref,
   homeSummary,
   homePageRobots,
@@ -23,6 +24,8 @@ import {
   sharePreview,
 } from '@/domain/homes/home-page';
 import { filtersFromParams } from '@/domain/search/filters';
+import { placePageName, placePath } from '@/domain/search/place-pages';
+import { homeStructuredData, jsonForScript } from '@/domain/search/structured-data';
 import { askHref } from '@/domain/search/links';
 import { env } from '@/lib/env';
 import { formatRent, irishToday } from '@/lib/format';
@@ -30,6 +33,7 @@ import { readRenterProfile } from '@/server/accounts/renter-profile';
 import { currentPerson } from '@/server/context/current-person';
 import { type PublicHome, publicHomePage } from '@/server/homes/public-homes';
 import { savedHomeRefs } from '@/server/saved/homes';
+import { similarTo, similarToLiveHome } from '@/server/search/similar';
 import { ActionCard } from '@/ui/ActionCard';
 import { ButtonLink } from '@/ui/Button';
 import { Disclosure } from '@/ui/Disclosure';
@@ -38,6 +42,7 @@ import { Outcome } from '@/ui/Outcome';
 import { ShowMore } from '@/ui/ShowMore';
 import { StatusPill } from '@/ui/StatusPill';
 import { SaveHome } from '../../_search/Saving';
+import { SimilarHomes } from '../../_search/SimilarHomes';
 import styles from './home.module.css';
 
 /** One read per request, shared by the page and its sharing preview. */
@@ -97,25 +102,44 @@ export default async function HomePage({ params, searchParams }: Params) {
   const [{ ref }, query] = await Promise.all([params, searchParams]);
   const [page, person] = await Promise.all([pageFor(ref), currentPerson()]);
   if (!page) notFound();
+  // WP-23: the hearts know which homes this person already saved.
+  const savedRefs = person ? await savedHomeRefs(person.userId) : [];
   if (page.state === 'let') {
+    // UX-LS-10, M74: it says so plainly, and offers its place's page and similar homes nearby.
+    const similar = await similarTo(page.facts);
+    const place = similar.place ? placePageName(similar.place) : page.place;
     return (
-      <div className={styles.state}>
-        <Outcome tone="info" title={copy.let.title} headingLevel={1}>
-          <p className={styles.stateHome}>{page.title}</p>
-          <p>{copy.let.text}</p>
-          <div className={styles.stateAction}>
-            <ButtonLink href={homesInHref(page.place)} variant="primary">
-              {copy.let.otherHomes(page.place)}
-            </ButtonLink>
-          </div>
-        </Outcome>
+      <div className={styles.letPage}>
+        <div className={styles.state}>
+          <Outcome tone="info" title={copy.let.title} headingLevel={1}>
+            <p className={styles.stateHome}>{page.title}</p>
+            <p>{copy.let.text}</p>
+            <div className={styles.stateAction}>
+              <ButtonLink
+                href={similar.place ? placePath(similar.place) : homesInHref(page.place)}
+                variant="primary"
+              >
+                {copy.let.otherHomes(place)}
+              </ButtonLink>
+            </div>
+          </Outcome>
+        </div>
+        <SimilarHomes
+          id="similar-homes"
+          heading={copy.similar}
+          homes={similar.homes}
+          signedIn={person !== null}
+          savedRefs={savedRefs}
+          back={homeHref(ref)}
+        />
       </div>
     );
   }
   // UX-AV-3: what search carried in goes on to "Ask to view", to be confirmed there.
   const ask = askHref(ref, filtersFromParams(query));
-  // WP-23: the heart knows whether this person already saved it.
-  const saved = person ? (await savedHomeRefs(person.userId)).includes(ref) : false;
+  const saved = savedRefs.includes(ref);
+  // M73: up to three live homes like it nearby, from the same public query search reads.
+  const similar = await similarToLiveHome(ref);
   // UX-MT-10: a signed-in renter's own kept answers, beside what the home is for. Read only for
   // them, through their own profile; nothing of it reaches whoever lets the home (UX-MT-14).
   const beside = person ? await keptBeside(person.userId, page.home.home.criteria) : [];
@@ -134,7 +158,35 @@ export default async function HomePage({ params, searchParams }: Params) {
           back={page.home.href}
         />
       }
+      similar={
+        <SimilarHomes
+          id="similar-homes"
+          heading={copy.similar}
+          homes={similar.homes}
+          signedIn={person !== null}
+          savedRefs={savedRefs}
+          back={page.home.href}
+          className={styles.block}
+        />
+      }
+      structuredData={structuredDataOf(page.home)}
     />
+  );
+}
+
+/**
+ * M111: the page's structured data, from the same public facts it shows (src/domain/search/
+ * structured-data.ts), with full web addresses, and escaped so nothing in it can end its script.
+ */
+function structuredDataOf(home: PublicHome): string {
+  const base = env().APP_URL;
+  return jsonForScript(
+    homeStructuredData({
+      url: new URL(home.href, base).href,
+      home: home.home,
+      lister: home.lister,
+      imageUrls: home.photos.map((photo) => new URL(photo.src, base).href),
+    }),
   );
 }
 
@@ -190,6 +242,8 @@ function LiveHome({
   ask,
   aboveTabBar,
   save,
+  similar,
+  structuredData,
 }: {
   /** UX-MT-10: a signed-in renter's kept answers beside the letting details. */
   beside: readonly string[];
@@ -198,6 +252,10 @@ function LiveHome({
   aboveTabBar: boolean;
   /** Save (the heart), at the top right of the title. */
   save: ReactNode;
+  /** M73: similar homes nearby, before the page's foot. */
+  similar: ReactNode;
+  /** M111: the page's structured data, as JSON safe inside a script. */
+  structuredData: string;
 }) {
   const { home, photos, floorPlans, lister, phone, ref } = found;
   const title = homeTitle(home);
@@ -296,6 +354,8 @@ function LiveHome({
             </div>
           </section>
 
+          {similar}
+
           <p className={styles.report}>
             <Link href={reportHref(ref)} className={styles.reportLink}>
               <Flag size={20} strokeWidth={1.75} aria-hidden="true" />
@@ -320,6 +380,11 @@ function LiveHome({
           aboveTabBar={aboveTabBar}
         />
       </div>
+      <script
+        type="application/ld+json"
+        // M111: structured data, escaped so no text can end the script (`jsonForScript`).
+        dangerouslySetInnerHTML={{ __html: structuredData }}
+      />
     </article>
   );
 }

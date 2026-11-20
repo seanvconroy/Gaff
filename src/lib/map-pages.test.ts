@@ -12,6 +12,10 @@ const letting = '0b0e0f2a-5f0e-4d0a-9d55-0f5a0e3f5a11';
 describe('M119: the pages that show Google’s map', () => {
   const mapPages = [
     '/',
+    // M62 (BA-12): a place's page is search, answered for that place.
+    '/to-rent',
+    '/to-rent/cork',
+    '/to-rent/dublin/ranelagh',
     `/lettings/${letting}/setup/pin`,
     // Next.js matches header rules without regard to case, so this gets the policy too.
     `/Lettings/${letting}/setup/pin`,
@@ -29,10 +33,12 @@ describe('M119: the pages that show Google’s map', () => {
     `/lettings/${letting}/setup/pins`,
     `/lettings/${letting}/setup/pin/more`,
     '/r/some-private-token',
+    '/to-rentals',
+    '/how-results-are-ordered',
     '/internal',
   ];
 
-  it('are Search and "Where is it on the map?", and nothing else', () => {
+  it('are Search, places’ pages and "Where is it on the map?", and nothing else', () => {
     for (const page of mapPages) expect(isMapPage(page), page).toBe(true);
     for (const page of otherPages) expect(isMapPage(page), page).toBe(false);
   });
@@ -57,6 +63,8 @@ describe('M119: the pages that show Google’s map', () => {
     expect(crossesMapBoundary(pin, `/lettings/${letting}/setup/rent`)).toBe(true);
     // Within either side, pages swap in place as before.
     expect(crossesMapBoundary(search, pin)).toBe(false);
+    expect(crossesMapBoundary(search, '/to-rent/dublin/ranelagh')).toBe(false);
+    expect(crossesMapBoundary('/to-rent/dublin/ranelagh', home)).toBe(true);
     expect(crossesMapBoundary(home, '/saved')).toBe(false);
     expect(crossesMapBoundary(address, '/lettings')).toBe(false);
   });

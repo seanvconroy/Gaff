@@ -26,6 +26,8 @@ export const homePageCopy = {
   /** "Ring Mary on 087 765 4321", under the lister, where they gave a number. */
   ring: (name: string, number: string) => `Ring ${name} on ${number}`,
   report: 'Report this listing',
+  /** M73, M74: up to three live homes like it nearby, on its page and once it's let. */
+  similar: 'Similar homes nearby',
   let: {
     title: 'This home has been let',
     text: 'It’s no longer taking enquiries. Homes are added to Gaff every week.',

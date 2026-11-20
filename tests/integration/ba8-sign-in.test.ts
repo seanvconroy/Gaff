@@ -604,9 +604,15 @@ describe('AU14: the nightly clean-up clears what sign-in leaves behind', () => {
       .where(eq(sessions.userId, userId));
     const ranOut = randomUUID();
     const standing = randomUUID();
-    await db()
-      .insert(verifications)
-      .values([
+    const who = randomUUID();
+    await countTry('old', who, 60, new Date(Date.now() - 25 * 60 * 60 * 1000));
+    await countTry('new', who, 60);
+
+    // The run-out verification is made in the transaction that clears it. The sign-in library
+    // deletes run-out verifications itself whenever it reads one, so made any earlier, another
+    // test file's sign-in could remove it first and leave the clean-up nothing to count.
+    const purged = await withSystem(async (tx) => {
+      await tx.insert(verifications).values([
         {
           id: ranOut,
           identifier: `state-${ranOut}`,
@@ -620,14 +626,11 @@ describe('AU14: the nightly clean-up clears what sign-in leaves behind', () => {
           expiresAt: new Date(Date.now() + 600_000),
         },
       ]);
-    const who = randomUUID();
-    await countTry('old', who, 60, new Date(Date.now() - 25 * 60 * 60 * 1000));
-    await countTry('new', who, 60);
-
-    const purged = await withSystem(async (tx) => ({
-      ...(await purgeEndedSignIns(tx, new Date())),
-      limits: await purgeOldLimits(tx, new Date()),
-    }));
+      return {
+        ...(await purgeEndedSignIns(tx, new Date())),
+        limits: await purgeOldLimits(tx, new Date()),
+      };
+    });
     expect(purged.sessions).toBeGreaterThanOrEqual(1);
     expect(purged.verifications).toBeGreaterThanOrEqual(1);
     expect(purged.limits).toBeGreaterThanOrEqual(1);

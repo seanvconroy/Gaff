@@ -15,7 +15,9 @@ import {
 
 /** UX-SI-2, UX-SI-3: one-time codes, as they are stored, sent and tried. Made-up addresses only. */
 const anEmail = () => `${randomUUID()}@test.gaff.ie`;
-const at = new Date('2026-11-14T12:00:00Z');
+// An hour from now, on the hour. Never a fixed date: the retention sweep that another test file
+// runs with the real time deletes every code sent over a day ago, and took these with it.
+const at = new Date(Math.ceil(Date.now() / 3_600_000) * 3_600_000 + 3_600_000);
 const after = (seconds: number) => new Date(at.getTime() + seconds * 1000);
 const wrong = (code: string) => (code === '111111' ? '222222' : '111111');
 

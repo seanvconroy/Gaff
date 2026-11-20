@@ -6,7 +6,11 @@ import { savedCopy } from '@/copy/saved';
 import { Button } from '@/ui/Button';
 import { SummaryList } from '@/ui/SummaryList';
 import { useToast } from '@/ui/Toast';
-import { removeSearchAction } from './actions';
+import type { AlertFrequency } from '@/domain/saved/saved';
+import { removeSearchAction, setFrequencyAction } from './actions';
+import styles from './saved.module.css';
+
+const c = savedCopy.page;
 
 /** A saved search as Saved and Profile show it: its chips in words, and where it opens. */
 export interface SearchRow {
@@ -17,6 +21,8 @@ export interface SearchRow {
   href: string;
   /** "Saved Tuesday 17 November" */
   saved: string;
+  /** M86: as soon as one is listed, or once a day at 8am. */
+  frequency: AlertFrequency;
 }
 
 /**
@@ -30,7 +36,28 @@ export function SavedSearchList({ searches }: { searches: readonly SearchRow[] }
     <SummaryList
       rows={searches.map((search) => ({
         label: <Link href={search.href}>{search.words}</Link>,
-        value: search.saved,
+        value: (
+          <span className={styles.searchValue}>
+            <span>{search.saved}</span>
+            {/* M86: how this search tells them, and the other choice, in one tap. */}
+            <span>{search.frequency === 'instant' ? c.instant : c.daily}</span>
+            <span>
+              <Button
+                variant="quiet"
+                onClick={() =>
+                  startTransition(async () => {
+                    const to = search.frequency === 'instant' ? 'daily' : 'instant';
+                    await setFrequencyAction(search.id, to);
+                    toast.show({ message: c.changedTo[to] });
+                  })
+                }
+              >
+                {search.frequency === 'instant' ? c.toDaily : c.toInstant}
+                <span className="visually-hidden"> {search.words}</span>
+              </Button>
+            </span>
+          </span>
+        ),
         action: (
           <Button
             variant="quiet"

@@ -225,7 +225,11 @@ async function byLink(lettingId: string, token: string, now: Date) {
   const expected = Buffer.from(mac(lettingId, askedAt));
   const given = Buffer.from(token);
   if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
-  return { organisationId: row.organisationId, address: row.address };
+  return {
+    organisationId: row.organisationId,
+    address: row.address,
+    shown: freshnessShown(clock.facts)!,
+  };
 }
 
 /** The page the email's link opens: the home's address, or null if the link no longer works. */
@@ -233,9 +237,9 @@ export async function stillAvailableByLink(
   lettingId: string,
   token: string,
   now: Date = new Date(),
-): Promise<{ address: string } | null> {
+): Promise<{ address: string; shown: FreshnessShown } | null> {
   const found = await byLink(lettingId, token, now);
-  return found ? { address: found.address } : null;
+  return found ? { address: found.address, shown: found.shown } : null;
 }
 
 /**

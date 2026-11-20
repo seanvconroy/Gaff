@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { goLiveCopy } from '@/copy/go-live';
+import { freshnessCopy } from '@/copy/freshness';
 import { hiddenCopy } from '@/copy/trust';
 import { homeHref, homePageState } from '@/domain/homes/home-page';
 import { onGaffNeeds } from '@/domain/lettings/setup';
@@ -21,7 +22,10 @@ export function OnGaffCard({
   photos,
   listerMayShow,
 }: {
-  letting: Pick<LettingRow, 'id' | 'status' | 'onGaff' | 'berRating' | 'publicRef' | 'hiddenAt'>;
+  letting: Pick<
+    LettingRow,
+    'id' | 'status' | 'onGaff' | 'berRating' | 'publicRef' | 'hiddenAt' | 'staleAt'
+  >;
   photos: number;
   /** The lister may have homes live (`goLiveGate`). */
   listerMayShow: boolean;
@@ -36,6 +40,7 @@ export function OnGaffCard({
       hiddenAt: letting.hiddenAt,
       pageRemovedAt: null,
       listerMayShow,
+      staleAt: letting.staleAt,
     }) === 'live';
   return (
     <Card labelledBy="on-gaff-heading">
@@ -51,11 +56,13 @@ export function OnGaffCard({
         <p className={styles.muted}>
           {letting.hiddenAt
             ? hiddenCopy.onGaff
-            : !letting.onGaff
-              ? copy.off
-              : needs.length > 0
-                ? copy.needs({ ber: needs.includes('ber'), photo: needs.includes('photo') })
-                : copy.held}
+            : letting.staleAt
+              ? freshnessCopy.onGaff
+              : !letting.onGaff
+                ? copy.off
+                : needs.length > 0
+                  ? copy.needs({ ber: needs.includes('ber'), photo: needs.includes('photo') })
+                  : copy.held}
         </p>
       )}
       <form action={setOnGaffAction.bind(null, letting.id)}>

@@ -17,5 +17,6 @@ export async function searchRows(
     words: searchWords(search.filters, now, names.get(search.filters.where ?? '') ?? ''),
     href: searchHref(search.filters),
     saved: savedCopy.page.savedOn(formatDate(search.savedAt, now)),
+    frequency: search.frequency,
   }));
 }

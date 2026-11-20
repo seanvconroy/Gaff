@@ -12,6 +12,8 @@ export const freshnessCopy = {
     asked: (on: string) => `Comes off gaff.ie on ${on} unless you do`,
     stale: 'Off gaff.ie until you say it’s still available. Its enquiries are waiting',
   },
+  /** The Home view's "On gaff.ie". */
+  onGaff: 'Not shown on gaff.ie until you say it’s still available.',
   /** The letting's Needs you button. */
   action: 'Still available',
   /** The task, from Today or the letting (signed in), and the email's link (no sign-in). */
@@ -23,18 +25,19 @@ export const freshnessCopy = {
       `It came off gaff.ie and search on ${on}, because nobody said it was still available. Its enquiries are waiting: Gaff answers them as soon as you say it is.`,
     let: 'If it’s been let, close the letting instead: everyone who enquired is told.',
     close: 'Close the letting',
+    /** On the email's page, where nobody is signed in. */
+    letByEmail:
+      'If it’s been let, sign in to Gaff and close the letting instead: everyone who enquired is told.',
     button: 'Still available',
     pending: 'Saving',
     back: 'Back to the letting',
     next: 'We’ll ask again in two weeks if nothing changes.',
   },
-  /** After "Still available". */
+  /** After "Still available": on the letting (signed in), or after the email's link. */
   done: {
     title: 'Thanks',
-    text: (address: string) =>
-      `${address} stays on gaff.ie. We’ll ask again in two weeks if nothing changes.`,
-    back: (address: string) =>
-      `${address} is back on gaff.ie, and Gaff is answering the enquiries that waited. We’ll ask again in two weeks if nothing changes.`,
+    text: 'It stays on gaff.ie. We’ll ask again in two weeks if nothing changes.',
+    back: 'It’s back on gaff.ie, and Gaff is answering the enquiries that waited. We’ll ask again in two weeks if nothing changes.',
     action: 'Open Gaff',
   },
   /** The email's link, once it has done its job or has been replaced. */

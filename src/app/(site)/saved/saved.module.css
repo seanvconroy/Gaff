@@ -7,3 +7,10 @@
 .quiet {
   color: var(--color-ink-muted);
 }
+
+/* M86: a saved search's date, how it emails, and the switch, one under another. */
+.searchValue {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+}

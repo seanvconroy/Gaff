@@ -1,5 +1,6 @@
 import { needsForwarding, type Portal } from '@/domain/lettings/setup';
 import type { TenancyStep } from '@/domain/tenancy/steps';
+import type { FreshnessShown } from '@/domain/lettings/freshness';
 
 /**
  * R28, UX-HM-2: everything waiting on a person, across their homes, most urgent first. Gaff only
@@ -48,6 +49,11 @@ export interface LettingSnapshot {
   tenancyStartDate?: string | null;
   /** "Is it advertised anywhere else?": Daft, MyHome, neither (an empty list), or not answered. */
   advertisedOn?: readonly Portal[] | null;
+  /**
+   * M49 (BA-13): a live home its lister has been asked about ("Is it still available?"), or
+   * one that stepped back because nobody answered. Null or missing: nothing to ask.
+   */
+  freshness?: FreshnessShown | null;
   /** When each thing started waiting on a person, where Gaff knows. */
   waitingSince?: Partial<Record<TodayKind, Date | null>>;
 }
@@ -97,6 +103,11 @@ export type TodayItem = Waiting &
     | (Home & { kind: 'setup'; stepsLeft: number | null })
     /** UX-LT-20: advertised on Daft or MyHome, and no enquiry has come through a rule yet. */
     | (Home & { kind: 'forwarding'; portals: readonly Portal[] })
+    /**
+     * M49: "Is it still available?". `stepsBackAt` while it's asking; `stale` once it has
+     * stepped back from gaff.ie until someone says it is.
+     */
+    | (Home & { kind: 'freshness'; stale: boolean; stepsBackAt: Date | null })
   );
 
 export type TodayKind = TodayItem['kind'];
@@ -136,6 +147,7 @@ export function todayRank(item: TodayItem, today: string): number {
     case 'rechoose':
     case 'shortlist':
     case 'tenancy':
+    case 'freshness':
       return todayRanks.decision;
     case 'approvals':
       return todayRanks.reply;
@@ -154,6 +166,7 @@ const kindOrder: readonly TodayKind[] = [
   'attendance',
   'rtb',
   'rechoose',
+  'freshness',
   'checks',
   'offer',
   'choose',
@@ -349,6 +362,16 @@ export function needsYouToday(input: {
           ...home,
           reason: l.newChoiceReason ?? null,
           since: since('rechoose'),
+        });
+      }
+      // M49: unchanged for two weeks, it asks; unanswered, it steps back until someone says.
+      if (l.freshness) {
+        items.push({
+          kind: 'freshness',
+          ...home,
+          stale: l.freshness.kind === 'stepped_back',
+          stepsBackAt: l.freshness.kind === 'asked' ? l.freshness.stepsBackAt : null,
+          since: since('freshness'),
         });
       }
       // UX-LT-20: it never sits silently waiting for enquiries that aren't reaching Gaff.

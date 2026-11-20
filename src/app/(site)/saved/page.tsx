@@ -87,6 +87,20 @@ export default async function SavedPage() {
   );
 }
 
+/**
+ * M85: what changed since it was saved, in words: a lower rent, new viewing times. That it's
+ * been let is its own line. Nothing is emailed about any of these.
+ */
+function changeWords(home: SavedHome): string[] {
+  return home.changes.flatMap((change) => {
+    if (change.kind === 'rent_down') {
+      return [c.rentDown(formatRent(change.toCents), formatRent(change.fromCents))];
+    }
+    if (change.kind === 'new_viewings') return [c.newViewings];
+    return [];
+  });
+}
+
 /** One saved home: as search shows it while it's live; marked once it's let or gone. */
 function SavedCard({ home, today }: { home: SavedHome; today: string }) {
   if (home.state === 'live') {
@@ -97,7 +111,7 @@ function SavedCard({ home, today }: { home: SavedHome; today: string }) {
         href={home.home.href}
         title={formatRent(facts.monthlyRentCents)}
         line={line}
-        details={[freeFrom(facts.availableFrom, today)]}
+        details={[freeFrom(facts.availableFrom, today), ...changeWords(home)]}
         photo={home.home.photos[0] ? { src: home.home.photos[0].small, alt: '' } : null}
         action={
           <SaveHome homeRef={home.ref} label={saveLabel(line)} saved signedIn back="/saved" />

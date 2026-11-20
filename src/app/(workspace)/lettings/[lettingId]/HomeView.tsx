@@ -10,8 +10,11 @@ import { placedPoint } from '@/domain/map/pin';
 import { portals } from '@/domain/lettings/setup';
 import { comparableWarnings, medianRentCents } from '@/domain/rent/comparables';
 import { formatDate, formatDateTime, formatRent } from '@/lib/format';
+import type { HomeNumbers } from '@/domain/lettings/home-numbers';
 import type { LettingDetail } from '@/server/lettings/queries';
+import { Disclosure } from '@/ui/Disclosure';
 import { Notice } from '@/ui/Notice';
+import { Cell, Table } from '@/ui/Table';
 import { SummaryList } from '@/ui/SummaryList';
 import styles from './letting.module.css';
 import { RentCheckResult } from './RentCheckResult';
@@ -26,6 +29,7 @@ const copy = lettingPageCopy.home;
  * (UX-LP-13).
  */
 export function HomeView({
+  numbers,
   detail,
   detailsLocked,
   lockedWords,
@@ -33,6 +37,8 @@ export function HomeView({
   shownOnGaff,
   mapOn,
 }: {
+  /** M92: its numbers on Gaff for the last fortnight. Null before it goes live. */
+  numbers: HomeNumbers | null;
   detail: LettingDetail;
   /** UX-LP-13: people have been invited on the letting details. */
   detailsLocked: boolean;
@@ -278,7 +284,40 @@ export function HomeView({
           <p className={landlord ? undefined : styles.muted}>{landlord?.name ?? copy.noOwner}</p>
         </Part>
       ) : null}
+
+      {numbers ? <Numbers numbers={numbers} /> : null}
     </div>
+  );
+}
+
+/** M92: how many opened its page, saved it and asked to view, by day. Never who. */
+function Numbers({ numbers }: { numbers: HomeNumbers }) {
+  const n = copy.numbers;
+  return (
+    <Part id="home-numbers" title={n.title} action={null}>
+      <p className={styles.muted}>{n.lead(numbers.days.length)}</p>
+      <SummaryList
+        rows={[
+          { label: n.opened, value: numbers.totals.opened },
+          { label: n.saved, value: numbers.totals.saved },
+          { label: n.enquiries, value: numbers.totals.enquiries },
+        ]}
+      />
+      <Disclosure summary={n.byDay}>
+        <Table caption={n.caption} head={[n.day, n.opened, n.saved, n.enquiries]}>
+          {numbers.days.map((day) => (
+            <tr key={day.day}>
+              <Cell label={n.day} bare>
+                {formatDate(day.day)}
+              </Cell>
+              <Cell label={n.opened}>{day.opened}</Cell>
+              <Cell label={n.saved}>{day.saved}</Cell>
+              <Cell label={n.enquiries}>{day.enquiries}</Cell>
+            </tr>
+          ))}
+        </Table>
+      </Disclosure>
+    </Part>
   );
 }
 

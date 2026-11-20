@@ -77,6 +77,11 @@ export function fromOf(value: string | string[] | undefined): string | null {
  */
 export type DecisionFlow = 'who-views' | 'choose' | 'checks' | 'approval' | 'offer';
 
+/** M49 (BA-13): "Is it still available?", signed in, from Today or the letting. */
+export function stillAvailableHref(lettingId: string): string {
+  return `/lettings/${lettingId}/still-available`;
+}
+
 export function decisionHref(
   lettingId: string,
   flow: DecisionFlow,

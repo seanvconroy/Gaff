@@ -1,4 +1,5 @@
 import {
+  BadgeCheck,
   CalendarClock,
   ClipboardList,
   FileSignature,
@@ -34,6 +35,8 @@ const icons: Record<TodayKind, { Icon: LucideIcon; tone: TileTone }> = {
   shortlist: { Icon: Users, tone: 'quiet' },
   setup: { Icon: ClipboardList, tone: 'quiet' },
   forwarding: { Icon: Forward, tone: 'quiet' },
+  // M49: a home that may come off gaff.ie, or has.
+  freshness: { Icon: BadgeCheck, tone: 'warning' },
 };
 
 /**

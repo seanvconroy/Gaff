@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { loadTokens } from '../../scripts/tokens/lib';
 import {
   expectAccessible,
+  expectFocusRing,
   expectFocusRings,
   expectNoSidewaysScroll,
   screenshot,
@@ -756,6 +757,48 @@ test('UX-DS-20: with reduced motion on, sheets, steps and toasts arrive without 
   await expect(pin).toBeVisible();
   const stops = await expectFocusRings(page);
   expect(stops, 'the stops that were checked').toContain('The home’s pin');
+});
+
+test('UX-DS-20: on the stand-in search map, a pin and a cluster reached by keyboard show the focus ring, in light and dark', async ({
+  page,
+}) => {
+  for (const colorScheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme });
+    await open(page);
+    // The map loads once it is on screen and the browser is quiet, and its pins a moment after
+    // that: too late, and too far down the page, for the check that tabs from the top.
+    const section = page.getByRole('region', { name: 'List and map' });
+    await section.scrollIntoViewIfNeeded();
+    const map = section.getByRole('group', { name: 'Map of the homes in this search' });
+    const zoomIn = section.getByRole('button', { name: 'Zoom in' });
+    const one = map.getByRole('button', { name: '€2,250 a month, 2-bed apartment' });
+    const two = map.getByRole('button', { name: '2 homes here, from €1,950 a month' });
+    await expect(one).toBeVisible();
+    await expect(two).toBeVisible();
+
+    // By keyboard: the zoom buttons follow the pins in the page, so Shift+Tab goes back to them.
+    // A pin with focus is lit, as when it's pointed at, and the ring is round that too.
+    await zoomIn.focus();
+    await page.keyboard.press('Shift+Tab');
+    await expectFocusRing(page, one);
+    await expect(one).toHaveAttribute('data-on');
+    await page.keyboard.press('Shift+Tab');
+    await expectFocusRing(page, two);
+    await expect(two).toHaveAttribute('data-on');
+    await expect(one).not.toHaveAttribute('data-on');
+
+    // Zoomed out, the pins are one cluster.
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    await expect(section.getByRole('button', { name: 'Zoom out' })).toBeFocused();
+    await page.keyboard.press('Enter');
+    const cluster = map.getByRole('button', { name: '3 homes here: zoom in' });
+    await expect(cluster).toBeVisible();
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Shift+Tab');
+    await expectFocusRing(page, cluster);
+  }
 });
 
 test('UX-NV-14, UX-NV-15: the thread and reply box: one screen at a time on a phone, the list beside the conversation on a desktop, with the draft and its gap in the reply box', async ({

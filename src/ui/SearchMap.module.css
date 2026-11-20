@@ -222,10 +222,6 @@
   font-weight: var(--type-label-weight);
 }
 
-.staticCluster:focus {
-  outline: none;
-}
-
 .staticPin rect:not(.hitArea) {
   fill: var(--color-surface-0);
   stroke: var(--color-border-strong);
@@ -246,10 +242,6 @@
 
 .staticPin[data-on] text {
   fill: var(--color-ink-inverse);
-}
-
-.staticPin:focus {
-  outline: none;
 }
 
 .hitArea {
@@ -402,7 +394,9 @@
   outline-offset: -3px;
 }
 
-/* Gaff's focus ring on the stand-in's pins and clusters. */
+/* Focus on the stand-in's pins and clusters: the one ring every control has (base.css), round
+   the pin's 44px target or the cluster's circle, and the shape's own edge in the same colour so
+   it stands out from the grid under it. */
 .staticPin:focus-visible rect:not(.hitArea),
 .staticCluster:focus-visible circle {
   stroke: var(--color-focus);

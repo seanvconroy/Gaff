@@ -565,6 +565,25 @@ const demoPins: MapPins = {
   listed: 4,
 };
 
+// The map takes each of these as a dependency, so they are the same function on every render,
+// as on the search page: a new one would start the map loading again when a pin is pointed at.
+const demoArea = {
+  kind: 'place',
+  slug: 'example',
+  box: { minLat: 53.32, minLng: -6.265, maxLat: 53.33, maxLng: -6.25 },
+} as const;
+const loadDemoPins = async () => demoPins;
+const loadDemoCard = async (id: string) => ({
+  id,
+  href: '#',
+  title: '€2,250 a month',
+  line: '2-bed apartment · Example, Dublin',
+  free: 'Free now',
+  photo: null,
+});
+const nothing = () => undefined;
+const demoOpenKind = () => 'larger' as const;
+
 /** M57, M117: the search map and its list, on the stand-in, with made-up pins. */
 export function SearchMapDemo() {
   const [hovered, setHovered] = useState<string | null>(null);
@@ -576,25 +595,14 @@ export function SearchMapDemo() {
         <div className={styles.mapDemo}>
           <SearchMap
             settings={{ provider: 'static' }}
-            area={{
-              kind: 'place',
-              slug: 'example',
-              box: { minLat: 53.32, minLng: -6.265, maxLat: 53.33, maxLng: -6.25 },
-            }}
-            loadPins={async () => demoPins}
-            loadCard={async (id) => ({
-              id,
-              href: '#',
-              title: '€2,250 a month',
-              line: '2-bed apartment · Example, Dublin',
-              free: 'Free now',
-              photo: null,
-            })}
-            onSearchArea={() => undefined}
+            area={demoArea}
+            loadPins={loadDemoPins}
+            loadCard={loadDemoCard}
+            onSearchArea={nothing}
             hovered={hovered}
             onHover={setHovered}
-            count={() => undefined}
-            openKind={() => 'larger'}
+            count={nothing}
+            openKind={demoOpenKind}
           />
         </div>
       }

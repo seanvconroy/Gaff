@@ -73,6 +73,50 @@ export async function settled(page: Page): Promise<void> {
 }
 
 /**
+ * What has focus, and the ring it shows: solid, 2px or more, in `focus` (design system). Run in
+ * the page. A radio or checkbox in a choice row shows the ring on its row.
+ */
+function focusStop() {
+  const el = document.activeElement as HTMLElement | null;
+  if (!el || el === document.body) return null;
+  const ringOn = el.matches('label > input') ? el.closest('label')! : el;
+  const style = getComputedStyle(ringOn);
+  const probe = document.createElement('i');
+  probe.style.color = 'var(--color-focus)';
+  document.body.append(probe);
+  const expected = getComputedStyle(probe).color;
+  probe.remove();
+  return {
+    // Where it is as well as what it is: links in one row can start with the same markup.
+    id: `${el.outerHTML.slice(0, 120)}@${Math.round(el.getBoundingClientRect().left)},${Math.round(el.getBoundingClientRect().top + scrollY)}`,
+    name: (
+      el.getAttribute('aria-label') ||
+      (el as HTMLInputElement).labels?.[0]?.textContent ||
+      el.textContent ||
+      el.tagName
+    )
+      .trim()
+      .slice(0, 40),
+    ok:
+      style.outlineStyle === 'solid' &&
+      parseFloat(style.outlineWidth) >= 2 &&
+      style.outlineColor === expected,
+    ring: `${style.outlineStyle} ${style.outlineWidth} ${style.outlineColor}, want ${expected}`,
+  };
+}
+
+/**
+ * One control, which the test has just moved to with the keyboard, has focus and shows the same
+ * ring `expectFocusRings` asks of every stop. For a control that Tab doesn't reach within that
+ * check's stops, or that arrives after the page loads.
+ */
+export async function expectFocusRing(page: Page, control: Locator): Promise<void> {
+  await expect(control).toBeFocused();
+  const stop = await page.evaluate(focusStop);
+  expect(stop?.ok, `focus ring on ${stop?.name}: ${stop?.ring}`).toBe(true);
+}
+
+/**
  * Tabs through the page from the top (call it straight after loading). Every stop must show a
  * 2px focus ring in `focus`, in the navigation as everywhere else. A radio or checkbox in a
  * choice row shows the ring on its row (design system). Returns the names of the stops it
@@ -90,34 +134,7 @@ export async function expectFocusRings(page: Page): Promise<string[]> {
   const problems: string[] = [];
   for (let i = 0; i < 60; i++) {
     await page.keyboard.press('Tab');
-    const stop = await page.evaluate(() => {
-      const el = document.activeElement as HTMLElement | null;
-      if (!el || el === document.body) return null;
-      const ringOn = el.matches('label > input') ? el.closest('label')! : el;
-      const style = getComputedStyle(ringOn);
-      const probe = document.createElement('i');
-      probe.style.color = 'var(--color-focus)';
-      document.body.append(probe);
-      const expected = getComputedStyle(probe).color;
-      probe.remove();
-      return {
-        // Where it is as well as what it is: links in one row can start with the same markup.
-        id: `${el.outerHTML.slice(0, 120)}@${Math.round(el.getBoundingClientRect().left)},${Math.round(el.getBoundingClientRect().top + scrollY)}`,
-        name: (
-          el.getAttribute('aria-label') ||
-          (el as HTMLInputElement).labels?.[0]?.textContent ||
-          el.textContent ||
-          el.tagName
-        )
-          .trim()
-          .slice(0, 40),
-        ok:
-          style.outlineStyle === 'solid' &&
-          parseFloat(style.outlineWidth) >= 2 &&
-          style.outlineColor === expected,
-        ring: `${style.outlineStyle} ${style.outlineWidth} ${style.outlineColor}, want ${expected}`,
-      };
-    });
+    const stop = await page.evaluate(focusStop);
     if (!stop) {
       // Past the last stop, focus goes back to the page and the next Tab starts again at the
       // first. Anywhere else, a stop let go of the focus part way down (it hid itself as it

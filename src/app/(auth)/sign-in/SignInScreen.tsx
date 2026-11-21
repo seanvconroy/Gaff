@@ -4,13 +4,11 @@ import Link from 'next/link';
 import { useActionState, useEffect, useState } from 'react';
 import { signInCopy } from '@/copy/sign-in';
 import type { SignInMethod, SignInProvider } from '@/domain/auth/methods';
-import { DEFAULT_DIALLING_ISO, diallingCodes, needsDiallingCode } from '@/domain/auth/mobile';
-import { emptyFormState, type FormState } from '@/lib/forms';
+import { emptyFormState } from '@/lib/forms';
 import { Button } from '@/ui/Button';
-import { ContactField } from '@/ui/ContactField';
-import { FieldError } from '@/ui/Field';
+import { FieldError, TextField } from '@/ui/Field';
 import { authClient, canOfferPasskeyOnField, deviceCanKeepPasskey } from '../auth-client';
-import { continueWithIdentifier, continueWithProvider, signInScreenOpened } from './actions';
+import { continueWithEmail, continueWithProvider, signInScreenOpened } from './actions';
 import { ProviderLogo } from './ProviderLogo';
 import styles from './sign-in.module.css';
 
@@ -29,7 +27,7 @@ function useScreenOpened(attempt: string): void {
 
 /**
  * UX-SI-5: a returning person with a passkey is offered it first, by the browser's own prompt on
- * the email (or mobile number) field. Choosing it signs them in; ignoring it changes nothing, and the other methods
+ * the email field. Choosing it signs them in; ignoring it changes nothing, and the other methods
  * stay on the screen. Also notes whether this device can keep a passkey, for the offer after
  * sign-in (UX-SI-4): a yes or no in a cookie, nothing else.
  */
@@ -54,54 +52,10 @@ function usePasskeyOnField(returnTo: string, onSignedIn: () => void): void {
   }, []);
 }
 
-const diallingOptions = diallingCodes.map((entry) => ({
-  value: entry.iso,
-  label: signInCopy.diallingCode(entry.name, entry.code),
-  short: `+${entry.code}`,
-}));
-
-/**
- * UX-SI-13, UX-SI-16: one field for an email address or a mobile number. Once what's typed is a
- * number with no country code of its own, the code sits inside the field at its start, Ireland
- * first: one box, as on any sign-in people already know.
- */
-function Identifier({
-  byText,
-  state,
-  prefilled,
-}: {
-  byText: boolean;
-  state: FormState;
-  prefilled: string | undefined;
-}) {
-  return (
-    <ContactField
-      name="identifier"
-      label={byText ? signInCopy.identifierLabel : signInCopy.emailLabel}
-      type={byText ? 'text' : 'email'}
-      // UX-SI-5: "webauthn" lets the browser offer a saved passkey on this field.
-      autoComplete="username webauthn"
-      inputMode="email"
-      autoCapitalize="off"
-      spellCheck={false}
-      defaultValue={state.values?.identifier ?? prefilled ?? ''}
-      error={state.errors?.identifier}
-      dialling={{
-        name: 'dialling',
-        label: signInCopy.diallingCodeLabel,
-        options: diallingOptions,
-        defaultValue: state.values?.dialling ?? DEFAULT_DIALLING_ISO,
-      }}
-      showDialling={(typed) => byText && needsDiallingCode(typed)}
-    />
-  );
-}
-
 export function SignInScreen({
   attempt,
   next,
   providers,
-  byText,
   lastMethod,
   providerProblem,
   invite = null,
@@ -109,8 +63,6 @@ export function SignInScreen({
   attempt: string;
   next: string | null;
   providers: SignInProvider[];
-  /** UX-SI-13: whether a code can go by text here, so the field takes a mobile number too. */
-  byText: boolean;
   lastMethod: SignInMethod | null;
   /** Google or Apple came back with a problem that wasn't the person cancelling, in words. */
   providerProblem: { provider: SignInProvider; words: string } | null;
@@ -119,10 +71,7 @@ export function SignInScreen({
 }) {
   // The try this screen opened with stays the same for as long as the screen is up.
   const [attemptId] = useState(attempt);
-  const [emailState, emailAction, emailPending] = useActionState(
-    continueWithIdentifier,
-    emptyFormState,
-  );
+  const [emailState, emailAction, emailPending] = useActionState(continueWithEmail, emptyFormState);
   const [googleState, googleAction, googlePending] = useActionState(
     continueWithProvider,
     emptyFormState,
@@ -169,7 +118,18 @@ export function SignInScreen({
           noValidate
         >
           {carried}
-          <Identifier byText={byText} state={emailState} prefilled={invite?.email} />
+          <TextField
+            name="email"
+            label={signInCopy.emailLabel}
+            type="email"
+            // UX-SI-5: "webauthn" lets the browser offer a saved passkey on this field.
+            autoComplete="username webauthn"
+            inputMode="email"
+            autoCapitalize="off"
+            spellCheck={false}
+            defaultValue={emailState.values?.email ?? invite?.email}
+            error={emailState.errors?.email}
+          />
           <Button type="submit" variant="primary" fullWidth disabled={busy}>
             {emailPending ? signInCopy.sending : signInCopy.continue}
           </Button>

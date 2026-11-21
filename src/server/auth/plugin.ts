@@ -13,7 +13,6 @@ import { openCodeLink, tryCode, type UsedCode } from './codes';
 import { grantConfirmation } from './confirm';
 import { cookieLifetimes, cookieNames, cookieOptions } from './cookies';
 import { rememberMadeByProvider } from './made-by-provider';
-import { joinMobile, mobileProvedAgain, personSignedInBy } from './mobile';
 
 type User = NonNullable<
   Awaited<ReturnType<GenericEndpointContext['context']['internalAdapter']['findUserById']>>
@@ -53,16 +52,9 @@ async function personWithEmail(
   return { user: taken, existed: false };
 }
 
-/** Starts the session, and notes on it the proof that made it: a code by email, or by text. */
-async function startSession(
-  ctx: GenericEndpointContext,
-  user: User,
-  method: 'email_code' | 'sms_code',
-): Promise<void> {
-  // The session's hook believes `signInMethod` only from this endpoint (src/domain/auth/methods).
-  const session = await ctx.context.internalAdapter.createSession(user.id, false, {
-    signInMethod: method,
-  });
+/** Starts the session. Its hook notes the proof that made it: a code by email. */
+async function startSession(ctx: GenericEndpointContext, user: User): Promise<void> {
+  const session = await ctx.context.internalAdapter.createSession(user.id);
   if (!session) throw couldNotSignIn();
   await setSessionCookie(ctx, { session, user });
 }
@@ -101,74 +93,48 @@ async function joinProvider(
 }
 
 /** What the right code came to. */
-type CodeSignIn =
-  /**
-   * UX-SI-14: a mobile number nobody has, or one that no longer vouches for its owner by
-   * itself. The number is proven; the email that goes with it is asked for next.
-   */
-  | { signedIn: false }
-  | {
-      signedIn: true;
-      userId: string;
-      /** The method the person chose, for the funnel and "You used … last time". */
-      method: SignInMethod;
-      /** What was joined to an account that was already there: "We've found your account". */
-      found: Joined | null;
-      attemptId: string | null;
-      nextPath: string | null;
-    };
+interface CodeSignIn {
+  userId: string;
+  /** The method the person chose, for the funnel and "You used … last time". */
+  method: SignInMethod;
+  /** What was joined to an account that was already there: "We've found your account". */
+  found: Joined | null;
+  attemptId: string | null;
+  nextPath: string | null;
+}
 
 /**
- * One person, however they sign in (ADR-0033). The right code, in the browser that asked for it:
- *
- * - by text, to a number that vouches for its owner: its owner is signed in;
- * - by text, to any other number: nobody is signed in yet (the email is asked for);
- * - by email: whoever has the address is signed in, or a person is made. If the code carries a
- *   mobile number this browser proved, or a Google or Apple account, that is joined to them.
+ * One person, however they sign in (ADR-0033). The right code, in the browser that asked for it,
+ * signs in whoever has the address, or makes a person. If the code carries a Google or Apple
+ * account that couldn't vouch for the address, that is joined to them.
  */
 async function signInWith(ctx: GenericEndpointContext, used: UsedCode): Promise<CodeSignIn> {
-  const where = { attemptId: used.attemptId, nextPath: used.nextPath };
-  if (used.channel === 'sms') {
-    const ownerId = await personSignedInBy(used.subject);
-    const owner = ownerId ? await ctx.context.internalAdapter.findUserById(ownerId) : null;
-    if (!owner) return { signedIn: false };
-    await startSession(ctx, owner, 'sms_code');
-    await mobileProvedAgain(owner.id);
-    return { signedIn: true, userId: owner.id, method: 'sms_code', found: null, ...where };
-  }
-
-  const joining = used.joining;
-  const { user, existed } = await personWithEmail(ctx, used.subject, joining?.provider?.name ?? '');
-  let joined: Joined | null = null;
-  if (joining?.mobile) {
-    await joinMobile(user.id, joining.mobile, { quiet: !existed });
-    joined = 'mobile';
-  } else if (joining?.provider && (await joinProvider(ctx, user, joining.provider, existed))) {
-    joined = joining.provider.id;
-  }
-  await startSession(ctx, user, 'email_code');
+  const provider = used.joining?.provider ?? null;
+  const { user, existed } = await personWithEmail(ctx, used.subject, provider?.name ?? '');
+  const joined: Joined | null =
+    provider && (await joinProvider(ctx, user, provider, existed)) ? provider.id : null;
+  await startSession(ctx, user);
   return {
-    signedIn: true,
     userId: user.id,
     method: methodChosen('email_code', joined),
     found: foundAccount({ existed, joined }),
-    ...where,
+    attemptId: used.attemptId,
+    nextPath: used.nextPath,
   };
 }
 
 /**
- * Gaff's own sign-in endpoints, on Better Auth (ADR-0015). Each proves the email or the mobile
- * itself before it creates a session: it reads the code or the button's token, and the key in
- * the asking browser's cookie. The screens call them from the server
- * (`auth().api.signInWithCode`, `auth().api.signInWithCodeLink`); over HTTP they answer "not
- * found" (AU12, ADR-0019), and every call is counted against the limits by network address
- * (src/server/auth/limits.ts).
+ * Gaff's own sign-in endpoints, on Better Auth (ADR-0015). Each proves the email itself before
+ * it creates a session: it reads the code or the button's token, and the key in the asking
+ * browser's cookie. The screens call them from the server (`auth().api.signInWithCode`,
+ * `auth().api.signInWithCodeLink`); over HTTP they answer "not found" (AU12, ADR-0019), and
+ * every call is counted against the limits by network address (src/server/auth/limits.ts).
  */
 export const gaffSignIn = () =>
   ({
     id: 'gaff-sign-in',
     endpoints: {
-      /** UX-SI-2, UX-SI-13: one try at the six-digit code, in the browser that asked for it. */
+      /** UX-SI-2: one try at the six-digit code, in the browser that asked for it. */
       signInWithCode: createAuthEndpoint(
         '/gaff/sign-in/code',
         { method: 'POST', body: z.object({ code: z.string().max(32) }), requireHeaders: true },
@@ -179,10 +145,7 @@ export const gaffSignIn = () =>
             code: ctx.body.code,
           });
           if (tried.result !== 'correct') return ctx.json({ result: tried.result });
-          const outcome = await signInWith(ctx, tried);
-          if (!outcome.signedIn) return ctx.json({ result: 'email_needed' as const });
-          const { signedIn: _signedIn, ...signedIn } = outcome;
-          return ctx.json({ result: 'correct' as const, ...signedIn });
+          return ctx.json({ result: 'correct' as const, ...(await signInWith(ctx, tried)) });
         },
       ),
       /**
@@ -199,11 +162,7 @@ export const gaffSignIn = () =>
             browserKey: ctx.getCookie(cookieNames.signInCode),
           });
           if (opened.where !== 'here') return ctx.json(opened);
-          const outcome = await signInWith(ctx, opened);
-          // Only an email carries a button, and an email's code always signs someone in.
-          if (!outcome.signedIn) return ctx.json({ where: 'nowhere' as const });
-          const { signedIn: _signedIn, ...signedIn } = outcome;
-          return ctx.json({ where: 'here' as const, ...signedIn });
+          return ctx.json({ where: 'here' as const, ...(await signInWith(ctx, opened)) });
         },
       ),
     },

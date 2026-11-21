@@ -22,17 +22,6 @@ export const CODES_PER_WINDOW = 5;
  */
 export const CODES_PER_DAY = 20;
 
-/**
- * UX-SI-13: a code by text. A text costs money and lands on a phone that rings, so a number gets
- * fewer than an email address does: three in any ten minutes and ten in a day.
- */
-export const TEXTS_PER_WINDOW = 3;
-export const TEXTS_PER_DAY = 10;
-
-/** How a code reaches the person: an email, or a text to a mobile (UX-SI-13). */
-export const codeChannels = ['email', 'sms'] as const;
-export type CodeChannel = (typeof codeChannels)[number];
-
 export interface CodeFacts {
   expiresAt: Date;
   /** Wrong tries so far. */
@@ -79,15 +68,10 @@ export function secondsUntilResend(sentAt: Date, now: Date): number {
 }
 
 /**
- * Whether another code may go to an address (or, by text, a number) that has had this many in
- * the last ten minutes, and this many in the last day.
+ * Whether another code may go to an address that has had this many in the last ten minutes, and
+ * this many in the last day.
  */
-export function canSendAnother(
-  sentInWindow: number,
-  sentInDay = sentInWindow,
-  channel: CodeChannel = 'email',
-): boolean {
-  if (channel === 'sms') return sentInWindow < TEXTS_PER_WINDOW && sentInDay < TEXTS_PER_DAY;
+export function canSendAnother(sentInWindow: number, sentInDay = sentInWindow): boolean {
   return sentInWindow < CODES_PER_WINDOW && sentInDay < CODES_PER_DAY;
 }
 

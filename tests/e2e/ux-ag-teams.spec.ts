@@ -103,7 +103,7 @@ async function joinFromEmail(
   const page = await context.newPage();
   await page.goto(new URL(link).pathname);
   await expect(page.getByRole('heading', { level: 1, name: `Join ${agency}` })).toBeVisible();
-  await expect(page.getByLabel('Email or mobile number')).toHaveValue(email);
+  await expect(page.getByLabel('Email', { exact: true })).toHaveValue(email);
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Enter your code' })).toBeVisible();
   await page.getByLabel('Six-digit code').fill(await latestCodeFor(email));
@@ -200,7 +200,7 @@ test('UX-AG-11, UX-AG-12: an admin invites a colleague, who signs in straight in
     await expect(
       colleague.getByRole('heading', { level: 1, name: `Join ${agency}` }),
     ).toBeVisible();
-    await expect(colleague.getByLabel('Email or mobile number')).toHaveValue(orla);
+    await expect(colleague.getByLabel('Email', { exact: true })).toHaveValue(orla);
     await expectAccessible(colleague);
     await screenshot(colleague, `ux-ag-join-sign-in-${width}`);
     await colleague.getByRole('button', { name: 'Continue', exact: true }).click();

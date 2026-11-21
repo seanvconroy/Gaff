@@ -512,49 +512,48 @@ Sean tried search on the test copy on 20 November 2026 and found it short of Air
 - **What is typed in the search bar** goes to Gaff's own server a part at a time, for suggestions (Q56 already notes this for "Where"). Only the part that could be a place is sent, and those lookups are never counted or kept; a word outside the reader's list ("nurse") can still be looked up. To check with the request log before launch, with Q56.
 - **Rightmove's separate "AI search"** was looked at and not copied (ADR-0032). If renters' sentences turn out to need more than the plain reader gives, a seventh AI task could read them; it would need the reader's switch, the budget and names stripped first (rule 7, ADR-0017).
 
-### Q61. Signing in with a mobile number, and one account however you sign in (**Open** in part)
+### Q61. Signing in with a mobile number, and one account however you sign in (**Open**: mobile taken out, to be built again)
 
 Sean, on 20 November 2026, with Airbnb's sign-in as the standard: sign up or sign in with a phone number or an email, each with a one-time code, or with Google or Apple, and have every one of them reach the same account. His example was an account made with Google, opened later with a mobile number and the same email.
 
-**Decision (Sean, 20 November 2026):** build it. It is built ([ADR-0033](adr/0033-mobile-sign-in-and-one-person-across-methods.md), UX-SI-13 to UX-SI-15): one field for an email or a mobile number; a code by text through Sinch, which is already approved (rule 10); a number Gaff hasn't seen asks for the email next and joins the account that has it; and a Google or Apple account that can't vouch for its address is sent a code and connected with it, in place of the dead end recorded in Q57.
+**Decision (Sean, 20 November 2026):** build it. It was built ([ADR-0033](adr/0033-mobile-sign-in-and-one-person-across-methods.md), UX-SI-13 to UX-SI-15).
 
-**Banked, to come back to (**Open**).** Each is a call made while building it that Sean hasn't made himself. None holds up the build; the first two are the ones most worth a decision. Each is one condition, one number or one list in the code.
+**Decision (Sean, 21 November 2026):** take the mobile part out. Setting Sinch up for it didn't work, and signing in by text is to be designed and built again from a clean start, in its own piece of work. Everything for it is removed: the "Email or mobile number" field, codes by text, the "What's your email?" step, the number on Profile and in the download, its limits and settings, the Sinch set-up guide and the newer kind of Sinch credential. Sinch itself is as it was before: approved (rule 10), and used only for the code to book a viewing and the 2-hour reminder, with the stand-in on the test copy. The `sign_in_mobiles` table and the `channel` column are dropped by a migration of their own, after the code that used them has gone.
 
-- **A text alone opens any account, an agent's included.** A phone number can be taken over or handed to someone new, and an agent's account reads renters' details. "Confirm it's you" stays a passkey or an email code, never a text, so a taken-over number can't change where tenants pay or how the person signs in; it could still read what the account reads. Airbnb accepts this. To weigh: asking people who let homes for an email code or a passkey as well.
-- **"We've found your account" comes after the email's code, not before.** Airbnb shows it, with the account's email and part of its phone number, as soon as an email is typed. Sean asked for Airbnb's flow; this is one step later on purpose, so that nobody learns from Gaff whether an address has an account, or sees part of its owner's number (UX-SI-8, AU4). The number of screens is the same.
-- **Google or Apple that can't vouch for an address is now connected by one code.** Q57 recorded the old rule (sign in with a code, then connect the provider on Profile, behind "Confirm it's you") as settled. Now a code goes to the address as the provider comes back, and entering it signs the person in and connects the provider. Smoother, and one code does what took two: someone talked into reading out that code hands over a lasting way in, not one sign-in. The email says so and says not to share it, and the owner is emailed afterwards.
-- **A number moves to whoever proves it.** One number, one person. A number unused for **180 days** asks for the email again, and goes to whoever proves one, because phone companies pass unused numbers on. Adding a number on Profile takes it from anyone else who had it. The person it left is emailed. 180 is a guess at how fast numbers are reissued.
-- **Every account still has an email.** A number alone never makes an account: the email is asked for next. Everything about a home goes by email, and "Confirm it's you" needs one.
-- **The countries Gaff texts:** Ireland, the UK, the EU and EEA, Switzerland, the US, Canada, Australia, New Zealand, India, Brazil and South Africa. Anyone else is told to use their email. The list is what stops someone running up texts to numbers that pay them; it also turns away real renters from elsewhere.
-- **The limits on texts:** three to a number in ten minutes and ten a day; three a minute from one network address; and **300 an hour for all of Gaff** (`SIGN_IN_TEXTS_PER_HOUR`), past which the screen asks for an email until the hour is out. Someone could use up the hour's texts on purpose and switch sign-in by mobile off for everyone; email, Google and Apple carry on.
-- **Nothing on the test copy until Sinch is set up.** The field reads "Email" there. The alternative, a code shown on the screen as booking a viewing does there, would let anyone in as any number's owner.
-- **Gaff's own team on the test copy.** In production `/internal` needs a passkey. On the test copy the email on the list is enough, so once Sinch is on there, a team member who adds a mobile number could reach `/internal` with a text alone.
-- **The order of the sign-in screen** is the field, then "or", then Google and Apple, as on Airbnb. The redesign had Google and Apple first, on the view that they are one tap (section 2).
-- **Two mobile numbers on Profile.** The one kept under "Your details" for reminders, and the one a person signs in with, are kept apart: giving a number for reminders shouldn't make it a way in. The sign-in one is named "A code by text". One number for both would be simpler to read.
-- **The email about a refused Google or Apple sign-in** (AU11) is now sent only when no code could be. The code's own email tells the address's owner instead.
+**What stays, and is live:**
 
-**On Profile.** "How you sign in" lists the number, masked, removes it, and adds one for someone signed in: "Confirm it's you", then a code texted to the number.
+- **Google or Apple that can't vouch for an address is connected by one code (UX-SI-15).** Q57 recorded the old rule (sign in with a code, then connect the provider on Profile, behind "Confirm it's you") as settled. Now a code goes to the address as the provider comes back, and entering it signs the person in and connects the provider. Smoother, and one code does what took two: someone talked into reading out that code hands over a lasting way in, not one sign-in. The email says so and says not to share it, and the owner is emailed afterwards. **Banked for Sean.**
+- **"We've found your account" comes after the email's code, not before.** Airbnb shows it as soon as an email is typed. This is one step later on purpose, so that nobody learns from Gaff whether an address has an account (UX-SI-8, AU4). **Banked for Sean.**
+- **The order of the sign-in screen** is the email field, then "or", then Google and Apple, as on Airbnb. The redesign had Google and Apple first, on the view that they are one tap (section 2). **Banked for Sean.**
+- **The email about a refused Google or Apple sign-in** (AU11) is sent only when no code could be. The code's own email tells the address's owner instead.
 
-**Before it works for real people.** Sinch's settings on the test copy and in production, a sender registered for Ireland, and a spend cap at Sinch (launch checklist). Until then the field asks for an email only, everywhere but a developer's machine.
+**For whoever builds sign-in by text again.** What was built, and why, is in ADR-0033 and in the repository's history up to 21 November 2026. The calls it made that were Sean's to make, and still are:
 
-**For the solicitor.** The text's wording, the lines the sign-in email gains when a code adds a way in, the "mobile number added" and "removed" security emails, and the privacy notice's paragraph on mobile numbers and Sinch. The DPIA gains a mobile number kept for signing in.
+- **A text alone would open any account, an agent's included.** A phone number can be taken over or handed to someone new, and an agent's account reads renters' details. To weigh: asking people who let homes for an email code or a passkey as well.
+- **A number moves to whoever proves it,** and one unused for 180 days asks for the email again, because phone companies pass unused numbers on. 180 was a guess.
+- **Every account still has an email.** A number alone never made an account.
+- **Which countries Gaff texts, and the limits on texts** (to a number, from a network address, and for all of Gaff in an hour). They are what stop someone running up texts to numbers that pay them.
+- **Two mobile numbers on Profile:** the one kept under "Your details" for reminders and the one a person signs in with were kept apart.
+- **What was learned about Sinch.** A new Sinch account is set up for its Conversation API (a project, an app and an access key), not the older service plan that Gaff's sender uses. An app's region is fixed when it is made, and rule 10 needs the EU one. A trial sends real words only to numbers verified at Sinch. Ireland's sender names are registered with ComReg. None of this was proven against a real account.
 
-### Q62. Sign-in in few words, with the country code inside the field (**Decided**, with one part open)
+**For the solicitor.** The lines the sign-in email gains when a code connects Google or Apple. The text's wording, the "mobile number added" and "removed" emails and the privacy notice's paragraph on mobile numbers are gone with the feature.
 
-Sean, on 21 November 2026, looking at sign-in as built against Airbnb's: "The UX looks very wordy. Equally, I hate that the country code is a separate component. We need to keep this simplistic, clean, minimal. Look at the Airbnb example as the gold standard."
+### Q62. Sign-in in few words (**Decided**, with two parts open)
 
-**Decision (Sean, 21 November 2026):** cut the words and put the country code inside the field. It is built (UX-SI-16, UX-SI-17, section 2).
+Sean, on 21 November 2026, looking at sign-in beside Airbnb's: "The UX looks very wordy. Equally, I hate that the country code is a separate component. We need to keep this simplistic, clean, minimal. Look at the Airbnb example as the gold standard."
 
-- **One box.** The country code sits inside "Email or mobile number", at its start, once a number is typed without one. It is never a field of its own, on sign-in or on Profile (`src/ui/ContactField`).
-- **A title, at most one line, and the one control**, on each screen. "Enter your code" says only where the code went. "What's your email?" says only "If you've used Gaff before, use the same one." "We've found your account" shows the account's email and what was joined, with an icon each.
+**Decision (Sean, 21 November 2026):** cut the words. It is built (UX-SI-16, UX-SI-17, section 2).
+
+- **A title, at most one line, and the one control**, on each screen. "Enter your code" says only where the code went, and no label is drawn over the six boxes. "We've found your account" shows the account's email and what was joined, with an icon each.
 - **The title is "Sign in or sign up".** It was "Sign in or create an account", which took two lines on a phone.
 - **"Sign in" in the header comes back to the page the person was on** (UX-SI-17).
 
+**The country code.** The same day, sign-in by mobile number was taken out, to be built again (Q61). The one box was built before that: the code inside "Email or mobile number", at its start, as "+353" with a chevron, never a field of its own (`src/ui/ContactField`). Sean chose to keep mobile out, so it is not in the product; it is in the repository's history (commit `cb4bb8f`), for whoever builds sign-in by text again. The rule stands for them: a country code is never a separate field.
+
 **Calls made while building it, for Sean to confirm.**
 
-- **How long a code lasts is no longer on the screen.** The email and the text still say 10 minutes; an expired code says so and offers a new one.
+- **How long a code lasts is no longer on the screen.** The email still says 10 minutes; an expired code says so and offers a new one.
 - **Google and Apple keep their words** ("Continue with Google"). Airbnb's screen shows the two marks alone, side by side. A mark with no words has to be recognised; two words save that. One line to change if Sean wants the marks alone.
-- **"We've found your account" still comes after the email's code**, not as the email is typed (Q61). Unchanged.
-- **The security emails and the text are unchanged.** They are fixed wording the solicitor reviews.
+- **The security emails are unchanged.** They are fixed wording the solicitor reviews.
 
-**Open: changing the email on an account.** There is no way to change it, and the email is what joins a person's ways in. It was planned with this work and held back, because it isn't a small change done safely: once the email changes, the old address can no longer sign in, Gaff gives people no address to write to, and the notice sent to the old address would have nothing to offer if it wasn't them. It needs a way to undo from that notice (a link that works for some days, puts the address back and signs every device out), which is new fixed wording and a decision on how long the link lasts. Until then, a person who can no longer read their email keeps getting in by mobile number, Google, Apple or a passkey.
+**Open: changing the email on an account.** There is no way to change it, and the email is what joins a person's ways in. It was planned with this work and held back, because it isn't a small change done safely: once the email changes, the old address can no longer sign in, Gaff gives people no address to write to, and the notice sent to the old address would have nothing to offer if it wasn't them. It needs a way to undo from that notice (a link that works for some days, puts the address back and signs every device out), which is new fixed wording and a decision on how long the link lasts. Until then, a person who can no longer read their email keeps getting in by Google, Apple or a passkey.

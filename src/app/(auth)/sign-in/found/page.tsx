@@ -1,9 +1,8 @@
-import { Mail, Smartphone } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { foundCopy } from '@/copy/sign-in';
 import { joinedFrom } from '@/domain/auth/joining';
-import { maskedMobile } from '@/domain/auth/mobile';
 import { currentUser } from '@/server/auth/member';
 import { signInOverview } from '@/server/auth/security';
 import { afterSignIn } from '@/server/auth/sign-in';
@@ -15,11 +14,9 @@ export const metadata: Metadata = { title: foundCopy.title };
 export const dynamic = 'force-dynamic';
 
 /**
- * UX-SI-14, UX-SI-15: "We've found your account". Someone signed in with a mobile number, or
- * with Google or Apple, that Gaff hadn't seen, proved their email, and already had an account
- * under it. They're signed in to it, and what they came with is one of its ways in from now on.
- *
- * UX-SI-16: few words. The account's email, then what was joined, each a line with its icon.
+ * UX-SI-15: "We've found your account". Someone signed in with Google or Apple that Gaff hadn't
+ * seen, proved their email, and already had an account under it. They're signed in to it, and
+ * what they came with is one of its ways in from now on.
  *
  * Shown only after the mailbox said yes with a code: the page reads who is signed in, so there
  * is nothing here for anyone else, and nothing about the person in the address bar. What it says
@@ -39,15 +36,14 @@ export default async function FoundPage({
   const joined = joinedFrom(query.joined);
   if (!joined) redirect(onward);
   const waysIn = await signInOverview(user.id, null);
-  const mobile = joined === 'mobile' ? waysIn.mobile : null;
-  const there = joined === 'mobile' ? Boolean(mobile) : Boolean(waysIn.providers[joined]);
-  if (!there) redirect(onward);
+  if (!waysIn.providers[joined]) redirect(onward);
   return (
     <div className={styles.screen}>
       <div className={styles.title}>
         <h1 className="type-display-mobile">{foundCopy.title}</h1>
         <p className={styles.lead}>{foundCopy.lead}</p>
       </div>
+      {/* UX-SI-16: few words. The account's email, then what was joined, each with its icon. */}
       <ul className={styles.account}>
         <li>
           <Mail size={20} strokeWidth={1.75} aria-hidden="true" />
@@ -57,14 +53,10 @@ export default async function FoundPage({
           </span>
         </li>
         <li>
-          {joined === 'mobile' ? (
-            <Smartphone size={20} strokeWidth={1.75} aria-hidden="true" />
-          ) : (
-            <ProviderLogo provider={joined} />
-          )}
+          <ProviderLogo provider={joined} />
           <span>
-            <span className="visually-hidden">{foundCopy.joinedRow(joined)}: </span>
-            {foundCopy.joined(joined, mobile ? maskedMobile(mobile) : null)}
+            <span className="visually-hidden">{foundCopy.joinedRow}: </span>
+            {foundCopy.joined(joined)}
           </span>
         </li>
       </ul>

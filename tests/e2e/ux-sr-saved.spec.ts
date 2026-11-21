@@ -205,7 +205,7 @@ test('WP-23: signed out, the heart on a home’s page asks for a sign-in, then s
   await page.getByRole('button', { name: 'Save this home' }).click();
   await expect(page.getByRole('heading', { name: /Sign in/ }).first()).toBeVisible();
   const email = uniqueEmail('aoife');
-  await page.getByLabel('Email or mobile number').fill(email);
+  await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Enter your code' })).toBeVisible();
   await page.getByLabel('Six-digit code').fill(await latestCodeFor(email));

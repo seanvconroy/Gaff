@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 21 November 2026 (sign-in in few words, Q62, below; before that, 20 November: the UX redesign is built, everything the other line could do is brought into it, and **it is live on the test copy**, https://gaff-test.vercel.app, since 20 November 2026: one project. See "Going live" below). Since then: sign-in with a mobile number, and one account however a person signs in ("Sign-in, joined up" below).
+Last updated: 21 November 2026 (the UX redesign is built, everything the other line could do is brought into it, and **it is live on the test copy**, https://gaff-test.vercel.app, since 20 November 2026: one project. See "Going live" below). Since then: sign-in with a mobile number, and one account however a person signs in ("Sign-in, joined up" below).
 
 ## Going live (found on 19 November 2026)
 
@@ -49,34 +49,34 @@ Sean agreed the plan on 19 November 2026. The decisions are Q50 to Q54 in [open-
 
 ## Sign-in in few words (21 November 2026)
 
-Sean, on seeing the screens beside Airbnb's: too wordy, and the country code must not be a field of its own (Q62).
+Sean, on seeing the screens beside Airbnb's: too wordy (Q62).
 
 | Requirement | What | Proven by |
 | --- | --- | --- |
-| UX-SI-16: few words, one box | Each sign-in screen is a title, at most one line and its one control. The country code sits inside "Email or mobile number", at its start, once a number is typed without one (`src/ui/ContactField`, also on Profile's "Add a mobile number"). The code screen says only where the code went, and draws no label over the six boxes. "What's your email?" has one line. "We've found your account" shows the account's email and what was joined, an icon each. The title is "Sign in or sign up" | `src/copy/sign-in.test.ts`, `src/domain/auth/mobile.test.ts`, `tests/e2e/ux-si-sign-in.spec.ts`, `tests/e2e/ux-si-mobile.spec.ts` |
+| UX-SI-16: few words | Each sign-in screen is a title, at most one line and its one control. The code screen says only where the code went, and draws no label over the six boxes; "Send a new code" and "Use a different email" are quiet buttons. "We've found your account" shows the account's email and what was joined, an icon each. The title is "Sign in or sign up". "Confirm it's you" says where its code went in the same short line | `src/copy/sign-in.test.ts`, `tests/e2e/ux-si-sign-in.spec.ts` |
 | UX-SI-17: back to where you were | "Sign in" in the header carries the page the person was on, and sign-in returns them to it | `tests/e2e/ux-si-sign-in.spec.ts` |
 
 Left open, on purpose:
 
+- **The country code inside the field** was built for sign-in by mobile and is not in the product, because mobile sign-in was taken out the same day (Q61). It is kept in the repository's history for the rebuild (Q62).
 - **Changing the email on an account** isn't built. Done safely it needs a way to undo from the notice sent to the old address, which is new fixed wording and a decision (Q62).
-- **None of this shows on the test copy until its settings are added.** It has no Sinch, Google or Apple settings, so its sign-in screen is the email field alone, and its email reaches only the Resend account's owner until a sending domain is verified (`docs/deploy.md`).
+- **The test copy has no Google or Apple settings**, so its sign-in screen is the email field alone, and its email reaches only the Resend account's owner until a sending domain is verified (`docs/deploy.md`).
 
-## Sign-in, joined up (20 November 2026)
+## Sign-in, joined up (20 November 2026; mobile taken out 21 November 2026)
 
 Sean asked for Airbnb's standard: a phone number or an email with a one-time code, or Google or Apple, all reaching the same account (Q61, [ADR-0033](adr/0033-mobile-sign-in-and-one-person-across-methods.md)).
 
 | Requirement | What | Proven by |
 | --- | --- | --- |
-| UX-SI-13: sign in with a mobile number | One field, "Email or mobile number", first on the screen, then "or", then Google and Apple. A number gets a six-digit code by text (Sinch), on the same code screen and rules as an email code; a "Country code" picker appears under the field for a number typed without one. Gaff texts a fixed list of countries; a number gets three texts in ten minutes and ten a day, a network address three a minute, and all of Gaff `SIGN_IN_TEXTS_PER_HOUR`. The number is the person's own (`sign_in_mobiles`): in their download, listed, added and removed on Profile behind "Confirm it's you", deleted with them. Offered only where texts are really sent; locally the text is in the outbox | `src/domain/auth/mobile.test.ts`, `src/copy/sign-in.test.ts`, `tests/integration/ux-si-mobile.test.ts`, `tests/e2e/ux-si-mobile.spec.ts` |
-| UX-SI-14: a number Gaff hasn't seen finds its account | The right code by text signs nobody in for a number nobody has (or one unused for 180 days): "What's your email?" follows, and a code goes to that address carrying the number. Entering it signs in the account that has the address, or makes one, and joins the number. "We've found your account" is shown for an account that was already there, and only after the code. The owner gets a security email | As above |
-| UX-SI-15: Google or Apple that can't vouch for the address | No dead end: a code goes to the address as the provider comes back, and entering it signs the person in and connects the provider in one step. ADR-0019's rule stands: nothing is joined on a provider's say-so | `tests/integration/ux-si-mobile.test.ts`, `tests/e2e/ux-si-sign-in.spec.ts` |
+| UX-SI-13, UX-SI-14: sign in with a mobile number | **Taken out**, 21 November 2026, on Sean's decision: setting Sinch up for it didn't work, and it is to be built again from a clean start in its own piece of work (Q61). Gone: the "Email or mobile number" field, codes by text, "What's your email?", the number on Profile and in the download, the limits and settings for texts, the Sinch set-up guide and the newer kind of Sinch credential. Sinch is as it was before: the code to book a viewing and the 2-hour reminder | The tests went with it |
+| UX-SI-15: Google or Apple that can't vouch for the address | No dead end: a code goes to the address as the provider comes back, and entering it signs the person in and connects the provider in one step. "We've found your account" follows if the account was there. ADR-0019's rule stands: nothing is joined on a provider's say-so | `src/domain/auth/joining.test.ts`, `tests/integration/ux-si-joined.test.ts`, `tests/e2e/ux-si-sign-in.spec.ts` |
+| The sign-in screen's order | The email field and Continue first, then "or", then Google and Apple | `tests/e2e/ux-si-sign-in.spec.ts` |
 
-Left open, on purpose. The calls made while building it that are Sean's to make are banked in Q61, as a list:
+Left open:
 
-- **Nothing is texted until Sinch is set up.** On the test copy the field still reads "Email". The steps are in `docs/deploy.md`, "Setting up Sinch": an app in Sinch's EU region and a handful of settings in Vercel, then a sender registered for Ireland and a spend cap before real people use it. Not yet run against a real Sinch account.
-- **A text alone opens any account**, an agent's included. "Confirm it's you" is still a passkey or an email code. Sean to say if people who let homes should need more.
-- **Real Google and Apple** haven't been through the new code step: the stand-in has. The provider's own ID for the person is read from `sub` in its token.
-- **For the solicitor:** the text, the lines the sign-in email gains, the "mobile number added/removed" emails, and the privacy notice's new paragraph.
+- **The `sign_in_mobiles` table and `one_time_codes.channel` are still in the database**, unused. A migration of their own drops them once this is live, so the copy that is running never loses a column it reads.
+- **Real Google and Apple** haven't been through the code step: the stand-in has. The provider's own ID for the person is read from `sub` in its token.
+- **For Sean and the solicitor:** what is banked in Q61, and the lines the sign-in email gains when a code connects Google or Apple.
 
 ## Done
 

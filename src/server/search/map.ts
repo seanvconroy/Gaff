@@ -1,11 +1,12 @@
 import { developmentCopy } from '@/copy/developments';
 import { cardLine, freeFrom } from '@/copy/search';
 import { developmentHref, groupAlike } from '@/domain/developments/development';
+import { CARD_PHOTOS } from '@/domain/lettings/photo-files';
 import type { MapPin } from '@/domain/map/points';
 import { inBBox, type BBox } from '@/domain/places/geo';
 import type { SearchFilters } from '@/domain/search/filters';
 import { irishToday, formatRent } from '@/lib/format';
-import { publicHomes } from '@/server/homes/public-homes';
+import { type PublicHome, publicHomes } from '@/server/homes/public-homes';
 import { searchOnGaff } from './query';
 import { resolveSearch } from './where';
 
@@ -58,15 +59,22 @@ export async function mapPins(filters: SearchFilters, view: BBox): Promise<MapAn
   };
 }
 
-/** M117: what a pin's mini card shows: the cover photo, the rent, the line and the date. */
+/**
+ * M117: what a pin's card shows: the home's first photos to look through (the cover first, as
+ * its card in the list has them), the rent, the line and the date.
+ */
 export interface MapCard {
   id: string;
   href: string;
   title: string;
   line: string;
   free: string;
-  photo: { src: string; alt: string } | null;
+  photos: Array<{ src: string }>;
 }
+
+/** UX-SR-6: a card's photos, at a card's size: the first few, never a floor plan (M44). */
+const cardPhotosOf = (home: PublicHome): MapCard['photos'] =>
+  home.photos.slice(0, CARD_PHOTOS).map((photo) => ({ src: photo.small }));
 
 export async function mapCard(ref: string, now = new Date()): Promise<MapCard | null> {
   const [home] = await publicHomes({ ref, limit: 1 });
@@ -87,7 +95,7 @@ export async function mapCard(ref: string, now = new Date()): Promise<MapCard | 
         ),
         line: `${developmentCopy.search.alike(alike.length)} · ${unit.developmentName}`,
         free: freeFrom(soonest, irishToday(now)),
-        photo: home.photos[0] ? { src: home.photos[0].src, alt: '' } : null,
+        photos: cardPhotosOf(home),
       };
     }
   }
@@ -97,7 +105,6 @@ export async function mapCard(ref: string, now = new Date()): Promise<MapCard | 
     title: formatRent(home.home.monthlyRentCents),
     line: cardLine(home.home),
     free: freeFrom(home.home.availableFrom, irishToday(now)),
-    // The card says the home in words beside it, so the picture adds none.
-    photo: home.photos[0] ? { src: home.photos[0].src, alt: '' } : null,
+    photos: cardPhotosOf(home),
   };
 }

@@ -612,7 +612,7 @@ export function SearchMapDemo() {
               title: '€2,250 a month',
               line: '2-bed apartment · Example, Dublin',
               free: 'Free now',
-              photo: null,
+              photos: [],
             })}
             onSearchArea={() => undefined}
             onShapes={() => undefined}

@@ -5,7 +5,7 @@ Gaff is one Next.js app on Vercel, with its functions in Dublin, and one Postgre
 This sets up the **test copy**, for the end-to-end test in [testing-guide.md](testing-guide.md):
 - **Email is real** for real addresses, through Resend with a send-only key. Mail to made-up addresses (`example.com`, `example.ie`, `.test`, `.example` and the like) goes to the Outbox instead. Replies by email can't be received, so each email that would invite a reply says to use its link instead.
 - Texts aren't sent; they appear on the Outbox page. The ID and income checks are stand-ins. The AI is a stand-in too, unless you give it the Claude API's key (see [The AI](#the-ai)).
-- It's open to anyone with the address, never indexed, and every page has a banner saying it's the test copy. The Outbox, the test inbox and the stand-in checks are for Gaff's own team only (`STAFF_EMAILS`); anyone else gets "not found". There is no stand-in for Google or Apple: without their real keys, their buttons aren't shown.
+- It's open to anyone with the address and never indexed. Nothing on its pages says it is the test copy (the banner was taken off on 21 November 2026, Q63, so it looks as the real Gaff will): the address is how you tell. The Outbox, the test inbox and the stand-in checks are for Gaff's own team only (`STAFF_EMAILS`); anyone else gets "not found". There is no stand-in for Google or Apple: without their real keys, their buttons aren't shown.
 - **Use made-up details only.**
 
 It takes about 20 minutes. Production uses the same steps with real providers; see [Production, later](#production-later).

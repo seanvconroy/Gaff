@@ -66,54 +66,64 @@ export function SearchView({
   // search shows them loading.
   const loadingKey = searchHref(without(without(filters, 'box'), 'shapes'));
   const results = (beside: boolean) => (
-    <Suspense key={loadingKey} fallback={<ResultsLoading />}>
+    <Suspense key={loadingKey} fallback={<ResultsLoading beside={beside} />}>
       <Results filters={filters} g={g} saver={saver} beside={beside} />
     </Suspense>
   );
+  const top = (
+    <div className={styles.top}>
+      <h1
+        id="search-question"
+        className={heading === 'shown' ? styles.question : 'visually-hidden'}
+      >
+        {question}
+      </h1>
+      <div className={styles.bar}>
+        {/* A new search starts with an empty box: the chips say what it understood. */}
+        <SearchField
+          key={`${query}|${understood ? 'unclear' : ''}`}
+          labelledBy="search-question"
+          primary={!searching}
+          keepRent={keepRent}
+        />
+      </div>
+      {understood}
+      <SearchControls
+        filters={filters}
+        placeName={placeName}
+        near={
+          where?.kind === 'near' ? { defaultKm: defaultNearMetres(where.place, g) / 1000 } : null
+        }
+        keepRent={keepRent}
+        today={irishToday()}
+        save={
+          searching ? (
+            <SaveSearchChip
+              key={query}
+              query={query}
+              signedIn={saver.signedIn}
+              kept={saver.signedIn && saver.keepsSearch}
+            />
+          ) : undefined
+        }
+      />
+      {intro}
+    </div>
+  );
   return (
     <div className={styles.page} data-wide-page={map ? '' : undefined}>
-      <div className={styles.top}>
-        <h1
-          id="search-question"
-          className={heading === 'shown' ? styles.question : 'visually-hidden'}
-        >
-          {question}
-        </h1>
-        <div className={styles.bar}>
-          {/* A new search starts with an empty box: the chips say what it understood. */}
-          <SearchField
-            key={`${query}|${understood ? 'unclear' : ''}`}
-            labelledBy="search-question"
-            primary={!searching}
-            keepRent={keepRent}
-          />
-        </div>
-        {understood}
-        <SearchControls
-          filters={filters}
-          placeName={placeName}
-          near={
-            where?.kind === 'near' ? { defaultKm: defaultNearMetres(where.place, g) / 1000 } : null
-          }
-          keepRent={keepRent}
-          today={irishToday()}
-          save={
-            searching ? (
-              <SaveSearchChip
-                key={query}
-                query={query}
-                signedIn={saver.signedIn}
-                kept={saver.signedIn && saver.keepsSearch}
-              />
-            ) : undefined
-          }
-        />
-        {intro}
-      </div>
       {map ? (
+        // Beside the map, the search and the homes are one column and the map is the other, so
+        // the map is whole on the screen from the top of the page (M57).
         <ListAndMap
           words={{ showMap: mapWords.showMap, showList: mapWords.showList }}
-          list={results(true)}
+          head={top}
+          list={
+            <div className={styles.listed}>
+              {results(true)}
+              {after}
+            </div>
+          }
           map={
             <ResultsMap
               settings={map}
@@ -125,9 +135,12 @@ export function SearchView({
           }
         />
       ) : (
-        results(false)
+        <>
+          {top}
+          {results(false)}
+          {after}
+        </>
       )}
-      {after}
     </div>
   );
 }

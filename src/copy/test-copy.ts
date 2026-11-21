@@ -8,12 +8,6 @@
 export const TEST_COPY_REPLY_NOTE =
   'This is Gaff’s test copy, which can’t receive replies by email yet. To write back, use the link in this email, or sign in to Gaff and open Enquiries.';
 
-/** The banner on every page of the test copy. */
-export const TEST_COPY_BANNER = {
-  title: 'Gaff test copy',
-  body: 'Use made-up names, numbers and homes. Emails are real; texts and ID checks are stand-ins.',
-};
-
 /** "Add test enquiries", in a live letting's menu wherever the development tools are on. */
 export const TEST_ENQUIRIES = {
   menu: 'Add test enquiries',

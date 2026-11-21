@@ -8,7 +8,7 @@ A first look takes 15 minutes. The whole journey, from an enquiry to a signed te
 
 Open **https://gaff-test.vercel.app** on your laptop or your phone. There's no Vercel sign-in and nothing to install.
 
-- A banner at the top of every page says it's the **test copy**.
+- It looks as the real Gaff will: nothing on the page says it's the **test copy**. The address is how you tell.
 - Anyone with the address can open it, though search engines never see it. So **use made-up names, phone numbers and homes**.
 - **Use your real email address.** That's where Gaff sends your codes and emails.
 

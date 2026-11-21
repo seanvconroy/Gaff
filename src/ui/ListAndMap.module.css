@@ -1,6 +1,7 @@
 /*
- * M57: a list and its map. Below 900px, one at a time, with a control between them held above
- * the tab bar. At 900px and up, side by side, the map held in view as the list scrolls.
+ * M57: a list and its map. Below 900px, one at a time under what heads them, with a control to
+ * switch. At 900px and up, two columns: the head and the list scroll, and the map is held under
+ * the navigation at exactly the height the screen has left.
  */
 .layout {
   position: relative;
@@ -9,6 +10,14 @@
   min-width: 0;
 }
 
+.side {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+  min-width: 0;
+}
+
+.head,
 .list {
   min-width: 0;
 }
@@ -18,18 +27,7 @@
   min-width: 0;
 }
 
-.layout[data-view='map'] .list {
-  display: none;
-}
-
-.layout[data-view='map'] .map {
-  display: block;
-  height: calc(100dvh - 2 * var(--size-bar) - var(--space-16));
-  min-height: 360px;
-}
-
-/* In the flow after the list (or the map), held at the foot of the screen while the list
-   scrolls: it never covers the map or its card. */
+/* In the flow after the list, held at the foot of the screen while the list scrolls. */
 .toggle {
   position: sticky;
   bottom: calc(var(--size-bar) + var(--space-4) + env(safe-area-inset-bottom));
@@ -57,23 +55,58 @@
   outline-offset: 2px;
 }
 
+@media (width <= 900px) {
+  /*
+   * The map, opened: it takes the list's place and fills what the screen has left under the
+   * head. Where nothing holds the layout to the screen's height, it keeps a height of its own.
+   */
+  .layout[data-view='map'] {
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--space-4);
+    height: 100%;
+  }
+
+  .layout[data-view='map'] .list {
+    display: none;
+  }
+
+  .layout[data-view='map'] .map {
+    display: grid;
+    min-height: 320px;
+  }
+
+  /* Over the map's foot, in its middle: clear of the map's own controls and of a pin's card. */
+  .layout[data-view='map'] .toggle {
+    position: absolute;
+    bottom: var(--space-6);
+    left: 50%;
+    margin: 0;
+    translate: -50% 0;
+  }
+}
+
 @media (width > 900px) {
   .layout {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: var(--space-8);
+    gap: var(--space-6);
     align-items: start;
   }
 
-  .layout[data-view] .list {
-    display: block;
+  /* The list ends with room under it; the map keeps to the screen. */
+  .side {
+    padding-bottom: var(--space-12);
   }
 
-  .layout[data-view] .map {
+  /*
+   * Under the navigation (its bar and hairline) with the same space above and below, so the
+   * whole map is on the screen wherever the page has scrolled to.
+   */
+  .map {
     position: sticky;
-    top: calc(var(--size-bar) + var(--space-4));
-    display: block;
-    height: calc(100dvh - var(--size-bar) - var(--space-12));
-    min-height: 480px;
+    top: calc(var(--size-bar) + 1px + var(--space-4));
+    display: grid;
+    height: calc(100dvh - var(--size-bar) - 1px - 2 * var(--space-4));
+    min-height: 320px;
   }
 
   .toggle {

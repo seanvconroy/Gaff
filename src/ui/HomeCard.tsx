@@ -1,6 +1,7 @@
 import { House } from 'lucide-react';
 import Link from 'next/link';
 import { type ReactNode, useId } from 'react';
+import { type CardPhoto, CardPhotos } from './CardPhotos';
 import styles from './HomeCard.module.css';
 
 /**
@@ -42,7 +43,8 @@ export function HomeGrid({
  *
  * In search (UX-SR-6) the title is the rent, the line says the home ("2-bed apartment ·
  * Ranelagh, Dublin 6"), `details` say when it's free and, for a close home, what differs, and
- * `action` is the heart, over the photo's corner.
+ * `action` is the heart, over the photo's corner. With `photos`, the cover is the first of the
+ * home's photos, which can be looked through in place (`CardPhotos`).
  */
 export function HomeCard({
   href,
@@ -50,6 +52,8 @@ export function HomeCard({
   line,
   details,
   photo,
+  photos,
+  photosOf,
   needsYou,
   action,
   headingLevel = 3,
@@ -64,6 +68,13 @@ export function HomeCard({
   details?: readonly ReactNode[];
   /** The cover photo. `alt` is empty when the photo only repeats the address beside it. */
   photo?: { src: string; alt: string } | null;
+  /**
+   * UX-SR-6: the home's photos, the cover first, to look through on the card. Two or more take
+   * the cover's place; with fewer the card shows `photo`.
+   */
+  photos?: readonly CardPhoto[];
+  /** The home in words, to name the photos' buttons: "2-bed apartment · Ranelagh, Dublin 6". */
+  photosOf?: string;
   /** Words for the dot, when something is waiting on the person: "Needs you". */
   needsYou?: string | null;
   /** One small control over the photo's corner (the heart). It sits above the card's link. */
@@ -84,7 +95,9 @@ export function HomeCard({
     <li className={styles.card} data-home={mapKey}>
       {action ? <div className={styles.action}>{action}</div> : null}
       <div className={styles.photo}>
-        {photo ? (
+        {photos && photos.length > 1 ? (
+          <CardPhotos href={href} photos={photos} label={photosOf} />
+        ) : photo ? (
           // A home's own photo, already sized where it is stored: nothing for Next to resize.
           // eslint-disable-next-line @next/next/no-img-element
           <img className={styles.image} src={photo.src} alt={photo.alt} loading="lazy" />

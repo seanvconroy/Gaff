@@ -557,3 +557,26 @@ Sean, on 21 November 2026, looking at sign-in beside Airbnb's: "The UX looks ver
 - **The security emails are unchanged.** They are fixed wording the solicitor reviews.
 
 **Open: changing the email on an account.** There is no way to change it, and the email is what joins a person's ways in. It was planned with this work and held back, because it isn't a small change done safely: once the email changes, the old address can no longer sign in, Gaff gives people no address to write to, and the notice sent to the old address would have nothing to offer if it wasn't them. It needs a way to undo from that notice (a link that works for some days, puts the address back and signs every device out), which is new fixed wording and a decision on how long the link lasts. Until then, a person who can no longer read their email keeps getting in by Google, Apple or a passkey.
+
+### Q63. Search as Airbnb does it: photos on the card, the whole map on the screen, no banner on the test copy
+
+Sean looked at search on the test copy on 21 November 2026 beside Airbnb, "the gold standard here for us to model": on Airbnb a home's photos can be looked through from the list and from the map without opening the home, and the map sits whole beside the list. On Gaff the map's foot, and a pin's card with it, was off the screen until the page was scrolled.
+
+**Decision (Sean, 21 November 2026), built the same day:**
+
+- **A home's photos are looked through on its card** (UX-SR-6), in the list and on its pin's card on the map: a swipe, or Previous and Next, with dots for where it has come to. A press on a photo opens the home, as before.
+- **The whole map is always on the screen** (UX-SR-8), on a desktop and on a phone. The search bar is not moved into the navigation, as Airbnb has it: Sean named that as their way, not as something to copy. Instead the search heads the list's column and the map takes the other from the navigation down.
+- **No banner on the test copy.** It pushed every page down and made the test copy look unlike the real thing, which is what is being judged.
+
+**Chosen in the build. Sean's to overrule:**
+
+- **A card carries a home's first eight photos**, not all thirty a home may have: a list of a hundred homes would otherwise send three thousand addresses. The rest are on the home's page. Floor plans are never on a card (M44).
+- **Previous and Next wait until the photo is pointed at**, wherever a pointer can hover, as Airbnb's do; with the keyboard they show when they have focus, and on a touch screen they are always there. UX-DS-17 says no action depends on hover unless a visible control does the same: here the control is the one hovered, and nothing is out of reach of a finger or the Tab key. If the rule is to be read strictly, showing them always is a few lines in `src/ui/CardPhotos.module.css`.
+- **On a desktop a pin's card sits beside its pin**, under it where there's room and over it where there isn't, as Airbnb's does. On a phone it stays at the map's foot, its photos on the left.
+- **The dots sit on a small pill of the surface colour**, not straight on the photo: there is no colour in the tokens that is white in both themes, and a pill reads on any picture. Previous, Next and the map card's Close sit on a disc of the same colour.
+- **On a phone a pin's card has Close on the photo's top left corner**, so the rent and the home's line have the card's width beside the photo.
+
+**Open:**
+
+- **Nothing on the test copy's pages now says to use made-up details.** The banner did. The testing guide still does, and the address is how a tester tells the test copy from the real Gaff. If texts are ever switched on there, a made-up mobile number would text a stranger: tell testers to use their own.
+- **Not yet seen on Google's map with a real key** (Q58, as Q60). The layout and the card's place are the same code on the stand-in, where they are tested end to end.

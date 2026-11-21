@@ -59,7 +59,7 @@ Sean asked for Airbnb's standard: a phone number or an email with a one-time cod
 
 Left open:
 
-- **The `sign_in_mobiles` table and `one_time_codes.channel` are still in the database**, unused. A migration of their own drops them once this is live, so the copy that is running never loses a column it reads.
+- **The `sign_in_mobiles` table and `one_time_codes.channel` are dropped** by a migration of their own (`0051`), which went out after the code that read them had gone, so the running copy never lost a column it used.
 - **Real Google and Apple** haven't been through the code step: the stand-in has. The provider's own ID for the person is read from `sub` in its token.
 - **For Sean and the solicitor:** what is banked in Q61, and the lines the sign-in email gains when a code connects Google or Apple.
 

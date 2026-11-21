@@ -54,8 +54,9 @@
   padding-inline: var(--space-3);
 }
 
-.quiet:hover,
-.quiet:active {
+/* Not while it's waiting (disabled): a button that can't be pressed doesn't answer the pointer. */
+.quiet:not(:disabled):hover,
+.quiet:not(:disabled):active {
   background-color: var(--color-surface-2);
 }
 

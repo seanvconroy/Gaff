@@ -2,7 +2,7 @@
 
 What's done and what's next. Updated with every requirement. The plan is in [architecture.md](architecture.md); launch gates are in [launch-checklist.md](launch-checklist.md).
 
-Last updated: 20 November 2026 (the UX redesign is built, everything the other line could do is brought into it, and **it is live on the test copy**, https://gaff-test.vercel.app, since 20 November 2026: one project. See "Going live" below). Since then: sign-in with a mobile number, and one account however a person signs in ("Sign-in, joined up" below).
+Last updated: 21 November 2026 (sign-in in few words, Q62, below; before that, 20 November: the UX redesign is built, everything the other line could do is brought into it, and **it is live on the test copy**, https://gaff-test.vercel.app, since 20 November 2026: one project. See "Going live" below). Since then: sign-in with a mobile number, and one account however a person signs in ("Sign-in, joined up" below).
 
 ## Going live (found on 19 November 2026)
 
@@ -46,6 +46,20 @@ Sean agreed the plan on 19 November 2026. The decisions are Q50 to Q54 in [open-
 | 2 | BA-15 developments, and letting many alike homes (M32 to M35, M75) | **Done**, 20 November 2026. "Several alike in one development" on Add a letting: an agency or a landlord's team (never a private landlord's own homes) adds a development, its types of home, and every home of a type in one step, each with its own number, floor and date. "Put 4 homes live" runs the ordinary go-live step and checks for each, as the person's own decision; after that each is an ordinary letting. A change to a shared fact or photo reaches every open home not changed by hand. One viewing time can be offered across a type. Search shows one "4 homes like this" card and one pin per type, and a development has a public page at a random reference. A development's homes count once towards the burst signal. Left out: pasting a spreadsheet of homes, renaming a development, indexing developments' pages. ADR-0029. `tests/e2e/ba15-*.spec.ts` |
 | 3 | BA-16 a chosen renter shows their work and income with documents (P30 to P41, P44 to P47, P49) | **Done**, 20 November 2026. One checks page for the preferred applicant and the backup: ID, referees, then the documents for how they said they earn (payslips or a contract; a Notice of Assessment or an accountant's letter; a statement of each other income; never bank statements). PDF, JPG or PNG, encrypted in a private store. The model's `document` task is given the file alone and reads its kind, name, date and amounts; a reading holding a PPS number or an account number is refused whole. The kind, the name against the ID, and how recent it is are checked at once, in `warning`. The renter sees what was read, can correct it, and shares everything in one step. A letter sees it in words beside the income the renter gave, with the fixed reminder about HAP and no score; they can open payslips while kept, each opening recorded, and can never open a statement of other income: the letter's table has no such kind, and the renter's copy belongs to no organisation. Every copy has a deletion date. The open-banking stand-in is gone. Rules 2 and 3 in `CLAUDE.md` say this in the words the founder agreed on 8 November. Left out: a character reference instead of a landlord's (P42, it needs new fixed wording), a guarantor (P43), marking a flag "seen and accepted" (P48). For the solicitor: HAP and affordability, asking the backup at the same time, statements of other income. ADR-0031. `tests/compliance` documents tests, `tests/e2e/ba16-*.spec.ts` |
 - **CI:** the journeys had outgrown the job's 25 minutes, so every run on the redesign's branch was cut off. They now run as four parts side by side.
+
+## Sign-in in few words (21 November 2026)
+
+Sean, on seeing the screens beside Airbnb's: too wordy, and the country code must not be a field of its own (Q62).
+
+| Requirement | What | Proven by |
+| --- | --- | --- |
+| UX-SI-16: few words, one box | Each sign-in screen is a title, at most one line and its one control. The country code sits inside "Email or mobile number", at its start, once a number is typed without one (`src/ui/ContactField`, also on Profile's "Add a mobile number"). The code screen says only where the code went, and draws no label over the six boxes. "What's your email?" has one line. "We've found your account" shows the account's email and what was joined, an icon each. The title is "Sign in or sign up" | `src/copy/sign-in.test.ts`, `src/domain/auth/mobile.test.ts`, `tests/e2e/ux-si-sign-in.spec.ts`, `tests/e2e/ux-si-mobile.spec.ts` |
+| UX-SI-17: back to where you were | "Sign in" in the header carries the page the person was on, and sign-in returns them to it | `tests/e2e/ux-si-sign-in.spec.ts` |
+
+Left open, on purpose:
+
+- **Changing the email on an account** isn't built. Done safely it needs a way to undo from the notice sent to the old address, which is new fixed wording and a decision (Q62).
+- **None of this shows on the test copy until its settings are added.** It has no Sinch, Google or Apple settings, so its sign-in screen is the email field alone, and its email reaches only the Resend account's owner until a sending domain is verified (`docs/deploy.md`).
 
 ## Sign-in, joined up (20 November 2026)
 

@@ -538,3 +538,23 @@ Sean, on 20 November 2026, with Airbnb's sign-in as the standard: sign up or sig
 **Before it works for real people.** Sinch's settings on the test copy and in production, a sender registered for Ireland, and a spend cap at Sinch (launch checklist). Until then the field asks for an email only, everywhere but a developer's machine.
 
 **For the solicitor.** The text's wording, the lines the sign-in email gains when a code adds a way in, the "mobile number added" and "removed" security emails, and the privacy notice's paragraph on mobile numbers and Sinch. The DPIA gains a mobile number kept for signing in.
+
+### Q62. Sign-in in few words, with the country code inside the field (**Decided**, with one part open)
+
+Sean, on 21 November 2026, looking at sign-in as built against Airbnb's: "The UX looks very wordy. Equally, I hate that the country code is a separate component. We need to keep this simplistic, clean, minimal. Look at the Airbnb example as the gold standard."
+
+**Decision (Sean, 21 November 2026):** cut the words and put the country code inside the field. It is built (UX-SI-16, UX-SI-17, section 2).
+
+- **One box.** The country code sits inside "Email or mobile number", at its start, once a number is typed without one. It is never a field of its own, on sign-in or on Profile (`src/ui/ContactField`).
+- **A title, at most one line, and the one control**, on each screen. "Enter your code" says only where the code went. "What's your email?" says only "If you've used Gaff before, use the same one." "We've found your account" shows the account's email and what was joined, with an icon each.
+- **The title is "Sign in or sign up".** It was "Sign in or create an account", which took two lines on a phone.
+- **"Sign in" in the header comes back to the page the person was on** (UX-SI-17).
+
+**Calls made while building it, for Sean to confirm.**
+
+- **How long a code lasts is no longer on the screen.** The email and the text still say 10 minutes; an expired code says so and offers a new one.
+- **Google and Apple keep their words** ("Continue with Google"). Airbnb's screen shows the two marks alone, side by side. A mark with no words has to be recognised; two words save that. One line to change if Sean wants the marks alone.
+- **"We've found your account" still comes after the email's code**, not as the email is typed (Q61). Unchanged.
+- **The security emails and the text are unchanged.** They are fixed wording the solicitor reviews.
+
+**Open: changing the email on an account.** There is no way to change it, and the email is what joins a person's ways in. It was planned with this work and held back, because it isn't a small change done safely: once the email changes, the old address can no longer sign in, Gaff gives people no address to write to, and the notice sent to the old address would have nothing to offer if it wasn't them. It needs a way to undo from that notice (a link that works for some days, puts the address back and signs every device out), which is new fixed wording and a decision on how long the link lasts. Until then, a person who can no longer read their email keeps getting in by mobile number, Google, Apple or a passkey.

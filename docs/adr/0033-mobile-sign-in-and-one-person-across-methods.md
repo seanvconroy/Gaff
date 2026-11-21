@@ -2,6 +2,7 @@
 
 - Status: Accepted (Sean, 20 November 2026, open question Q61). Adds to [ADR-0015](0015-sign-in-google-apple-codes-passkeys.md) and changes one row of [ADR-0019](0019-sign-in-hardened.md)'s rule for joining Google or Apple (AU4).
 - Date: 2026-11-20
+- Amended 21 November 2026 (Q62, UX-SI-16): the country code sits inside the one field, at its start, and is no longer a picker below it; the screens' words were cut to a line each. Nothing about who is joined to whom, or when, changed.
 
 ## Context
 

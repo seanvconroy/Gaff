@@ -13,7 +13,7 @@ import type { DeviceKind } from '@/domain/auth/passkey-offer';
 const providerNames: Record<SignInProvider, string> = { google: 'Google', apple: 'Apple' };
 
 export const signInCopy = {
-  title: 'Sign in or create an account',
+  title: 'Sign in or sign up',
   /** UX-AG-11: on the way to an invite. */
   joinTitle: (agencyName: string) => `Join ${agencyName}`,
   continueWith: (provider: SignInProvider) => `Continue with ${providerNames[provider]}`,
@@ -21,7 +21,7 @@ export const signInCopy = {
   emailLabel: 'Email',
   /** UX-SI-13: where a code can go by text as well: one field takes either. */
   identifierLabel: 'Email or mobile number',
-  /** Shown once what's being typed is a number. */
+  /** UX-SI-16: inside the field, at its start, once what's being typed is a number. */
   diallingCodeLabel: 'Country code',
   diallingCode: (name: string, code: string) => `${name} (+${code})`,
   continue: 'Continue',
@@ -107,17 +107,13 @@ export function providerProblemWords(
 
 export const codeCopy = {
   title: 'Enter your code',
-  lead: (email: string) =>
-    `We sent a six-digit code to ${email}. It works for the next ${CODE_LASTS_MINUTES} minutes.`,
-  /** UX-SI-13: the code went by text. The number is shown in full, to catch a slip of the thumb. */
-  leadText: (mobile: string) =>
-    `We texted a six-digit code to ${mobile}. It works for the next ${CODE_LASTS_MINUTES} minutes.`,
+  /** UX-SI-16: one line, where the code went: an email address, or a mobile number in full. */
+  lead: (where: string) => `We sent a code to ${where}.`,
   /**
    * UX-SI-15: back from Google or Apple, which can't vouch for the address. The mailbox says
-   * yes instead, and the provider is connected with the same code.
+   * yes instead; the email itself says the provider is connected with the same code.
    */
-  leadProvider: (provider: SignInProvider, email: string) =>
-    `${providerNames[provider]} can’t confirm ${email} is still yours, so we sent a six-digit code to it. Enter it and ${providerNames[provider]} is connected from then on. It works for the next ${CODE_LASTS_MINUTES} minutes.`,
+  leadProvider: (email: string) => `We sent a code to ${email}, to check it’s yours.`,
   label: 'Six-digit code',
   checking: 'Checking…',
   /** States table: "Wrong code". */
@@ -143,9 +139,8 @@ export const codeCopy = {
  */
 export const emailNeededCopy = {
   title: 'What’s your email?',
-  lead: (mobile: string) =>
-    `Your mobile, ${mobile}, is confirmed. Everything about a home comes by email, so we need yours too.`,
-  hint: 'If you’ve used Gaff before, enter the same email and we’ll find your account.',
+  /** UX-SI-16: the one thing that keeps a person to one account. */
+  lead: 'If you’ve used Gaff before, use the same one.',
   label: 'Email',
   continue: 'Continue',
   sending: 'Sending your code…',
@@ -154,16 +149,17 @@ export const emailNeededCopy = {
 
 /**
  * UX-SI-14, UX-SI-15: "We've found your account". Shown once the mailbox has said yes, and never
- * before: signed in, with what was just joined and where to change it.
+ * before: signed in, with the account's email and what was just joined to it (UX-SI-16).
  */
 export const foundCopy = {
   title: 'We’ve found your account',
-  signedInAs: (email: string) => `You’re signed in as ${email}.`,
+  lead: 'You’re signed in.',
+  /** For a screen reader, before each line of the account: its email, then what was joined. */
+  emailRow: 'Email',
+  joinedRow: (joined: Joined): string => (joined === 'mobile' ? 'Mobile' : 'Connected'),
+  /** What was joined, as it's shown: the number with its middle hidden, or the provider's name. */
   joined: (joined: Joined, mobile: string | null): string =>
-    joined === 'mobile'
-      ? `You can sign in with your mobile${mobile ? `, ${mobile},` : ''} from now on.`
-      : `${providerNames[joined]} is connected. You can sign in with it from now on.`,
-  change: 'You can change this under “How you sign in” on your profile.',
+    joined === 'mobile' ? (mobile ?? '') : providerNames[joined],
   continue: 'Continue',
 } as const;
 
@@ -226,8 +222,7 @@ export const confirmCopy = {
   emailCode: 'Email me a code',
   emailCodeInstead: 'Email me a code instead',
   sending: 'Sending your code…',
-  sentTo: (email: string) =>
-    `We sent a six-digit code to ${email}. It works for the next ${CODE_LASTS_MINUTES} minutes.`,
+  sentTo: (email: string) => `We sent a code to ${email}.`,
   /** The form couldn't go on because nobody has confirmed. Shown only if the sheet is closed. */
   needed: 'Confirm it’s you to save this.',
 } as const;

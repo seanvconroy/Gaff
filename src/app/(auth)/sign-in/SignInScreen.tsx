@@ -4,10 +4,11 @@ import Link from 'next/link';
 import { useActionState, useEffect, useState } from 'react';
 import { signInCopy } from '@/copy/sign-in';
 import type { SignInMethod, SignInProvider } from '@/domain/auth/methods';
-import { DEFAULT_DIALLING_ISO, diallingCodes, looksLikeMobile } from '@/domain/auth/mobile';
+import { DEFAULT_DIALLING_ISO, diallingCodes, needsDiallingCode } from '@/domain/auth/mobile';
 import { emptyFormState, type FormState } from '@/lib/forms';
 import { Button } from '@/ui/Button';
-import { FieldError, SelectField, TextField } from '@/ui/Field';
+import { ContactField } from '@/ui/ContactField';
+import { FieldError } from '@/ui/Field';
 import { authClient, canOfferPasskeyOnField, deviceCanKeepPasskey } from '../auth-client';
 import { continueWithIdentifier, continueWithProvider, signInScreenOpened } from './actions';
 import { ProviderLogo } from './ProviderLogo';
@@ -56,12 +57,13 @@ function usePasskeyOnField(returnTo: string, onSignedIn: () => void): void {
 const diallingOptions = diallingCodes.map((entry) => ({
   value: entry.iso,
   label: signInCopy.diallingCode(entry.name, entry.code),
+  short: `+${entry.code}`,
 }));
 
 /**
- * UX-SI-13: one field for an email address or a mobile number. Once what's typed is a number
- * with no country code of its own, a picker for the code appears under it, Ireland first. It
- * comes in below the field, so nothing moves under the thumb that's typing.
+ * UX-SI-13, UX-SI-16: one field for an email address or a mobile number. Once what's typed is a
+ * number with no country code of its own, the code sits inside the field at its start, Ireland
+ * first: one box, as on any sign-in people already know.
  */
 function Identifier({
   byText,
@@ -72,34 +74,26 @@ function Identifier({
   state: FormState;
   prefilled: string | undefined;
 }) {
-  const [typed, setTyped] = useState(state.values?.identifier ?? prefilled ?? '');
-  const start = typed.trim();
-  const pickCode = byText && looksLikeMobile(typed) && !/^(\+|00)/.test(start);
   return (
-    <>
-      <TextField
-        name="identifier"
-        label={byText ? signInCopy.identifierLabel : signInCopy.emailLabel}
-        type={byText ? 'text' : 'email'}
-        // UX-SI-5: "webauthn" lets the browser offer a saved passkey on this field.
-        autoComplete="username webauthn"
-        inputMode="email"
-        autoCapitalize="off"
-        spellCheck={false}
-        defaultValue={typed}
-        onChange={(event) => setTyped(event.target.value)}
-        error={state.errors?.identifier}
-      />
-      {pickCode ? (
-        <SelectField
-          name="dialling"
-          label={signInCopy.diallingCodeLabel}
-          autoComplete="tel-country-code"
-          defaultValue={state.values?.dialling ?? DEFAULT_DIALLING_ISO}
-          options={diallingOptions}
-        />
-      ) : null}
-    </>
+    <ContactField
+      name="identifier"
+      label={byText ? signInCopy.identifierLabel : signInCopy.emailLabel}
+      type={byText ? 'text' : 'email'}
+      // UX-SI-5: "webauthn" lets the browser offer a saved passkey on this field.
+      autoComplete="username webauthn"
+      inputMode="email"
+      autoCapitalize="off"
+      spellCheck={false}
+      defaultValue={state.values?.identifier ?? prefilled ?? ''}
+      error={state.errors?.identifier}
+      dialling={{
+        name: 'dialling',
+        label: signInCopy.diallingCodeLabel,
+        options: diallingOptions,
+        defaultValue: state.values?.dialling ?? DEFAULT_DIALLING_ISO,
+      }}
+      showDialling={(typed) => byText && needsDiallingCode(typed)}
+    />
   );
 }
 

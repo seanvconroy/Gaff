@@ -223,7 +223,7 @@ export const profileCopy = {
     /** The sheet that adds one: the number, then the code texted to it. */
     addMobile: {
       title: 'Add a mobile number',
-      lead: 'Sign in with a code by text. We text the number once now, to check it’s yours.',
+      lead: 'We’ll text it a code, to check it’s yours.',
       label: 'Mobile number',
       send: 'Text me a code',
       sending: 'Sending your code…',

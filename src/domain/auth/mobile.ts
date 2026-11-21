@@ -119,6 +119,14 @@ export function looksLikeMobile(typed: string): boolean {
   return /^[+\d(]/.test(start) && !start.includes('@');
 }
 
+/**
+ * UX-SI-16: whether what's typed so far is a number that still needs a country code: a mobile
+ * number typed the way it's dialled at home. One typed with a plus (or 00) carries its own.
+ */
+export function needsDiallingCode(typed: string): boolean {
+  return looksLikeMobile(typed) && !/^(\+|00)/.test(typed.trim());
+}
+
 /** "+353871234567" → "087 123 4567"; any other, "+44 7700900123": as its owner would know it. */
 export function showMobile(mobile: string): string {
   if (mobile.startsWith('+353') && mobile.length === 13) {

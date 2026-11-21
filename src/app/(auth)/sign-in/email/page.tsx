@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { emailNeededCopy } from '@/copy/sign-in';
-import { showMobile } from '@/domain/auth/mobile';
 import { signInPath } from '@/domain/auth/next-path';
 import { currentUser } from '@/server/auth/member';
 import { mobileWaitingForEmail } from '@/server/auth/sign-in';
@@ -19,7 +18,5 @@ export default async function EmailNeededPage() {
   if (await currentUser()) redirect('/');
   const proven = await mobileWaitingForEmail();
   if (!proven) redirect('/sign-in');
-  return (
-    <EmailNeeded mobile={showMobile(proven.mobile)} differentHref={signInPath(proven.nextPath)} />
-  );
+  return <EmailNeeded differentHref={signInPath(proven.nextPath)} />;
 }

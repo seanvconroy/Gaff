@@ -16,9 +16,8 @@ export const dynamic = 'force-dynamic';
 
 /** Where the code went, in words: by text, to a provider's address, or to an email address. */
 function leadFor(waiting: WaitingCode): string {
-  if (waiting.channel === 'sms') return codeCopy.leadText(showMobile(waiting.subject));
-  const provider = waiting.joining?.provider?.id;
-  if (provider) return codeCopy.leadProvider(provider, waiting.subject);
+  if (waiting.channel === 'sms') return codeCopy.lead(showMobile(waiting.subject));
+  if (waiting.joining?.provider) return codeCopy.leadProvider(waiting.subject);
   return codeCopy.lead(waiting.subject);
 }
 

@@ -65,12 +65,19 @@ test('UX-SI-13, UX-SI-14: a new person signs in with a mobile number, adds their
     const mobile = uniqueMobile();
     const email = uniqueEmail('saoirse');
 
-    // One field. While it holds an email there's no picker; a number brings one in below it.
+    // UX-SI-16: one field. While it holds an email there's no country code; a number brings
+    // one in, inside the field, at its start.
     await page.goto('/sign-in');
     await field(page).fill('saoirse@');
     await expect(page.getByLabel('Country code')).toHaveCount(0);
     await field(page).fill(mobile.typed);
     await expect(page.getByLabel('Country code')).toHaveValue('IE');
+    // One box: the code and the number share a row, and the code shows as "+353".
+    const codeBox = (await page.getByLabel('Country code').boundingBox())!;
+    const numberBox = (await field(page).boundingBox())!;
+    expect(Math.abs(codeBox.y - numberBox.y)).toBeLessThan(1);
+    expect(Math.abs(codeBox.x + codeBox.width - numberBox.x)).toBeLessThan(1);
+    await expect(page.getByText('+353', { exact: true })).toBeVisible();
     await expectNoSidewaysScroll(page);
     await expectAccessible(page);
     await screenshot(page, `ux-si-mobile-number-${width}`);
@@ -79,9 +86,7 @@ test('UX-SI-13, UX-SI-14: a new person signs in with a mobile number, adds their
     await pressContinue(page);
     await onCodeScreen(page);
     await expect(
-      page.getByText(
-        `We texted a six-digit code to ${mobile.shown}. It works for the next 10 minutes.`,
-      ),
+      page.getByText(`We sent a code to ${mobile.shown}.`, { exact: true }),
     ).toBeVisible();
     await expect(page.getByRole('link', { name: 'Use a different number' })).toBeVisible();
     await expectAccessible(page);
@@ -99,7 +104,7 @@ test('UX-SI-13, UX-SI-14: a new person signs in with a mobile number, adds their
     await expect(page.getByRole('heading', { name: 'What’s your email?', level: 1 })).toBeVisible();
     await expect(page).toHaveURL(/\/sign-in\/email$/);
     await expect(
-      page.getByText(`Your mobile, ${mobile.shown}, is confirmed.`, { exact: false }),
+      page.getByText('If you’ve used Gaff before, use the same one.', { exact: true }),
     ).toBeVisible();
     // Nobody is signed in yet, and nobody has been made.
     expect((await context.cookies()).some((c) => /session_token/.test(c.name))).toBe(false);
@@ -119,9 +124,7 @@ test('UX-SI-13, UX-SI-14: a new person signs in with a mobile number, adds their
     await page.getByLabel('Email', { exact: true }).fill(email);
     await pressContinue(page);
     await onCodeScreen(page);
-    await expect(
-      page.getByText(`We sent a six-digit code to ${email}.`, { exact: false }),
-    ).toBeVisible();
+    await expect(page.getByText(`We sent a code to ${email}.`, { exact: true })).toBeVisible();
     const [sent] = await rows<{ text: string }>(
       'select text from dev_outbox where to_address = $1 order by created_at desc limit 1',
       [email],
@@ -193,11 +196,10 @@ test('UX-SI-14: a mobile number finds the account its email already has, and Pro
     await expect(
       page.getByRole('heading', { name: 'We’ve found your account', level: 1 }),
     ).toBeVisible();
-    await expect(page.getByText(`You’re signed in as ${email}.`)).toBeVisible();
+    // UX-SI-16: few words: signed in, the account's email, and the number that was joined.
+    await expect(page.getByText('You’re signed in.', { exact: true })).toBeVisible();
     const masked = `087 ••• ${mobile.e164.slice(-4)}`;
-    await expect(
-      page.getByText(`You can sign in with your mobile, ${masked}, from now on.`),
-    ).toBeVisible();
+    await expect(page.getByRole('listitem')).toHaveText([`Email: ${email}`, `Mobile: ${masked}`]);
     // Rule 8: nothing about the person is in the address bar.
     await expect(page).toHaveURL(/\/sign-in\/found\?joined=mobile&next=%2Fsaved$/);
     await expectNoSidewaysScroll(page);
@@ -260,12 +262,10 @@ test('UX-SI-13: a number that can’t be texted is said at the field, and other 
   await screenshot(page, 'ux-si-mobile-country-390');
   await pressContinue(page);
   await onCodeScreen(page);
-  await expect(
-    page.getByText('We texted a six-digit code to +44 7700900123.', { exact: false }),
-  ).toBeVisible();
+  await expect(page.getByText('We sent a code to +44 7700900123.', { exact: true })).toBeVisible();
   // "Use a different number" goes back to the start.
   await page.getByRole('link', { name: 'Use a different number' }).click();
-  await expect(page.getByRole('heading', { name: 'Sign in or create an account' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sign in or sign up' })).toBeVisible();
 });
 
 test('UX-SI-13: a signed-in person adds a mobile number on Profile, and signs in with it', async ({
@@ -301,7 +301,7 @@ test('UX-SI-13: a signed-in person adds a mobile number on Profile, and signs in
     await sheet.getByRole('button', { name: 'Text me a code' }).click();
     await confirmItsYou(page);
     await expect(
-      sheet.getByText(`We texted a six-digit code to ${mobile.shown}.`, { exact: false }),
+      sheet.getByText(`We sent a code to ${mobile.shown}.`, { exact: true }),
     ).toBeVisible();
     await expectAccessible(page);
     await page.screenshot({ path: `screenshots/ux-si-profile-add-mobile-code-${width}.png` });

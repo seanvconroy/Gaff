@@ -17,7 +17,8 @@ import type { SignInProvider } from '@/domain/auth/methods';
 import { DEFAULT_DIALLING_ISO, diallingCodes } from '@/domain/auth/mobile';
 import { Button } from '@/ui/Button';
 import { CodeInput } from '@/ui/CodeInput';
-import { FieldError, SelectField, TextField } from '@/ui/Field';
+import { ContactField } from '@/ui/ContactField';
+import { FieldError, TextField } from '@/ui/Field';
 import { Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { Sheet } from '@/ui/Sheet';
@@ -68,6 +69,7 @@ const c = profileCopy.signIn;
 const diallingOptions = diallingCodes.map((entry) => ({
   value: entry.iso,
   label: signInCopy.diallingCode(entry.name, entry.code),
+  short: `+${entry.code}`,
 }));
 const noChange = () => () => {};
 const d = profileCopy.devices;
@@ -378,7 +380,7 @@ export function SignInSection({ view }: { view: SignInView }) {
         open={adding !== null && !confirming}
         onClose={() => setAdding(null)}
         title={c.addMobile.title}
-        description={adding?.step === 'code' ? codeCopy.leadText(adding.to) : c.addMobile.lead}
+        description={adding?.step === 'code' ? codeCopy.lead(adding.to) : c.addMobile.lead}
         footer={
           adding?.step === 'code' ? (
             <Button
@@ -417,26 +419,28 @@ export function SignInSection({ view }: { view: SignInView }) {
             onSubmit={(event) => {
               event.preventDefault();
               const form = new FormData(event.currentTarget);
-              textTheCode(String(form.get('mobileNumber') ?? ''), String(form.get('dialling')));
+              textTheCode(
+                String(form.get('mobileNumber') ?? ''),
+                String(form.get('dialling') ?? DEFAULT_DIALLING_ISO),
+              );
             }}
           >
-            <Stack gap={4}>
-              <SelectField
-                name="dialling"
-                label={signInCopy.diallingCodeLabel}
-                autoComplete="tel-country-code"
-                defaultValue={DEFAULT_DIALLING_ISO}
-                options={diallingOptions}
-              />
-              <TextField
-                name="mobileNumber"
-                label={c.addMobile.label}
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel-national"
-                error={addProblem ?? undefined}
-              />
-            </Stack>
+            <ContactField
+              name="mobileNumber"
+              label={c.addMobile.label}
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel-national"
+              error={addProblem ?? undefined}
+              dialling={{
+                name: 'dialling',
+                label: signInCopy.diallingCodeLabel,
+                options: diallingOptions,
+                defaultValue: DEFAULT_DIALLING_ISO,
+              }}
+              // A number typed with its own plus carries its code; any other takes the one here.
+              showDialling={(typed) => !/^\s*(\+|00)/.test(typed)}
+            />
           </form>
         ) : null}
         {adding?.step === 'code' ? (

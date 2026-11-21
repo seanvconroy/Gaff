@@ -1,3 +1,4 @@
+import { Mail, Smartphone } from 'lucide-react';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { foundCopy } from '@/copy/sign-in';
@@ -7,6 +8,7 @@ import { currentUser } from '@/server/auth/member';
 import { signInOverview } from '@/server/auth/security';
 import { afterSignIn } from '@/server/auth/sign-in';
 import { ButtonLink } from '@/ui/Button';
+import { ProviderLogo } from '../ProviderLogo';
 import styles from '../sign-in.module.css';
 
 export const metadata: Metadata = { title: foundCopy.title };
@@ -16,6 +18,8 @@ export const dynamic = 'force-dynamic';
  * UX-SI-14, UX-SI-15: "We've found your account". Someone signed in with a mobile number, or
  * with Google or Apple, that Gaff hadn't seen, proved their email, and already had an account
  * under it. They're signed in to it, and what they came with is one of its ways in from now on.
+ *
+ * UX-SI-16: few words. The account's email, then what was joined, each a line with its icon.
  *
  * Shown only after the mailbox said yes with a code: the page reads who is signed in, so there
  * is nothing here for anyone else, and nothing about the person in the address bar. What it says
@@ -42,12 +46,28 @@ export default async function FoundPage({
     <div className={styles.screen}>
       <div className={styles.title}>
         <h1 className="type-display-mobile">{foundCopy.title}</h1>
-        <p className={styles.lead}>{foundCopy.signedInAs(user.email)}</p>
+        <p className={styles.lead}>{foundCopy.lead}</p>
       </div>
-      <div className={styles.actions}>
-        <p>{foundCopy.joined(joined, mobile ? maskedMobile(mobile) : null)}</p>
-        <p className={styles.quiet}>{foundCopy.change}</p>
-      </div>
+      <ul className={styles.account}>
+        <li>
+          <Mail size={20} strokeWidth={1.75} aria-hidden="true" />
+          <span>
+            <span className="visually-hidden">{foundCopy.emailRow}: </span>
+            {user.email}
+          </span>
+        </li>
+        <li>
+          {joined === 'mobile' ? (
+            <Smartphone size={20} strokeWidth={1.75} aria-hidden="true" />
+          ) : (
+            <ProviderLogo provider={joined} />
+          )}
+          <span>
+            <span className="visually-hidden">{foundCopy.joinedRow(joined)}: </span>
+            {foundCopy.joined(joined, mobile ? maskedMobile(mobile) : null)}
+          </span>
+        </li>
+      </ul>
       <ButtonLink href={onward} variant="primary" fullWidth>
         {foundCopy.continue}
       </ButtonLink>

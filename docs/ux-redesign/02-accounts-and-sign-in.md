@@ -89,11 +89,11 @@ Nothing is asked before the action that needs it.
 
 ## Sign-in
 
-One screen for new and returning users. The title is "Sign in or create an account".
+One screen for new and returning users. The title is "Sign in or sign up" (it was "Sign in or create an account" until 21 November 2026, Q62).
 
 | Order | Element | Notes |
 | --- | --- | --- |
-| 1 | One field, "Email or mobile number", and "Continue" | Sends a six-digit code, by email or by text. A "Country code" picker appears under the field once a number is typed without one. Where texts aren't sent, the field is "Email" |
+| 1 | One field, "Email or mobile number", and "Continue" | Sends a six-digit code, by email or by text. Once a number is typed without a country code, the code sits inside the field, at its start ("+353", Ireland first), as one box (UX-SI-16). Where texts aren't sent, the field is "Email" |
 | 2 | "or" divider | |
 | 3 | "Continue with Google" | Standard branded button |
 | 4 | "Continue with Apple" | Standard branded button |
@@ -125,11 +125,26 @@ The order was Google and Apple first until 20 November 2026 (Q61).
 
 **UX-SI-12.** Private links for renters, owners and referees work as today (ADR-0013). Pages that show check results or bank details ask for a one-time code sent to the person's email, as ADR-0013 already plans. `[P6 · rule 2]`
 
-**UX-SI-13.** A mobile number signs in with a six-digit code by text, on the same code screen and by the same rules as an email code. One field takes either. A number typed without a country code is read with the "Country code" picked under the field, Ireland first; Gaff texts a fixed list of countries, and says "Enter your email instead" for any other. The number is the person's own: no operator can see it, and Profile adds one (a code texted to it, after "Confirm it's you") and removes it. Sign-in by mobile is offered only where texts are really sent. `[P6, P14 · Q61 · rule 10]`
+**UX-SI-13.** A mobile number signs in with a six-digit code by text, on the same code screen and by the same rules as an email code. One field takes either. A number typed without a country code is read with the country code shown inside the field, at its start, Ireland first (UX-SI-16); Gaff texts a fixed list of countries, and says "Enter your email instead" for any other. The number is the person's own: no operator can see it, and Profile adds one (a code texted to it, after "Confirm it's you") and removes it. Sign-in by mobile is offered only where texts are really sent. `[P6, P14 · Q61 · rule 10]`
 
-**UX-SI-14.** A mobile number that gets nobody in (one nobody has, or one unused for 180 days) is followed by one screen, "What's your email?". A code goes to that address. Entering it signs in the account that has the address, or makes one, and joins the number to it. If the account was already there, one screen says so: "We've found your account", with who they're signed in as, what was joined and where to change it. That screen is shown only after the code, so nobody learns from Gaff whether an address has an account. `[P6, P14 · Q61]`
+**UX-SI-14.** A mobile number that gets nobody in (one nobody has, or one unused for 180 days) is followed by one screen, "What's your email?". A code goes to that address. Entering it signs in the account that has the address, or makes one, and joins the number to it. If the account was already there, one screen says so: "We've found your account", with the account's email and what was joined (UX-SI-16). That screen is shown only after the code, so nobody learns from Gaff whether an address has an account. `[P6, P14 · Q61]`
 
-**UX-SI-15.** One person, however they sign in. A Google or Apple account that can't vouch for its address (one the provider doesn't host) isn't a dead end: a code goes to the address as the provider comes back, the code screen says why, and entering it signs the person in and connects the provider in one step. "We've found your account" follows if the account was already there. `[P6, P14 · Q61, Q57]`
+**UX-SI-15.** One person, however they sign in. A Google or Apple account that can't vouch for its address (one the provider doesn't host) isn't a dead end: a code goes to the address as the provider comes back, the code screen says it is to check the address is theirs, and entering it signs the person in and connects the provider in one step. "We've found your account" follows if the account was already there. `[P6, P14 · Q61, Q57]`
+
+**UX-SI-16.** Few words, on every sign-in screen (Sean, 21 November 2026, Q62, with Airbnb's sign-in as the standard). Each screen is a title, at most one line under it, and its one control. `[P4, P6 · Q62]`
+
+| Screen | Title | The one line | What else is on it |
+| --- | --- | --- | --- |
+| Sign-in | "Sign in or sign up" | None | The one field, "Continue", "or", Google, Apple, the small print |
+| Code | "Enter your code" | "We sent a code to 087 123 4567." (or the email address). Back from Google or Apple: "We sent a code to ann@work.ie, to check it's yours." | The six boxes with no label drawn over them (the title is the label; a screen reader still hears "Six-digit code"), then "Send a new code" and "Use a different number" as quiet buttons |
+| The email for a number | "What's your email?" | "If you've used Gaff before, use the same one." | The field, "Continue", "Use a different number" |
+| Found | "We've found your account" | "You're signed in." | Two lines, an icon each: the account's email, then what was joined (the number with its middle hidden, or "Google" or "Apple"), and "Continue" |
+
+The country code is never a field of its own. It sits inside the one field, at its start, as "+353" with a chevron, once what's typed is a number without one; pressing it opens the list of countries by name. An email address, or a number typed with a plus, has the whole field. The same field adds a mobile number on Profile (`src/ui/ContactField`).
+
+How long a code lasts is no longer said on the screen: an expired code says so, and offers a new one. The email and the text still say it.
+
+**UX-SI-17.** "Sign in" in the header brings a person back to the page they were on: the home they were reading, the search they had made. The page travels as `next`, which is followed only if it is a path on this site (UX-SI-8). `[P6, P10 · Q62]`
 
 Why these methods: Google and Apple are one tap and cover most phones and most small-business email. An emailed code keeps the user in the tab they started in, which a link doesn't. Passkeys are the fastest and safest return path but are a poor first step for people who haven't met them, so they're offered after sign-in, not before. Published comparisons of these methods are thin and mostly from vendors, so the mix is a hypothesis: measure completion by method from day one ([section 9](09-activation-growth-measures.md)). Many Irish agencies run on Microsoft 365. "Continue with Microsoft" is added later if more than one in five pilot users signs in with an Outlook or Microsoft-hosted address.
 
@@ -144,7 +159,7 @@ Why these methods: Google and Apple are one tap and cover most phones and most s
 | Text didn't send, too many texts, or texts paused | At the field, each ending "enter your email instead" |
 | A number in a country Gaff doesn't text | "We can't text that country yet. Enter your email instead." at the field |
 | Not a mobile number | "Enter a mobile number, like 087 123 4567" at the field |
-| Google or Apple can't vouch for the address | The code screen: "Google can't confirm ann@work.ie is still yours, so we sent a six-digit code to it. Enter it and Google is connected from then on." |
+| Google or Apple can't vouch for the address | The code screen: "We sent a code to ann@work.ie, to check it's yours." The email says Google is connected with the same code |
 | Loading | The pressed button shows progress and the others are disabled |
 
 ## First run

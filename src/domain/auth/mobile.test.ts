@@ -7,6 +7,7 @@ import {
   mobileProofStands,
   mobileSignInMode,
   mobileStillVouches,
+  needsDiallingCode,
   MOBILE_VOUCHES_DAYS,
   PROVEN_MOBILE_MINUTES,
   readMobile,
@@ -74,6 +75,15 @@ describe('UX-SI-13: reading a mobile number', () => {
     expect(looksLikeMobile('2ann@example.ie')).toBe(false);
     expect(looksLikeMobile('ann')).toBe(false);
     expect(looksLikeMobile('')).toBe(false);
+  });
+
+  it('UX-SI-16: asks for a country code only for a number typed without one', () => {
+    expect(needsDiallingCode('087')).toBe(true);
+    expect(needsDiallingCode(' 087 123 4567')).toBe(true);
+    expect(needsDiallingCode('+353 87')).toBe(false);
+    expect(needsDiallingCode('00353 87')).toBe(false);
+    expect(needsDiallingCode('ann@example.ie')).toBe(false);
+    expect(needsDiallingCode('')).toBe(false);
   });
 });
 

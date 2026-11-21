@@ -323,7 +323,7 @@ export async function confirmItsYou(page: Page): Promise<void> {
   const sheet = page.getByRole('dialog', { name: 'Confirm it’s you' });
   await sheet.getByRole('button', { name: /^Email me a code/ }).click();
   await expect(sheet.getByLabel('Six-digit code')).toBeVisible();
-  const email = /code to (\S+@\S+?)\. It works/.exec(await sheet.innerText())?.[1];
+  const email = /code to (\S+@\S+)\.(?:\s|$)/.exec(await sheet.innerText())?.[1];
   if (!email) throw new Error('The sheet doesn’t say where the code went');
   await sheet.getByLabel('Six-digit code').fill(await latestCodeFor(email, 'confirm'));
 }

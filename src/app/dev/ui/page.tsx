@@ -74,6 +74,7 @@ import {
   SearchMapDemo,
   SearchBoxDemo,
   CodeDemo,
+  ContactDemo,
   MenuDemo,
   OptionRowDemo,
   PhotoUploaderDemo,
@@ -568,6 +569,14 @@ export default function ComponentsPage() {
           lead="Drag photos in or choose them. The first is the cover. Reorder by dragging, or from each photo’s menu."
         >
           <PhotoUploaderDemo />
+        </Section>
+
+        <Section
+          id="contact"
+          title="Contact field"
+          lead="An email address or a mobile number in one box. The country code sits inside it."
+        >
+          <ContactDemo />
         </Section>
 
         <Section

@@ -10,6 +10,7 @@ import { Chips } from '@/ui/Chips';
 import { FilterChips, filterChipClass } from '@/ui/FilterChips';
 import { HeartButton } from '@/ui/HeartButton';
 import { CodeInput } from '@/ui/CodeInput';
+import { ContactField } from '@/ui/ContactField';
 import { ChoiceGroup, TextField } from '@/ui/Field';
 import { Menu, MenuItem } from '@/ui/Menu';
 import { OptionRow } from '@/ui/OptionRow';
@@ -174,6 +175,49 @@ export function PickerDemos() {
       />
       <TimeField name="demo-time" label="From" from="08:00" until="21:00" />
       <TimeField name="demo-time-chosen" label="Until" defaultValue="18:30" stepMinutes={15} />
+    </div>
+  );
+}
+
+const demoDialling = {
+  name: 'demo-dialling',
+  label: 'Country code',
+  defaultValue: 'IE',
+  options: [
+    { value: 'IE', label: 'Ireland (+353)', short: '+353' },
+    { value: 'GB', label: 'United Kingdom (+44)', short: '+44' },
+    { value: 'US', label: 'United States (+1)', short: '+1' },
+  ],
+};
+
+/** A number typed the way it's dialled at home: it starts with a digit, and has no "@". */
+const demoNeedsCode = (typed: string) => /^\s*[\d(]/.test(typed) && !typed.includes('@');
+
+export function ContactDemo() {
+  return (
+    <div className={styles.fields}>
+      <ContactField
+        name="demo-contact"
+        label="Email or mobile number"
+        hint="Type a number and the country code takes its place inside the field."
+        dialling={demoDialling}
+        showDialling={demoNeedsCode}
+      />
+      <ContactField
+        name="demo-contact-number"
+        label="Email or mobile number (a number typed)"
+        defaultValue="087 123 4567"
+        dialling={demoDialling}
+        showDialling={demoNeedsCode}
+      />
+      <ContactField
+        name="demo-contact-error"
+        label="Email or mobile number (a problem)"
+        defaultValue="087 123"
+        error="Enter a mobile number, like 087 123 4567"
+        dialling={demoDialling}
+        showDialling={demoNeedsCode}
+      />
     </div>
   );
 }

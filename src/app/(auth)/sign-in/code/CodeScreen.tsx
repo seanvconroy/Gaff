@@ -1,9 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { startTransition, useActionState, useState } from 'react';
 import { codeCopy, signInCopy } from '@/copy/sign-in';
-import { Button } from '@/ui/Button';
+import { Button, ButtonLink } from '@/ui/Button';
 import { CodeInput } from '@/ui/CodeInput';
 import { useCountdown } from '../../countdown';
 import { checkSignInCode, sendNewSignInCode, type CodeState } from '../actions';
@@ -89,6 +88,8 @@ export function CodeScreen({
             key={state.stamp}
             name="code"
             label={codeCopy.label}
+            // UX-SI-16: the title is the label a person reads; this one is for a screen reader.
+            hideLabel
             error={codeError(state.status, state.wait, byText)}
             autoFocus
             onComplete={(code) => send('check', code)}
@@ -102,7 +103,7 @@ export function CodeScreen({
 
         <div className={styles.actions}>
           <Button
-            variant={expired ? 'primary' : 'secondary'}
+            variant={expired ? 'primary' : 'quiet'}
             fullWidth
             disabled={pending || resendIn > 0}
             onClick={() => send('resend')}
@@ -113,9 +114,9 @@ export function CodeScreen({
                 ? codeCopy.sendNewIn(resendIn)
                 : codeCopy.sendNew}
           </Button>
-          <Link href={different.href} className={styles.standaloneLink}>
+          <ButtonLink href={different.href} variant="quiet" fullWidth>
             {different.label}
-          </Link>
+          </ButtonLink>
         </div>
       </div>
 

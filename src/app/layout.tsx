@@ -33,9 +33,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         {/* BA-1: the test copy says so on every page. Read from the process, as the build sees it. */}
-        {isTestCopy(process.env.GAFF_ENV) ? (
-          <TestCopyBanner textsAreReal={process.env.SMS_PROVIDER === 'sinch'} />
-        ) : null}
+        {isTestCopy(process.env.GAFF_ENV) ? <TestCopyBanner /> : null}
         {/* BA-5, M119: Google's script stays on the map's pages (src/lib/map-pages.ts). */}
         <MapBoundary />
         {children}

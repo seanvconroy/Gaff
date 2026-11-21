@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  codeMethod,
   isAppleRelayAddress,
   isProviderCancel,
   methodForPath,
@@ -11,7 +10,7 @@ import {
 
 describe('UX-SI-1: three methods to choose between, and a passkey afterwards', () => {
   it('has no password and no email link', () => {
-    expect(signInMethods).toEqual(['email_code', 'sms_code', 'google', 'apple', 'passkey']);
+    expect(signInMethods).toEqual(['email_code', 'google', 'apple', 'passkey']);
     expect(signInMethodFrom('password')).toBeNull();
     expect(signInMethodFrom('email_link')).toBeNull();
     expect(signInMethodFrom('google')).toBe('google');
@@ -66,13 +65,5 @@ describe('BA-8: the method a session begins with', () => {
     expect(methodForPath('/get-session')).toBeNull();
     // No passwords (Q30).
     expect(methodForPath('/sign-in/email')).toBeNull();
-  });
-
-  it('UX-SI-13: believes "by text" only from Gaff’s own code endpoint', () => {
-    expect(codeMethod('/gaff/sign-in/code', 'sms_code')).toBe('sms_code');
-    expect(codeMethod('/gaff/sign-in/code', undefined)).toBe('email_code');
-    expect(codeMethod('/gaff/sign-in/link', 'passkey')).toBe('email_code');
-    expect(codeMethod('/callback/google', 'sms_code')).toBeNull();
-    expect(codeMethod('/passkey/verify-authentication', 'sms_code')).toBeNull();
   });
 });

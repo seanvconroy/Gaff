@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { expect } from 'vitest';
 import { sealStandInPerson } from '@/adapters/sign-in/stand-in';
 import { desc, eq } from 'drizzle-orm';
-import { signInCodeEmail, signInCodeText } from '@/copy/sign-in';
+import { signInCodeEmail } from '@/copy/sign-in';
 import { db } from '@/db/client';
 import { devOutbox } from '@/db/schema';
 import type { Joining } from '@/domain/auth/joining';
@@ -37,7 +37,7 @@ export function from(cookie: string, address = anAddress()): Headers {
 
 /**
  * Asks for a sign-in code, as the sign-in screen does. `joining` is what the code also joins to
- * whoever enters it (UX-SI-14, UX-SI-15), which the server writes as it sends the code.
+ * whoever enters it (UX-SI-15), which the server writes as it sends the code.
  */
 export async function askForCode(
   email: string,
@@ -58,34 +58,6 @@ export async function askForCode(
     },
   });
   if (!result.sent) throw new Error(`the code was not sent: ${result.reason}`);
-  return {
-    code,
-    browserKey: result.browserKey,
-    cookie: `${cookieNames.signInCode}=${result.browserKey}`,
-  };
-}
-
-/** A made-up Irish mobile, as +353871234567. */
-export const aMobile = () => `+35387${String(Math.floor(Math.random() * 1e7)).padStart(7, '0')}`;
-
-/** UX-SI-13: asks for a sign-in code by text, as the sign-in screen does. */
-export async function askForText(mobile: string, browserKey: string | null = null, now?: Date) {
-  let code = '';
-  const result = await sendCode(
-    {
-      purpose: 'sign_in',
-      subject: mobile,
-      to: mobile,
-      channel: 'sms',
-      browserKey,
-      text: (sent) => {
-        code = sent;
-        return signInCodeText(sent, 'gaff.test');
-      },
-    },
-    now,
-  );
-  if (!result.sent) throw new Error(`the text was not sent: ${result.reason}`);
   return {
     code,
     browserKey: result.browserKey,

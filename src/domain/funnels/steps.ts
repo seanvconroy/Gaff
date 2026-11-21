@@ -10,7 +10,6 @@ import type { DirectStepCode } from './catalogue';
 export const funnelVariantSchema = z.enum([
   // Sign-in methods (UX-SI-1). Email links went with the redesigned sign-in (ADR-0015).
   'email_code',
-  'sms_code',
   'google',
   'apple',
   'passkey',

@@ -705,7 +705,7 @@ describe('"Download my details"', () => {
       name: 'Aoife Byrne',
       email: renter.email,
       kept: { earning: 'employed', monthlyIncomeCents: 520_000, answers: { occupants: 1 } },
-      signIn: { providers: [], passkeys: 0, mobile: null },
+      signIn: { providers: [], passkeys: 0 },
     });
     expect(download.rentingSince).toBeInstanceOf(Date);
     expect(download.enquiries.map((enquiry) => enquiry.applicationId)).toEqual([applicationId]);

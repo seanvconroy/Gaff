@@ -35,8 +35,6 @@ describe('AU12: limits on signing in', () => {
       expect(perAddress[step].windowSeconds).toBe(60);
     }
     expect(perAddress.send_code).toEqual({ max: 5, windowSeconds: 60 });
-    // UX-SI-13: a text costs money, so fewer of them from one address.
-    expect(perAddress.send_text).toEqual({ max: 3, windowSeconds: 60 });
     expect(perAddress.confirm_send).toEqual({ max: 5, windowSeconds: 60 });
     expect(overLimit(5, perAddress.send_code)).toBe(false);
     expect(overLimit(6, perAddress.send_code)).toBe(true);

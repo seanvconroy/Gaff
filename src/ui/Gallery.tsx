@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from './Button';
 import styles from './Gallery.module.css';
+import { reducedMotion } from './motion';
 import { Overlay } from './Overlay';
 
 export interface GalleryPhoto {
@@ -28,10 +29,6 @@ const nameOf = (photo: GalleryPhoto, index: number, count: number) =>
  */
 const sizesFor = (index: number) =>
   index === 0 ? '(min-width: 900px) 50vw, 100vw' : '(min-width: 900px) 25vw, 100vw';
-
-function reducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
 
 /**
  * A home's photos (section 8, "Gallery"; UX-LS-1). Two layouts either side of 900px, as every

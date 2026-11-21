@@ -34,6 +34,8 @@ interface Home {
   address: string;
   rent: number;
   point: { lat: number; lng: number } | null;
+  /** How many photos it has: one unless said (UX-SR-6). */
+  photos?: number;
 }
 
 /** Made-up live homes in Kenmare, let by a made-up confirmed agency, on Gaff. */
@@ -51,7 +53,6 @@ async function liveHomes(homes: Home[]): Promise<void> {
     'Úna Test',
     `una.${userId.slice(0, 8)}@kenmare.test`,
   ]);
-  const photo = aPng([36, 99, 168]);
   for (const [i, home] of homes.entries()) {
     const [letting] = await asSystem<{ id: string }>(
       `insert into lettings (organisation_id, address_line1, area, county, monthly_rent_cents,
@@ -74,24 +75,28 @@ async function liveHomes(homes: Home[]): Promise<void> {
         home.point ? new Date() : null,
       ],
     );
-    const key = `homes/${org!.id}/${randomUUID()}.png`;
-    await asSystem(
-      'insert into dev_photo_store (key, content_type, bytes, size) values ($1, $2, $3, $4)',
-      [key, 'image/png', photo, photo.length],
-    );
-    await asSystem(
-      `insert into letting_photos (organisation_id, letting_id, position, storage_key,
-         content_type, bytes, created_by)
-       values ($1, $2, 0, $3, 'image/png', $4, $5)`,
-      [org!.id, letting!.id, key, photo.length, userId],
-    );
+    for (let position = 0; position < (home.photos ?? 1); position++) {
+      // Each photo its own colour, so a journey can see which one is showing.
+      const photo = aPng([36 + 60 * position, 99, 168]);
+      const key = `homes/${org!.id}/${randomUUID()}.png`;
+      await asSystem(
+        'insert into dev_photo_store (key, content_type, bytes, size) values ($1, $2, $3, $4)',
+        [key, 'image/png', photo, photo.length],
+      );
+      await asSystem(
+        `insert into letting_photos (organisation_id, letting_id, position, storage_key,
+           content_type, bytes, created_by)
+         values ($1, $2, $3, $4, 'image/png', $5, $6)`,
+        [org!.id, letting!.id, position, key, photo.length, userId],
+      );
+    }
   }
 }
 
 test.beforeAll(async () => {
   const henryStreet = { lat: 51.87897, lng: -9.58351 };
   await liveHomes([
-    { address: '3 Main Street', rent: 1400, point: { lat: 51.87975, lng: -9.5827 } },
+    { address: '3 Main Street', rent: 1400, point: { lat: 51.87975, lng: -9.5827 }, photos: 3 },
     { address: '8 Henry Street', rent: 1650, point: henryStreet },
     // Two homes at one point: they share a pin (M117).
     { address: 'Apartment 2, 8 Henry Street', rent: 1700, point: henryStreet },
@@ -106,6 +111,18 @@ const map = (page: Page) => page.getByRole('group', { name: 'Map of the homes in
 const pin = (page: Page, name: RegExp) => map(page).getByRole('button', { name });
 const fits = (page: Page) =>
   page.getByRole('list', { name: /fits? what you asked$|^Homes on Gaff now$/ });
+
+/**
+ * UX-SR-8: no part of the map is off the screen: it is under whatever is above it and its foot
+ * is clear of the screen's foot, with nothing of it to scroll to.
+ */
+async function expectMapOnScreen(page: Page, screen: { width: number; height: number }) {
+  const box = (await map(page).boundingBox())!;
+  expect(box.y, 'the map’s top is on the screen').toBeGreaterThanOrEqual(0);
+  expect(box.y + box.height, 'the map’s foot is on the screen').toBeLessThanOrEqual(screen.height);
+  expect(box.x + box.width, 'the map’s side is on the screen').toBeLessThanOrEqual(screen.width);
+  expect(box.height, 'the map has room to be used').toBeGreaterThan(300);
+}
 
 /** M117: a cluster zooms in when chosen, until the pin asked for is on its own. */
 async function zoomInTo(page: Page, name: RegExp): Promise<void> {
@@ -154,6 +171,21 @@ test('M57, M117, M125, M127, Q60: beside the list at 1280px, a pin and its card 
   const listBox = (await fits(page).boundingBox())!;
   const mapBox = (await map(page).boundingBox())!;
   expect(mapBox.x).toBeGreaterThan(listBox.x + listBox.width - 1);
+  // UX-SR-8: the whole map is on the screen from the top of the page: under the navigation,
+  // level with the search (which heads the list's column), and clear of the screen's foot.
+  await expectMapOnScreen(page, desktop);
+  const bar = (await page.getByRole('banner').boundingBox())!;
+  const search = (await page.getByRole('combobox').boundingBox())!;
+  expect(mapBox.y).toBeGreaterThanOrEqual(bar.y + bar.height);
+  expect(Math.abs(mapBox.y - search.y)).toBeLessThan(2);
+  expect(search.x + search.width).toBeLessThan(mapBox.x);
+  // It stays where it is as the list scrolls under the navigation.
+  await page.mouse.move(listBox.x + 40, listBox.y + 40);
+  await page.mouse.wheel(0, 300);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  expect((await map(page).boundingBox())!.y).toBe(mapBox.y);
+  await expectMapOnScreen(page, desktop);
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
   // M125: four have a pin; the fifth is in the list alone.
   await expect(page.getByRole('status').filter({ hasText: 'homes on the map' })).toHaveText(
     '4 of 5 homes on the map. The others are in the list.',
@@ -193,6 +225,21 @@ test('M57, M117, M125, M127, Q60: beside the list at 1280px, a pin and its card 
   const card = page.getByRole('article', { name: 'Chosen home: €1,400 a month' });
   await expect(card).toBeVisible();
   await expect(card).toContainText('2-bed apartment · Kenmare, Co. Kerry');
+  // M117: the card is beside its pin, whole inside the map, and doesn't cover the pin.
+  const onMap = (await map(page).boundingBox())!;
+  const cardBox = (await card.boundingBox())!;
+  const pinBox = (await mainStreet.boundingBox())!;
+  expect(cardBox.x).toBeGreaterThanOrEqual(onMap.x);
+  expect(cardBox.y).toBeGreaterThanOrEqual(onMap.y);
+  expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(onMap.x + onMap.width);
+  expect(cardBox.y + cardBox.height).toBeLessThanOrEqual(onMap.y + onMap.height);
+  expect(
+    pinBox.y >= cardBox.y + cardBox.height || pinBox.y + pinBox.height <= cardBox.y,
+    'the card is over or under its pin, not across it',
+  ).toBe(true);
+  // UX-SR-6: its photos are looked through on the card, as they are in the list.
+  await card.getByRole('button', { name: /^Next photo/ }).click();
+  await expect(card.getByRole('status')).toHaveText('Photo 2 of 3');
   await expectAccessible(page);
   await screenshot(page, 'ba5-search-map-card-1280');
   await card.getByRole('button', { name: 'Close' }).click();
@@ -230,6 +277,79 @@ test('M57, M117, M125, M127, Q60: beside the list at 1280px, a pin and its card 
       ];
     })
     .toEqual([true, true, true, true, true]);
+  await context.close();
+});
+
+test('UX-SR-6: a home’s photos are looked through on its card, without opening the home', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: desktop, locale: 'en-IE' });
+  const page = await context.newPage();
+  await page.goto('/?where=kenmare');
+  const card = fits(page).getByRole('listitem').filter({ hasText: '€1,400 a month' });
+  const strip = card.locator('[data-photo-strip]');
+  const next = card.getByRole('button', { name: /^Next photo/ });
+  const previous = card.getByRole('button', { name: /^Previous photo/ });
+  const at = () => strip.evaluate((el) => Math.round(el.scrollLeft / el.clientWidth));
+  // The page brings the cover alone; the rest come as the renter looks.
+  await expect(card.locator('img')).toHaveCount(1);
+  // The buttons are named by the home, and there is none for where there's nowhere to go.
+  await expect(next).toHaveAccessibleName('Next photo: 2-bed apartment · Kenmare, Co. Kerry');
+  await expect(previous).toHaveCount(0);
+  // A home with one photo has its cover and no buttons.
+  const single = fits(page).getByRole('listitem').filter({ hasText: '€1,650 a month' });
+  await expect(single.locator('img')).toHaveCount(1);
+  await expect(single.getByRole('button', { name: /photo/ })).toHaveCount(0);
+
+  await next.click();
+  await expect(card.getByRole('status')).toHaveText('Photo 2 of 3');
+  await expect.poll(at).toBe(1);
+  await expect(previous).toBeVisible();
+  // With the keyboard: at the last photo Next is gone, and focus is on Previous, not lost.
+  await next.focus();
+  await page.keyboard.press('Enter');
+  await expect(card.getByRole('status')).toHaveText('Photo 3 of 3');
+  await expect.poll(at).toBe(2);
+  await expect(next).toHaveCount(0);
+  await expect(previous).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(card.getByRole('status')).toHaveText('Photo 2 of 3');
+  await expect.poll(at).toBe(1);
+  // Looking through photos is not a search and not a visit: the address hasn't changed.
+  await expect(page).toHaveURL('/?where=kenmare');
+  await expectAccessible(page);
+  // (A full-page screenshot lays the page out again, which takes a strip back to its cover.)
+  await screenshot(page, 'ux-sr-6-card-photos-1280');
+
+  // The card still has one link by name (the strip is the same link, kept out of the way of
+  // a screen reader and the Tab key), and a press on a photo opens the home.
+  await expect(card.getByRole('link')).toHaveCount(1);
+  await strip.click({ position: { x: 150, y: 40 } });
+  await expect(page).toHaveURL(/\/homes\/[0-9a-f]{12}/);
+  await expect(page.getByRole('heading', { level: 1, name: '3 Main Street' })).toBeVisible();
+  await context.close();
+});
+
+test('UX-SR-6: on a phone a card’s photos are swiped, with buttons that do the same', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: phone, locale: 'en-IE', hasTouch: true });
+  const page = await context.newPage();
+  await page.goto('/?where=kenmare');
+  const card = fits(page).getByRole('listitem').filter({ hasText: '€1,400 a month' });
+  const strip = card.locator('[data-photo-strip]');
+  await strip.scrollIntoViewIfNeeded();
+  // A swipe: the strip moves to the next photo and says where it is.
+  await strip.evaluate((el) => el.scrollTo({ left: el.clientWidth, behavior: 'instant' }));
+  await expect(card.getByRole('status')).toHaveText('Photo 2 of 3');
+  // UX-DS-17: nothing needs the swipe: Previous and Next do the same.
+  await card.getByRole('button', { name: /^Next photo/ }).click();
+  await expect(card.getByRole('status')).toHaveText('Photo 3 of 3');
+  await card.getByRole('button', { name: /^Previous photo/ }).click();
+  await expect(card.getByRole('status')).toHaveText('Photo 2 of 3');
+  await expectNoSidewaysScroll(page);
+  await expectAccessible(page);
+  await screenshot(page, 'ux-sr-6-card-photos-390');
   await context.close();
 });
 
@@ -473,12 +593,38 @@ test('M57, M119: below 900px the list comes first, complete, and "Map" swaps it 
   await show.click();
   await expect(map(page)).toBeVisible();
   await expect(fits(page)).toBeHidden();
+  // UX-SR-8: the map fills the screen under the search, whole: the page has nothing to scroll,
+  // and "List" is over the map's foot.
+  await expectMapOnScreen(page, phone);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(phone.height);
+  const mapBox = (await map(page).boundingBox())!;
+  const back = (await page.getByRole('button', { name: 'List', exact: true }).boundingBox())!;
+  expect(back.y).toBeGreaterThan(mapBox.y);
+  expect(back.y + back.height).toBeLessThan(mapBox.y + mapBox.height);
   await zoomInTo(page, /^2 homes here, from €1,650 a month/);
   await pin(page, /^2 homes here, from €1,650 a month/).click();
-  await expect(page.getByRole('article', { name: '2 homes here' })).toBeVisible();
+  const shared = page.getByRole('article', { name: '2 homes here' });
+  await expect(shared).toBeVisible();
   await expectNoSidewaysScroll(page);
   await expectAccessible(page);
   await screenshot(page, 'ba5-search-map-390');
+  // M117, UX-SR-6: a home's card is at the map's foot, over "List", with its photos to swipe.
+  // A search that only Main Street's home fits, so its pin stands alone on the map.
+  await page.goto('/?where=kenmare&max=1400');
+  await page.getByRole('button', { name: 'Map', exact: true }).click();
+  await pin(page, /^€1,400 a month/).click();
+  const card = page.getByRole('article', { name: 'Chosen home: €1,400 a month' });
+  await expect(card).toBeVisible();
+  const cardBox = (await card.boundingBox())!;
+  const under = (await page.getByRole('button', { name: 'List', exact: true }).boundingBox())!;
+  expect(cardBox.y).toBeGreaterThan((await map(page).boundingBox())!.y);
+  expect(cardBox.y + cardBox.height).toBeLessThanOrEqual(under.y);
+  await card.getByRole('button', { name: /^Next photo/ }).click();
+  await expect(card.getByRole('status')).toHaveText('Photo 2 of 3');
+  await expectMapOnScreen(page, phone);
+  await expectNoSidewaysScroll(page);
+  await expectAccessible(page);
+  await screenshot(page, 'ba5-search-map-card-390');
 
   await page.getByRole('button', { name: 'List', exact: true }).click();
   await expect(fits(page)).toBeVisible();

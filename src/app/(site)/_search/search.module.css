@@ -5,9 +5,23 @@
   min-width: 0;
 }
 
+/* The map, opened on a phone, fills the screen under the search (the shell holds the height). */
+.page:has([data-map-open]) {
+  flex: 1;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+
 .top {
   display: grid;
   gap: var(--space-3);
+  min-width: 0;
+}
+
+/* Beside the map: the homes, then whatever the page has after them. */
+.listed {
+  display: grid;
+  gap: var(--space-12);
   min-width: 0;
 }
 
@@ -101,5 +115,10 @@
 
   .skeletons {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* Beside the map, as many across as the cards they stand for (`HomeGrid`). */
+  .skeletons[data-beside] {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   }
 }

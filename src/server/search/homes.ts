@@ -1,4 +1,5 @@
 import type { Tx } from '@/db/client';
+import { CARD_PHOTOS } from '@/domain/lettings/photo-files';
 import type { SearchFilters } from '@/domain/search/filters';
 import { nearestHomes, searchCentre } from '@/domain/search/nearest';
 import { type Gazetteer, searchPlace } from '@/domain/search/places';
@@ -26,6 +27,11 @@ import { searchOnGaff } from './query';
  */
 export interface HomeOnGaff extends SearchableHome {
   cover: CoverPhoto | null;
+  /**
+   * UX-SR-6: its first photos at a card's size, the cover first, to look through on its card
+   * without opening it (`CARD_PHOTOS` at most). Never a floor plan (M44).
+   */
+  photos: Array<{ src: string }>;
   /**
    * BA-15 (M75): homes alike in one development share this key (their type's public
    * reference), so search can show them as one card (`groupAlike`). Null: a home on its own.
@@ -62,6 +68,7 @@ function homeOnGaffOf({ home, addressLine2, eircode, point }: PlacedHome): HomeO
     liveAt: home.liveAt,
     // The address is beside it on the card, so the picture adds no words.
     cover: home.photos[0] ? { src: home.photos[0].small, alt: '' } : null,
+    photos: home.photos.slice(0, CARD_PHOTOS).map((photo) => ({ src: photo.small })),
     alikeKey: home.unit?.typeRef ?? null,
     alike: home.unit
       ? {

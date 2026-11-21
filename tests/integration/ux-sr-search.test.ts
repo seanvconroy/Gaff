@@ -95,6 +95,8 @@ describe('UX-SR-2, UX-SR-6: the homes search reads', () => {
         'id',
         'liveAt',
         'parking',
+        // UX-SR-6: its first photos, to look through on its card.
+        'photos',
         // M125: where renters see it on the map, or null without a pin.
         'point',
         'propertyType',

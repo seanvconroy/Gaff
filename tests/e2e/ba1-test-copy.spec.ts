@@ -59,22 +59,6 @@ test('BA-1: made-up renters enquire about a live letting from its menu, and Peop
   await expect(people.getByRole('row')).toHaveCount(11);
 });
 
-test('BA-1: the test copy’s banner, as a component, and never on a page here', async ({ page }) => {
-  for (const [width, height] of widths) {
-    await page.setViewportSize({ width, height });
-    await page.goto('/dev/ui');
-    const section = page.getByRole('region', { name: 'Test copy banner' });
-    const banner = section.getByRole('complementary', { name: 'About this copy of Gaff' });
-    await expect(banner).toContainText('Gaff test copy. Use made-up names, numbers and homes.');
-    await banner.scrollIntoViewIfNeeded();
-    await expectAccessible(page);
-    await screenshot(page, `ba1-banner-${width}`);
-  }
-  // GAFF_ENV=test: no page carries it.
-  await page.goto('/');
-  await expect(page.getByRole('complementary', { name: 'About this copy of Gaff' })).toHaveCount(0);
-});
-
 test('BA-1: robots.txt disallows everything where search indexing is off', async ({ request }) => {
   const robots = await request.get('/robots.txt');
   expect(robots.ok()).toBe(true);

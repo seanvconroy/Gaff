@@ -3,15 +3,17 @@
 import { Check, Pencil, SquarePen, Trash2, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { MAP_UNAVAILABLE, homesHere, mapWords, onTheMap, pinPrice } from '@/copy/map';
 import { cameraKey, clampToIreland, shouldFit, startBox, type MapArea } from '@/domain/map/camera';
+import { placeCard } from '@/domain/map/card-place';
 import type { MapEvent, MapFailure } from '@/domain/map/counts';
 import { groupByPoint, groupOf, type MapPin, type PinGroup } from '@/domain/map/points';
 import { MAX_SHAPES, sameShapes, type Shape } from '@/domain/search/shapes';
 import { mapScheme } from '@/domain/map/theme';
 import type { BBox } from '@/domain/places/geo';
 import type { MapSettings } from '@/lib/map';
+import { type CardPhoto, CardPhotos } from './CardPhotos';
 import { reloading } from './MapBoundary';
 import { MapDraw, type MapDrawHandle } from './MapDraw';
 import { MapErrorBoundary } from './MapErrorBoundary';
@@ -69,16 +71,19 @@ export interface MapCardData {
   title: string;
   line: string;
   free: string;
-  photo: { src: string; alt: string } | null;
+  /** The home's first photos, the cover first, to look through on the card (UX-SR-6). */
+  photos: CardPhoto[];
 }
 
 /**
  * M57, M117, M119, M120, M127, M131: the map of a search's homes. It loads only once it's on
  * screen and the page has settled, so renters' devices don't call Google otherwise. It fits the
  * search's area when the area changes and at no other time. When the renter moves it, the search
- * follows: the list shows the homes in view (Q60). A pin opens a mini card, and homes at one
- * point share a pin that lists them. If it can't load, for any reason, Gaff's own sentence takes
- * its place and the list carries on (M120).
+ * follows: the list shows the homes in view (Q60). A pin opens its home's card, with the home's
+ * photos to look through, and homes at one point share a pin that lists them. Below 900px the
+ * card is at the foot of the map; above, it sits beside its pin, whole inside the map
+ * (`placeCard`), and moves with it. If the map can't load, for any reason, Gaff's own sentence
+ * takes its place and the list carries on (M120).
  *
  * UX-SR-13: "Draw" lets the renter draw up to five areas to search instead, and reshape each by
  * its corners (`MapDraw`). While there are drawn areas, moving the map looks around and doesn't
@@ -345,6 +350,40 @@ export function SearchMap({
   }, [alone, requestCard]);
   const card = alone ? (cards[alone.id] ?? null) : null;
 
+  /**
+   * M117: at 900px and up the open card sits beside its pin, wherever the map has it now. Its
+   * place is set here, after each draw, from the card's own size: below 900px, or on a map too
+   * small to hold it, the stylesheet's place at the foot stands.
+   */
+  const cardBox = useRef<HTMLElement>(null);
+  const pinLat = chosenGroup?.lat;
+  const pinLng = chosenGroup?.lng;
+  useLayoutEffect(() => {
+    const element = cardBox.current;
+    const box = container.current;
+    if (!element || !box) return;
+    const place =
+      projection &&
+      pinLat !== undefined &&
+      pinLng !== undefined &&
+      window.matchMedia('(width > 900px)').matches
+        ? placeCard(
+            projection.toPixel({ lat: pinLat, lng: pinLng }),
+            { width: box.clientWidth, height: box.clientHeight },
+            { width: element.offsetWidth, height: element.offsetHeight },
+          )
+        : null;
+    if (place) {
+      element.style.left = `${place.left}px`;
+      element.style.top = `${place.top}px`;
+      element.dataset.placed = place.side;
+    } else {
+      element.style.removeProperty('left');
+      element.style.removeProperty('top');
+      delete element.dataset.placed;
+    }
+  });
+
   const failed = stage === 'failed';
   const shown = stage === 'loading' || stage === 'ready';
   const providerProps: MapProviderProps = {
@@ -521,7 +560,11 @@ export function SearchMap({
       ) : null}
 
       {stage !== 'ready' || drawing ? null : chosenGroup && chosenGroup.homes.length > 1 ? (
-        <article className={styles.miniCard} aria-label={homesHere(chosenGroup.homes.length)}>
+        <article
+          ref={cardBox}
+          className={styles.miniCard}
+          aria-label={homesHere(chosenGroup.homes.length)}
+        >
           <div className={styles.miniBody}>
             <h2 className={styles.miniTitle}>{homesHere(chosenGroup.homes.length)}</h2>
             <ul className={styles.miniList}>
@@ -541,15 +584,32 @@ export function SearchMap({
             aria-label={mapWords.close}
             onClick={() => setChosen(null)}
           >
-            <X size={20} strokeWidth={2} aria-hidden="true" />
+            <span className={styles.miniCloseDisc}>
+              <X size={20} strokeWidth={2} aria-hidden="true" />
+            </span>
           </button>
         </article>
       ) : card ? (
-        <article className={styles.miniCard} aria-label={mapWords.chosen(card.title)}>
-          {card.photo ? (
-            // A home's own photo, already sized where it is stored.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={card.photo.src} alt={card.photo.alt} className={styles.miniPhoto} />
+        <article
+          // A new home is a new card: its photos start again at the cover.
+          key={card.id}
+          ref={cardBox}
+          className={styles.miniCard}
+          aria-label={mapWords.chosen(card.title)}
+        >
+          {card.photos.length > 0 ? (
+            <div className={styles.miniPhoto}>
+              <div className={styles.miniPhotoFill}>
+                {card.photos.length > 1 ? (
+                  <CardPhotos href={card.href} photos={card.photos} label={card.line} />
+                ) : (
+                  // A home's own photo, already sized where it is stored. The card says the
+                  // home in words beside it, so the picture adds none.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={card.photos[0]!.src} alt="" className={styles.miniImage} />
+                )}
+              </div>
+            </div>
           ) : null}
           <div className={styles.miniBody}>
             <h2 className={styles.miniTitle}>
@@ -566,7 +626,9 @@ export function SearchMap({
             aria-label={mapWords.close}
             onClick={() => setChosen(null)}
           >
-            <X size={20} strokeWidth={2} aria-hidden="true" />
+            <span className={styles.miniCloseDisc}>
+              <X size={20} strokeWidth={2} aria-hidden="true" />
+            </span>
           </button>
         </article>
       ) : null}

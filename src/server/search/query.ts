@@ -2,6 +2,7 @@ import { type SQL, and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { type Tx, withSystem } from '@/db/client';
 import { developments, lettingPhotos, lettings, organisations, unitTypes } from '@/db/schema';
 import type { Criteria } from '@/domain/criteria/criteria';
+import { CARD_PHOTOS } from '@/domain/lettings/photo-files';
 import type { BBox, Point } from '@/domain/places/geo';
 import type { SearchFilters } from '@/domain/search/filters';
 import type { Miss, SearchResults } from '@/domain/search/match';
@@ -293,12 +294,15 @@ function missOf(point: string, row: Row, filters: SearchFilters): Miss {
 const liveAtOf = (value: Date | string | null): Date =>
   value === null ? new Date(0) : value instanceof Date ? value : new Date(value);
 
-/** The cover photo of each home found: its first photo, in the lister's order. */
-async function coversIn(tx: Tx, lettingIds: readonly string[]) {
-  const covers = new Map<string, HomeOnGaff['cover']>();
-  if (lettingIds.length === 0) return covers;
+/**
+ * UX-SR-6: the photos each home's card carries: its first few, in the lister's order, the cover
+ * first. Never a floor plan (M44).
+ */
+async function cardPhotosIn(tx: Tx, lettingIds: readonly string[]) {
+  const found = new Map<string, HomeOnGaff['photos']>();
+  if (lettingIds.length === 0) return found;
   const photos = await tx
-    .selectDistinctOn([lettingPhotos.lettingId], {
+    .select({
       lettingId: lettingPhotos.lettingId,
       storageKey: lettingPhotos.storageKey,
       widths: lettingPhotos.widths,
@@ -307,13 +311,14 @@ async function coversIn(tx: Tx, lettingIds: readonly string[]) {
     .where(and(inArray(lettingPhotos.lettingId, [...lettingIds]), eq(lettingPhotos.kind, 'photo')))
     .orderBy(lettingPhotos.lettingId, asc(lettingPhotos.position), asc(lettingPhotos.createdAt));
   for (const photo of photos) {
-    // The address is beside it on the card, so the picture adds no words.
-    covers.set(photo.lettingId!, { src: publicPhotoOf(photo).small, alt: '' });
+    const kept = found.get(photo.lettingId!) ?? [];
+    if (kept.length < CARD_PHOTOS) kept.push({ src: publicPhotoOf(photo).small });
+    found.set(photo.lettingId!, kept);
   }
-  return covers;
+  return found;
 }
 
-function homeOf(row: Row, cover: HomeOnGaff['cover'] | undefined): HomeOnGaff {
+function homeOf(row: Row, photos: HomeOnGaff['photos'] = []): HomeOnGaff {
   return {
     id: row.ref,
     addressLine1: row.address_line1,
@@ -330,7 +335,9 @@ function homeOf(row: Row, cover: HomeOnGaff['cover'] | undefined): HomeOnGaff {
     parking: row.parking,
     criteria: row.criteria,
     liveAt: liveAtOf(row.live_at),
-    cover: cover ?? null,
+    // The address is beside it on the card, so the picture adds no words.
+    cover: photos[0] ? { src: photos[0].src, alt: '' } : null,
+    photos,
     ...alikeOf(row),
   };
 }
@@ -394,14 +401,14 @@ export async function searchIn(
     where cardinality(m.misses) <= ${most}
     order by coalesce(m.live_at, to_timestamp(0)) desc, m.ref collate "C" asc`);
   const rows = result.rows;
-  const covers = await coversIn(
+  const photos = await cardPhotosIn(
     tx,
     rows.map((row) => row.letting_id),
   );
   const fits: HomeOnGaff[] = [];
   const close: SearchResults<HomeOnGaff>['close'] = [];
   for (const row of rows) {
-    const found = homeOf(row, covers.get(row.letting_id));
+    const found = homeOf(row, photos.get(row.letting_id));
     if (row.misses.length === 0) fits.push(found);
     else close.push({ home: found, miss: missOf(row.misses[0]!, row, filters) });
   }
@@ -477,8 +484,8 @@ export async function homeOnGaff(ref: string): Promise<HomeOnGaff | null> {
       select h.*, array[]::text[] as misses from (${publicRows()}) h where h.ref = ${ref}`);
     const [row] = result.rows;
     if (!row) return null;
-    const covers = await coversIn(tx, [row.letting_id]);
-    return homeOf(row, covers.get(row.letting_id));
+    const photos = await cardPhotosIn(tx, [row.letting_id]);
+    return homeOf(row, photos.get(row.letting_id));
   });
 }
 
@@ -507,10 +514,10 @@ export async function similarCandidates(target: {
         and abs(h.bedrooms - ${target.bedrooms}) <= 1
         and abs(h.rent_cents - ${target.rentCents}) <= ${target.rentCents * SIMILAR_RENT_RANGE}::float8
       order by coalesce(h.live_at, to_timestamp(0)) desc, h.ref collate "C" asc`);
-    const covers = await coversIn(
+    const photos = await cardPhotosIn(
       tx,
       result.rows.map((row) => row.letting_id),
     );
-    return result.rows.map((row) => homeOf(row, covers.get(row.letting_id)));
+    return result.rows.map((row) => homeOf(row, photos.get(row.letting_id)));
   });
 }

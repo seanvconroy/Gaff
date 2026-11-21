@@ -39,16 +39,40 @@
   padding-bottom: calc(var(--size-bar) + var(--space-12) + env(safe-area-inset-bottom));
 }
 
+/*
+ * Search's map, opened on a phone (`ListAndMap`): the page is held to the screen's height, so
+ * the map fills what is left under the search and no part of it is ever off the screen.
+ */
+@media (width <= 900px) {
+  .shell:has([data-map-open]) {
+    height: 100dvh;
+  }
+
+  .shell:has([data-map-open]) .main {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  }
+
+  .shell:has([data-map-open]) .aboveTabs {
+    padding-bottom: calc(var(--size-bar) + var(--space-4) + env(safe-area-inset-bottom));
+  }
+}
+
 @media (width > 900px) {
   .main,
   .aboveTabs {
     padding: var(--space-8) var(--space-8) var(--space-16);
   }
 
-  /* Search with its map uses the screen's whole width, and starts close under the bar (Q60). */
+  /*
+   * Search with its map uses the screen's whole width (Q60). The same space above and below,
+   * which is the space the map keeps from the bar and from the foot of the screen.
+   */
   .main:has([data-wide-page]) {
     max-width: none;
-    padding-block: var(--space-4) var(--space-8);
+    padding-block: var(--space-4);
   }
 }
 

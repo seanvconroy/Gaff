@@ -311,11 +311,16 @@
   font-size: var(--type-caption-size);
 }
 
-/* M117: the chosen home's mini card, at the foot of the map, clear of Google's credits. */
+/*
+ * M117: the chosen home's card. Below 900px it is at the foot of the map: its photos on the
+ * left, to swipe, and its words beside them, clear of the "List" control and Google's credits
+ * under it. At 900px and up it is the photos over the words, beside its pin (the place is set
+ * by SearchMap; without one it keeps to the map's foot).
+ */
 .miniCard {
   position: absolute;
   right: var(--space-3);
-  bottom: var(--space-10);
+  bottom: calc(var(--space-6) + var(--size-control) + var(--space-3));
   left: var(--space-3);
   z-index: 6;
   display: flex;
@@ -328,10 +333,28 @@
   box-shadow: var(--shadow-overlay);
 }
 
+/*
+ * The photos' box: the card's whole height on a phone, 3:2 across its top on a desktop. On a
+ * phone it is wide enough that a press between Previous and Next still opens the home, and tall
+ * enough that Close, on its top corner, is clear of Previous.
+ */
 .miniPhoto {
+  position: relative;
   flex: none;
-  width: 120px;
-  aspect-ratio: 4 / 3;
+  width: 144px;
+  min-height: 144px;
+  background-color: var(--color-surface-2);
+}
+
+.miniPhotoFill {
+  position: absolute;
+  inset: 0;
+}
+
+.miniImage {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
@@ -342,17 +365,23 @@
   align-content: center;
   gap: var(--space-1);
   min-width: 0;
-  padding: var(--space-3) var(--space-12) var(--space-3) var(--space-3);
+  padding: var(--space-3);
 }
 
 .miniPhoto + .miniBody {
   padding-left: 0;
 }
 
+/* The words of a card with no photo keep clear of Close, all the way down. */
+.miniBody:first-child {
+  padding-right: var(--space-12);
+}
+
+/* On a phone the rent is the size it is on a card in the list. */
 .miniTitle {
-  font-size: var(--type-title-size);
-  font-weight: var(--type-title-weight);
-  line-height: var(--type-title-line);
+  font-size: var(--type-heading-size);
+  font-weight: var(--type-heading-weight);
+  line-height: var(--type-heading-line);
 }
 
 /* A block, so the link is a whole line tall (WCAG 2.5.8), and the whole card opens it. */
@@ -393,15 +422,17 @@
   text-decoration: none;
 }
 
+/* Close: 44px to press, above the card's link and its photos. */
 .miniClose {
   position: absolute;
   top: var(--space-1);
   right: var(--space-1);
-  z-index: 1;
+  z-index: 2;
   display: inline-grid;
   place-items: center;
-  width: var(--size-control);
-  height: var(--size-control);
+  width: var(--size-target);
+  height: var(--size-target);
+  padding: 0;
   background: none;
   border: 0;
   border-radius: var(--radius-pill);
@@ -409,11 +440,73 @@
   cursor: pointer;
 }
 
+.miniCloseDisc {
+  display: grid;
+  place-items: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-pill);
+}
+
+/*
+ * On a card with photos, Close is over the photo's corner, on the surface so it reads on any
+ * picture, as Previous and Next are: the top left on a phone, where the photo is.
+ */
+.miniPhoto ~ .miniClose {
+  right: auto;
+  left: var(--space-1);
+}
+
+.miniPhoto ~ .miniClose .miniCloseDisc {
+  background-color: var(--color-surface-1);
+  box-shadow: var(--shadow-raised);
+}
+
 .miniRow:focus-visible,
 .miniClose:focus-visible,
 .miniLink:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: -3px;
+}
+
+@media (width > 900px) {
+  .miniCard {
+    right: auto;
+    bottom: var(--space-10);
+    flex-direction: column;
+    gap: 0;
+    width: 320px;
+    max-width: none;
+    margin: 0;
+  }
+
+  /* Beside its pin: SearchMap gives the place. */
+  .miniCard[data-placed] {
+    bottom: auto;
+  }
+
+  .miniPhoto {
+    width: 100%;
+    min-height: 0;
+    aspect-ratio: 3 / 2;
+  }
+
+  .miniBody,
+  .miniPhoto + .miniBody {
+    padding: var(--space-3) var(--space-4) var(--space-4);
+  }
+
+  .miniTitle {
+    font-size: var(--type-title-size);
+    font-weight: var(--type-title-weight);
+    line-height: var(--type-title-line);
+  }
+
+  /* The photo is the card's top: Close is on its top right corner. */
+  .miniPhoto ~ .miniClose {
+    right: var(--space-1);
+    left: auto;
+  }
 }
 
 /* Gaff's focus ring on the stand-in's pins and clusters. */

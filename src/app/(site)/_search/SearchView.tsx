@@ -1,36 +1,34 @@
-import Link from 'next/link';
 import { Suspense, type ReactNode } from 'react';
 import { mapWords } from '@/copy/map';
-import { placeDataCopy } from '@/copy/place-data';
-import { resultsOrderCopy } from '@/copy/place-pages';
-import { searchCopy } from '@/copy/search';
 import { mapAreaOf } from '@/domain/map/camera';
-import { listAHomeHref, listAHomeSignedOutHref } from '@/domain/navigation/context';
 import {
   filtersToParams,
   hasFilters,
   searchHref,
   type SearchFilters,
+  without,
 } from '@/domain/search/filters';
 import { defaultNearMetres, type Gazetteer, type SearchPlace } from '@/domain/search/places';
 import { irishToday } from '@/lib/format';
 import type { MapSettings } from '@/lib/map';
 import { ListAndMap } from '@/ui/ListAndMap';
-import { SearchBox } from '@/ui/SearchBox';
-import { searchWords } from './actions';
 import { Results, ResultsLoading, type Saver } from './Results';
 import { ResultsMap } from './ResultsMap';
+import { SaveSearchChip } from './Saving';
 import { SearchControls } from './SearchControls';
+import { SearchField } from './SearchField';
 import styles from './search.module.css';
 
 /**
- * Search, as one view (UX-SR-1 to UX-SR-12): the box and what was understood as chips, one line
- * of promise, the homes (beside the map where there is one, M57), and the foot. The first screen
- * (`/`) and a place's page (`/to-rent/…`, M62) are both this view: a place's page is the search
- * for that place, already answered, under its own heading.
+ * Search, as one view (UX-SR-1 to UX-SR-14): the search bar, what was understood as chips with
+ * "Save search" beside them, and the homes, beside the map where there is one (M57). Nothing
+ * else: every line on this screen is the search or its results (Q60). The first screen (`/`)
+ * and a place's page (`/to-rent/…`, M62) are both this view: a place's page is the search for
+ * that place, already answered, under its own heading.
  */
 export function SearchView({
   question,
+  heading = 'hidden',
   filters,
   g,
   placeName,
@@ -38,13 +36,14 @@ export function SearchView({
   saver,
   map,
   keepRent,
-  signedIn,
   understood,
   intro,
   after,
 }: {
-  /** The page's heading, which names the box. */
+  /** The page's heading, which names the search bar. */
   question: string;
+  /** Whether the heading is seen (a place's page) or only heard (the first screen). */
+  heading?: 'shown' | 'hidden';
   filters: SearchFilters;
   g: Gazetteer;
   placeName: string;
@@ -54,31 +53,41 @@ export function SearchView({
   map: MapSettings | null;
   /** `rent=1`, carried as the renter moves on. */
   keepRent: boolean;
-  signedIn: boolean;
   /** Said above the chips: "Did you mean …?", when the words weren't understood. */
   understood?: ReactNode;
-  /** Said under the promise: a place's page's one line. */
+  /** Said under the chips: a place's page's one line. */
   intro?: ReactNode;
   /** After the homes: a place's links to the places around it. */
   after?: ReactNode;
 }) {
   const searching = hasFilters(filters);
+  const query = new URLSearchParams(filtersToParams(filters)).toString();
+  // Moving the map or reshaping a drawn area swaps the homes in place; any other change of the
+  // search shows them loading.
+  const loadingKey = searchHref(without(without(filters, 'box'), 'shapes'));
   const results = (beside: boolean) => (
-    <Suspense key={searchHref(filters)} fallback={<ResultsLoading />}>
+    <Suspense key={loadingKey} fallback={<ResultsLoading />}>
       <Results filters={filters} g={g} saver={saver} beside={beside} />
     </Suspense>
   );
   return (
-    <div className={styles.page}>
-      <SearchBox
-        id="search-question"
-        question={question}
-        placeholder={searchCopy.placeholder}
-        submitLabel={searchCopy.search}
-        action={searchWords}
-        primary={!searching}
-        hidden={keepRent ? { rent: '1' } : {}}
-      >
+    <div className={styles.page} data-wide-page={map ? '' : undefined}>
+      <div className={styles.top}>
+        <h1
+          id="search-question"
+          className={heading === 'shown' ? styles.question : 'visually-hidden'}
+        >
+          {question}
+        </h1>
+        <div className={styles.bar}>
+          {/* A new search starts with an empty box: the chips say what it understood. */}
+          <SearchField
+            key={`${query}|${understood ? 'unclear' : ''}`}
+            labelledBy="search-question"
+            primary={!searching}
+            keepRent={keepRent}
+          />
+        </div>
         {understood}
         <SearchControls
           filters={filters}
@@ -88,10 +97,19 @@ export function SearchView({
           }
           keepRent={keepRent}
           today={irishToday()}
+          save={
+            searching ? (
+              <SaveSearchChip
+                key={query}
+                query={query}
+                signedIn={saver.signedIn}
+                kept={saver.signedIn && saver.keepsSearch}
+              />
+            ) : undefined
+          }
         />
-        <p className={styles.promise}>{searchCopy.promise}</p>
         {intro}
-      </SearchBox>
+      </div>
       {map ? (
         <ListAndMap
           words={{ showMap: mapWords.showMap, showList: mapWords.showList }}
@@ -99,8 +117,8 @@ export function SearchView({
           map={
             <ResultsMap
               settings={map}
-              area={mapAreaOf(where, filters.box)}
-              query={new URLSearchParams(filtersToParams(filters)).toString()}
+              area={mapAreaOf(where, filters.box, filters.shapes)}
+              query={query}
               filters={filters}
               keepRent={keepRent}
             />
@@ -110,20 +128,6 @@ export function SearchView({
         results(false)
       )}
       {after}
-      <p className={styles.foot}>
-        {searchCopy.foot.line}{' '}
-        <Link href={signedIn ? listAHomeHref : listAHomeSignedOutHref}>
-          {searchCopy.foot.action}
-        </Link>
-        {/* M59: what the order is, and that nobody can pay for it. */}
-        <span className={styles.credit}>
-          <Link href="/how-results-are-ordered">{resultsOrderCopy.footLink}</Link>
-        </span>
-        <span className={styles.credit}>
-          {/* M56: the place index's licence asks for its credit where search uses it. */}
-          <Link href="/map-and-place-data">{placeDataCopy.footLink}</Link>
-        </span>
-      </p>
     </div>
   );
 }

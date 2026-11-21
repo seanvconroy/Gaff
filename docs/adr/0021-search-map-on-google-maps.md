@@ -28,7 +28,7 @@
 - Renters' devices call Google when a map is on screen. The privacy notice names Google Maps (an independent controller, under its Controller-Controller Data Protection Terms; no EU region; transfers under the EU–US Data Privacy Framework), and the DPIA covers it. Google is told the site's origin, never a page's address or what was searched.
 - Map loads cost money past Google's free tier: a monthly budget with alerts, a daily cap per environment, one map reused across a visit, no map for robots or previews (docs/deploy.md).
 - Homes listed before this, and homes read from an advert, have no pin until their lister places one from Home: they're in the list, not on the map.
-- Drawing an area on the map (M128's drawing half) doesn't come across: the redesign's search has no drawn area (UX-SR-4's fixed list). The pan and zoom buttons do.
+- Drawing an area on the map (M128's drawing half) didn't come across at first: the redesign's search had no drawn area (UX-SR-4's fixed list). The pan and zoom buttons did. **Since 20 November 2026 (Q60, ADR-0032) areas are drawn on the map, and the list follows the map without "Search this area".**
 
 ## Alternatives considered
 

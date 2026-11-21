@@ -3,6 +3,7 @@ import type { furnishing, parkingOptions, propertyTypes } from '@/domain/letting
 import { inBBox } from '@/domain/places/geo';
 import type { SearchFilters, SearchType, Stay } from './filters';
 import { type Gazetteer, type HomeAddress, placeHasHome, searchPlace } from './places';
+import { inShapes } from './shapes';
 
 /**
  * UX-SR-7, UX-MT-14, UX-MT-15: which homes fit a search. It reads a home's own facts and the
@@ -115,6 +116,8 @@ export function searchHomes<H extends SearchableHome>(
     if (place && !placeHasHome(place, home)) continue;
     // M57: a map area holds the homes whose pin is in it. A home without one can't be in it.
     if (filters.box && !(home.point && inBBox(home.point, filters.box))) continue;
+    // UX-SR-13: drawn areas hold the homes whose pin is in any of them, by the same rule.
+    if (filters.shapes && !(home.point && inShapes(home.point, filters.shapes))) continue;
     const misses = missesOf(home, filters);
     if (misses.length === 0) fits.push(home);
     else if (misses.length === 1) close.push({ home, miss: misses[0]! });

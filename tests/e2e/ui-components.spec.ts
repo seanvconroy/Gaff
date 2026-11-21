@@ -72,7 +72,7 @@ test('UX-DS-16: the component page shows every component and its states at 390px
         'Status pill, notice and outcome',
         'Cards, rows and lists',
         'Calendar',
-        'Search box with chips',
+        'Search bar with chips',
         'Home card',
         'Thread and reply box',
       ]) {

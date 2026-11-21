@@ -131,7 +131,7 @@ for (const [width, viewport] of widths) {
       page.getByRole('heading', { level: 1, name: 'Homes to rent in Tramore' }),
     ).toBeVisible();
     // The box is the redesign's search box, named by the heading.
-    await expect(page.getByRole('textbox', { name: 'Homes to rent in Tramore' })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Homes to rent in Tramore' })).toBeVisible();
     await expect(
       page.getByText('3 homes free to rent in Tramore, Co. Waterford on Gaff.'),
     ).toBeVisible();
@@ -142,13 +142,13 @@ for (const [width, viewport] of widths) {
     await expect(fits.getByRole('listitem')).toHaveCount(3);
     // UX-LS-10: the let home has left search at once.
     await expect(fits.getByText('Free from').first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Tell me about new ones' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save search' })).toBeVisible();
     // The places around it, and its county.
     const near = page.getByRole('list', { name: 'Places near Tramore' });
     await expect(
       near.getByRole('link', { name: /^All homes in County Waterford/ }),
     ).toHaveAttribute('href', '/to-rent/waterford');
-    // M59: how the results are ordered, under them.
+    // M59: how the results are ordered, one tap from them (Q60: beside their heading).
     await expect(page.getByRole('link', { name: 'How results are ordered' })).toHaveAttribute(
       'href',
       '/how-results-are-ordered',
@@ -292,7 +292,9 @@ test('M111: with SEARCH_INDEXING off there is no sitemap entry, and robots.txt n
 });
 
 for (const [width, viewport] of widths) {
-  test(`M59: “How results are ordered”, from under the results (${width})`, async ({ page }) => {
+  test(`M59: “How results are ordered”, from beside the results’ heading (${width})`, async ({
+    page,
+  }) => {
     await page.setViewportSize(viewport);
     await page.goto(TRAMORE);
     await page.getByRole('link', { name: 'How results are ordered' }).click();

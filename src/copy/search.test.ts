@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { filterKeys, type SearchFilters } from '@/domain/search/filters';
-import { cardLine, chipLabel, fitHeading, freeFrom, missWords, searchCopy } from './search';
+import {
+  awayWords,
+  cardLine,
+  chipLabel,
+  fitHeading,
+  freeFrom,
+  missWords,
+  searchCopy,
+} from './search';
 
 const NOW = new Date('2026-11-17T12:00:00Z');
 
@@ -40,7 +48,18 @@ describe('UX-SR-3: the chips say what Gaff understood', () => {
     expect(chipLabel('within', { where: 'highfield-road', within: 0.5 })).toBe('Within 500 m');
     expect(chipLabel('within', { where: 'highfield-road', within: 2 })).toBe('Within 2 km');
     const box = { minLat: 53.3, minLng: -6.3, maxLat: 53.34, maxLng: -6.22 };
-    expect(chipLabel('box', { box })).toBe('Area on the map');
+    expect(chipLabel('box', { box })).toBe('Map area');
+    // UX-SR-13: drawn areas are named by the server, by the area they are nearest.
+    const square = [
+      { lat: 53.32, lng: -6.28 },
+      { lat: 53.32, lng: -6.25 },
+      { lat: 53.3, lng: -6.25 },
+    ];
+    expect(chipLabel('shapes', { shapes: [square] })).toBe('Drawn area');
+    expect(chipLabel('shapes', { shapes: [square, square] })).toBe('2 drawn areas');
+    expect(chipLabel('shapes', { shapes: [square] }, new Date(), 'Drawn area near Rathgar')).toBe(
+      'Drawn area near Rathgar',
+    );
   });
 });
 
@@ -104,6 +123,14 @@ describe('Voice: search’s words', () => {
     const words = JSON.stringify(searchCopy);
     expect(words).not.toMatch(/!/);
     expect(words).not.toMatch(/suit/i);
-    expect(searchCopy.promise).toBe('Everyone hears back.');
+  });
+});
+
+describe('UX-SR-15: how far a nearest home is, in words', () => {
+  it('UX-SR-15: metres under a kilometre, then kilometres', () => {
+    expect(awayWords(20)).toBe('50 m away');
+    expect(awayWords(620)).toBe('600 m away');
+    expect(awayWords(1380)).toBe('1.4 km away');
+    expect(awayWords(12_400)).toBe('12 km away');
   });
 });

@@ -63,7 +63,7 @@ export interface PlaceSuggestions {
   didYouMean: boolean;
 }
 
-const icons: Record<PlaceIcon, LucideIcon> = {
+export const placeIcons: Record<PlaceIcon, LucideIcon> = {
   place: MapPin,
   street: Route,
   routing_key: Hash,
@@ -83,7 +83,7 @@ const PAUSE_MS = 120;
 const KEEP_ANSWERS = 20;
 
 /** The typed part of a name in bold, wherever a word of the name starts with it. */
-function withTyped(name: string, typed: string): ReactNode {
+export function withTyped(name: string, typed: string): ReactNode {
   const plain = (text: string) =>
     text
       .normalize('NFD')
@@ -288,7 +288,7 @@ export function PlaceSearch({
                 <ul role="group" aria-labelledby={headingId} className={styles.options}>
                   {group.options.map((option, i) => {
                     const at = starts[g]! + i;
-                    const Icon = icons[option.icon];
+                    const Icon = placeIcons[option.icon];
                     return (
                       <li
                         key={option.id}

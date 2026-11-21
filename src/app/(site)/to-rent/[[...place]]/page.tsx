@@ -66,7 +66,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 /**
  * M62 (BA-12): a place's page, `/to-rent/<county>/<place>` or a county's `/to-rent/<county>`.
  * It is the redesign's search already answered for that place (UX-SR-1 to UX-SR-12): the same
- * box, chips, filters, homes, map and "Tell me about new ones", under a heading that names the
+ * box, chips, filters, homes, map and "Save search", under a heading that names the
  * place, with one line saying how many homes are free there. Changing a filter makes the search
  * at the first screen, as every filtered search is. Under the homes: the places around it and
  * its county; a place with no homes offers wider places that have some.
@@ -89,6 +89,7 @@ export default async function PlacePage(props: Props) {
   return (
     <SearchView
       question={copy.heading(name)}
+      heading="shown"
       filters={page.filters}
       g={page.g}
       placeName={page.placeName}
@@ -96,7 +97,6 @@ export default async function PlacePage(props: Props) {
       saver={saver}
       map={map}
       keepRent={false}
-      signedIn={person !== null}
       intro={<p className={styles.free}>{copy.free(homes, page.placeName)}</p>}
       after={
         homes > 0 ? (

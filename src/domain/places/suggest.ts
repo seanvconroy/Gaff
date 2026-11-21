@@ -1,7 +1,14 @@
 import { COUNTY_POPULATION } from './counties';
 import { parseRoutingKey, routingKeyAreaName } from './eircode';
 import type { Place, PlaceKind } from './gazetteer';
-import { normalise, normaliseQuery, queryWords, similarity, wordsMatch } from './normalise';
+import {
+  matchForm,
+  normalise,
+  placeQuery,
+  placeQueryWords,
+  similarity,
+  wordsMatch,
+} from './normalise';
 
 /**
  * M56, M121: what the Where box suggests. Candidates come from the place index (Postgres finds
@@ -67,15 +74,22 @@ function groupOf(kind: Suggestion['kind']): SuggestionGroupKind {
 
 /** How well a place's names match the query, from 0 (not at all) to 1 (exactly). */
 export function matchQuality(query: string, place: Place): { quality: number; near: boolean } {
-  const q = normaliseQuery(query);
+  // Q60: what was typed and the place's names, with surnames joined: "O Connell Street",
+  // "O'Connell Street" and "OConnell Street" are one name, however either side wrote it.
+  const q = placeQuery(query);
   if (q.length === 0) return { quality: 0, near: false };
   const names = [place.name, place.irishName, ...(place.aliases ?? [])]
     .filter((n): n is string => Boolean(n))
-    .map(normalise);
+    .map(matchForm);
   const key = parseRoutingKey(query);
-  if (names.includes(q) || (key !== null && place.routingKey === key)) {
+  // Its own name, each side of a "/" ("Dingle / Daingean Uí Chúis"), or its routing key.
+  const own = [place.name, ...place.name.split(' / ')].map(matchForm);
+  if (own.includes(q) || (key !== null && place.routingKey === key)) {
     return { quality: 1, near: false };
   }
+  // Another name it goes by: just behind a place that is called exactly this, so "Phoenix
+  // Park" is the park before the station that serves it.
+  if (names.includes(q)) return { quality: 0.97, near: false };
   // A name that starts with what was typed. When that's whole words with more after, the fewer
   // more the better, so "University College Dublin" puts "... (Belfield Campus)" before
   // "... - Lyons Research Farm". A word still being typed ("rath") keeps them equal.
@@ -84,10 +98,10 @@ export function matchQuality(query: string, place: Place): { quality: number; ne
     const extra = Math.min(...starting.map((n) => (n[q.length] === ' ' ? n.length - q.length : 0)));
     return { quality: 0.9 - Math.min(0.05, extra * 0.002), near: false };
   }
-  const words = queryWords(query);
+  const words = placeQueryWords(query);
   const nameWords = names.flatMap((n) => n.split(' '));
   if (wordsMatch(words, nameWords)) return { quality: 0.8, near: false };
-  const contextWords = normalise(place.context ?? '').split(' ');
+  const contextWords = matchForm(place.context ?? '').split(' ');
   const someWordInName = words.some((forms) =>
     forms.some((form) => nameWords.some((w) => w.startsWith(form))),
   );
@@ -130,7 +144,7 @@ function routingKeySuggestion(query: string, places: readonly Place[]): Suggesti
 
 /** Ranks candidate places for what was typed, and groups them for the Where box. */
 export function rankSuggestions(query: string, candidates: readonly Place[]): Suggestions {
-  const q = normaliseQuery(query);
+  const q = placeQuery(query);
   if (q.length < 2 && parseRoutingKey(query) === null) return { groups: [], didYouMean: false };
   const scored: Array<Suggestion & { near: boolean }> = [];
   for (const place of candidates) {

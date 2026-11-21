@@ -11,6 +11,7 @@ export async function searchWords(formData: FormData): Promise<void> {
   const { href } = await searchFromWords({
     words: formData.get('words') ?? '',
     rent: formData.get('rent') ?? undefined,
+    place: formData.get('place') || undefined,
   });
   redirect(href);
 }

@@ -55,3 +55,55 @@ Dublin City University,Dublin City University,Dublin,1
 Maynooth University,Maynooth,Kildare,2
 Phoenix Park,Phoenix Park,Dublin,2
 Dundrum Town Centre,Dundrum Town Centre,Dublin,1
+# Q60: other names the index doesn't hold, from Gaff's own list (src/domain/places/other-names.ts)
+ucd,University College Dublin (Belfield Campus),Dublin,1
+UCD,University College Dublin (Belfield Campus),Dublin,1
+tcd,Trinity College Dublin,Dublin,1
+dcu,Dublin City University,Dublin,1
+ucc,University College Cork Main Campus,Cork,1
+nuig,University of Galway,Galway,1
+University of Galway,Ollscoil na Gaillimhe,Galway,1
+# Two letters: a landmark that goes by exactly them is found, after any area that starts with them
+ul,University of Limerick,Limerick,3
+tu dublin,Grangegorman Campus,Dublin,1
+rcsi,Royal College of Surgeons,Dublin,1
+mtu,MTU Bishopstown Campus,Cork,1
+setu,Cork Road Campus,Waterford,1
+the mater,Mater Misericordiae University Hospital,Dublin,1
+# Athlone's hospital is called exactly this, so it comes first; Dublin's goes by it, and is next
+St Vincent's Hospital,St Vincent's University Hospital,Dublin,2
+Tallaght Hospital,Tallaght University Hospital,Dublin,1
+Crumlin Hospital,Children's Health Ireland at Crumlin,Dublin,1
+Temple Street Hospital,Children's Health Ireland at Temple Street,Dublin,1
+cuh,Cork University Hospital,Cork,1
+uhl,University Hospital Limerick,Limerick,1
+uhg,University Hospital Galway,Galway,1
+uhw,University Hospital Waterford,Waterford,1
+Heuston Station,Heuston,Dublin,2
+Connolly Station,Connolly,Dublin,1
+Kent Station,Cork Kent,Cork,1
+Colbert Station,Limerick Colbert,Limerick,1
+Ceannt Station,Galway Ceannt,Galway,1
+Limerick Train Station,Limerick Colbert,Limerick,1
+# Q60: a surname typed apart, joined or with its apostrophe is the one name
+O Connell Street Limerick,O'Connell Street,Limerick,1
+O'Connell Street Limerick,O'Connell Street,Limerick,1
+OConnell Street Limerick,O'Connell Street,Limerick,1
+o connell st limerick,O'Connell Street,Limerick,1
+O Connell Street Lower,O'Connell Street Lower,Dublin,1
+O Callaghansmills,O'Callaghansmills,Clare,1
+Mc Curtain Street Fermoy,McCurtain Street,Fermoy,1
+McCurtain Street Fermoy,McCurtain Street,Fermoy,1
+# The index holds this one written apart ("Sean Mac Dermott Street Upper"), and its other end joined
+Sean MacDermott Street Upper,Sean Mac Dermott Street Upper,Dublin,1
+Sean Mac Dermott Street Lower,Sean MacDermott Street Lower,Dublin,1
+Mac Diarmada Station,Sligo Mac Diarmada,Sligo,1
+# Q60, for the next rebuild (they fail on the index as built on 20 November 2026; see
+# docs/open-questions.md). A town-centre street whose context names a hamlet beside the town:
+#   Main Street Bray,Main Street,Bray,1
+#   Main Street Clifden,Main Street,Clifden,1
+# A street missing altogether, most likely because the build didn't read "trunk" roads until now:
+#   Main Street Adare,Main Street,Adare,1
+#   Main Street Charleville,Main Street,Charleville,1
+#   MacCurtain Street Cork,MacCurtain Street,Cork,1
+#   Washington Street Cork,Washington Street,Cork,1

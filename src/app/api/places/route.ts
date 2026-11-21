@@ -15,7 +15,12 @@ const query = z.string().trim().max(60).catch('');
  */
 export async function GET(request: NextRequest) {
   const typed = query.parse(request.nextUrl.searchParams.get('q') ?? '');
-  const body: WhereSuggestions = typed ? await suggestWhere(typed) : await popularWhere();
+  // UX-SR-14: the search bar asks as a sentence is typed, so what it finds nothing for may be a
+  // word about the renter, not a place nobody found: it is never counted.
+  const fromBar = request.nextUrl.searchParams.get('bar') === '1';
+  const body: WhereSuggestions = typed
+    ? await suggestWhere(typed, { countMisses: !fromBar })
+    : await popularWhere();
   return NextResponse.json(body, {
     headers: { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=86400' },
   });

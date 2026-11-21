@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { type propertyTypes } from '@/domain/lettings/new-letting';
 import { bboxAreaKm2, inIreland, type BBox } from '@/domain/places/geo';
 import { canonicalPlaceSlug, MAX_PLACE_SLUG, PLACE_SLUG } from './place-slug';
+import { readShapes, shapesSchema, writeShapes } from './shapes';
 
 /**
  * UX-SR-4, UX-MT-12: everything a search can hold, and nothing else. These are facts about a
@@ -104,6 +105,12 @@ export const searchFiltersSchema = z
      * place's role: a search has a place or a map area, never both.
      */
     box: bboxSchema.optional(),
+    /**
+     * UX-SR-13 (Q60): areas the renter drew on the map: the homes whose point is in any of them.
+     * Like a map area, it takes the place's role: a search has a place, a map area or drawn
+     * areas, and only one of the three.
+     */
+    shapes: shapesSchema.optional(),
     /** The most rent a month, in whole euros. */
     maxRent: z.number().int().min(MIN_SEARCH_RENT).max(MAX_SEARCH_RENT).optional(),
     beds: z.number().int().min(1).max(MAX_BEDS).optional(),
@@ -127,6 +134,7 @@ export const filterKeys = [
   'where',
   'within',
   'box',
+  'shapes',
   'beds',
   'maxRent',
   'moveIn',
@@ -146,6 +154,7 @@ export const paramNames: Record<FilterKey, string> = {
   where: 'where',
   within: 'km',
   box: 'area',
+  shapes: 'draw',
   maxRent: 'max',
   beds: 'beds',
   moveIn: 'from',
@@ -169,12 +178,14 @@ const decimal = (value: string | undefined): number | undefined =>
   value && /^\d{1,2}(?:\.\d)?$/.test(value) ? Number(value) : undefined;
 
 /**
- * A search has a place or a map area, never both; and "Within" only with a place. Whatever an
- * address or a saved search holds, the search is made whole by these two rules.
+ * A search has a place, a map area or drawn areas, and only one of them (what was drawn first,
+ * then a map area); and "Within" only with a place. Whatever an address or a saved search
+ * holds, the search is made whole by these rules.
  */
 export function wholeSearch(filters: SearchFilters): SearchFilters {
   const whole = { ...filters };
-  if (whole.box) delete whole.where;
+  if (whole.shapes) delete whole.box;
+  if (whole.box || whole.shapes) delete whole.where;
   if (!whole.where) delete whole.within;
   return whole;
 }
@@ -188,6 +199,7 @@ export function filtersFromParams(params: Params): SearchFilters {
     where: first(params[paramNames.where]),
     within: decimal(first(params[paramNames.within])),
     box: readBBox(first(params[paramNames.box])) ?? undefined,
+    shapes: readShapes(first(params[paramNames.shapes])) ?? undefined,
     maxRent: wholeNumber(first(params[paramNames.maxRent])),
     beds: wholeNumber(first(params[paramNames.beds])),
     moveIn: first(params[paramNames.moveIn]),
@@ -217,7 +229,9 @@ export function filtersToParams(filters: SearchFilters): Array<[string, string]>
     if (value === undefined) continue;
     const text =
       typeof value === 'object'
-        ? writeBBox(value)
+        ? Array.isArray(value)
+          ? writeShapes(value)
+          : writeBBox(value)
         : typeof value === 'boolean'
           ? key === 'pets'
             ? value

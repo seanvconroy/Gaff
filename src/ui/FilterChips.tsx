@@ -1,18 +1,23 @@
 'use client';
 
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
+import type { ReactNode } from 'react';
 import styles from './FilterChips.module.css';
 
 /**
  * What a search understood, as chips (section 8, "Search box with chips"; UX-SR-3): first a
  * "Filters" chip, which opens all of them as ordinary controls, then one chip per filter, which
  * opens that one. On a phone the row scrolls sideways with a fade; on a desktop it wraps. Each
- * chip is 36px to look at and 44px to press.
+ * chip is 36px to look at and 44px to press. `extra` is one more chip, straight after Filters,
+ * for the search's own action ("Save search"): build it with `filterChipClass`.
  */
+export const filterChipClass = styles.chip!;
+
 export function FilterChips({
   label,
   filtersLabel,
   chips,
+  extra,
   onFilters,
   onChip,
 }: {
@@ -20,6 +25,7 @@ export function FilterChips({
   label: string;
   filtersLabel: string;
   chips: ReadonlyArray<{ key: string; label: string }>;
+  extra?: ReactNode;
   onFilters: () => void;
   onChip: (key: string) => void;
 }) {
@@ -32,6 +38,7 @@ export function FilterChips({
             <span>{filtersLabel}</span>
           </button>
         </li>
+        {extra ? <li>{extra}</li> : null}
         {chips.map((chip) => (
           <li key={chip.key}>
             <button

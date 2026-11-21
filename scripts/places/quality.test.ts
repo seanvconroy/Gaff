@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { curatedPlaces, fixturePlaces } from '@/domain/places/fixture';
 import type { PlaceFileHeader } from '@/domain/places/file';
 import type { Place } from '@/domain/places/gazetteer';
-import { checkExpectation, checkPlaces, readTestSet } from './quality';
+import { otherNames } from '@/domain/places/other-names';
+import { checkExpectation, checkOtherNames, checkPlaces, readTestSet } from './quality';
 
 const header = (count: number): PlaceFileHeader => ({
   version: 20261108,
@@ -53,6 +54,24 @@ describe('ADR-0018, M56: checking a built place index before it is committed', (
       'Cities that aren’t curated (a second copy of one?): cathair-na-gaillimhe.',
       'Places outside Ireland: paris.',
       'Only 0 of kind street; expected at least 1.',
+    ]);
+  });
+
+  it('Q60: names a landmark the list of other names no longer finds', () => {
+    const landmarks: Place[] = otherNames.map((entry, i) => ({
+      slug: `landmark-${i}`,
+      name: entry.name,
+      kind: 'landmark',
+      county: entry.county,
+      centre: { lat: 53.3, lng: -6.2 },
+      radiusMetres: 200,
+    }));
+    expect(checkOtherNames(landmarks)).toEqual([]);
+    const renamed = landmarks.map((p) =>
+      p.name === 'Cork Kent' ? { ...p, name: 'Cork Kent Station' } : p,
+    );
+    expect(checkOtherNames(renamed)).toEqual([
+      'No landmark called "Cork Kent" in Cork, which other-names.ts gives other names to (Kent Station, Cork Train Station).',
     ]);
   });
 

@@ -238,7 +238,7 @@ test('M85, M86: Saved shows a saved home’s lower rent, and each search’s cho
   await page.goto('/?where=kilrush');
   await page.getByRole('button', { name: 'Save 2-bed apartment · Kilrush, Co. Clare' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
-  await page.getByRole('button', { name: 'Tell me about new ones' }).click();
+  await page.getByRole('button', { name: 'Save search' }).click();
   await expect(
     page.getByRole('status').filter({ hasText: 'Saved. We’ll email you when a new home fits.' }),
   ).toBeVisible();

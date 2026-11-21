@@ -44,6 +44,12 @@
   .aboveTabs {
     padding: var(--space-8) var(--space-8) var(--space-16);
   }
+
+  /* Search with its map uses the screen's whole width, and starts close under the bar (Q60). */
+  .main:has([data-wide-page]) {
+    max-width: none;
+    padding-block: var(--space-4) var(--space-8);
+  }
 }
 
 /* Printing an agreement or a pack: just the document. */

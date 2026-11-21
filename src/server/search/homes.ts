@@ -1,6 +1,7 @@
 import type { Tx } from '@/db/client';
 import type { SearchFilters } from '@/domain/search/filters';
-import type { Gazetteer } from '@/domain/search/places';
+import { nearestHomes, searchCentre } from '@/domain/search/nearest';
+import { type Gazetteer, searchPlace } from '@/domain/search/places';
 import type { SearchableHome, SearchResults } from '@/domain/search/match';
 import {
   type PlacedHome,
@@ -82,4 +83,21 @@ export async function findHomes(
   g: Gazetteer,
 ): Promise<SearchResults<HomeOnGaff>> {
   return searchOnGaff(filters, g);
+}
+
+/**
+ * UX-SR-15: when no home is where the renter searched, the nearest homes that fit the rest of
+ * what they asked, nearest first (src/domain/search/nearest.ts). Through search's own query, so
+ * only homes search could show are ever here.
+ */
+export async function nearestHomesTo(
+  filters: SearchFilters,
+  g: Gazetteer,
+): Promise<Array<{ home: HomeOnGaff; metres: number }>> {
+  const where = filters.where ? searchPlace(filters.where, g, filters.within) : null;
+  const centre = searchCentre(filters, where);
+  if (!centre) return [];
+  const { where: _where, within: _within, box: _box, shapes: _shapes, ...rest } = filters;
+  const { fits } = await searchOnGaff(rest, g, { fitsOnly: true });
+  return nearestHomes(centre, fits);
 }

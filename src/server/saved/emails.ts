@@ -13,7 +13,7 @@ import { openJson } from '@/lib/crypto';
 import { env } from '@/lib/env';
 import { formatRent } from '@/lib/format';
 import { publicHomePages } from '@/server/homes/public-homes';
-import { placeNames } from '@/server/search/where';
+import { nameKey, placeNames } from '@/server/search/where';
 
 /**
  * The emails of saved searches (UX-SR-10): the one that confirms an address, and the alert. Each
@@ -92,7 +92,7 @@ export async function sendSavedSearchEmail(payload: unknown): Promise<void> {
   const names = await placeNames(searches.map((search) => filtersToKeep(search.filters)));
   const wordsOf = (filters: unknown) => {
     const kept = filtersToKeep(filters);
-    return searchWords(kept, new Date(), names.get(kept.where ?? '') ?? '');
+    return searchWords(kept, new Date(), names.get(nameKey(kept)) ?? '');
   };
 
   if (job.kind === 'confirm') {

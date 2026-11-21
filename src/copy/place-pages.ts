@@ -49,6 +49,8 @@ export const resultsOrderCopy = {
     fits: 'Homes that fit everything you asked come first, newest first.',
     close:
       'Then come homes close to what you asked. Each one misses on one point and says which, in words: “Up to 2 people. You asked for 3.” They are newest first too.',
+    nearest:
+      'When no home is where you searched, the nearest homes that fit the rest of what you asked are shown, nearest first, each saying how far it is.',
     nothing: 'With nothing asked, every home on Gaff is shown, newest first.',
   },
   never: {

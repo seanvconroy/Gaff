@@ -27,11 +27,10 @@ Anyone can open gaff.ie and search. Nothing needs a sign-in until the renter wan
 | Part | Content |
 | --- | --- |
 | Header | The wordmark. "List a home". "Sign in", or the person's avatar |
-| Search | One box: "What are you looking for?" |
-| Below it | Homes on Gaff now, newest first, as photo cards |
-| Foot | One line for people letting: "Letting a home? Gaff runs it for you." with "List a home" |
+| Search | One box, which says what it takes: "Area, road or describe it" |
+| Below it | Homes on Gaff now, newest first, as photo cards, beside the map at 900px and up |
 
-**UX-SR-1.** The site opens on the search box and the homes. There is no hero image, no feature tour and no marketing sections. One line of promise sits under the box: "Everyone hears back." `[P1, P4]`
+**UX-SR-1.** The site opens on the search box and the homes. There is no hero image, no feature tour and no marketing sections. Every line on the screen is the search or its results: no promise line, no line for people letting (the header has "List a home"), and no links under the results (Q60, 20 November 2026). "How results are ordered" is an icon beside the results' heading, the place data's credit is at the foot of the suggestions, and both pages are linked from Help. `[P1, P4]`
 
 **UX-SR-2.** With few homes on Gaff, showing all of them under the search box is the default. An empty search is never the first thing a visitor sees. `[P9, P14]`
 
@@ -59,17 +58,25 @@ Anyone can open gaff.ie and search. Nothing needs a sign-in until the renter wan
 
 Anything else a renter writes is ignored and not kept ([UX-MT-12](06-matching-and-fit.md#the-renters-side)). `[rule 3]`
 
+"Where" is one of three things, and only one at a time: a place from the index; the part of the map the renter is looking at (UX-SR-8); or areas they drew on it (UX-SR-13). Each is matched against where the home is, and nothing else.
+
+**UX-SR-13.** A renter can draw the area to search on the map (Q60). "Draw", then a loop traced with a finger or the mouse, or a tap for each corner; with a keyboard, Enter gives a square. The area is the search at once, with no Apply. It shows its corners: dragging one reshapes it, the small dot half way along a side pulls out a new corner, and Delete or a double-click takes one away; the arrow keys move the corner in focus. Up to five areas, each removed on its own or all cleared. While there are drawn areas, moving the map looks around and doesn't change the search. A drawn area is in the search's address, so it is shared and saved like any search, and named by the area it is nearest: "Drawn area near Rathgar". `[P6, P10, P13]`
+
+**UX-SR-14.** The search box takes a place, a road, an Eircode area or a sentence, and helps with each as it's typed. The part that could be a place is suggested from Gaff's own place index (places, streets and landmarks, each with where it is); whatever else the words ask for is shown as it is understood ("Search for: 2 bedrooms"). Picking a suggestion searches there with the rest of what was typed; Enter sends the words. A road typed alone, or inside a sentence ("2 bed near Highfield Road under €2,000"), is found. Only the part that could be a place is sent for suggestions, never the sentence, and it is never kept. `[P13, rule 3]`
+
+**UX-SR-15.** When no home is where the renter searched, the empty state is followed by "The nearest homes": up to six homes that fit the rest of what they asked, nearest first, each saying how far it is, within 30 km. `[P9, P14]`
+
 **UX-SR-5.** "Where" is matched against Gaff's own list of Irish places, built from open data. No search is sent to a map or address provider. `[rule 10]`
 
 **UX-SR-6.** A result is a photo-led card: the cover photo, the rent, one line ("2-bed apartment · Ranelagh, Dublin 6"), the date it's free, and a heart to save it. Nothing else. `[P4, P12]`
 
 **UX-SR-7.** Homes that fit everything the renter asked come first, newest first. Homes that miss on one point follow under "Close to what you asked", each saying what differs in words: "Up to 2 people. You asked for 3." Gaff never orders homes by anything about the renter except what they asked for, and nobody can pay for position. `[rule 3; P10]`
 
-**UX-SR-8.** On a desktop a map sits beside the list. On a phone a "Map" button swaps the list for it. The list is complete without the map. The map uses Gaff's own copy of OpenStreetMap ([OQ-7](12-phasing-and-decisions.md#still-open)). `[P6, P11]`
+**UX-SR-8.** On a desktop a map sits beside the list. On a phone a "Map" button swaps the list for it. The list is complete without the map. The map uses Gaff's own copy of OpenStreetMap ([OQ-7](12-phasing-and-decisions.md#still-open)). When the renter moves the map, the search follows it: the list shows the homes in view, with no button to press, and Back returns to the place they searched (Q60). `[P6, P11]`
 
 **UX-SR-9.** When nothing matches: "No homes match yet. Gaff is new, and homes are added every week." The one primary action is "Tell me when one comes up", which saves the search. Below it, the closest homes. `[P9]`
 
-**UX-SR-10.** A saved search emails the renter when a new home fits: one email a day at most, each home once, with "Stop these" in every email. Saving a search asks for an email if they're not signed in, and nothing more. `[P8 · Q25]`
+**UX-SR-10.** A saved search emails the renter when a new home fits: one email a day at most, each home once, with "Stop these" in every email. Saving a search asks for an email if they're not signed in, and nothing more. "Save search" is a chip beside Filters on every search, so a place, a map area or a drawn area is saved with its filters in one press; once saved, the chip says so and opens Saved (Q60). `[P8 · Q25]`
 
 **UX-SR-11.** Searching needs no account and isn't recorded against a person. A search is kept only when the renter saves it. `[rule 2, rule 9]`
 

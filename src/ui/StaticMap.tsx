@@ -70,6 +70,7 @@ export function StaticMap({
   onHover,
   onChoose,
   onMoved,
+  onProjection,
   area,
   onReady,
 }: MapProviderProps) {
@@ -81,10 +82,10 @@ export function StaticMap({
   const drag = useRef<{ x: number; y: number; camera: Camera; to: Camera | null } | null>(null);
   /** Set by the renter's own moves, just before the view changes (M127). */
   const byRenter = useRef(false);
-  const callbacks = useRef({ onMoved, onReady });
+  const callbacks = useRef({ onMoved, onReady, onProjection });
 
   useEffect(() => {
-    callbacks.current = { onMoved, onReady };
+    callbacks.current = { onMoved, onReady, onProjection };
   });
 
   useEffect(() => {
@@ -117,6 +118,22 @@ export function StaticMap({
     callbacks.current.onMoved(boxOf(settled, size), byRenter.current);
     byRenter.current = false;
   }, [settled, size]);
+
+  // UX-SR-13: what is drawn over the map follows every change of view, a drag's included.
+  useEffect(() => {
+    if (!camera || !size) return;
+    const cos = cosAt(camera.lat);
+    callbacks.current.onProjection({
+      toPixel: (point) => ({
+        x: size.w / 2 + ((point.lng - camera.lng) * cos) / camera.scale,
+        y: size.h / 2 - (point.lat - camera.lat) / camera.scale,
+      }),
+      toPoint: (x, y) => ({
+        lat: camera.lat - (y - size.h / 2) * camera.scale,
+        lng: camera.lng + ((x - size.w / 2) * camera.scale) / cos,
+      }),
+    });
+  }, [camera, size]);
 
   const move = (next: Camera) => {
     byRenter.current = true;
@@ -185,6 +202,8 @@ export function StaticMap({
             (event.target as Element).tagName === 'rect'
           ) {
             drag.current = { ...where, camera, to: null };
+            // A drag that leaves the map still ends on it, as on a real map.
+            event.currentTarget.setPointerCapture(event.pointerId);
           }
         }}
         onPointerMove={(event) => {
@@ -208,6 +227,10 @@ export function StaticMap({
           drag.current = null;
           setDragging(null);
           if (to) move(to);
+        }}
+        onPointerCancel={() => {
+          drag.current = null;
+          setDragging(null);
         }}
       >
         <defs>

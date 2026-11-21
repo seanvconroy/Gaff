@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, X } from 'lucide-react';
+import { Check, Pencil, SquarePen, Trash2, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -8,12 +8,14 @@ import { MAP_UNAVAILABLE, homesHere, mapWords, onTheMap, pinPrice } from '@/copy
 import { cameraKey, clampToIreland, shouldFit, startBox, type MapArea } from '@/domain/map/camera';
 import type { MapEvent, MapFailure } from '@/domain/map/counts';
 import { groupByPoint, groupOf, type MapPin, type PinGroup } from '@/domain/map/points';
+import { MAX_SHAPES, sameShapes, type Shape } from '@/domain/search/shapes';
 import { mapScheme } from '@/domain/map/theme';
 import type { BBox } from '@/domain/places/geo';
 import type { MapSettings } from '@/lib/map';
 import { reloading } from './MapBoundary';
+import { MapDraw, type MapDrawHandle } from './MapDraw';
 import { MapErrorBoundary } from './MapErrorBoundary';
-import type { MapProviderProps } from './map-types';
+import type { MapProjection, MapProviderProps } from './map-types';
 import { StaticMap } from './StaticMap';
 import { useMapScheme } from './useMapScheme';
 import styles from './SearchMap.module.css';
@@ -25,6 +27,9 @@ const GoogleSearchMap = dynamic(() => import('./GoogleSearchMap').then((m) => m.
 
 /** Pins load when the map stops moving, 300 ms later; a request still waiting is dropped. */
 const POINTS_DELAY_MS = 300;
+/** The list follows the map a moment after it comes to rest, so a second nudge is one search. */
+const AREA_DELAY_MS = 450;
+const NO_SHAPES: Shape[] = [];
 /** The page's first photos come first: the map starts once the browser has a quiet moment. */
 const IDLE_TIMEOUT_MS = 2000;
 
@@ -70,10 +75,14 @@ export interface MapCardData {
 /**
  * M57, M117, M119, M120, M127, M131: the map of a search's homes. It loads only once it's on
  * screen and the page has settled, so renters' devices don't call Google otherwise. It fits the
- * search's area when the area changes and at no other time; after the renter moves it, "Search
- * this area" searches the homes in view; a pin opens a mini card, and homes at one point share a
- * pin that lists them. If it can't load, for any reason, Gaff's own sentence takes its place and
- * the list carries on (M120).
+ * search's area when the area changes and at no other time. When the renter moves it, the search
+ * follows: the list shows the homes in view (Q60). A pin opens a mini card, and homes at one
+ * point share a pin that lists them. If it can't load, for any reason, Gaff's own sentence takes
+ * its place and the list carries on (M120).
+ *
+ * UX-SR-13: "Draw" lets the renter draw up to five areas to search instead, and reshape each by
+ * its corners (`MapDraw`). While there are drawn areas, moving the map looks around and doesn't
+ * change the search.
  */
 export function SearchMap({
   settings,
@@ -81,6 +90,7 @@ export function SearchMap({
   loadPins,
   loadCard,
   onSearchArea,
+  onShapes,
   hovered,
   onHover,
   count,
@@ -91,8 +101,10 @@ export function SearchMap({
   /** Must change identity only when the search does: a new one loads the pins again. */
   loadPins: (view: BBox, signal: AbortSignal) => Promise<MapPins | null>;
   loadCard: (id: string) => Promise<MapCardData | null>;
-  /** M57: the renter asked for the homes in view. */
+  /** M57, Q60: the renter moved the map: the search is the homes in view. */
   onSearchArea: (box: BBox) => void;
+  /** UX-SR-13: the renter drew, reshaped or removed an area: the search is these areas. */
+  onShapes: (shapes: Shape[]) => void;
   /** The home a card in the list is pointing at, and the page's way to hear the map's. */
   hovered: string | null;
   onHover: (id: string | null) => void;
@@ -111,10 +123,25 @@ export function SearchMap({
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   /** The view the map has. */
   const view = useRef<BBox | null>(null);
-  /** M127: the view the renter moved to, until they search it or the area changes. */
-  const [moved, setMoved] = useState<BBox | null>(null);
-  /** The map area the renter's last "Search this area" made: the map is already there. */
+  const areaTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  /** The map area the renter's last move made: the map is already there. */
   const [renterBox, setRenterBox] = useState<BBox | null>(null);
+  /** UX-SR-13: the drawn areas, as they are on this map: the search's own, then the renter's. */
+  const urlShapes = area.kind === 'shapes' ? area.shapes : NO_SHAPES;
+  const [shapes, setShapes] = useState<Shape[]>(urlShapes);
+  /** The area that shows its corners, to reshape. */
+  const [selected, setSelected] = useState<number | null>(null);
+  const [drawing, setDrawing] = useState(false);
+  /** Corners tapped so far while drawing: three or more can be finished. */
+  const [taps, setTaps] = useState(0);
+  const [tooSmall, setTooSmall] = useState(false);
+  const [projection, setProjection] = useState<MapProjection | null>(null);
+  const draw = useRef<MapDrawHandle>(null);
+  /** What a move of the map may do, read as the map comes to rest. */
+  const follows = useRef(true);
+  useEffect(() => {
+    follows.current = shapes.length === 0 && !drawing;
+  }, [shapes, drawing]);
   /** Whether the map has drawn or failed, so each is acted on once. */
   const outcome = useRef<'ready' | 'failed' | null>(null);
 
@@ -153,10 +180,23 @@ export function SearchMap({
   const key = cameraKey(area);
   const [fit, setFit] = useState(() => ({ id: 0, box: startBox(area) }));
   const [fittedKey, setFittedKey] = useState(key);
+  /** The fit the map last had from the page, as a move of the renter's comes to rest. */
+  const fitId = useRef(fit.id);
+  useEffect(() => {
+    fitId.current = fit.id;
+  }, [fit.id]);
   if (fittedKey !== key) {
     setFittedKey(key);
-    setMoved(null);
-    if (shouldFit(fittedKey, area, renterBox)) setFit({ id: fit.id + 1, box: startBox(area) });
+    // The search's drawn areas changed from outside this map (Back, a chip removed, a saved
+    // search opened): the map shows the search's.
+    if (!sameShapes(urlShapes, shapes)) {
+      setShapes(urlShapes);
+      setSelected(null);
+      setDrawing(false);
+    }
+    if (shouldFit(fittedKey, area, renterBox, shapes)) {
+      setFit({ id: fit.id + 1, box: startBox(area) });
+    }
   }
 
   const pinsIn = useCallback(
@@ -191,28 +231,70 @@ export function SearchMap({
   useEffect(
     () => () => {
       clearTimeout(timer.current);
+      clearTimeout(areaTimer.current);
       pointsRequest.current?.abort();
     },
     [],
   );
 
-  /** The view changed. The renter's own move offers "Search this area" (M57, M127). */
+  /** The search becomes the homes in this view (M57, Q60). */
+  const searchArea = useCallback(
+    (view: BBox) => {
+      const box = clampToIreland(view);
+      if (!box) return;
+      setRenterBox(box);
+      count('area_searched');
+      onSearchArea(box);
+    },
+    [count, onSearchArea],
+  );
+
+  /**
+   * The view changed. When the renter moved it, the search follows (M127 says whose move it
+   * was), unless they have drawn areas: then the map only looks around.
+   */
   const onMoved = useCallback(
     (box: BBox, byRenter: boolean) => {
       view.current = box;
       pinsIn(box);
-      if (byRenter) setMoved(box);
+      if (!byRenter || !follows.current) return;
+      // The search is the view the map has when the moment is up: a change of size meanwhile
+      // (a scrollbar coming or going as the list changes) doesn't lose the renter's move. Only
+      // the page fitting the map to a new search does: then the search is that one.
+      clearTimeout(areaTimer.current);
+      const fitted = fitId.current;
+      areaTimer.current = setTimeout(() => {
+        if (follows.current && fitId.current === fitted && view.current) {
+          searchArea(view.current);
+        }
+      }, AREA_DELAY_MS);
     },
-    [pinsIn],
+    [pinsIn, searchArea],
   );
 
-  const searchArea = () => {
-    const box = moved ? clampToIreland(moved) : null;
-    if (!box) return;
-    setRenterBox(box);
-    setMoved(null);
-    count('area_searched');
-    onSearchArea(box);
+  /** UX-SR-13: the drawn areas changed by the renter's hand: the search is these, at once. */
+  const changeShapes = (next: Shape[], event: MapEvent) => {
+    clearTimeout(areaTimer.current);
+    setShapes(next);
+    count(event);
+    if (next.length > 0) onShapes(next);
+    // With the last one gone, the search is what the map shows, as if they had moved it there.
+    else if (view.current) searchArea(view.current);
+  };
+  const startDrawing = () => {
+    clearTimeout(areaTimer.current);
+    setChosen(null);
+    setSelected(null);
+    setTooSmall(false);
+    setTaps(0);
+    setDrawing(true);
+  };
+  const removeShape = (index: number) => {
+    setSelected(null);
+    changeShapes(
+      shapes.filter((_, i) => i !== index),
+      'area_removed',
+    );
   };
 
   /** A home's card, fetched once and kept. */
@@ -273,6 +355,7 @@ export function SearchMap({
     onHover,
     onChoose,
     onMoved,
+    onProjection: setProjection,
     area,
     scheme,
     onReady,
@@ -304,6 +387,37 @@ export function SearchMap({
             )}
           </div>
         ) : null}
+        {stage === 'ready' ? (
+          <MapDraw
+            ref={draw}
+            projection={projection}
+            shapes={shapes}
+            selected={selected}
+            drawing={drawing}
+            words={{
+              surface: mapWords.drawSurface,
+              shape: mapWords.shape,
+              corner: mapWords.corner,
+              addCorner: mapWords.addCorner,
+            }}
+            onDrawn={(shape) => {
+              setDrawing(false);
+              setTooSmall(false);
+              setSelected(shapes.length);
+              changeShapes([...shapes, shape], 'area_drawn');
+            }}
+            onTooSmall={() => setTooSmall(true)}
+            onCancel={() => setDrawing(false)}
+            onTaps={setTaps}
+            onReshape={(index, shape) =>
+              changeShapes(
+                shapes.map((each, i) => (i === index ? shape : each)),
+                'area_reshaped',
+              )
+            }
+            onSelect={setSelected}
+          />
+        ) : null}
       </MapErrorBoundary>
       {stage === 'loading' ? (
         <p className="visually-hidden" role="status">
@@ -313,13 +427,86 @@ export function SearchMap({
 
       {stage === 'ready' ? (
         <div className={styles.controls}>
-          {moved ? (
-            <button type="button" className={styles.control} onClick={searchArea}>
-              <Search size={18} strokeWidth={2} aria-hidden="true" />
-              {mapWords.searchThisArea}
-            </button>
+          <div className={styles.tools}>
+            {drawing ? (
+              <>
+                {taps >= 3 ? (
+                  <button
+                    type="button"
+                    className={styles.control}
+                    onClick={() => draw.current?.finish()}
+                  >
+                    <Check size={18} strokeWidth={2} aria-hidden="true" />
+                    {mapWords.finish}
+                  </button>
+                ) : null}
+                <button type="button" className={styles.control} onClick={() => setDrawing(false)}>
+                  <X size={18} strokeWidth={2} aria-hidden="true" />
+                  {mapWords.cancel}
+                </button>
+              </>
+            ) : (
+              <>
+                {shapes.length < MAX_SHAPES ? (
+                  <button
+                    type="button"
+                    className={styles.control}
+                    aria-label={shapes.length === 0 ? undefined : mapWords.drawAnother}
+                    onClick={startDrawing}
+                  >
+                    <Pencil size={18} strokeWidth={2} aria-hidden="true" />
+                    {mapWords.draw}
+                  </button>
+                ) : null}
+                {shapes.length > 0 && selected === null ? (
+                  <button
+                    type="button"
+                    className={styles.control}
+                    onClick={() => setSelected(shapes.length - 1)}
+                  >
+                    <SquarePen size={18} strokeWidth={2} aria-hidden="true" />
+                    {mapWords.edit}
+                  </button>
+                ) : null}
+                {selected !== null ? (
+                  <>
+                    <button
+                      type="button"
+                      className={styles.control}
+                      onClick={() => setSelected(null)}
+                    >
+                      <Check size={18} strokeWidth={2} aria-hidden="true" />
+                      {mapWords.done}
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.control} ${styles.iconControl}`}
+                      aria-label={mapWords.remove}
+                      title={mapWords.remove}
+                      onClick={() => removeShape(selected)}
+                    >
+                      <Trash2 size={18} strokeWidth={2} aria-hidden="true" />
+                    </button>
+                  </>
+                ) : shapes.length > 0 ? (
+                  <button
+                    type="button"
+                    className={styles.control}
+                    onClick={() => changeShapes([], 'area_removed')}
+                  >
+                    <Trash2 size={18} strokeWidth={2} aria-hidden="true" />
+                    {mapWords.clear}
+                  </button>
+                ) : null}
+              </>
+            )}
+          </div>
+          {drawing || selected !== null ? (
+            <p className={styles.note} role="status">
+              {drawing ? (tooSmall ? mapWords.drawTooSmall : mapWords.drawHint) : mapWords.editHint}
+            </p>
           ) : null}
-          {answer ? (
+          {answer && !drawing && selected === null ? (
             <p className={styles.note} role="status">
               {onTheMap(answer.pinned, answer.listed)}
             </p>
@@ -333,7 +520,7 @@ export function SearchMap({
         </div>
       ) : null}
 
-      {stage !== 'ready' ? null : chosenGroup && chosenGroup.homes.length > 1 ? (
+      {stage !== 'ready' || drawing ? null : chosenGroup && chosenGroup.homes.length > 1 ? (
         <article className={styles.miniCard} aria-label={homesHere(chosenGroup.homes.length)}>
           <div className={styles.miniBody}>
             <h2 className={styles.miniTitle}>{homesHere(chosenGroup.homes.length)}</h2>

@@ -1,13 +1,13 @@
 'use client';
 
-import { Copy, Pencil, Share2, Trash2 } from 'lucide-react';
+import { Bell, Copy, Pencil, Share2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { AccountMenu as AccountMenuRows } from '@/domain/navigation/account-menu';
 import { AccountMenu } from '@/ui/AccountMenu';
 import { type AddressOption, AddressSearch } from '@/ui/AddressSearch';
 import { Button } from '@/ui/Button';
 import { Chips } from '@/ui/Chips';
-import { FilterChips } from '@/ui/FilterChips';
+import { FilterChips, filterChipClass } from '@/ui/FilterChips';
 import { HeartButton } from '@/ui/HeartButton';
 import { CodeInput } from '@/ui/CodeInput';
 import { ChoiceGroup, TextField } from '@/ui/Field';
@@ -17,7 +17,7 @@ import { PhotoUploader, type UploadedPhoto } from '@/ui/PhotoUploader';
 import { type PlaceOption, PlaceSearch, type PlaceSuggestions } from '@/ui/PlaceSearch';
 import { DateField, TimeField } from '@/ui/Pickers';
 import { QuestionSteps } from '@/ui/QuestionSteps';
-import { SearchBox } from '@/ui/SearchBox';
+import { SearchBar } from '@/ui/SearchBar';
 import { ListAndMap } from '@/ui/ListAndMap';
 import { PinPicker } from '@/ui/PinPicker';
 import { type MapPins, SearchMap } from '@/ui/SearchMap';
@@ -445,8 +445,9 @@ export function QuestionStepsDemo() {
 }
 
 /**
- * The search box with chips (WP-21): the box, "Filters", and a chip per filter understood. The
- * demo's form goes nowhere; pressing a chip says which one. The heart is shown off and on.
+ * The search bar with chips (WP-21, Q60): the box with its suggestions, "Filters", "Save
+ * search", and a chip per filter understood. The demo's form goes nowhere; pressing a chip says
+ * which one. The heart is shown off and on.
  */
 export function SearchBoxDemo() {
   return (
@@ -461,27 +462,50 @@ function SearchBoxParts() {
   const [saved, setSaved] = useState(false);
   return (
     <div className={styles.fields}>
-      <SearchBox
-        id="ui-search-question"
-        question="What are you looking for?"
-        placeholder="2-bed in Ranelagh, no pets"
+      <h3 id="ui-search-question" className="visually-hidden">
+        Search homes to rent
+      </h3>
+      <SearchBar
+        labelledBy="ui-search-question"
+        placeholder="Area, road, or “2-bed under €2,000”"
         submitLabel="Search"
-        action="#search-box"
+        action={() => toast.show({ message: 'Searched' })}
         primary={false}
-      >
-        <FilterChips
-          label="What Gaff understood"
-          filtersLabel="Filters"
-          chips={[
-            { key: 'where', label: 'Ranelagh, Dublin 6' },
-            { key: 'beds', label: '2 bedrooms' },
-            { key: 'maxRent', label: 'Up to €2,400 a month' },
-            { key: 'pets', label: 'No pets' },
-          ]}
-          onFilters={() => toast.show({ message: 'Filters pressed' })}
-          onChip={(key) => toast.show({ message: `Chip pressed: ${key}` })}
-        />
-      </SearchBox>
+        suggest={findDemoPlaces}
+        placeIn={(typed) => (/\d/.test(typed) ? null : typed.trim().toLowerCase())}
+        reads={(typed) => (/2.?bed/i.test(typed) ? ['2 bedrooms'] : [])}
+        words={{
+          tip: 'Type an area, a road or an Eircode. Or say what you want.',
+          searchFor: 'Search for',
+          didYouMean: 'Did you mean',
+          found: (count) => (count === 1 ? '1 suggestion' : `${count} suggestions`),
+          notFound: (typed) => `We couldn’t find ‘${typed}’.`,
+          clear: 'Clear the search box',
+        }}
+        credit={{ text: 'Places from OpenStreetMap', href: '/map-and-place-data' }}
+      />
+      <FilterChips
+        label="What Gaff understood"
+        filtersLabel="Filters"
+        extra={
+          <button
+            type="button"
+            className={filterChipClass}
+            onClick={() => toast.show({ message: 'Save search pressed' })}
+          >
+            <Bell size={16} strokeWidth={2} aria-hidden="true" />
+            <span>Save search</span>
+          </button>
+        }
+        chips={[
+          { key: 'where', label: 'Ranelagh, Dublin 6' },
+          { key: 'beds', label: '2 bedrooms' },
+          { key: 'maxRent', label: 'Up to €2,400 a month' },
+          { key: 'pets', label: 'No pets' },
+        ]}
+        onFilters={() => toast.show({ message: 'Filters pressed' })}
+        onChip={(key) => toast.show({ message: `Chip pressed: ${key}` })}
+      />
       <div className={styles.row}>
         <HeartButton label="Save 2-bed apartment · Ranelagh, Dublin 6" onPress={() => {}} />
         <HeartButton
@@ -591,6 +615,7 @@ export function SearchMapDemo() {
               photo: null,
             })}
             onSearchArea={() => undefined}
+            onShapes={() => undefined}
             hovered={hovered}
             onHover={setHovered}
             count={() => undefined}

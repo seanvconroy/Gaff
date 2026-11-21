@@ -32,8 +32,11 @@ export const savedCopy = {
   /** UX-SR-9, UX-SR-10: "Tell me when one comes up". */
   alert: {
     action: 'Tell me when one comes up',
-    /** Under the results, when homes do fit: the same, for the homes still to come. */
-    fromResults: 'Tell me about new ones',
+    /** UX-SR-10: beside Filters, on every search: keep it, and hear about new homes. */
+    chip: 'Save search',
+    chipKept: 'Saved',
+    /** What the saved chip opens. */
+    chipKeptLabel: 'Search saved. Open your saved searches',
     sheetTitle: 'Tell me when one comes up',
     emailLabel: 'Your email',
     save: 'Save this search',

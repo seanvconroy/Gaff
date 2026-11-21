@@ -11,7 +11,7 @@
   list-style: none;
 }
 
-/* The title's link reaches over the whole card, so the card is one target. */
+/* The title's link reaches over the whole card (`.reach`), so the card is one target. */
 .card {
   position: relative;
   display: grid;
@@ -57,8 +57,7 @@
   text-decoration: none;
 }
 
-.title::after {
-  content: '';
+.reach {
   position: absolute;
   inset: 0;
   border-radius: var(--radius-lg);

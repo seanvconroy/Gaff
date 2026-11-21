@@ -151,6 +151,11 @@
     padding: 0 var(--space-8);
   }
 
+  /* Search with its map uses the screen's whole width (Q60), and the bar lines up with it. */
+  :global(body:has([data-wide-page])) .inner {
+    max-width: none;
+  }
+
   .nav {
     position: static;
     grid-column: 2;

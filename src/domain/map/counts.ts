@@ -12,6 +12,10 @@ export const mapEvents = [
   'failed',
   /** The renter moved the map, and Gaff searched the area in view. */
   'area_searched',
+  /** UX-SR-13: the renter drew an area, reshaped one, or took one away. */
+  'area_drawn',
+  'area_reshaped',
+  'area_removed',
   'pin_opened',
   /** A pin for several homes at one point was opened (M117). */
   'group_opened',
@@ -38,6 +42,9 @@ const kindsFor: Record<MapEvent, readonly string[]> = {
   shown: openKinds,
   failed: failureKinds,
   area_searched: [''],
+  area_drawn: [''],
+  area_reshaped: [''],
+  area_removed: [''],
   pin_opened: [''],
   group_opened: [''],
 };

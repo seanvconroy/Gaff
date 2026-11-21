@@ -1,8 +1,9 @@
-import { placeDescription, homesCount } from '@/copy/search';
+import { drawnAreaName, placeDescription, homesCount } from '@/copy/search';
 import type { Gazetteer, LandmarkKind, Place } from '@/domain/places/gazetteer';
 import { rankSuggestions, type Suggestion } from '@/domain/places/suggest';
 import type { SearchFilters } from '@/domain/search/filters';
 import { placeLabel, searchPlace, type SearchPlace } from '@/domain/search/places';
+import { nearestTo, type Shape, writeShapes } from '@/domain/search/shapes';
 import { candidatePlaces, loadGazetteer, recordMiss } from '@/server/places/places';
 import { countHomesIn } from './query';
 
@@ -16,9 +17,29 @@ import { countHomesIn } from './query';
 export interface ResolvedSearch {
   filters: SearchFilters;
   where: SearchPlace | null;
-  /** The place as chips and saved searches name it: "Ranelagh, Dublin 6". Empty with no place. */
+  /**
+   * The place as chips and saved searches name it: "Ranelagh, Dublin 6"; or the drawn areas,
+   * named by the area they are nearest: "Drawn area near Rathgar". Empty with neither.
+   */
   placeName: string;
   g: Gazetteer;
+}
+
+/** UX-SR-13: drawn areas, named by the neighbourhood, town or village nearest their middle. */
+function drawnName(shapes: readonly Shape[], g: Gazetteer): string {
+  const near = nearestTo(
+    shapes,
+    g.places.filter((place) => place.kind !== 'county' && place.kind !== 'district'),
+  );
+  return drawnAreaName(shapes.length, near ? near.name.split(' / ')[0]! : null);
+}
+
+/**
+ * What a search's place or drawn areas are called is kept under this: the place's slug, or the
+ * drawn areas as an address writes them.
+ */
+export function nameKey(filters: SearchFilters): string {
+  return filters.shapes ? `draw:${writeShapes(filters.shapes)}` : (filters.where ?? '');
 }
 
 export async function resolveSearch(filters: SearchFilters): Promise<ResolvedSearch> {
@@ -30,23 +51,25 @@ export async function resolveSearch(filters: SearchFilters): Promise<ResolvedSea
   return {
     filters: where ? { ...rest, where: where.slug, ...near } : rest,
     where,
-    placeName: where ? placeLabel(where) : '',
+    placeName: where ? placeLabel(where) : filters.shapes ? drawnName(filters.shapes, g) : '',
     g,
   };
 }
 
-/** Each search's place name, for saved searches and their emails. */
+/** Each search's place or drawn areas, named, for saved searches and their emails (by `nameKey`). */
 export async function placeNames(
   searches: ReadonlyArray<SearchFilters>,
 ): Promise<Map<string, string>> {
   const slugs = [...new Set(searches.flatMap((s) => (s.where ? [s.where] : [])))];
+  const drawn = searches.filter((s) => s.shapes);
   const names = new Map<string, string>();
-  if (slugs.length === 0) return names;
+  if (slugs.length === 0 && drawn.length === 0) return names;
   const g = await loadGazetteer(slugs);
   for (const slug of slugs) {
     const where = searchPlace(slug, g);
     if (where) names.set(slug, placeLabel(where));
   }
+  for (const search of drawn) names.set(nameKey(search), drawnName(search.shapes!, g));
   return names;
 }
 
@@ -120,13 +143,19 @@ function option(s: Suggestion, g: Gazetteer): WhereOption | null {
 
 /**
  * M56, M124: suggestions for what was typed, ranked and grouped (src/domain/places/suggest.ts).
- * What found nothing, or only near spellings, is counted, with no person, device or digits.
+ * What found nothing, or only near spellings, is counted, with no person, device or digits:
+ * but only from "Where" in Filters, where a place is all that's typed. The search bar reads
+ * sentences, and a word in one that isn't a place is never counted (`countMisses: false`).
  */
-export async function suggestWhere(typed: string): Promise<WhereSuggestions> {
+export async function suggestWhere(
+  typed: string,
+  options: { countMisses?: boolean } = {},
+): Promise<WhereSuggestions> {
   const found = await candidatePlaces(typed);
   const g = await loadGazetteer(found.map((p) => p.slug));
   const suggestions = rankSuggestions(typed, await withHomes(found, g));
-  if (suggestions.groups.length === 0 || suggestions.didYouMean) await recordMiss(typed);
+  const missed = suggestions.groups.length === 0 || suggestions.didYouMean;
+  if (missed && options.countMisses !== false) await recordMiss(typed);
   return {
     groups: suggestions.groups
       .map((group) => ({

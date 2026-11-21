@@ -49,8 +49,28 @@ export const mapWords = {
   zoomIn: 'Zoom in',
   zoomOut: 'Zoom out',
   close: 'Close',
-  /** M57: the renter moved the map; searching the area in view is theirs to ask for. */
-  searchThisArea: 'Search this area',
+  /**
+   * UX-SR-13: drawing an area to search. One short word on each control; the hint says how.
+   */
+  draw: 'Draw',
+  /** With an area drawn already, the same button draws one more. */
+  drawAnother: 'Draw another area',
+  edit: 'Edit',
+  done: 'Done',
+  clear: 'Clear',
+  remove: 'Remove this area',
+  cancel: 'Cancel',
+  finish: 'Finish',
+  drawHint: 'Draw round the area you want, or tap its corners.',
+  drawTooSmall: 'That was too small to search. Draw a bigger loop.',
+  editHint: 'Drag a corner to reshape it. Drag a small dot to add a corner.',
+  /** What a screen reader hears of the drawing surface, and the keyboard's way in. */
+  drawSurface:
+    'Drawing an area. Trace a loop with a finger or the mouse, or tap each corner. Press Enter for a square you can reshape, or Escape to cancel.',
+  shape: (n: number, of: number) => (of === 1 ? 'Drawn area' : `Drawn area ${n} of ${of}`),
+  corner: (n: number, of: number) =>
+    `Corner ${n} of ${of}. The arrow keys move it; Delete removes it.`,
+  addCorner: 'Add a corner here',
   /** M137: the streets and areas drawn on the map come from Gaff's place index. */
   placesCredit: 'Places © OpenStreetMap',
   /** M131: screen readers hear the map arrive, since it loads after the list. */

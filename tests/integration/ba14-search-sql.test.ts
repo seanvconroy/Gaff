@@ -166,7 +166,7 @@ function aHome(r: Random, place: Place, members: { agency: Member; private: Memb
   return { row, words: addressWordsOf({ addressLine1, addressLine2, area }) };
 }
 
-/** A made-up search: a place (any kind) or a map area, and any of the filters. */
+/** A made-up search: a place (any kind), a map area or drawn areas, and any of the filters. */
 function aSearch(r: Random): SearchFilters {
   const raw: Record<string, unknown> = {};
   if (r.chance(0.7)) {
@@ -183,6 +183,22 @@ function aSearch(r: Random): SearchFilters {
       minLng: centre.lng - half * 1.5,
       maxLng: centre.lng + half * 1.5,
     };
+  } else if (r.chance(0.6)) {
+    // UX-SR-13: one or two drawn areas, each a ring of corners at uneven distances (so some
+    // sides bend inwards) round a place homes are near.
+    raw.shapes = Array.from({ length: r.int(1, 2) }, () => {
+      const centre = r.pick(g.places).centre;
+      const reach = r.pick([0.01, 0.03, 0.1]);
+      const corners = r.int(3, 9);
+      return Array.from({ length: corners }, (_, i) => {
+        const angle = ((i + r.next() * 0.8) / corners) * 2 * Math.PI;
+        const far = reach * (0.4 + r.next() * 0.6);
+        return {
+          lat: centre.lat + Math.sin(angle) * far,
+          lng: centre.lng + Math.cos(angle) * far * 1.5,
+        };
+      });
+    });
   }
   if (r.chance(0.35)) raw.maxRent = r.int(10, 30) * 100;
   if (r.chance(0.35)) raw.beds = r.int(1, 4);

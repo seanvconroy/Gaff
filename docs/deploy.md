@@ -254,7 +254,7 @@ pnpm build:map && pnpm test:map
   4. Commit the file. The next deploy loads it.
 
   The GitHub workflow **Build the place index** (`.github/workflows/places.yml`) does the same every quarter, or on demand, and opens a pull request with the new file.
-- **Attribution.** The data is © OpenStreetMap contributors (ODbL 1.0). The place search says so under its suggestions, and `/map-and-place-data` (linked under the search) credits it in full.
+- **Attribution.** The data is © OpenStreetMap contributors (ODbL 1.0). The search bar and "Where" say so under their suggestions, the map says so where a street is drawn, and `/map-and-place-data` (linked from each of those, and from Help) credits it in full.
 - **Misses.** What renters typed that matched nothing is counted by day in `place_misses`, with no digits, person or device, and the nightly job deletes it after 30 days. The most common misses are the places to add as aliases.
 
 ## The made-up homes (the test copy only)

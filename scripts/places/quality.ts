@@ -4,6 +4,7 @@ import type { PlaceFileHeader } from '@/domain/places/file';
 import type { Place, PlaceKind } from '@/domain/places/gazetteer';
 import { IRELAND, inBBox } from '@/domain/places/geo';
 import { normalise } from '@/domain/places/normalise';
+import { otherNamesWithoutPlace } from '@/domain/places/other-names';
 
 /**
  * ADR-0018: what a built place index must pass before it's committed (`pnpm places:check`).
@@ -100,6 +101,18 @@ export function checkPlaces(
     if (n < least) problems.push(`Only ${n} of kind ${kind}; expected at least ${least}.`);
   }
   return problems;
+}
+
+/**
+ * Q60: the landmarks Gaff's own list gives other names to ("UCD", "The Mater") must be in the
+ * index under the names the list knows them by, or the other names go nowhere. A rebuild that
+ * loses one is a landmark OpenStreetMap renamed: fix its name in other-names.ts.
+ */
+export function checkOtherNames(places: readonly Place[]): string[] {
+  return otherNamesWithoutPlace(places).map(
+    (entry) =>
+      `No landmark called "${entry.name}" in ${entry.county}, which other-names.ts gives other names to (${entry.names.join(', ')}).`,
+  );
 }
 
 /** A suggestion as the check sees it, in the order the Where box shows them. */

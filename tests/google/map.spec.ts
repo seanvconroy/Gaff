@@ -77,8 +77,9 @@ test('M136, M117, M127: on a computer, the real map draws after the page, shows 
     await settled(page);
   }
   await expect(ranelagh).toBeVisible();
-  // M57: the renter's own move offers "Search this area".
-  await expect(page.getByRole('button', { name: 'Search this area' })).toBeVisible();
+  // M57, Q60: the renter's own move is the search: the list follows to the homes in view.
+  await page.waitForURL(/[?&]area=/);
+  await expect(page.getByRole('button', { name: 'Search this area' })).toHaveCount(0);
 
   // M127: the map stays where the renter left it.
   const left = (await pinsInMap(page))[RANELAGH_PIN]!;
@@ -94,16 +95,38 @@ test('M136, M117, M127: on a computer, the real map draws after the page, shows 
   await screenshot(page, 'google/map-card');
   await card.getByRole('button', { name: 'Close' }).click();
 
-  // M127: resizing the window doesn't move the map or offer to search it.
-  await page.getByRole('button', { name: 'Search this area' }).click();
-  await page.waitForURL(/[?&]area=/);
+  // M127: resizing the window isn't the renter's move: the map stays, and so does the search.
   await settled(page);
   const before = (await pinsInMap(page))[RANELAGH_PIN]!;
+  const searched = page.url();
   await page.setViewportSize({ width: 1200, height: 860 });
   await settled(page);
-  await expect(page.getByRole('button', { name: 'Search this area' })).toHaveCount(0);
+  await page.waitForTimeout(1000);
+  expect(page.url()).toBe(searched);
   expect((await pinsInMap(page))[RANELAGH_PIN]).toBeDefined();
   expect(before).toBeDefined();
+
+  // UX-SR-13: an area is drawn over Google's map, by tapping its corners, and is the search.
+  // What is drawn is Gaff's own layer: nothing of it is sent to Google.
+  const at = (await pinsInMap(page))[RANELAGH_PIN]!;
+  await page.getByRole('button', { name: 'Draw', exact: true }).click();
+  for (const [dx, dy] of [
+    [-90, -70],
+    [90, -70],
+    [90, 70],
+    [-90, 70],
+  ] as const) {
+    await page.mouse.click(at.x + dx, at.y + dy);
+  }
+  await page.getByRole('button', { name: 'Finish' }).click();
+  await page.waitForURL(/[?&]draw=/);
+  await expect(page.getByRole('button', { name: /^Corner \d+ of 4/ })).toHaveCount(4);
+  // The corners sit where they were tapped: the layer and Google's map agree on where things are.
+  const corner = (await page.getByRole('button', { name: /^Corner 1 of 4/ }).boundingBox())!;
+  expect(Math.abs(corner.x + corner.width / 2 - (at.x - 90))).toBeLessThan(3);
+  expect(Math.abs(corner.y + corner.height / 2 - (at.y - 70))).toBeLessThan(3);
+  await expectAttributionClear(page, mapStage(page));
+  await screenshot(page, 'google/map-drawn');
 
   expectPolicyHolds(seen);
   expectOnlyTheOriginSent(seen, SEARCHED);

@@ -288,6 +288,63 @@ function Camera({ fit, onMoved }: Pick<MapProviderProps, 'fit' | 'onMoved'>) {
   return null;
 }
 
+/**
+ * UX-SR-13: tells the page how this map turns places into positions in its own box, each time
+ * the view changes, so what is drawn over the map (`MapDraw`) stays where it belongs. An
+ * overlay is Google's own way to ask: its `draw` runs whenever the view moves.
+ */
+function Projection({ onProjection }: Pick<MapProviderProps, 'onProjection'>) {
+  const map = useMap();
+  useEffect(() => {
+    if (!map) return;
+    const overlay = new google.maps.OverlayView();
+    let frame: number | undefined;
+    const tell = () => {
+      frame = undefined;
+      const projection = overlay.getProjection();
+      if (!projection) return;
+      onProjection({
+        toPixel: (point) => {
+          const pixel = projection.fromLatLngToContainerPixel(
+            new google.maps.LatLng(point.lat, point.lng),
+          );
+          return { x: pixel?.x ?? 0, y: pixel?.y ?? 0 };
+        },
+        toPoint: (x, y) => {
+          const at = projection.fromContainerPixelToLatLng(new google.maps.Point(x, y));
+          return { lat: at?.lat() ?? 0, lng: at?.lng() ?? 0 };
+        },
+      });
+    };
+    // Once a frame at most, however often the map says it moved.
+    const soon = () => {
+      frame ??= requestAnimationFrame(tell);
+    };
+    overlay.onAdd = () => {};
+    overlay.onRemove = () => {};
+    overlay.draw = soon;
+    overlay.setMap(map);
+    const listeners = [
+      map.addListener('bounds_changed', soon),
+      map.addListener('zoom_changed', soon),
+      map.addListener('center_changed', soon),
+    ];
+    const resized = new ResizeObserver(soon);
+    resized.observe(map.getDiv());
+    return () => {
+      if (frame !== undefined) cancelAnimationFrame(frame);
+      resized.disconnect();
+      listeners.forEach((listener) => listener.remove());
+      try {
+        overlay.setMap(null);
+      } catch {
+        // The map is going either way.
+      }
+    };
+  }, [map, onProjection]);
+  return null;
+}
+
 export function GoogleSearchMap({
   settings,
   ...props
@@ -317,6 +374,7 @@ export function GoogleSearchMap({
       >
         <MapWatch onReady={props.onReady} onFailed={props.onFailed} />
         <Camera fit={props.fit} onMoved={props.onMoved} />
+        <Projection onProjection={props.onProjection} />
         <AreaOutline area={props.area} />
         <Pins
           groups={props.groups}

@@ -12,16 +12,28 @@ import { formatDate, formatEuro, formatRent } from '@/lib/format';
 export const searchCopy = {
   title: 'Search',
   question: 'What are you looking for?',
-  placeholder: '2-bed in Ranelagh, no pets',
+  /** UX-SR-14: the box takes a place, a road or a sentence, and says so. */
+  placeholder: 'Area, road or describe it',
   search: 'Search',
-  /** UX-SR-1: the one line of promise under the box. */
-  promise: 'Everyone hears back.',
+  bar: {
+    tip: 'Type an area, a road or an Eircode. Or say what you want, like “2-bed near Highfield Road under €2,000, no pets”.',
+    searchFor: 'Search for',
+    didYouMean: 'Did you mean',
+    found: (count: number) => (count === 1 ? '1 suggestion' : `${count} suggestions`),
+    notFound: (typed: string) =>
+      `We couldn’t find ‘${typed}’. Try a town, a road, a Dublin district or a county.`,
+    clear: 'Clear the search box',
+  },
   filters: 'Filters',
   understood: 'What Gaff understood',
   /** States table: the words weren't understood. */
-  unclear: 'Try a place, like Ranelagh, or use Filters.',
+  unclear: 'Gaff didn’t understand that. Try an area or a road, like Ranelagh or Highfield Road.',
+  /** M59: the link to how results are ordered, beside the results' heading. */
+  order: 'How results are ordered',
   homesNow: 'Homes on Gaff now',
   close: 'Close to what you asked',
+  /** UX-SR-15: no home is where they searched: the nearest that fit the rest. */
+  nearest: 'The nearest homes',
   /** UX-SR-9. */
   empty: {
     title: 'No homes match yet.',
@@ -33,7 +45,6 @@ export const searchCopy = {
     title: 'No homes on Gaff yet.',
     text: 'Homes are added every week.',
   },
-  foot: { line: 'Letting a home? Gaff runs it for you.', action: 'List a home' },
   loading: 'Finding homes',
   sheet: {
     show: 'Show homes',
@@ -43,7 +54,8 @@ export const searchCopy = {
   labels: {
     where: 'Where',
     within: 'Within',
-    box: 'Area on the map',
+    box: 'Map area',
+    shapes: 'Drawn area',
     beds: 'Bedrooms',
     maxRent: 'Most rent a month',
     moveIn: 'Move-in date',
@@ -107,8 +119,24 @@ export function withinWords(km: number): string {
 /** M113, M57: the words of "Within" and of a map area, in the Filters sheet. */
 export const distanceCopy = {
   /** A map area's sheet: there is nothing to set, only to remove. */
-  box: 'Homes whose pin is in the area you searched on the map. Remove it to search everywhere again.',
+  box: 'Homes in the part of the map you’re looking at. Move the map to change it, or remove it to search everywhere.',
+  /** UX-SR-13: a drawn area's sheet, the same. */
+  shapes:
+    'Homes inside what you drew on the map. Drag a corner on the map to reshape it, or remove it to search everywhere.',
 } as const;
+
+/** UX-SR-13: "Drawn area near Rathgar", "2 drawn areas near Rathgar". */
+export function drawnAreaName(count: number, near: string | null): string {
+  const areas = count === 1 ? 'Drawn area' : `${count} drawn areas`;
+  return near ? `${areas} near ${near}` : areas;
+}
+
+/** UX-SR-15: "600 m away", "1.4 km away", "12 km away". */
+export function awayWords(metres: number): string {
+  if (metres < 950) return `${Math.max(50, Math.round(metres / 50) * 50)} m away`;
+  const km = metres / 1000;
+  return `${km < 10 ? Number(km.toFixed(1)) : Math.round(km)} km away`;
+}
 
 /** M121: "4 homes". */
 export function homesCount(n: number): string {
@@ -173,6 +201,8 @@ export function chipLabel(
       return withinWords(filters.within ?? 1);
     case 'box':
       return searchCopy.labels.box;
+    case 'shapes':
+      return placeName || drawnAreaName(filters.shapes?.length ?? 1, null);
     case 'beds':
       return bedWords(filters.beds ?? 1);
     case 'maxRent':

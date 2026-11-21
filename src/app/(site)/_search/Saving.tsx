@@ -1,10 +1,13 @@
 'use client';
 
+import { Bell, BellRing } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { savedCopy } from '@/copy/saved';
 import { Button } from '@/ui/Button';
 import { FieldError, TextField } from '@/ui/Field';
+import { filterChipClass } from '@/ui/FilterChips';
 import { HeartButton } from '@/ui/HeartButton';
 import { Stack } from '@/ui/Layout';
 import { Sheet } from '@/ui/Sheet';
@@ -82,10 +85,70 @@ export function SaveHome({
 }
 
 /**
- * UX-SR-9, UX-SR-10: "Tell me when one comes up". Signed in, the search is kept on their profile
- * at once. Signed out, a sheet asks for an email address, and nothing more; one email then asks
- * them to confirm it.
+ * Keeping a search (UX-SR-9, UX-SR-10), whichever control asks. Signed in, it is kept on their
+ * profile at once, with alerts on. Signed out, a sheet asks for an email address, and nothing
+ * more; one email then asks them to confirm it.
  */
+function useSaveSearch({
+  query,
+  signedIn,
+  kept,
+}: {
+  /** The search's address query: its chips' values, and nothing else. */
+  query: string;
+  signedIn: boolean;
+  /** They already keep this search. */
+  kept: boolean;
+}) {
+  const toast = useToast();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  // Each opening is a new sheet: it asks again, rather than showing the last send.
+  const [round, setRound] = useState(0);
+  /** The search saved here, by its query: a different search is one that isn't saved yet. */
+  const [savedQuery, setSavedQuery] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const press = () => {
+    if (!signedIn) {
+      setRound((n) => n + 1);
+      setOpen(true);
+      return;
+    }
+    startTransition(async () => {
+      try {
+        const outcome = await saveSearchAction(query);
+        if (outcome === 'saved' || outcome === 'already') {
+          setSavedQuery(query);
+          // Every other control on the page that saves this search hears of it.
+          router.refresh();
+        }
+        toast.show({
+          message:
+            outcome === 'saved'
+              ? c.alert.saved
+              : outcome === 'already'
+                ? c.alert.already
+                : outcome === 'too_many'
+                  ? c.alert.tooManySaved
+                  : c.alert.failed,
+        });
+      } catch {
+        toast.show({ message: c.alert.failed });
+      }
+    });
+  };
+  return {
+    done: kept || savedQuery === query,
+    pending,
+    press,
+    sheet: signedIn ? null : (
+      <EmailSheet key={round} query={query} open={open} onClose={() => setOpen(false)} />
+    ),
+  };
+}
+
+/** UX-SR-9: "Tell me when one comes up", the empty state's one action. */
 export function TellMeWhen({
   query,
   primary,
@@ -93,67 +156,63 @@ export function TellMeWhen({
   kept,
   label = c.alert.action,
 }: {
-  /** The search's address query: its chips' values, and nothing else. */
   query: string;
   primary: boolean;
   signedIn: boolean;
-  /** They already keep this search. */
   kept: boolean;
   label?: string;
 }) {
-  const toast = useToast();
-  const [open, setOpen] = useState(false);
-  // Each opening is a new sheet: it asks again, rather than showing the last send.
-  const [round, setRound] = useState(0);
-  const [done, setDone] = useState(kept);
-  const [pending, startTransition] = useTransition();
-  const variant = primary ? 'primary' : 'secondary';
-
-  if (done) {
-    return <p className={styles.kept}>{c.alert.kept}</p>;
-  }
-  if (signedIn) {
-    return (
+  const save = useSaveSearch({ query, signedIn, kept });
+  if (save.done) return <p className={styles.kept}>{c.alert.kept}</p>;
+  return (
+    <>
       <Button
-        variant={variant}
-        disabled={pending}
-        onClick={() =>
-          startTransition(async () => {
-            try {
-              const outcome = await saveSearchAction(query);
-              if (outcome === 'saved' || outcome === 'already') setDone(true);
-              toast.show({
-                message:
-                  outcome === 'saved'
-                    ? c.alert.saved
-                    : outcome === 'already'
-                      ? c.alert.already
-                      : outcome === 'too_many'
-                        ? c.alert.tooManySaved
-                        : c.alert.failed,
-              });
-            } catch {
-              toast.show({ message: c.alert.failed });
-            }
-          })
-        }
+        variant={primary ? 'primary' : 'secondary'}
+        disabled={save.pending}
+        onClick={save.press}
       >
         {label}
       </Button>
+      {save.sheet}
+    </>
+  );
+}
+
+/**
+ * UX-SR-10: "Save search", a chip beside Filters on every search: its place, map area or drawn
+ * areas and its filters are kept, and new homes that fit are emailed. Once saved it says so, and
+ * opens Saved, where each search's emails are set.
+ */
+export function SaveSearchChip({
+  query,
+  signedIn,
+  kept,
+}: {
+  query: string;
+  signedIn: boolean;
+  kept: boolean;
+}) {
+  const save = useSaveSearch({ query, signedIn, kept });
+  if (save.done) {
+    return (
+      <Link href="/saved" className={filterChipClass} aria-label={c.alert.chipKeptLabel}>
+        <BellRing size={16} strokeWidth={2} aria-hidden="true" />
+        <span>{c.alert.chipKept}</span>
+      </Link>
     );
   }
   return (
     <>
-      <Button
-        variant={variant}
-        onClick={() => {
-          setRound((n) => n + 1);
-          setOpen(true);
-        }}
+      <button
+        type="button"
+        className={filterChipClass}
+        disabled={save.pending}
+        onClick={save.press}
       >
-        {label}
-      </Button>
-      <EmailSheet key={round} query={query} open={open} onClose={() => setOpen(false)} />
+        <Bell size={16} strokeWidth={2} aria-hidden="true" />
+        <span>{c.alert.chip}</span>
+      </button>
+      {save.sheet}
     </>
   );
 }

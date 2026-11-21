@@ -28,6 +28,43 @@ describe('M56: what the Where box suggests', () => {
     expect(slugs('Highfield rd rathgar')[0]).toBe('highfield-road-rathgar-dublin-6');
   });
 
+  it('Q60: a surname typed apart, joined or with its apostrophe finds the same street', () => {
+    const street = (slug: string, name: string, county: County, context: string): Place => ({
+      slug,
+      name,
+      kind: 'street',
+      county,
+      context,
+      centre: { lat: 52.66, lng: -8.63 },
+      radiusMetres: 0,
+    });
+    const places = [
+      street('oconnell-street-limerick', "O'Connell Street", 'Limerick', 'Limerick city'),
+      street('oconnor-street-limerick', "O'Connor Street", 'Limerick', 'Limerick city'),
+      street(
+        'mc-curtain-street-clones',
+        'Mc Curtain Street',
+        'Monaghan',
+        'Clones, County Monaghan',
+      ),
+    ];
+    const first = (query: string) => rankSuggestions(query, places).groups[0]?.items[0];
+    for (const typed of ['O Connell Street', "O'Connell Street", 'OConnell Street']) {
+      expect(first(typed), typed).toMatchObject({ slug: 'oconnell-street-limerick', score: 0.75 });
+    }
+    expect(first('o connell st')?.slug).toBe('oconnell-street-limerick');
+    expect(first('O Connell Street Limerick')?.slug).toBe('oconnell-street-limerick');
+    expect(rankSuggestions('o conn', places).groups[0]?.items.map((i) => i.slug)).toEqual([
+      'oconnell-street-limerick',
+      'oconnor-street-limerick',
+    ]);
+    // A name held written apart is an exact match for either form, not a near spelling.
+    for (const typed of ['McCurtain Street', 'Mc Curtain Street']) {
+      expect(first(typed), typed).toMatchObject({ slug: 'mc-curtain-street-clones', score: 0.75 });
+      expect(rankSuggestions(typed, places).didYouMean).toBe(false);
+    }
+  });
+
   it('keeps the old behaviour for places with pages', () => {
     expect(slugs('rath').slice(0, 3)).toEqual(['rathfarnham', 'rathgar', 'rathmines']);
     expect(slugs('dublin 6')[0]).toBe('dublin-6');

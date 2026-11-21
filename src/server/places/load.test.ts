@@ -6,7 +6,9 @@ import { describe, expect, it } from 'vitest';
 import { curatedPlaces } from '@/domain/places/curated';
 import { placeToLine } from '@/domain/places/file';
 import { fixturePlaces } from '@/domain/places/fixture';
+import { otherNames, otherNamesWithoutPlace } from '@/domain/places/other-names';
 import { PLACE_FILE, readPlaceFile, readPlaceFileHeader, withCurated } from './load';
+import { rowFromPlace } from './places';
 
 describe('ADR-0018: reading the built place index', () => {
   it('M56: reads the header and every valid place, skipping bad lines and repeats', async () => {
@@ -36,6 +38,31 @@ describe('ADR-0018: reading the built place index', () => {
     expect(rows.map((r) => r.place.slug)).toEqual(['kinsale', street.slug]);
     expect(rows[0]).toMatchObject({ src: 'osm', id: 'n1', place: { irishName: 'Cionn tSáile' } });
     expect(rows[1]!.place.line?.[0]?.length).toBe(street.line?.[0]?.length);
+    // Asked for one kind, it reads only that kind's places.
+    const streets = await readPlaceFile(path, 'street');
+    expect(streets.header.version).toBe(20261108);
+    expect(streets.rows.map((r) => r.place.slug)).toEqual([street.slug]);
+  });
+
+  it('Q60: a landmark’s row takes its other names, and is found by them', () => {
+    const tcd = fixturePlaces.find((p) => p.name === 'Trinity College Dublin')!;
+    const row = rowFromPlace(tcd, 1, 'fixture');
+    // The fixture's own aliases first, then the one the list adds that it doesn't have.
+    expect(tcd.aliases).toEqual(['TCD', 'Trinity College']);
+    expect(row.aliases).toEqual(['TCD', 'Trinity College', 'Trinity']);
+    expect(row.searchText).toBe('trinity college dublin tcd trinity college trinity dublin 2');
+    // Any other place's row is as the file has it.
+    const kinsale = fixturePlaces.find((p) => p.slug === 'kinsale')!;
+    expect(rowFromPlace(kinsale, 1, 'fixture').aliases).toEqual(kinsale.aliases ?? []);
+  });
+
+  it('Q60: every landmark with other names is in the index in the repository', async () => {
+    const { rows } = await readPlaceFile(PLACE_FILE, 'landmark');
+    expect(rows.length).toBeGreaterThan(1000);
+    expect(rows.every((r) => r.place.kind === 'landmark')).toBe(true);
+    // A row that finds nothing means OpenStreetMap renamed the landmark: fix its name in the list.
+    expect(otherNamesWithoutPlace(rows.map((r) => r.place)).map((entry) => entry.name)).toEqual([]);
+    expect(otherNames.length).toBeGreaterThan(40);
   });
 
   it('M56: the curated base goes over the file’s copies of the same places', () => {

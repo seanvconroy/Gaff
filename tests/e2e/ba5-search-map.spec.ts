@@ -7,7 +7,8 @@ import { expectAccessible, expectNoSidewaysScroll, isoDateInDays, screenshot } f
 
 /**
  * BA-5: the search map, on the stand-in (MAP_PROVIDER unset in end-to-end runs): M57, M113,
- * M117, M119, M125, M127, M131, M132, M133, M137. The homes are made-up homes put live straight
+ * M117, M119, M125, M127, M131, M132, M133, M137; and Q60: the list follows the map, areas
+ * are drawn on it (UX-SR-13), and the nearest homes are offered when none is there (UX-SR-15). The homes are made-up homes put live straight
  * into the database, in Kenmare, which no other journey uses, each with the point its lister
  * placed (or none). Every journey runs signed out.
  */
@@ -139,7 +140,7 @@ async function dragMap(page: Page, by: { x: number; y: number }): Promise<void> 
   await page.mouse.up();
 }
 
-test('M57, M117, M125, M127: beside the list at 1280px, a pin and its card light each other, a pin opens its card, and "Search this area" searches the homes in view', async ({
+test('M57, M117, M125, M127, Q60: beside the list at 1280px, a pin and its card light each other, a pin opens its card, and the list follows the map as the renter moves it', async ({
   browser,
 }) => {
   const context = await browser.newContext({ viewport: desktop, locale: 'en-IE' });
@@ -158,18 +159,27 @@ test('M57, M117, M125, M127: beside the list at 1280px, a pin and its card light
     '4 of 5 homes on the map. The others are in the list.',
   );
   await expect(page.getByRole('button', { name: 'Map', exact: true })).toBeHidden();
-
-  // M127: resizing the window isn't the renter's move: nothing offers to search the area.
-  await page.setViewportSize({ width: 1180, height: 860 });
-  await page.waitForTimeout(400);
+  // Q60: there is no "Search this area" to press: the list follows the map by itself.
   await expect(page.getByRole('button', { name: 'Search this area' })).toHaveCount(0);
-  await page.setViewportSize(desktop);
 
-  // M117: at first the homes cluster; choosing the cluster zooms in. The two homes at one
-  // point share a pin, which lists them.
+  // M127: resizing the window isn't the renter's move: the search stays the place.
+  await page.setViewportSize({ width: 1180, height: 860 });
+  await page.waitForTimeout(900);
+  await expect(page).toHaveURL('/?where=kenmare');
+  await page.setViewportSize(desktop);
+  await page.waitForTimeout(900);
+  await expect(page).toHaveURL('/?where=kenmare');
+
+  // M117: at first the homes cluster; choosing the cluster zooms in. That is the renter's own
+  // move, so the search becomes the homes in view (Q60): only homes with a pin can be in it.
   await expect(map(page).getByRole('button', { name: /homes here: zoom in$/ })).toBeVisible();
   await zoomInTo(page, /^2 homes here, from €1,650 a month/);
   await zoomInTo(page, /^€1,400 a month/);
+  await page.waitForURL(/[?&]area=/);
+  await expect(page.getByRole('list', { name: 'What Gaff understood' })).toContainText('Map area');
+  await expect(fits(page).getByRole('link', { name: '€1,550 a month' })).toHaveCount(0);
+  await expect(fits(page).getByRole('link', { name: '€1,400 a month' })).toBeVisible();
+  // The two homes at one point share a pin, which lists them.
   const shared = pin(page, /^2 homes here, from €1,650 a month/);
   await expect(shared).toBeVisible();
   // Pointing at a card lights its pin.
@@ -191,20 +201,21 @@ test('M57, M117, M125, M127: beside the list at 1280px, a pin and its card light
   await expect(list.getByRole('link')).toHaveCount(2);
   await list.getByRole('button', { name: 'Close' }).click();
 
-  // M57: the renter moves the map; "Search this area" searches what's in view.
+  // Q60: the renter drags the map, and the search follows to the new view. The map stays
+  // where they put it: the pin they were looking at has moved with their hand.
+  const areaBefore = new URL(page.url()).searchParams.get('area');
+  const pinBefore = (await mainStreet.boundingBox())!;
   await dragMap(page, { x: -120, y: 0 });
-  const searchArea = page.getByRole('button', { name: 'Search this area' });
-  await expect(searchArea).toBeVisible();
-  await searchArea.click();
-  await page.waitForURL(/[?&]area=/);
-  await expect(page.getByRole('list', { name: 'What Gaff understood' })).toContainText(
-    'Area on the map',
-  );
-  // Only homes with a pin can be in a map area.
-  await expect(fits(page).getByRole('link', { name: '€1,550 a month' })).toHaveCount(0);
-  await expect(fits(page).getByRole('link', { name: '€1,400 a month' })).toBeVisible();
-  // The map stays where the renter put it: the button doesn't come back by itself.
-  await expect(page.getByRole('button', { name: 'Search this area' })).toHaveCount(0);
+  await expect
+    .poll(() => new URL(page.url()).searchParams.get('area'), { timeout: 5000 })
+    .not.toBe(areaBefore);
+  await page.waitForTimeout(600);
+  const pinAfter = (await mainStreet.boundingBox())!;
+  expect(Math.round(pinAfter.x - pinBefore.x)).toBe(-120);
+  // Back returns to the place, in one step: the moves replaced each other.
+  await page.goBack();
+  await expect(page).toHaveURL('/?where=kenmare');
+  await expect(fits(page).getByRole('listitem')).toHaveCount(5);
 
   // M133: counted by fixed codes, with nothing about the search.
   await expect
@@ -219,6 +230,227 @@ test('M57, M117, M125, M127: beside the list at 1280px, a pin and its card light
       ];
     })
     .toEqual([true, true, true, true, true]);
+  await context.close();
+});
+
+const chips = (page: Page) => page.getByRole('list', { name: 'What Gaff understood' });
+const drawn = (page: Page) => new URL(page.url()).searchParams.get('draw');
+const corners = (page: Page) => page.getByRole('button', { name: /^Corner \d+ of \d+/ });
+
+/** Where a pin is on the screen: its middle. */
+async function middleOf(page: Page, name: RegExp): Promise<{ x: number; y: number }> {
+  const box = (await pin(page, name).boundingBox())!;
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+test('UX-SR-13: an area is drawn on the map by tapping its corners, searched at once, reshaped by a corner, added to, and removed', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: desktop, locale: 'en-IE' });
+  const page = await context.newPage();
+  const before = await mapCounts();
+  await page.goto('/?where=kenmare');
+  await expect(map(page)).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'homes on the map' })).toBeVisible();
+  // Zoomed in until the homes in the town stand apart (which searches the view, Q60).
+  await zoomInTo(page, /^2 homes here, from €1,650 a month/);
+  await zoomInTo(page, /^€1,400 a month/);
+  await page.waitForURL(/[?&]area=/);
+  const main = await middleOf(page, /^€1,400 a month/);
+  const henry = await middleOf(page, /^2 homes here, from €1,650 a month/);
+
+  // Draw: tap four corners round Main Street's home alone, and finish.
+  await page.getByRole('button', { name: 'Draw', exact: true }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Draw round the area you want' }),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Finish' })).toHaveCount(0);
+  const away = main.x < henry.x ? -1 : 1;
+  const between = (main.x + henry.x) / 2;
+  const square = [
+    { x: main.x + away * 90, y: main.y - 70 },
+    { x: between, y: main.y - 70 },
+    { x: between, y: main.y + 70 },
+    { x: main.x + away * 90, y: main.y + 70 },
+  ];
+  for (const corner of square) await page.mouse.click(corner.x, corner.y);
+  await expectAccessible(page);
+  await screenshot(page, 'ux-sr-13-drawing-1280');
+  await page.getByRole('button', { name: 'Finish' }).click();
+
+  // It is the search at once: its chip, the homes inside it in the list, and its address.
+  await page.waitForURL(/[?&]draw=/);
+  await expect(chips(page)).toContainText('Drawn area near Kenmare');
+  await expect(page).not.toHaveURL(/[?&](area|where)=/);
+  await expect(fits(page).getByRole('link', { name: '€1,400 a month' })).toBeVisible();
+  await expect(fits(page).getByRole('listitem')).toHaveCount(1);
+  // The new area shows its corners straight away, with how to reshape it.
+  await expect(corners(page)).toHaveCount(4);
+  await expect(page.getByRole('status').filter({ hasText: 'Drag a corner' })).toBeVisible();
+  await expectAccessible(page);
+  await screenshot(page, 'ux-sr-13-drawn-1280');
+
+  // Reshape: drag the corner beside Henry Street past its pin, and those homes are in too.
+  // The map hasn't moved under the renter's hand.
+  const first = drawn(page);
+  const reach = henry.x + (henry.x - main.x > 0 ? 80 : -80);
+  await page.mouse.move(square[1]!.x, square[1]!.y);
+  await page.mouse.down();
+  await page.mouse.move((square[1]!.x + reach) / 2, main.y - 80, { steps: 4 });
+  await page.mouse.move(reach, henry.y - 90, { steps: 4 });
+  await page.mouse.up();
+  await page.mouse.move(square[2]!.x, square[2]!.y);
+  await page.mouse.down();
+  await page.mouse.move(reach, henry.y + 90, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(() => drawn(page)).not.toBe(first);
+  await expect(fits(page).getByRole('listitem')).toHaveCount(3);
+  expect(await middleOf(page, /^€1,400 a month/)).toEqual(main);
+  await expect(corners(page)).toHaveCount(4);
+
+  // A corner is pulled out of a side, moved with the keyboard, and taken away again.
+  const reshaped = drawn(page);
+  await page.getByRole('button', { name: 'Add a corner here' }).first().press('Enter');
+  await expect(corners(page)).toHaveCount(5);
+  const added = page.getByRole('button', { name: /^Corner 2 of 5/ });
+  await added.focus();
+  await added.press('ArrowUp');
+  await expect.poll(() => drawn(page)).not.toBe(reshaped);
+  await page.getByRole('button', { name: /^Corner 2 of 5/ }).press('Delete');
+  await expect(corners(page)).toHaveCount(4);
+  // With the corner gone the area is as it was, and so is the search's address.
+  await expect.poll(() => drawn(page)).toBe(reshaped);
+
+  // Moving the map looks around; it doesn't change a drawn search.
+  const kept = drawn(page);
+  await dragMap(page, { x: 60, y: 40 });
+  await page.waitForTimeout(900);
+  expect(drawn(page)).toBe(kept);
+
+  // Done puts the corners away; pressing the outline, or Edit, brings them back.
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(corners(page)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await expect(corners(page)).toHaveCount(4);
+
+  // Another area, traced in one stroke this time, somewhere with no homes.
+  await page.getByRole('button', { name: 'Draw another area' }).click();
+  const mapBox = (await map(page).boundingBox())!;
+  const at = { x: mapBox.x + mapBox.width * 0.2, y: mapBox.y + mapBox.height * 0.82 };
+  await page.mouse.move(at.x + 50, at.y);
+  await page.mouse.down();
+  for (let i = 1; i <= 24; i++) {
+    const turn = (i / 24) * 2 * Math.PI;
+    await page.mouse.move(at.x + Math.cos(turn) * 50, at.y + Math.sin(turn) * 40);
+  }
+  await page.mouse.up();
+  await expect(chips(page)).toContainText('2 drawn areas near Kenmare');
+  await expect(fits(page).getByRole('listitem')).toHaveCount(3);
+  await expectAccessible(page);
+  await screenshot(page, 'ux-sr-13-two-areas-1280');
+
+  // The address is the search: opened afresh, it draws both areas and finds the same homes.
+  const shared = await context.newPage();
+  await shared.goto(page.url());
+  await expect(chips(shared)).toContainText('2 drawn areas near Kenmare');
+  await expect(fits(shared).getByRole('listitem')).toHaveCount(3);
+  await expect(shared.getByRole('button', { name: 'Edit' })).toBeVisible();
+  await shared.close();
+
+  // The area in hand is removed; then the last one is cleared, and the search is the view.
+  await page.getByRole('button', { name: 'Remove this area' }).click();
+  await expect(chips(page)).toContainText('Drawn area near Kenmare');
+  await expect(chips(page)).not.toContainText('2 drawn areas');
+  await page.getByRole('button', { name: 'Clear' }).click();
+  await page.waitForURL(/[?&]area=/);
+  await expect(page).not.toHaveURL(/[?&]draw=/);
+  await expect(page.getByRole('button', { name: 'Draw', exact: true })).toBeVisible();
+  const pinNow = await middleOf(page, /^€1,400 a month/);
+  expect(Math.round(pinNow.x - main.x)).toBe(60);
+
+  await expect
+    .poll(async () => {
+      const after = await mapCounts();
+      return ['area_drawn:', 'area_reshaped:', 'area_removed:'].map(
+        (code) => (after[code] ?? 0) > (before[code] ?? 0),
+      );
+    })
+    .toEqual([true, true, true]);
+  await context.close();
+});
+
+test('UX-SR-13: on a phone, an area is traced with a finger, too small a slip is refused, and the keyboard draws a square', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: phone, locale: 'en-IE', hasTouch: true });
+  const page = await context.newPage();
+  await page.goto('/?where=kenmare');
+  await page.getByRole('button', { name: 'Map', exact: true }).click();
+  await expect(map(page)).toBeVisible();
+  await page.getByRole('button', { name: 'Draw', exact: true }).click();
+  const box = (await map(page).boundingBox())!;
+  const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+
+  // A slip: a line a few pixels long is no area, and Gaff says so and waits.
+  await page.mouse.move(centre.x, centre.y + 150);
+  await page.mouse.down();
+  await page.mouse.move(centre.x + 14, centre.y + 151, { steps: 3 });
+  await page.mouse.up();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'That was too small to search' }),
+  ).toBeVisible();
+  await expect(page).toHaveURL('/?where=kenmare');
+
+  // A loop round the middle of the map, where the town's homes are.
+  await page.mouse.move(centre.x + 120, centre.y);
+  await page.mouse.down();
+  for (let i = 1; i <= 30; i++) {
+    const turn = (i / 30) * 2 * Math.PI;
+    await page.mouse.move(centre.x + Math.cos(turn) * 120, centre.y + Math.sin(turn) * 120);
+  }
+  await page.mouse.up();
+  await page.waitForURL(/[?&]draw=/);
+  await expect(chips(page)).toContainText('Drawn area near Kenmare');
+  await expect(corners(page).first()).toBeVisible();
+  await expectNoSidewaysScroll(page);
+  await expectAccessible(page);
+  await screenshot(page, 'ux-sr-13-drawn-390');
+  await page.getByRole('button', { name: 'List', exact: true }).click();
+  await expect(fits(page).getByRole('link', { name: '€1,400 a month' })).toBeVisible();
+
+  // Escape leaves drawing with nothing changed; Enter draws a square to reshape (no dragging,
+  // WCAG 2.5.7).
+  await page.getByRole('button', { name: 'Map', exact: true }).click();
+  await page.getByRole('button', { name: 'Remove this area' }).click();
+  await page.waitForURL(/[?&]area=/);
+  await page.getByRole('button', { name: 'Draw', exact: true }).click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Cancel' })).toHaveCount(0);
+  await expect(page).not.toHaveURL(/[?&]draw=/);
+  await page.getByRole('button', { name: 'Draw', exact: true }).click();
+  await page.keyboard.press('Enter');
+  await page.waitForURL(/[?&]draw=/);
+  await expect(corners(page)).toHaveCount(4);
+  await context.close();
+});
+
+test('UX-SR-15: with no home where the renter searched, the nearest homes that fit the rest, nearest first', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: desktop, locale: 'en-IE' });
+  const page = await context.newPage();
+  // A map area just north of the town, with no home in it.
+  await page.goto('/?area=-9.6,51.885,-9.57,51.89&beds=2');
+  await expect(page.getByRole('heading', { name: 'No homes match yet.' })).toBeVisible();
+  const nearest = page.getByRole('list', { name: 'The nearest homes' });
+  await expect(nearest.getByRole('listitem').first()).toContainText('€1,400 a month');
+  await expect(nearest.getByRole('listitem').first()).toContainText(/\d+ m away|km away/);
+  // The home without a pin can't be measured, so it isn't offered as near.
+  await expect(nearest.getByRole('link', { name: '€1,550 a month' })).toHaveCount(0);
+  // What else was asked still holds: nothing with three bedrooms is near.
+  await page.goto('/?area=-9.6,51.885,-9.57,51.89&beds=3');
+  await expect(page.getByRole('list', { name: 'The nearest homes' })).toHaveCount(0);
+  await expectAccessible(page);
   await context.close();
 });
 

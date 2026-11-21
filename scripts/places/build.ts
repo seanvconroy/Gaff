@@ -56,7 +56,8 @@ const FILTERS = [
   'w/place=city,town,village,suburb,neighbourhood,quarter',
   'r/place=city,town,village,suburb,neighbourhood,quarter',
   'r/boundary=administrative',
-  'w/highway=primary,secondary,tertiary,unclassified,residential,living_street,pedestrian,service,road',
+  // Trunk too: a national primary road is one in OpenStreetMap, and it is many towns' main street.
+  'w/highway=trunk,primary,secondary,tertiary,unclassified,residential,living_street,pedestrian,service,road',
   'nwr/amenity=university,college,hospital',
   'nwr/railway=station,halt,tram_stop',
   'nwr/public_transport=station',

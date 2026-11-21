@@ -1,13 +1,57 @@
-/* The first screen: the search box, then the homes, then one line for people letting. */
+/* Search: the bar and its chips, then the homes beside the map. Nothing else (Q60). */
 .page {
   display: grid;
-  gap: var(--space-8);
+  gap: var(--space-5);
   min-width: 0;
 }
 
-.promise,
+.top {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* A place's page says its place above the bar. */
+.question {
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
+  font-weight: var(--type-heading-weight);
+}
+
+.bar {
+  min-width: 0;
+}
+
 .unclear {
   color: var(--color-ink-muted);
+}
+
+/* The results' heading, with the way to how they are ordered at its end. */
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.order {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--size-target);
+  height: var(--size-target);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink-muted);
+}
+
+.order:hover {
+  color: var(--color-ink);
+}
+
+.order:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -3px;
 }
 
 .results {
@@ -20,22 +64,6 @@
   display: grid;
   gap: var(--space-4);
   min-width: 0;
-}
-
-.foot {
-  padding-block-start: var(--space-6);
-  border-block-start: 1px solid var(--color-border);
-  color: var(--color-ink-muted);
-}
-
-.foot a {
-  color: var(--color-brand-text);
-}
-
-/* The place data's credit, on its own line under the foot's sentence. */
-.credit {
-  display: block;
-  margin-block-start: var(--space-2);
 }
 
 .skeletons {
@@ -61,19 +89,16 @@
   color: var(--color-ink-muted);
 }
 
-/* "Tell me about new ones", under the homes that fit. */
-.keepSearch {
-  display: grid;
-  justify-items: start;
-  gap: var(--space-3);
-}
-
 .sheetForm {
   display: grid;
   gap: var(--space-6);
 }
 
 @media (width > 900px) {
+  .bar {
+    max-width: 720px;
+  }
+
   .skeletons {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

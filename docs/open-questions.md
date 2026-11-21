@@ -480,6 +480,38 @@ Recorded on 20 November 2026, when every package was merged. None holds up the s
 - **Needs a key or an account before it does anything on the test copy:** the Google map (`GOOGLE_MAPS_API_KEY`), the real model (`ANTHROPIC_API_KEY`), a private bucket for documents and, in production, for photos.
 - **Two people on Gaff's team list** are needed for an appeal to be decided by someone else.
 
+
+### Q60. Search and the map: what renters expect from a property site
+
+Sean tried search on the test copy on 20 November 2026 and found it short of Airbnb, Zillow, Rightmove and Property Finder: a road typed in the box found nothing; the screen carried lines that weren't the search or its results; the list didn't follow the map; an area couldn't be drawn; and saving a search wasn't where people look for it.
+
+**Decision (Sean, 20 November 2026), built the same day (ADR-0032):**
+
+- **A road, a landmark or a sentence in one box** (UX-SR-14). The box suggests places, streets and landmarks as it's typed, shows what else it reads in the words, and finds a road typed alone or inside a sentence. One box, not a separate "AI search": the plain reader does both, with no model, so it costs nothing a search and sends no renter's words to one.
+- **Nothing on the screen but the search and its results** (UX-SR-1). Gone: "Everyone hears back.", "Letting a home? Gaff runs it for you.", and the "How results are ordered" and "Map and place data" lines. The big heading over the box is heard, not seen. With a map, search uses the screen's full width.
+- **The list follows the map** (UX-SR-8). No "Search this area".
+- **Areas drawn on the map** (UX-SR-13): up to five, reshaped by their corners. This reverses "not brought across, on purpose" in Q59.
+- **"Save search" beside Filters** (UX-SR-10), for any search, a drawn area included. The alert emails and their frequency are as they were.
+- **The nearest homes** when none is where the renter searched (UX-SR-15). Not asked for; added so a road with no homes on it yet isn't a dead end.
+
+**Kept, though Sean listed them as fluff, and why. His to overrule:**
+
+- **"How results are ordered" is still one tap from the results**, as an icon beside their heading. EU consumer law (the Omnibus Directive, in the Consumer Rights Act 2022) asks a marketplace to say how it ranks results in a place "directly and easily accessible from the page where the results are presented". An icon costs no line. **Solicitor**, with the page's words.
+- **"Places from OpenStreetMap" is still at the foot of the suggestions**, and on the map where a street is drawn. The place index's licence asks for the credit where the data is used (ADR-0018, Q56). It is inside the list that opens, not on the page.
+
+**Open:**
+
+- **Nothing here has run on Google's map with a real key** (Q58). The drawing layer is the same code on the stand-in, where it is tested end to end; `tests/google/map.spec.ts` draws an area on the real map once a key is set.
+- **The place index's own gaps showed more once the box searched it.** Two are closed (20 November 2026), with no rebuild:
+  - **Acronyms and everyday names.** Gaff's own short list (`src/domain/places/other-names.ts`) gives the best-known colleges, hospitals, stations and parks the names OpenStreetMap doesn't hold: "UCD", "TCD", "UL", "NUIG", "UHL", "The Mater", "Kent Station". Each is added to the landmark's other names as the index is loaded, so "UCD" is University College Dublin first and UCD Village after it. A change to the list takes effect at the next load. The index check fails when a row no longer finds its landmark.
+  - **Surnames typed apart.** "O Connell Street", "O'Connell Street" and "OConnell Street" are one name, and so are "Mc Curtain" and "McCurtain", "Mac Dermott" and "MacDermott". The place search joins the prefix to the word after it in what was typed and in the names it compares it with; the index's stored text is unchanged.
+- **Streets the box still can't find by their town, for the next rebuild** (`pnpm places:build`; it needs an OpenStreetMap extract). Two causes, found on 20 November 2026:
+  - **A town-centre street labelled with a hamlet beside the town.** Bray's Main Street is in the index, as "Main Street, Old Connaught, County Wicklow": a street takes the smallest named place within reach, and a village up to 1.8 km away wins over the town the street is in, which is then left out of the label. Outside Dublin, about 560 of the 9,000 streets within about 800 m of a town's centre have a label without their town, in 37 of 245 towns (Bray, Letterkenny, New Ross, Clonmel, Birr, Arklow, Clifden). The fix is in how the build picks a street's context (`Contexts` in `scripts/places/lib.ts`). It changes those streets' slugs, which a saved search holds, so it is **Sean's to decide** before a pilot has saved searches worth keeping.
+  - **Streets that aren't in the index at all, most likely because national primary roads were never read.** Main Street in Adare, Abbeyfeale, Charleville, Buttevant, Virginia and Ballybofey, and MacCurtain Street and Washington Street in Cork, are missing, though the streets around them are there. Each town's main street is a national primary road, which OpenStreetMap classes "trunk", and the build asked only for the classes below that. The build now reads trunk roads too (their numbers, "N21", are still left out); the streets should arrive with the next rebuild. This is a reading of what is missing, not checked against OpenStreetMap itself, which this work couldn't reach: check those streets after the rebuild (they are in `scripts/places/test-set.csv`, commented out until then).
+  - Smaller, seen on the way: a park and a tram stop of one name within 500 m are kept as one landmark, which is likely why St Stephen's Green is in the index as a stop and a street but not as a park; "DCU" finds three campuses, All Hallows first by the alphabet; and "St" before a town ("O Connell St, Limerick") is read as "Saint" when a sentence's road is looked for.
+- **What is typed in the search bar** goes to Gaff's own server a part at a time, for suggestions (Q56 already notes this for "Where"). Only the part that could be a place is sent, and those lookups are never counted or kept; a word outside the reader's list ("nurse") can still be looked up. To check with the request log before launch, with Q56.
+- **Rightmove's separate "AI search"** was looked at and not copied (ADR-0032). If renters' sentences turn out to need more than the plain reader gives, a seventh AI task could read them; it would need the reader's switch, the budget and names stripped first (rule 7, ADR-0017).
+
 ### Q61. Signing in with a mobile number, and one account however you sign in (**Open** in part)
 
 Sean, on 20 November 2026, with Airbnb's sign-in as the standard: sign up or sign in with a phone number or an email, each with a one-time code, or with Google or Apple, and have every one of them reach the same account. His example was an account made with Google, opened later with a mobile number and the same email.

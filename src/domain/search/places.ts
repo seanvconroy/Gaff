@@ -3,7 +3,7 @@ import { COUNTY_POPULATION } from '@/domain/places/counties';
 import { parseRoutingKey, routingKeyAreaName } from '@/domain/places/eircode';
 import { isArea, type Gazetteer, type Place, type PlaceKind } from '@/domain/places/gazetteer';
 import { distanceMetres, distanceToLineMetres, type Point } from '@/domain/places/geo';
-import { normalise, queryWords } from '@/domain/places/normalise';
+import { joinSurnames, normalise, queryWords } from '@/domain/places/normalise';
 import { rankSuggestions } from '@/domain/places/suggest';
 import { WITHIN_KM } from './filters';
 import { canonicalPlaceSlug, PLACE_SLUG } from './place-slug';
@@ -329,11 +329,13 @@ function needsCue(place: Place, name: string): boolean {
  * inside a longer one ("Dublin" in "Dublin 6W") is the longer one.
  */
 export function placeInSentence(sentence: string, g: Gazetteer): Place | null {
-  const words = normalise(sentence).split(' ').filter(Boolean);
+  // Q60: surnames joined in the sentence and in each name, so "O Briensbridge" is the village.
+  const words = joinSurnames(normalise(sentence)).split(' ').filter(Boolean);
   if (words.length === 0) return null;
   const found: Array<{ place: Place; at: number; end: number }> = [];
   for (const place of g.places) {
-    for (const name of namesOf(place)) {
+    for (const said of namesOf(place)) {
+      const name = joinSurnames(said);
       const at = wordIndex(words, name);
       if (at < 0 || (needsCue(place, name) && !CUES.has(words[at - 1] ?? ''))) continue;
       found.push({ place, at, end: at + name.split(' ').length });

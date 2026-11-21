@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { counties } from '@/domain/lettings/new-letting';
 import { fixtureGazetteer } from '@/domain/places/fixture';
+import { gazetteer, type Place } from '@/domain/places/gazetteer';
 import { slugify } from '@/domain/places/slug';
 import {
   canonicalPlaceSlug,
@@ -99,6 +100,26 @@ describe('UX-SR-3: the place a sentence names', () => {
     expect(placeInSentence('harolds cross', g)?.slug).toBe('harolds-cross');
     expect(placeInSentence('a flat in Cionn tSáile', g)?.slug).toBe('kinsale');
     expect(placeInSentence('1 bed in Dingle', g)?.slug).toBe('dingle-daingean-ui-chuis');
+  });
+
+  it('Q60: a surname in a place’s name may be typed apart, joined or with its apostrophe', () => {
+    const village: Place = {
+      slug: 'obriensbridge',
+      name: "O'Briensbridge",
+      kind: 'village',
+      county: 'Clare',
+      centre: { lat: 52.752, lng: -8.498 },
+      radiusMetres: 1200,
+    };
+    const withVillage = gazetteer([...g.places, village]);
+    for (const typed of ['O Briensbridge', "O'Briensbridge", 'OBriensbridge']) {
+      expect(placeInSentence(`2 bed in ${typed}`, withVillage)?.slug, typed).toBe('obriensbridge');
+    }
+    // The cue still counts: a village is never read from a bare word in a sentence.
+    expect(placeInSentence('O Briensbridge looks nice', withVillage)).toBeNull();
+    // A surname that ends in a place's name isn't the place: "Mc Bray" is not Bray.
+    expect(placeInSentence('a flat in Bray', g)?.slug).toBe('bray');
+    expect(placeInSentence('a flat in Mc Bray', g)).toBeNull();
   });
 
   it('UX-SR-3: a name that is also a word or a first name needs "in" before it', () => {

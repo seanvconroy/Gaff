@@ -20,7 +20,7 @@ The redesign had one search page (`/`) and a public page per home, and told sear
 ## Consequences
 
 - Places are counted from fresh reads of the public query on each page and for the sitemap. That suits the pilots; a count in the database replaces it when homes number in the thousands.
-- "How results are ordered" (`/how-results-are-ordered`, M59) is linked under the results but is not indexed.
+- "How results are ordered" (`/how-results-are-ordered`, M59) is linked from beside the results' heading (an icon, since Q60; before that, a line under the results) and from Help, but is not indexed.
 
 ## Alternatives considered
 

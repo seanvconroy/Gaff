@@ -9,7 +9,6 @@ import { db } from '@/db/client';
 import { accounts, passkeys, sessions, users, verifications } from '@/db/schema';
 import { openToBrowsers } from '@/domain/auth/browser-routes';
 import {
-  codeMethod,
   methodForPath,
   providerMode,
   signInProviderSchema,
@@ -81,15 +80,6 @@ function methodOf(ctx: HookContext | null | undefined) {
 }
 
 /**
- * UX-SI-13: a code is by email unless Gaff's own code endpoint, making the session, says it came
- * by text. For every other route the method is the route's, whatever the session is handed.
- */
-function sessionMethod(session: object, ctx: HookContext | null | undefined) {
-  const named = (session as { signInMethod?: unknown }).signInMethod;
-  return codeMethod(ctx?.path ?? '', named) ?? methodOf(ctx);
-}
-
-/**
  * AU11: Google or Apple was joined to someone who already had an account, by the address it
  * hosts or connected from "How you sign in". Their record says so, and they're emailed, in case
  * it wasn't them.
@@ -126,7 +116,7 @@ async function passkeyAdded(ctx: HookContext): Promise<void> {
 
 /**
  * Sign-in for people with accounts (ADR-0015, hardened by ADR-0019, joined up by ADR-0033):
- * Google, Apple, or a six-digit code by email or by text, and a passkey afterwards. No passwords. Built on Better Auth, so
+ * Google, Apple, or a six-digit code by email, and a passkey afterwards. No passwords. Built on Better Auth, so
  * accounts and sessions live in our own Postgres. Built on first use, not at import.
  */
 function createAuth() {
@@ -212,7 +202,7 @@ function createAuth() {
       session: {
         create: {
           before: async (session, ctx) => ({
-            data: { ...session, signInMethod: sessionMethod(session, ctx) },
+            data: { ...session, signInMethod: methodOf(ctx) },
           }),
           after: async (session, ctx) => {
             await endPreviousSession(session.token, ctx);

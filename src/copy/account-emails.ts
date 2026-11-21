@@ -251,7 +251,7 @@ export function profileUnusedEmail(input: {
 
 /** BA-8 (AU11): the ways in a security email can be about, as a person says them. */
 const wayInWords = { google: 'Google', apple: 'Apple' } as const;
-export type ChangedWayIn = 'google' | 'apple' | 'passkey' | 'mobile';
+export type ChangedWayIn = 'google' | 'apple' | 'passkey';
 
 /**
  * BA-8 (AU11, for the solicitor): a way in was added to, or removed from, the person's own
@@ -270,13 +270,9 @@ export function signInChangedEmail(input: {
       ? input.change === 'added'
         ? 'A passkey was added to your Gaff account'
         : 'A passkey was removed from your Gaff account'
-      : input.method === 'mobile'
-        ? input.change === 'added'
-          ? 'A mobile number was added to your Gaff account'
-          : 'A mobile number was removed from your Gaff account'
-        : input.change === 'added'
-          ? `${wayInWords[input.method]} was connected to your Gaff account`
-          : `${wayInWords[input.method]} was disconnected from your Gaff account`;
+      : input.change === 'added'
+        ? `${wayInWords[input.method]} was connected to your Gaff account`
+        : `${wayInWords[input.method]} was disconnected from your Gaff account`;
   return {
     subject: happened,
     button: 'See how you sign in',

@@ -19,11 +19,6 @@ export const signInCopy = {
   continueWith: (provider: SignInProvider) => `Continue with ${providerNames[provider]}`,
   or: 'or',
   emailLabel: 'Email',
-  /** UX-SI-13: where a code can go by text as well: one field takes either. */
-  identifierLabel: 'Email or mobile number',
-  /** Shown once what's being typed is a number. */
-  diallingCodeLabel: 'Country code',
-  diallingCode: (name: string, code: string) => `${name} (+${code})`,
   continue: 'Continue',
   sending: 'Sending your code…',
   opening: (provider: SignInProvider) => `Opening ${providerNames[provider]}…`,
@@ -33,7 +28,6 @@ export const signInCopy = {
       google: 'You used Google last time.',
       apple: 'You used Apple last time.',
       email_code: 'You used your email last time.',
-      sms_code: 'You used your mobile number last time.',
       passkey: 'You used a passkey last time.',
     })[method],
   smallPrint: {
@@ -45,17 +39,6 @@ export const signInCopy = {
   },
   errors: {
     emailInvalid: 'Enter an email address, like ann@example.ie',
-    /** UX-SI-13: neither an email address nor a mobile number. */
-    identifierInvalid: 'Enter an email address or a mobile number, like 087 123 4567',
-    mobileInvalid: 'Enter a mobile number, like 087 123 4567',
-    /** A real number, in a country Gaff doesn't text. */
-    notTexted: 'We can’t text that country yet. Enter your email instead.',
-    textNotSent:
-      'We couldn’t send the text. Check the number and try again, or enter your email instead.',
-    tooManyTexts:
-      'We’ve sent a few codes to that number. Wait 10 minutes, then try again, or enter your email instead.',
-    /** The hour's texts are used up (ADR-0033). Nothing about why. */
-    textsPaused: 'We can’t send texts right now. Enter your email instead.',
     /** States table: "Email didn't send". */
     notSent: 'We couldn’t send the code. Check the address and try again.',
     tooMany: 'We’ve sent a few codes to that address. Wait 10 minutes, then try again.',
@@ -109,9 +92,6 @@ export const codeCopy = {
   title: 'Enter your code',
   lead: (email: string) =>
     `We sent a six-digit code to ${email}. It works for the next ${CODE_LASTS_MINUTES} minutes.`,
-  /** UX-SI-13: the code went by text. The number is shown in full, to catch a slip of the thumb. */
-  leadText: (mobile: string) =>
-    `We texted a six-digit code to ${mobile}. It works for the next ${CODE_LASTS_MINUTES} minutes.`,
   /**
    * UX-SI-15: back from Google or Apple, which can't vouch for the address. The mailbox says
    * yes instead, and the provider is connected with the same code.
@@ -122,7 +102,6 @@ export const codeCopy = {
   checking: 'Checking…',
   /** States table: "Wrong code". */
   wrong: 'That code isn’t right. Check the email and try again.',
-  wrongText: 'That code isn’t right. Check the text and try again.',
   /** States table: "Code expired or too many tries". */
   expired: 'That code has expired.',
   sendNew: 'Send a new code',
@@ -131,38 +110,18 @@ export const codeCopy = {
   sendingNew: 'Sending a new code…',
   sentNew: 'We’ve sent a new code. The old one no longer works.',
   different: 'Use a different email',
-  differentNumber: 'Use a different number',
   devOutbox: 'Developing locally? The email is in the',
-  devOutboxText: 'Developing locally? The text is in the',
 } as const;
 
 /**
- * UX-SI-14: a mobile number nobody has (or one that hasn't been used in 180 days) has just been
- * proved. One question: the email that goes with it. The same words whoever asks, so nobody
- * learns here whether an address has an account.
- */
-export const emailNeededCopy = {
-  title: 'What’s your email?',
-  lead: (mobile: string) =>
-    `Your mobile, ${mobile}, is confirmed. Everything about a home comes by email, so we need yours too.`,
-  hint: 'If you’ve used Gaff before, enter the same email and we’ll find your account.',
-  label: 'Email',
-  continue: 'Continue',
-  sending: 'Sending your code…',
-  different: 'Use a different number',
-} as const;
-
-/**
- * UX-SI-14, UX-SI-15: "We've found your account". Shown once the mailbox has said yes, and never
+ * UX-SI-15: "We've found your account". Shown once the mailbox has said yes, and never
  * before: signed in, with what was just joined and where to change it.
  */
 export const foundCopy = {
   title: 'We’ve found your account',
   signedInAs: (email: string) => `You’re signed in as ${email}.`,
-  joined: (joined: Joined, mobile: string | null): string =>
-    joined === 'mobile'
-      ? `You can sign in with your mobile${mobile ? `, ${mobile},` : ''} from now on.`
-      : `${providerNames[joined]} is connected. You can sign in with it from now on.`,
+  joined: (joined: Joined): string =>
+    `${providerNames[joined]} is connected. You can sign in with it from now on.`,
   change: 'You can change this under “How you sign in” on your profile.',
   continue: 'Continue',
 } as const;
@@ -238,22 +197,22 @@ function codeBlock(code: string): string[] {
 
 const lasts = `for the next ${CODE_LASTS_MINUTES} minutes`;
 
-/** UX-SI-14, UX-SI-15: what the code also adds to the account, for the email to say plainly. */
-export type CodeAdds = { mobileEnding: string } | { provider: SignInProvider };
+/** UX-SI-15: what the code also adds to the account, for the email to say plainly. */
+export interface CodeAdds {
+  provider: SignInProvider;
+}
 
 /**
  * UX-SI-2, UX-SI-3: the sign-in email. One purpose, one button. The button signs the person in
  * on the device they started on; anywhere else it shows the code.
  *
- * UX-SI-14, UX-SI-15: when the code also joins a mobile number, or Google or Apple, to the
- * account, the email says so, and says not to share it: whoever enters it gets that way in.
+ * UX-SI-15: when the code also joins Google or Apple to the account, the email says so, and
+ * says not to share it: whoever enters it gets that way in.
  */
 export function signInCodeEmail(code: string, link: string | null, adds: CodeAdds | null = null) {
-  const added = !adds
-    ? null
-    : 'provider' in adds
-      ? `When you do, ${providerNames[adds.provider]} is connected to your Gaff account, and you can sign in with it from then on.`
-      : `When you do, the mobile number ending ${adds.mobileEnding} becomes a way to sign in to your Gaff account.`;
+  const added = adds
+    ? `When you do, ${providerNames[adds.provider]} is connected to your Gaff account, and you can sign in with it from then on.`
+    : null;
   return {
     subject: `${code} is your code to sign in to Gaff`,
     text: [
@@ -272,19 +231,6 @@ export function signInCodeEmail(code: string, link: string | null, adds: CodeAdd
       'Gaff',
     ].join('\n'),
   };
-}
-
-/**
- * UX-SI-13: the sign-in code by text. Plain characters only, and no apostrophes (a curly one
- * would make it two texts). The last line is the standard a phone reads to offer the code on
- * Gaff's own site and nowhere else.
- */
-export function signInCodeText(code: string, host: string): string {
-  return [
-    `Your code to sign in to Gaff is ${code}. It works for ${CODE_LASTS_MINUTES} minutes. Never share it with anyone.`,
-    '',
-    `@${host} #${code}`,
-  ].join('\n');
 }
 
 /** UX-SI-10: the code that confirms it's you, before a sensitive action. No button. */

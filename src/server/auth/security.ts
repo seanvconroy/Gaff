@@ -1,6 +1,6 @@
 import { and, asc, eq, gt, ne } from 'drizzle-orm';
 import { withPerson, type Tx } from '@/db/client';
-import { accounts, passkeys, sessions, signInMobiles, users } from '@/db/schema';
+import { accounts, passkeys, sessions, users } from '@/db/schema';
 import { describeDevice, inListOrder } from '@/domain/auth/devices';
 import { removalRefusal, type RemovalRefusal } from '@/domain/auth/email-authority';
 import { signInProviders, type SignInProvider } from '@/domain/auth/methods';
@@ -22,8 +22,6 @@ import { spendConfirmation, type Confirmation } from './confirm';
 
 export interface SignInOverview {
   email: string;
-  /** UX-SI-13: the mobile number they sign in with, as +353871234567, if they have one. */
-  mobile: string | null;
   /** When Google and Apple were connected, if they are. */
   providers: Record<SignInProvider, Date | null>;
   passkeys: { id: string; name: string | null; addedOn: Date | null }[];
@@ -57,17 +55,12 @@ export async function signInOverview(
       .from(passkeys)
       .where(eq(passkeys.userId, userId))
       .orderBy(asc(passkeys.createdAt));
-    const [number] = await tx
-      .select({ mobile: signInMobiles.mobile })
-      .from(signInMobiles)
-      .where(eq(signInMobiles.userId, userId));
     const live = await tx
       .select()
       .from(sessions)
       .where(and(eq(sessions.userId, userId), gt(sessions.expiresAt, now)));
     return {
       email: person?.email ?? '',
-      mobile: number?.mobile ?? null,
       providers: { google: connected('google'), apple: connected('apple') },
       passkeys: keys.map((key) => ({ id: key.id, name: key.name, addedOn: key.createdAt })),
       devices: inListOrder(
@@ -86,7 +79,7 @@ export async function signInOverview(
 /** What a change on "How you sign in" came to. */
 export type SignInChange = 'done' | 'not_found' | RemovalRefusal;
 
-export type ChangedWayIn = SignInProvider | 'passkey' | 'mobile';
+type ChangedWayIn = SignInProvider | 'passkey';
 
 /**
  * AU11, rule 8: a way in was added to or taken off someone's account. Its step goes in their
@@ -177,28 +170,6 @@ export async function disconnectProvider(
       .delete(accounts)
       .where(and(eq(accounts.userId, userId), eq(accounts.providerId, provider)));
     await noteSignInChange(tx, userId, 'removed', provider, now);
-    return 'done';
-  });
-}
-
-/**
- * UX-SI-13: takes the person's mobile number off their account. A code by email still gets them
- * in, so it can always go; the number is deleted, and is free for whoever holds it next.
- */
-export async function removeSignInMobile(
-  userId: string,
-  confirmation: Confirmation | null,
-  now = new Date(),
-): Promise<SignInChange> {
-  return withPerson(userId, async (tx) => {
-    const [number] = await tx
-      .select({ userId: signInMobiles.userId })
-      .from(signInMobiles)
-      .where(eq(signInMobiles.userId, userId));
-    if (!number) return 'not_found';
-    await spendConfirmation(tx, confirmation, 'change_sign_in', userId, now);
-    await tx.delete(signInMobiles).where(eq(signInMobiles.userId, userId));
-    await noteSignInChange(tx, userId, 'removed', 'mobile', now);
     return 'done';
   });
 }

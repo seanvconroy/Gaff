@@ -90,20 +90,6 @@ const schema = z
     SINCH_SERVICE_PLAN_ID: z.string().optional(),
     SINCH_API_TOKEN: z.string().optional(),
     SINCH_FROM: z.string().optional(),
-    /**
-     * Sinch's newer way in (a project, a Conversation API app and an access key), which is what a
-     * new Sinch account is given. Either these four, or the service plan and its token above.
-     * The app must be one made in Sinch's EU region (rule 10).
-     */
-    SINCH_PROJECT_ID: z.string().optional(),
-    SINCH_APP_ID: z.string().optional(),
-    SINCH_KEY_ID: z.string().optional(),
-    SINCH_KEY_SECRET: z.string().optional(),
-    /**
-     * UX-SI-13 (ADR-0033): every sign-in text Gaff may send in an hour, to anyone. Past it,
-     * sign-in by mobile asks for an email until the hour is out. 0 switches sign-in by mobile off.
-     */
-    SIGN_IN_TEXTS_PER_HOUR: z.coerce.number().int().min(0).default(300),
     /** Claude on Bedrock's region: Dublin (ADR-0009). */
     AWS_REGION: z.string().default('eu-west-1'),
     RETENTION_PERSONAL_DAYS: z.coerce.number().int().positive().default(30),
@@ -404,31 +390,9 @@ const schema = z
       });
     }
     if (env.SMS_PROVIDER === 'sinch') {
-      if (!env.SINCH_FROM) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['SINCH_FROM'],
-          message: 'SINCH_FROM is required for Sinch',
-        });
-      }
-      // Either kind of Sinch credential, whole: a service plan and its token, or a project, an
-      // app and an access key.
-      const servicePlan = ['SINCH_SERVICE_PLAN_ID', 'SINCH_API_TOKEN'] as const;
-      const accessKey = [
-        'SINCH_PROJECT_ID',
-        'SINCH_APP_ID',
-        'SINCH_KEY_ID',
-        'SINCH_KEY_SECRET',
-      ] as const;
-      const whole = (keys: readonly (keyof typeof env)[]) => keys.every((key) => env[key]);
-      if (!whole(servicePlan) && !whole(accessKey)) {
-        // Name what is missing from whichever kind was started; the access key by default.
-        const started = servicePlan.some((key) => env[key]) ? servicePlan : accessKey;
-        for (const key of started) {
-          if (!env[key]) {
-            ctx.addIssue({ code: 'custom', path: [key], message: `${key} is required for Sinch` });
-          }
-        }
+      for (const key of ['SINCH_SERVICE_PLAN_ID', 'SINCH_API_TOKEN', 'SINCH_FROM'] as const) {
+        if (!env[key])
+          ctx.addIssue({ code: 'custom', path: [key], message: `${key} is required for Sinch` });
       }
     }
   })

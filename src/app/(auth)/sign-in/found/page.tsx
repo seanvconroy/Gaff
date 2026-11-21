@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { foundCopy } from '@/copy/sign-in';
 import { joinedFrom } from '@/domain/auth/joining';
-import { maskedMobile } from '@/domain/auth/mobile';
 import { currentUser } from '@/server/auth/member';
 import { signInOverview } from '@/server/auth/security';
 import { afterSignIn } from '@/server/auth/sign-in';
@@ -13,9 +12,9 @@ export const metadata: Metadata = { title: foundCopy.title };
 export const dynamic = 'force-dynamic';
 
 /**
- * UX-SI-14, UX-SI-15: "We've found your account". Someone signed in with a mobile number, or
- * with Google or Apple, that Gaff hadn't seen, proved their email, and already had an account
- * under it. They're signed in to it, and what they came with is one of its ways in from now on.
+ * UX-SI-15: "We've found your account". Someone signed in with Google or Apple that Gaff hadn't
+ * seen, proved their email, and already had an account under it. They're signed in to it, and
+ * what they came with is one of its ways in from now on.
  *
  * Shown only after the mailbox said yes with a code: the page reads who is signed in, so there
  * is nothing here for anyone else, and nothing about the person in the address bar. What it says
@@ -35,9 +34,7 @@ export default async function FoundPage({
   const joined = joinedFrom(query.joined);
   if (!joined) redirect(onward);
   const waysIn = await signInOverview(user.id, null);
-  const mobile = joined === 'mobile' ? waysIn.mobile : null;
-  const there = joined === 'mobile' ? Boolean(mobile) : Boolean(waysIn.providers[joined]);
-  if (!there) redirect(onward);
+  if (!waysIn.providers[joined]) redirect(onward);
   return (
     <div className={styles.screen}>
       <div className={styles.title}>
@@ -45,7 +42,7 @@ export default async function FoundPage({
         <p className={styles.lead}>{foundCopy.signedInAs(user.email)}</p>
       </div>
       <div className={styles.actions}>
-        <p>{foundCopy.joined(joined, mobile ? maskedMobile(mobile) : null)}</p>
+        <p>{foundCopy.joined(joined)}</p>
         <p className={styles.quiet}>{foundCopy.change}</p>
       </div>
       <ButtonLink href={onward} variant="primary" fullWidth>

@@ -19,9 +19,7 @@ test('a new operator signs in by email code and sets up their agency through fir
   await screenshot(page, '01-sign-in');
 
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
-  await expect(
-    page.getByText('Enter an email address or a mobile number, like 087 123 4567'),
-  ).toBeVisible();
+  await expect(page.getByText('Enter an email address, like ann@example.ie')).toBeVisible();
   await expectAccessible(page);
 
   // UX-SI-8: no profile yet, so first run starts. One question per screen (UX-AC-6).

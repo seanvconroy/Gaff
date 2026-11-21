@@ -4,7 +4,6 @@ import { db } from '@/db/client';
 import { devOutbox } from '@/db/schema';
 import { sendsRealEmail } from '@/adapters/email';
 import { TEST_COPY_OUTBOX } from '@/copy/test-copy';
-import { env } from '@/lib/env';
 import { requireDevTools } from '@/server/dev/gate';
 import { Card, PageHeader, Stack } from '@/ui/Layout';
 import { EmailPreview } from './EmailPreview';
@@ -31,9 +30,7 @@ export default async function DevOutboxPage() {
           title="Outbox"
           lead={
             realEmail
-              ? env().SMS_PROVIDER === 'sinch'
-                ? TEST_COPY_OUTBOX.leadWithRealTexts
-                : TEST_COPY_OUTBOX.lead
+              ? TEST_COPY_OUTBOX.lead
               : 'Email Gaff would have sent, as it looks and as plain text. Links work as they would in a real inbox.'
           }
         />

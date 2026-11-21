@@ -298,6 +298,49 @@ A chosen renter, and a private landlord at their first go-live, check their ID: 
 
 A renter confirms their mobile with a six-digit text code before booking a viewing (P16), and the 2-hour reminder goes to that number. With `SMS_PROVIDER=fake` (the test copy, until Sinch is set up) no text is sent: the code is shown on the screen instead, on staging only. With Sinch's settings, it is texted.
 
+### Setting up Sinch
+
+Sinch sends every text: sign-in codes, the code to book a viewing, and the 2-hour reminder. It is approved for this (rule 10, Q61). Nothing below needs a code change.
+
+Sinch's own screens change. Where a label below doesn't match, look for the same thing by what it is: a _service plan ID_, an _API token_ and a _region_.
+
+1. **Make the account** at [sinch.com](https://sinch.com) ("Build" dashboard), as the company. A trial is enough to prove it works. On a trial, Sinch sends your words only to numbers you have verified there (the one you signed up with, and up to five in all); to any other number it sends its own test words, with no code. It gives a small credit and a test number to send from.
+2. **Make an app in the EU region.** A new account is set up for Sinch's Conversation API: a _project_, an _app_ and an _access key_. In the dashboard, open **Conversation API**, **Apps**, make a new app, choose **Europe (EU)** as its region, and add the **SMS** channel to it. The region can't be changed afterwards, and Gaff only ever calls Sinch's EU address (rule 10): an app made in the US is refused. To check which you have, look at the sample code the dashboard shows for the app: its address begins `eu.conversation` or `us.conversation`.
+3. **Note three values** from the app's page or its sample code. None is a password:
+   - the **project ID** (in the sample's address, after `/projects/`);
+   - the **app ID** (`app_id` in the sample);
+   - the **sender** the sample sends from (`SMS_SENDER`), which on a trial is the test number Sinch gives you.
+4. **Make an access key** (**Settings**, **Access keys**, a new key). It has a **key ID** and a **key secret**. The secret is shown once and is a password: put it straight into Vercel, and never into a chat, an email or the repository. A secret that has been pasted anywhere else is deleted at Sinch and made again.
+5. **Add six settings in Vercel** (**Settings**, **Environment Variables**, for **Production**, which is the test copy):
+
+   | Name | Value |
+   | --- | --- |
+   | `SMS_PROVIDER` | `sinch` |
+   | `SINCH_PROJECT_ID` | the project ID |
+   | `SINCH_APP_ID` | the app ID, of the app made in the EU |
+   | `SINCH_KEY_ID` | the access key's ID |
+   | `SINCH_KEY_SECRET` | the access key's secret (mark it **Sensitive**) |
+   | `SINCH_FROM` | the sender, as the sample shows it (`+44…` on a trial), or `Gaff` once registered |
+
+   The app refuses to start with `SMS_PROVIDER=sinch` and any of these missing, so add them all before the next step.
+
+   _An older Sinch account_ has a **service plan** in place of the app and key (dashboard, **SMS**, **Service APIs**). Gaff takes that too: `SINCH_SERVICE_PLAN_ID` and `SINCH_API_TOKEN` in place of the four above, from a plan in the EU region, and `SINCH_FROM` as digits with no plus.
+6. **Redeploy** (**Deployments**, the newest one, **Redeploy**). Settings only reach a new deployment.
+7. **Check it**, with your own mobile, verified at Sinch if you're on a trial:
+   - the sign-in screen's field reads "Email or mobile number", and the banner says texts are real and asks for your own number;
+   - type your mobile and press Continue: the text arrives within a few seconds, and the code signs you in (the first time, after one more code to your email);
+   - if no text comes, the screen says "We couldn't send the text", and the reason is in Vercel's logs as "Sinch refused the SMS:" with Sinch's status. `401` is a wrong key, or an app or plan from another region; `403` and `404` are usually an app with no SMS channel, or a sender or a country the account may not use.
+8. **Before real people use it:**
+   - **Upgrade the account** (add a payment method), which lifts the trial's limits.
+   - **Register the sender name for Ireland.** ComReg's SMS Sender ID Registry is free: register the organisation and the name `Gaff` at [comreg.ie/senderid](https://www.comreg.ie/senderid), and name Sinch (Sinch Sweden AB) as the provider. Since 3 July 2025 a text from an unregistered name reads "Likely Scam"; blocking them outright has been announced and deferred, so check the date there. Ask Sinch's support whether they need anything more to carry the name, then set `SINCH_FROM=Gaff` and redeploy.
+   - **Limit where texts go and what they can cost.** At Sinch, allow only the countries in `diallingCodes` (`src/domain/auth/mobile.ts`) and set a monthly spend cap. Gaff's own cap is `SIGN_IN_TEXTS_PER_HOUR` (300 unless set).
+   - **Sign Sinch's data processing agreement** and keep a copy (rule 10). The privacy notice already names Sinch.
+   - **Send one real sign-in text to an iPhone and to an Android phone**, and check the code is offered above the keyboard.
+
+What changes on the test copy once it's on: sign-in offers a mobile number; the code to book a viewing is texted, no longer shown on the screen; and the 2-hour viewing reminder is a real text. Texts go only to a number someone typed themselves and, for reminders, confirmed with a code. A made-up number would text a stranger, which is why the banner changes.
+
+To turn it off again: set `SMS_PROVIDER=fake` and redeploy. Sign-in goes back to "Email", and nobody loses their account: a mobile number is only ever a second way in.
+
 ## Good to know
 
 - **Who can open what.** The test copy has a public address, and Vercel's sign-in (Vercel Authentication) doesn't cover it: in **Settings**, **Deployment Protection**, it covers **preview deployments only**, so testers can use the test copy on any device and previews (which share its database) stay private. What keeps the test copy safe is Gaff itself:

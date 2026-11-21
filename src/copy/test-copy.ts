@@ -8,10 +8,15 @@
 export const TEST_COPY_REPLY_NOTE =
   'This is Gaff’s test copy, which can’t receive replies by email yet. To write back, use the link in this email, or sign in to Gaff and open Enquiries.';
 
-/** The banner on every page of the test copy. */
+/**
+ * The banner on every page of the test copy. Once texts are really sent (Sinch is set up), a
+ * made-up mobile number would text a stranger, so the banner asks for the tester's own.
+ */
 export const TEST_COPY_BANNER = {
   title: 'Gaff test copy',
   body: 'Use made-up names, numbers and homes. Emails are real; texts and ID checks are stand-ins.',
+  bodyWithRealTexts:
+    'Use made-up names and homes, and your own mobile number. Emails and texts are real; ID checks are stand-ins.',
 };
 
 /** "Add test enquiries", in a live letting's menu wherever the development tools are on. */
@@ -31,6 +36,9 @@ export function testEnquiriesAdded(added: number): string {
 export const TEST_COPY_OUTBOX = {
   eyebrow: 'Test copy',
   lead: 'Email to made-up people (addresses at example.com, example.ie, .test and the like), and every text. Real people get real email. Links work as they would in a real inbox.',
+  /** Once texts are really sent, none is here. */
+  leadWithRealTexts:
+    'Email to made-up people (addresses at example.com, example.ie, .test and the like). Real people get real email, and texts go to real phones. Links work as they would in a real inbox.',
 };
 
 /** P16: where texts aren't sent, the code that would have gone by text, on the screen. */

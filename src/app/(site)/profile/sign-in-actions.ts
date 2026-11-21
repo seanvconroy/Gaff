@@ -1,22 +1,33 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { profileCopy } from '@/copy/profile';
-import { signInCopy } from '@/copy/sign-in';
+import { codeCopy, signInCopy } from '@/copy/sign-in';
 import { db } from '@/db/client';
 import { signInProviderSchema, type SignInProvider } from '@/domain/auth/methods';
+import { CODE_LENGTH } from '@/domain/auth/codes';
+import { readMobile, showMobile } from '@/domain/auth/mobile';
 import { justSignedIn } from '@/domain/auth/passkeys';
 import { auth, signInProviderModes } from '@/server/auth/auth';
 import { ConfirmationNeeded, spendConfirmation } from '@/server/auth/confirm';
 import { confirmationFor, forgetConfirmation } from '@/server/auth/confirm-request';
-import { refusal } from '@/server/auth/limits';
+import { cookieLifetimes, cookieNames, cookieOptions } from '@/server/auth/cookies';
+import { limitFromAddress, refusal } from '@/server/auth/limits';
 import { currentSession } from '@/server/auth/member';
+import {
+  addMobileWithCode,
+  mobileSignIn,
+  sendAddMobileCode,
+  textBudgetSpent,
+  textSent,
+} from '@/server/auth/mobile';
 import {
   disconnectProvider,
   removePasskey,
+  removeSignInMobile,
   renamePasskey,
   signOutDevice,
   signOutOtherDevices,
@@ -115,6 +126,92 @@ export async function connectAction(provider: string): Promise<SignInAnswer> {
   }
   if (!started.url) return { problem: profileCopy.signIn.problems.connect(names[which.data]) };
   redirect(started.url);
+}
+
+/** UX-SI-13: "Remove" the mobile number they sign in with. A code by email still gets them in. */
+export async function removeMobileAction(): Promise<SignInAnswer> {
+  const session = await signedIn();
+  return withConfirmation(session.user.id, async (confirmation) =>
+    answer(
+      await removeSignInMobile(session.user.id, confirmation),
+      profileCopy.signIn.mobileRemoved,
+    ),
+  );
+}
+
+/** What asking for the text hears back: where it went, or why it didn't go. */
+export type MobileCodeAnswer =
+  { sent: true; to: string } | { confirm: 'change_sign_in' } | { problem: string };
+
+/**
+ * UX-SI-13: "Add a mobile number", step one: a code is texted to the number, tied to this
+ * browser. They've confirmed it's them first; the confirmation is spent when the number is added.
+ */
+export async function sendMobileCodeAction(
+  typed: string,
+  dialling: string,
+): Promise<MobileCodeAnswer> {
+  const session = await signedIn();
+  if (mobileSignIn() === 'off') return { problem: signInCopy.errors.textsPaused };
+  const read = readMobile(String(typed).slice(0, 40), String(dialling).slice(0, 2));
+  if (!read.ok) {
+    return {
+      problem:
+        read.reason === 'not_texted'
+          ? signInCopy.errors.notTexted
+          : signInCopy.errors.mobileInvalid,
+    };
+  }
+  if (!(await confirmationFor(session.user.id, 'change_sign_in'))) {
+    return { confirm: 'change_sign_in' };
+  }
+  // AU12: counted by network address, and against the hour's texts, like a sign-in text.
+  const limited = await limitFromAddress('send_text', await headers());
+  if (limited) return { problem: signInCopy.errors.slowDown(limited.retryAfterSeconds) };
+  if (await textBudgetSpent()) return { problem: signInCopy.errors.textsPaused };
+  const jar = await cookies();
+  const result = await sendAddMobileCode(
+    session.user.id,
+    read.mobile,
+    jar.get(cookieNames.mobileCode)?.value ?? null,
+  );
+  if ('browserKey' in result) {
+    jar.set(cookieNames.mobileCode, result.browserKey, cookieOptions(cookieLifetimes.code));
+  }
+  if (result.sent) await textSent();
+  if (result.sent || result.reason === 'wait') return { sent: true, to: showMobile(read.mobile) };
+  return {
+    problem:
+      result.reason === 'too_many' ? signInCopy.errors.tooManyTexts : signInCopy.errors.textNotSent,
+  };
+}
+
+/** UX-SI-13: step two: the code from the text. The right one adds the number. */
+export async function addMobileAction(typed: string): Promise<SignInAnswer> {
+  const session = await signedIn();
+  const code = String(typed).replace(/\D/g, '');
+  if (code.length !== CODE_LENGTH) return { problem: codeCopy.wrongText };
+  // AU12: one try at a code, counted by network address like any other.
+  const limited = await limitFromAddress('check_code', await headers());
+  if (limited) return { problem: signInCopy.errors.slowDown(limited.retryAfterSeconds) };
+  const jar = await cookies();
+  return withConfirmation(session.user.id, async (confirmation) => {
+    // Asked before the code is tried, so a code is never used up for want of a confirmation.
+    if (!confirmation) throw new ConfirmationNeeded('change_sign_in');
+    const added = await addMobileWithCode(
+      session.user.id,
+      jar.get(cookieNames.mobileCode)?.value ?? null,
+      code,
+      async (tx) => {
+        await spendConfirmation(tx, confirmation, 'change_sign_in', session.user.id);
+      },
+    );
+    if (added === 'wrong') return { problem: codeCopy.wrongText };
+    if (added === 'finished') return { problem: codeCopy.expired };
+    jar.delete(cookieNames.mobileCode);
+    revalidatePath('/profile');
+    return { done: true, message: profileCopy.signIn.mobileAdded };
+  });
 }
 
 /** AU6: "Rename" a passkey, from its sheet. */

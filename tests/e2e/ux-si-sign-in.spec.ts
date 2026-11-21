@@ -15,7 +15,7 @@ import {
 } from './support';
 
 /**
- * UX-SI-1 to UX-SI-12: sign-in, through the real screens, at a phone's width and a laptop's.
+ * UX-SI-1 to UX-SI-15: sign-in, through the real screens, at a phone's width and a laptop's.
  * Google and Apple are the local stand-ins; passkeys use the browser's virtual authenticator.
  */
 const widths = [390, 1280] as const;
@@ -46,7 +46,7 @@ async function signOutHere(context: BrowserContext): Promise<void> {
 
 async function startWithEmail(page: Page, email: string, path = '/sign-in'): Promise<void> {
   await page.goto(path);
-  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Email or mobile number').fill(email);
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
 }
 
@@ -107,13 +107,13 @@ test('UX-SI-1, UX-SI-7: one screen to sign in or create an account, with no tagl
       page.getByRole('heading', { name: 'Sign in or create an account', level: 1 }),
     ).toBeVisible();
 
-    // In order: Google, Apple, "or", the email field and Continue, then the small print.
+    // In order: the one field and Continue, "or", Google, Apple, then the small print.
     const parts = [
+      page.getByLabel('Email or mobile number'),
+      page.getByRole('button', { name: 'Continue', exact: true }),
+      page.getByText('or', { exact: true }),
       page.getByRole('button', { name: 'Continue with Google' }),
       page.getByRole('button', { name: 'Continue with Apple' }),
-      page.getByText('or', { exact: true }),
-      page.getByLabel('Email', { exact: true }),
-      page.getByRole('button', { name: 'Continue', exact: true }),
       page.getByText('By continuing, you agree to Gaff’s'),
     ];
     let above = 0;
@@ -136,7 +136,7 @@ test('UX-SI-1, UX-SI-7: one screen to sign in or create an account, with no tagl
     // No passwords anywhere (UX-SI-1).
     await expect(page.locator('input[type=password]')).toHaveCount(0);
     // UX-SI-5: the browser may offer a saved passkey on the email field.
-    await expect(page.getByLabel('Email', { exact: true })).toHaveAttribute(
+    await expect(page.getByLabel('Email or mobile number')).toHaveAttribute(
       'autocomplete',
       'username webauthn',
     );
@@ -311,9 +311,9 @@ test('UX-SI-2: the email that didn’t send, and the pressed button showing prog
   for (const width of widths) {
     await page.setViewportSize(viewport(width));
     await page.goto('/sign-in');
-    await page.getByLabel('Email', { exact: true }).fill('nobody@undeliverable.gaff.test');
+    await page.getByLabel('Email or mobile number').fill('nobody@undeliverable.gaff.test');
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
-    const email = page.getByLabel('Email', { exact: true });
+    const email = page.getByLabel('Email or mobile number');
     // At the field, never in a box at the top.
     await expect(email).toHaveAttribute('aria-invalid', 'true');
     await expect(email).toHaveAccessibleDescription(
@@ -327,7 +327,9 @@ test('UX-SI-2: the email that didn’t send, and the pressed button showing prog
     // An address that isn't one: said at the field too.
     await email.fill('not an address');
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
-    await expect(email).toHaveAccessibleDescription(/Enter an email address, like ann@example\.ie/);
+    await expect(email).toHaveAccessibleDescription(
+      /Enter an email address or a mobile number, like 087 123 4567/,
+    );
   }
 
   // Loading: the pressed button shows progress and the others are disabled.
@@ -338,7 +340,7 @@ test('UX-SI-2: the email that didn’t send, and the pressed button showing prog
     if (route.request().method() === 'POST') await held;
     await route.continue();
   });
-  await page.getByLabel('Email', { exact: true }).fill(uniqueEmail('loading'));
+  await page.getByLabel('Email or mobile number').fill(uniqueEmail('loading'));
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Sending your code…' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeDisabled();
@@ -392,17 +394,34 @@ test('UX-SI-1, UX-SI-8, UX-SI-11: Google and Apple, joined to one person by a ve
     const remembered = (await context.cookies()).find((c) => c.name === 'gaff_last_method');
     expect(remembered?.value).toBe('google');
 
-    // AU4 (BA-8): Apple doesn't look after a work address, so it can't join her by it. She's
-    // back on the sign-in screen with one plain line, and a code gets her in as herself. She can
-    // connect Apple from Profile once signed in (ba8-how-you-sign-in.spec.ts).
+    // AU4, UX-SI-15: Apple doesn't look after a work address, so it can't join her by it. A
+    // code goes to the address as Apple comes back, and she lands on the code screen: no
+    // starting again. Entering it signs her in as herself and connects Apple, in one step.
     await throughStandIn(page, 'Apple', { email });
-    await expect(page).toHaveURL(/\/sign-in\?/);
+    await onCodeScreen(page);
     await expect(
-      page.getByText('Apple can’t confirm that email is still yours.', { exact: false }),
+      page.getByText(
+        `Apple can’t confirm ${email} is still yours, so we sent a six-digit code to it.`,
+        { exact: false },
+      ),
     ).toBeVisible();
     await expectAccessible(page);
-    await screenshot(page, `ba8-sign-in-not-joined-${width}`);
-    await signIn(page, email);
+    await screenshot(page, `ux-si-provider-code-${width}`);
+    await page.getByLabel('Six-digit code').fill(await latestCodeFor(email));
+    // "We've found your account": signed in, and told what was joined and where to change it.
+    await expect(
+      page.getByRole('heading', { name: 'We’ve found your account', level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByText(`You’re signed in as ${email}.`)).toBeVisible();
+    await expect(
+      page.getByText('Apple is connected. You can sign in with it from now on.'),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/sign-in\/found\?joined=apple$/);
+    await expectNoSidewaysScroll(page);
+    await expectAccessible(page);
+    await screenshot(page, `ux-si-found-apple-${width}`);
+    await page.getByRole('link', { name: 'Continue', exact: true }).click();
+    await signedIn(page);
     expect((await usersWith(email)).map((user) => user.id)).toEqual([person!.id]);
     const methods = await rows<{ provider_id: string; kept: number }>(
       `select provider_id,
@@ -411,12 +430,21 @@ test('UX-SI-1, UX-SI-8, UX-SI-11: Google and Apple, joined to one person by a ve
       [person!.id],
     );
     // Sign-in only (Q30): nothing the provider hands over beyond who it is is kept.
-    expect(methods).toEqual([{ provider_id: 'google', kept: 0 }]);
+    expect(methods).toEqual([
+      { provider_id: 'apple', kept: 0 },
+      { provider_id: 'google', kept: 0 },
+    ]);
+    // From then on Apple signs her straight in, as the same person.
+    await signOutHere(context);
+    await page.goto('/sign-in');
+    await expect(page.getByText('You used Apple last time.')).toBeVisible();
+    await throughStandIn(page, 'Apple', { email });
+    await signedIn(page);
+    expect((await usersWith(email)).map((user) => user.id)).toEqual([person!.id]);
 
     // UX-SI-11: Apple's "Hide My Email": the relay address is the person's email.
     await signOutHere(context);
     await page.goto('/sign-in');
-    await expect(page.getByText('You used your email last time.')).toBeVisible();
     await throughStandIn(page, 'Apple', {
       name: 'Cian Byrne',
       email: uniqueEmail('cian'),
@@ -541,7 +569,7 @@ test('UX-SI-4, UX-SI-5: a passkey is offered after sign-in, and signs a returnin
     await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Continue with Apple' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeEnabled();
-    await expect(page.getByLabel('Email', { exact: true })).toBeEditable();
+    await expect(page.getByLabel('Email or mobile number')).toBeEditable();
     await expect(page).toHaveURL(/\/sign-in$/);
 
     // They take the browser's offer (their touch, here): signed in, with no code and no email.

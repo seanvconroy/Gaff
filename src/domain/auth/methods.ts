@@ -2,9 +2,9 @@ import { z } from 'zod';
 
 /**
  * UX-SI-1: the ways a person can sign in. There are no passwords. The same codes split the
- * sign-in funnel (UX-ME-1).
+ * sign-in funnel (UX-ME-1). `sms_code` is a six-digit code by text to a mobile (UX-SI-13).
  */
-export const signInMethods = ['email_code', 'google', 'apple', 'passkey'] as const;
+export const signInMethods = ['email_code', 'sms_code', 'google', 'apple', 'passkey'] as const;
 export const signInMethodSchema = z.enum(signInMethods);
 export type SignInMethod = z.infer<typeof signInMethodSchema>;
 
@@ -65,10 +65,26 @@ export function isProviderCancel(error: string): boolean {
  * the session can keep it. Null for anything that isn't a sign-in.
  */
 export function methodForPath(path: string, providerId?: string): SignInMethod | null {
-  if (path === '/gaff/sign-in/code' || path === '/gaff/sign-in/link') return 'email_code';
+  // A code: by email unless the endpoint says it came by text (`codeMethod`, below).
+  if (isCodePath(path)) return 'email_code';
   if (path === '/passkey/verify-authentication') return 'passkey';
   // Coming back from Google or Apple: the route is "/callback/:id", or the path with its name.
   if (!path.startsWith('/callback/')) return null;
   const id = providerId ?? path.slice('/callback/'.length);
   return id === 'google' || id === 'apple' ? id : null;
+}
+
+/** Gaff's own endpoints that take a code, typed or by the email's button. */
+export function isCodePath(path: string): boolean {
+  return path === '/gaff/sign-in/code' || path === '/gaff/sign-in/link';
+}
+
+/**
+ * UX-SI-13: a code is the one way in that comes two ways, and the route is the same for both.
+ * So Gaff's code endpoint names which it was as it makes the session, and that is believed only
+ * there: for any other route the method comes from the route, and never from a browser.
+ */
+export function codeMethod(path: string, named: unknown): SignInMethod | null {
+  if (!isCodePath(path)) return null;
+  return named === 'sms_code' ? 'sms_code' : 'email_code';
 }

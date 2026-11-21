@@ -723,7 +723,7 @@ test('UX-AG-5: a founder sets a pilot agency up, and its first admin joins with 
     await expect(page).toHaveURL(/\/sign-in\?next=%2Fjoin%2F/);
     // UX-AG-11: sign-in says "Join {agency}", with the invited address filled in.
     await expect(page.getByRole('heading', { level: 1, name: `Join ${agency}` })).toBeVisible();
-    await expect(page.getByLabel('Email', { exact: true })).toHaveValue(admin);
+    await expect(page.getByLabel('Email or mobile number')).toHaveValue(admin);
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Enter your code' })).toBeVisible();
     await page.getByLabel('Six-digit code').fill(await latestCodeFor(admin));

@@ -12,6 +12,7 @@ import { safeNextPath } from '@/domain/auth/next-path';
 import { signInProviderModes } from '@/server/auth/auth';
 import { cookieNames } from '@/server/auth/cookies';
 import { currentUser } from '@/server/auth/member';
+import { mobileSignIn } from '@/server/auth/mobile';
 import { newSignInAttempt } from '@/server/auth/sign-in-steps';
 import { inviteTokenIn, openInvite } from '@/server/team/invite-links';
 import { SignInScreen } from './SignInScreen';
@@ -20,8 +21,8 @@ export const metadata: Metadata = { title: signInCopy.title };
 export const dynamic = 'force-dynamic';
 
 /**
- * UX-SI-1: one screen for new and returning people. Google, Apple, or an email address for a
- * six-digit code. `?next=` is where to go afterwards, if it's a path on this site (UX-SI-8).
+ * UX-SI-1, UX-SI-13: one screen for new and returning people. An email address or a mobile
+ * number for a six-digit code, or Google or Apple. `?next=` is where to go afterwards, if it's a path on this site (UX-SI-8).
  *
  * UX-AG-11: on the way to an invite (`next` is its `/join/{token}`), the screen is titled "Join
  * {agency}" and the invited address is filled in.
@@ -56,6 +57,8 @@ export default async function SignInPage({
       attempt={newSignInAttempt()}
       next={next}
       providers={signInProviders.filter((provider) => modes[provider] !== 'off')}
+      // UX-SI-13: where texts are sent, the one field takes a mobile number as well as an email.
+      byText={mobileSignIn() !== 'off'}
       // UX-SI-6: the method used last on this device. Only its code is kept, on the device.
       lastMethod={signInMethodFrom((await cookies()).get(cookieNames.lastMethod)?.value)}
       providerProblem={providerProblem}

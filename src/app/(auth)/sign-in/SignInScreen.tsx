@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { useActionState, useEffect, useState } from 'react';
 import { signInCopy } from '@/copy/sign-in';
 import type { SignInMethod, SignInProvider } from '@/domain/auth/methods';
-import { emptyFormState } from '@/lib/forms';
+import { DEFAULT_DIALLING_ISO, diallingCodes, looksLikeMobile } from '@/domain/auth/mobile';
+import { emptyFormState, type FormState } from '@/lib/forms';
 import { Button } from '@/ui/Button';
-import { FieldError, TextField } from '@/ui/Field';
+import { FieldError, SelectField, TextField } from '@/ui/Field';
 import { authClient, canOfferPasskeyOnField, deviceCanKeepPasskey } from '../auth-client';
-import { continueWithEmail, continueWithProvider, signInScreenOpened } from './actions';
+import { continueWithIdentifier, continueWithProvider, signInScreenOpened } from './actions';
 import { ProviderLogo } from './ProviderLogo';
 import styles from './sign-in.module.css';
 
@@ -27,7 +28,7 @@ function useScreenOpened(attempt: string): void {
 
 /**
  * UX-SI-5: a returning person with a passkey is offered it first, by the browser's own prompt on
- * the email field. Choosing it signs them in; ignoring it changes nothing, and the other methods
+ * the email (or mobile number) field. Choosing it signs them in; ignoring it changes nothing, and the other methods
  * stay on the screen. Also notes whether this device can keep a passkey, for the offer after
  * sign-in (UX-SI-4): a yes or no in a cookie, nothing else.
  */
@@ -52,10 +53,61 @@ function usePasskeyOnField(returnTo: string, onSignedIn: () => void): void {
   }, []);
 }
 
+const diallingOptions = diallingCodes.map((entry) => ({
+  value: entry.iso,
+  label: signInCopy.diallingCode(entry.name, entry.code),
+}));
+
+/**
+ * UX-SI-13: one field for an email address or a mobile number. Once what's typed is a number
+ * with no country code of its own, a picker for the code appears under it, Ireland first. It
+ * comes in below the field, so nothing moves under the thumb that's typing.
+ */
+function Identifier({
+  byText,
+  state,
+  prefilled,
+}: {
+  byText: boolean;
+  state: FormState;
+  prefilled: string | undefined;
+}) {
+  const [typed, setTyped] = useState(state.values?.identifier ?? prefilled ?? '');
+  const start = typed.trim();
+  const pickCode = byText && looksLikeMobile(typed) && !/^(\+|00)/.test(start);
+  return (
+    <>
+      <TextField
+        name="identifier"
+        label={byText ? signInCopy.identifierLabel : signInCopy.emailLabel}
+        type={byText ? 'text' : 'email'}
+        // UX-SI-5: "webauthn" lets the browser offer a saved passkey on this field.
+        autoComplete="username webauthn"
+        inputMode="email"
+        autoCapitalize="off"
+        spellCheck={false}
+        defaultValue={typed}
+        onChange={(event) => setTyped(event.target.value)}
+        error={state.errors?.identifier}
+      />
+      {pickCode ? (
+        <SelectField
+          name="dialling"
+          label={signInCopy.diallingCodeLabel}
+          autoComplete="tel-country-code"
+          defaultValue={state.values?.dialling ?? DEFAULT_DIALLING_ISO}
+          options={diallingOptions}
+        />
+      ) : null}
+    </>
+  );
+}
+
 export function SignInScreen({
   attempt,
   next,
   providers,
+  byText,
   lastMethod,
   providerProblem,
   invite = null,
@@ -63,6 +115,8 @@ export function SignInScreen({
   attempt: string;
   next: string | null;
   providers: SignInProvider[];
+  /** UX-SI-13: whether a code can go by text here, so the field takes a mobile number too. */
+  byText: boolean;
   lastMethod: SignInMethod | null;
   /** Google or Apple came back with a problem that wasn't the person cancelling, in words. */
   providerProblem: { provider: SignInProvider; words: string } | null;
@@ -71,7 +125,10 @@ export function SignInScreen({
 }) {
   // The try this screen opened with stays the same for as long as the screen is up.
   const [attemptId] = useState(attempt);
-  const [emailState, emailAction, emailPending] = useActionState(continueWithEmail, emptyFormState);
+  const [emailState, emailAction, emailPending] = useActionState(
+    continueWithIdentifier,
+    emptyFormState,
+  );
   const [googleState, googleAction, googlePending] = useActionState(
     continueWithProvider,
     emptyFormState,
@@ -109,9 +166,24 @@ export function SignInScreen({
         {lastMethod ? <p className={styles.lead}>{signInCopy.lastUsed(lastMethod)}</p> : null}
       </div>
 
+      {/* The field first, then "or", then Google and Apple: one primary button, "Continue". */}
       <div className={styles.methods}>
+        <form
+          key={emailState.attempt ?? 'first'}
+          action={emailAction}
+          className={styles.email}
+          noValidate
+        >
+          {carried}
+          <Identifier byText={byText} state={emailState} prefilled={invite?.email} />
+          <Button type="submit" variant="primary" fullWidth disabled={busy}>
+            {emailPending ? signInCopy.sending : signInCopy.continue}
+          </Button>
+        </form>
+
         {providers.length > 0 ? (
           <>
+            <p className={styles.divider}>{signInCopy.or}</p>
             <div className={styles.providers}>
               {providers.map((name) => {
                 const error =
@@ -137,33 +209,8 @@ export function SignInScreen({
                 );
               })}
             </div>
-            <p className={styles.divider}>{signInCopy.or}</p>
           </>
         ) : null}
-
-        <form
-          key={emailState.attempt ?? 'first'}
-          action={emailAction}
-          className={styles.email}
-          noValidate
-        >
-          {carried}
-          <TextField
-            name="email"
-            label={signInCopy.emailLabel}
-            type="email"
-            // UX-SI-5: "webauthn" lets the browser offer a saved passkey on this field.
-            autoComplete="username webauthn"
-            inputMode="email"
-            autoCapitalize="off"
-            spellCheck={false}
-            defaultValue={emailState.values?.email ?? invite?.email}
-            error={emailState.errors?.email}
-          />
-          <Button type="submit" variant="primary" fullWidth disabled={busy}>
-            {emailPending ? signInCopy.sending : signInCopy.continue}
-          </Button>
-        </form>
       </div>
 
       <p className={styles.smallPrint}>

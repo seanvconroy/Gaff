@@ -12,10 +12,12 @@ import {
 import { ConfirmItsYou } from '@/app/(auth)/confirm/ConfirmItsYou';
 import { authClient } from '@/app/(auth)/auth-client';
 import { profileCopy } from '@/copy/profile';
-import { staffPasskeyCopy } from '@/copy/sign-in';
+import { codeCopy, signInCopy, staffPasskeyCopy } from '@/copy/sign-in';
 import type { SignInProvider } from '@/domain/auth/methods';
+import { DEFAULT_DIALLING_ISO, diallingCodes } from '@/domain/auth/mobile';
 import { Button } from '@/ui/Button';
-import { FieldError, TextField } from '@/ui/Field';
+import { CodeInput } from '@/ui/CodeInput';
+import { FieldError, SelectField, TextField } from '@/ui/Field';
 import { Stack } from '@/ui/Layout';
 import { Notice } from '@/ui/Notice';
 import { Sheet } from '@/ui/Sheet';
@@ -23,12 +25,15 @@ import { SummaryList } from '@/ui/SummaryList';
 import { useToast } from '@/ui/Toast';
 import styles from './profile.module.css';
 import {
+  addMobileAction,
   connectAction,
   disconnectAction,
   passkeyAddedAction,
   readyToAddPasskey,
+  removeMobileAction,
   removePasskeyAction,
   renamePasskeyAction,
+  sendMobileCodeAction,
   signOutDeviceAction,
   signOutOthersAction,
   type SignInAnswer,
@@ -37,6 +42,10 @@ import {
 /** What "Sign-in" and "Signed-in devices" show, already in words. Built by the page. */
 export interface SignInView {
   email: string;
+  /** UX-SI-13: the mobile number they sign in with, masked ("087 ••• 4567"), if they have one. */
+  mobile: string | null;
+  /** Whether a mobile number can be added here: only where texts are really sent. */
+  canAddMobile: boolean;
   hasPasskey: boolean;
   providers: {
     provider: SignInProvider;
@@ -56,6 +65,10 @@ export interface SignInView {
 }
 
 const c = profileCopy.signIn;
+const diallingOptions = diallingCodes.map((entry) => ({
+  value: entry.iso,
+  label: signInCopy.diallingCode(entry.name, entry.code),
+}));
 const noChange = () => () => {};
 const d = profileCopy.devices;
 
@@ -75,6 +88,12 @@ export function SignInSection({ view }: { view: SignInView }) {
   const [confirmKey, setConfirmKey] = useState(0);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [renameProblem, setRenameProblem] = useState<string | null>(null);
+  // UX-SI-13: adding a mobile number: the number, then the code texted to it.
+  const [adding, setAdding] = useState<{ step: 'number' } | { step: 'code'; to: string } | null>(
+    null,
+  );
+  const [addProblem, setAddProblem] = useState<string | null>(null);
+  const [codeTry, setCodeTry] = useState(0);
   // A passkey can be added only where the browser can make one: known once the page is here.
   const canAdd = useSyncExternalStore(
     noChange,
@@ -111,12 +130,29 @@ export function SignInSection({ view }: { view: SignInView }) {
       if ('confirm' in answer) return askToConfirm(() => change(what, call, after));
       if ('problem' in answer) {
         if (what.startsWith('rename')) setRenameProblem(answer.problem);
-        else setProblem(answer.problem);
+        else if (what.startsWith('add-mobile')) {
+          setAddProblem(answer.problem);
+          // A new input after each answer: a wrong code clears it.
+          setCodeTry((n) => n + 1);
+        } else setProblem(answer.problem);
         return;
       }
       toast.show({ message: answer.message });
       after?.(answer);
       router.refresh();
+    });
+  };
+
+  /** UX-SI-13: texts the code to the number typed, once they've confirmed it's them. */
+  const textTheCode = (typed: string, dialling: string) => {
+    setBusy('add-mobile');
+    setAddProblem(null);
+    startTransition(async () => {
+      const answer = await sendMobileCodeAction(typed, dialling);
+      setBusy(null);
+      if ('confirm' in answer) return askToConfirm(() => textTheCode(typed, dialling));
+      if ('problem' in answer) return setAddProblem(answer.problem);
+      setAdding({ step: 'code', to: answer.to });
     });
   };
 
@@ -178,6 +214,45 @@ export function SignInSection({ view }: { view: SignInView }) {
         <SummaryList
           rows={[
             { label: c.codeByEmail, value: c.codeTo },
+            // UX-SI-13: listed once they have one. It's added by signing in with it.
+            ...(view.mobile
+              ? [
+                  {
+                    label: c.codeByText,
+                    value: c.codeToMobile(view.mobile),
+                    action: (
+                      <Button
+                        variant="quiet"
+                        disabled={busy !== null}
+                        onClick={() => change('remove-mobile', () => removeMobileAction())}
+                      >
+                        {c.remove}
+                        <span className="visually-hidden"> {c.codeByTextNamed}</span>
+                      </Button>
+                    ),
+                  },
+                ]
+              : view.canAddMobile
+                ? [
+                    {
+                      label: c.codeByText,
+                      value: <span className={styles.nothing}>{c.mobileNone}</span>,
+                      action: (
+                        <Button
+                          variant="quiet"
+                          disabled={busy !== null}
+                          onClick={() => {
+                            setAddProblem(null);
+                            setAdding({ step: 'number' });
+                          }}
+                        >
+                          {profileCopy.add}
+                          <span className="visually-hidden"> {c.codeByTextNamed}</span>
+                        </Button>
+                      ),
+                    },
+                  ]
+                : []),
             ...providerRows,
             ...view.passkeys.map((key) => ({
               label: key.name,
@@ -296,6 +371,94 @@ export function SignInSection({ view }: { view: SignInView }) {
               error={renameProblem ?? undefined}
             />
           </form>
+        ) : null}
+      </Sheet>
+
+      <Sheet
+        open={adding !== null && !confirming}
+        onClose={() => setAdding(null)}
+        title={c.addMobile.title}
+        description={adding?.step === 'code' ? codeCopy.leadText(adding.to) : c.addMobile.lead}
+        footer={
+          adding?.step === 'code' ? (
+            <Button
+              variant="quiet"
+              fullWidth="phone"
+              disabled={busy !== null}
+              onClick={() => {
+                setAddProblem(null);
+                setAdding({ step: 'number' });
+              }}
+            >
+              {c.addMobile.different}
+            </Button>
+          ) : (
+            <div className={styles.sheetButtons}>
+              <Button
+                type="submit"
+                form="add-mobile"
+                variant="primary"
+                fullWidth="phone"
+                disabled={busy !== null}
+              >
+                {busy === 'add-mobile' ? c.addMobile.sending : c.addMobile.send}
+              </Button>
+              <Button variant="quiet" fullWidth="phone" onClick={() => setAdding(null)}>
+                {profileCopy.cancel}
+              </Button>
+            </div>
+          )
+        }
+      >
+        {adding?.step === 'number' ? (
+          <form
+            id="add-mobile"
+            noValidate
+            onSubmit={(event) => {
+              event.preventDefault();
+              const form = new FormData(event.currentTarget);
+              textTheCode(String(form.get('mobileNumber') ?? ''), String(form.get('dialling')));
+            }}
+          >
+            <Stack gap={4}>
+              <SelectField
+                name="dialling"
+                label={signInCopy.diallingCodeLabel}
+                autoComplete="tel-country-code"
+                defaultValue={DEFAULT_DIALLING_ISO}
+                options={diallingOptions}
+              />
+              <TextField
+                name="mobileNumber"
+                label={c.addMobile.label}
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel-national"
+                error={addProblem ?? undefined}
+              />
+            </Stack>
+          </form>
+        ) : null}
+        {adding?.step === 'code' ? (
+          <>
+            <CodeInput
+              key={codeTry}
+              name="mobileCode"
+              label={c.addMobile.codeLabel}
+              error={addProblem ?? undefined}
+              autoFocus
+              onComplete={(code) =>
+                change(
+                  'add-mobile-code',
+                  () => addMobileAction(code),
+                  () => setAdding(null),
+                )
+              }
+            />
+            <p className="visually-hidden" role="status">
+              {busy === 'add-mobile-code' ? c.addMobile.checking : ''}
+            </p>
+          </>
         ) : null}
       </Sheet>
 

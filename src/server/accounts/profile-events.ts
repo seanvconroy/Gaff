@@ -89,8 +89,10 @@ export const profileEventCatalogue = {
    * BA-8 (AU6, AU7, AU11): a way in was added to or taken off the person's account: Google or
    * Apple connected or disconnected, a passkey added or removed. Which kind: never its name.
    */
-  'profile.sign_in_added': z.object({ method: z.enum(['google', 'apple', 'passkey']) }),
-  'profile.sign_in_removed': z.object({ method: z.enum(['google', 'apple', 'passkey']) }),
+  'profile.sign_in_added': z.object({ method: z.enum(['google', 'apple', 'passkey', 'mobile']) }),
+  'profile.sign_in_removed': z.object({
+    method: z.enum(['google', 'apple', 'passkey', 'mobile']),
+  }),
   /** AU6: one of their passkeys was renamed. The name itself is theirs, and isn't here. */
   'profile.passkey_renamed': z.object({}),
   /** AU8: they signed other devices out: one, or all the others. */

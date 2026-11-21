@@ -296,3 +296,45 @@ describe('BA-5: the map’s provider (the live line’s ADR-0027)', () => {
     expect(readEnvironment({ ...preview, VERCEL_ENV: 'production' }).MAP_PROVIDER).toBe('google');
   });
 });
+
+describe('UX-SI-13, Q61: Sinch is set up whole, with either kind of credential', () => {
+  const noSinch = {
+    ...production,
+    SINCH_SERVICE_PLAN_ID: undefined,
+    SINCH_API_TOKEN: undefined,
+  };
+  const accessKey = {
+    SINCH_PROJECT_ID: 'project',
+    SINCH_APP_ID: 'app',
+    SINCH_KEY_ID: 'key',
+    SINCH_KEY_SECRET: 'secret',
+  };
+
+  it('starts with a service plan and its token', () => {
+    expect(environmentProblems(production)).toEqual([]);
+  });
+
+  it('starts with a project, an app and an access key in their place', () => {
+    expect(environmentProblems({ ...noSinch, ...accessKey })).toEqual([]);
+  });
+
+  it('refuses half of either, and names what is missing', () => {
+    expect(environmentProblems({ ...production, SINCH_API_TOKEN: undefined })).toEqual([
+      'SINCH_API_TOKEN',
+    ]);
+    expect(environmentProblems({ ...noSinch, ...accessKey, SINCH_KEY_SECRET: undefined })).toEqual([
+      'SINCH_KEY_SECRET',
+    ]);
+    // Nothing given: the newer kind is asked for.
+    expect(environmentProblems(noSinch)).toEqual([
+      'SINCH_PROJECT_ID',
+      'SINCH_APP_ID',
+      'SINCH_KEY_ID',
+      'SINCH_KEY_SECRET',
+    ]);
+  });
+
+  it('always needs what texts come from', () => {
+    expect(environmentProblems({ ...production, SINCH_FROM: undefined })).toEqual(['SINCH_FROM']);
+  });
+});

@@ -59,7 +59,7 @@ Sean asked for Airbnb's standard: a phone number or an email with a one-time cod
 
 Left open, on purpose. The calls made while building it that are Sean's to make are banked in Q61, as a list:
 
-- **Nothing is texted until Sinch is set up.** On the test copy the field still reads "Email". The steps are in `docs/deploy.md`, "Setting up Sinch": four settings in Vercel, then a sender registered for Ireland and a spend cap before real people use it. Not yet run against a real Sinch account.
+- **Nothing is texted until Sinch is set up.** On the test copy the field still reads "Email". The steps are in `docs/deploy.md`, "Setting up Sinch": an app in Sinch's EU region and a handful of settings in Vercel, then a sender registered for Ireland and a spend cap before real people use it. Not yet run against a real Sinch account.
 - **A text alone opens any account**, an agent's included. "Confirm it's you" is still a passkey or an email code. Sean to say if people who let homes should need more.
 - **Real Google and Apple** haven't been through the new code step: the stand-in has. The provider's own ID for the person is read from `sub` in its token.
 - **For the solicitor:** the text, the lines the sign-in email gains, the "mobile number added/removed" emails, and the privacy notice's new paragraph.

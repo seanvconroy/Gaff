@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { msisdn, sinchRefusal, sinchSms } from './index';
+import { msisdn, sinchConversationSms, sinchRefusal, sinchSms } from './index';
 
 const config = { servicePlanId: 'plan-123', token: 'made-up-token', from: 'Gaff' };
 
@@ -59,5 +59,63 @@ describe('UX-SI-13, P16: texts through Sinch', () => {
     await expect(sinchSms(config).send({ to: '+353871234567', body: 'x' })).rejects.toThrow(
       'Sinch did not return a batch id',
     );
+  });
+});
+
+describe('UX-SI-13, Q61: texts through Sinch with a project, an app and an access key', () => {
+  const access = {
+    projectId: 'project-1',
+    appId: 'app-1',
+    keyId: 'key-id',
+    keySecret: 'made-up-secret',
+    from: 'Gaff',
+  };
+
+  it('sends through the EU region, and asks Sinch to keep no contact or conversation', async () => {
+    const fetched = answering(200, { message_id: 'message-1', accepted_time: 'now' });
+    const sent = await sinchConversationSms(access).send({
+      to: '+353871234567',
+      body: 'Your code is 042917.',
+    });
+    expect(sent).toEqual({ providerMessageId: 'message-1' });
+    const [url, request] = fetched.mock.calls[0] as unknown as [string, RequestInit];
+    // Rule 10: the EU region, never the US one.
+    expect(url).toBe('https://eu.conversation.api.sinch.com/v1/projects/project-1/messages:send');
+    expect(new Headers(request.headers).get('authorization')).toBe(
+      `Basic ${Buffer.from('key-id:made-up-secret').toString('base64')}`,
+    );
+    expect(JSON.parse(String(request.body))).toEqual({
+      app_id: 'app-1',
+      recipient: {
+        identified_by: { channel_identities: [{ channel: 'SMS', identity: '+353871234567' }] },
+      },
+      channel_properties: { SMS_SENDER: 'Gaff' },
+      message: { text_message: { text: 'Your code is 042917.' } },
+      // Sent and no more: no contact and no conversation is made for the number.
+      processing_mode: 'DISPATCH',
+    });
+  });
+
+  it('fails when Sinch refuses, in its words, without the number', async () => {
+    answering(403, {
+      error: {
+        code: 403,
+        status: 'PERMISSION_DENIED',
+        message: 'No SMS channel for +353871234567',
+      },
+    });
+    const failed = await sinchConversationSms(access)
+      .send({ to: '+353871234567', body: 'x' })
+      .catch((error: Error) => error.message);
+    expect(failed).toBe(
+      'Sinch refused the SMS: 403 PERMISSION_DENIED: No SMS channel for [number]',
+    );
+  });
+
+  it('fails when Sinch answers without a message', async () => {
+    answering(200, {});
+    await expect(
+      sinchConversationSms(access).send({ to: '+353871234567', body: 'x' }),
+    ).rejects.toThrow('Sinch did not return a message id');
   });
 });

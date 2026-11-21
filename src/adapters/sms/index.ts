@@ -29,8 +29,16 @@ export function msisdn(mobile: string): string {
 export function sinchRefusal(status: number, answer: string): string {
   let said = answer;
   try {
-    const parsed = JSON.parse(answer) as { code?: unknown; text?: unknown };
-    said = [parsed.code, parsed.text].filter((part) => typeof part === 'string').join(': ');
+    // Two shapes: the SMS API's { code, text }, and the Conversation API's { error: { status,
+    // message } }.
+    const parsed = JSON.parse(answer) as {
+      code?: unknown;
+      text?: unknown;
+      error?: { status?: unknown; message?: unknown };
+    };
+    said = [parsed.code, parsed.text, parsed.error?.status, parsed.error?.message]
+      .filter((part) => typeof part === 'string')
+      .join(': ');
   } catch {
     // Not JSON: its words as they came.
   }
@@ -62,13 +70,63 @@ export function sinchSms(config: {
   };
 }
 
+/**
+ * Sinch's EU region through its Conversation API, which is what a new Sinch account is set up
+ * for: a project, an app made in the EU region, and an access key (Q61).
+ *
+ * `DISPATCH` sends the text and keeps nothing more: Sinch makes no contact and no conversation
+ * for the number, as it would by default. A sign-in code isn't a conversation.
+ */
+export function sinchConversationSms(config: {
+  projectId: string;
+  appId: string;
+  keyId: string;
+  keySecret: string;
+  from: string;
+}): SmsSender {
+  const basic = Buffer.from(`${config.keyId}:${config.keySecret}`).toString('base64');
+  return {
+    async send({ to, body }) {
+      const response = await fetch(
+        `https://eu.conversation.api.sinch.com/v1/projects/${config.projectId}/messages:send`,
+        {
+          method: 'POST',
+          headers: { authorization: `Basic ${basic}`, 'content-type': 'application/json' },
+          body: JSON.stringify({
+            app_id: config.appId,
+            recipient: {
+              identified_by: { channel_identities: [{ channel: 'SMS', identity: to }] },
+            },
+            channel_properties: { SMS_SENDER: config.from },
+            message: { text_message: { text: body } },
+            processing_mode: 'DISPATCH',
+          }),
+        },
+      );
+      if (!response.ok) throw new Error(sinchRefusal(response.status, await response.text()));
+      const json = (await response.json()) as { message_id?: string };
+      if (!json.message_id) throw new Error('Sinch did not return a message id');
+      return { providerMessageId: json.message_id };
+    },
+  };
+}
+
 export function smsSender(): SmsSender {
   const config = env();
-  return config.SMS_PROVIDER === 'sinch'
-    ? sinchSms({
-        servicePlanId: config.SINCH_SERVICE_PLAN_ID!,
-        token: config.SINCH_API_TOKEN!,
-        from: config.SINCH_FROM!,
-      })
-    : fakeSms;
+  if (config.SMS_PROVIDER !== 'sinch') return fakeSms;
+  // The settings are checked whole as the app starts (src/lib/env.ts): one kind or the other.
+  if (config.SINCH_SERVICE_PLAN_ID && config.SINCH_API_TOKEN) {
+    return sinchSms({
+      servicePlanId: config.SINCH_SERVICE_PLAN_ID,
+      token: config.SINCH_API_TOKEN,
+      from: config.SINCH_FROM!,
+    });
+  }
+  return sinchConversationSms({
+    projectId: config.SINCH_PROJECT_ID!,
+    appId: config.SINCH_APP_ID!,
+    keyId: config.SINCH_KEY_ID!,
+    keySecret: config.SINCH_KEY_SECRET!,
+    from: config.SINCH_FROM!,
+  });
 }

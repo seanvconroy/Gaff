@@ -305,26 +305,31 @@ Sinch sends every text: sign-in codes, the code to book a viewing, and the 2-hou
 Sinch's own screens change. Where a label below doesn't match, look for the same thing by what it is: a _service plan ID_, an _API token_ and a _region_.
 
 1. **Make the account** at [sinch.com](https://sinch.com) ("Build" dashboard), as the company. A trial is enough to prove it works. On a trial, Sinch sends your words only to numbers you have verified there (the one you signed up with, and up to five in all); to any other number it sends its own test words, with no code. It gives a small credit and a test number to send from.
-2. **Use the EU region.** In the dashboard, under SMS, open **APIs** (the REST configuration). Make sure the service plan shown is for the **EU** region, and create one there if not. Gaff only ever calls `eu.sms.api.sinch.com`, so a US plan's ID and token are refused.
-3. **Copy two values** from that page: the **service plan ID** and its **API token**. The token is a password: put it straight into Vercel, and never into a chat, an email or the repository.
-4. **Choose what texts come from** (`SINCH_FROM`):
-   - on a trial, the test number Sinch gives you, as digits with the country code (no plus);
-   - for real use, a name of up to 11 letters and digits, `Gaff`. In Ireland a name must be registered first (step 8), or phones show "Likely Scam" in its place.
-5. **Add four settings in Vercel** (**Settings**, **Environment Variables**, for **Production**, which is the test copy):
+2. **Make an app in the EU region.** A new account is set up for Sinch's Conversation API: a _project_, an _app_ and an _access key_. In the dashboard, open **Conversation API**, **Apps**, make a new app, choose **Europe (EU)** as its region, and add the **SMS** channel to it. The region can't be changed afterwards, and Gaff only ever calls Sinch's EU address (rule 10): an app made in the US is refused. To check which you have, look at the sample code the dashboard shows for the app: its address begins `eu.conversation` or `us.conversation`.
+3. **Note three values** from the app's page or its sample code. None is a password:
+   - the **project ID** (in the sample's address, after `/projects/`);
+   - the **app ID** (`app_id` in the sample);
+   - the **sender** the sample sends from (`SMS_SENDER`), which on a trial is the test number Sinch gives you.
+4. **Make an access key** (**Settings**, **Access keys**, a new key). It has a **key ID** and a **key secret**. The secret is shown once and is a password: put it straight into Vercel, and never into a chat, an email or the repository. A secret that has been pasted anywhere else is deleted at Sinch and made again.
+5. **Add six settings in Vercel** (**Settings**, **Environment Variables**, for **Production**, which is the test copy):
 
    | Name | Value |
    | --- | --- |
    | `SMS_PROVIDER` | `sinch` |
-   | `SINCH_SERVICE_PLAN_ID` | the service plan ID |
-   | `SINCH_API_TOKEN` | the API token (mark it **Sensitive**) |
-   | `SINCH_FROM` | the test number, or `Gaff` once registered |
+   | `SINCH_PROJECT_ID` | the project ID |
+   | `SINCH_APP_ID` | the app ID, of the app made in the EU |
+   | `SINCH_KEY_ID` | the access key's ID |
+   | `SINCH_KEY_SECRET` | the access key's secret (mark it **Sensitive**) |
+   | `SINCH_FROM` | the sender, as the sample shows it (`+44…` on a trial), or `Gaff` once registered |
 
-   The app refuses to start with `SMS_PROVIDER=sinch` and any of the other three missing, so add all four before the next step.
+   The app refuses to start with `SMS_PROVIDER=sinch` and any of these missing, so add them all before the next step.
+
+   _An older Sinch account_ has a **service plan** in place of the app and key (dashboard, **SMS**, **Service APIs**). Gaff takes that too: `SINCH_SERVICE_PLAN_ID` and `SINCH_API_TOKEN` in place of the four above, from a plan in the EU region, and `SINCH_FROM` as digits with no plus.
 6. **Redeploy** (**Deployments**, the newest one, **Redeploy**). Settings only reach a new deployment.
 7. **Check it**, with your own mobile, verified at Sinch if you're on a trial:
    - the sign-in screen's field reads "Email or mobile number", and the banner says texts are real and asks for your own number;
    - type your mobile and press Continue: the text arrives within a few seconds, and the code signs you in (the first time, after one more code to your email);
-   - if no text comes, the screen says "We couldn't send the text", and the reason is in Vercel's logs as "Sinch refused the SMS:" with Sinch's status. `401` is a wrong token or a plan from another region; `403` is usually a sender or a country the account may not use.
+   - if no text comes, the screen says "We couldn't send the text", and the reason is in Vercel's logs as "Sinch refused the SMS:" with Sinch's status. `401` is a wrong key, or an app or plan from another region; `403` and `404` are usually an app with no SMS channel, or a sender or a country the account may not use.
 8. **Before real people use it:**
    - **Upgrade the account** (add a payment method), which lifts the trial's limits.
    - **Register the sender name for Ireland.** ComReg's SMS Sender ID Registry is free: register the organisation and the name `Gaff` at [comreg.ie/senderid](https://www.comreg.ie/senderid), and name Sinch (Sinch Sweden AB) as the provider. Since 3 July 2025 a text from an unregistered name reads "Likely Scam"; blocking them outright has been announced and deferred, so check the date there. Ask Sinch's support whether they need anything more to carry the name, then set `SINCH_FROM=Gaff` and redeploy.

@@ -1,7 +1,18 @@
 # ADR-0033: Sign in with a mobile number, and one person however they sign in
 
-- Status: Accepted (Sean, 20 November 2026, open question Q61). Adds to [ADR-0015](0015-sign-in-google-apple-codes-passkeys.md) and changes one row of [ADR-0019](0019-sign-in-hardened.md)'s rule for joining Google or Apple (AU4).
-- Date: 2026-11-20
+- Status: **Withdrawn in part** (Sean, 21 November 2026, Q61). Signing in with a mobile number (UX-SI-13, UX-SI-14) was built and has been taken out, to be designed and built again in its own piece of work. What stands: the email address joins a person's ways in, a Google or Apple account that can't vouch for its address is joined by a code to that address (UX-SI-15), "We've found your account" comes after the code, and the sign-in screen's order. First accepted on 20 November 2026. Adds to [ADR-0015](0015-sign-in-google-apple-codes-passkeys.md) and changes one row of [ADR-0019](0019-sign-in-hardened.md)'s rule for joining Google or Apple (AU4).
+- Date: 2026-11-20, changed 2026-11-21
+
+## What was taken out on 21 November 2026
+
+Setting Sinch up for sign-in texts didn't work, and Sean asked for everything to do with it to be removed so that it can be built again cleanly. The sections below marked **(taken out)** describe what was built, and are kept as the record for whoever builds it next. None of it is in the code now:
+
+- the "Email or mobile number" field, the code by text and its wording, and the "What's your email?" step;
+- `sign_in_mobiles`, the `channel` on `one_time_codes`, the `sms_code` method, the `add_mobile` code, and the number on Profile and in the download;
+- the limits on texts and `SIGN_IN_TEXTS_PER_HOUR`;
+- Sinch's Conversation API sender and its settings, and the "Setting up Sinch" guide. Sinch is as it was before this record: the service-plan sender, for the code to book a viewing and the 2-hour reminder.
+
+`one_time_codes.joining` stays, and now only ever carries a Google or Apple account.
 
 ## Context
 
@@ -20,7 +31,7 @@ Airbnb shows "We've found your account", with the account's email, photo and par
 
 **The email address is what joins a person's ways in.** Every account has one verified email, as before. A mobile number, Google, Apple and passkeys are ways in to the account that has that email. A new way in is joined only when its owner proves the email with a code, in the browser that asked. One rule, for every method.
 
-### Sign in with a mobile number (UX-SI-13)
+### Sign in with a mobile number (UX-SI-13) (taken out)
 
 - **One field, "Email or mobile number".** An email gets a code by email, a number a code by text. Once what's typed is a number without a country code, a "Country code" picker appears below the field, Ireland first; a number typed with a plus is taken as written. The field comes first, then "or", then Google and Apple.
 - **The same code store** (`src/server/auth/codes.ts`) with a `channel`: six digits, 10 minutes, five tries, tied to the asking browser, kept only as a keyed hash, deleted after a day. A text carries no button.
@@ -28,7 +39,7 @@ Airbnb shows "We've found your account", with the account's email, photo and par
 - **The number is kept in `sign_in_mobiles`**, one a person and one person a number, as `+353871234567`. It is the person's own, like their passkeys: no organisation column, nothing an operator can read, deleted with the person, in their download, removable on Profile behind "Confirm it's you". It is separate from the mobile a renter confirms to book a viewing, which belongs to that application (ADR-0020).
 - **Where it is offered** (`mobileSignInMode`): wherever texts are really sent; locally and in tests with the development tools on, where the text is in the outbox; nowhere else. On the test copy without Sinch the field asks for an email only: a code shown on screen, as booking does there, would let anyone in as any number's owner.
 
-### A number Gaff hasn't seen: the email comes next (UX-SI-14)
+### A number Gaff hasn't seen: the email comes next (UX-SI-14) (taken out)
 
 The right code by text signs its owner in. For a number nobody has, nobody is signed in and nobody is made yet. One screen follows, "What's your email?", in the same words whoever asks. A code goes to that address, carrying the number (`one_time_codes.joining`), and the email says so and says not to share it. Entering it:
 
@@ -38,7 +49,7 @@ The right code by text signs its owner in. For a number nobody has, nobody is si
 
 The proof that a browser holds a number is the used text code's own row, for 15 minutes. Nothing else is kept, and nothing about the person is in a cookie or an address.
 
-### A number vouches for 180 days
+### A number vouches for 180 days (taken out)
 
 Phone companies hand an unused number to someone new. So a number gets its owner in by itself only if a code by text has signed them in, or joined it to them, within 180 days (`MOBILE_VOUCHES_DAYS`). After that it is treated as a number nobody has: its holder proves an email too, and the number goes to whoever does, with a security email to the person it left. A returning owner is asked for their email code once and carries on.
 
@@ -64,6 +75,8 @@ An address the provider says it never checked is still refused, and nothing is s
 - **Rule 3.** A dialling code says where a SIM was sold. It is never shown to anyone who lets a home, never used to rank, and never read as anything about the person.
 
 ## Consequences
+
+As first accepted. The lines about a mobile number, texts and Sinch no longer hold.
 
 - One migration: `sign_in_mobiles`, and `channel` and `joining` on `one_time_codes`.
 - A new sign-in method, `sms_code`, in the funnel's splits and on sessions.

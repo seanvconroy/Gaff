@@ -96,6 +96,12 @@ export function HomeCard({
         <Heading className={styles.heading}>
           <Link href={href} className={styles.title} aria-describedby={described || undefined}>
             {title}
+            {/*
+              The link's reach over the whole card. It is an element, not `::after`, so that
+              whatever measures the link can see it reaches past its words: axe took the line of
+              text for the whole target, and failed it when a link in an open list lay across it.
+            */}
+            <span className={styles.reach} aria-hidden="true" />
           </Link>
         </Heading>
         {line ? (

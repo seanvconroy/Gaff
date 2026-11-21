@@ -1,0 +1,138 @@
+/*
+ * A card's photos (section 8, "Home card"): a strip to swipe, one photo at a time, filling the
+ * box its card gives it. Previous and Next sit on the photo's edges and the dots at its foot.
+ * It lies over the card's own link, so a swipe moves the strip and a press opens the home.
+ */
+.photos {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.link {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.track::-webkit-scrollbar {
+  display: none;
+}
+
+/* One photo to a swipe, however hard it is flicked. */
+.slide {
+  flex: 0 0 100%;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 44px to press, though the disc looks smaller. Held in from the edge, so its focus ring is whole. */
+.step {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: var(--size-target);
+  height: var(--size-target);
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  translate: 0 -50%;
+}
+
+.previous {
+  left: var(--space-1);
+}
+
+.next {
+  right: var(--space-1);
+}
+
+.disc {
+  display: grid;
+  place-items: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  background-color: var(--color-surface-1);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-ink);
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.step:hover .disc {
+  background-color: var(--color-surface-2);
+}
+
+/* Where the strip has come to: dots on the surface, so they read on any picture in both themes. */
+.dots {
+  position: absolute;
+  bottom: var(--space-2);
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  background-color: var(--color-surface-1);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-raised);
+  pointer-events: none;
+  translate: -50% 0;
+}
+
+.dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  background-color: var(--color-border-strong);
+  border-radius: var(--radius-pill);
+}
+
+.dot[data-current] {
+  background-color: var(--color-ink);
+}
+
+.dot[data-small] {
+  width: 4px;
+  height: 4px;
+}
+
+/*
+ * Where a pointer can hover, the buttons wait until the photo is pointed at or one of them has
+ * focus, so a list of homes is its photos. On a touch screen they are always there (UX-DS-17).
+ */
+@media (hover: hover) {
+  .step {
+    opacity: 0;
+    transition: opacity var(--motion-fast) var(--ease-standard);
+  }
+
+  .step:focus-visible {
+    opacity: 1;
+  }
+
+  .photos:hover .step {
+    opacity: 1;
+  }
+}

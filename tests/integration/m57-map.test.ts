@@ -5,10 +5,12 @@ import { lettings, mapDailyCounts } from '@/db/schema';
 import { distanceMetres } from '@/domain/places/geo';
 import { irishToday } from '@/lib/format';
 import { setHomePoint } from '@/server/lettings/location';
-import { addPhoto } from '@/server/lettings/photos';
+import { addPhoto, setPhotoKind } from '@/server/lettings/photos';
+import { CARD_PHOTOS } from '@/domain/lettings/photo-files';
+import { publicHomes } from '@/server/homes/public-homes';
 import { mapCard, mapPins } from '@/server/search/map';
 import { mapUseFor, recordMapCount, sweepMapCounts } from '@/server/search/map-counts';
-import { findHomes, nearestHomesTo } from '@/server/search/homes';
+import { findHomes, liveHomesOnGaff, nearestHomesTo } from '@/server/search/homes';
 import { createTestPerson } from './helpers';
 import { saveSearchFor, savedSearchesOf } from '@/server/saved/searches';
 import { searchWords } from '@/copy/saved';
@@ -70,6 +72,41 @@ describe('M57, M125: the pins are the homes that fit and have a pin', () => {
     expect((await mapPins({ where: 'kinsale' }, elsewhere)).points).toEqual([]);
     // M117: its card is the list's card.
     expect(await mapCard(mine.id)).toMatchObject({ title: '€1,850 a month', id: mine.id });
+  });
+
+  it('UX-SR-6, M117: a card carries the home’s first photos in the lister’s order, in the list and on the map alike, and never a floor plan', async () => {
+    const agency = await createTestMember();
+    const door = { lat: 51.7041, lng: -8.5236 };
+    const lettingId = await aHomeOnGaff(agency, '3 Pier Road', door);
+    // Ten photos in all, each its own picture, and the second marked a floor plan (M44).
+    const added = [];
+    for (let i = 1; i < 10; i++) {
+      const photo = await addPhoto(agency, lettingId, aPng([20 * i, 99, 168], { text: `${i}` }));
+      if (!photo.ok) throw new Error(`photo ${i} was refused: ${photo.problem}`);
+      added.push(photo.photo);
+    }
+    await setPhotoKind(agency, lettingId, added[0]!.id, 'floor_plan');
+
+    const { filters, g } = await resolveSearch({ where: 'kinsale' });
+    const listed = (await findHomes(filters, g)).fits.find(
+      (home) => home.addressLine1 === '3 Pier Road',
+    )!;
+    // Nine photos and a floor plan: the card has the first eight photos, the cover first.
+    expect(listed.photos).toHaveLength(CARD_PHOTOS);
+    expect(listed.photos[0]!.src).toBe(listed.cover!.src);
+    expect(new Set(listed.photos.map((photo) => photo.src)).size).toBe(CARD_PHOTOS);
+    for (const photo of listed.photos) expect(Object.keys(photo)).toEqual(['src']);
+    // The same homes by the in-memory list (the saved-search job's), so the two can't disagree.
+    const kept = (await liveHomesOnGaff()).find((home) => home.id === listed.id)!;
+    expect(kept.photos).toEqual(listed.photos);
+    // The pin's card has what the list's card has.
+    const card = (await mapCard(listed.id))!;
+    expect(card.photos).toEqual(listed.photos);
+    expect(Object.keys(card).sort()).toEqual(['free', 'href', 'id', 'line', 'photos', 'title']);
+    // The floor plan is on the home's page alone.
+    const [page] = await publicHomes({ ref: listed.id, limit: 1 });
+    expect(page!.floorPlans).toHaveLength(1);
+    expect(listed.photos.map((photo) => photo.src)).not.toContain(page!.floorPlans[0]!.small);
   });
 
   it('M38: a private landlord’s home is on the map within about 150 m, never at its door', async () => {

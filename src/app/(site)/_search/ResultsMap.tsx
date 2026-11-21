@@ -63,7 +63,10 @@ export function ResultsMap({
   );
   const loadCard = useCallback(async (id: string): Promise<MapCardData | null> => {
     const response = await fetch(`/api/search/card?id=${encodeURIComponent(id)}`);
-    return response.ok ? ((await response.json()) as MapCardData) : null;
+    if (!response.ok) return null;
+    const card = (await response.json()) as MapCardData;
+    // An answer kept from before a card carried photos has none: the card is its words.
+    return { ...card, photos: card.photos ?? [] };
   }, []);
   /**
    * The search's place gives way to what the map says: the area in view, or the areas drawn on

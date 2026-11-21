@@ -85,10 +85,10 @@
   color: var(--color-ink);
 }
 
-/* The heart: over the photo's top corner, above the link that covers the card. */
+/* The heart: over the photo's top corner, above the link that covers the card and the photos. */
 .action {
   position: absolute;
-  z-index: 1;
+  z-index: 2;
   top: var(--space-2);
   right: var(--space-2);
 }

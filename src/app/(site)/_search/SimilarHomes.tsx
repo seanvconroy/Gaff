@@ -48,6 +48,8 @@ export function SimilarHomes({
               line={line}
               details={[freeFrom(home.availableFrom, today)]}
               photo={home.cover}
+              photos={home.photos}
+              photosOf={line}
               action={
                 <SaveHome
                   homeRef={home.id}

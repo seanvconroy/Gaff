@@ -13,6 +13,11 @@ export type PhotoWidth = (typeof PHOTO_WIDTHS)[number];
 export const SHOWN_WIDTH = 960;
 /** The width a list or a header shows a cover at. */
 export const COVER_WIDTH = 480;
+/**
+ * UX-SR-6: how many of a home's photos its card in search carries, to look through in place.
+ * The rest are on its page.
+ */
+export const CARD_PHOTOS = 8;
 
 /** Smaller than this on its longest side, a photo is too small to show well. */
 export const MIN_PHOTO_PIXELS = 400;

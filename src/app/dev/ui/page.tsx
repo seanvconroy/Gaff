@@ -18,7 +18,6 @@ import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { env } from '@/lib/env';
 import { typeStyles } from '@/styles/tokens';
-import { TestCopyBanner } from '@/ui/TestCopyBanner';
 import { ActionCard } from '@/ui/ActionCard';
 import { ActionList, ActionRow } from '@/ui/ActionList';
 import { Avatar, Badge } from '@/ui/Avatar';
@@ -669,14 +668,6 @@ export default function ComponentsPage() {
         </Section>
 
         <Section
-          id="test-copy"
-          title="Test copy banner"
-          lead="On every page of the test copy (GAFF_ENV=staging), above everything else. Never in development, tests or production."
-        >
-          <TestCopyBanner />
-        </Section>
-
-        <Section
           id="lists"
           title="Cards, rows and lists"
           lead="A box only for something that is one object. Space and type first, then a hairline."
@@ -934,7 +925,7 @@ export default function ComponentsPage() {
         <Section
           id="search-box"
           title="Search bar with chips"
-          lead="One box for a place, a road or a sentence, with suggestions under it as it’s typed; its button; and what Gaff understood as chips: Filters first, then Save search, then one chip per filter, each opening its control. The heart saves a home."
+          lead="One box for a place, a road or a sentence, with suggestions under it as it’s typed; its button; and what Gaff understood as chips: Filters first, then Save search, then one chip per filter, each opening its control. The heart saves a home. With more than one photo, a card’s photos can be looked through in place: swipe, or Previous and Next, with dots for where it has come to."
         >
           <SearchBoxDemo />
           <HomeGrid label="Search results">
@@ -944,6 +935,15 @@ export default function ComponentsPage() {
               line="2-bed apartment · Ranelagh, Dublin 6"
               details={['Free from Tuesday 1 December', 'Up to 2 people. You asked for 3.']}
               photo={{ src: samplePhoto, alt: '' }}
+            />
+            <HomeCard
+              href="#homes"
+              title="€2,250 a month"
+              line="2-bed apartment · Ranelagh, Dublin 6"
+              details={['Free from Friday 11 December']}
+              photo={{ src: samplePhoto, alt: '' }}
+              photos={[1, 2, 3, 4, 5, 6, 7].map((n) => ({ src: `${samplePhoto}#${n}` }))}
+              photosOf="2-bed apartment · Ranelagh, Dublin 6"
             />
           </HomeGrid>
         </Section>

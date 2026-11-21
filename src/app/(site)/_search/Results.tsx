@@ -161,7 +161,10 @@ export async function Results({
   );
 }
 
-/** UX-SR-6: the cover photo, the rent, one line, the date it's free, and the heart. */
+/**
+ * UX-SR-6: the home's photos (the cover first, the rest to look through in place), the rent,
+ * one line, the date it's free, and the heart.
+ */
 function Card({
   home,
   today,
@@ -190,6 +193,8 @@ function Card({
       line={line}
       details={[freeFrom(home.availableFrom, today), ...(note ? [note] : [])]}
       photo={home.cover}
+      photos={home.photos}
+      photosOf={line}
       mapKey={onMap && home.point ? home.id : undefined}
       action={
         <SaveHome
@@ -236,16 +241,18 @@ function AlikeCard({
         ...(note ? [note] : []),
       ]}
       photo={first.cover}
+      photos={first.photos}
+      photosOf={`${cardLine(first)} · ${alike.developmentName}`}
       mapKey={onMap && pinned ? pinned.id : undefined}
     />
   );
 }
 
-/** States table, "Loading": the cards as skeletons, in place. */
-export function ResultsLoading() {
+/** States table, "Loading": the cards as skeletons, in place, as many across as the cards. */
+export function ResultsLoading({ beside = false }: { beside?: boolean }) {
   return (
     <SkeletonGroup label={searchCopy.loading}>
-      <div className={styles.skeletons}>
+      <div className={styles.skeletons} data-beside={beside || undefined}>
         {[0, 1, 2].map((i) => (
           <div key={i} className={styles.skeletonCard}>
             <Skeleton shape="photo" />

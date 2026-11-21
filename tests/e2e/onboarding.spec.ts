@@ -14,14 +14,12 @@ test('a new operator signs in by email code and sets up their agency through fir
   // A signed-out visitor who asks for the letting side is sent to sign in.
   await page.goto('/today');
   await expect(page).toHaveURL(/\/sign-in$/);
-  await expect(page.getByRole('heading', { name: 'Sign in or create an account' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sign in or sign up' })).toBeVisible();
   await expectAccessible(page);
   await screenshot(page, '01-sign-in');
 
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
-  await expect(
-    page.getByText('Enter an email address or a mobile number, like 087 123 4567'),
-  ).toBeVisible();
+  await expect(page.getByText('Enter an email address, like ann@example.ie')).toBeVisible();
   await expectAccessible(page);
 
   // UX-SI-8: no profile yet, so first run starts. One question per screen (UX-AC-6).

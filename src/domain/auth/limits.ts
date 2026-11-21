@@ -17,8 +17,6 @@ export interface Limit {
 export const limitedSteps = [
   /** Asking for a sign-in code: "Continue" with an email, and "Send a new code". */
   'send_code',
-  /** UX-SI-13: asking for a sign-in code by text. Counted as well as `send_code`. */
-  'send_text',
   /** One try at a sign-in code, typed or by the email's button. */
   'check_code',
   /** "Continue with Google" or "Continue with Apple", connecting one, and coming back. */
@@ -38,8 +36,6 @@ export type LimitedStep = (typeof limitedSteps)[number];
 
 export const perAddress: Record<LimitedStep, Limit> = {
   send_code: { max: 5, windowSeconds: 60 },
-  // A text costs money: fewer of them from one address than emails.
-  send_text: { max: 3, windowSeconds: 60 },
   check_code: { max: 10, windowSeconds: 60 },
   provider: { max: 10, windowSeconds: 60 },
   // The sign-in screen asks for these as it loads, to offer a passkey on the email field.
@@ -49,14 +45,6 @@ export const perAddress: Record<LimitedStep, Limit> = {
   confirm_send: { max: 5, windowSeconds: 60 },
   confirm_check: { max: 10, windowSeconds: 60 },
 };
-
-/**
- * UX-SI-13: every sign-in text Gaff sends, to anyone, in an hour. A real evening is nowhere near
- * it. Past it, something is running up texts: sign-in by mobile answers "use your email" until
- * the hour is out, and nothing else is touched. `SIGN_IN_TEXTS_PER_HOUR` changes the number.
- */
-export const SIGN_IN_TEXTS_WINDOW_SECONDS = 60 * 60;
-export const SIGN_IN_TEXTS_PER_HOUR_DEFAULT = 300;
 
 /**
  * M82 (BA-13): asking to view, at most 30 a day from one person (their account, or the email

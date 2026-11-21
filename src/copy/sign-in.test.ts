@@ -7,14 +7,12 @@ import {
   codeShownCopy,
   confirmCodeEmail,
   confirmCopy,
-  emailNeededCopy,
   foundCopy,
   inAWhile,
   linkCodeEmail,
   passkeyCopy,
   providerProblemWords,
   signInCodeEmail,
-  signInCodeText,
   signInCopy,
 } from './sign-in';
 
@@ -30,7 +28,6 @@ function everySentence(): string[] {
     continueWith: [signInCopy.continueWith('google'), signInCopy.continueWith('apple')],
     opening: [signInCopy.opening('google'), signInCopy.opening('apple')],
     lastUsed: signInMethods.map(signInCopy.lastUsed),
-    diallingCode: signInCopy.diallingCode('Ireland', '353'),
     errors: {
       ...signInCopy.errors,
       provider: [signInCopy.errors.provider('google'), signInCopy.errors.provider('apple')],
@@ -40,26 +37,12 @@ function everySentence(): string[] {
     },
   });
   walk({
-    ...emailNeededCopy,
-    lead: emailNeededCopy.lead('087 123 4567'),
-  });
-  walk({
     ...foundCopy,
-    signedInAs: foundCopy.signedInAs('ann@example.ie'),
-    joined: [
-      foundCopy.joined('mobile', '087 ••• 4567'),
-      foundCopy.joined('google', null),
-      foundCopy.joined('apple', null),
-    ],
+    joined: [foundCopy.joined('google'), foundCopy.joined('apple')],
   });
-  out.push(signInCodeText('123456', 'gaff.ie'));
   walk({
     ...codeCopy,
-    leadText: codeCopy.leadText('087 123 4567'),
-    leadProvider: [
-      codeCopy.leadProvider('google', 'ann@example.ie'),
-      codeCopy.leadProvider('apple', 'ann@example.ie'),
-    ],
+    leadProvider: codeCopy.leadProvider('ann@example.ie'),
     lead: codeCopy.lead('ann@example.ie'),
     sendNewIn: [codeCopy.sendNewIn(1), codeCopy.sendNewIn(18)],
   });
@@ -76,7 +59,6 @@ function everySentence(): string[] {
   for (const email of [
     signInCodeEmail('123456', 'https://app.gaff.test/sign-in/open?t=abc'),
     signInCodeEmail('123456', null),
-    signInCodeEmail('123456', null, { mobileEnding: '4567' }),
     signInCodeEmail('123456', null, { provider: 'google' }),
     ...sensitiveActions.map((action) => confirmCodeEmail('123456', action)),
     linkCodeEmail('123456', { address: '12 Ranelagh Road', operatorName: 'Halcyon Lettings' }),
@@ -88,7 +70,7 @@ function everySentence(): string[] {
 
 describe('UX-SI-1: the sign-in screen’s words', () => {
   it('has the title and the buttons section 2 gives', () => {
-    expect(signInCopy.title).toBe('Sign in or create an account');
+    expect(signInCopy.title).toBe('Sign in or sign up');
     expect(signInCopy.continueWith('google')).toBe('Continue with Google');
     expect(signInCopy.continueWith('apple')).toBe('Continue with Apple');
     expect(signInCopy.or).toBe('or');
@@ -110,7 +92,9 @@ describe('UX-SI-1: the sign-in screen’s words', () => {
   });
 
   it('UX-SI-8: never tells anyone there is no account, or asks for a password', () => {
-    for (const sentence of everySentence()) {
+    // The title names both in one breath, on the one screen for both (UX-SI-16). Nothing else
+    // sends anyone off to "sign up" somewhere else.
+    for (const sentence of everySentence().filter((words) => words !== signInCopy.title)) {
       expect(sentence).not.toMatch(/no account|not found|don’t have an account|sign up|password/i);
     }
   });
@@ -248,93 +232,39 @@ describe('Voice: every word of sign-in', () => {
   });
 });
 
-describe('UX-SI-13: signing in with a mobile number', () => {
-  it('names the one field for both, and the picker beside a number', () => {
-    expect(signInCopy.identifierLabel).toBe('Email or mobile number');
-    expect(signInCopy.diallingCodeLabel).toBe('Country code');
-    expect(signInCopy.diallingCode('Ireland', '353')).toBe('Ireland (+353)');
-    expect(signInCopy.lastUsed('sms_code')).toBe('You used your mobile number last time.');
-  });
-
-  it('says where the text went, in full, and for how long the code works', () => {
-    expect(codeCopy.leadText('087 123 4567')).toBe(
-      'We texted a six-digit code to 087 123 4567. It works for the next 10 minutes.',
-    );
-    expect(codeCopy.wrongText).toBe('That code isn’t right. Check the text and try again.');
-    expect(codeCopy.differentNumber).toBe('Use a different number');
-  });
-
-  it('every problem with a text ends with another way in', () => {
-    for (const words of [
-      signInCopy.errors.notTexted,
-      signInCopy.errors.textNotSent,
-      signInCopy.errors.tooManyTexts,
-      signInCopy.errors.textsPaused,
-    ]) {
-      expect(words).toMatch(/enter your email instead\.$/i);
-    }
-  });
-
-  it('the text is one text: plain characters, short, and bound to Gaff’s own site', () => {
-    const text = signInCodeText('042917', 'gaff.ie');
-    expect(text).toBe(
-      'Your code to sign in to Gaff is 042917. It works for 10 minutes. Never share it with anyone.\n\n@gaff.ie #042917',
-    );
-    // One text holds 160 plain characters; a curly quote or a dash would halve that.
-    expect(text.length).toBeLessThanOrEqual(160);
-    expect(text).toMatch(/^[\x20-\x7e\n]+$/);
-    // The standard a phone reads to offer the code on this site only: the last line.
-    expect(text.split('\n').at(-1)).toBe('@gaff.ie #042917');
-  });
-});
-
-describe('UX-SI-14, UX-SI-15: one person, however they sign in', () => {
-  it('asks for the email in the same words, whoever is asking', () => {
-    expect(emailNeededCopy.title).toBe('What’s your email?');
-    expect(emailNeededCopy.lead('087 123 4567')).toBe(
-      'Your mobile, 087 123 4567, is confirmed. Everything about a home comes by email, so we need yours too.',
-    );
-    expect(emailNeededCopy.hint).toBe(
-      'If you’ve used Gaff before, enter the same email and we’ll find your account.',
-    );
-  });
-
-  it('says what was found, what was joined, and where to change it', () => {
+describe('UX-SI-15: one person, however they sign in', () => {
+  it('UX-SI-16: says the account was found, then shows what was joined, in few words', () => {
     expect(foundCopy.title).toBe('We’ve found your account');
-    expect(foundCopy.signedInAs('ann@example.ie')).toBe('You’re signed in as ann@example.ie.');
-    expect(foundCopy.joined('mobile', '087 ••• 4567')).toBe(
-      'You can sign in with your mobile, 087 ••• 4567, from now on.',
-    );
-    expect(foundCopy.joined('google', null)).toBe(
-      'Google is connected. You can sign in with it from now on.',
-    );
-    expect(foundCopy.change).toBe('You can change this under “How you sign in” on your profile.');
+    expect(foundCopy.lead).toBe('You’re signed in.');
+    expect(foundCopy.joined('google')).toBe('Google');
+    expect(foundCopy.joined('apple')).toBe('Apple');
+    // For a screen reader, which has no icons to go on.
+    expect(foundCopy.emailRow).toBe('Email');
+    expect(foundCopy.joinedRow).toBe('Connected');
+  });
+
+  it('UX-SI-16: says where the code went, in one short line', () => {
+    expect(codeCopy.lead('ann@example.ie')).toBe('We sent a code to ann@example.ie.');
+    expect(confirmCopy.sentTo('ann@example.ie')).toBe('We sent a code to ann@example.ie.');
   });
 
   it('the email says what the code adds, and not to share it', () => {
-    const mobile = signInCodeEmail('042917', null, { mobileEnding: '4567' }).text;
-    expect(mobile).toContain(
-      'When you do, the mobile number ending 4567 becomes a way to sign in to your Gaff account.',
-    );
     const google = signInCodeEmail('042917', null, { provider: 'google' }).text;
     expect(google).toContain(
       'When you do, Google is connected to your Gaff account, and you can sign in with it from then on.',
     );
-    for (const text of [mobile, google]) {
-      expect(text).toContain(
-        'The code works once, for the next 10 minutes. If you didn’t ask for it, don’t share the code with anyone. Nothing changes without it.',
-      );
-      // Only the last four digits: never the number, and never an address.
-      expect(text).not.toContain('@');
-      expect(text).not.toMatch(/\+353|087/);
-    }
+    expect(google).toContain(
+      'The code works once, for the next 10 minutes. If you didn’t ask for it, don’t share the code with anyone. Nothing changes without it.',
+    );
+    // Never an address.
+    expect(google).not.toContain('@');
     // The ordinary sign-in email is unchanged.
     expect(signInCodeEmail('042917', null).text).not.toContain('When you do');
   });
 
   it('UX-SI-15: says why a code was sent when Google or Apple can’t vouch for the address', () => {
-    expect(codeCopy.leadProvider('google', 'ann@work.example.ie')).toBe(
-      'Google can’t confirm ann@work.example.ie is still yours, so we sent a six-digit code to it. Enter it and Google is connected from then on. It works for the next 10 minutes.',
+    expect(codeCopy.leadProvider('ann@work.example.ie')).toBe(
+      'We sent a code to ann@work.example.ie, to check it’s yours.',
     );
   });
 });

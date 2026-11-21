@@ -89,11 +89,11 @@ Nothing is asked before the action that needs it.
 
 ## Sign-in
 
-One screen for new and returning users. The title is "Sign in or create an account".
+One screen for new and returning users. The title is "Sign in or sign up" (it was "Sign in or create an account" until 21 November 2026, Q62).
 
 | Order | Element | Notes |
 | --- | --- | --- |
-| 1 | One field, "Email or mobile number", and "Continue" | Sends a six-digit code, by email or by text. A "Country code" picker appears under the field once a number is typed without one. Where texts aren't sent, the field is "Email" |
+| 1 | "Email" field and "Continue" | Sends a six-digit code |
 | 2 | "or" divider | |
 | 3 | "Continue with Google" | Standard branded button |
 | 4 | "Continue with Apple" | Standard branded button |
@@ -101,7 +101,7 @@ One screen for new and returning users. The title is "Sign in or create an accou
 
 The order was Google and Apple first until 20 November 2026 (Q61).
 
-**UX-SI-1.** Sign-in offers four methods the user chooses between: an email or a mobile number, each with a one-time code, and Google and Apple. There are no passwords. Google and Apple are approved for this (Q30); a mobile number was added on 20 November 2026 (Q61, UX-SI-13). `[P6, P14]`
+**UX-SI-1.** Sign-in offers three methods the user chooses between: an email address with a one-time code, Google, and Apple. There are no passwords. Google and Apple are approved for this (Q30). `[P6, P14]`
 
 **UX-SI-2.** The email path sends a six-digit code. The next screen is one code input, with the keyboard set to numbers, that accepts a paste and submits itself when complete. The code lasts 10 minutes and allows five tries. "Send a new code" unlocks after 30 seconds. "Use a different email" goes back. `[P6, P10]`
 
@@ -125,11 +125,25 @@ The order was Google and Apple first until 20 November 2026 (Q61).
 
 **UX-SI-12.** Private links for renters, owners and referees work as today (ADR-0013). Pages that show check results or bank details ask for a one-time code sent to the person's email, as ADR-0013 already plans. `[P6 · rule 2]`
 
-**UX-SI-13.** A mobile number signs in with a six-digit code by text, on the same code screen and by the same rules as an email code. One field takes either. A number typed without a country code is read with the "Country code" picked under the field, Ireland first; Gaff texts a fixed list of countries, and says "Enter your email instead" for any other. The number is the person's own: no operator can see it, and Profile adds one (a code texted to it, after "Confirm it's you") and removes it. Sign-in by mobile is offered only where texts are really sent. `[P6, P14 · Q61 · rule 10]`
+**UX-SI-13.** Withdrawn. Signing in with a mobile number, by a six-digit code by text, was built on 20 November 2026 and taken out on 21 November 2026 (Q61). It is to be designed and built again; what was built is recorded in [ADR-0033](../adr/0033-mobile-sign-in-and-one-person-across-methods.md).
 
-**UX-SI-14.** A mobile number that gets nobody in (one nobody has, or one unused for 180 days) is followed by one screen, "What's your email?". A code goes to that address. Entering it signs in the account that has the address, or makes one, and joins the number to it. If the account was already there, one screen says so: "We've found your account", with who they're signed in as, what was joined and where to change it. That screen is shown only after the code, so nobody learns from Gaff whether an address has an account. `[P6, P14 · Q61]`
+**UX-SI-14.** Withdrawn with UX-SI-13: the "What's your email?" step after a mobile number Gaff hadn't seen.
 
-**UX-SI-15.** One person, however they sign in. A Google or Apple account that can't vouch for its address (one the provider doesn't host) isn't a dead end: a code goes to the address as the provider comes back, the code screen says why, and entering it signs the person in and connects the provider in one step. "We've found your account" follows if the account was already there. `[P6, P14 · Q61, Q57]`
+**UX-SI-15.** One person, however they sign in. A Google or Apple account that can't vouch for its address (one the provider doesn't host) isn't a dead end: a code goes to the address as the provider comes back, the code screen says it is to check the address is theirs, and entering it signs the person in and connects the provider in one step. "We've found your account" follows if the account was already there. `[P6, P14 · Q61, Q57]`
+
+**UX-SI-16.** Few words, on every sign-in screen (Sean, 21 November 2026, Q62, with Airbnb's sign-in as the standard). Each screen is a title, at most one line under it, and its one control. `[P4, P6 · Q62]`
+
+| Screen | Title | The one line | What else is on it |
+| --- | --- | --- | --- |
+| Sign-in | "Sign in or sign up" | None | The email field, "Continue", "or", Google, Apple, the small print |
+| Code | "Enter your code" | "We sent a code to ann@example.ie." Back from Google or Apple: "We sent a code to ann@work.ie, to check it's yours." | The six boxes with no label drawn over them (the title is the label; a screen reader still hears "Six-digit code"), then "Send a new code" and "Use a different email" as quiet buttons |
+| Found | "We've found your account" | "You're signed in." | Two lines, an icon each: the account's email, then what was joined ("Google" or "Apple"), and "Continue" |
+
+How long a code lasts is no longer said on the screen: an expired code says so, and offers a new one. The email still says it. "Confirm it's you" says where its code went in the same short line.
+
+When sign-in by text is built again (Q61), a country code is never a field of its own: it sits inside the one field, at its start (Q62).
+
+**UX-SI-17.** "Sign in" in the header brings a person back to the page they were on: the home they were reading, the search they had made. The page travels as `next`, which is followed only if it is a path on this site (UX-SI-8). `[P6, P10 · Q62]`
 
 Why these methods: Google and Apple are one tap and cover most phones and most small-business email. An emailed code keeps the user in the tab they started in, which a link doesn't. Passkeys are the fastest and safest return path but are a poor first step for people who haven't met them, so they're offered after sign-in, not before. Published comparisons of these methods are thin and mostly from vendors, so the mix is a hypothesis: measure completion by method from day one ([section 9](09-activation-growth-measures.md)). Many Irish agencies run on Microsoft 365. "Continue with Microsoft" is added later if more than one in five pilot users signs in with an Outlook or Microsoft-hosted address.
 
@@ -137,14 +151,11 @@ Why these methods: Google and Apple are one tap and cover most phones and most s
 
 | State | What the user sees |
 | --- | --- |
-| Wrong code | Under the input: "That code isn't right. Check the email and try again." (or "Check the text", for a code by text). The input clears |
+| Wrong code | Under the input: "That code isn't right. Check the email and try again." The input clears |
 | Code expired or too many tries | "That code has expired." with "Send a new code" as the primary button |
 | Google or Apple cancelled | Back on the sign-in screen, no error |
 | Email didn't send | "We couldn't send the code. Check the address and try again." at the email field |
-| Text didn't send, too many texts, or texts paused | At the field, each ending "enter your email instead" |
-| A number in a country Gaff doesn't text | "We can't text that country yet. Enter your email instead." at the field |
-| Not a mobile number | "Enter a mobile number, like 087 123 4567" at the field |
-| Google or Apple can't vouch for the address | The code screen: "Google can't confirm ann@work.ie is still yours, so we sent a six-digit code to it. Enter it and Google is connected from then on." |
+| Google or Apple can't vouch for the address | The code screen: "We sent a code to ann@work.ie, to check it's yours." The email says Google is connected with the same code |
 | Loading | The pressed button shows progress and the others are disabled |
 
 ## First run

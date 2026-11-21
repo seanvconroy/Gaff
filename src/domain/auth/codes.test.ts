@@ -4,8 +4,6 @@ import {
   CODE_TRIES,
   CODES_PER_DAY,
   CODES_PER_WINDOW,
-  TEXTS_PER_DAY,
-  TEXTS_PER_WINDOW,
   RESEND_AFTER_SECONDS,
   canSendAnother,
   codeExpiry,
@@ -110,17 +108,6 @@ describe('UX-SI-2: one address is sent only so many codes', () => {
     expect(canSendAnother(0, 19)).toBe(true);
     expect(canSendAnother(0, 20)).toBe(false);
     expect(canSendAnother(4, 19)).toBe(true);
-  });
-
-  it('UX-SI-13: allows a mobile number three texts in ten minutes, and ten in a day', () => {
-    expect(TEXTS_PER_WINDOW).toBe(3);
-    expect(TEXTS_PER_DAY).toBe(10);
-    expect(canSendAnother(2, 2, 'sms')).toBe(true);
-    expect(canSendAnother(3, 3, 'sms')).toBe(false);
-    expect(canSendAnother(0, 9, 'sms')).toBe(true);
-    expect(canSendAnother(0, 10, 'sms')).toBe(false);
-    // An email address keeps its own, larger, allowance.
-    expect(canSendAnother(4, 10, 'email')).toBe(true);
   });
 });
 

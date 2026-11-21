@@ -1,7 +1,6 @@
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { and, desc, eq, gt, gte, lt, sql } from 'drizzle-orm';
 import { emailSender, gaffSender } from '@/adapters/email';
-import { smsSender } from '@/adapters/sms';
 import { db, type Tx } from '@/db/client';
 import { oneTimeCodes } from '@/db/schema';
 import {
@@ -13,16 +12,13 @@ import {
   codeFromBytes,
   codeStanding,
   judgeCode,
-  type CodeChannel,
 } from '@/domain/auth/codes';
 import { readJoining, type Joining } from '@/domain/auth/joining';
-import { mobileProofStands } from '@/domain/auth/mobile';
 import { env } from '@/lib/env';
 
 /**
  * UX-SI-2: one-time codes, stored and sent. One store serves every use of a code: signing in,
- * confirming it's you again (UX-SI-10), opening a private link's sensitive page (UX-SI-12), and
- * adding a mobile number on Profile (UX-SI-13).
+ * confirming it's you again (UX-SI-10), and opening a private link's sensitive page (UX-SI-12).
  * The rules (10 minutes, five tries, a new one after 30 seconds) are in src/domain/auth/codes.ts.
  *
  * What keeps a code safe:
@@ -31,11 +27,10 @@ import { env } from '@/lib/env';
  * - A code works only in the browser that asked for it. That browser holds a random key in an
  *   HTTP-only cookie; the row holds the key's hash. A code read out, forwarded or phished is no
  *   use anywhere else.
- * - An address gets at most five codes in ten minutes and twenty in a day; a mobile number, by
- *   text, three and ten (UX-SI-13).
+ * - An address gets at most five codes in ten minutes and twenty in a day.
  * - Rows are deleted a day after they're sent, by the retention job (rule 9).
  */
-export type CodePurpose = 'sign_in' | 'confirm' | 'private_link' | 'add_mobile';
+export type CodePurpose = 'sign_in' | 'confirm' | 'private_link';
 
 /** UX-SI-3: where the sign-in email's button points. The route there finishes the sign-in. */
 export const SIGN_IN_LINK_PATH = '/sign-in/open';
@@ -82,18 +77,14 @@ export interface SendCodeInput {
   purpose: CodePurpose;
   /** Who the code is for: see the `subject` column. */
   subject: string;
-  /** The address the email goes to, or the mobile number the text goes to. */
+  /** The address the email goes to. */
   to: string;
-  /** UX-SI-13: `sms` sends a text, written by `text`. An email, written by `compose`, otherwise. */
-  channel?: CodeChannel;
-  /** Writes the text, for `sms`. It carries no button. */
-  text?: (code: string) => string;
-  /** UX-SI-14, UX-SI-15: what the right code also joins to the person it signs in. */
+  /** UX-SI-15: what the right code also joins to the person it signs in. */
   joining?: Joining | null;
   /** The key in this browser's cookie, if it has one already. */
   browserKey: string | null;
   /** Writes the email. `link` is the button's address when the email carries one. */
-  compose?: (code: string, link: string | null) => CodeEmail;
+  compose: (code: string, link: string | null) => CodeEmail;
   /** UX-SI-3: build the email's button. Its path is given the token as `?t=`. */
   linkPath?: string;
   from?: { name: string; address: string };
@@ -108,12 +99,11 @@ export type SendCodeResult =
   | { sent: false; reason: 'wait'; browserKey: string; sentAt: Date }
   /** This address has had as many codes as it's allowed for now. */
   | { sent: false; reason: 'too_many' }
-  /** The email or the text couldn't be sent. */
+  /** The email couldn't be sent. */
   | { sent: false; reason: 'not_sent' };
 
 /** Sends a new code, unless one has just gone or the address has had too many. */
 export async function sendCode(input: SendCodeInput, now = new Date()): Promise<SendCodeResult> {
-  const channel: CodeChannel = input.channel ?? 'email';
   const browserKey = browserKeyFrom(input.browserKey) ?? randomBytes(32).toString('base64url');
   const browserHash = sha256(browserKey);
 
@@ -146,14 +136,12 @@ export async function sendCode(input: SendCodeInput, now = new Date()): Promise<
         gte(oneTimeCodes.sentAt, new Date(now.getTime() - DAY_MS)),
       ),
     );
-  if (!canSendAnother(counts?.inWindow ?? 0, counts?.inDay ?? 0, channel)) {
+  if (!canSendAnother(counts?.inWindow ?? 0, counts?.inDay ?? 0)) {
     return { sent: false, reason: 'too_many' };
   }
 
   const id = randomUUID();
-  // A text carries no button: there's nowhere to press it but the phone it arrived on.
-  const token =
-    input.linkPath && channel === 'email' ? randomBytes(32).toString('base64url') : null;
+  const token = input.linkPath ? randomBytes(32).toString('base64url') : null;
   const code = token ? codeForLink(token) : codeFromBytes(randomBytes(32));
   await db()
     .insert(oneTimeCodes)
@@ -161,7 +149,6 @@ export async function sendCode(input: SendCodeInput, now = new Date()): Promise<
       id,
       purpose: input.purpose,
       subject: input.subject,
-      channel,
       joining: input.joining ?? null,
       browserHash,
       codeHash: hashCode(id, code),
@@ -174,18 +161,12 @@ export async function sendCode(input: SendCodeInput, now = new Date()): Promise<
 
   const link = token ? new URL(`${input.linkPath}?t=${token}`, env().APP_URL).toString() : null;
   try {
-    if (channel === 'sms') {
-      if (!input.text) throw new Error('A code by text needs its words');
-      await smsSender().send({ to: input.to, body: input.text(code) });
-    } else {
-      if (!input.compose) throw new Error('A code by email needs its words');
-      await emailSender().send({
-        to: input.to,
-        from: input.from ?? gaffSender(),
-        ...input.compose(code, link),
-        idempotencyKey: `code-${id}`,
-      });
-    }
+    await emailSender().send({
+      to: input.to,
+      from: input.from ?? gaffSender(),
+      ...input.compose(code, link),
+      idempotencyKey: `code-${id}`,
+    });
   } catch {
     // The code can't arrive, so it doesn't count against the address. Nothing about the
     // address or the code goes in the log.
@@ -198,9 +179,7 @@ export async function sendCode(input: SendCodeInput, now = new Date()): Promise<
 
 export interface WaitingCode {
   subject: string;
-  /** How it was sent: the screen says "email" or "text". */
-  channel: CodeChannel;
-  /** What the right code also joins (UX-SI-14, UX-SI-15). */
+  /** What the right code also joins (UX-SI-15). */
   joining: Joining | null;
   /** When the right code was entered, if it has been. */
   usedAt: Date | null;
@@ -229,7 +208,6 @@ export async function waitingCode(
   if (!row) return null;
   return {
     subject: row.subject,
-    channel: channelOf(row.channel),
     joining: readJoining(row.joining),
     usedAt: row.usedAt,
     sentAt: row.sentAt,
@@ -240,21 +218,17 @@ export async function waitingCode(
   };
 }
 
-/** What a code that has just been used up was: who for, how it came, and what it carries. */
+/** What a code that has just been used up was: who for, and what it carries. */
 export interface UsedCode {
   subject: string;
-  channel: CodeChannel;
   joining: Joining | null;
   attemptId: string | null;
   nextPath: string | null;
 }
 
-const channelOf = (value: string): CodeChannel => (value === 'sms' ? 'sms' : 'email');
-
 function usedCode(row: typeof oneTimeCodes.$inferSelect): UsedCode {
   return {
     subject: row.subject,
-    channel: channelOf(row.channel),
     joining: readJoining(row.joining),
     attemptId: row.attemptId,
     nextPath: row.nextPath,
@@ -356,40 +330,6 @@ export async function openCodeLink(
     return { where: 'here', ...usedCode(row) };
   });
 }
-
-/**
- * UX-SI-14: the mobile number this browser has proved and not yet put an email to. It stands for
- * 15 minutes from the right code by text, for as long as that text (or the email code that
- * followed it, carrying the number) is the newest sign-in code this browser asked for. Nothing
- * else is kept to say so: the used code's row is the proof, and it's deleted with the rest.
- */
-export async function provenMobile(
-  browserKey: string | null,
-  now = new Date(),
-): Promise<{ mobile: string; attemptId: string | null; nextPath: string | null } | null> {
-  const key = browserKeyFrom(browserKey);
-  if (!key) return null;
-  const rows = await db()
-    .select()
-    .from(oneTimeCodes)
-    .where(and(eq(oneTimeCodes.purpose, 'sign_in'), eq(oneTimeCodes.browserHash, sha256(key))))
-    .orderBy(desc(oneTimeCodes.sentAt))
-    .limit(CODES_KEPT_IN_VIEW);
-  // Newest first: past the email codes this number has been carried on, to the text itself.
-  for (const row of rows) {
-    if (row.channel === 'sms') {
-      if (!row.usedAt || !mobileProofStands(row.usedAt, now)) return null;
-      return { mobile: row.subject, attemptId: row.attemptId, nextPath: row.nextPath };
-    }
-    const carried = readJoining(row.joining)?.mobile;
-    // An email code that carries nothing, or has let someone in: the number's turn is over.
-    if (!carried || row.usedAt) return null;
-  }
-  return null;
-}
-
-/** More codes than one address can be sent in ten minutes, each way: enough to look back over. */
-const CODES_KEPT_IN_VIEW = 12;
 
 /**
  * UX-SI-15: where to go after signing in, for a code that was sent before that was known (the

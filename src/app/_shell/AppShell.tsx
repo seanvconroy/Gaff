@@ -14,6 +14,7 @@ import { ButtonLink } from '@/ui/Button';
 import { NavBar, type NavDestination } from '@/ui/NavBar';
 import { ToastProvider } from '@/ui/Toast';
 import { addContext, signOut, switchTo } from './actions';
+import { SignInLink } from './SignInLink';
 import styles from './shell.module.css';
 
 /** The destinations for the side that's showing, each with its count (UX-NV-5, UX-NV-21). */
@@ -83,9 +84,7 @@ export async function AppShell({ children, side }: { children: ReactNode; side?:
             ) : (
               <>
                 {listAHome}
-                <ButtonLink href="/sign-in" variant="secondary">
-                  {siteCopy.header.signIn}
-                </ButtonLink>
+                <SignInLink>{siteCopy.header.signIn}</SignInLink>
               </>
             )
           }

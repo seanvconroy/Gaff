@@ -65,10 +65,15 @@ function Label({
   idScope,
   label,
   optional,
-}: Pick<FieldBase, 'name' | 'idScope' | 'label' | 'optional'>) {
+  hideLabel,
+}: Pick<FieldBase, 'name' | 'idScope' | 'label' | 'optional'> & { hideLabel?: boolean }) {
   const id = ids(name, idScope);
   return (
-    <label id={id.label} htmlFor={id.input} className={styles.label}>
+    <label
+      id={id.label}
+      htmlFor={id.input}
+      className={hideLabel ? 'visually-hidden' : styles.label}
+    >
       {label}
       {optional ? <span className={styles.optional}> (optional)</span> : null}
     </label>
@@ -120,11 +125,25 @@ export function FieldFrame({
   error,
   optional,
   width,
+  hideLabel,
   children,
-}: FieldBase & { children: ReactNode }) {
+}: FieldBase & {
+  /**
+   * The label is there for a screen reader and not drawn: only where the screen's own title is
+   * the question and this is its one control (the sign-in code, UX-SI-16).
+   */
+  hideLabel?: boolean;
+  children: ReactNode;
+}) {
   return (
     <div className={styles.field}>
-      <Label name={name} idScope={idScope} label={label} optional={optional} />
+      <Label
+        name={name}
+        idScope={idScope}
+        label={label}
+        optional={optional}
+        hideLabel={hideLabel}
+      />
       {/* One element, whatever is inside, so a row of fields still lines up. */}
       <div className={widthClass(width)}>{children}</div>
       <Messages name={name} idScope={idScope} hint={hint} error={error} />

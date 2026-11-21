@@ -32,8 +32,7 @@ export const sessions = pgTable(
     ipAddress: text(),
     userAgent: text(),
     /**
-     * BA-8 (M5, AU8): how this session began: `email_code`, `sms_code`, `google`, `apple` or
-     * `passkey`. Set
+     * BA-8 (M5, AU8): how this session began: `email_code`, `google`, `apple` or `passkey`. Set
      * as the session is made, and never by a browser. Gaff's team need `passkey` in production.
      */
     signInMethod: text(),
@@ -109,26 +108,6 @@ export const passkeys = pgTable(
 );
 
 /**
- * UX-SI-13 (ADR-0033): the mobile number a person signs in with, if they have one. One number a
- * person, and one person a number. A code by text to it signs its owner in while `provenAt` is
- * within 180 days (src/domain/auth/mobile.ts); after that, or for a number nobody has, the
- * holder proves their email too and the number goes to whoever does.
- *
- * It is the person's own, like their passkeys: no operator can read it, and it has nothing to do
- * with the mobile a renter confirms to book a viewing, which belongs to that application.
- */
-export const signInMobiles = pgTable('sign_in_mobiles', {
-  userId: text()
-    .primaryKey()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  /** As +353871234567. */
-  mobile: text().notNull().unique(),
-  /** When a code by text to it last signed this person in, or joined it to them. */
-  provenAt: timestamp({ withTimezone: true }).notNull(),
-  createdAt: createdAt(),
-});
-
-/**
  * UX-SI-2: one-time codes: to sign in, to confirm it's you again (UX-SI-10), and to open a
  * private link's sensitive page (UX-SI-12). The code itself is never stored: only a keyed hash.
  * A code works in the browser that asked for it and nowhere else, so that browser's key is
@@ -138,20 +117,17 @@ export const oneTimeCodes = pgTable(
   'one_time_codes',
   {
     id: uuid().primaryKey().defaultRandom(),
-    /** `sign_in`, `confirm`, `private_link` or `add_mobile`. */
+    /** `sign_in`, `confirm` or `private_link`. */
     purpose: text().notNull(),
     /**
-     * Who the code is for: the email address or, by text, the mobile number (sign-in), the
-     * person and the action (confirm), the hash of the link's token (private link), or the
-     * person and the number (adding a mobile).
+     * Who the code is for: the email address (sign-in), the person and the action (confirm),
+     * or the hash of the link's token (private link).
      */
     subject: text().notNull(),
-    /** UX-SI-13: how it was sent: `email`, or `sms` for a text to a mobile. */
-    channel: text().notNull().default('email'),
     /**
-     * UX-SI-14, UX-SI-15: what the right code also joins to the person it signs in: a mobile
-     * this browser has just proved, or the Google or Apple account that couldn't vouch for the
-     * address (src/server/auth/joining.ts). Written by the server as the code is sent.
+     * UX-SI-15: what the right code also joins to the person it signs in: the Google or Apple
+     * account that couldn't vouch for the address (src/domain/auth/joining.ts). Written by the
+     * server as the code is sent.
      */
     joining: jsonb(),
     /** SHA-256 of the random key in the asking browser's cookie. */

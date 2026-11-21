@@ -15,7 +15,7 @@ import {
 } from './support';
 
 /**
- * UX-SI-1 to UX-SI-15: sign-in, through the real screens, at a phone's width and a laptop's.
+ * UX-SI-1 to UX-SI-12 and UX-SI-15: sign-in, through the real screens, at a phone's width and a laptop's.
  * Google and Apple are the local stand-ins; passkeys use the browser's virtual authenticator.
  */
 const widths = [390, 1280] as const;
@@ -46,7 +46,7 @@ async function signOutHere(context: BrowserContext): Promise<void> {
 
 async function startWithEmail(page: Page, email: string, path = '/sign-in'): Promise<void> {
   await page.goto(path);
-  await page.getByLabel('Email or mobile number').fill(email);
+  await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
 }
 
@@ -103,13 +103,11 @@ test('UX-SI-1, UX-SI-7: one screen to sign in or create an account, with no tagl
   for (const width of widths) {
     await page.setViewportSize(viewport(width));
     await page.goto('/sign-in');
-    await expect(
-      page.getByRole('heading', { name: 'Sign in or create an account', level: 1 }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sign in or sign up', level: 1 })).toBeVisible();
 
-    // In order: the one field and Continue, "or", Google, Apple, then the small print.
+    // In order: the email field and Continue, "or", Google, Apple, then the small print.
     const parts = [
-      page.getByLabel('Email or mobile number'),
+      page.getByLabel('Email', { exact: true }),
       page.getByRole('button', { name: 'Continue', exact: true }),
       page.getByText('or', { exact: true }),
       page.getByRole('button', { name: 'Continue with Google' }),
@@ -136,7 +134,7 @@ test('UX-SI-1, UX-SI-7: one screen to sign in or create an account, with no tagl
     // No passwords anywhere (UX-SI-1).
     await expect(page.locator('input[type=password]')).toHaveCount(0);
     // UX-SI-5: the browser may offer a saved passkey on the email field.
-    await expect(page.getByLabel('Email or mobile number')).toHaveAttribute(
+    await expect(page.getByLabel('Email', { exact: true })).toHaveAttribute(
       'autocomplete',
       'username webauthn',
     );
@@ -175,8 +173,12 @@ test('UX-SI-2, UX-SI-8: a new person signs in by code, and comes back the same w
     await onCodeScreen(page);
     // Rule 8: the address is never in a URL.
     expect(page.url()).toMatch(/\/sign-in\/code$/);
-    await expect(page.getByText(`We sent a six-digit code to ${email}.`)).toBeVisible();
+    // UX-SI-16: one line says where it went. The title is the label a person reads.
+    await expect(page.getByText(`We sent a code to ${email}.`, { exact: true })).toBeVisible();
     const input = page.getByLabel('Six-digit code');
+    await expect(page.locator('label', { hasText: 'Six-digit code' })).toHaveClass(
+      /visually-hidden/,
+    );
     await expect(input).toHaveAttribute('inputmode', 'numeric');
     await expect(input).toHaveAttribute('autocomplete', 'one-time-code');
     await expect(input).toBeFocused();
@@ -311,9 +313,9 @@ test('UX-SI-2: the email that didn’t send, and the pressed button showing prog
   for (const width of widths) {
     await page.setViewportSize(viewport(width));
     await page.goto('/sign-in');
-    await page.getByLabel('Email or mobile number').fill('nobody@undeliverable.gaff.test');
+    await page.getByLabel('Email', { exact: true }).fill('nobody@undeliverable.gaff.test');
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
-    const email = page.getByLabel('Email or mobile number');
+    const email = page.getByLabel('Email', { exact: true });
     // At the field, never in a box at the top.
     await expect(email).toHaveAttribute('aria-invalid', 'true');
     await expect(email).toHaveAccessibleDescription(
@@ -327,9 +329,7 @@ test('UX-SI-2: the email that didn’t send, and the pressed button showing prog
     // An address that isn't one: said at the field too.
     await email.fill('not an address');
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
-    await expect(email).toHaveAccessibleDescription(
-      /Enter an email address or a mobile number, like 087 123 4567/,
-    );
+    await expect(email).toHaveAccessibleDescription(/Enter an email address, like ann@example\.ie/);
   }
 
   // Loading: the pressed button shows progress and the others are disabled.
@@ -340,7 +340,7 @@ test('UX-SI-2: the email that didn’t send, and the pressed button showing prog
     if (route.request().method() === 'POST') await held;
     await route.continue();
   });
-  await page.getByLabel('Email or mobile number').fill(uniqueEmail('loading'));
+  await page.getByLabel('Email', { exact: true }).fill(uniqueEmail('loading'));
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Sending your code…' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeDisabled();
@@ -365,7 +365,7 @@ test('UX-SI-1, UX-SI-8, UX-SI-11: Google and Apple, joined to one person by a ve
     await expectAccessible(page);
     await screenshot(page, `ux-si-stand-in-google-${width}`);
     await page.getByRole('button', { name: 'Cancel' }).click();
-    await expect(page.getByRole('heading', { name: 'Sign in or create an account' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sign in or sign up' })).toBeVisible();
     await expect(page.getByText(/Error|couldn’t/)).toHaveCount(0);
     await expectAccessible(page);
     await screenshot(page, `ux-si-google-cancelled-${width}`);
@@ -374,7 +374,7 @@ test('UX-SI-1, UX-SI-8, UX-SI-11: Google and Apple, joined to one person by a ve
     await page.getByRole('button', { name: 'Continue with Apple' }).click();
     await expect(page.getByRole('heading', { name: 'Stand-in for Apple' })).toBeVisible();
     await page.getByRole('button', { name: 'Cancel' }).click();
-    await expect(page.getByRole('heading', { name: 'Sign in or create an account' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sign in or sign up' })).toBeVisible();
     await expect(page.getByText(/Error|couldn’t/)).toHaveCount(0);
 
     // A new person continues with Google, and is signed in. Their name came with them.
@@ -400,22 +400,17 @@ test('UX-SI-1, UX-SI-8, UX-SI-11: Google and Apple, joined to one person by a ve
     await throughStandIn(page, 'Apple', { email });
     await onCodeScreen(page);
     await expect(
-      page.getByText(
-        `Apple can’t confirm ${email} is still yours, so we sent a six-digit code to it.`,
-        { exact: false },
-      ),
+      page.getByText(`We sent a code to ${email}, to check it’s yours.`, { exact: true }),
     ).toBeVisible();
     await expectAccessible(page);
     await screenshot(page, `ux-si-provider-code-${width}`);
     await page.getByLabel('Six-digit code').fill(await latestCodeFor(email));
-    // "We've found your account": signed in, and told what was joined and where to change it.
+    // "We've found your account": signed in, with the account's email and what was joined.
     await expect(
       page.getByRole('heading', { name: 'We’ve found your account', level: 1 }),
     ).toBeVisible();
-    await expect(page.getByText(`You’re signed in as ${email}.`)).toBeVisible();
-    await expect(
-      page.getByText('Apple is connected. You can sign in with it from now on.'),
-    ).toBeVisible();
+    await expect(page.getByText('You’re signed in.', { exact: true })).toBeVisible();
+    await expect(page.getByRole('listitem')).toHaveText([`Email: ${email}`, 'Connected: Apple']);
     await expect(page).toHaveURL(/\/sign-in\/found\?joined=apple$/);
     await expectNoSidewaysScroll(page);
     await expectAccessible(page);
@@ -569,7 +564,7 @@ test('UX-SI-4, UX-SI-5: a passkey is offered after sign-in, and signs a returnin
     await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Continue with Apple' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeEnabled();
-    await expect(page.getByLabel('Email or mobile number')).toBeEditable();
+    await expect(page.getByLabel('Email', { exact: true })).toBeEditable();
     await expect(page).toHaveURL(/\/sign-in$/);
 
     // They take the browser's offer (their touch, here): signed in, with no code and no email.
@@ -718,7 +713,7 @@ test('UX-SI-10: changing the account tenants pay into asks to confirm it’s you
     await sheet.getByRole('button', { name: 'Email me a code' }).click();
     const input = sheet.getByLabel('Six-digit code');
     await expect(input).toBeVisible();
-    await expect(sheet.getByText(`We sent a six-digit code to ${email}.`)).toBeVisible();
+    await expect(sheet.getByText(`We sent a code to ${email}.`)).toBeVisible();
     const code = await latestCodeFor(email, 'confirm');
     await input.fill(wrongCodeFor(code));
     await expect(
@@ -793,11 +788,34 @@ test('UX-SI-12: private links need no account, as before', async ({
   await visitor.goto(`/r/${'a'.repeat(43)}`);
   await expect(visitor.getByRole('heading', { name: 'This link has ended' })).toBeVisible();
   expect(visitor.url()).not.toContain('/sign-in');
-  await expect(visitor.getByRole('heading', { name: 'Sign in or create an account' })).toHaveCount(
-    0,
-  );
+  await expect(visitor.getByRole('heading', { name: 'Sign in or sign up' })).toHaveCount(0);
   await context.close();
   // And the workspace still needs a sign-in.
   await page.goto('/settings');
   await expect(page).toHaveURL(/\/sign-in$/);
+});
+
+test('UX-SI-17: “Sign in” in the header comes back to the page the person was on', async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  const email = uniqueEmail('roisin');
+  // Whatever page it is, with whatever was in its address.
+  await page.goto('/help?topic=viewings');
+  const header = page.getByRole('banner');
+  await expect(header.getByRole('link', { name: 'Sign in', exact: true })).toHaveAttribute(
+    'href',
+    '/sign-in?next=%2Fhelp%3Ftopic%3Dviewings',
+  );
+  await page.goto('/help');
+  await header.getByRole('link', { name: 'Sign in', exact: true }).click();
+  await expect(page).toHaveURL(/\/sign-in\?next=%2Fhelp$/);
+  await page.getByLabel('Email').fill(email);
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await onCodeScreen(page);
+  await page.getByLabel('Six-digit code').fill(await latestCodeFor(email));
+  await page.waitForURL((url) => url.pathname === '/help');
+  // Signed in, on the page they left: the avatar is where "Sign in" was.
+  await expect(header.getByRole('link', { name: 'Sign in', exact: true })).toHaveCount(0);
 });

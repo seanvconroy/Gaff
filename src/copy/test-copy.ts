@@ -25,9 +25,6 @@ export function testEnquiriesAdded(added: number): string {
 export const TEST_COPY_OUTBOX = {
   eyebrow: 'Test copy',
   lead: 'Email to made-up people (addresses at example.com, example.ie, .test and the like), and every text. Real people get real email. Links work as they would in a real inbox.',
-  /** Once texts are really sent, none is here. */
-  leadWithRealTexts:
-    'Email to made-up people (addresses at example.com, example.ie, .test and the like). Real people get real email, and texts go to real phones. Links work as they would in a real inbox.',
 };
 
 /** P16: where texts aren't sent, the code that would have gone by text, on the screen. */

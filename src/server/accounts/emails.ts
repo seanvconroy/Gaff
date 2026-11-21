@@ -134,7 +134,7 @@ export const accountEmailJob = z.discriminatedUnion('kind', [
     kind: z.literal('sign_in_changed'),
     userId: z.uuid(),
     change: z.enum(['added', 'removed']),
-    method: z.enum(['google', 'apple', 'passkey', 'mobile']),
+    method: z.enum(['google', 'apple', 'passkey']),
     at: z.iso.datetime(),
   }),
   /** BA-8 (AU4, AU11): someone tried to sign in with Google or Apple using their address. */

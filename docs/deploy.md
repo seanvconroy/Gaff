@@ -5,7 +5,7 @@ Gaff is one Next.js app on Vercel, with its functions in Dublin, and one Postgre
 This sets up the **test copy**, for the end-to-end test in [testing-guide.md](testing-guide.md):
 - **Email is real** for real addresses, through Resend with a send-only key. Mail to made-up addresses (`example.com`, `example.ie`, `.test`, `.example` and the like) goes to the Outbox instead. Replies by email can't be received, so each email that would invite a reply says to use its link instead.
 - Texts aren't sent; they appear on the Outbox page. The ID and income checks are stand-ins. The AI is a stand-in too, unless you give it the Claude API's key (see [The AI](#the-ai)).
-- It's open to anyone with the address and never indexed. Nothing on its pages says it is the test copy (the banner was taken off on 21 November 2026, Q62, so it looks as the real Gaff will): the address is how you tell. The Outbox, the test inbox and the stand-in checks are for Gaff's own team only (`STAFF_EMAILS`); anyone else gets "not found". There is no stand-in for Google or Apple: without their real keys, their buttons aren't shown.
+- It's open to anyone with the address and never indexed. Nothing on its pages says it is the test copy (the banner was taken off on 21 November 2026, Q63, so it looks as the real Gaff will): the address is how you tell. The Outbox, the test inbox and the stand-in checks are for Gaff's own team only (`STAFF_EMAILS`); anyone else gets "not found". There is no stand-in for Google or Apple: without their real keys, their buttons aren't shown.
 - **Use made-up details only.**
 
 It takes about 20 minutes. Production uses the same steps with real providers; see [Production, later](#production-later).
@@ -294,52 +294,7 @@ A chosen renter, and a private landlord at their first go-live, check their ID: 
 
 ## Texts, and the code to book a viewing
 
-**Signing in with a mobile number** (ADR-0033) is offered only where texts are really sent: with Sinch's settings, the sign-in field reads "Email or mobile number"; with `SMS_PROVIDER=fake` it reads "Email", except on a developer's machine, where the text is in the Outbox. A sign-in code is never shown on the screen. `SIGN_IN_TEXTS_PER_HOUR` (300 unless set) is every sign-in text Gaff may send in an hour; past it the screen asks for an email until the hour is out, and `0` switches sign-in by mobile off.
-
 A renter confirms their mobile with a six-digit text code before booking a viewing (P16), and the 2-hour reminder goes to that number. With `SMS_PROVIDER=fake` (the test copy, until Sinch is set up) no text is sent: the code is shown on the screen instead, on staging only. With Sinch's settings, it is texted.
-
-### Setting up Sinch
-
-Sinch sends every text: sign-in codes, the code to book a viewing, and the 2-hour reminder. It is approved for this (rule 10, Q61). Nothing below needs a code change.
-
-Sinch's own screens change. Where a label below doesn't match, look for the same thing by what it is: a _service plan ID_, an _API token_ and a _region_.
-
-1. **Make the account** at [sinch.com](https://sinch.com) ("Build" dashboard), as the company. A trial is enough to prove it works. On a trial, Sinch sends your words only to numbers you have verified there (the one you signed up with, and up to five in all); to any other number it sends its own test words, with no code. It gives a small credit and a test number to send from.
-2. **Make an app in the EU region.** A new account is set up for Sinch's Conversation API: a _project_, an _app_ and an _access key_. In the dashboard, open **Conversation API**, **Apps**, make a new app, choose **Europe (EU)** as its region, and add the **SMS** channel to it. The region can't be changed afterwards, and Gaff only ever calls Sinch's EU address (rule 10): an app made in the US is refused. To check which you have, look at the sample code the dashboard shows for the app: its address begins `eu.conversation` or `us.conversation`.
-3. **Note three values** from the app's page or its sample code. None is a password:
-   - the **project ID** (in the sample's address, after `/projects/`);
-   - the **app ID** (`app_id` in the sample);
-   - the **sender** the sample sends from (`SMS_SENDER`), which on a trial is the test number Sinch gives you.
-4. **Make an access key** (**Settings**, **Access keys**, a new key). It has a **key ID** and a **key secret**. The secret is shown once and is a password: put it straight into Vercel, and never into a chat, an email or the repository. A secret that has been pasted anywhere else is deleted at Sinch and made again.
-5. **Add six settings in Vercel** (**Settings**, **Environment Variables**, for **Production**, which is the test copy):
-
-   | Name | Value |
-   | --- | --- |
-   | `SMS_PROVIDER` | `sinch` |
-   | `SINCH_PROJECT_ID` | the project ID |
-   | `SINCH_APP_ID` | the app ID, of the app made in the EU |
-   | `SINCH_KEY_ID` | the access key's ID |
-   | `SINCH_KEY_SECRET` | the access key's secret (mark it **Sensitive**) |
-   | `SINCH_FROM` | the sender, as the sample shows it (`+44…` on a trial), or `Gaff` once registered |
-
-   The app refuses to start with `SMS_PROVIDER=sinch` and any of these missing, so add them all before the next step.
-
-   _An older Sinch account_ has a **service plan** in place of the app and key (dashboard, **SMS**, **Service APIs**). Gaff takes that too: `SINCH_SERVICE_PLAN_ID` and `SINCH_API_TOKEN` in place of the four above, from a plan in the EU region, and `SINCH_FROM` as digits with no plus.
-6. **Redeploy** (**Deployments**, the newest one, **Redeploy**). Settings only reach a new deployment.
-7. **Check it**, with your own mobile, verified at Sinch if you're on a trial:
-   - the sign-in screen's field reads "Email or mobile number";
-   - type your mobile and press Continue: the text arrives within a few seconds, and the code signs you in (the first time, after one more code to your email);
-   - if no text comes, the screen says "We couldn't send the text", and the reason is in Vercel's logs as "Sinch refused the SMS:" with Sinch's status. `401` is a wrong key, or an app or plan from another region; `403` and `404` are usually an app with no SMS channel, or a sender or a country the account may not use.
-8. **Before real people use it:**
-   - **Upgrade the account** (add a payment method), which lifts the trial's limits.
-   - **Register the sender name for Ireland.** ComReg's SMS Sender ID Registry is free: register the organisation and the name `Gaff` at [comreg.ie/senderid](https://www.comreg.ie/senderid), and name Sinch (Sinch Sweden AB) as the provider. Since 3 July 2025 a text from an unregistered name reads "Likely Scam"; blocking them outright has been announced and deferred, so check the date there. Ask Sinch's support whether they need anything more to carry the name, then set `SINCH_FROM=Gaff` and redeploy.
-   - **Limit where texts go and what they can cost.** At Sinch, allow only the countries in `diallingCodes` (`src/domain/auth/mobile.ts`) and set a monthly spend cap. Gaff's own cap is `SIGN_IN_TEXTS_PER_HOUR` (300 unless set).
-   - **Sign Sinch's data processing agreement** and keep a copy (rule 10). The privacy notice already names Sinch.
-   - **Send one real sign-in text to an iPhone and to an Android phone**, and check the code is offered above the keyboard.
-
-What changes on the test copy once it's on: sign-in offers a mobile number; the code to book a viewing is texted, no longer shown on the screen; and the 2-hour viewing reminder is a real text. Texts go only to a number someone typed themselves and, for reminders, confirmed with a code. A made-up number would text a stranger, and since 21 November 2026 no banner says so (Q62): tell everyone who tests to use their own mobile number once texts are on.
-
-To turn it off again: set `SMS_PROVIDER=fake` and redeploy. Sign-in goes back to "Email", and nobody loses their account: a mobile number is only ever a second way in.
 
 ## Good to know
 
@@ -373,7 +328,7 @@ Before the first real renter (see [launch-checklist.md](launch-checklist.md)):
   | `RESEND_WEBHOOK_SECRET` | from Resend. Required in production, which receives replies and forwarded enquiries |
   | `INBOUND_DOMAIN` | e.g. `in.gaff.ie` |
   | `MAIL_FROM_DOMAIN` | e.g. `mail.gaff.ie` |
-  | SMS | the Sinch settings. With them, people can also sign in with a mobile number (ADR-0033); `SIGN_IN_TEXTS_PER_HOUR` caps those texts |
+  | SMS | the Sinch settings |
   | AI | `AI_PROVIDER=bedrock`, `AWS_REGION`, the AWS keys and `AI_MONTHLY_BUDGET_USD` (see [The AI](#the-ai)). Never `ANTHROPIC_API_KEY`: production refuses it |
   | `IDENTITY_PROVIDER`, `STRIPE_SECRET_KEY`, `STRIPE_IDENTITY_WEBHOOK_SECRET` | `stripe`, the live secret key and the live webhook's secret (see [The ID check](#the-id-check-stripe-identity)), or `none` until Stripe's DPA is signed |
   | `DOCUMENT_STORE`, `DOCUMENT_BUCKET` | `supabase`, and the bucket for chosen renters' work and income documents (`documents` unless set). Create it as **private**, in the same Ireland project, and never the photos' bucket (Gaff refuses that). Files are encrypted with `DATA_ENCRYPTION_KEY` before they're stored; nothing in the bucket is ever served to a browser; browsers send documents straight to it under `uploads/` with a signed upload, which Gaff reads, encrypts under a new key and deletes at once (BA-16, [ADR-0031](adr/0031-work-and-income-documents.md)). Production refuses `local`. Documents are read by the AI's `document` task: on Bedrock in the EU in production, and on the test copy with the Claude API, so the test copy takes made-up documents only. `INCOME_PROVIDER` is gone: remove it |
@@ -385,7 +340,7 @@ Before the first real renter (see [launch-checklist.md](launch-checklist.md)):
   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | from a Google OAuth client (web application), with the redirect URI `https://<domain>/api/auth/callback/google`. Without both, "Continue with Google" isn't shown |
   | `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` | Apple's Services ID, with the return URL `https://<domain>/api/auth/callback/apple`, and what its client secret is made from: the team ID, the Sign in with Apple key's ID and the key itself (the `.p8` file's text; line breaks may be written as `\n`). Gaff makes the secret on the server and renews it itself (BA-8, [ADR-0019](adr/0017-sign-in-hardened.md)). A static `APPLE_CLIENT_SECRET` still works in place of the three. Without them, "Continue with Apple" isn't shown |
 
-  Production refuses to start with a stand-in or without the encryption key. Sign-in by email code and by passkey needs no setting ([ADR-0015](adr/0015-sign-in-google-apple-codes-passkeys.md)); sign-in by mobile number needs Sinch ([ADR-0033](adr/0033-mobile-sign-in-and-one-person-across-methods.md)). Limits on signing in are counted in the database by network address, from Vercel's `x-forwarded-for`, and need no setting either ([ADR-0019](adr/0017-sign-in-hardened.md)). In production, Gaff's team open `/internal` only on a passkey sign-in: each adds a passkey on Profile before launch. A passkey belongs to the domain in `APP_URL`, so settle the domain before people add them.
+  Production refuses to start with a stand-in or without the encryption key. Sign-in by email code and by passkey needs no setting ([ADR-0015](adr/0015-sign-in-google-apple-codes-passkeys.md)). Limits on signing in are counted in the database by network address, from Vercel's `x-forwarded-for`, and need no setting either ([ADR-0019](adr/0017-sign-in-hardened.md)). In production, Gaff's team open `/internal` only on a passkey sign-in: each adds a passkey on Profile before launch. A passkey belongs to the domain in `APP_URL`, so settle the domain before people add them.
 - **Apple:** register the sending domain (`MAIL_FROM_DOMAIN`) with "Sign in with Apple", so "Hide My Email" addresses can be reached.
 - **Resend:**
   - Add the sending domain in region `eu-west-1`, with open and click tracking off, and add its SPF and DKIM records.

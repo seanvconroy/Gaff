@@ -14,8 +14,7 @@ export const dynamic = 'force-dynamic';
 
 /** Where the code went, in words: to a provider's address (UX-SI-15), or to an email address. */
 function leadFor(waiting: WaitingCode): string {
-  const provider = waiting.joining?.provider.id;
-  if (provider) return codeCopy.leadProvider(provider, waiting.subject);
+  if (waiting.joining?.provider) return codeCopy.leadProvider(waiting.subject);
   return codeCopy.lead(waiting.subject);
 }
 

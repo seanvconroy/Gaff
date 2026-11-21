@@ -13,7 +13,7 @@ import type { DeviceKind } from '@/domain/auth/passkey-offer';
 const providerNames: Record<SignInProvider, string> = { google: 'Google', apple: 'Apple' };
 
 export const signInCopy = {
-  title: 'Sign in or create an account',
+  title: 'Sign in or sign up',
   /** UX-AG-11: on the way to an invite. */
   joinTitle: (agencyName: string) => `Join ${agencyName}`,
   continueWith: (provider: SignInProvider) => `Continue with ${providerNames[provider]}`,
@@ -90,14 +90,13 @@ export function providerProblemWords(
 
 export const codeCopy = {
   title: 'Enter your code',
-  lead: (email: string) =>
-    `We sent a six-digit code to ${email}. It works for the next ${CODE_LASTS_MINUTES} minutes.`,
+  /** UX-SI-16: one line, where the code went. */
+  lead: (email: string) => `We sent a code to ${email}.`,
   /**
    * UX-SI-15: back from Google or Apple, which can't vouch for the address. The mailbox says
-   * yes instead, and the provider is connected with the same code.
+   * yes instead; the email itself says the provider is connected with the same code.
    */
-  leadProvider: (provider: SignInProvider, email: string) =>
-    `${providerNames[provider]} can’t confirm ${email} is still yours, so we sent a six-digit code to it. Enter it and ${providerNames[provider]} is connected from then on. It works for the next ${CODE_LASTS_MINUTES} minutes.`,
+  leadProvider: (email: string) => `We sent a code to ${email}, to check it’s yours.`,
   label: 'Six-digit code',
   checking: 'Checking…',
   /** States table: "Wrong code". */
@@ -119,10 +118,12 @@ export const codeCopy = {
  */
 export const foundCopy = {
   title: 'We’ve found your account',
-  signedInAs: (email: string) => `You’re signed in as ${email}.`,
-  joined: (joined: Joined): string =>
-    `${providerNames[joined]} is connected. You can sign in with it from now on.`,
-  change: 'You can change this under “How you sign in” on your profile.',
+  lead: 'You’re signed in.',
+  /** For a screen reader, before each line of the account: its email, then what was joined. */
+  emailRow: 'Email',
+  joinedRow: 'Connected',
+  /** What was joined, as it's shown: the provider's name, beside its mark. */
+  joined: (joined: Joined): string => providerNames[joined],
   continue: 'Continue',
 } as const;
 
@@ -185,8 +186,7 @@ export const confirmCopy = {
   emailCode: 'Email me a code',
   emailCodeInstead: 'Email me a code instead',
   sending: 'Sending your code…',
-  sentTo: (email: string) =>
-    `We sent a six-digit code to ${email}. It works for the next ${CODE_LASTS_MINUTES} minutes.`,
+  sentTo: (email: string) => `We sent a code to ${email}.`,
   /** The form couldn't go on because nobody has confirmed. Shown only if the sheet is closed. */
   needed: 'Confirm it’s you to save this.',
 } as const;

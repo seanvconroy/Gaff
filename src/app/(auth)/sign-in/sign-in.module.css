@@ -56,12 +56,30 @@
   gap: var(--space-3);
 }
 
-/* A link that sits by itself: a 44px target (UX-DS-15). */
-.standaloneLink {
-  display: inline-flex;
+/* "We've found your account": the account's email and what was joined, a line each (UX-SI-16). */
+.account {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.account li {
+  display: flex;
+  gap: var(--space-3);
   align-items: center;
-  min-height: var(--size-target);
-  justify-self: start;
+  min-width: 0;
+}
+
+.account li > svg {
+  flex: none;
+  color: var(--color-ink-muted);
+}
+
+.account li > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* The code, shown large to be typed somewhere else (UX-SI-3). */

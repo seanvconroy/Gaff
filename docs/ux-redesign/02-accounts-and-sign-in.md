@@ -89,7 +89,7 @@ Nothing is asked before the action that needs it.
 
 ## Sign-in
 
-One screen for new and returning users. The title is "Sign in or create an account".
+One screen for new and returning users. The title is "Sign in or sign up" (it was "Sign in or create an account" until 21 November 2026, Q62).
 
 | Order | Element | Notes |
 | --- | --- | --- |
@@ -129,7 +129,21 @@ The order was Google and Apple first until 20 November 2026 (Q61).
 
 **UX-SI-14.** Withdrawn with UX-SI-13: the "What's your email?" step after a mobile number Gaff hadn't seen.
 
-**UX-SI-15.** One person, however they sign in. A Google or Apple account that can't vouch for its address (one the provider doesn't host) isn't a dead end: a code goes to the address as the provider comes back, the code screen says why, and entering it signs the person in and connects the provider in one step. "We've found your account" follows if the account was already there. `[P6, P14 · Q61, Q57]`
+**UX-SI-15.** One person, however they sign in. A Google or Apple account that can't vouch for its address (one the provider doesn't host) isn't a dead end: a code goes to the address as the provider comes back, the code screen says it is to check the address is theirs, and entering it signs the person in and connects the provider in one step. "We've found your account" follows if the account was already there. `[P6, P14 · Q61, Q57]`
+
+**UX-SI-16.** Few words, on every sign-in screen (Sean, 21 November 2026, Q62, with Airbnb's sign-in as the standard). Each screen is a title, at most one line under it, and its one control. `[P4, P6 · Q62]`
+
+| Screen | Title | The one line | What else is on it |
+| --- | --- | --- | --- |
+| Sign-in | "Sign in or sign up" | None | The email field, "Continue", "or", Google, Apple, the small print |
+| Code | "Enter your code" | "We sent a code to ann@example.ie." Back from Google or Apple: "We sent a code to ann@work.ie, to check it's yours." | The six boxes with no label drawn over them (the title is the label; a screen reader still hears "Six-digit code"), then "Send a new code" and "Use a different email" as quiet buttons |
+| Found | "We've found your account" | "You're signed in." | Two lines, an icon each: the account's email, then what was joined ("Google" or "Apple"), and "Continue" |
+
+How long a code lasts is no longer said on the screen: an expired code says so, and offers a new one. The email still says it. "Confirm it's you" says where its code went in the same short line.
+
+When sign-in by text is built again (Q61), a country code is never a field of its own: it sits inside the one field, at its start (Q62).
+
+**UX-SI-17.** "Sign in" in the header brings a person back to the page they were on: the home they were reading, the search they had made. The page travels as `next`, which is followed only if it is a path on this site (UX-SI-8). `[P6, P10 · Q62]`
 
 Why these methods: Google and Apple are one tap and cover most phones and most small-business email. An emailed code keeps the user in the tab they started in, which a link doesn't. Passkeys are the fastest and safest return path but are a poor first step for people who haven't met them, so they're offered after sign-in, not before. Published comparisons of these methods are thin and mostly from vendors, so the mix is a hypothesis: measure completion by method from day one ([section 9](09-activation-growth-measures.md)). Many Irish agencies run on Microsoft 365. "Continue with Microsoft" is added later if more than one in five pilot users signs in with an Outlook or Microsoft-hosted address.
 
@@ -141,7 +155,7 @@ Why these methods: Google and Apple are one tap and cover most phones and most s
 | Code expired or too many tries | "That code has expired." with "Send a new code" as the primary button |
 | Google or Apple cancelled | Back on the sign-in screen, no error |
 | Email didn't send | "We couldn't send the code. Check the address and try again." at the email field |
-| Google or Apple can't vouch for the address | The code screen: "Google can't confirm ann@work.ie is still yours, so we sent a six-digit code to it. Enter it and Google is connected from then on." |
+| Google or Apple can't vouch for the address | The code screen: "We sent a code to ann@work.ie, to check it's yours." The email says Google is connected with the same code |
 | Loading | The pressed button shows progress and the others are disabled |
 
 ## First run

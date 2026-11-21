@@ -24,6 +24,8 @@ export function CodeInput({
   /** Called once each time every box is filled. */
   onComplete?: (code: string) => void;
   autoFocus?: boolean;
+  /** The screen's title is the label a person reads; this one is kept for a screen reader. */
+  hideLabel?: boolean;
 }) {
   const [code, setCode] = useState(() => codeDigits(defaultValue, length));
   const ids = fieldIds(field.name, field.idScope);

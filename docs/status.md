@@ -47,6 +47,21 @@ Sean agreed the plan on 19 November 2026. The decisions are Q50 to Q54 in [open-
 | 3 | BA-16 a chosen renter shows their work and income with documents (P30 to P41, P44 to P47, P49) | **Done**, 20 November 2026. One checks page for the preferred applicant and the backup: ID, referees, then the documents for how they said they earn (payslips or a contract; a Notice of Assessment or an accountant's letter; a statement of each other income; never bank statements). PDF, JPG or PNG, encrypted in a private store. The model's `document` task is given the file alone and reads its kind, name, date and amounts; a reading holding a PPS number or an account number is refused whole. The kind, the name against the ID, and how recent it is are checked at once, in `warning`. The renter sees what was read, can correct it, and shares everything in one step. A letter sees it in words beside the income the renter gave, with the fixed reminder about HAP and no score; they can open payslips while kept, each opening recorded, and can never open a statement of other income: the letter's table has no such kind, and the renter's copy belongs to no organisation. Every copy has a deletion date. The open-banking stand-in is gone. Rules 2 and 3 in `CLAUDE.md` say this in the words the founder agreed on 8 November. Left out: a character reference instead of a landlord's (P42, it needs new fixed wording), a guarantor (P43), marking a flag "seen and accepted" (P48). For the solicitor: HAP and affordability, asking the backup at the same time, statements of other income. ADR-0031. `tests/compliance` documents tests, `tests/e2e/ba16-*.spec.ts` |
 - **CI:** the journeys had outgrown the job's 25 minutes, so every run on the redesign's branch was cut off. They now run as four parts side by side.
 
+## Sign-in in few words (21 November 2026)
+
+Sean, on seeing the screens beside Airbnb's: too wordy (Q62).
+
+| Requirement | What | Proven by |
+| --- | --- | --- |
+| UX-SI-16: few words | Each sign-in screen is a title, at most one line and its one control. The code screen says only where the code went, and draws no label over the six boxes; "Send a new code" and "Use a different email" are quiet buttons. "We've found your account" shows the account's email and what was joined, an icon each. The title is "Sign in or sign up". "Confirm it's you" says where its code went in the same short line | `src/copy/sign-in.test.ts`, `tests/e2e/ux-si-sign-in.spec.ts` |
+| UX-SI-17: back to where you were | "Sign in" in the header carries the page the person was on, and sign-in returns them to it | `tests/e2e/ux-si-sign-in.spec.ts` |
+
+Left open, on purpose:
+
+- **The country code inside the field** was built for sign-in by mobile and is not in the product, because mobile sign-in was taken out the same day (Q61). It is kept in the repository's history for the rebuild (Q62).
+- **Changing the email on an account** isn't built. Done safely it needs a way to undo from the notice sent to the old address, which is new fixed wording and a decision (Q62).
+- **The test copy has no Google or Apple settings**, so its sign-in screen is the email field alone, and its email reaches only the Resend account's owner until a sending domain is verified (`docs/deploy.md`).
+
 ## Sign-in, joined up (20 November 2026; mobile taken out 21 November 2026)
 
 Sean asked for Airbnb's standard: a phone number or an email with a one-time code, or Google or Apple, all reaching the same account (Q61, [ADR-0033](adr/0033-mobile-sign-in-and-one-person-across-methods.md)).

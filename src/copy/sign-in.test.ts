@@ -38,15 +38,11 @@ function everySentence(): string[] {
   });
   walk({
     ...foundCopy,
-    signedInAs: foundCopy.signedInAs('ann@example.ie'),
     joined: [foundCopy.joined('google'), foundCopy.joined('apple')],
   });
   walk({
     ...codeCopy,
-    leadProvider: [
-      codeCopy.leadProvider('google', 'ann@example.ie'),
-      codeCopy.leadProvider('apple', 'ann@example.ie'),
-    ],
+    leadProvider: codeCopy.leadProvider('ann@example.ie'),
     lead: codeCopy.lead('ann@example.ie'),
     sendNewIn: [codeCopy.sendNewIn(1), codeCopy.sendNewIn(18)],
   });
@@ -74,7 +70,7 @@ function everySentence(): string[] {
 
 describe('UX-SI-1: the sign-in screen’s words', () => {
   it('has the title and the buttons section 2 gives', () => {
-    expect(signInCopy.title).toBe('Sign in or create an account');
+    expect(signInCopy.title).toBe('Sign in or sign up');
     expect(signInCopy.continueWith('google')).toBe('Continue with Google');
     expect(signInCopy.continueWith('apple')).toBe('Continue with Apple');
     expect(signInCopy.or).toBe('or');
@@ -96,7 +92,9 @@ describe('UX-SI-1: the sign-in screen’s words', () => {
   });
 
   it('UX-SI-8: never tells anyone there is no account, or asks for a password', () => {
-    for (const sentence of everySentence()) {
+    // The title names both in one breath, on the one screen for both (UX-SI-16). Nothing else
+    // sends anyone off to "sign up" somewhere else.
+    for (const sentence of everySentence().filter((words) => words !== signInCopy.title)) {
       expect(sentence).not.toMatch(/no account|not found|don’t have an account|sign up|password/i);
     }
   });
@@ -235,13 +233,19 @@ describe('Voice: every word of sign-in', () => {
 });
 
 describe('UX-SI-15: one person, however they sign in', () => {
-  it('says what was found, what was joined, and where to change it', () => {
+  it('UX-SI-16: says the account was found, then shows what was joined, in few words', () => {
     expect(foundCopy.title).toBe('We’ve found your account');
-    expect(foundCopy.signedInAs('ann@example.ie')).toBe('You’re signed in as ann@example.ie.');
-    expect(foundCopy.joined('google')).toBe(
-      'Google is connected. You can sign in with it from now on.',
-    );
-    expect(foundCopy.change).toBe('You can change this under “How you sign in” on your profile.');
+    expect(foundCopy.lead).toBe('You’re signed in.');
+    expect(foundCopy.joined('google')).toBe('Google');
+    expect(foundCopy.joined('apple')).toBe('Apple');
+    // For a screen reader, which has no icons to go on.
+    expect(foundCopy.emailRow).toBe('Email');
+    expect(foundCopy.joinedRow).toBe('Connected');
+  });
+
+  it('UX-SI-16: says where the code went, in one short line', () => {
+    expect(codeCopy.lead('ann@example.ie')).toBe('We sent a code to ann@example.ie.');
+    expect(confirmCopy.sentTo('ann@example.ie')).toBe('We sent a code to ann@example.ie.');
   });
 
   it('the email says what the code adds, and not to share it', () => {
@@ -259,8 +263,8 @@ describe('UX-SI-15: one person, however they sign in', () => {
   });
 
   it('UX-SI-15: says why a code was sent when Google or Apple can’t vouch for the address', () => {
-    expect(codeCopy.leadProvider('google', 'ann@work.example.ie')).toBe(
-      'Google can’t confirm ann@work.example.ie is still yours, so we sent a six-digit code to it. Enter it and Google is connected from then on. It works for the next 10 minutes.',
+    expect(codeCopy.leadProvider('ann@work.example.ie')).toBe(
+      'We sent a code to ann@work.example.ie, to check it’s yours.',
     );
   });
 });

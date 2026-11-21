@@ -60,7 +60,8 @@ Left open, on purpose:
 
 - **The country code inside the field** was built for sign-in by mobile and is not in the product, because mobile sign-in was taken out the same day (Q61). It is kept in the repository's history for the rebuild (Q62).
 - **Changing the email on an account** isn't built. Done safely it needs a way to undo from the notice sent to the old address, which is new fixed wording and a decision (Q62).
-- **The test copy has no Google or Apple settings**, so its sign-in screen is the email field alone, and its email reaches only the Resend account's owner until a sending domain is verified (`docs/deploy.md`).
+- **Google and Apple are live on the test copy** since 21 November 2026: its sign-in screen has the email field, "Continue with Google" and "Continue with Apple", and Sean has been through both. Google's consent screen is in Testing, so only the test users listed there can sign in with Google. A production Google client and Apple Services ID, with their own keys, are still to be made (launch checklist).
+- **The test copy's email reaches only the Resend account's owner** until a sending domain is verified (`docs/deploy.md`). Until then "Hide My Email" addresses can't be reached either: the sending domain is registered with Apple once it exists.
 
 ## Sign-in, joined up (20 November 2026; mobile taken out 21 November 2026)
 

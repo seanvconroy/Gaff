@@ -193,6 +193,18 @@ export async function expectControlSizes(page: Page): Promise<void> {
       if (Math.abs(height - 48) > 0.5) found.push(`a code box is ${height}px high, not 48px`);
     }
 
+    // What is open over the page: a list of suggestions, a menu or a dialog, or the floating
+    // box that holds one (the search bar's panel, with its tip above its list).
+    const OPEN = '[role=listbox], [role=menu], [role=dialog], dialog[open]';
+    const openLayerOf = (el: Element | null): Element | null => {
+      for (let at = el; at && at !== document.body; at = at.parentElement) {
+        if (at.matches(OPEN)) return at;
+        const floats = ['absolute', 'fixed'].includes(getComputedStyle(at).position);
+        if (floats && at.querySelector(OPEN)) return at;
+      }
+      return null;
+    };
+
     // Targets: 44 by 44px or more.
     const pressable = document.querySelectorAll<HTMLElement>(
       'a[href], button, input:not([type=hidden]), select, textarea, summary, [role=option], [role=menuitem]',
@@ -217,9 +229,27 @@ export async function expectControlSizes(page: Page): Promise<void> {
         }
         return distance;
       };
-      const width = reach(-1, 0) + reach(1, 0) + 1;
-      const height = reach(0, -1) + reach(0, 1) + 1;
-      if (width < 44 || height < 44) found.push(`${name(el)} has a ${width} by ${height}px target`);
+      const sides = [
+        [-1, 0],
+        [1, 0],
+        [0, -1],
+        [0, 1],
+      ].map(([dx, dy]) => ({ dx: dx!, dy: dy!, reached: reach(dx!, dy!) }));
+      const width = sides[0]!.reached + sides[1]!.reached + 1;
+      const height = sides[2]!.reached + sides[3]!.reached + 1;
+      if (width >= 44 && height >= 44) continue;
+      // Something open over the page (a list of suggestions, a menu, a dialog) can lie across
+      // part of a target that isn't in it. That part is hidden as a target wholly under it is,
+      // until it closes: the target is measured on a page where nothing is open over it.
+      const underOpenLayer = sides.some(({ dx, dy, reached }) => {
+        const px = x + dx * (reached + 1);
+        const py = y + dy * (reached + 1);
+        if (px < box.left || px > box.right || py < box.top || py > box.bottom) return false;
+        const layer = openLayerOf(document.elementFromPoint(px, py));
+        return !!layer && !layer.contains(target);
+      });
+      if (underOpenLayer) continue;
+      found.push(`${name(el)} has a ${width} by ${height}px target`);
     }
     window.scrollTo({ ...scrolledTo, behavior: 'instant' });
     return found;

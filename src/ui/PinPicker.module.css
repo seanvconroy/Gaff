@@ -81,10 +81,8 @@
   stroke: none;
 }
 
-.pin:focus {
-  outline: none;
-}
-
+/* Focus: the one ring every control has (base.css), round the pin's 44px target, and the pin's
+   own edge in the same colour so it stands out from the streets under it. */
 .pin:focus-visible path {
   stroke: var(--color-focus);
   stroke-width: 4;

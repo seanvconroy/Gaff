@@ -364,7 +364,7 @@ Every component the redesign named is built except the map (Q49). Each is on `/d
 | **Directions link** | `DirectionsLink` | "Get directions": the phone's own maps app, or a map in a new tab |
 | **Search bar and filter chips** | `SearchBar`, `FilterChips` | Renter search: the box with its suggestions floating under it, then "Filters", "Save search" and a chip per filter, each opening its control |
 | **Drawing on the map** | `MapDraw` (inside `SearchMap`) | An area drawn to search, in the brand colour with a light fill; corners to drag, a small dot on each side to pull a new corner from |
-| **Home card, heart** | `HomeCard`, `HomeGrid`, `HeartButton` | A home in a list; in search the rent is its title, with the heart over the photo |
+| **Home card, heart** | `HomeCard`, `HomeGrid`, `HeartButton`, `CardPhotos` | A home in a list; in search the rent is its title, with the heart over the photo, and the home's photos to look through in place |
 | **Action card** | `ActionCard` | The one action on a home's page: at the foot of the screen on a phone, beside the content on a desktop |
 | **Show more** | `ShowMore` | Long text, three lines then "Show more" |
 | **Setup checklist** | `SetupChecklist` | First-run progress: a ring, "1 of 3 done", and the next step's one button. Today's one primary button while it shows |

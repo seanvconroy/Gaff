@@ -5,7 +5,7 @@ Gaff is one Next.js app on Vercel, with its functions in Dublin, and one Postgre
 This sets up the **test copy**, for the end-to-end test in [testing-guide.md](testing-guide.md):
 - **Email is real** for real addresses, through Resend with a send-only key. Mail to made-up addresses (`example.com`, `example.ie`, `.test`, `.example` and the like) goes to the Outbox instead. Replies by email can't be received, so each email that would invite a reply says to use its link instead.
 - Texts aren't sent; they appear on the Outbox page. The ID and income checks are stand-ins. The AI is a stand-in too, unless you give it the Claude API's key (see [The AI](#the-ai)).
-- It's open to anyone with the address, never indexed, and every page has a banner saying it's the test copy. The Outbox, the test inbox and the stand-in checks are for Gaff's own team only (`STAFF_EMAILS`); anyone else gets "not found". There is no stand-in for Google or Apple: without their real keys, their buttons aren't shown.
+- It's open to anyone with the address and never indexed. Nothing on its pages says it is the test copy (the banner was taken off on 21 November 2026, Q62, so it looks as the real Gaff will): the address is how you tell. The Outbox, the test inbox and the stand-in checks are for Gaff's own team only (`STAFF_EMAILS`); anyone else gets "not found". There is no stand-in for Google or Apple: without their real keys, their buttons aren't shown.
 - **Use made-up details only.**
 
 It takes about 20 minutes. Production uses the same steps with real providers; see [Production, later](#production-later).
@@ -327,7 +327,7 @@ Sinch's own screens change. Where a label below doesn't match, look for the same
    _An older Sinch account_ has a **service plan** in place of the app and key (dashboard, **SMS**, **Service APIs**). Gaff takes that too: `SINCH_SERVICE_PLAN_ID` and `SINCH_API_TOKEN` in place of the four above, from a plan in the EU region, and `SINCH_FROM` as digits with no plus.
 6. **Redeploy** (**Deployments**, the newest one, **Redeploy**). Settings only reach a new deployment.
 7. **Check it**, with your own mobile, verified at Sinch if you're on a trial:
-   - the sign-in screen's field reads "Email or mobile number", and the banner says texts are real and asks for your own number;
+   - the sign-in screen's field reads "Email or mobile number";
    - type your mobile and press Continue: the text arrives within a few seconds, and the code signs you in (the first time, after one more code to your email);
    - if no text comes, the screen says "We couldn't send the text", and the reason is in Vercel's logs as "Sinch refused the SMS:" with Sinch's status. `401` is a wrong key, or an app or plan from another region; `403` and `404` are usually an app with no SMS channel, or a sender or a country the account may not use.
 8. **Before real people use it:**
@@ -337,7 +337,7 @@ Sinch's own screens change. Where a label below doesn't match, look for the same
    - **Sign Sinch's data processing agreement** and keep a copy (rule 10). The privacy notice already names Sinch.
    - **Send one real sign-in text to an iPhone and to an Android phone**, and check the code is offered above the keyboard.
 
-What changes on the test copy once it's on: sign-in offers a mobile number; the code to book a viewing is texted, no longer shown on the screen; and the 2-hour viewing reminder is a real text. Texts go only to a number someone typed themselves and, for reminders, confirmed with a code. A made-up number would text a stranger, which is why the banner changes.
+What changes on the test copy once it's on: sign-in offers a mobile number; the code to book a viewing is texted, no longer shown on the screen; and the 2-hour viewing reminder is a real text. Texts go only to a number someone typed themselves and, for reminders, confirmed with a code. A made-up number would text a stranger, and since 21 November 2026 no banner says so (Q62): tell everyone who tests to use their own mobile number once texts are on.
 
 To turn it off again: set `SMS_PROVIDER=fake` and redeploy. Sign-in goes back to "Email", and nobody loses their account: a mobile number is only ever a second way in.
 

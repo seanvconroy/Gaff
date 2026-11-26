@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Browser, BrowserContext, Page } from '@playwright/test';
 import pg from 'pg';
@@ -55,6 +55,7 @@ const pending = new Map<Journey, string>();
 /** Starts a run: its screenshots and manifest go to `screenshots/deck/<name>`. */
 export function startRun(name: string): void {
   dir = join('screenshots', 'deck', name);
+  rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
   entries = [];
   pending.clear();
@@ -175,8 +176,8 @@ async function photograph(
 
   if (open || height <= size.height + 8) {
     await take();
-  } else if (height <= size.height * 1.18) {
-    // A little longer than the window: one picture of all of it.
+  } else if (height <= size.height * 1.3) {
+    // A little longer than the window: one picture of all of it, not a second of its last lines.
     await page.setViewportSize({ width: size.width, height });
     await rest(page);
     await take();

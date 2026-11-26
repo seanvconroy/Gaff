@@ -72,13 +72,16 @@ function screensOf(chapter: Chapter): Screen[] {
     .flatMap((run) => readRun(run))
     .filter((entry) => entry.journey === chapter.journey)
     .filter((entry) => !edits.drop.includes(`${entry.run}/${entry.id}`));
-  const stages: string[] = [];
-  for (const entry of found) if (!stages.includes(entry.stage)) stages.push(entry.stage);
+  // The chapter's own order of stages first; one it doesn't name follows, as it was met.
+  const met: string[] = [];
+  for (const entry of found) if (!met.includes(entry.stage)) met.push(entry.stage);
+  const named = Object.keys(chapter.stages).filter((stage) => met.includes(stage));
+  const stages = [...named, ...met.filter((stage) => !named.includes(stage))];
   // A stage's screens stay together, even when a later run adds to it.
   const ordered = stages.flatMap((stage) => found.filter((entry) => entry.stage === stage));
   return ordered.map((entry, index) => ({
     ...entry,
-    ...(edits.retitle[`${entry.run}/${entry.id}`] ?? {}),
+    ...(edits.change[`${entry.run}/${entry.id}`] ?? {}),
     chapter,
     stageIndex: stages.indexOf(entry.stage),
     number: index + 1,
@@ -90,11 +93,12 @@ async function picture(run: string, file: string, device: Picture['device']): Pr
   const source = join(SHOTS, run, file);
   const name = `${run}-${file.replace(/\.png$/, '.jpg')}`;
   const target = join(IMAGES, name);
-  const width = device === 'desktop' ? 1680 : 600;
+  // Sharp enough to read full screen, small enough that 500 slides can be sent.
+  const width = device === 'desktop' ? 1440 : 520;
   if (!existsSync(target) || statSync(target).mtimeMs < statSync(source).mtimeMs) {
     await sharp(source)
       .resize({ width, withoutEnlargement: true })
-      .jpeg({ quality: 78, chromaSubsampling: '4:4:4', mozjpeg: true })
+      .jpeg({ quality: 70, chromaSubsampling: '4:2:0', mozjpeg: true })
       .toFile(target);
   }
   const size = await sharp(target).metadata();
@@ -147,6 +151,19 @@ function framed(pictures: Picture[]): { picture: Picture; width: number; height:
   });
 }
 
+/** A screen's address as the window's bar shows it: readable, and short. */
+function shownAddress(path: string): string {
+  const [pathname = '', query = ''] = path.split('?');
+  let readable = query;
+  try {
+    readable = decodeURIComponent(query);
+  } catch {
+    // Left as it is.
+  }
+  const short = readable && readable.length <= 26 && !readable.startsWith('next=');
+  return `gaff.ie${pathname === '/' && !short ? '' : pathname}${short ? `?${readable}` : ''}`;
+}
+
 const wordmark = (height: number, ink = 'currentColor') =>
   `<svg class="wordmark" viewBox="0 0 ${wordmarkSize.width} ${wordmarkSize.height}" height="${height}" role="img" aria-label="Gaff"><path fill="${ink}" d="${wordmarkLetters}"/><path fill="#3a5fa8" d="${wordmarkFullStop}"/></svg>`;
 
@@ -159,7 +176,7 @@ function frame(
   const where =
     screen.kind === 'email'
       ? `<span class="where mail">Email · ${escape(screen.path)}</span>`
-      : `<span class="where">${escape(screen.path)}</span>`;
+      : `<span class="where">${escape(shownAddress(screen.path))}</span>`;
   return `<div class="browser"><div class="bar"><i></i><i></i><i></i>${where}</div>${image}</div>`;
 }
 
@@ -198,10 +215,10 @@ function screenSlide(
   return `<section class="slide screen">
   <header>
     <div class="what">
-      <p class="crumb">${escape(screen.chapter.title)} <span>›</span> ${screen.stageIndex + 1}. ${escape(screen.stage)}</p>
+      <div class="top"><p class="crumb">${escape(screen.chapter.title)} <span>›</span> ${screen.stageIndex + 1}. ${escape(screen.stage)}</p><div class="chips">${chips}</div></div>
       ${title}
     </div>
-    <div class="about"><div class="chips">${chips}</div>${meanwhile}<p class="caption">${caption}</p></div>
+    <div class="about">${meanwhile}<p class="caption">${caption}</p></div>
   </header>
   <div class="panel">${framed(pictures)
     .map((f) => frame(f, screen))
@@ -299,6 +316,7 @@ async function main(): Promise<void> {
             <h4>What’s real and what isn’t</h4>
             <p>The screens are the real product, walked through by a script and photographed. Nothing is drawn or mocked up.</p>
             <p>The people, homes and agency are made up. Three things are stand-ins in this copy: the search map (Google Maps in production), the ID check (Stripe Identity in production, marked <span class="chip plain">Stand-in screen</span>) and the AI’s own words (Claude in production).</p>
+            <p>To mark who came to a viewing, the script moves the viewing to “now”, so the viewing day’s screens show the hour they were photographed.</p>
           </div>
         </div>
       </div>`,
@@ -434,6 +452,22 @@ ${readFileSync(join('scripts', 'deck', 'deck.css'), 'utf8')}
     await document.fonts.ready;
     await Promise.all([...document.images].map((image) => image.decode().catch(() => null)));
   });
+  // Words that have outgrown their place on a slide are said, not printed over something else.
+  const spilt = await tab.evaluate(() => {
+    const found: string[] = [];
+    document.querySelectorAll('.slide').forEach((slide, index) => {
+      const page = slide.getBoundingClientRect();
+      for (const part of ['.what', '.about', '.index', '.map', '.columns', '.contents', 'dl']) {
+        const box = slide.querySelector(part)?.getBoundingClientRect();
+        if (!box) continue;
+        const fits =
+          box.top >= page.top + 8 && box.bottom <= page.bottom - 34 && box.right <= page.right - 40;
+        if (!fits) found.push(`page ${index + 1}: ${part} doesn’t fit`);
+      }
+    });
+    return found;
+  });
+  for (const line of spilt) console.warn(line);
   await tab.pdf({
     path: OUT,
     width: `${SLIDE.width}px`,

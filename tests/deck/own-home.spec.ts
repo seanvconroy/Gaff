@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import pg from 'pg';
 import { E2E_DATABASE_URL } from '../../playwright.config';
@@ -524,6 +526,25 @@ test('Run A: Mary lets her own flat to Niamh, from sign-up to the results screen
       'Each home is a pin where its lister placed it. A pin opens the home’s card, photos and all. On a phone the map takes the whole screen.',
       { parts: 1 },
     );
+    // The desktop's picture again, reached the way a desktop reaches it: the pin pressed on the
+    // map beside the list. (A window stretched from a phone's open map leaves the list loading.)
+    await n.page.goto('/?where=Ranelagh');
+    for (let tries = 0; tries < 5 && !(await pin.isVisible()); tries++) {
+      const cluster = map.getByRole('button', { name: /homes here: zoom in$/ }).first();
+      if (await cluster.isVisible()) await cluster.click();
+      else await n.page.getByRole('button', { name: 'Zoom in' }).click();
+      await n.page.waitForTimeout(300);
+    }
+    await pin.click();
+    await n.page.waitForTimeout(1200);
+    await expect(n.page.locator('[class*="Skeleton"]')).toHaveCount(0);
+    const shots = JSON.parse(
+      readFileSync(join('screenshots', 'deck', 'own-home', 'manifest.json'), 'utf8'),
+    ) as { desktop: string[] }[];
+    await n.page.waitForTimeout(400);
+    await n.page.screenshot({
+      path: join('screenshots', 'deck', 'own-home', shots.at(-1)!.desktop[0]!),
+    });
     await n.page.setViewportSize(PHONE);
     await n.page.goto('/?where=Ranelagh');
   });

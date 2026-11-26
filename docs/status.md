@@ -307,6 +307,7 @@ Walking every screen turned up these, none fixed here:
 - **Two date fields use the browser's own control**, not Gaff's picker: "Date on the register" on a comparable rent, and "Pay by" on the payment request.
 - **"Enter it myself" on "Where is it?"** submits the step with an error if there is still text in the address search. Clearing the search first works. Not looked into further.
 - **Gmail's forwarding confirmation stays in Inbox** as "1 email Gaff couldn’t place" after the forwarding flow has used its code.
+- **A search list left loading:** seen twice while photographing, not looked into. With the map open on a phone and a pin's card showing, widening the window past 900px left the list beside the map on "Finding homes".
 - **Help** is still a placeholder.
 
 ## Known issues

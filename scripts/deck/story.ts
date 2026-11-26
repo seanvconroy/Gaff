@@ -80,7 +80,10 @@ export const chapters: Chapter[] = [
       'Without an account': 'Another way in: asking to view with only a name and an email.',
       'Arriving from Daft or MyHome':
         'Another way in: an enquiry on a portal, answered by Gaff’s first email.',
-      'If you’re the backup': 'What the second choice sees while the first is being checked.',
+      'Naming your references':
+        'The checks again, for a renter who has rented before and has an employer to ask.',
+      'If you’re the backup':
+        'The second choice does the same checks, and hears the same day if the home is let.',
       'If the home goes to someone else': 'Everyone who enquired is told, the same day.',
     },
   },
@@ -97,7 +100,31 @@ export const chapters: Chapter[] = [
       ['Tom Walsh', 'The owner. Approves the tenant, with no account.'],
       ['Aoife Byrne', 'The renter. Ciarán Ó Súilleabháin is the backup.'],
     ],
-    stages: {},
+    stages: {
+      'Signing up the agency':
+        'An emailed code, then the agency found by name on the PSRA register.',
+      'Adding the letting':
+        'Ann pastes her advert. Gaff reads it into the home’s facts, and she checks them.',
+      'Going live': 'A new agency is confirmed by Gaff’s team once. Then the home is live.',
+      'Forwarding enquiries':
+        'Daft and MyHome enquiries are forwarded from the agency’s inbox, and tested.',
+      'The home, live': 'The letting’s own page, a test enquiry, and the public page.',
+      'Inviting the team': 'A colleague is invited, joins, and sees every letting.',
+      'Enquiries from Daft and MyHome':
+        'Gaff replies within minutes, drafts what it can, and brings Ann the rest.',
+      'Choosing who views': 'The first decision. Gaff shows who meets what was asked; Ann invites.',
+      'The owner follows along': 'The owner gets a private link, with no account.',
+      'Viewing day': 'The calendar, the day’s viewings, and marking who came.',
+      'Choosing an applicant': 'The second decision: one applicant, and one backup.',
+      'Checks and references':
+        'ID, references, work and income for the two chosen, and nobody else.',
+      'The owner approves': 'Tom approves the tenant on his phone.',
+      'The offer': 'The third decision: comparable rents, the terms, and the offer sent.',
+      'The tenancy':
+        'The agreement signed, the money paid to the agency’s own account, the RTB, the keys.',
+      Finishing: 'The results, the owner’s summary, and the record that stays.',
+      'Around Gaff': 'Today, Lettings, Inbox, the account menu, Settings, Profile and Help.',
+    },
   },
 ];
 

@@ -523,8 +523,27 @@ h1.plain {
   background: #f4f5f7;
 }
 
+.map.dense {
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
 .map.dense a {
-  min-height: 92px;
+  min-height: 98px;
+  padding: 10px 10px 10px 40px;
+}
+
+.map.dense i {
+  left: 9px;
+  top: 10px;
+}
+
+.map.dense b {
+  font-size: 13px;
+}
+
+.map.dense span {
+  font-size: 10.5px;
 }
 
 .map i {

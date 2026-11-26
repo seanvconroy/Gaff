@@ -29,10 +29,28 @@ export default defineConfig({
     timezoneId: 'Europe/Dublin',
     trace: 'off',
     screenshot: 'only-on-failure',
-    viewport: { width: 1280, height: 800 },
-    deviceScaleFactor: 2,
+    // A control that isn't there fails the run in seconds, not at the half-hour.
+    actionTimeout: 20_000,
+    // The browser's own date fields follow the machine's language, not the page's: day first.
+    launchOptions: {
+      env: {
+        ...(process.env as Record<string, string>),
+        LANG: 'en_GB.UTF-8',
+        LC_ALL: 'en_GB.UTF-8',
+        LANGUAGE: 'en_GB',
+      },
+    },
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], deviceScaleFactor: 2 } }],
+  projects: [
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 800 },
+        deviceScaleFactor: 2,
+      },
+    },
+  ],
   webServer: {
     command: `pnpm start --port ${port}`,
     url: `http://localhost:${port}/api/health/live`,

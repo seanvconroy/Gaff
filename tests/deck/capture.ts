@@ -102,9 +102,15 @@ async function rest(page: Page): Promise<void> {
   });
 }
 
-/** Waits for the pictures in view to arrive (a lazy one starts loading when scrolled to). */
+/**
+ * Waits for the pictures in view to arrive (a lazy one starts loading when scrolled to), and for
+ * anything still shown as a skeleton: a list that follows the map loads again when the map moves.
+ */
 async function picturesInView(page: Page): Promise<void> {
   await page.waitForTimeout(150);
+  await page
+    .waitForFunction(() => !document.querySelector('[class*="Skeleton"]'), null, { timeout: 8000 })
+    .catch(() => {});
   await page.evaluate(async () => {
     const inView = [...document.images].filter((image) => {
       const box = image.getBoundingClientRect();
@@ -183,12 +189,14 @@ async function photograph(
     await take();
     await page.setViewportSize(size);
   } else {
-    const step = Math.round(size.height * 0.88);
-    const needed = Math.ceil((height - size.height) / step) + 1;
+    // As few windows as show the whole page, spread evenly; a very long page is cut short. Each
+    // overlaps the last by a seventh or more, so nothing is lost under a bar that stays put.
+    const below = height - size.height;
+    const needed = Math.ceil(below / (size.height * 0.85)) + 1;
     const count = Math.min(needed, parts);
+    const step = needed <= parts ? below / (needed - 1) : size.height * 0.9;
     for (let part = 0; part < count; part++) {
-      const last = part === count - 1 && needed <= parts;
-      const top = last ? height - size.height : part * step;
+      const top = Math.round(part * step);
       await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), top);
       await take();
     }

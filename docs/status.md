@@ -297,6 +297,18 @@ Left open, on purpose:
 - Funnel baselines still need recording from the test copy (section 9's note).
 - Everything the founder and the solicitor need to do before real users is in [launch-checklist.md](launch-checklist.md).
 
+## The user-journey deck (26 November 2026)
+
+`docs/decks/gaff-user-journeys.pdf` shows every screen of three journeys end to end, at desktop and phone width: a private landlord letting her own flat, a renter renting it, and an agent letting for an owner. It is photographed from the product by `tests/deck` and laid out by `scripts/deck` (`pnpm deck:capture`, then `pnpm deck:build`; see `docs/decks/README.md`). It is not a test: `pnpm check` and `pnpm test:e2e` don't run it.
+
+Walking every screen turned up these, none fixed here:
+
+- **A raw event code on Overview:** "Lately" shows `enquiry.confirmed` just after a renter opens their first link.
+- **Two date fields use the browser's own control**, not Gaff's picker: "Date on the register" on a comparable rent, and "Pay by" on the payment request.
+- **"Enter it myself" on "Where is it?"** submits the step with an error if there is still text in the address search. Clearing the search first works. Not looked into further.
+- **Gmail's forwarding confirmation stays in Inbox** as "1 email Gaff couldn’t place" after the forwarding flow has used its code.
+- **Help** is still a placeholder.
+
 ## Known issues
 
 - **The credit under the search suggestions can't be reached by keyboard:** found on 20 November 2026 while fixing a home card's link under the open list (below). "Places from OpenStreetMap" is a link inside the list of suggestions, and the list closes when the box loses focus. So Tab from the box with the list open goes to the link as it disappears: focus drops to the page, and the next Tab reaches Search. A pointer reaches the link; a keyboard can't. `PlaceSearch` ("Where") is built the same way. Not fixed here: the list should stay open while focus is inside it.

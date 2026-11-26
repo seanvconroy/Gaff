@@ -151,6 +151,7 @@ export const edits: {
     'Developments: an agency adding many alike homes in one step.',
     'Gaff’s own team’s pages: confirming agencies is shown once; reported listings, appeals and funnels are not.',
     'Signing in with Google, Apple or a passkey: the buttons are shown, the other companies’ screens are not.',
+    'Drawing an area on the search map, and the pages a saved search’s alert emails link to.',
     'The dark theme.',
   ],
   states: [
